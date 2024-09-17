@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "412327263",
+    "firebase_url": "https://am-twentyfour-default-rtdb.firebaseio.com",
+    "project_id": "am-twentyfour",
+    "storage_bucket": "am-twentyfour.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:412327263:android:9feadf90132a3a8b81eaea",
+        "android_client_info": {
+          "package_name": "com.am24.am24"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKzG2oVyPWjHMUKBLdxsloMfKDvp4tNBs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
