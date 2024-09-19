@@ -49,18 +49,13 @@ class CreatePostActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseDatabase.getInstance("https://am-twentyfour-default-rtdb.firebaseio.com/").reference
         storage = FirebaseStorage.getInstance()
-
+        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
         setContent {
             CreatePostScreen(
-                onNavigateToTextPost = { navigateToBlogPost() },
                 onNavigateToPhotoPost = { navigateToPhotoPost() },
                 onNavigateToVideoPost = { navigateToVideoPost() }
             )
         }
-    }
-
-    private fun navigateToBlogPost() {
-        startActivity(Intent(this, BlogPostActivity::class.java))
     }
 
     private fun navigateToPhotoPost() {
@@ -74,7 +69,6 @@ class CreatePostActivity : ComponentActivity() {
 
 @Composable
 fun CreatePostScreen(
-    onNavigateToTextPost: () -> Unit,
     onNavigateToPhotoPost: () -> Unit,
     onNavigateToVideoPost: () -> Unit
 ) {
@@ -90,9 +84,6 @@ fun CreatePostScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Button(onClick = onNavigateToTextPost) {
-                Text("Blog")
-            }
             Button(onClick = onNavigateToPhotoPost) {
                 Text("Photo")
             }
@@ -103,172 +94,6 @@ fun CreatePostScreen(
     }
 }
 
-// BlogPostActivity for uploading documents and blog writing
-class BlogPostActivity : ComponentActivity() {
-
-    private lateinit var auth: FirebaseAuth
-    private lateinit var db: DatabaseReference
-    private lateinit var storage: FirebaseStorage
-    private lateinit var documentPickerLauncher: ActivityResultLauncher<String>
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        auth = FirebaseAuth.getInstance()
-        db = FirebaseDatabase.getInstance("https://am-twentyfour-default-rtdb.firebaseio.com/").reference
-        storage = FirebaseStorage.getInstance()
-
-        documentPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-            uri?.let { uploadDocument(it) }
-        }
-
-        setContent {
-            BlogPostScreen(
-                onUpload = { launchDocumentPicker() },
-                onWrite = { navigateToWriteBlog() }
-            )
-        }
-    }
-
-    private fun launchDocumentPicker() {
-        documentPickerLauncher.launch("*/*")
-    }
-
-    private fun uploadDocument(uri: Uri) {
-        val userId: String = auth.currentUser?.uid ?: return
-        val storageRef = storage.reference.child("blog_posts/$userId/${UUID.randomUUID()}")
-
-        storageRef.putFile(uri)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Document uploaded successfully!", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, "Document upload failed", Toast.LENGTH_SHORT).show()
-            }
-    }
-
-    private fun navigateToWriteBlog() {
-        startActivity(Intent(this, BlogWritingActivity::class.java))
-    }
-}
-
-@Composable
-fun BlogPostScreen(
-    onUpload: () -> Unit,
-    onWrite: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Create a Blog Post", fontSize = 24.sp)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = onUpload) {
-            Text("Upload Document (Excel, Doc, PDF)")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = onWrite) {
-            Text("Write Blog")
-        }
-    }
-}
-
-// BlogWritingActivity to submit blog post and navigate to PostDetailsActivity
-class BlogWritingActivity : ComponentActivity() {
-
-    private lateinit var auth: FirebaseAuth
-    private lateinit var db: DatabaseReference
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        auth = FirebaseAuth.getInstance()
-        db = FirebaseDatabase.getInstance("https://am-twentyfour-default-rtdb.firebaseio.com/").reference
-
-        setContent {
-            BlogWritingScreen(
-                onSubmit = { blogTitle, blogContent ->
-                    val intent = Intent(this, PostDetailsActivity::class.java)
-                    intent.putExtra("postType", PostType.TEXT.name)
-                    intent.putExtra("title", blogTitle)
-                    intent.putExtra("content", blogContent)
-                    startActivity(intent)
-                    finish()
-                }
-            )
-        }
-    }
-}
-
-@Composable
-fun BlogWritingScreen(onSubmit: (String, String) -> Unit) {
-    var blogTitle by remember { mutableStateOf("") }
-    var blogContent by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Write your blog",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Title Input
-        Text(text = "Blog Title:", fontSize = 18.sp)
-        BasicTextField(
-            value = blogTitle,
-            onValueChange = { blogTitle = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .height(50.dp),
-            textStyle = LocalTextStyle.current.copy(color = androidx.compose.ui.graphics.Color.Black),
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Blog Content Input
-        Text(text = "Blog Content:", fontSize = 18.sp)
-        BasicTextField(
-            value = blogContent,
-            onValueChange = { blogContent = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .height(300.dp),
-            textStyle = LocalTextStyle.current.copy(color = androidx.compose.ui.graphics.Color.Black),
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Submit button
-        Button(
-            onClick = {
-                if (blogTitle.isNotEmpty() && blogContent.isNotEmpty()) {
-                    onSubmit(blogTitle, blogContent)
-                } else {
-                    Toast.makeText(null, "Please fill out the title and content", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Submit Blog")
-        }
-    }
-}
 
 // Updated PhotoPostActivity
 class PhotoPostActivity : ComponentActivity() {
@@ -299,7 +124,7 @@ class PhotoPostActivity : ComponentActivity() {
                 Toast.makeText(this, "Failed to capture photo", Toast.LENGTH_SHORT).show()
             }
         }
-
+        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
         setContent {
             PhotoPostScreen(
                 onUpload = { launchImagePicker() },
@@ -427,7 +252,7 @@ class VideoPostActivity : ComponentActivity() {
                 Toast.makeText(this, "Failed to record video", Toast.LENGTH_SHORT).show()
             }
         }
-
+        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
         setContent {
             VideoPostScreen(
                 onUpload = { launchVideoPicker() }, // Video picker trigger function

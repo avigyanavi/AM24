@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 class SplashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
         setContent {
             AppTheme {
                 SplashScreen {

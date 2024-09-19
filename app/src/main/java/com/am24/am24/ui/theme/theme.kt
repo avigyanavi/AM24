@@ -1,10 +1,22 @@
 package com.am24.am24.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+
+@Composable
+fun BlogTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = lightColorScheme(
+            primary = Color.White,
+            onPrimary = Color.Black,
+            secondary = Color.Black,
+            background = Color.White,
+            onBackground = Color.Black
+        ),
+        content = content
+    )
+}
 
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
@@ -14,7 +26,6 @@ fun AppTheme(content: @Composable () -> Unit) {
             onPrimary = Color.White,
             secondary = Color.White,
             background = Color.Black,
-            onSecondary = Color.White,
             onBackground = Color.White
         ),
         content = content
