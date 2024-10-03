@@ -68,14 +68,24 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.libphonenumber)
     implementation(libs.coil.compose)
-    implementation(libs.firebase.database.ktx)
     implementation(libs.androidx.activity.compose.v180)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.recyclerview)
     implementation(libs.glide)
     implementation(libs.ccp)
-    implementation("androidx.compose.material:material-icons-extended:1.0.1")
-    implementation("com.google.android.exoplayer:exoplayer:2.17.1")
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.exoplayer.v2171)
+
+    // For Coil image loading
+    implementation(libs.coil.compose.v222)
+
+
+    // For Jetpack Compose Navigation
+    implementation(libs.androidx.navigation.compose)
+
+    // For Coroutines and Firebase
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.firebase.database.ktx.v2022)
     implementation(libs.coil.compose.v200)
     implementation(libs.material.v150)
 
@@ -91,6 +101,7 @@ dependencies {
     implementation(libs.picasso)
     implementation(libs.material)
     implementation(libs.androidx.webkit)
+    implementation(libs.androidx.compose.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

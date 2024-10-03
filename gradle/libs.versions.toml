@@ -6,9 +6,13 @@ cameraView = "1.3.4"
 ccp = "2.7.3"
 coilCompose = "2.4.0"
 coilComposeVersion = "2.0.0"
+coilKtCoilCompose = "2.2.2"
 core = "1.45.0"
 coreKtxVersion = "1.8.0"
 exoplayer = "2.19.1"
+exoplayerVersion = "2.17.1"
+firebaseDatabaseKtxVersion = "20.2.2"
+foundationLayout = "1.7.2"
 glide = "4.16.0"
 googleMaterial = "1.5.0"
 kotlin = "1.9.0"
@@ -16,6 +20,7 @@ coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+kotlinxCoroutinesAndroid = "1.7.3"
 libphonenumber = "8.13.18"
 lifecycleRuntimeKtx = "2.8.4"
 activityCompose = "1.9.1"
@@ -29,7 +34,9 @@ firebaseFunctions = "21.0.0"
 firebaseMessaging = "24.0.0"
 firebaseDatabaseKtx = "21.0.0"
 appcompat = "1.7.0"
+materialIconsExtended = "1.7.2"
 materialVersion = "1.6.8"
+navigationCompose = "2.8.1"
 opencvAndroid = "4.5.5"
 photoeditor = "1.1.0"
 picasso = "2.71828"
@@ -38,6 +45,7 @@ recyclerviewV7 = "28.0.0"
 material = "1.12.0"
 ucrop = "2.2.9"
 webkit = "1.11.0"
+composeMaterial = "1.4.0"
 
 [libraries]
 android-video-trimmer = { module = "com.github.srikanth-lingala:android-video-trimmer", version.ref = "androidVideoTrimmer" }
@@ -47,12 +55,19 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraView" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-ktx-v180 = { module = "androidx.core:core-ktx", version.ref = "coreKtxVersion" }
+androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundationLayout" }
+androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundationLayout" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "materialVersion" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 ccp = { module = "com.hbb20:ccp", version.ref = "ccp" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 coil-compose-v200 = { module = "io.coil-kt:coil-compose", version.ref = "coilComposeVersion" }
+coil-compose-v222 = { module = "io.coil-kt:coil-compose", version.ref = "coilKtCoilCompose" }
 core = { module = "com.google.ar:core", version.ref = "core" }
 exoplayer = { module = "com.google.android.exoplayer:exoplayer", version.ref = "exoplayer" }
+exoplayer-v2171 = { module = "com.google.android.exoplayer:exoplayer", version.ref = "exoplayerVersion" }
+firebase-database-ktx-v2022 = { module = "com.google.firebase:firebase-database-ktx", version.ref = "firebaseDatabaseKtxVersion" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -74,6 +89,7 @@ firebase-storage = { group = "com.google.firebase", name = "firebase-storage", v
 firebase-functions = { group = "com.google.firebase", name = "firebase-functions", version.ref = "firebaseFunctions" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 libphonenumber = { module = "com.googlecode.libphonenumber:libphonenumber", version.ref = "libphonenumber" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
@@ -85,6 +101,7 @@ recyclerview-v7 = { group = "com.android.support", name = "recyclerview-v7", ver
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
+androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

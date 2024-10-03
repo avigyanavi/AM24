@@ -4,9 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.Composable
+import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
 import com.am24.am24.ui.theme.AppTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -14,37 +17,24 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
-        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-        setContent {
-            AppTheme {
-                MainScreen(
-                    onNavigateToLanding = {
-                        startActivity(Intent(this, LandingActivity::class.java))
-                        finish()
-                    },
-                    onNavigateToExplore = {
-                        startActivity(Intent(this, ExploreActivity::class.java))
-                        finish()
-                    }
-                )
+
+        // Launch a coroutine within the lifecycle scope
+        lifecycleScope.launch(Dispatchers.IO) {
+            val currentUser = auth.currentUser
+
+            withContext(Dispatchers.Main) {
+                if (currentUser != null) {
+                    // User is logged in, navigate to ExploreActivity
+                    startActivity(Intent(this@MainActivity, HomeActivity::class.java))
+                } else {
+                    // User is not logged in, navigate to LandingActivity
+                    startActivity(Intent(this@MainActivity, LandingActivity::class.java))
+                }
+                finish()  // Finish MainActivity so the user cannot navigate back to it
             }
         }
-    }
-}
-
-@Composable
-fun MainScreen(
-    onNavigateToLanding: () -> Unit,
-    onNavigateToExplore: () -> Unit
-) {
-    val auth = FirebaseAuth.getInstance()
-    val currentUser = auth.currentUser
-    if (currentUser != null) {
-        // User is logged in, navigate to Explore page
-        onNavigateToExplore()
-    } else {
-        // No user is logged in, navigate to Landing page
-        onNavigateToLanding()
     }
 }
