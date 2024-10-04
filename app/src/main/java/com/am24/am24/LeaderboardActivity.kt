@@ -27,13 +27,15 @@ class LeaderboardActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LeaderboardScreen(onBackClick: () -> Unit) {
+fun LeaderboardScreen(navController: NavHostController? = null, onBackClick: (() -> Unit)? = null) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "Leaderboard", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { onBackClick() }) {
+                    IconButton(onClick = {
+                        onBackClick?.invoke() ?: navController?.navigateUp()
+                    }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -73,6 +75,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
         }
     }
 }
+
 
 @Composable
 fun LeaderboardEntry(rank: Int, username: String, score: Int) {

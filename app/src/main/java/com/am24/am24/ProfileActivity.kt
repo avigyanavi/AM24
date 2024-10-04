@@ -60,7 +60,7 @@ class ProfileActivity : ComponentActivity() {
                         2 -> "Profile"
                         3 -> "Dating"
                         4 -> "Settings"
-                        else -> "KolkataCupid"
+                        else -> "CupidxKolkata"
                     }
                 }
             )
@@ -270,7 +270,7 @@ fun ProfileScreen(
 
                 if (showMetrics) {
                     UserInfoSectionDetailed(profile = profile.value, onLeaderboardClick = {
-                        navController.navigate("leaderboard")
+                        navController.navigate("leaderboardActivity")
                     })
                 }
 

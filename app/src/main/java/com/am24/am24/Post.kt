@@ -14,11 +14,11 @@ data class Post(
     val profilepicUrl: String? = null,
 
     // Engagement Metrics
-    val upvotes: Int = 0,  // Number of upvotes for this post
-    val downvotes: Int = 0,  // Number of downvotes for this post
+    var upvotes: Int = 0,  // Number of upvotes for this post
+    var downvotes: Int = 0,  // Number of downvotes for this post
     val totalComments: Int = 0,  // Number of comments (in case commenting is added later)
-    val upvotedUsers: MutableList<String> = mutableListOf(),  // Track users who upvoted
-    val downvotedUsers: MutableList<String> = mutableListOf(),  // Track users who downvoted
+    var upvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
+    var downvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
 
     // Tags and Location
     val userTags: List<String> = emptyList(),  // Tags related to the content or user

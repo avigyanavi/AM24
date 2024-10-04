@@ -53,6 +53,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -60,6 +61,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.FileProvider
 import androidx.navigation.compose.composable
+import com.am24.am24.ui.theme.White
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,7 +81,7 @@ class HomeActivity : ComponentActivity() {
                         2 -> "Profile"
                         3 -> "Dating"
                         4 -> "Settings"
-                        else -> "AM24"
+                        else -> "CupidxKolkata"
                     }
                 }
             )
@@ -557,26 +559,111 @@ fun FeedSection(
                         currentlyPlayingPostId = postId
                     },
                     onUpvote = {
-                        // Upvote logic
                         val postRef = FirebaseDatabase.getInstance().getReference("posts").child(post.postId)
-                        val newUpvotes = post.upvotes + 1
-                        postRef.child("upvotes").setValue(newUpvotes)
-                        // Update local state
-                        val index = posts.indexOfFirst { it.postId == post.postId }
-                        if (index != -1) {
-                            posts[index] = posts[index].copy(upvotes = newUpvotes)
-                        }
+                        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@FeedItem
+
+                        postRef.runTransaction(object : Transaction.Handler {
+                            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                                val post = currentData.getValue(Post::class.java) ?: return Transaction.success(currentData)
+
+                                // Initialize the upvoted and downvoted maps if they are null
+                                if (post.upvotedUsers == null) {
+                                    post.upvotedUsers = mutableMapOf()
+                                }
+                                if (post.downvotedUsers == null) {
+                                    post.downvotedUsers = mutableMapOf()
+                                }
+
+                                // Check if the user has already upvoted
+                                if (post.upvotedUsers.containsKey(currentUserId)) {
+                                    // Remove the upvote
+                                    post.upvotedUsers.remove(currentUserId)
+                                    post.upvotes -= 1
+                                } else {
+                                    // If the user has downvoted, remove the downvote first
+                                    if (post.downvotedUsers.containsKey(currentUserId)) {
+                                        post.downvotedUsers.remove(currentUserId)
+                                        post.downvotes -= 1
+                                    }
+                                    // Add the upvote
+                                    post.upvotedUsers[currentUserId] = true
+                                    post.upvotes += 1
+                                }
+
+                                // Set the updated post data back
+                                currentData.value = post
+                                return Transaction.success(currentData)
+                            }
+
+                            override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+                                if (error != null) {
+                                    Toast.makeText(context, "Failed to update upvote: ${error.message}", Toast.LENGTH_SHORT).show()
+                                } else if (committed) {
+                                    // Update the UI immediately by finding and updating the corresponding post in your UI state
+                                    val updatedPost = currentData?.getValue(Post::class.java)
+                                    if (updatedPost != null) {
+                                        val index = posts.indexOfFirst { it.postId == updatedPost.postId }
+                                        if (index != -1) {
+                                            posts[index] = updatedPost
+                                        }
+                                    }
+                                }
+                            }
+                        })
                     },
+
                     onDownvote = {
-                        // Downvote logic
                         val postRef = FirebaseDatabase.getInstance().getReference("posts").child(post.postId)
-                        val newDownvotes = post.downvotes + 1
-                        postRef.child("downvotes").setValue(newDownvotes)
-                        // Update local state
-                        val index = posts.indexOfFirst { it.postId == post.postId }
-                        if (index != -1) {
-                            posts[index] = posts[index].copy(downvotes = newDownvotes)
-                        }
+                        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@FeedItem
+
+                        postRef.runTransaction(object : Transaction.Handler {
+                            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                                val post = currentData.getValue(Post::class.java) ?: return Transaction.success(currentData)
+
+                                // Initialize the upvoted and downvoted maps if they are null
+                                if (post.upvotedUsers == null) {
+                                    post.upvotedUsers = mutableMapOf()
+                                }
+                                if (post.downvotedUsers == null) {
+                                    post.downvotedUsers = mutableMapOf()
+                                }
+
+                                // Check if the user has already downvoted
+                                if (post.downvotedUsers.containsKey(currentUserId)) {
+                                    // Remove the downvote
+                                    post.downvotedUsers.remove(currentUserId)
+                                    post.downvotes -= 1
+                                } else {
+                                    // If the user has upvoted, remove the upvote first
+                                    if (post.upvotedUsers.containsKey(currentUserId)) {
+                                        post.upvotedUsers.remove(currentUserId)
+                                        post.upvotes -= 1
+                                    }
+                                    // Add the downvote
+                                    post.downvotedUsers[currentUserId] = true
+                                    post.downvotes += 1
+                                }
+
+                                // Set the updated post data back
+                                currentData.value = post
+                                return Transaction.success(currentData)
+                            }
+
+                            override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+                                if (error != null) {
+                                    Toast.makeText(context, "Failed to update downvote: ${error.message}", Toast.LENGTH_SHORT).show()
+                                } else if (committed) {
+                                    // Update the UI immediately by finding and updating the corresponding post in your UI state
+                                    val updatedPost = currentData?.getValue(Post::class.java)
+                                    if (updatedPost != null) {
+                                        val index = posts.indexOfFirst { it.postId == updatedPost.postId }
+                                        if (index != -1) {
+                                            posts[index] = updatedPost
+                                        }
+                                    }
+                                }
+                            }
+                        })
                     },
                     onUserClick = {
                         // Navigate to user's profile
@@ -918,7 +1005,7 @@ fun FeedItem(
                 )
             }
 
-            // Voice Note Playback UI
+            // Voice Note Playback UI (Added seek functionality)
             if (!post.voiceUrl.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -926,7 +1013,8 @@ fun FeedItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
-                        .background(Color.DarkGray, RoundedCornerShape(12.dp)) // Rounded container for a softer look
+                        .background(Color.Black, RoundedCornerShape(12.dp))
+                        .border(border = BorderStroke(2.dp, Color.White), shape = CutCornerShape(8.dp))
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     IconButton(onClick = {
@@ -951,7 +1039,6 @@ fun FeedItem(
                                 prepareAsync()
                             }
                         } else {
-                            // Toggle play/pause
                             if (!isPlaying) {
                                 mediaPlayer?.start()
                                 isPlaying = true
@@ -970,14 +1057,30 @@ fun FeedItem(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Audio Duration
+                    // Audio Duration (Countdown)
                     Text(
-                        text = if (isPrepared) formatDuration(duration) else "0:00",
+                        text = if (isPrepared) formatDuration((duration - currentPosition)) else "0:00",
                         color = Color.White,
                         fontSize = 14.sp
                     )
                 }
+
+                // Slider to allow users to seek within the audio
+                if (isPrepared) {
+                    Slider(
+                        value = currentPosition.toFloat(),
+                        onValueChange = { value ->
+                            mediaPlayer?.seekTo(value.toInt())
+                        },
+                        valueRange = 0f..duration.toFloat(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                }
             }
+
 
             // Hashtags Below Main Content
             if (post.userTags.isNotEmpty()) {
@@ -1130,7 +1233,7 @@ fun FeedItem(
                     ) {
                         IconButton(onClick = onUpvote) {
                             Icon(
-                                Icons.Default.ThumbUp,
+                                Icons.Default.ArrowUpward,
                                 contentDescription = "Upvote",
                                 tint = Color(0xFF00ff00) // Brighter green for upvote
                             )
@@ -1143,7 +1246,7 @@ fun FeedItem(
                     ) {
                         IconButton(onClick = onDownvote) {
                             Icon(
-                                Icons.Default.ThumbDown,
+                                Icons.Default.ArrowDownward,
                                 contentDescription = "Downvote",
                                 tint = Color(0xffff0000) // Brighter red for downvote
                             )
@@ -1185,19 +1288,20 @@ fun PostInputSection(
     val context = LocalContext.current
 
     // Increase recording duration every second when recording is in progress
+    // Voice Recording Controls (updated duration limit to 600 seconds)
     LaunchedEffect(isRecording) {
         if (isRecording) {
-            while (isRecording && recordingDuration < 150) {
+            while (isRecording && recordingDuration < 600) {
                 delay(1000L)
                 recordingDuration++
             }
 
-            if (recordingDuration >= 150) {
+            if (recordingDuration >= 600) {
                 // Stop recording if limit is reached
                 onRecordClick()
                 Toast.makeText(
                     context,
-                    "Recording limit reached (2.5 minutes)",
+                    "Recording limit reached (10 minutes)",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -1239,11 +1343,7 @@ fun PostInputSection(
 
             OutlinedTextField(
                 value = postContent,
-                onValueChange = {
-                    if (it.text.length <= 1000) {
-                        onValueChange(it)
-                    }
-                },
+                onValueChange = { onValueChange(it) },
                 placeholder = { Text("Type your thoughts/Voice your opinion", color = Color.Gray) },
                 textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 16.sp),
                 modifier = Modifier.weight(1f),
@@ -1257,7 +1357,7 @@ fun PostInputSection(
             )
         }
 
-        // Visual indicator during recording
+        // Visual indicator during recording (updated to use animatedAmplitude)
         if (isRecording) {
             Canvas(
                 modifier = Modifier
@@ -1268,8 +1368,8 @@ fun PostInputSection(
                 val barWidth = 3.dp.toPx()
                 val spaceWidth = 1.dp.toPx()
                 val numBars = (size.width / (barWidth + spaceWidth)).toInt()
-                val maxAmplitude = 32767f // Max amplitude for 16-bit audio
-                val normalizedAmplitude = (amplitude / maxAmplitude).coerceIn(0f, 1f)
+                val maxAmplitude = 32767f
+                val normalizedAmplitude = (animatedAmplitude / maxAmplitude).coerceIn(0f, 1f)
                 val barHeight = size.height * normalizedAmplitude
 
                 for (i in 0 until numBars) {
@@ -1282,6 +1382,7 @@ fun PostInputSection(
                 }
             }
         }
+
 
         // Playback and Delete controls after recording is completed
         if (!isRecording && audioFilePath != null) {

@@ -91,6 +91,9 @@ fun UnifiedScaffold(
                 composable("peopleWhoLikeMe") {
                     PeopleWhoLikeMeScreen(navController = navController)
                 }
+                composable("leaderboard") {
+                    LeaderboardScreen(navController = navController)
+                }
             }
         }
     )
