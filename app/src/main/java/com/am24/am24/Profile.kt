@@ -10,6 +10,8 @@ data class Profile(
     val bio: String = "",  // One-liner bio
     val interests: List<String> = emptyList(),  // Interests for matching purposes
     val hometown: String = "",
+    val highSchool: String = "",  // User's high school
+    val college: String = "",  // User's college
     val profilepicUrl: String? = null,
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos
     val matches: List<String> = emptyList(),  // List of matched user IDs

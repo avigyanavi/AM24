@@ -7,11 +7,14 @@ data class Post(
     val postId: String = "",
     val userId: String = "",  // ID of the user who created the post
     val username: String = "",  // Username of the person who posted
-    val contentText: String = "",  // The text content of the post (could be transcription from voice)
-    val voiceUrl: String? = null,  // URL for the voice recording in Firebase Storage
-    val transcriptedText: String? = null,  // Transcription of the voice note
+    val contentText: String = "",  // The text content of the post
     val timestamp: Any = ServerValue.TIMESTAMP,  // Timestamp of post creation
     val profilepicUrl: String? = null,
+    val isBold: Boolean = false,
+    val isItalic: Boolean = false,
+    val isStrikethrough: Boolean = false,
+    val fontFamily: String = "Default",
+    val fontSize: Int = 14,
 
     // Engagement Metrics
     var upvotes: Int = 0,  // Number of upvotes for this post
@@ -22,10 +25,10 @@ data class Post(
 
     // Tags and Location
     val userTags: List<String> = emptyList(),  // Tags related to the content or user
-    val locationTags: List<String> = emptyList(),  // Location-based tags for discoverability
 
     // Comments Section
     val comments: Map<String, Comment> = emptyMap(),
+
     // Calculated Metrics for Leaderboard
     val upvoteToDownvoteRatio: Double = 0.0  // Ratio of upvotes to downvotes for leaderboard rankings
 ) {
@@ -39,7 +42,13 @@ data class Comment(
     val userId: String = "",
     val username: String = "",
     val commentText: String = "",
-    val timestamp: Any = ServerValue.TIMESTAMP
+    val timestamp: Any = ServerValue.TIMESTAMP,
+
+    // Engagement Metrics for Comments
+    var upvotes: Int = 0,  // Number of upvotes for this comment
+    var downvotes: Int = 0,  // Number of downvotes for this comment
+    var upvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
+    var downvotedUsers: MutableMap<String, Boolean> = mutableMapOf()
 ) {
     fun getCommentTimestamp(): Long {
         return if (timestamp is Long) {
@@ -49,4 +58,3 @@ data class Comment(
         }
     }
 }
-

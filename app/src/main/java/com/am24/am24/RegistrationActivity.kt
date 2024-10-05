@@ -69,6 +69,7 @@ class RegistrationActivity : ComponentActivity() {
         }
     }
 }
+
 class RegistrationViewModel : ViewModel() {
     var email by mutableStateOf("")
     var password by mutableStateOf("")
@@ -83,6 +84,8 @@ class RegistrationViewModel : ViewModel() {
     var promptsAndAnswers = mutableStateMapOf<String, String>()
     var hometown by mutableStateOf("")
     var bio by mutableStateOf("")
+    var highSchool by mutableStateOf("")
+    var college by mutableStateOf("")
 }
 
 @Composable
@@ -92,14 +95,12 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
 
     val context = LocalContext.current
 
-    val onNext = { currentStep += 1 } // Use += operator
+    val onNext = { currentStep += 1 }
     val onBack: () -> Unit = {
         if (currentStep > 1) {
-            currentStep -= 1 // Returns Unit
+            currentStep -= 1
         } else {
-            // Close the activity if on the first step
             (context as? ComponentActivity)?.finish()
-            // Explicitly return Unit to ensure the lambda returns Unit
         }
     }
 
@@ -110,9 +111,141 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
         4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
         5 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
         6 -> EnterPromptsAndAnswersScreen(registrationViewModel, onNext, onBack)
-        7 -> EnterHometownScreen(registrationViewModel, onNext, onBack)
+        7 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
         8 -> EnterProfileHeadlineScreen(registrationViewModel, onRegistrationComplete, onBack)
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnterLocationAndSchoolScreen(registrationViewModel: RegistrationViewModel, onNext: () -> Unit, onBack: () -> Unit) {
+    val highSchools = listOf("St. Xavier's High School", "Delhi Public School", "Modern High School")
+    val colleges = listOf("IIT Delhi", "Jadavpur University", "St. Xavier's College")
+
+    var city by remember { mutableStateOf(registrationViewModel.hometown) }
+    var highSchool by remember { mutableStateOf(registrationViewModel.highSchool) }
+    var college by remember { mutableStateOf(registrationViewModel.college) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            )
+        },
+        content = { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // City Input
+                    Text("Enter Your City", color = Color.White, fontSize = 18.sp)
+                    OutlinedTextField(
+                        value = city,
+                        onValueChange = {
+                            city = it
+                            registrationViewModel.hometown = it
+                        },
+                        label = { Text("City", color = Color(0xFF00bf63)) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color(0xFF00bf63)
+                        )
+                    )
+
+                    // High School Dropdown and Custom Input
+                    Text("Select or Enter Your High School", color = Color.White, fontSize = 18.sp)
+                    OutlinedTextField(
+                        value = highSchool,
+                        onValueChange = {
+                            highSchool = it
+                            registrationViewModel.highSchool = it
+                        },
+                        label = { Text("High School", color = Color(0xFF00bf63)) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color(0xFF00bf63)
+                        )
+                    )
+
+                    // College Dropdown and Custom Input
+                    Text("Select or Enter Your College", color = Color.White, fontSize = 18.sp)
+                    OutlinedTextField(
+                        value = college,
+                        onValueChange = {
+                            college = it
+                            registrationViewModel.college = it
+                        },
+                        label = { Text("College", color = Color(0xFF00bf63)) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color(0xFF00bf63)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Next Button
+                    Button(
+                        onClick = { onNext() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        shape = CircleShape,
+                        elevation = ButtonDefaults.buttonElevation(8.dp)
+                    ) {
+                        Text(
+                            text = "Next",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
 
 

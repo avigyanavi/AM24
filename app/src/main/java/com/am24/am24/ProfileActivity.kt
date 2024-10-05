@@ -60,7 +60,7 @@ class ProfileActivity : ComponentActivity() {
                         2 -> "Profile"
                         3 -> "Dating"
                         4 -> "Settings"
-                        else -> "CupidxKolkata"
+                        else -> "CupidxIndia"
                     }
                 }
             )

@@ -1,67 +1,49 @@
+@file:OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+
 package com.am24.am24
 
-import android.Manifest
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.media.MediaPlayer
-import android.media.MediaRecorder
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.*
-import androidx.core.content.ContextCompat
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.*
-import coil.compose.AsyncImage
-import com.am24.am24.Post
-import com.am24.am24.Profile
-import com.am24.am24.ui.theme.AppTheme
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
-import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageMetadata
-import kotlinx.coroutines.*
-import kotlinx.coroutines.tasks.await
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.content.FileProvider
-import androidx.navigation.compose.composable
-import com.am24.am24.ui.theme.White
+import androidx.compose.ui.unit.*
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.*
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,7 +63,7 @@ class HomeActivity : ComponentActivity() {
                         2 -> "Profile"
                         3 -> "Dating"
                         4 -> "Settings"
-                        else -> "CupidxKolkata"
+                        else -> "CupidxIndia"
                     }
                 }
             )
@@ -89,115 +71,20 @@ class HomeActivity : ComponentActivity() {
     }
 }
 
-
-
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int) -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     var postContent by remember { mutableStateOf(TextFieldValue("")) }
     var filterOption by remember { mutableStateOf("recent") }
     var showFilterMenu by remember { mutableStateOf(false) }
-    var isRecording by remember { mutableStateOf(false) }
-    var isPostSectionVisible by remember { mutableStateOf(false) } // Set to false by default
+    var isPostSectionVisible by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val addedUserTags = remember { mutableStateListOf<String>() }
-    val addedLocationTags = remember { mutableStateListOf<String>() }
-
-    val context = LocalContext.current
-    var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
-    var audioFilePath by remember { mutableStateOf<String?>(null) }
-    var amplitude by remember { mutableStateOf(0f) }
 
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     var isPosting by remember { mutableStateOf(false) }
-    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-    var isPlaying by remember { mutableStateOf(false) }
-
-    // Start recording function
-    fun startRecording(onStart: (MediaRecorder, String) -> Unit) {
-        val mediaRecorder = MediaRecorder()
-        val audioFile = File(context.externalCacheDir, "recorded_audio_${System.currentTimeMillis()}.m4a")
-        val audioFilePath = audioFile.absolutePath
-
-        try {
-            mediaRecorder.apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setAudioEncodingBitRate(128000)
-                setAudioSamplingRate(44100)
-                setOutputFile(audioFilePath)
-                prepare()
-                start()
-            }
-
-            onStart(mediaRecorder, audioFilePath)
-            android.util.Log.d("startRecording", "Recording started successfully")
-        } catch (e: Exception) {
-            android.util.Log.e("startRecording", "Failed to start recording: ${e.message}", e)
-            Toast.makeText(context, "Failed to start recording: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    // Stop recording function
-    fun stopRecording() {
-        try {
-            mediaRecorder?.apply {
-                stop()
-                reset()
-                release()
-            }
-            android.util.Log.d("stopRecording", "Recording stopped successfully")
-        } catch (e: Exception) {
-            android.util.Log.e("stopRecording", "Failed to stop recording: ${e.message}", e)
-        } finally {
-            mediaRecorder = null
-        }
-    }
-
-    // Delete recording function
-    val onDeleteRecording = {
-        // Delete the audio file
-        audioFilePath?.let { path ->
-            val file = File(path)
-            if (file.exists()) {
-                file.delete()
-            }
-        }
-        audioFilePath = null
-        isRecording = false
-
-        // Safely handle mediaPlayer
-        if (mediaPlayer != null) {
-            try {
-                if (mediaPlayer!!.isPlaying) {
-                    mediaPlayer!!.stop()
-                }
-                mediaPlayer!!.release()
-            } catch (e: Exception) {
-                android.util.Log.e("onDeleteRecording", "Error stopping mediaPlayer: ${e.message}", e)
-            } finally {
-                mediaPlayer = null
-                isPlaying = false
-            }
-        }
-    }
-
-    val requestPermissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                startRecording { recorder, path ->
-                    mediaRecorder = recorder
-                    audioFilePath = path
-                }
-                isRecording = true
-            } else {
-                Toast.makeText(context, "Permission denied", Toast.LENGTH_SHORT).show()
-            }
-        }
 
     // Fetch user's profile
     var userProfile by remember { mutableStateOf<Profile?>(null) }
@@ -231,7 +118,7 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
                     ) {
                         focusManager.clearFocus()
                     }
-            ){
+            ) {
                 // Search Bar
                 CustomSearchBar(
                     query = searchQuery,
@@ -241,45 +128,43 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Minimize Button and Filter Section
+                // Create Post and Filter Section
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Minimize Button
-                    IconButton(
-                        onClick = { isPostSectionVisible = !isPostSectionVisible }
+                    // Create Post Button (Toggle Minimize)
+                    Button(
+                        onClick = { isPostSectionVisible = !isPostSectionVisible },
+                        border = BorderStroke(1.dp, Color(0xFF00bf63)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
                     ) {
                         Icon(
                             if (isPostSectionVisible) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = if (isPostSectionVisible) "Minimize" else "Expand",
                             tint = Color(0xFF00bf63)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Create Post", color = Color(0xFF00bf63))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
 
                     // Filter Button
-                    Button(
-                        onClick = { showFilterMenu = !showFilterMenu },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp)
-                    ) {
-                        Text(text = filterOption.capitalize(), color = Color.White)
-                    }
-
-                    // Filter Icon Button
                     Box {
-                        IconButton(
-                            onClick = { showFilterMenu = !showFilterMenu }
+                        Button(
+                            onClick = { showFilterMenu = !showFilterMenu },
+                            border = BorderStroke(1.dp, Color(0xFF00bf63)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                         ) {
+                            Text(text = filterOption.capitalize(), color = Color(0xFF00bf63))
                             Icon(
-                                Icons.Default.FilterList,
-                                contentDescription = "Filter Options",
-                                tint = Color.White
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = "Filter options",
+                                tint = Color(0xFF00bf63)
                             )
                         }
 
@@ -287,9 +172,8 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
                         DropdownMenu(
                             expanded = showFilterMenu,
                             onDismissRequest = { showFilterMenu = false },
-                            modifier = Modifier.align(Alignment.TopEnd)
                         ) {
-                            val filterOptions = listOf("recent", "popular", "unpopular", "hometown", "own echoes")
+                            val filterOptions = listOf("recent", "popular", "unpopular", "own echoes")
                             filterOptions.filter { it != filterOption }.forEach { option ->
                                 DropdownMenuItem(
                                     text = { Text(text = option.capitalize(), color = Color(0xFF00bf63)) },
@@ -305,141 +189,72 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Post Input Section with Minimize Button
+                // Post Input Section
                 if (isPostSectionVisible) {
                     PostInputSection(
                         postContent = postContent,
                         onValueChange = { postContent = it },
                         onPost = {
-                            isPostSectionVisible = false
-                            isPosting = true // Start posting
-                            coroutineScope.launch(Dispatchers.IO) {
-                                val currentUserId =
-                                    FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-                                val username = userProfile?.username ?: "Anonymous"
+                            if (postContent.text.isNotBlank()) {
+                                isPostSectionVisible = false
+                                isPosting = true // Start posting
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val currentUserId =
+                                        FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                                    val username = userProfile?.username ?: "Anonymous"
 
-                                val database = FirebaseDatabase.getInstance()
-                                val postsRef = database.getReference("posts")
+                                    val database = FirebaseDatabase.getInstance()
+                                    val postsRef = database.getReference("posts")
 
-                                val postId = postsRef.push().key ?: return@launch
+                                    val postId = postsRef.push().key ?: return@launch
 
-                                // Upload voice note if available
-                                var voiceUrl: String? = null
-                                if (audioFilePath != null) {
-                                    val file = File(audioFilePath!!)
-                                    if (file.exists() && file.length() > 0) {
-                                        val storageRef = FirebaseStorage.getInstance().reference
-                                        val voiceNoteRef =
-                                            storageRef.child("voice_notes/$postId.m4a")
+                                    val post = Post(
+                                        postId = postId,
+                                        userId = currentUserId,
+                                        username = username,
+                                        contentText = postContent.text,
+                                        timestamp = ServerValue.TIMESTAMP,
+                                        upvotes = 0,
+                                        downvotes = 0,
+                                        totalComments = 0,
+                                        userTags = addedUserTags.toList(),
+                                        upvoteToDownvoteRatio = 0.0
+                                    )
 
-                                        val fileUri = Uri.fromFile(file)
-
-                                        try {
-                                            val metadata = StorageMetadata.Builder()
-                                                .setContentType("audio/m4a")
-                                                .build()
-
-                                            voiceNoteRef.putFile(fileUri, metadata).await()
-                                            voiceUrl = voiceNoteRef.downloadUrl.await().toString()
-                                        } catch (e: Exception) {
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Failed to upload voice note: ${e.message}",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            }
-                                        }
-                                    } else {
+                                    try {
+                                        postsRef.child(postId).setValue(post).await()
                                         withContext(Dispatchers.Main) {
+                                            isPosting = false // Posting complete
+                                            postContent = TextFieldValue("")
+                                            addedUserTags.clear()
                                             Toast.makeText(
                                                 context,
-                                                "Recording failed or file is empty",
+                                                "Post uploaded successfully",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            isPosting = false // Posting complete even if there was an error
+                                            Toast.makeText(
+                                                context,
+                                                "Failed to upload post: ${e.message}",
                                                 Toast.LENGTH_LONG
                                             ).show()
                                         }
                                     }
                                 }
-
-                                val post = Post(
-                                    postId = postId,
-                                    userId = currentUserId,
-                                    username = username,
-                                    contentText = postContent.text,
-                                    voiceUrl = voiceUrl,
-                                    transcriptedText = null,
-                                    timestamp = ServerValue.TIMESTAMP,
-                                    upvotes = 0,
-                                    downvotes = 0,
-                                    totalComments = 0,
-                                    userTags = addedUserTags.toList(),
-                                    locationTags = addedLocationTags.toList(),
-                                    upvoteToDownvoteRatio = 0.0
-                                )
-
-                                try {
-                                    postsRef.child(postId).setValue(post).await()
-                                    withContext(Dispatchers.Main) {
-                                        isPosting = false // Posting complete
-                                        postContent = TextFieldValue("")
-                                        addedUserTags.clear()
-                                        addedLocationTags.clear()
-                                        audioFilePath = null
-                                        Toast.makeText(
-                                            context,
-                                            "Post uploaded successfully",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        isPosting =
-                                            false // Posting complete even if there was an error
-                                        Toast.makeText(
-                                            context,
-                                            "Failed to upload post: ${e.message}",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                }
-                            }
-                        },
-                        addedUserTags = addedUserTags,
-                        addedLocationTags = addedLocationTags,
-                        isRecording = isRecording,
-                        onRecordClick = {
-                            if (ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.RECORD_AUDIO
-                                ) == PackageManager.PERMISSION_GRANTED
-                            ) {
-                                if (!isRecording) {
-                                    // Start recording
-                                    startRecording { recorder, path ->
-                                        mediaRecorder = recorder
-                                        audioFilePath = path
-                                    }
-                                    isRecording = true
-                                } else {
-                                    // Stop recording
-                                    stopRecording()
-                                    isRecording = false
-                                }
                             } else {
-                                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                coroutineScope.launch {
+                                    Toast.makeText(
+                                        context,
+                                        "Please enter some text before posting",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             }
                         },
-                        amplitude = amplitude,  // Pass amplitude to PostInputSection
-                        audioFilePath = audioFilePath,
-                        onDeleteRecording = onDeleteRecording,
-                        mediaPlayer = mediaPlayer,
-                        onMediaPlayerChange = { player ->
-                            mediaPlayer = player
-                        },
-                        isPlaying = isPlaying,
-                        onIsPlayingChange = { playing ->
-                            isPlaying = playing
-                        }
+                        addedUserTags = addedUserTags
                     )
                 }
 
@@ -453,29 +268,202 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
                     userId = userId,
                     userProfile = userProfile,
                     isPosting = isPosting,
-                    onTagClick = { tag ->
-                        searchQuery = tag
-                    }
+                    onTagClick = { tag -> searchQuery = tag }
                 )
             }
         }
     )
+}
 
-    // Amplitude updates
-    LaunchedEffect(isRecording) {
-        if (isRecording) {
-            while (isRecording) {
-                delay(100)
-                try {
-                    amplitude = mediaRecorder?.maxAmplitude?.toFloat() ?: 0f
-                } catch (e: Exception) {
-                    amplitude = 0f
-                    android.util.Log.e("Amplitude", "Error reading amplitude: ${e.message}", e)
-                    break
+@Composable
+fun PostInputSection(
+    postContent: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    onPost: () -> Unit,
+    addedUserTags: MutableList<String>,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(horizontal = 8.dp)
+    ) {
+        // Formatting buttons (Bold, Italic, Strikethrough)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = {
+                applyFormatting("**", postContent, onValueChange)
+            }) {
+                Icon(
+                    imageVector = Icons.Default.FormatBold,
+                    contentDescription = "Bold",
+                    tint = Color.White
+                )
+            }
+            IconButton(onClick = {
+                applyFormatting("_", postContent, onValueChange)
+            }) {
+                Icon(
+                    imageVector = Icons.Default.FormatItalic,
+                    contentDescription = "Italic",
+                    tint = Color.White
+                )
+            }
+            IconButton(onClick = {
+                applyFormatting("~", postContent, onValueChange)
+            }) {
+                Icon(
+                    imageVector = Icons.Default.FormatStrikethrough,
+                    contentDescription = "Strikethrough",
+                    tint = Color.White
+                )
+            }
+        }
+
+        // Text input field for the post
+        OutlinedTextField(
+            value = postContent,
+            onValueChange = { newValue ->
+                onValueChange(newValue)
+            },
+            placeholder = { Text("Type your thoughts/Voice your opinion", color = Color.Gray) },
+            textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 16.sp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 100.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                cursorColor = Color.White,
+                focusedBorderColor = Color(0xFF00bf63),
+                unfocusedBorderColor = Color(0xFF00bf63)
+            )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // User Tag Section
+        TagInputSection(
+            label = "Add User Tags",
+            tags = addedUserTags,
+            color = Color(0xFF00bf63)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Post button to submit the post
+        Button(
+            onClick = {
+                onPost()
+            },
+            modifier = Modifier.align(Alignment.End),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+        ) {
+            Text("Post", color = Color.White)
+        }
+    }
+}
+
+// Helper function to apply formatting
+fun applyFormatting(
+    marker: String,
+    postContent: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit
+) {
+    val selection = postContent.selection
+    val text = postContent.text
+    val newText: String
+    val newSelection: TextRange
+
+    if (selection.collapsed) {
+        // No text selected, insert markers and place cursor between them
+        val insertPosition = selection.start
+        newText = text.substring(0, insertPosition) + marker + marker + text.substring(insertPosition)
+        val cursorPosition = insertPosition + marker.length
+        newSelection = TextRange(cursorPosition, cursorPosition)
+    } else {
+        // Text is selected, wrap it with markers
+        val selectedText = text.substring(selection.start, selection.end)
+        newText = text.substring(0, selection.start) + marker + selectedText + marker + text.substring(selection.end)
+        // Adjust selection to cover the newly formatted text
+        newSelection = TextRange(selection.start, selection.end + 2 * marker.length)
+    }
+
+    onValueChange(TextFieldValue(newText, newSelection))
+}
+
+@Composable
+fun TagInputSection(label: String, tags: MutableList<String>, color: Color) {
+    var tagInput by remember { mutableStateOf(TextFieldValue("")) }
+
+    Column {
+        Text(text = label, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = tagInput,
+                onValueChange = { newTagInput ->
+                    tagInput = newTagInput
+                },
+                placeholder = { Text("Add tags here", color = Color.Gray) },
+                textStyle = LocalTextStyle.current.copy(color = Color.White), // Set input text color to white
+                modifier = Modifier.weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = color,
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = color,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+            IconButton(
+                onClick = {
+                    if (tagInput.text.isNotBlank()) {
+                        tags.add(tagInput.text.trim())
+                        tagInput = TextFieldValue("") // Clear input field
+                    }
+                }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Tag", tint = color)
+            }
+        }
+
+        // Display added tags with remove button
+        FlowRow(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            tags.forEach { tag ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color.Black, RoundedCornerShape(8.dp)) // Black background
+                            .border(BorderStroke(1.dp, color), RoundedCornerShape(8.dp)) // Green border
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "#$tag",
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                    }
+                    IconButton(
+                        onClick = { tags.remove(tag) },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Remove Tag", tint = Color.Red)
+                    }
                 }
             }
-        } else {
-            amplitude = 0f
         }
     }
 }
@@ -491,7 +479,6 @@ fun FeedSection(
     onTagClick: (String) -> Unit
 ) {
     val posts = remember { mutableStateListOf<Post>() }
-    var currentlyPlayingPostId by remember { mutableStateOf<String?>(null) }
     val postsRef = FirebaseDatabase.getInstance().getReference("posts")
     val userProfiles = remember { mutableStateMapOf<String, Profile>() }
     val context = LocalContext.current
@@ -554,10 +541,6 @@ fun FeedSection(
                 FeedItem(
                     post = post,
                     userProfile = profile,
-                    currentlyPlayingPostId = currentlyPlayingPostId,
-                    onPlay = { postId ->
-                        currentlyPlayingPostId = postId
-                    },
                     onUpvote = {
                         val postRef = FirebaseDatabase.getInstance().getReference("posts").child(post.postId)
                         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@FeedItem
@@ -599,7 +582,6 @@ fun FeedSection(
                                 if (error != null) {
                                     Toast.makeText(context, "Failed to update upvote: ${error.message}", Toast.LENGTH_SHORT).show()
                                 } else if (committed) {
-                                    // Update the UI immediately by finding and updating the corresponding post in your UI state
                                     val updatedPost = currentData?.getValue(Post::class.java)
                                     if (updatedPost != null) {
                                         val index = posts.indexOfFirst { it.postId == updatedPost.postId }
@@ -653,7 +635,6 @@ fun FeedSection(
                                 if (error != null) {
                                     Toast.makeText(context, "Failed to update downvote: ${error.message}", Toast.LENGTH_SHORT).show()
                                 } else if (committed) {
-                                    // Update the UI immediately by finding and updating the corresponding post in your UI state
                                     val updatedPost = currentData?.getValue(Post::class.java)
                                     if (updatedPost != null) {
                                         val index = posts.indexOfFirst { it.postId == updatedPost.postId }
@@ -675,11 +656,6 @@ fun FeedSection(
                     onShare = {
                         sharePostWithMatches(context, post)
                     },
-                    onDownload = {
-                        if (!post.voiceUrl.isNullOrEmpty()) {
-                            downloadVoicePost(context, post.voiceUrl!!, post.postId)
-                        }
-                    },
                     onComment = { commentText ->
                         // Comment logic
                         val postRef = FirebaseDatabase.getInstance().getReference("posts").child(post.postId)
@@ -692,7 +668,6 @@ fun FeedSection(
                         )
                         postRef.child("comments/$newCommentId").setValue(newComment).addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                // Update local post object
                                 val updatedComments = post.comments.toMutableMap()
                                 updatedComments[newCommentId] = newComment
                                 val index = posts.indexOfFirst { it.postId == post.postId }
@@ -727,217 +702,32 @@ fun FeedSection(
     }
 }
 
-
-
-// Function to load initial posts
-fun loadInitialPosts(
-    posts: SnapshotStateList<Post>,
-    postsRef: DatabaseReference,
-    userProfiles: SnapshotStateMap<String, Profile>,
-    filterOption: String,
-    searchQuery: String,
-    userId: String?,
-    userProfile: Profile?,
-    onPostsLoaded: () -> Unit
-) {
-    posts.clear()
-    val query = when (filterOption) {
-        "recent" -> postsRef.orderByChild("timestamp").limitToLast(10)
-        "popular" -> postsRef.orderByChild("upvotes").limitToLast(10)
-        "unpopular" -> postsRef.orderByChild("downvotes").limitToLast(10)
-        "own echoes" -> {
-            if (userId != null) {
-                postsRef.orderByChild("userId").equalTo(userId).limitToLast(10)
-            } else {
-                postsRef.orderByChild("timestamp").limitToLast(10)
-            }
-        }
-        "hometown" -> postsRef.orderByChild("timestamp").limitToLast(10)
-        else -> postsRef.orderByChild("timestamp").limitToLast(10)
-    }
-
-    query.addListenerForSingleValueEvent(object : ValueEventListener {
-        override fun onDataChange(snapshot: DataSnapshot) {
-            handlePostSnapshot(snapshot, posts, userProfiles, filterOption, searchQuery, userId, userProfile)
-            onPostsLoaded()
-        }
-
-        override fun onCancelled(error: DatabaseError) {
-            onPostsLoaded()
-        }
-    })
-}
-
-// Function to handle Firebase post snapshot
-fun handlePostSnapshot(
-    snapshot: DataSnapshot,
-    posts: SnapshotStateList<Post>,
-    userProfiles: SnapshotStateMap<String, Profile>,
-    filterOption: String,
-    searchQuery: String,
-    userId: String?,
-    userProfile: Profile?
-) {
-    val userIdsToFetch = mutableSetOf<String>()
-    val newPosts = mutableListOf<Post>()
-
-    for (postSnapshot in snapshot.children) {
-        // Correctly cast DataSnapshot to your model
-        try {
-            val post = postSnapshot.getValue(Post::class.java)
-            if (post != null) {
-                var includePost = true
-
-                // Apply filterOption
-                when (filterOption) {
-                    "own echoes" -> includePost = includePost && (post.userId == userId)
-                    "hometown" -> {
-                        val hometown = userProfile?.hometown ?: ""
-                        if (hometown.isNotEmpty()) {
-                            includePost = includePost && post.locationTags.any { tag ->
-                                tag.equals(hometown, ignoreCase = true)
-                            }
-                        } else {
-                            includePost = false
-                        }
-                    }
-                }
-
-                // Apply search query filtering
-                if (searchQuery.isNotEmpty()) {
-                    val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
-                    val usernameMatch = post.username.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
-                    val userTagsMatch = post.userTags.any { tag ->
-                        tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
-                    }
-                    val locationTagsMatch = post.locationTags.any { tag ->
-                        tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
-                    }
-
-                    includePost = includePost && (usernameMatch || userTagsMatch || locationTagsMatch)
-                }
-
-                if (includePost) {
-                    newPosts.add(post)
-                    if (!userProfiles.containsKey(post.userId)) {
-                        userIdsToFetch.add(post.userId)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("handlePostSnapshot", "Error deserializing post: ${e.message}", e)
-        }
-    }
-
-    // Sort posts in descending order based on the filter criteria
-    when (filterOption) {
-        "recent", "own echoes", "hometown" -> newPosts.sortByDescending { it.getPostTimestamp() }
-        "popular" -> newPosts.sortByDescending { it.upvotes }
-        "unpopular" -> newPosts.sortByDescending { it.downvotes }
-    }
-
-    posts.clear()
-    posts.addAll(newPosts)
-
-    // Fetch user profiles asynchronously
-    CoroutineScope(Dispatchers.IO).launch {
-        userIdsToFetch.forEach { uid ->
-            val userRef = FirebaseDatabase.getInstance().getReference("users").child(uid)
-            userRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val profile = snapshot.getValue(Profile::class.java)
-                    if (profile != null) {
-                        userProfiles[uid] = profile
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    android.util.Log.e("handlePostSnapshot", "Error fetching profile: ${error.message}", error.toException())
-                }
-            })
-        }
-    }
-}
-
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FeedItem(
     post: Post,
     userProfile: Profile?,
-    currentlyPlayingPostId: String?,
-    onPlay: (String?) -> Unit,
     onUpvote: () -> Unit,
     onDownvote: () -> Unit,
     onUserClick: () -> Unit,
     onTagClick: (String) -> Unit,
     onShare: () -> Unit,
-    onDownload: () -> Unit,
     onComment: (String) -> Unit
 ) {
-    var isPlaying by remember { mutableStateOf(false) }
-    var mediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
-    var isPrepared by remember { mutableStateOf(false) }
-    var duration by remember { mutableStateOf(0) }
-    var currentPosition by remember { mutableStateOf(0) }
     var commentText by remember { mutableStateOf(TextFieldValue("")) }
     var showCommentsDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(post.voiceUrl) {
-        if (!post.voiceUrl.isNullOrEmpty()) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val mp = MediaPlayer()
-                    mp.setDataSource(post.voiceUrl)
-                    mp.setOnPreparedListener {
-                        duration = it.duration
-                        isPrepared = true
-                    }
-                    mp.prepareAsync()
-                    mediaPlayer = mp
-                } catch (e: Exception) {
-                    // Handle exception, e.g., log it
-                }
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer?.release()
-            mediaPlayer = null
-        }
-    }
-
-    // Handle stopping the MediaPlayer when playing a new post
-    LaunchedEffect(currentlyPlayingPostId) {
-        if (currentlyPlayingPostId != post.postId) {
-            mediaPlayer?.stop()
-            mediaPlayer?.release()
-            mediaPlayer = null
-            isPlaying = false
-            currentPosition = 0
-        }
-    }
-
-    // Update currentPosition while playing
-    LaunchedEffect(isPlaying) {
-        while (isPlaying) {
-            delay(100)
-            mediaPlayer?.let {
-                currentPosition = it.currentPosition
-            }
-        }
-    }
+    // Annotate post content based on formatting markers
+    val annotatedText = buildFormattedText(post.contentText ?: "")
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp, horizontal = 16.dp)
-            .shadow(8.dp, RoundedCornerShape(16.dp)), // Improved shadow for better aesthetics
+            .shadow(8.dp, RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
-        border = BorderStroke(2.dp, Color(0xFF00bf63)), // Increased border thickness
-        shape = RoundedCornerShape(16.dp) // Increased corner radius for softer edges
+        border = BorderStroke(2.dp, Color(0xFF00bf63)),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // User Info Row
@@ -952,12 +742,11 @@ fun FeedItem(
                         model = userProfile.profilepicUrl,
                         contentDescription = "Profile Picture",
                         modifier = Modifier
-                            .size(48.dp) // Increased size for better visibility
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color.Gray)
                     )
                 } else {
-                    // Placeholder image
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -971,116 +760,29 @@ fun FeedItem(
                         text = userProfile?.username ?: "Unavailable",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp // Increased font size
+                        fontSize = 18.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "⭐ ${userProfile?.rating ?: 0.0}  🌎 Rank: ${userProfile?.am24RankingGlobal ?: 0}",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        if (post.locationTags.isNotEmpty()) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "📍${post.locationTags[0]}",
-                                color = Color(0xFF00bf63),
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
+                    Text(
+                        text = "⭐ ${userProfile?.rating ?: 0.0}  🌎 Rank: ${userProfile?.am24RankingGlobal ?: 0}",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
                 }
             }
 
-            // Post Content
+            // Post Content (Formatted Text)
             if (!post.contentText.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = post.contentText,
+                    text = annotatedText,
                     color = Color.White,
                     maxLines = 10,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 14.sp,
-                    lineHeight = 20.sp // Added line height for better readability
+                    lineHeight = 20.sp
                 )
             }
-
-            // Voice Note Playback UI (Added seek functionality)
-            if (!post.voiceUrl.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .background(Color.Black, RoundedCornerShape(12.dp))
-                        .border(border = BorderStroke(2.dp, Color.White), shape = CutCornerShape(8.dp))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    IconButton(onClick = {
-                        if (currentlyPlayingPostId != post.postId) {
-                            onPlay(post.postId)
-                            mediaPlayer?.stop()
-                            mediaPlayer?.release()
-                            mediaPlayer = MediaPlayer().apply {
-                                setDataSource(post.voiceUrl)
-                                setOnPreparedListener {
-                                    duration = it.duration
-                                    it.start()
-                                    isPlaying = true
-                                }
-                                setOnCompletionListener {
-                                    isPlaying = false
-                                    currentPosition = 0
-                                    release()
-                                    mediaPlayer = null
-                                    onPlay(null)
-                                }
-                                prepareAsync()
-                            }
-                        } else {
-                            if (!isPlaying) {
-                                mediaPlayer?.start()
-                                isPlaying = true
-                            } else {
-                                mediaPlayer?.pause()
-                                isPlaying = false
-                            }
-                        }
-                    }) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color(0xFF00bf63)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Audio Duration (Countdown)
-                    Text(
-                        text = if (isPrepared) formatDuration((duration - currentPosition)) else "0:00",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
-                }
-
-                // Slider to allow users to seek within the audio
-                if (isPrepared) {
-                    Slider(
-                        value = currentPosition.toFloat(),
-                        onValueChange = { value ->
-                            mediaPlayer?.seekTo(value.toInt())
-                        },
-                        valueRange = 0f..duration.toFloat(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF00bf63),
-                            activeTrackColor = Color(0xFF00bf63)
-                        )
-                    )
-                }
-            }
-
 
             // Hashtags Below Main Content
             if (post.userTags.isNotEmpty()) {
@@ -1091,8 +793,9 @@ fun FeedItem(
                     post.userTags.forEach { tag ->
                         Box(
                             modifier = Modifier
-                                .padding(4.dp) // Add padding around each tag to simulate spacing
-                                .background(Color(0xFF00bf63), RoundedCornerShape(8.dp))
+                                .padding(4.dp)
+                                .background(Color.Black, RoundedCornerShape(8.dp)) // Black background
+                                .border(BorderStroke(1.dp, Color(0xFF00bf63)), RoundedCornerShape(8.dp)) // Accent green border
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
@@ -1188,10 +891,9 @@ fun FeedItem(
                 )
             }
 
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Sharing and Download Buttons
+            // Sharing and Upvote/Downvote Section
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1202,35 +904,12 @@ fun FeedItem(
                     Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
                 }
 
-                // Download Button
-                if (!post.voiceUrl.isNullOrEmpty()) {
-                    IconButton(onClick = onDownload) {
-                        Icon(Icons.Default.Download, contentDescription = "Download", tint = Color.White)
-                    }
-                }
-            }
-
-            // Post Metadata and Actions
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = formatTimestamp(post.timestamp as Long),
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
-
                 // Upvote and Downvote Buttons
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onUpvote) {
                             Icon(
                                 Icons.Default.ArrowUpward,
@@ -1241,9 +920,7 @@ fun FeedItem(
                         Text(text = "${post.upvotes}", color = Color.White, fontWeight = FontWeight.Bold)
                     }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onDownvote) {
                             Icon(
                                 Icons.Default.ArrowDownward,
@@ -1255,359 +932,184 @@ fun FeedItem(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Post Timestamp
+            Text(
+                text = formatTimestamp(post.timestamp as Long),
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
         }
     }
 }
-
-
-
 
 @Composable
-fun PostInputSection(
-    postContent: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit,
-    isRecording: Boolean,
-    onRecordClick: () -> Unit,
-    onPost: () -> Unit,
-    addedUserTags: MutableList<String>,
-    addedLocationTags: MutableList<String>,
-    amplitude: Float,
-    audioFilePath: String?,
-    onDeleteRecording: () -> Unit,
-    mediaPlayer: MediaPlayer?,
-    onMediaPlayerChange: (MediaPlayer?) -> Unit,
-    isPlaying: Boolean,
-    onIsPlayingChange: (Boolean) -> Unit
-) {
-    var userTag by remember { mutableStateOf(TextFieldValue("")) }
-    var locationTag by remember { mutableStateOf(TextFieldValue("")) }
-    var recordingDuration by remember { mutableStateOf(0) } // Initialize recording duration
-
-    val animatedAmplitude by animateFloatAsState(targetValue = amplitude)
-
-    val context = LocalContext.current
-
-    // Increase recording duration every second when recording is in progress
-    // Voice Recording Controls (updated duration limit to 600 seconds)
-    LaunchedEffect(isRecording) {
-        if (isRecording) {
-            while (isRecording && recordingDuration < 600) {
-                delay(1000L)
-                recordingDuration++
-            }
-
-            if (recordingDuration >= 600) {
-                // Stop recording if limit is reached
-                onRecordClick()
-                Toast.makeText(
-                    context,
-                    "Recording limit reached (10 minutes)",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        } else {
-            recordingDuration = 0 // Reset the recording duration when not recording
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-            .background(Color.Black)
-    ) {
-        // Voice Recording Controls
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp)
-        ) {
-            IconButton(onClick = {
-                if (recordingDuration >= 150) {
-                    Toast.makeText(
-                        context,
-                        "Recording limit reached (2.5 minutes)",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    onRecordClick()
-                }
-            }) {
-                Icon(
-                    imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                    contentDescription = if (isRecording) "Stop Recording" else "Start Recording",
-                    tint = Color(0xFF00bf63)
-                )
-            }
-
-            OutlinedTextField(
-                value = postContent,
-                onValueChange = { onValueChange(it) },
-                placeholder = { Text("Type your thoughts/Voice your opinion", color = Color.Gray) },
-                textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 16.sp),
-                modifier = Modifier.weight(1f),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White,
-                    focusedBorderColor = Color(0xFF00bf63),
-                    unfocusedBorderColor = Color(0xFF00bf63)
-                )
-            )
-        }
-
-        // Visual indicator during recording (updated to use animatedAmplitude)
-        if (isRecording) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(30.dp)
-                    .padding(vertical = 4.dp)
-            ) {
-                val barWidth = 3.dp.toPx()
-                val spaceWidth = 1.dp.toPx()
-                val numBars = (size.width / (barWidth + spaceWidth)).toInt()
-                val maxAmplitude = 32767f
-                val normalizedAmplitude = (animatedAmplitude / maxAmplitude).coerceIn(0f, 1f)
-                val barHeight = size.height * normalizedAmplitude
-
-                for (i in 0 until numBars) {
-                    val x = i * (barWidth + spaceWidth)
-                    drawRect(
-                        color = Color.Red,
-                        topLeft = Offset(x, size.height - barHeight),
-                        size = androidx.compose.ui.geometry.Size(barWidth, barHeight)
-                    )
-                }
-            }
-        }
-
-
-        // Playback and Delete controls after recording is completed
-        if (!isRecording && audioFilePath != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 8.dp)
-            ) {
-                // Playback Control
-                IconButton(onClick = {
-                    if (!isPlaying) {
-                        val player = MediaPlayer().apply {
-                            setDataSource(audioFilePath)
-                            prepare()
-                            start()
-                            setOnCompletionListener {
-                                onIsPlayingChange(false)
-                                release()
-                                onMediaPlayerChange(null)
-                            }
+fun buildFormattedText(text: String): AnnotatedString {
+    return buildAnnotatedString {
+        var i = 0
+        while (i < text.length) {
+            when {
+                text.startsWith("**", i) -> {
+                    val end = text.indexOf("**", startIndex = i + 2)
+                    if (end != -1) {
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(text.substring(i + 2, end))
                         }
-                        onMediaPlayerChange(player)
-                        onIsPlayingChange(true)
+                        i = end + 2
                     } else {
-                        mediaPlayer?.let { player ->
-                            if (player.isPlaying) {
-                                player.stop()
-                            }
-                            player.release()
-                            onMediaPlayerChange(null)
-                        }
-                        onIsPlayingChange(false)
-                    }
-                }) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Stop" else "Play",
-                        tint = Color(0xFF00bf63)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Delete Recording Control
-                IconButton(onClick = {
-                    onDeleteRecording()
-                    // Reset mediaPlayer and isPlaying states
-                    if (isPlaying) {
-                        mediaPlayer?.let { player ->
-                            player.stop()
-                            player.release()
-                            onMediaPlayerChange(null)
-                        }
-                        onIsPlayingChange(false)
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Recording",
-                        tint = Color.Red
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // User Tags Input and Add Button
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = userTag,
-                onValueChange = {
-                    if (it.text.length <= 250 && addedUserTags.size < 10) {
-                        userTag = it
-                    }
-                },
-                label = { Text("User Tags (e.g., #funny)", color = Color(0xFF00bf63)) },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF00bf63),
-                    unfocusedBorderColor = Color.Gray,
-                    cursorColor = Color(0xFF00bf63)
-                ),
-                singleLine = true
-            )
-
-            IconButton(
-                onClick = {
-                    if (userTag.text.isNotBlank() && addedUserTags.size < 10 && userTag.text.length <= 250) {
-                        addedUserTags.add(userTag.text.trim())
-                        userTag = TextFieldValue("")
-                    }
-                },
-                enabled = addedUserTags.size < 10
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add User Tag", tint = if (addedUserTags.size < 10) Color(0xFF00bf63) else Color.Gray)
-            }
-        }
-
-        // Display Added User Tags
-        if (addedUserTags.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-            ) {
-                addedUserTags.forEach { tag ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFF00bf63), shape = RoundedCornerShape(16.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(text = "#$tag", color = Color.White)
-                        }
-                        IconButton(
-                            onClick = { addedUserTags.remove(tag) },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove Tag", tint = Color.Red)
-                        }
+                        append(text.substring(i))
+                        break
                     }
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Location Tag Input and Add Button
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = locationTag,
-                onValueChange = {
-                    if (it.text.length <= 22) {
-                        locationTag = it
-                    }
-                },
-                label = { Text("Location Tag", color = Color(0xFF00bf63)) },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF00bf63),
-                    unfocusedBorderColor = Color.Gray,
-                    cursorColor = Color(0xFF00bf63)
-                ),
-                singleLine = true,
-                enabled = addedLocationTags.isEmpty() // Limit to 1 location tag
-            )
-
-            IconButton(
-                onClick = {
-                    if (locationTag.text.isNotBlank() && addedLocationTags.isEmpty()) {
-                        addedLocationTags.add(locationTag.text.trim())
-                        locationTag = TextFieldValue("")
-                    }
-                },
-                enabled = addedLocationTags.isEmpty()
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Location Tag", tint = if (addedLocationTags.isEmpty()) Color(0xFF00bf63) else Color.Gray)
-            }
-        }
-
-        // Display Added Location Tags
-        if (addedLocationTags.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-            ) {
-                addedLocationTags.forEach { tag ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFF00bf63), shape = RoundedCornerShape(16.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(text = "📍$tag", color = Color.White)
+                text.startsWith("_", i) -> {
+                    val end = text.indexOf("_", startIndex = i + 1)
+                    if (end != -1) {
+                        withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
+                            append(text.substring(i + 1, end))
                         }
-                        IconButton(
-                            onClick = { addedLocationTags.remove(tag) },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove Tag", tint = Color.Red)
-                        }
+                        i = end + 1
+                    } else {
+                        append(text.substring(i))
+                        break
                     }
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Post Button
-        Button(
-            onClick = {
-                if (postContent.text.isNotBlank() || (audioFilePath != null && !isRecording)) {
-                    onPost()
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Please enter text or finish recording before posting",
-                        Toast.LENGTH_LONG
-                    ).show()
+                text.startsWith("~", i) -> {
+                    val end = text.indexOf("~", startIndex = i + 1)
+                    if (end != -1) {
+                        withStyle(style = SpanStyle(textDecoration = TextDecoration.LineThrough)) {
+                            append(text.substring(i + 1, end))
+                        }
+                        i = end + 1
+                    } else {
+                        append(text.substring(i))
+                        break
+                    }
                 }
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-        ) {
-            Text(text = "Post", color = Color.White)
+                else -> {
+                    append(text[i])
+                    i++
+                }
+            }
         }
     }
 }
 
+// Function to load initial posts
+fun loadInitialPosts(
+    posts: SnapshotStateList<Post>,
+    postsRef: DatabaseReference,
+    userProfiles: SnapshotStateMap<String, Profile>,
+    filterOption: String,
+    searchQuery: String,
+    userId: String?,
+    userProfile: Profile?,
+    onPostsLoaded: () -> Unit
+) {
+    posts.clear()
+    val query = when (filterOption) {
+        "recent" -> postsRef.orderByChild("timestamp").limitToLast(10)
+        "popular" -> postsRef.orderByChild("upvotes").limitToLast(10)
+        "unpopular" -> postsRef.orderByChild("downvotes").limitToLast(10)
+        "own echoes" -> {
+            if (userId != null) {
+                postsRef.orderByChild("userId").equalTo(userId).limitToLast(10)
+            } else {
+                postsRef.orderByChild("timestamp").limitToLast(10)
+            }
+        }
+        else -> postsRef.orderByChild("timestamp").limitToLast(10)
+    }
 
-fun formatDuration(durationMs: Int): String {
-    val totalSeconds = durationMs / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%01d:%02d", minutes, seconds)
+    query.addListenerForSingleValueEvent(object : ValueEventListener {
+        override fun onDataChange(snapshot: DataSnapshot) {
+            handlePostSnapshot(snapshot, posts, userProfiles, filterOption, searchQuery, userId, userProfile)
+            onPostsLoaded()
+        }
+
+        override fun onCancelled(error: DatabaseError) {
+            onPostsLoaded()
+        }
+    })
+}
+
+// Function to handle Firebase post snapshot
+fun handlePostSnapshot(
+    snapshot: DataSnapshot,
+    posts: SnapshotStateList<Post>,
+    userProfiles: SnapshotStateMap<String, Profile>,
+    filterOption: String,
+    searchQuery: String,
+    userId: String?,
+    userProfile: Profile?
+) {
+    val userIdsToFetch = mutableSetOf<String>()
+    val newPosts = mutableListOf<Post>()
+
+    for (postSnapshot in snapshot.children) {
+        // Correctly cast DataSnapshot to your model
+        try {
+            val post = postSnapshot.getValue(Post::class.java)
+            if (post != null) {
+                var includePost = true
+
+                // Apply filterOption
+                when (filterOption) {
+                    "own echoes" -> includePost = includePost && (post.userId == userId)
+                }
+
+                // Apply search query filtering
+                if (searchQuery.isNotEmpty()) {
+                    val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
+                    val usernameMatch = post.username.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+                    val userTagsMatch = post.userTags.any { tag ->
+                        tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+                    }
+
+                    includePost = includePost && (usernameMatch || userTagsMatch)
+                }
+
+                if (includePost) {
+                    newPosts.add(post)
+                    if (!userProfiles.containsKey(post.userId)) {
+                        userIdsToFetch.add(post.userId)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("handlePostSnapshot", "Error deserializing post: ${e.message}", e)
+        }
+    }
+
+    // Sort posts in descending order based on the filter criteria
+    when (filterOption) {
+        "recent", "own echoes" -> newPosts.sortByDescending { it.getPostTimestamp() }
+        "popular" -> newPosts.sortByDescending { it.upvotes }
+        "unpopular" -> newPosts.sortByDescending { it.downvotes }
+    }
+
+    posts.clear()
+    posts.addAll(newPosts)
+
+    // Fetch user profiles asynchronously
+    CoroutineScope(Dispatchers.IO).launch {
+        userIdsToFetch.forEach { uid ->
+            val userRef = FirebaseDatabase.getInstance().getReference("users").child(uid)
+            userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val profile = snapshot.getValue(Profile::class.java)
+                    if (profile != null) {
+                        userProfiles[uid] = profile
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    android.util.Log.e("handlePostSnapshot", "Error fetching profile: ${error.message}", error.toException())
+                }
+            })
+        }
+    }
 }
 
 fun formatTimestamp(timestamp: Long): String {
@@ -1641,22 +1143,6 @@ fun CustomSearchBar(
             }
         }
     )
-}
-
-fun downloadVoicePost(context: Context, voiceUrl: String, postId: String) {
-    val storageRef = FirebaseStorage.getInstance().getReferenceFromUrl(voiceUrl)
-    val localFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "$postId.m4a")
-    storageRef.getFile(localFile).addOnSuccessListener {
-        Toast.makeText(context, "Download complete!", Toast.LENGTH_SHORT).show()
-        // Optionally, share the downloaded file
-        val fileUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", localFile)
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(fileUri, "audio/m4a")
-        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-        context.startActivity(intent)
-    }.addOnFailureListener {
-        Toast.makeText(context, "Download failed: ${it.message}", Toast.LENGTH_SHORT).show()
-    }
 }
 
 fun sharePostWithMatches(context: Context, post: Post) {

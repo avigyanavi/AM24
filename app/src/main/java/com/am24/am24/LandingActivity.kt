@@ -66,8 +66,8 @@ fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
         ) {
             // Welcome Text
             Text(
-                text = "Welcome to AM Twenty Four",
-                color = Color.White,
+                text = "Welcome to CupidxIndia",
+                color = Color(0xFF00bf63),
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
