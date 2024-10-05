@@ -39,22 +39,18 @@ data class Post(
 }
 
 data class Comment(
+    val commentId: String = "", // Add this field
     val userId: String = "",
     val username: String = "",
     val commentText: String = "",
     val timestamp: Any = ServerValue.TIMESTAMP,
-
-    // Engagement Metrics for Comments
-    var upvotes: Int = 0,  // Number of upvotes for this comment
-    var downvotes: Int = 0,  // Number of downvotes for this comment
+    var upvotes: Int = 0,
+    var downvotes: Int = 0,
     var upvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
     var downvotedUsers: MutableMap<String, Boolean> = mutableMapOf()
 ) {
     fun getCommentTimestamp(): Long {
-        return if (timestamp is Long) {
-            timestamp
-        } else {
-            System.currentTimeMillis() // Fallback to current time if timestamp is not available as Long
-        }
+        return if (timestamp is Long) timestamp else (timestamp as? Map<*, *>)?.get("timestamp") as? Long ?: 0L
     }
 }
+

@@ -11,6 +11,7 @@ data class Profile(
     val interests: List<String> = emptyList(),  // Interests for matching purposes
     val hometown: String = "",
     val highSchool: String = "",  // User's high school
+    val gender: String = "",
     val college: String = "",  // User's college
     val profilepicUrl: String? = null,
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos

@@ -10,30 +10,25 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.*
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -89,6 +84,13 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
     // Fetch user's profile
     var userProfile by remember { mutableStateOf<Profile?>(null) }
     val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    // State variables for font selection
+    var selectedFontFamily by remember { mutableStateOf("Default") }
+    var selectedFontSize by remember { mutableStateOf(14) }
+
+    // State variable for filter value
+    var filterValue by remember { mutableStateOf("") }
 
     LaunchedEffect(userId) {
         if (userId != null) {
@@ -173,16 +175,139 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
                             expanded = showFilterMenu,
                             onDismissRequest = { showFilterMenu = false },
                         ) {
-                            val filterOptions = listOf("recent", "popular", "unpopular", "own echoes")
+                            val filterOptions = listOf(
+                                "recent", "popular", "unpopular", "own echoes",
+                                "city", "age", "level", "gender", "high-school", "college"
+                            )
                             filterOptions.filter { it != filterOption }.forEach { option ->
                                 DropdownMenuItem(
                                     text = { Text(text = option.capitalize(), color = Color(0xFF00bf63)) },
                                     onClick = {
                                         filterOption = option
+                                        filterValue = "" // Reset filter value when option changes
                                         showFilterMenu = false
                                     }
                                 )
                             }
+                        }
+                    }
+                }
+
+                // Input Field for Additional Filters
+                if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    when (filterOption) {
+                        "age" -> {
+                            // Integer input field
+                            OutlinedTextField(
+                                value = filterValue,
+                                onValueChange = { newValue ->
+                                    // Allow only numbers
+                                    if (newValue.all { it.isDigit() }) {
+                                        filterValue = newValue
+                                    }
+                                },
+                                label = { Text("Enter Age", color = Color.White) },
+                                placeholder = { Text("e.g., 25", color = Color.Gray) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFF00bf63),
+                                    unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color(0xFF00bf63)
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+                        }
+                        "gender" -> {
+                            // Dropdown with options 'M', 'F', 'T'
+                            var expanded by remember { mutableStateOf(false) }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = filterValue,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Select Gender", color = Color.White) },
+                                    placeholder = { Text("M/F/T", color = Color.Black) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF00bf63),
+                                        unfocusedBorderColor = Color.Gray,
+                                        cursorColor = Color(0xFF00bf63)
+                                    ),
+                                    trailingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDropDown,
+                                            contentDescription = "Dropdown",
+                                            tint = Color.White,
+                                            modifier = Modifier.clickable { expanded = true }
+                                        )
+                                    }
+                                )
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    listOf("M", "F", "T").forEach { gender ->
+                                        DropdownMenuItem(
+                                            text = { Text(gender, color = Color(0xFF00bf63)) },
+                                            onClick = {
+                                                filterValue = gender
+                                                expanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        "level" -> {
+                            // Integer input field (1-7)
+                            OutlinedTextField(
+                                value = filterValue,
+                                onValueChange = { newValue ->
+                                    // Allow only numbers between 1 and 7
+                                    if (newValue.all { it.isDigit() } && newValue.toIntOrNull() in 1..7) {
+                                        filterValue = newValue
+                                    }
+                                },
+                                label = { Text("Enter Level (1-7)", color = Color.White) },
+                                placeholder = { Text("e.g., 3", color = Color.Gray) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFF00bf63),
+                                    unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color(0xFF00bf63)
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+                        }
+                        else -> {
+                            // Text input field
+                            OutlinedTextField(
+                                value = filterValue,
+                                onValueChange = { filterValue = it },
+                                label = { Text("Enter ${filterOption.capitalize()}", color = Color.White) },
+                                placeholder = { Text("Type here", color = Color.Gray) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFF00bf63),
+                                    unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color(0xFF00bf63)
+                                )
+                            )
                         }
                     }
                 }
@@ -218,7 +343,9 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
                                         downvotes = 0,
                                         totalComments = 0,
                                         userTags = addedUserTags.toList(),
-                                        upvoteToDownvoteRatio = 0.0
+                                        upvoteToDownvoteRatio = 0.0,
+                                        fontFamily = selectedFontFamily,
+                                        fontSize = selectedFontSize
                                     )
 
                                     try {
@@ -254,7 +381,11 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
                                 }
                             }
                         },
-                        addedUserTags = addedUserTags
+                        addedUserTags = addedUserTags,
+                        selectedFontFamily = selectedFontFamily,
+                        onFontFamilyChange = { selectedFontFamily = it },
+                        selectedFontSize = selectedFontSize,
+                        onFontSizeChange = { selectedFontSize = it }
                     )
                 }
 
@@ -264,6 +395,7 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
                 FeedSection(
                     navController = navController,
                     filterOption = filterOption,
+                    filterValue = filterValue,
                     searchQuery = searchQuery,
                     userId = userId,
                     userProfile = userProfile,
@@ -281,7 +413,15 @@ fun PostInputSection(
     onValueChange: (TextFieldValue) -> Unit,
     onPost: () -> Unit,
     addedUserTags: MutableList<String>,
+    selectedFontFamily: String,
+    onFontFamilyChange: (String) -> Unit,
+    selectedFontSize: Int,
+    onFontSizeChange: (Int) -> Unit
 ) {
+    // Define available fonts and sizes
+    val availableFonts = listOf("Default", "SansSerif", "Serif", "Monospace", "Cursive")
+    val availableFontSizes = (12..24 step 2).toList()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -322,6 +462,72 @@ fun PostInputSection(
             }
         }
 
+        // Font Family Selector
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            Text("Font:", color = Color.White)
+            Spacer(modifier = Modifier.width(8.dp))
+            var fontMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                Button(
+                    onClick = { fontMenuExpanded = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                ) {
+                    Text(selectedFontFamily, color = Color.White)
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                }
+                DropdownMenu(
+                    expanded = fontMenuExpanded,
+                    onDismissRequest = { fontMenuExpanded = false }
+                ) {
+                    availableFonts.forEach { font ->
+                        DropdownMenuItem(
+                            text = { Text(font) },
+                            onClick = {
+                                onFontFamilyChange(font)
+                                fontMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Font Size Selector
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            Text("Size:", color = Color.White)
+            Spacer(modifier = Modifier.width(8.dp))
+            var sizeMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                Button(
+                    onClick = { sizeMenuExpanded = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                ) {
+                    Text("$selectedFontSize", color = Color.White)
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                }
+                DropdownMenu(
+                    expanded = sizeMenuExpanded,
+                    onDismissRequest = { sizeMenuExpanded = false }
+                ) {
+                    availableFontSizes.forEach { size ->
+                        DropdownMenuItem(
+                            text = { Text("$size") },
+                            onClick = {
+                                onFontSizeChange(size)
+                                sizeMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         // Text input field for the post
         OutlinedTextField(
             value = postContent,
@@ -329,7 +535,7 @@ fun PostInputSection(
                 onValueChange(newValue)
             },
             placeholder = { Text("Type your thoughts/Voice your opinion", color = Color.Gray) },
-            textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 16.sp),
+            textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = selectedFontSize.sp, fontFamily = mapFontFamily(selectedFontFamily)),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 100.dp),
@@ -365,6 +571,18 @@ fun PostInputSection(
         }
     }
 }
+
+fun mapFontFamily(fontFamily: String): FontFamily {
+    return when (fontFamily) {
+        "Default" -> FontFamily.Default
+        "SansSerif" -> FontFamily.SansSerif
+        "Serif" -> FontFamily.Serif
+        "Monospace" -> FontFamily.Monospace
+        "Cursive" -> FontFamily.Cursive
+        else -> FontFamily.Default
+    }
+}
+
 
 // Helper function to apply formatting
 fun applyFormatting(
@@ -476,7 +694,8 @@ fun FeedSection(
     userId: String?,
     userProfile: Profile?,
     isPosting: Boolean,
-    onTagClick: (String) -> Unit
+    onTagClick: (String) -> Unit,
+    filterValue: String
 ) {
     val posts = remember { mutableStateListOf<Post>() }
     val postsRef = FirebaseDatabase.getInstance().getReference("posts")
@@ -488,14 +707,25 @@ fun FeedSection(
     val listState = rememberLazyListState()
 
     // Load initial posts or refresh when filter or posting status changes
-    LaunchedEffect(filterOption, searchQuery, userId, userProfile, isPosting) {
+    LaunchedEffect(filterOption, filterValue, searchQuery, userId, userProfile, isPosting) {
         if (!isPosting) {
             loading = true
-            loadInitialPosts(posts, postsRef, userProfiles, filterOption, searchQuery, userId, userProfile) {
-                loading = false
+            withContext(Dispatchers.IO) {
+                loadInitialPosts(
+                    posts = posts,
+                    postsRef = postsRef,
+                    userProfiles = userProfiles,
+                    filterOption = filterOption,
+                    filterValue = filterValue,
+                    searchQuery = searchQuery,
+                    userId = userId,
+                    userProfile = userProfile
+                )
             }
+            loading = false
         }
     }
+
 
     // Scroll to top when search query changes
     LaunchedEffect(searchQuery) {
@@ -661,6 +891,7 @@ fun FeedSection(
                         val postRef = FirebaseDatabase.getInstance().getReference("posts").child(post.postId)
                         val newCommentId = postRef.child("comments").push().key ?: return@FeedItem
                         val newComment = Comment(
+                            commentId = newCommentId,
                             userId = userId ?: "",
                             username = userProfile?.username ?: "Anonymous",
                             commentText = commentText,
@@ -719,6 +950,18 @@ fun FeedItem(
 
     // Annotate post content based on formatting markers
     val annotatedText = buildFormattedText(post.contentText ?: "")
+
+    // Map font family strings to actual FontFamily objects
+    val fontMap = mapOf(
+        "Default" to FontFamily.Default,
+        "SansSerif" to FontFamily.SansSerif,
+        "Serif" to FontFamily.Serif,
+        "Monospace" to FontFamily.Monospace,
+        "Cursive" to FontFamily.Cursive
+    )
+
+    val fontFamily = fontMap[post.fontFamily] ?: FontFamily.Default
+    val fontSize = post.fontSize.sp
 
     Card(
         modifier = Modifier
@@ -779,8 +1022,9 @@ fun FeedItem(
                     color = Color.White,
                     maxLines = 10,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
+                    fontSize = fontSize,
+                    lineHeight = (fontSize.value * 1.5).sp,
+                    fontFamily = fontFamily
                 )
             }
 
@@ -854,40 +1098,9 @@ fun FeedItem(
 
             // Comments Dialog
             if (showCommentsDialog) {
-                AlertDialog(
-                    onDismissRequest = { showCommentsDialog = false },
-                    title = { Text(text = "Comments", color = Color.White) },
-                    text = {
-                        LazyColumn {
-                            items(post.comments.values.toList()) { comment ->
-                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                    Text(
-                                        text = comment.username,
-                                        color = Color(0xFF00bf63),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
-                                    )
-                                    Text(
-                                        text = comment.commentText,
-                                        color = Color.White,
-                                        fontSize = 14.sp
-                                    )
-                                    Text(
-                                        text = formatTimestamp(comment.getCommentTimestamp()),
-                                        color = Color.Gray,
-                                        fontSize = 12.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { showCommentsDialog = false }) {
-                            Text("Close", color = Color(0xFF00bf63))
-                        }
-                    },
-                    containerColor = Color.Black
+                CommentsDialog(
+                    post = post,
+                    onDismiss = { showCommentsDialog = false }
                 )
             }
 
@@ -937,12 +1150,223 @@ fun FeedItem(
 
             // Post Timestamp
             Text(
-                text = formatTimestamp(post.timestamp as Long),
+                text = formatTimestamp(post.getPostTimestamp()),
                 color = Color.Gray,
                 fontSize = 12.sp
             )
         }
     }
+}
+
+@Composable
+fun CommentsDialog(
+    post: Post,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    val userProfile = remember { mutableStateOf<Profile?>(null) }
+
+    // Fetch user profile
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+            userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    userProfile.value = snapshot.getValue(Profile::class.java)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    // Handle error
+                }
+            })
+        }
+    }
+
+    var sortOption by remember { mutableStateOf("Recent") }
+
+    // Convert comments map to list and sort
+    val commentsList = remember(post.comments, sortOption) {
+        post.comments.values.toList().sortedWith(
+            when (sortOption) {
+                "Recent" -> compareByDescending<Comment> { it.getCommentTimestamp() }
+                "Popular" -> compareByDescending<Comment> { it.upvotes - it.downvotes }
+                else -> compareByDescending<Comment> { it.getCommentTimestamp() }
+            }
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Comments", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Row {
+                    Button(
+                        onClick = { sortOption = "Recent" },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (sortOption == "Recent") Color(0xFF00bf63) else Color.Gray
+                        )
+                    ) {
+                        Text("Recent", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { sortOption = "Popular" },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (sortOption == "Popular") Color(0xFF00bf63) else Color.Gray
+                        )
+                    ) {
+                        Text("Popular", color = Color.White)
+                    }
+                }
+            }
+        },
+        text = {
+            LazyColumn {
+                items(commentsList) { comment ->
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        // Comment Header
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = comment.username,
+                                color = Color(0xFF00bf63),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = formatTimestamp(comment.getCommentTimestamp()),
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
+                        }
+                        // Comment Text
+                        Text(
+                            text = comment.commentText,
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                        // Upvote/Downvote Buttons
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = {
+                                handleCommentUpvote(post.postId, comment, context)
+                            }) {
+                                Icon(Icons.Default.ArrowUpward, contentDescription = "Upvote", tint = Color(0xFF00ff00))
+                            }
+                            Text(text = "${comment.upvotes}", color = Color.White)
+                            IconButton(onClick = {
+                                handleCommentDownvote(post.postId, comment, context)
+                            }) {
+                                Icon(Icons.Default.ArrowDownward, contentDescription = "Downvote", tint = Color(0xffff0000))
+                            }
+                            Text(text = "${comment.downvotes}", color = Color.White)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = Color(0xFF00bf63))
+            }
+        },
+        containerColor = Color.Black
+    )
+}
+
+// Function to handle comment upvote
+fun handleCommentUpvote(postId: String, comment: Comment, context: Context) {
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val commentRef = FirebaseDatabase.getInstance()
+        .getReference("posts")
+        .child(postId)
+        .child("comments")
+        .child(comment.commentId)
+
+    commentRef.runTransaction(object : Transaction.Handler {
+        override fun doTransaction(currentData: MutableData): Transaction.Result {
+            val currentComment = currentData.getValue(Comment::class.java) ?: return Transaction.success(currentData)
+
+            if (currentComment.upvotedUsers == null) {
+                currentComment.upvotedUsers = mutableMapOf()
+            }
+            if (currentComment.downvotedUsers == null) {
+                currentComment.downvotedUsers = mutableMapOf()
+            }
+
+            if (currentComment.upvotedUsers.containsKey(currentUserId)) {
+                currentComment.upvotedUsers.remove(currentUserId)
+                currentComment.upvotes -= 1
+            } else {
+                if (currentComment.downvotedUsers.containsKey(currentUserId)) {
+                    currentComment.downvotedUsers.remove(currentUserId)
+                    currentComment.downvotes -= 1
+                }
+                currentComment.upvotedUsers[currentUserId] = true
+                currentComment.upvotes += 1
+            }
+
+            currentData.value = currentComment
+            return Transaction.success(currentData)
+        }
+
+        override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+            if (error != null) {
+                Toast.makeText(context, "Failed to upvote comment: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    })
+}
+
+// Function to handle comment downvote
+fun handleCommentDownvote(postId: String, comment: Comment, context: Context) {
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val commentRef = FirebaseDatabase.getInstance()
+        .getReference("posts")
+        .child(postId)
+        .child("comments")
+        .child(comment.commentId)
+
+    commentRef.runTransaction(object : Transaction.Handler {
+        override fun doTransaction(currentData: MutableData): Transaction.Result {
+            val currentComment = currentData.getValue(Comment::class.java) ?: return Transaction.success(currentData)
+
+            if (currentComment.upvotedUsers == null) {
+                currentComment.upvotedUsers = mutableMapOf()
+            }
+            if (currentComment.downvotedUsers == null) {
+                currentComment.downvotedUsers = mutableMapOf()
+            }
+
+            if (currentComment.downvotedUsers.containsKey(currentUserId)) {
+                currentComment.downvotedUsers.remove(currentUserId)
+                currentComment.downvotes -= 1
+            } else {
+                if (currentComment.upvotedUsers.containsKey(currentUserId)) {
+                    currentComment.upvotedUsers.remove(currentUserId)
+                    currentComment.upvotes -= 1
+                }
+                currentComment.downvotedUsers[currentUserId] = true
+                currentComment.downvotes += 1
+            }
+
+            currentData.value = currentComment
+            return Transaction.success(currentData)
+        }
+
+        override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+            if (error != null) {
+                Toast.makeText(context, "Failed to downvote comment: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    })
 }
 
 @Composable
@@ -996,16 +1420,15 @@ fun buildFormattedText(text: String): AnnotatedString {
     }
 }
 
-// Function to load initial posts
-fun loadInitialPosts(
+suspend fun loadInitialPosts(
     posts: SnapshotStateList<Post>,
     postsRef: DatabaseReference,
     userProfiles: SnapshotStateMap<String, Profile>,
     filterOption: String,
+    filterValue: String,
     searchQuery: String,
     userId: String?,
-    userProfile: Profile?,
-    onPostsLoaded: () -> Unit
+    userProfile: Profile?
 ) {
     posts.clear()
     val query = when (filterOption) {
@@ -1022,24 +1445,27 @@ fun loadInitialPosts(
         else -> postsRef.orderByChild("timestamp").limitToLast(10)
     }
 
-    query.addListenerForSingleValueEvent(object : ValueEventListener {
-        override fun onDataChange(snapshot: DataSnapshot) {
-            handlePostSnapshot(snapshot, posts, userProfiles, filterOption, searchQuery, userId, userProfile)
-            onPostsLoaded()
-        }
+    val snapshot = query.get().await()
 
-        override fun onCancelled(error: DatabaseError) {
-            onPostsLoaded()
-        }
-    })
+    handlePostSnapshot(
+        snapshot = snapshot,
+        posts = posts,
+        userProfiles = userProfiles,
+        filterOption = filterOption,
+        filterValue = filterValue,
+        searchQuery = searchQuery,
+        userId = userId,
+        userProfile = userProfile
+    )
 }
 
-// Function to handle Firebase post snapshot
+
 fun handlePostSnapshot(
     snapshot: DataSnapshot,
     posts: SnapshotStateList<Post>,
     userProfiles: SnapshotStateMap<String, Profile>,
     filterOption: String,
+    filterValue: String,
     searchQuery: String,
     userId: String?,
     userProfile: Profile?
@@ -1048,15 +1474,27 @@ fun handlePostSnapshot(
     val newPosts = mutableListOf<Post>()
 
     for (postSnapshot in snapshot.children) {
-        // Correctly cast DataSnapshot to your model
         try {
             val post = postSnapshot.getValue(Post::class.java)
             if (post != null) {
                 var includePost = true
 
+                // Check if we have the user's profile; if not, add to fetch list
+                val profile = userProfiles[post.userId]
+                if (profile == null) {
+                    userIdsToFetch.add(post.userId)
+                }
+
                 // Apply filterOption
                 when (filterOption) {
                     "own echoes" -> includePost = includePost && (post.userId == userId)
+                    "city", "age", "level", "gender", "high-school", "college" -> {
+                        if (profile != null) {
+                            includePost = includePost && checkProfileFilter(profile, filterOption, filterValue)
+                        } else {
+                            includePost = false // Exclude for now, will include after fetching profile
+                        }
+                    }
                 }
 
                 // Apply search query filtering
@@ -1072,9 +1510,6 @@ fun handlePostSnapshot(
 
                 if (includePost) {
                     newPosts.add(post)
-                    if (!userProfiles.containsKey(post.userId)) {
-                        userIdsToFetch.add(post.userId)
-                    }
                 }
             }
         } catch (e: Exception) {
@@ -1082,7 +1517,16 @@ fun handlePostSnapshot(
         }
     }
 
-    // Sort posts in descending order based on the filter criteria
+    // Fetch user profiles if needed
+    if (userIdsToFetch.isNotEmpty()) {
+        fetchUserProfiles(userIdsToFetch, userProfiles) {
+            // After fetching profiles, re-apply the filters
+            handlePostSnapshot(snapshot, posts, userProfiles, filterOption, filterValue, searchQuery, userId, userProfile)
+        }
+        return // Exit the function to wait for profiles to be fetched
+    }
+
+    // Sort posts
     when (filterOption) {
         "recent", "own echoes" -> newPosts.sortByDescending { it.getPostTimestamp() }
         "popular" -> newPosts.sortByDescending { it.upvotes }
@@ -1091,26 +1535,60 @@ fun handlePostSnapshot(
 
     posts.clear()
     posts.addAll(newPosts)
+}
 
-    // Fetch user profiles asynchronously
-    CoroutineScope(Dispatchers.IO).launch {
-        userIdsToFetch.forEach { uid ->
-            val userRef = FirebaseDatabase.getInstance().getReference("users").child(uid)
-            userRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val profile = snapshot.getValue(Profile::class.java)
-                    if (profile != null) {
-                        userProfiles[uid] = profile
-                    }
-                }
 
-                override fun onCancelled(error: DatabaseError) {
-                    android.util.Log.e("handlePostSnapshot", "Error fetching profile: ${error.message}", error.toException())
-                }
-            })
+fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
+    return when (filterOption) {
+        "city" -> profile.hometown.equals(filterValue, ignoreCase = true)
+        "age" -> {
+            val age = calculateAge(profile.dob)
+            val requiredAge = filterValue.toIntOrNull()
+            age != null && requiredAge != null && age == requiredAge
         }
+        "level" -> {
+            val requiredLevel = filterValue.toIntOrNull()
+            requiredLevel != null && profile.level == requiredLevel
+        }
+        "gender" -> profile.gender.equals(filterValue, ignoreCase = true)
+        "high-school" -> profile.highSchool.equals(filterValue, ignoreCase = true)
+        "college" -> profile.college.equals(filterValue, ignoreCase = true)
+        else -> true
     }
 }
+
+fun fetchUserProfiles(
+    userIds: Set<String>,
+    userProfiles: SnapshotStateMap<String, Profile>,
+    onComplete: () -> Unit
+) {
+    val remaining = userIds.toMutableSet()
+
+    userIds.forEach { uid ->
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(uid)
+        userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val profile = snapshot.getValue(Profile::class.java)
+                if (profile != null) {
+                    userProfiles[uid] = profile
+                }
+                remaining.remove(uid)
+                if (remaining.isEmpty()) {
+                    onComplete()
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                android.util.Log.e("fetchUserProfiles", "Error fetching profile: ${error.message}", error.toException())
+                remaining.remove(uid)
+                if (remaining.isEmpty()) {
+                    onComplete()
+                }
+            }
+        })
+    }
+}
+
 
 fun formatTimestamp(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault())
