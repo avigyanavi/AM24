@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -37,10 +38,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.ParseException
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.Period
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class ProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +66,7 @@ class ProfileActivity : ComponentActivity() {
                         2 -> "Profile"
                         3 -> "Dating"
                         4 -> "Settings"
-                        else -> "CupidxIndia"
+                        else -> "Kupidx"
                     }
                 }
             )
@@ -198,7 +204,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Username and Edit/Connect Button
+                // Username and Edit Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -211,12 +217,17 @@ fun ProfileScreen(
                         color = Color.White
                     )
 
-                    if (isOtherUserProfile) {
-                        Button(onClick = { /* Handle Connect Request */ }) {
-                            Text("Send Connect Request")
-                        }
-                    } else {
-                        IconButton(onClick = { /* Navigate to Edit Profile */ }) {
+                    // If it's not another user's profile, show the edit profile button.
+                    if (!isOtherUserProfile) {
+                        val context = LocalContext.current // Access the context to start an activity.
+
+                        IconButton(
+                            onClick = {
+                                // Start EditProfileActivity using the context.
+                                val intent = Intent(context, EditProfileActivity::class.java)
+                                context.startActivity(intent)
+                            }
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Profile",
@@ -225,6 +236,7 @@ fun ProfileScreen(
                         }
                     }
                 }
+
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -312,18 +324,50 @@ fun UserInfoSectionBasic(profile: Profile) {
             .fillMaxWidth(),
         horizontalAlignment = Alignment.Start
     ) {
+        // Name
+        Text(text = "Name:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(text = profile.name, fontSize = 16.sp, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Gender
+        Text(text = "Gender:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(text = profile.gender, fontSize = 16.sp, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Bio
         Text(text = "Bio:", fontSize = 16.sp, color = Color(0xFF00bf63))
         Text(text = profile.bio, fontSize = 16.sp, color = Color.White)
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Interests
         Text(text = "Interests:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.interests.joinToString(), fontSize = 16.sp, color = Color.White)
+        Text(
+            text = if (profile.interests.isNotEmpty()) {
+                profile.interests.joinToString(", ") { interest -> "${interest.emoji} ${interest.name}" }
+            } else {
+                "No interests specified"
+            },
+            fontSize = 16.sp,
+            color = Color.White
+        )
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Hometown
         Text(text = "Hometown:", fontSize = 16.sp, color = Color(0xFF00bf63))
         Text(text = profile.hometown, fontSize = 16.sp, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // High School
+        Text(text = "High School:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(text = profile.highSchool, fontSize = 16.sp, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // College
+        Text(text = "College:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(text = profile.college, fontSize = 16.sp, color = Color.White)
     }
 }
+
 
 @Composable
 fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
@@ -333,51 +377,111 @@ fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
             .fillMaxWidth(),
         horizontalAlignment = Alignment.Start
     ) {
+        // Ratings and Rankings
         ProfileText(label = "Rating", value = if (profile.numberOfRatings > 0) {
-            "${profile.rating} (${profile.numberOfRatings} ratings)"
+            "${profile.rating} from (${profile.numberOfRatings} ratings)"
         } else {
             "No rating yet"
         })
-
         ProfileText(label = "Global Ranking", value = profile.am24RankingGlobal.toString())
-        ProfileText(label = "AM24 Composite Score", value = profile.am24RankingCompositeScore.toString())
+        ProfileText(label = "Age Ranking", value = profile.am24RankingAge.toString())
+        ProfileText(label = "High School Ranking", value = profile.am24RankingHighSchool.toString())
+        ProfileText(label = "College Ranking", value = profile.am24RankingCollege.toString())
+        ProfileText(label = "Gender Ranking", value = profile.am24RankingGender.toString())
+        ProfileText(label = "Hometown Ranking", value = profile.am24RankingHometown.toString())
+        ProfileText(label = "Kupid Score (Composite)", value = profile.am24RankingCompositeScore.toString())
+        ProfileText(label = "Level", value = profile.level.toString())
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Swipe and Match Metrics
         ProfileText(label = "Matches", value = profile.matchCount.toString())
-        ProfileText(label = "Match Count per Swipe Right", value = profile.matchCountPerSwipeRight.toString())
-        ProfileText(label = "Swipe Right to Swipe Left Ratio", value = profile.swipeRightToSwipeLeftRatio.toString())
+        ProfileText(label = "Number of Swipe Rights", value = profile.numberOfSwipeRights.toString())
+        ProfileText(label = "Number of Swipe Lefts", value = profile.numberOfSwipeLefts.toString())
+        ProfileText(
+            label = "Swipe Right to Left Ratio",
+            value = String.format("%.2f", profile.getCalculatedSwipeRightToLeftRatio())
+        )
+        ProfileText(
+            label = "Match Count per Swipe Right",
+            value = String.format("%.2f", profile.getCalculatedMatchCountPerSwipeRight())
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Post Metrics
         ProfileText(label = "Cumulative Upvotes", value = profile.cumulativeUpvotes.toString())
         ProfileText(label = "Cumulative Downvotes", value = profile.cumulativeDownvotes.toString())
-        ProfileText(label = "Kupid Score", value = profile.am24RankingCompositeScore.toString())
+        ProfileText(
+            label = "Average Upvotes per Post",
+            value = String.format("%.2f", profile.averageUpvoteCount)
+        )
+        ProfileText(
+            label = "Average Downvotes per Post",
+            value = String.format("%.2f", profile.averageDownvoteCount)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Additional Info
+        ProfileText(label = "Date Joined", value = formatDate(profile.dateOfJoin))
     }
 }
+
+fun formatDate(timestamp: Long): String {
+    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}
+
 
 @Composable
 fun ProfileText(label: String, value: String) {
-    Text(
-        text = "$label:",
-        fontSize = 16.sp,
-        color = Color(0xFF00bf63)
-    )
-    Text(
-        text = value,
-        fontSize = 16.sp,
-        color = Color.White,
-        modifier = Modifier.padding(start = 8.dp)
-    )
-}
-
-fun calculateAge(dob: String): Int {
-    if (dob.isEmpty()) return 0
-
-    val formatter = DateTimeFormatter.ofPattern("M/d/yyyy")
-    return try {
-        val birthDate = LocalDate.parse(dob, formatter)
-        val currentDate = LocalDate.now()
-        Period.between(birthDate, currentDate).years
-    } catch (e: DateTimeParseException) {
-        Log.e("DateParsing", "Failed to parse date: $dob", e)
-        0
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(
+            text = "$label:",
+            fontSize = 16.sp,
+            color = Color(0xFF00bf63),
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            color = Color.White,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
 }
+
+
+fun calculateAge(dob: String?): Int {
+    if (dob.isNullOrBlank()) {
+        return 0 // Handle missing DOB gracefully
+    }
+    val formats = listOf(
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+        SimpleDateFormat("dd/M/yyyy", Locale.getDefault())
+    )
+
+    for (format in formats) {
+        try {
+            val birthDate = format.parse(dob)
+            if (birthDate != null) {
+                val today = Calendar.getInstance()
+                val birthDay = Calendar.getInstance().apply { time = birthDate }
+                var age = today.get(Calendar.YEAR) - birthDay.get(Calendar.YEAR)
+                if (today.get(Calendar.DAY_OF_YEAR) < birthDay.get(Calendar.DAY_OF_YEAR)) {
+                    age--
+                }
+                return age
+            }
+        } catch (e: ParseException) {
+            // Ignore and try the next format
+        }
+    }
+
+    return 0 // Return 0 if none of the formats work
+}
+
 
 fun getLevelBorderColor(level: Int): Color {
     return when (level) {
