@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.am24.am24"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.am24.am24"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -102,6 +102,13 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.compose.material)
+
+    //swipable
+    implementation (libs.androidx.foundation.v100)
+    implementation (libs.androidx.material.v100)
+    implementation (libs.ui)
+    implementation (libs.androidx.runtime.livedata)
+    implementation(libs.androidx.constraintlayout.compose.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

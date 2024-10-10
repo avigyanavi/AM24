@@ -4,6 +4,7 @@ package com.am24.am24
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.compose.ui.graphics.ShaderBrush
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,6 +48,7 @@ import java.time.format.DateTimeParseException
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.graphics.Brush
 
 class ProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -204,7 +206,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Username and Edit Button
+                // Username and Rating Section
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -217,7 +219,22 @@ fun ProfileScreen(
                         color = Color.White
                     )
 
-                    // If it's not another user's profile, show the edit profile button.
+                    // Rating beside username
+                    val ratingDisplay = if (profile.value.numberOfRatings > 0) {
+                        "${profile.value.rating}★"
+                    } else {
+                        "No ratings"
+                    }
+
+                    Text(
+                        text = ratingDisplay,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+
+
+                // If it's not another user's profile, show the edit profile button.
                     if (!isOtherUserProfile) {
                         val context = LocalContext.current // Access the context to start an activity.
 
@@ -352,9 +369,9 @@ fun UserInfoSectionBasic(profile: Profile) {
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Hometown
-        Text(text = "Hometown:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.hometown, fontSize = 16.sp, color = Color.White)
+        // Locality
+        Text(text = "Locality:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(text = profile.locality, fontSize = 16.sp, color = Color.White)
         Spacer(modifier = Modifier.height(8.dp))
 
         // High School
@@ -365,6 +382,34 @@ fun UserInfoSectionBasic(profile: Profile) {
         // College
         Text(text = "College:", fontSize = 16.sp, color = Color(0xFF00bf63))
         Text(text = profile.college, fontSize = 16.sp, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Community
+        Text(text = "Community:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(text = profile.community, fontSize = 16.sp, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Religion
+        Text(text = "Religion:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(text = profile.religion, fontSize = 16.sp, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Level with Color
+        Text(text = "Level:", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(
+            text = profile.level.toString(),
+            fontSize = 16.sp,
+            color = Color.White // Use level color here
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "Kupid Score (Composite):", fontSize = 16.sp, color = Color(0xFF00bf63))
+        Text(
+            text = profile.am24RankingCompositeScore.toString(),
+            fontSize = 16.sp,
+            color = Color.White // Use level color here
+        )
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
@@ -378,6 +423,7 @@ fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
         horizontalAlignment = Alignment.Start
     ) {
         // Ratings and Rankings
+        ProfileText(label = "Kupid Score (Composite)", value = profile.am24RankingCompositeScore.toString())
         ProfileText(label = "Rating", value = if (profile.numberOfRatings > 0) {
             "${profile.rating} from (${profile.numberOfRatings} ratings)"
         } else {
@@ -388,8 +434,7 @@ fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
         ProfileText(label = "High School Ranking", value = profile.am24RankingHighSchool.toString())
         ProfileText(label = "College Ranking", value = profile.am24RankingCollege.toString())
         ProfileText(label = "Gender Ranking", value = profile.am24RankingGender.toString())
-        ProfileText(label = "Hometown Ranking", value = profile.am24RankingHometown.toString())
-        ProfileText(label = "Kupid Score (Composite)", value = profile.am24RankingCompositeScore.toString())
+        ProfileText(label = "Locality Ranking", value = profile.am24RankingLocality.toString())
         ProfileText(label = "Level", value = profile.level.toString())
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -483,15 +528,30 @@ fun calculateAge(dob: String?): Int {
 }
 
 
-fun getLevelBorderColor(level: Int): Color {
+//fun getLevelBorderColor(level: Int): Color {
+//    return when (level) {
+//        1 -> Color(0xFF00bf63)
+//        2 -> Color.Cyan
+//        3 -> Color.Blue
+//        4 -> Color.Magenta
+//        5 -> Color.Yellow
+//        6 -> Color.Red
+//        7 -> Color(0xFFFF4500) // OrangeRed
+//        else -> Color.Gray
+//    }
+//}
+
+fun getLevelBorderColor(level: Int): Brush {
     return when (level) {
-        1 -> Color(0xFF00bf63)
-        2 -> Color.Cyan
-        3 -> Color.Blue
-        4 -> Color.Magenta
-        5 -> Color.Yellow
-        6 -> Color.Red
-        7 -> Color(0xFFFF4500) // OrangeRed
-        else -> Color.Gray
+        1 -> Brush.linearGradient(listOf(Color(0xFF00bf63), Color.Cyan))
+        2 -> Brush.linearGradient(listOf(Color.Cyan, Color.Blue))
+        3 -> Brush.linearGradient(listOf(Color.Blue, Color.White))
+        4 -> Brush.linearGradient(listOf(Color.White, Color.Magenta))
+        5 -> Brush.linearGradient(listOf(Color.Magenta, Color.DarkGray))
+        6 -> Brush.linearGradient(listOf(Color.DarkGray, Color(0xFFFF4500)))
+        7 -> Brush.linearGradient(listOf(Color(0xFFFF4500), Color.Yellow)) // OrangeRed to Yellow gradient
+        else -> Brush.linearGradient(listOf(Color.Gray, Color.DarkGray))
     }
 }
+
+

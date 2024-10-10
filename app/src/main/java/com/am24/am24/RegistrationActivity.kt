@@ -2,22 +2,13 @@
 package com.am24.am24
 
 import android.content.Intent
-import com.am24.am24.Profile
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import com.am24.am24.ui.theme.AppTheme
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.storage.FirebaseStorage
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
-import androidx.compose.runtime.*
-import androidx.lifecycle.ViewModel
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -25,37 +16,43 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.ui.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.am24.am24.ui.theme.AppTheme
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.TextFieldValue
-import coil.compose.AsyncImage
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
-import java.util.Calendar
 import java.net.URLEncoder
-import java.net.URLDecoder
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class RegistrationActivity : ComponentActivity() {
-
     private lateinit var auth: FirebaseAuth
     private val storage = FirebaseStorage.getInstance().reference
 
@@ -87,11 +84,16 @@ class RegistrationViewModel : ViewModel() {
     var optionalPhotoUris = mutableStateListOf<Uri>()
     var profilePicUrl by mutableStateOf<String?>(null)
     var optionalPhotoUrls = mutableStateListOf<String>()
-    var hometown by mutableStateOf("")
+    var locality by mutableStateOf("")
     var bio by mutableStateOf("")
     var highSchool by mutableStateOf("")
     var college by mutableStateOf("")
     var gender by mutableStateOf("")
+    var customCollege by mutableStateOf("")
+    var customHighSchool by mutableStateOf("")
+    var customLocality by mutableStateOf("")
+    var religion by mutableStateOf("")
+    var community by mutableStateOf("")
 }
 
 @Composable
@@ -113,216 +115,50 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
     when (currentStep) {
         1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
         2 -> EnterNameScreen(registrationViewModel, onNext, onBack)
-        3 -> EnterUsernameScreen(registrationViewModel, onNext, onBack)
+        3 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
         4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
-        5 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
-        6 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
-        7 -> EnterProfileHeadlineScreen(registrationViewModel, onRegistrationComplete, onBack)
+        5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
+        6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
+        7 -> EnterProfileHeadlineScreen(registrationViewModel, onNext, onBack)
+        8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack) // Username screen comes last
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EnterUsernameScreen(
+fun EnterLocationAndSchoolScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    var username by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
-    var gender by remember { mutableStateOf(registrationViewModel.gender) }
-    val genderOptions = listOf("M", "F", "T")
-    var expanded by remember { mutableStateOf(false) }
-    var isUsernameValid by remember { mutableStateOf(true) }
-    var isCheckingUsername by remember { mutableStateOf(false) }
-    var usernameErrorMessage by remember { mutableStateOf("") }
-
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
-            )
-        },
-        content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Title
-                    Text(
-                        text = "Enter Your Username",
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-
-                    // Username Input Field
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = {
-                            username = it
-                            registrationViewModel.username = it.text
-                            isUsernameValid = true // Reset validation on change
-                            usernameErrorMessage = ""
-                        },
-                        label = { Text("Username", color = Color(0xFF00bf63)) },
-                        singleLine = true,
-                        isError = !isUsernameValid,
-                        supportingText = {
-                            if (!isUsernameValid) {
-                                Text(text = usernameErrorMessage, color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = if (isUsernameValid) Color(0xFF00bf63) else MaterialTheme.colorScheme.error,
-                            unfocusedBorderColor = if (isUsernameValid) Color(0xFF00bf63) else MaterialTheme.colorScheme.error
-                        )
-                    )
-
-                    // Gender Selection
-                    Text(
-                        text = "Select Your Gender",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Box {
-                        OutlinedButton(
-                            onClick = { expanded = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Color(0xFF00bf63)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00bf63))
-                        ) {
-                            Text(
-                                text = if (gender.isNotEmpty()) gender else "Select Gender",
-                                color = Color(0xFF00bf63)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.Black)
-                        ) {
-                            genderOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option, color = Color.White) },
-                                    onClick = {
-                                        gender = option
-                                        registrationViewModel.gender = option
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Next Button
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val trimmedUsername = username.text.trim()
-                                if (trimmedUsername.isEmpty()) {
-                                    isUsernameValid = false
-                                    usernameErrorMessage = "Username cannot be empty"
-                                    return@launch
-                                }
-                                if (gender.isEmpty()) {
-                                    Toast.makeText(context, "Please select your gender", Toast.LENGTH_SHORT).show()
-                                    return@launch
-                                }
-                                isCheckingUsername = true
-                                val database = FirebaseDatabase.getInstance().reference
-                                val encodedUsername = URLEncoder.encode(trimmedUsername, "UTF-8")
-                                database.child("usernames").child(encodedUsername)
-                                    .addListenerForSingleValueEvent(object : ValueEventListener {
-                                        override fun onDataChange(snapshot: DataSnapshot) {
-                                            if (snapshot.exists()) {
-                                                // Username taken
-                                                isUsernameValid = false
-                                                usernameErrorMessage = "Username already taken"
-                                                isCheckingUsername = false
-                                            } else {
-                                                // Username is unique, reserve it
-                                                database.child("usernames").child(encodedUsername).setValue(true)
-                                                isCheckingUsername = false
-                                                // Proceed to next screen
-                                                onNext()
-                                            }
-                                        }
-
-                                        override fun onCancelled(error: DatabaseError) {
-                                            isUsernameValid = false
-                                            usernameErrorMessage = "Error checking username: ${error.message}"
-                                            isCheckingUsername = false
-                                            Log.e("EnterUsernameScreen", "DatabaseError: ${error.message}", error.toException())
-                                        }
-                                    })
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        enabled = !isCheckingUsername,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = if (isCheckingUsername) "Checking..." else "Next",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EnterLocationAndSchoolScreen(registrationViewModel: RegistrationViewModel, onNext: () -> Unit, onBack: () -> Unit) {
+    // Sample predefined lists
+    val localities = listOf("Garia", "Chingrighata", "Ballygunge", "Tangra", "Alipore")
     val highSchools = listOf("St. Xavier's High School", "Delhi Public School", "Modern High School")
     val colleges = listOf("IIT Delhi", "Jadavpur University", "St. Xavier's College")
 
-    var city by remember { mutableStateOf(registrationViewModel.hometown) }
-    var highSchool by remember { mutableStateOf(registrationViewModel.highSchool) }
-    var college by remember { mutableStateOf(registrationViewModel.college) }
+    var localityText by remember { mutableStateOf(registrationViewModel.locality) }
+    var highSchoolText by remember { mutableStateOf(registrationViewModel.highSchool) }
+    var collegeText by remember { mutableStateOf(registrationViewModel.college) }
+
+    var customLocality by remember { mutableStateOf(false) }
+    var customHighSchool by remember { mutableStateOf(false) }
+    var customCollege by remember { mutableStateOf(false) }
+
+    var expandedLocality by remember { mutableStateOf(false) }
+    var expandedHighSchool by remember { mutableStateOf(false) }
+    var expandedCollege by remember { mutableStateOf(false) }
+
+    // Search states for the dropdown menus
+    var localitySearch by remember { mutableStateOf("") }
+    var highSchoolSearch by remember { mutableStateOf("") }
+    var collegeSearch by remember { mutableStateOf("") }
+
+    // Filtered dropdown values based on search inputs
+    val filteredLocalities = localities.filter { it.contains(localitySearch, ignoreCase = true) }
+    val filteredHighSchools = highSchools.filter { it.contains(highSchoolSearch, ignoreCase = true) }
+    val filteredColleges = colleges.filter { it.contains(collegeSearch, ignoreCase = true) }
 
     Scaffold(
         topBar = {
@@ -355,77 +191,284 @@ fun EnterLocationAndSchoolScreen(registrationViewModel: RegistrationViewModel, o
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // City Input
-                    Text("Enter Your City", color = Color.White, fontSize = 18.sp)
-                    OutlinedTextField(
-                        value = city,
-                        onValueChange = {
-                            city = it
-                            registrationViewModel.hometown = it
-                        },
-                        label = { Text("City", color = Color(0xFF00bf63)) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63)
-                        )
-                    )
 
-                    // High School Dropdown and Custom Input
-                    Text("Select or Enter Your High School", color = Color.White, fontSize = 18.sp)
-                    OutlinedTextField(
-                        value = highSchool,
-                        onValueChange = {
-                            highSchool = it
-                            registrationViewModel.highSchool = it
-                        },
-                        label = { Text("High School", color = Color(0xFF00bf63)) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63)
+                    // Locality Dropdown with Search
+                    Text("Enter Your Locality", color = Color.White, fontSize = 18.sp)
+                    if (customLocality) {
+                        OutlinedTextField(
+                            value = registrationViewModel.customLocality,
+                            onValueChange = {
+                                registrationViewModel.customLocality = it
+                            },
+                            label = { Text("Custom Locality", color = Color(0xFF00bf63)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedLabelColor = Color(0xFF00bf63),
+                                focusedBorderColor = Color(0xFF00bf63),
+                                cursorColor = Color(0xFF00bf63),
+                                focusedTextColor = Color.White
+                            )
                         )
-                    )
+                    } else {
+                        ExposedDropdownMenuBox(
+                            expanded = expandedLocality,
+                            onExpandedChange = { expandedLocality = !expandedLocality }
+                        ) {
+                            OutlinedTextField(
+                                value = localityText,
+                                onValueChange = {
+                                    localityText = it
+                                    expandedLocality = true
+                                    registrationViewModel.locality = it
+                                },
+                                label = { Text("Search Locality", color = Color(0xFF00bf63)) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedLabelColor = Color(0xFF00bf63),
+                                    focusedBorderColor = Color(0xFF00bf63),
+                                    cursorColor = Color(0xFF00bf63),
+                                    focusedTextColor = Color.White
+                                )
+                            )
+                            DropdownMenu(
+                                expanded = expandedLocality,
+                                onDismissRequest = { expandedLocality = false },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black)
+                            ) {
+                                // Search bar inside the dropdown
+                                OutlinedTextField(
+                                    value = localitySearch,
+                                    onValueChange = { localitySearch = it },
+                                    label = { Text("Search Locality", color = Color(0xFF00bf63)) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedLabelColor = Color(0xFF00bf63),
+                                        focusedBorderColor = Color(0xFF00bf63),
+                                        cursorColor = Color(0xFF00bf63),
+                                        focusedTextColor = Color.White
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                filteredLocalities.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option, color = Color.White) },
+                                        onClick = {
+                                            localityText = option
+                                            expandedLocality = false
+                                            registrationViewModel.locality = option
+                                        }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Didn't find your locality, add", color = Color.White) },
+                                    onClick = {
+                                        expandedLocality = false
+                                        customLocality = true
+                                        registrationViewModel.locality = ""
+                                    }
+                                )
+                            }
+                        }
+                    }
 
-                    // College Dropdown and Custom Input
-                    Text("Select or Enter Your College", color = Color.White, fontSize = 18.sp)
-                    OutlinedTextField(
-                        value = college,
-                        onValueChange = {
-                            college = it
-                            registrationViewModel.college = it
-                        },
-                        label = { Text("College", color = Color(0xFF00bf63)) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // High School Dropdown with Search
+                    Text("Enter Your High School", color = Color.White, fontSize = 18.sp)
+                    if (customHighSchool) {
+                        OutlinedTextField(
+                            value = registrationViewModel.customHighSchool,
+                            onValueChange = {
+                                registrationViewModel.customHighSchool = it
+                            },
+                            label = { Text("Custom High School", color = Color(0xFF00bf63)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedLabelColor = Color(0xFF00bf63),
+                                focusedBorderColor = Color(0xFF00bf63),
+                                cursorColor = Color(0xFF00bf63),
+                                focusedTextColor = Color.White
+                            )
                         )
-                    )
+                    } else {
+                        ExposedDropdownMenuBox(
+                            expanded = expandedHighSchool,
+                            onExpandedChange = { expandedHighSchool = !expandedHighSchool }
+                        ) {
+                            OutlinedTextField(
+                                value = highSchoolText,
+                                onValueChange = {
+                                    highSchoolText = it
+                                    expandedHighSchool = true
+                                    registrationViewModel.highSchool = it
+                                },
+                                label = { Text("Search High School", color = Color(0xFF00bf63)) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedLabelColor = Color(0xFF00bf63),
+                                    focusedBorderColor = Color(0xFF00bf63),
+                                    cursorColor = Color(0xFF00bf63),
+                                    focusedTextColor = Color.White
+                                )
+                            )
+                            DropdownMenu(
+                                expanded = expandedHighSchool,
+                                onDismissRequest = { expandedHighSchool = false },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black)
+                            ) {
+                                // Search bar inside the dropdown
+                                OutlinedTextField(
+                                    value = highSchoolSearch,
+                                    onValueChange = { highSchoolSearch = it },
+                                    label = { Text("Search High School", color = Color(0xFF00bf63)) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedLabelColor = Color(0xFF00bf63),
+                                        focusedBorderColor = Color(0xFF00bf63),
+                                        cursorColor = Color(0xFF00bf63),
+                                        focusedTextColor = Color.White
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                filteredHighSchools.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option, color = Color.White) },
+                                        onClick = {
+                                            highSchoolText = option
+                                            expandedHighSchool = false
+                                            registrationViewModel.highSchool = option
+                                        }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Didn't find your high school, add", color = Color.White) },
+                                    onClick = {
+                                        expandedHighSchool = false
+                                        customHighSchool = true
+                                        registrationViewModel.highSchool = ""
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // College Dropdown with Search
+                    Text("Enter Your College", color = Color.White, fontSize = 18.sp)
+                    if (customCollege) {
+                        OutlinedTextField(
+                            value = registrationViewModel.customCollege,
+                            onValueChange = {
+                                registrationViewModel.customCollege = it
+                            },
+                            label = { Text("Custom College", color = Color(0xFF00bf63)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedLabelColor = Color(0xFF00bf63),
+                                focusedBorderColor = Color(0xFF00bf63),
+                                cursorColor = Color(0xFF00bf63),
+                                focusedTextColor = Color.White
+                            )
+                        )
+                    } else {
+                        ExposedDropdownMenuBox(
+                            expanded = expandedCollege,
+                            onExpandedChange = { expandedCollege = !expandedCollege }
+                        ) {
+                            OutlinedTextField(
+                                value = collegeText,
+                                onValueChange = {
+                                    collegeText = it
+                                    expandedCollege = true
+                                    registrationViewModel.college = it
+                                },
+                                label = { Text("Search College", color = Color(0xFF00bf63)) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedLabelColor = Color(0xFF00bf63),
+                                    focusedBorderColor = Color(0xFF00bf63),
+                                    cursorColor = Color(0xFF00bf63),
+                                    focusedTextColor = Color.White
+                                )
+                            )
+                            DropdownMenu(
+                                expanded = expandedCollege,
+                                onDismissRequest = { expandedCollege = false },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black)
+                            ) {
+                                // Search bar inside the dropdown
+                                OutlinedTextField(
+                                    value = collegeSearch,
+                                    onValueChange = { collegeSearch = it },
+                                    label = { Text("Search College", color = Color(0xFF00bf63)) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedLabelColor = Color(0xFF00bf63),
+                                        focusedBorderColor = Color(0xFF00bf63),
+                                        cursorColor = Color(0xFF00bf63),
+                                        focusedTextColor = Color.White
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                filteredColleges.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option, color = Color.White) },
+                                        onClick = {
+                                            collegeText = option
+                                            expandedCollege = false
+                                            registrationViewModel.college = option
+                                        }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Didn't find your college, add", color = Color.White) },
+                                    onClick = {
+                                        expandedCollege = false
+                                        customCollege = true
+                                        registrationViewModel.college = ""
+                                    }
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Next Button
+                    // Next Button with validation checks
                     Button(
-                        onClick = { onNext() },
+                        onClick = {
+                            if (localityText.isEmpty() && registrationViewModel.customLocality.isEmpty()) {
+                                Toast.makeText(context, "Please enter a locality or add a custom one.", Toast.LENGTH_SHORT).show()
+                            } else if (highSchoolText.isEmpty() && registrationViewModel.customHighSchool.isEmpty()) {
+                                Toast.makeText(context, "Please enter a high school or add a custom one.", Toast.LENGTH_SHORT).show()
+                            } else if (collegeText.isEmpty() && registrationViewModel.customCollege.isEmpty()) {
+                                Toast.makeText(context, "Please enter a college or add a custom one.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                onNext()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -447,6 +490,7 @@ fun EnterLocationAndSchoolScreen(registrationViewModel: RegistrationViewModel, o
 }
 
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterEmailAndPasswordScreen(
@@ -456,9 +500,11 @@ fun EnterEmailAndPasswordScreen(
 ) {
     var email by remember { mutableStateOf(TextFieldValue(registrationViewModel.email)) }
     var password by remember { mutableStateOf(TextFieldValue(registrationViewModel.password)) }
+    var confirmPassword by remember { mutableStateOf(TextFieldValue("")) }
     val context = LocalContext.current
 
     var isCreatingAccount by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -466,11 +512,7 @@ fun EnterEmailAndPasswordScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
@@ -488,7 +530,7 @@ fun EnterEmailAndPasswordScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xAA000000)), // semi-transparent background
+                            .background(Color(0xAA000000)),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(color = Color(0xFF00bf63))
@@ -502,7 +544,6 @@ fun EnterEmailAndPasswordScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Title
                     Text(
                         text = "Create Account",
                         color = Color.White,
@@ -558,38 +599,66 @@ fun EnterEmailAndPasswordScreen(
                         )
                     )
 
-                    // Next Button
+                    // Confirm Password Input
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirm Password", color = Color(0xFF00bf63)) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        isError = passwordError,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color(0xFF00bf63),
+                            focusedLabelColor = Color(0xFF00bf63),
+                            unfocusedLabelColor = Color(0xFF00bf63)
+                        )
+                    )
+
+                    if (passwordError) {
+                        Text("Passwords do not match", color = Color.Red)
+                    }
+
                     Button(
                         onClick = {
                             if (email.text.isNotEmpty() && password.text.isNotEmpty()) {
-                                isCreatingAccount = true
-                                (context as? ComponentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
-                                    try {
-                                        // Create user account
-                                        val authResult = FirebaseAuth.getInstance()
-                                            .createUserWithEmailAndPassword(
-                                                email.text.trim(),
-                                                password.text.trim()
-                                            )
-                                            .await()
+                                if (password.text == confirmPassword.text) {
+                                    isCreatingAccount = true
+                                    passwordError = false
+                                    (context as? ComponentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
+                                        try {
+                                            val authResult = FirebaseAuth.getInstance()
+                                                .createUserWithEmailAndPassword(
+                                                    email.text.trim(),
+                                                    password.text.trim()
+                                                )
+                                                .await()
 
-                                        // Send verification email
-                                        val user = authResult.user
-                                        user?.sendEmailVerification()?.await()
+                                            val user = authResult.user
+                                            user?.sendEmailVerification()?.await()
 
-                                        withContext(Dispatchers.Main) {
-                                            registrationViewModel.email = email.text.trim()
-                                            registrationViewModel.password = password.text.trim()
-                                            Toast.makeText(context, "Account created successfully. Verification email sent.", Toast.LENGTH_LONG).show()
-                                            isCreatingAccount = false
-                                            onNext()
-                                        }
-                                    } catch (e: Exception) {
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                                            isCreatingAccount = false
+                                            withContext(Dispatchers.Main) {
+                                                registrationViewModel.email = email.text.trim()
+                                                registrationViewModel.password = password.text.trim()
+                                                Toast.makeText(context, "Account created. Verification email sent.", Toast.LENGTH_LONG).show()
+                                                isCreatingAccount = false
+                                                onNext()
+                                            }
+                                        } catch (e: Exception) {
+                                            withContext(Dispatchers.Main) {
+                                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                                isCreatingAccount = false
+                                            }
                                         }
                                     }
+                                } else {
+                                    passwordError = true
                                 }
                             }
                         },
@@ -614,6 +683,329 @@ fun EnterEmailAndPasswordScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnterGenderCommunityReligionScreen(
+    registrationViewModel: RegistrationViewModel,
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
+    // Sample predefined lists
+    val genderOptions = listOf("Male", "Female", "Other")
+    val communityOptions = listOf("Marwari", "Bengali", "Punjabi", "Tamil")
+    val religionOptions = listOf("Hindu", "Muslim", "Christian", "Other")
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            )
+        },
+        content = { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Gender Dropdown
+                    DropdownWithSearch(
+                        title = "Select Gender",
+                        options = genderOptions,
+                        selectedOption = registrationViewModel.gender,
+                        onOptionSelected = { registrationViewModel.gender = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Community Dropdown
+                    DropdownWithSearch(
+                        title = "Select Community",
+                        options = communityOptions,
+                        selectedOption = registrationViewModel.community,
+                        onOptionSelected = { registrationViewModel.community = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Religion Dropdown
+                    DropdownWithSearch(
+                        title = "Select Religion",
+                        options = religionOptions,
+                        selectedOption = registrationViewModel.religion,
+                        onOptionSelected = { registrationViewModel.religion = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Next Button
+                    Button(
+                        onClick = onNext,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        shape = CircleShape,
+                        elevation = ButtonDefaults.buttonElevation(8.dp)
+                    ) {
+                        Text(
+                            text = "Next",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DropdownWithSearch(
+    title: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = title, color = Color.White, fontSize = 18.sp)
+        OutlinedButton(
+            onClick = { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, Color(0xFF00bf63)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00bf63))
+        ) {
+            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFF00bf63))
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black)
+        ) {
+            TextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                label = { Text("Search", color = Color(0xFF00bf63)) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedLabelColor = Color(0xFF00bf63),
+                    focusedBorderColor = Color(0xFF00bf63),
+                    cursorColor = Color(0xFF00bf63),
+                    focusedTextColor = Color.White
+                )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            options.filter { it.contains(searchText, ignoreCase = true) }
+                .forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option, color = Color.White) },
+                        onClick = {
+                            onOptionSelected(option)
+                            expanded = false
+                        }
+                    )
+                }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnterUsernameScreen(
+    registrationViewModel: RegistrationViewModel,
+    onRegistrationComplete: () -> Unit,
+    onBack: () -> Unit
+) {
+    var username by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
+    val database = FirebaseDatabase.getInstance().reference
+    var isUsernameValid by remember { mutableStateOf(true) }
+    var usernameErrorMessage by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            )
+        },
+        content = { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = {
+                            username = it
+                            isUsernameValid = true
+                            usernameErrorMessage = ""
+                        },
+                        label = { Text("Username", color = Color(0xFF00bf63)) },
+                        singleLine = true,
+                        isError = !isUsernameValid,
+                        supportingText = {
+                            if (!isUsernameValid) {
+                                Text(text = usernameErrorMessage, color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color(0xFF00bf63)
+                        )
+                    )
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val trimmedUsername = username.text.trim()
+                                val invalidChars = listOf('.', '#', '$', '[', ']')
+
+                                if (trimmedUsername.isEmpty()) {
+                                    isUsernameValid = false
+                                    usernameErrorMessage = "Username cannot be empty"
+                                    return@launch
+                                }
+                                if (invalidChars.any { trimmedUsername.contains(it) }) {
+                                    isUsernameValid = false
+                                    usernameErrorMessage = "Username contains invalid characters (., #, $, [, ])"
+                                    return@launch
+                                }
+
+                                isUsernameValid = true
+
+                                val encodedUsername = URLEncoder.encode(trimmedUsername, "UTF-8")
+                                database.child("usernames").child(encodedUsername)
+                                    .addListenerForSingleValueEvent(object : ValueEventListener {
+                                        override fun onDataChange(snapshot: DataSnapshot) {
+                                            if (snapshot.exists()) {
+                                                isUsernameValid = false
+                                                usernameErrorMessage = "Username already taken"
+                                            } else {
+                                                // Save the username both globally and in user's profile
+                                                scope.launch {
+                                                    try {
+                                                        // Save to global usernames node for future validation
+                                                        database.child("usernames").child(encodedUsername).setValue(true)
+                                                        registrationViewModel.username = trimmedUsername
+
+                                                        // Save the profile to Firebase
+                                                        saveProfileToFirebase(registrationViewModel, onRegistrationComplete)
+                                                    } catch (e: Exception) {
+                                                        Log.e("EnterUsernameScreen", "Error saving username: ${e.message}")
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        override fun onCancelled(error: DatabaseError) {
+                                            isUsernameValid = false
+                                            usernameErrorMessage = "Error: ${error.message}"
+                                        }
+                                    })
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        shape = CircleShape,
+                        elevation = ButtonDefaults.buttonElevation(8.dp)
+                    ) {
+                        Text(
+                            text = "Finish",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+suspend fun saveProfileToFirebase(
+    registrationViewModel: RegistrationViewModel,
+    onRegistrationComplete: () -> Unit
+) {
+    try {
+        val database = FirebaseDatabase.getInstance().reference
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        val profile = Profile(
+            userId = userId,
+            username = registrationViewModel.username,
+            name = registrationViewModel.name,
+            dob = registrationViewModel.dob,
+            bio = registrationViewModel.bio,
+            gender = registrationViewModel.gender,
+            interests = registrationViewModel.interests.toList(),
+            locality = registrationViewModel.locality.ifEmpty { registrationViewModel.customLocality },
+            highSchool = registrationViewModel.highSchool.ifEmpty { registrationViewModel.customHighSchool },
+            college = registrationViewModel.college.ifEmpty { registrationViewModel.customCollege },
+            profilepicUrl = registrationViewModel.profilePicUrl,
+            optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
+            religion = registrationViewModel.religion,
+            community = registrationViewModel.community
+        )
+
+        database.child("users").child(userId).setValue(profile).await()
+
+        withContext(Dispatchers.Main) {
+            onRegistrationComplete()
+        }
+    } catch (e: Exception) {
+        Log.e("Registration", "Failed to save profile: ${e.message}")
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BasicInputScreen(
@@ -737,6 +1129,7 @@ fun EnterBirthDateAndInterestsScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var customInterest by remember { mutableStateOf(TextFieldValue("")) }
 
+    // Interest categories and subcategories
     val interestCategories = listOf(
         InterestCategory(
             category = "Food & Culinary Arts",
@@ -1068,22 +1461,34 @@ fun EnterBirthDateAndInterestsScreen(
         )
     )
 
-
-    // Adjusted DatePicker logic
+    // DatePicker logic
+    val calendar = Calendar.getInstance()
     if (showDatePicker) {
-        val calendar = Calendar.getInstance()
         android.app.DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
-                selectedDate = "$dayOfMonth/${month + 1}/$year"
-                registrationViewModel.dob = selectedDate
+                val selectedCalendar = Calendar.getInstance().apply {
+                    set(year, month, dayOfMonth)
+                }
+
+                // Prevent selecting a date in the future
+                if (selectedCalendar.timeInMillis <= calendar.timeInMillis) {
+                    selectedDate = "$dayOfMonth/${month + 1}/$year"
+                    registrationViewModel.dob = selectedDate
+                } else {
+                    Toast.makeText(context, "Birth date cannot be in the future.", Toast.LENGTH_SHORT).show()
+                }
                 showDatePicker = false
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
+        ).apply {
+            // Set the maximum date to today
+            datePicker.maxDate = calendar.timeInMillis
+        }.show()
     }
+
 
     Scaffold(
         topBar = {
@@ -1230,6 +1635,44 @@ fun EnterBirthDateAndInterestsScreen(
                         }
                     }
 
+                    // Display Added Interests
+                    Text("Your Interests", color = Color.White, fontSize = 18.sp)
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        items(registrationViewModel.interests) { interest ->
+                            Box(
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .background(Color.Black, shape = CircleShape)
+                                    .clickable {
+                                        registrationViewModel.interests.remove(interest)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = interest.name, color = Color.White)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Remove Interest",
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+
+                    // Check if the birth date is selected to enable "Next" button
+                    val isNextEnabled = selectedDate.isNotEmpty()
+
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Next Button
@@ -1238,7 +1681,8 @@ fun EnterBirthDateAndInterestsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        enabled = isNextEnabled,
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isNextEnabled) Color(0xFF00bf63) else Color.Gray),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -1254,8 +1698,6 @@ fun EnterBirthDateAndInterestsScreen(
         }
     )
 }
-
-
 
 data class InterestSubcategory(val name: String, val emoji: String)
 data class InterestCategory(val category: String, val emoji: String, val subcategories: List<InterestSubcategory>)
@@ -1493,11 +1935,12 @@ fun UploadPhotosScreen(registrationViewModel: RegistrationViewModel, onNext: () 
 @Composable
 fun EnterProfileHeadlineScreen(
     registrationViewModel: RegistrationViewModel,
-    onRegistrationComplete: () -> Unit,
+    onNext: () -> Unit, // Added onNext
     onBack: () -> Unit
 ) {
     var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var isSavingProfile by remember { mutableStateOf(false) }
 
@@ -1507,11 +1950,7 @@ fun EnterProfileHeadlineScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
@@ -1526,109 +1965,58 @@ fun EnterProfileHeadlineScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (isSavingProfile) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xAA000000)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Color(0xFF00bf63))
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Title
-                    Text(
-                        text = "Enter a Profile Headline",
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-
-                    // Input Field
-                    OutlinedTextField(
-                        value = headline,
-                        onValueChange = {
-                            headline = it
-                            registrationViewModel.bio = it.text
-                        },
-                        label = { Text("One-liner Bio", color = Color(0xFF00bf63)) },
-                        singleLine = true,
+                    CircularProgressIndicator(color = Color(0xFF00bf63))
+                } else {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63),
-                            focusedLabelColor = Color(0xFF00bf63),
-                            unfocusedLabelColor = Color(0xFF00bf63)
-                        )
-                    )
-
-                    // Finish Button
-                    Button(
-                        onClick = {
-                            isSavingProfile = true
-                            (context as? ComponentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
-                                try {
-                                    val auth = FirebaseAuth.getInstance()
-                                    val userId = auth.currentUser?.uid ?: throw Exception("User not authenticated")
-
-                                    val profile = Profile(
-                                        userId = userId,
-                                        username = registrationViewModel.username,
-                                        name = registrationViewModel.name,
-                                        dob = registrationViewModel.dob,
-                                        bio = registrationViewModel.bio,
-                                        gender = registrationViewModel.gender,
-                                        interests = registrationViewModel.interests.toList(),
-                                        hometown = registrationViewModel.hometown,
-                                        highSchool = registrationViewModel.highSchool,
-                                        college = registrationViewModel.college,
-                                        profilepicUrl = registrationViewModel.profilePicUrl,
-                                        optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
-                                        matches = emptyList()
-                                    )
-
-                                    val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
-                                    userRef.setValue(profile).await()
-
-                                    withContext(Dispatchers.Main) {
-                                        isSavingProfile = false
-                                        Toast.makeText(context, "Profile saved successfully.", Toast.LENGTH_SHORT).show()
-                                        onRegistrationComplete()
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        isSavingProfile = false
-                                        Toast.makeText(context, "Failed to save profile: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        enabled = !isSavingProfile,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
+                            .padding(horizontal = 32.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Finish",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                        // Headline Input
+                        OutlinedTextField(
+                            value = headline,
+                            onValueChange = {
+                                headline = it
+                                registrationViewModel.bio = it.text
+                            },
+                            label = { Text("One-liner Bio", color = Color(0xFF00bf63)) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = Color(0xFF00bf63),
+                                focusedBorderColor = Color(0xFF00bf63),
+                                unfocusedBorderColor = Color(0xFF00bf63)
+                            )
                         )
+
+                        // Next Button to move to the next step (username)
+                        Button(
+                            onClick = {
+                                // Optionally save the bio to the viewModel
+                                registrationViewModel.bio = headline.text
+                                // Navigate to the next screen (username screen)
+                                onNext()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                            shape = CircleShape,
+                            elevation = ButtonDefaults.buttonElevation(8.dp)
+                        ) {
+                            Text(
+                                text = "Next",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

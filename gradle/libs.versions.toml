@@ -2,6 +2,7 @@
 activityComposeVersion = "1.8.0"
 agp = "8.5.1"
 androidVideoTrimmer = "1.6.0"
+androidxMaterial = "1.0.0"
 cameraView = "1.3.4"
 ccp = "2.7.3"
 coilCompose = "2.4.0"
@@ -12,6 +13,7 @@ coreKtxVersion = "1.8.0"
 exoplayer = "2.19.1"
 exoplayerVersion = "2.17.1"
 firebaseDatabaseKtxVersion = "20.2.2"
+foundation = "1.0.0"
 foundationLayout = "1.7.2"
 glide = "4.16.0"
 googleMaterial = "1.5.0"
@@ -43,9 +45,13 @@ picasso = "2.71828"
 recyclerview = "1.3.2"
 recyclerviewV7 = "28.0.0"
 material = "1.12.0"
+runtimeLivedata = "1.7.3"
 ucrop = "2.2.9"
+ui = "1.7.3"
 webkit = "1.11.0"
 composeMaterial = "1.4.0"
+media3CommonKtx = "1.4.1"
+constraintlayoutComposeAndroid = "1.1.0-beta01"
 
 [libraries]
 android-video-trimmer = { module = "com.github.srikanth-lingala:android-video-trimmer", version.ref = "androidVideoTrimmer" }
@@ -57,9 +63,12 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-core-ktx-v180 = { module = "androidx.core:core-ktx", version.ref = "coreKtxVersion" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundationLayout" }
 androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundationLayout" }
+androidx-foundation-v100 = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "materialVersion" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-material-v100 = { module = "androidx.compose.material:material", version.ref = "androidxMaterial" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+androidx-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata", version.ref = "runtimeLivedata" }
 ccp = { module = "com.hbb20:ccp", version.ref = "ccp" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 coil-compose-v200 = { module = "io.coil-kt:coil-compose", version.ref = "coilComposeVersion" }
@@ -102,6 +111,9 @@ material = { group = "com.google.android.material", name = "material", version.r
 ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
+androidx-media3-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "media3CommonKtx" }
+ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
+androidx-constraintlayout-compose-android = { group = "androidx.constraintlayout", name = "constraintlayout-compose-android", version.ref = "constraintlayoutComposeAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

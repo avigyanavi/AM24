@@ -3,6 +3,7 @@
 package com.am24.am24
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -112,7 +113,6 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .background(Color.Black)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -612,6 +612,7 @@ fun applyFormatting(
     onValueChange(TextFieldValue(newText, newSelection))
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TagInputSection(label: String, tags: MutableList<String>, color: Color) {
     var tagInput by remember { mutableStateOf(TextFieldValue("")) }
@@ -877,8 +878,16 @@ fun FeedSection(
                         })
                     },
                     onUserClick = {
-                        // Navigate to user's profile
-                        navController.navigate("user_profile/${post.userId}")
+                        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                        if (post.userId == currentUserId) {
+                            // Navigate to ProfileActivity if it's your own profile
+                            navController.navigate("profile")
+                        } else {
+                            // Navigate to DatingProfileActivity if it's another user's profile
+                            val intent = Intent(context, DatingProfileActivity::class.java)
+                            intent.putExtra("otherUserId", post.userId)
+                            context.startActivity(intent)
+                        }
                     },
                     onTagClick = { tag ->
                         onTagClick(tag)
@@ -1540,7 +1549,7 @@ fun handlePostSnapshot(
 
 fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
     return when (filterOption) {
-        "city" -> profile.hometown.equals(filterValue, ignoreCase = true)
+        "locality" -> profile.locality.equals(filterValue, ignoreCase = true)
         "age" -> {
             val age = calculateAge(profile.dob)
             val requiredAge = filterValue.toIntOrNull()

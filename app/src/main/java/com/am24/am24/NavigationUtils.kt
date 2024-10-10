@@ -19,6 +19,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +28,8 @@ fun UnifiedScaffold(
     currentTab: Int,
     onTabChange: (Int) -> Unit,
     navController: NavHostController,
-    titleProvider: (Int) -> String
+    titleProvider: (Int) -> String,
+    content: (@Composable () -> Unit)? = null // Making the content lambda optional
 ) {
     Scaffold(
         topBar = {
@@ -50,7 +52,7 @@ fun UnifiedScaffold(
                         0 -> navController.navigate("dms")
                         1 -> navController.navigate("home")
                         2 -> navController.navigate("profile")
-                        3 -> navController.navigate("dating")
+                        3 -> navController.navigate("datingStack")
                         4 -> navController.navigate("settings")
                     }
                 }
@@ -76,8 +78,10 @@ fun UnifiedScaffold(
                         onTabChange = onTabChange
                     )
                 }
-                composable("dating") {
-                    // Your Dating screen content here
+                composable("datingStack") {
+                    DatingProfileStackScreen(
+                        navController = navController,
+                    )
                 }
                 composable("settings") {
                     // Your Settings screen content here

@@ -90,6 +90,10 @@
             android:exported="true">
         </activity>
 
+        <activity
+            android:name=".DatingProfileActivity"
+            android:exported="true">
+        </activity>
     </application>
 
 </manifest>
