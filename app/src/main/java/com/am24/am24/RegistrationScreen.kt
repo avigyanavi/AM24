@@ -1,14 +1,11 @@
-// RegistrationActivity.kt
+// RegistrationScreen.kt
 package com.am24.am24
 
-import android.content.Intent
 import android.net.Uri
-import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -25,6 +22,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,8 +36,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
@@ -48,28 +46,38 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
-class RegistrationActivity : ComponentActivity() {
-    private lateinit var auth: FirebaseAuth
-    private val storage = FirebaseStorage.getInstance().reference
+@Composable
+fun RegistrationScreen(navController: NavController) {
+    val registrationViewModel: RegistrationViewModel = viewModel()
+    var currentStep by rememberSaveable { mutableStateOf(1) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        auth = FirebaseAuth.getInstance()
-        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+    val context = LocalContext.current
 
-        setContent {
-            AppTheme {
-                RegistrationScreen(onRegistrationComplete = {
-                    // After registration, navigate to LoginActivity
-                    startActivity(Intent(this, LoginActivity::class.java))
-                    finish()
-                })
-            }
+    val onNext = { currentStep += 1 }
+    val onBack: () -> Unit = {
+        if (currentStep > 1) {
+            currentStep -= 1
+        } else {
+            navController.popBackStack()
         }
+    }
+
+    when (currentStep) {
+        1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
+        2 -> EnterNameScreen(registrationViewModel, onNext, onBack)
+        3 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
+        4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
+        5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
+        6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
+        7 -> EnterProfileHeadlineScreen(registrationViewModel, onNext, onBack)
+        8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete = {
+            // After registration, navigate to LoginScreen or HomeScreen
+            navController.navigate("login") {
+                popUpTo("register") { inclusive = true }
+            }
+        }, onBack = onBack)
     }
 }
 
@@ -94,34 +102,6 @@ class RegistrationViewModel : ViewModel() {
     var customLocality by mutableStateOf("")
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
-}
-
-@Composable
-fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
-    val registrationViewModel: RegistrationViewModel = viewModel()
-    var currentStep by remember { mutableStateOf(1) }
-
-    val context = LocalContext.current
-
-    val onNext = { currentStep += 1 }
-    val onBack: () -> Unit = {
-        if (currentStep > 1) {
-            currentStep -= 1
-        } else {
-            (context as? ComponentActivity)?.finish()
-        }
-    }
-
-    when (currentStep) {
-        1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
-        2 -> EnterNameScreen(registrationViewModel, onNext, onBack)
-        3 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
-        4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
-        5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
-        6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
-        7 -> EnterProfileHeadlineScreen(registrationViewModel, onNext, onBack)
-        8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack) // Username screen comes last
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

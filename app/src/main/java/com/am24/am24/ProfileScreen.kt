@@ -1,109 +1,63 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+// ProfileScreen.kt
 
 package com.am24.am24
 
-import android.content.Intent
-import android.os.Bundle
-import androidx.compose.ui.graphics.ShaderBrush
 import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.unit.*
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.Period
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import androidx.compose.ui.graphics.Brush
+import java.util.*
 
-class ProfileActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            val navController = rememberNavController()
-            var currentTab by rememberSaveable { mutableStateOf(2) } // Default to Profile tab
-
-            UnifiedScaffold(
-                currentTab = currentTab,
-                onTabChange = { currentTab = it },
-                navController = navController,
-                titleProvider = { tabIndex ->
-                    when (tabIndex) {
-                        0 -> "DMs"
-                        1 -> "Feed"
-                        2 -> "Profile"
-                        3 -> "Dating"
-                        4 -> "Settings"
-                        else -> "Kupidx"
-                    }
-                }
-            )
-
-            ProfileScreen(
-                navController = navController,
-                currentTab = currentTab,
-                onTabChange = { currentTab = it }
-            )
-        }
-    }
+@Composable
+fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
+    ProfileScreenContent(navController = navController, modifier = modifier)
 }
 
 @Composable
-fun ProfileScreen(
-    navController: NavHostController,
-    currentTab: Int,
-    onTabChange: (Int) -> Unit,
-    isOtherUserProfile: Boolean = false
+fun ProfileScreenContent(
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    isOtherUserProfile: Boolean = false,
+    otherUserId: String? = null // Pass other user's ID if viewing another profile
 ) {
-    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val userId = if (isOtherUserProfile && otherUserId != null) {
+        otherUserId
+    } else {
+        FirebaseAuth.getInstance().currentUser?.uid ?: return
+    }
+
     val profile = remember { mutableStateOf(Profile()) }
     var currentPhotoIndex by remember { mutableStateOf(0) }
     var showDetails by remember { mutableStateOf(false) }
     var showMetrics by remember { mutableStateOf(false) }
 
     val firebaseDatabase = FirebaseDatabase.getInstance()
+    val context = LocalContext.current
 
-    // Real-time listeners for profile
-    val userRef = if (isOtherUserProfile) {
-        // Replace with specific other user ID logic
-        firebaseDatabase.getReference("users").child("OTHER_USER_ID")
-    } else {
-        firebaseDatabase.getReference("users").child(userId)
-    }
+    // Real-time listener for profile
+    val userRef = firebaseDatabase.getReference("users").child(userId)
 
     LaunchedEffect(userId) {
         userRef.addValueEventListener(object : ValueEventListener {
@@ -118,7 +72,7 @@ fun ProfileScreen(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
@@ -135,7 +89,6 @@ fun ProfileScreen(
                     .verticalScroll(rememberScrollState()) // Making the whole profile scrollable
                     .padding(16.dp)
             ) {
-                // Profile Photo Carousel with Navigation Bars
                 // Profile Photo Carousel
                 Box(
                     modifier = Modifier
@@ -145,7 +98,7 @@ fun ProfileScreen(
                             detectTapGestures(
                                 onTap = { offset ->
                                     val tapX = offset.x
-                                    val photoUrls = listOf(profile.value.profilepicUrl) + profile.value.optionalPhotoUrls // <--- Change here
+                                    val photoUrls = listOfNotNull(profile.value.profilepicUrl) + profile.value.optionalPhotoUrls
                                     val photoCount = photoUrls.size
                                     if (photoCount > 1) {
                                         if (tapX > size.width / 2) {
@@ -160,13 +113,13 @@ fun ProfileScreen(
                             )
                         }
                 ) {
-                    val photoUrls = listOf(profile.value.profilepicUrl) + profile.value.optionalPhotoUrls // <--- Add this line to use the profile picture first
+                    val photoUrls = listOfNotNull(profile.value.profilepicUrl) + profile.value.optionalPhotoUrls
                     if (photoUrls.isNotEmpty()) {
                         AsyncImage(
                             model = photoUrls[currentPhotoIndex],
                             contentDescription = "Profile Photo",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit // Adjusted to avoid cropping
+                            contentScale = ContentScale.Fit
                         )
 
                         // Navigation Bars above the photos
@@ -203,7 +156,6 @@ fun ProfileScreen(
                     }
                 }
 
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Username and Rating Section
@@ -233,16 +185,12 @@ fun ProfileScreen(
                         color = Color.White
                     )
 
-
-                // If it's not another user's profile, show the edit profile button.
+                    // If it's not another user's profile, show the edit profile button.
                     if (!isOtherUserProfile) {
-                        val context = LocalContext.current // Access the context to start an activity.
-
                         IconButton(
                             onClick = {
-                                // Start EditProfileActivity using the context.
-                                val intent = Intent(context, EditProfileActivity::class.java)
-                                context.startActivity(intent)
+                                // Navigate to EditProfileScreen
+                                navController.navigate("editProfile")
                             }
                         ) {
                             Icon(
@@ -253,7 +201,6 @@ fun ProfileScreen(
                         }
                     }
                 }
-
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -299,7 +246,7 @@ fun ProfileScreen(
 
                 if (showMetrics) {
                     UserInfoSectionDetailed(profile = profile.value, onLeaderboardClick = {
-                        navController.navigate("leaderboardActivity")
+                        navController.navigate("leaderboard")
                     })
                 }
 
@@ -342,77 +289,56 @@ fun UserInfoSectionBasic(profile: Profile) {
         horizontalAlignment = Alignment.Start
     ) {
         // Name
-        Text(text = "Name:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.name, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "Name", value = profile.name)
         Spacer(modifier = Modifier.height(8.dp))
 
         // Gender
-        Text(text = "Gender:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.gender, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "Gender", value = profile.gender)
         Spacer(modifier = Modifier.height(8.dp))
 
         // Bio
-        Text(text = "Bio:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.bio, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "Bio", value = profile.bio)
         Spacer(modifier = Modifier.height(8.dp))
 
         // Interests
-        Text(text = "Interests:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(
-            text = if (profile.interests.isNotEmpty()) {
+        ProfileText(
+            label = "Interests",
+            value = if (profile.interests.isNotEmpty()) {
                 profile.interests.joinToString(", ") { interest -> "${interest.emoji} ${interest.name}" }
             } else {
                 "No interests specified"
-            },
-            fontSize = 16.sp,
-            color = Color.White
+            }
         )
         Spacer(modifier = Modifier.height(8.dp))
 
         // Locality
-        Text(text = "Locality:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.locality, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "Locality", value = profile.locality)
         Spacer(modifier = Modifier.height(8.dp))
 
         // High School
-        Text(text = "High School:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.highSchool, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "High School", value = profile.highSchool)
         Spacer(modifier = Modifier.height(8.dp))
 
         // College
-        Text(text = "College:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.college, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "College", value = profile.college)
         Spacer(modifier = Modifier.height(8.dp))
 
         // Community
-        Text(text = "Community:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.community, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "Community", value = profile.community)
         Spacer(modifier = Modifier.height(8.dp))
 
         // Religion
-        Text(text = "Religion:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(text = profile.religion, fontSize = 16.sp, color = Color.White)
+        ProfileText(label = "Religion", value = profile.religion)
         Spacer(modifier = Modifier.height(8.dp))
 
         // Level with Color
-        Text(text = "Level:", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(
-            text = profile.level.toString(),
-            fontSize = 16.sp,
-            color = Color.White // Use level color here
-        )
+        ProfileText(label = "Level", value = profile.level.toString())
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(text = "Kupid Score (Composite):", fontSize = 16.sp, color = Color(0xFF00bf63))
-        Text(
-            text = profile.am24RankingCompositeScore.toString(),
-            fontSize = 16.sp,
-            color = Color.White // Use level color here
-        )
+        ProfileText(label = "Kupid Score (Composite)", value = profile.am24RankingCompositeScore.toString())
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
-
 
 @Composable
 fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
@@ -473,12 +399,6 @@ fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
     }
 }
 
-fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
-
-
 @Composable
 fun ProfileText(label: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -496,7 +416,6 @@ fun ProfileText(label: String, value: String) {
         )
     }
 }
-
 
 fun calculateAge(dob: String?): Int {
     if (dob.isNullOrBlank()) {
@@ -527,20 +446,6 @@ fun calculateAge(dob: String?): Int {
     return 0 // Return 0 if none of the formats work
 }
 
-
-//fun getLevelBorderColor(level: Int): Color {
-//    return when (level) {
-//        1 -> Color(0xFF00bf63)
-//        2 -> Color.Cyan
-//        3 -> Color.Blue
-//        4 -> Color.Magenta
-//        5 -> Color.Yellow
-//        6 -> Color.Red
-//        7 -> Color(0xFFFF4500) // OrangeRed
-//        else -> Color.Gray
-//    }
-//}
-
 fun getLevelBorderColor(level: Int): Brush {
     return when (level) {
         1 -> Brush.linearGradient(listOf(Color(0xFF00bf63), Color.Cyan))
@@ -554,4 +459,7 @@ fun getLevelBorderColor(level: Int): Brush {
     }
 }
 
-
+fun formatDate(timestamp: Long): String {
+    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}

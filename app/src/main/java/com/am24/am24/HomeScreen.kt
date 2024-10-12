@@ -4,10 +4,7 @@ package com.am24.am24
 
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -32,7 +29,6 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -41,34 +37,14 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
-class HomeActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            val navController = rememberNavController()
-            var currentTab by rememberSaveable { mutableStateOf(1) } // Default to Feed tab
-
-            UnifiedScaffold(
-                currentTab = currentTab,
-                onTabChange = { currentTab = it },
-                navController = navController,
-                titleProvider = { tabIndex ->
-                    when (tabIndex) {
-                        0 -> "DMs"
-                        1 -> "Feed"
-                        2 -> "Profile"
-                        3 -> "Dating"
-                        4 -> "Settings"
-                        else -> "KolkataKupid"
-                    }
-                }
-            )
-        }
-    }
-}
-
 @Composable
-fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int) -> Unit) {
+fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
+    // Since the Scaffold is at the top level (MainScreen), we don't need to define it here
+    // Just call HomeScreenContent and pass the modifier
+    HomeScreenContent(navController = navController, modifier = modifier)
+}
+@Composable
+fun HomeScreenContent(navController: NavController, modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
     var postContent by remember { mutableStateOf(TextFieldValue("")) }
     var filterOption by remember { mutableStateOf("recent") }
@@ -108,303 +84,299 @@ fun HomeScreen(navController: NavController, currentTab: Int, onTabChange: (Int)
         }
     }
 
-    Scaffold(
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        focusManager.clearFocus()
-                    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
             ) {
-                // Search Bar
-                CustomSearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onSearch = { /* Handle search logic */ }
+                focusManager.clearFocus()
+            }
+    ) {
+        // Search Bar
+        CustomSearchBar(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            onSearch = { /* Handle search logic */ }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Create Post and Filter Section
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Create Post Button (Toggle Minimize)
+            Button(
+                onClick = { isPostSectionVisible = !isPostSectionVisible },
+                border = BorderStroke(1.dp, Color(0xFF00bf63)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
+                Icon(
+                    if (isPostSectionVisible) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isPostSectionVisible) "Minimize" else "Expand",
+                    tint = Color(0xFF00bf63)
                 )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(text = "Create Post", color = Color(0xFF00bf63))
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Create Post and Filter Section
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Filter Button
+            Box {
+                Button(
+                    onClick = { showFilterMenu = !showFilterMenu },
+                    border = BorderStroke(1.dp, Color(0xFF00bf63)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                 ) {
-                    // Create Post Button (Toggle Minimize)
-                    Button(
-                        onClick = { isPostSectionVisible = !isPostSectionVisible },
-                        border = BorderStroke(1.dp, Color(0xFF00bf63)),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp)
-                    ) {
-                        Icon(
-                            if (isPostSectionVisible) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isPostSectionVisible) "Minimize" else "Expand",
-                            tint = Color(0xFF00bf63)
+                    Text(text = filterOption.capitalize(), color = Color(0xFF00bf63))
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = "Filter options",
+                        tint = Color(0xFF00bf63)
+                    )
+                }
+
+                // Dropdown Menu for Filter Options
+                DropdownMenu(
+                    expanded = showFilterMenu,
+                    onDismissRequest = { showFilterMenu = false },
+                ) {
+                    val filterOptions = listOf(
+                        "recent", "popular", "unpopular", "own echoes",
+                        "city", "age", "level", "gender", "high-school", "college"
+                    )
+                    filterOptions.filter { it != filterOption }.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(text = option.capitalize(), color = Color(0xFF00bf63)) },
+                            onClick = {
+                                filterOption = option
+                                filterValue = "" // Reset filter value when option changes
+                                showFilterMenu = false
+                            }
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Create Post", color = Color(0xFF00bf63))
                     }
+                }
+            }
+        }
 
-                    // Filter Button
-                    Box {
-                        Button(
-                            onClick = { showFilterMenu = !showFilterMenu },
-                            border = BorderStroke(1.dp, Color(0xFF00bf63)),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                        ) {
-                            Text(text = filterOption.capitalize(), color = Color(0xFF00bf63))
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Filter options",
-                                tint = Color(0xFF00bf63)
-                            )
-                        }
-
-                        // Dropdown Menu for Filter Options
+        // Input Field for Additional Filters
+        if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
+            Spacer(modifier = Modifier.height(8.dp))
+            when (filterOption) {
+                "age" -> {
+                    // Integer input field
+                    OutlinedTextField(
+                        value = filterValue,
+                        onValueChange = { newValue ->
+                            // Allow only numbers
+                            if (newValue.all { it.isDigit() }) {
+                                filterValue = newValue
+                            }
+                        },
+                        label = { Text("Enter Age", color = Color.White) },
+                        placeholder = { Text("e.g., 25", color = Color.Gray) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        textStyle = LocalTextStyle.current.copy(color = Color.White),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF00bf63)
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+                "gender" -> {
+                    // Dropdown with options 'M', 'F', 'T'
+                    var expanded by remember { mutableStateOf(false) }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = filterValue,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Select Gender", color = Color.White) },
+                            placeholder = { Text("M/F/T", color = Color.Gray) },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF00bf63),
+                                unfocusedBorderColor = Color.Gray,
+                                cursorColor = Color(0xFF00bf63)
+                            ),
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Dropdown",
+                                    tint = Color.White,
+                                    modifier = Modifier.clickable { expanded = true }
+                                )
+                            }
+                        )
                         DropdownMenu(
-                            expanded = showFilterMenu,
-                            onDismissRequest = { showFilterMenu = false },
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
                         ) {
-                            val filterOptions = listOf(
-                                "recent", "popular", "unpopular", "own echoes",
-                                "city", "age", "level", "gender", "high-school", "college"
-                            )
-                            filterOptions.filter { it != filterOption }.forEach { option ->
+                            listOf("M", "F", "T").forEach { gender ->
                                 DropdownMenuItem(
-                                    text = { Text(text = option.capitalize(), color = Color(0xFF00bf63)) },
+                                    text = { Text(gender, color = Color(0xFF00bf63)) },
                                     onClick = {
-                                        filterOption = option
-                                        filterValue = "" // Reset filter value when option changes
-                                        showFilterMenu = false
+                                        filterValue = gender
+                                        expanded = false
                                     }
                                 )
                             }
                         }
                     }
                 }
-
-                // Input Field for Additional Filters
-                if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    when (filterOption) {
-                        "age" -> {
-                            // Integer input field
-                            OutlinedTextField(
-                                value = filterValue,
-                                onValueChange = { newValue ->
-                                    // Allow only numbers
-                                    if (newValue.all { it.isDigit() }) {
-                                        filterValue = newValue
-                                    }
-                                },
-                                label = { Text("Enter Age", color = Color.White) },
-                                placeholder = { Text("e.g., 25", color = Color.Gray) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                textStyle = LocalTextStyle.current.copy(color = Color.White),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF00bf63),
-                                    unfocusedBorderColor = Color.Gray,
-                                    cursorColor = Color(0xFF00bf63)
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                            )
-                        }
-                        "gender" -> {
-                            // Dropdown with options 'M', 'F', 'T'
-                            var expanded by remember { mutableStateOf(false) }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = filterValue,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Select Gender", color = Color.White) },
-                                    placeholder = { Text("M/F/T", color = Color.Black) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textStyle = LocalTextStyle.current.copy(color = Color.White),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF00bf63),
-                                        unfocusedBorderColor = Color.Gray,
-                                        cursorColor = Color(0xFF00bf63)
-                                    ),
-                                    trailingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.ArrowDropDown,
-                                            contentDescription = "Dropdown",
-                                            tint = Color.White,
-                                            modifier = Modifier.clickable { expanded = true }
-                                        )
-                                    }
-                                )
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    listOf("M", "F", "T").forEach { gender ->
-                                        DropdownMenuItem(
-                                            text = { Text(gender, color = Color(0xFF00bf63)) },
-                                            onClick = {
-                                                filterValue = gender
-                                                expanded = false
-                                            }
-                                        )
-                                    }
-                                }
+                "level" -> {
+                    // Integer input field (1-7)
+                    OutlinedTextField(
+                        value = filterValue,
+                        onValueChange = { newValue ->
+                            // Allow only numbers between 1 and 7
+                            if (newValue.all { it.isDigit() } && newValue.toIntOrNull() in 1..7) {
+                                filterValue = newValue
                             }
-                        }
-                        "level" -> {
-                            // Integer input field (1-7)
-                            OutlinedTextField(
-                                value = filterValue,
-                                onValueChange = { newValue ->
-                                    // Allow only numbers between 1 and 7
-                                    if (newValue.all { it.isDigit() } && newValue.toIntOrNull() in 1..7) {
-                                        filterValue = newValue
-                                    }
-                                },
-                                label = { Text("Enter Level (1-7)", color = Color.White) },
-                                placeholder = { Text("e.g., 3", color = Color.Gray) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                textStyle = LocalTextStyle.current.copy(color = Color.White),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF00bf63),
-                                    unfocusedBorderColor = Color.Gray,
-                                    cursorColor = Color(0xFF00bf63)
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                            )
-                        }
-                        else -> {
-                            // Text input field
-                            OutlinedTextField(
-                                value = filterValue,
-                                onValueChange = { filterValue = it },
-                                label = { Text("Enter ${filterOption.capitalize()}", color = Color.White) },
-                                placeholder = { Text("Type here", color = Color.Gray) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                textStyle = LocalTextStyle.current.copy(color = Color.White),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF00bf63),
-                                    unfocusedBorderColor = Color.Gray,
-                                    cursorColor = Color(0xFF00bf63)
-                                )
-                            )
-                        }
-                    }
+                        },
+                        label = { Text("Enter Level (1-7)", color = Color.White) },
+                        placeholder = { Text("e.g., 3", color = Color.Gray) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        textStyle = LocalTextStyle.current.copy(color = Color.White),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF00bf63)
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
                 }
+                else -> {
+                    // Text input field
+                    OutlinedTextField(
+                        value = filterValue,
+                        onValueChange = { filterValue = it },
+                        label = { Text("Enter ${filterOption.capitalize()}", color = Color.White) },
+                        placeholder = { Text("Type here", color = Color.Gray) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        textStyle = LocalTextStyle.current.copy(color = Color.White),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF00bf63)
+                        )
+                    )
+                }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-                // Post Input Section
-                if (isPostSectionVisible) {
-                    PostInputSection(
-                        postContent = postContent,
-                        onValueChange = { postContent = it },
-                        onPost = {
-                            if (postContent.text.isNotBlank()) {
-                                isPostSectionVisible = false
-                                isPosting = true // Start posting
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    val currentUserId =
-                                        FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-                                    val username = userProfile?.username ?: "Anonymous"
+        // Post Input Section
+        if (isPostSectionVisible) {
+            PostInputSection(
+                postContent = postContent,
+                onValueChange = { postContent = it },
+                onPost = {
+                    if (postContent.text.isNotBlank()) {
+                        isPostSectionVisible = false
+                        isPosting = true // Start posting
+                        coroutineScope.launch(Dispatchers.IO) {
+                            val currentUserId =
+                                FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                            val username = userProfile?.username ?: "Anonymous"
 
-                                    val database = FirebaseDatabase.getInstance()
-                                    val postsRef = database.getReference("posts")
+                            val database = FirebaseDatabase.getInstance()
+                            val postsRef = database.getReference("posts")
 
-                                    val postId = postsRef.push().key ?: return@launch
+                            val postId = postsRef.push().key ?: return@launch
 
-                                    val post = Post(
-                                        postId = postId,
-                                        userId = currentUserId,
-                                        username = username,
-                                        contentText = postContent.text,
-                                        timestamp = ServerValue.TIMESTAMP,
-                                        upvotes = 0,
-                                        downvotes = 0,
-                                        totalComments = 0,
-                                        userTags = addedUserTags.toList(),
-                                        upvoteToDownvoteRatio = 0.0,
-                                        fontFamily = selectedFontFamily,
-                                        fontSize = selectedFontSize
-                                    )
+                            val post = Post(
+                                postId = postId,
+                                userId = currentUserId,
+                                username = username,
+                                contentText = postContent.text,
+                                timestamp = ServerValue.TIMESTAMP,
+                                upvotes = 0,
+                                downvotes = 0,
+                                totalComments = 0,
+                                userTags = addedUserTags.toList(),
+                                upvoteToDownvoteRatio = 0.0,
+                                fontFamily = selectedFontFamily,
+                                fontSize = selectedFontSize
+                            )
 
-                                    try {
-                                        postsRef.child(postId).setValue(post).await()
-                                        withContext(Dispatchers.Main) {
-                                            isPosting = false // Posting complete
-                                            postContent = TextFieldValue("")
-                                            addedUserTags.clear()
-                                            Toast.makeText(
-                                                context,
-                                                "Post uploaded successfully",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        withContext(Dispatchers.Main) {
-                                            isPosting = false // Posting complete even if there was an error
-                                            Toast.makeText(
-                                                context,
-                                                "Failed to upload post: ${e.message}",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
-                                    }
-                                }
-                            } else {
-                                coroutineScope.launch {
+                            try {
+                                postsRef.child(postId).setValue(post).await()
+                                withContext(Dispatchers.Main) {
+                                    isPosting = false // Posting complete
+                                    postContent = TextFieldValue("")
+                                    addedUserTags.clear()
                                     Toast.makeText(
                                         context,
-                                        "Please enter some text before posting",
+                                        "Post uploaded successfully",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    isPosting = false // Posting complete even if there was an error
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to upload post: ${e.message}",
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
                             }
-                        },
-                        addedUserTags = addedUserTags,
-                        selectedFontFamily = selectedFontFamily,
-                        onFontFamilyChange = { selectedFontFamily = it },
-                        selectedFontSize = selectedFontSize,
-                        onFontSizeChange = { selectedFontSize = it }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Feed Section (Fetch and display posts from Firebase)
-                FeedSection(
-                    navController = navController,
-                    filterOption = filterOption,
-                    filterValue = filterValue,
-                    searchQuery = searchQuery,
-                    userId = userId,
-                    userProfile = userProfile,
-                    isPosting = isPosting,
-                    onTagClick = { tag -> searchQuery = tag }
-                )
-            }
+                        }
+                    } else {
+                        coroutineScope.launch {
+                            Toast.makeText(
+                                context,
+                                "Please enter some text before posting",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                },
+                addedUserTags = addedUserTags,
+                selectedFontFamily = selectedFontFamily,
+                onFontFamilyChange = { selectedFontFamily = it },
+                selectedFontSize = selectedFontSize,
+                onFontSizeChange = { selectedFontSize = it }
+            )
         }
-    )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Feed Section (Fetch and display posts from Firebase)
+        FeedSection(
+            navController = navController,
+            filterOption = filterOption,
+            filterValue = filterValue,
+            searchQuery = searchQuery,
+            userId = userId,
+            userProfile = userProfile,
+            isPosting = isPosting,
+            onTagClick = { tag -> searchQuery = tag }
+        )
+    }
 }
 
 @Composable
@@ -880,13 +852,11 @@ fun FeedSection(
                     onUserClick = {
                         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
                         if (post.userId == currentUserId) {
-                            // Navigate to ProfileActivity if it's your own profile
+                            // Navigate to ProfileScreen if it's your own profile
                             navController.navigate("profile")
                         } else {
-                            // Navigate to DatingProfileActivity if it's another user's profile
-                            val intent = Intent(context, DatingProfileActivity::class.java)
-                            intent.putExtra("otherUserId", post.userId)
-                            context.startActivity(intent)
+                            // Navigate to DatingScreen with the other user's ID
+                            navController.navigate("dating/${post.userId}")
                         }
                     },
                     onTagClick = { tag ->

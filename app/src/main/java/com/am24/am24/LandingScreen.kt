@@ -1,11 +1,14 @@
 package com.am24.am24
 
-import android.content.Intent
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -20,30 +23,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.am24.am24.ui.theme.AppTheme
 
-class LandingActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-        setContent {
-            AppTheme {
-                LandingScreen(
-                    onLoginClick = {
-                        startActivity(Intent(this, LoginActivity::class.java))
-                    },
-                    onRegisterClick = {
-                        startActivity(Intent(this, RegistrationActivity::class.java))
-                    }
-                )
-            }
-        }
-    }
+@Composable
+fun LandingScreen(navController: NavController) {
+    LandingScreenContent(
+        onLoginClick = { navController.navigate("login") },
+        onRegisterClick = { navController.navigate("register") }
+    )
 }
 
 @Composable
-fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
+fun LandingScreenContent(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -121,6 +113,6 @@ fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
 @Composable
 fun PreviewLandingScreen() {
     AppTheme {
-        LandingScreen({}, {})
+        LandingScreenContent({}, {})
     }
 }

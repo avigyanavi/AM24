@@ -1,86 +1,63 @@
 package com.am24.am24
 
-import android.content.Intent
-import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 
-class LoginActivity : ComponentActivity() {
+@Composable
+fun LoginScreen(navController: NavController) {
+    val auth = FirebaseAuth.getInstance()
+    val context = LocalContext.current
 
-    private lateinit var auth: FirebaseAuth
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        auth = FirebaseAuth.getInstance()
-        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-
-        setContent {
-            AppTheme {
-                LoginScreen(
-                    onLoginClick = { email, password ->
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            try {
-                                val trimmedEmail = email.trim()
-                                val result = auth.signInWithEmailAndPassword(trimmedEmail, password).await()
-
-                                val currentUser = result.user
-                                if (currentUser != null && currentUser.isEmailVerified) {
-                                    // Navigate to ExploreActivity on successful login
-                                    withContext(Dispatchers.Main) {
-                                        startActivity(Intent(this@LoginActivity, HomeActivity::class.java))
-                                        finish()
-                                    }
-                                } else {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(
-                                            this@LoginActivity,
-                                            "Please verify your email before logging in.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        auth.signOut()
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(
-                                        this@LoginActivity,
-                                        "Authentication failed: ${e.message}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
+    LoginScreenContent(onLoginClick = { email, password ->
+        // Handle login logic
+        auth.signInWithEmailAndPassword(email.trim(), password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    if (auth.currentUser?.isEmailVerified == true) {
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
                         }
+                    } else {
+                        Toast.makeText(context, "Please verify your email.", Toast.LENGTH_LONG).show()
+                        auth.signOut()
                     }
-                )
+                } else {
+                    Toast.makeText(context, "Authentication failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                }
             }
-        }
-    }
+    })
 }
 
 @Composable
-fun LoginScreen(onLoginClick: (String, String) -> Unit) {
+fun LoginScreenContent(onLoginClick: (String, String) -> Unit) {
     var email by remember { mutableStateOf(TextFieldValue("")) }
     var password by remember { mutableStateOf(TextFieldValue("")) }
 
@@ -172,6 +149,6 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
 @Composable
 fun PreviewLoginScreen() {
     AppTheme {
-        LoginScreen(onLoginClick = { _, _ -> })
+        LoginScreenContent(onLoginClick = { _, _ -> })
     }
 }
