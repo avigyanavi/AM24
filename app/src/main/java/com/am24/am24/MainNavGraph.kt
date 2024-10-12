@@ -30,5 +30,11 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         }
         composable("settings") { /* Settings Screen */ }
         // Additional destinations can be added here
+        composable("peopleWhoLikeMe") {
+            PeopleWhoLikeMeScreen(navController = navController)
+        }
+        composable("notifications") {
+            NotificationsScreen(navController = navController)
+        }
     }
 }

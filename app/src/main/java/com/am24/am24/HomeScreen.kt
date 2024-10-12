@@ -1586,8 +1586,7 @@ fun CustomSearchBar(
         placeholder = { Text("Search by username or tags", color = Color.Gray) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(8.dp)),
+            .padding(horizontal = 16.dp),
         textStyle = LocalTextStyle.current.copy(color = Color.White),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color(0xFF00bf63),

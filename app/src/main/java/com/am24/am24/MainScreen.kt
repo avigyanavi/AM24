@@ -51,12 +51,16 @@ fun TopNavBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
+    val isPeopleWhoLikeMeSelected = currentDestination?.route == "peopleWhoLikeMe"
+    val isNotificationsSelected = currentDestination?.route == "notifications"
     val title = when (currentDestination?.route) {
         "dms" -> "DMs"
         "home" -> "Feed"
         "profile" -> "Profile"
         "dating" -> "Dating"
         "settings" -> "Settings"
+        "peopleWhoLikeMe" -> "People Who Like Me"
+        "notifications" -> "Notifications"
         else -> "KupidXApp"
     }
 
@@ -69,7 +73,7 @@ fun TopNavBar(navController: NavController) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "People Who Like Me",
-                    tint = Color.White
+                    tint = if (isPeopleWhoLikeMeSelected) Color(0xFF00bf63) else Color.White
                 )
             }
         },
@@ -80,13 +84,14 @@ fun TopNavBar(navController: NavController) {
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
-                    tint = Color.White
+                    tint = if (isNotificationsSelected) Color(0xFF00bf63) else Color.White
                 )
             }
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
 }
+
 
 data class BottomNavItem(val label: String, val icon: ImageVector, val route: String)
 
@@ -104,9 +109,7 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
                     navController.navigate(item.route) {
                         launchSingleTop = true
                         restoreState = true
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        // Remove popUpTo to allow normal back stack behavior
                     }
                 },
                 icon = {

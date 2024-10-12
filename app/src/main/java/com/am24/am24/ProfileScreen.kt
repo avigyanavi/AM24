@@ -133,7 +133,7 @@ fun ProfileScreenContent(
                             photoUrls.forEachIndexed { index, _ ->
                                 Box(
                                     modifier = Modifier
-                                        .size(8.dp, 8.dp)
+                                        .size(20.dp, 4.dp)
                                         .padding(horizontal = 2.dp)
                                         .clip(CircleShape)
                                         .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
@@ -341,15 +341,17 @@ fun UserInfoSectionBasic(profile: Profile) {
 }
 
 @Composable
-fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
+fun UserInfoSectionDetailed(
+    profile: Profile,
+    onLeaderboardClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth(),
+        modifier = modifier,
         horizontalAlignment = Alignment.Start
     ) {
         // Ratings and Rankings
-        ProfileText(label = "Kupid Score (Composite)", value = profile.am24RankingCompositeScore.toString())
+        ProfileText(label = "Composite Score", value = profile.am24RankingCompositeScore.toString())
         ProfileText(label = "Rating", value = if (profile.numberOfRatings > 0) {
             "${profile.rating} from (${profile.numberOfRatings} ratings)"
         } else {
@@ -398,7 +400,6 @@ fun UserInfoSectionDetailed(profile: Profile, onLeaderboardClick: () -> Unit) {
         ProfileText(label = "Date Joined", value = formatDate(profile.dateOfJoin))
     }
 }
-
 @Composable
 fun ProfileText(label: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {

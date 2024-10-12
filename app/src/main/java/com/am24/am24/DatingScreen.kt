@@ -26,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.FractionalThreshold
@@ -36,6 +37,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun DatingScreen(navController: NavController, startUserId: String? = null, modifier: Modifier = Modifier) {
@@ -128,9 +132,14 @@ fun DatingProfileCard(
     onSwipeLeft: () -> Unit,
     navController: NavController
 ) {
-    var currentPhotoIndex by remember { mutableStateOf(0) }
-    var showMetrics by remember { mutableStateOf(false) }
+    var currentPhotoIndex by remember(profile) { mutableStateOf(0) }
+    var showDetailsAndMetrics by remember { mutableStateOf(false) }
+    var showFullScreenImage by remember { mutableStateOf(false) } // For fullscreen image
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+
+    LaunchedEffect(profile) {
+        currentPhotoIndex = 0
+    }
 
     // Create swipeable state
     val swipeableState = rememberSwipeableState(initialValue = 0)
@@ -166,133 +175,224 @@ fun DatingProfileCard(
             .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
             .verticalScroll(rememberScrollState())
     ) {
-        Column(
+        Card(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Black),
+            border = BorderStroke(3.dp, getLevelBorderColor(profile.level))
         ) {
-            // Picture Carousel with Border
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .border(BorderStroke(2.dp, getLevelBorderColor(profile.level)))
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { offset ->
-                                val tapX = offset.x
-                                val photoCount = photoUrls.size
-                                if (photoCount > 1) {
-                                    currentPhotoIndex = if (tapX > size.width / 2) {
-                                        (currentPhotoIndex + 1) % photoCount
-                                    } else {
-                                        (currentPhotoIndex - 1 + photoCount) % photoCount
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                // Picture Carousel
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { offset ->
+                                    val tapX = offset.x
+                                    val photoCount = photoUrls.size
+                                    if (photoCount > 1) {
+                                        currentPhotoIndex = if (tapX > size.width / 2) {
+                                            (currentPhotoIndex + 1) % photoCount
+                                        } else {
+                                            (currentPhotoIndex - 1 + photoCount) % photoCount
+                                        }
                                     }
                                 }
-                            }
+                            )
+                        }
+                ) {
+                    if (photoUrls.isNotEmpty()) {
+                        AsyncImage(
+                            model = photoUrls[currentPhotoIndex],
+                            contentDescription = "Profile Photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
                     }
-            ) {
-                if (photoUrls.isNotEmpty()) {
-                    AsyncImage(
-                        model = photoUrls[currentPhotoIndex],
-                        contentDescription = "Profile Photo",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+
+                    // Navigation Bars above the photos
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        photoUrls.forEachIndexed { index, _ ->
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp, 4.dp)
+                                    .padding(horizontal = 2.dp)
+                                    .clip(CircleShape)
+                                    .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
+                            )
+                        }
+                    }
+
+                    // Fullscreen Icon
+                    IconButton(
+                        onClick = { showFullScreenImage = true },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fullscreen,
+                            contentDescription = "Fullscreen",
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Name, Age, Rating, Composite Score
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    Text(
+                        text = "${profile.username}, ${calculateAge(profile.dob)}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = Color.White
+                    )
+                    RatingBar(rating = profile.rating)
+                    Text(
+                        text = "Composite Score: ${profile.am24RankingCompositeScore}",
+                        fontSize = 16.sp,
+                        color = Color.White
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Toggle Details and Metrics Section
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { showDetailsAndMetrics = !showDetailsAndMetrics }) {
+                        Icon(
+                            imageVector = if (showDetailsAndMetrics) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Toggle Details and Metrics",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = if (showDetailsAndMetrics) "Hide Details and Metrics" else "Show Details and Metrics",
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+
+                if (showDetailsAndMetrics) {
+                    // Display Details and Metrics side by side
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        // Details Column
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            // Details Section
+                            ProfileText(label = "Name", value = profile.name)
+                            ProfileText(label = "Gender", value = profile.gender)
+                            ProfileText(label = "Bio", value = profile.bio)
+                            ProfileText(label = "Locality", value = profile.locality)
+                            ProfileText(label = "High School", value = profile.highSchool)
+                            ProfileText(label = "College", value = profile.college)
+                        }
+
+                        // Metrics Column
+                        UserInfoSectionDetailed(
+                            profile = profile,
+                            onLeaderboardClick = {
+                                navController.navigate("leaderboard")
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp)
+                        )
+                    }
+                }
+
+                // Button Row (Swipe Left/Right)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // Swipe Left Button
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                swipeableState.animateTo(-1)
+                            }
+                        },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(Color.Red)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Swipe Left", tint = Color.White)
+                    }
+
+                    // Swipe Right Button
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                swipeableState.animateTo(1)
+                            }
+                        },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(Color.Green)
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = "Swipe Right", tint = Color.White)
+                    }
+                }
             }
+        }
+    }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Name, Age, Rating, Composite Score
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.Top
+    // Fullscreen Image Dialog
+    if (showFullScreenImage) {
+        Dialog(onDismissRequest = { showFullScreenImage = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
             ) {
-                Text(
-                    text = "${profile.username}, ${calculateAge(profile.dob)}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.White
+                AsyncImage(
+                    model = photoUrls[currentPhotoIndex],
+                    contentDescription = "Full Screen Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
                 )
-                RatingBar(rating = profile.rating)
-                Text(
-                    text = "Composite Score: ${profile.am24RankingCompositeScore}",
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Details Section
-            ProfileText(label = "Name", value = profile.name)
-            ProfileText(label = "Gender", value = profile.gender)
-            ProfileText(label = "Bio", value = profile.bio)
-            ProfileText(label = "Locality", value = profile.locality)
-            ProfileText(label = "High School", value = profile.highSchool)
-            ProfileText(label = "College", value = profile.college)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Toggle Metrics Section
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { showMetrics = !showMetrics }) {
+                IconButton(
+                    onClick = { showFullScreenImage = false },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
                     Icon(
-                        imageVector = if (showMetrics) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Toggle Metrics",
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
                         tint = Color.White
                     )
-                }
-                Text(
-                    text = "Metrics",
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
-            }
-
-            if (showMetrics) {
-                UserInfoSectionDetailed(profile = profile, onLeaderboardClick = {
-                    navController.navigate("leaderboard")
-                })
-            }
-
-            // Button Row (Swipe Left/Right)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                // Swipe Left Button
-                IconButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            swipeableState.animateTo(-1)
-                        }
-                    },
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(Color.Red)
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Swipe Left", tint = Color.White)
-                }
-
-                // Swipe Right Button
-                IconButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            swipeableState.animateTo(1)
-                        }
-                    },
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(Color.Green)
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = "Swipe Right", tint = Color.White)
                 }
             }
         }
@@ -377,3 +477,5 @@ fun RatingBar(
         }
     }
 }
+
+
