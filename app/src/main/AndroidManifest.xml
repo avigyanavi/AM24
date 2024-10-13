@@ -54,7 +54,23 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".LandingActivity"
+            android:exported="true">
+        </activity>
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true">
+        </activity>
+        <activity
+            android:name=".RegistrationActivity"
+            android:exported="true">
+        </activity>
 
+        <activity
+            android:name=".KupidXAppActivity"
+            android:exported="true">
+        </activity>
         <activity
             android:name=".LeaderboardActivity"
             android:exported="true">

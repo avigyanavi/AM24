@@ -18,7 +18,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 
 @Composable
-fun MainScreen(navController: NavHostController) {
+fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
     val items = listOf(
         BottomNavItem("DMs", Icons.Default.Message, "dms"),
         BottomNavItem("Feed", Icons.Default.Feed, "home"),
@@ -32,7 +32,7 @@ fun MainScreen(navController: NavHostController) {
 
     Scaffold(
         topBar = {
-            TopNavBar(navController = navController)
+            TopNavBar(navController = navController, onLogout = onLogout)
         },
         bottomBar = {
             BottomNavigationBar(navController = navController, items = items)
@@ -47,7 +47,7 @@ fun MainScreen(navController: NavHostController) {
 }
 
 @Composable
-fun TopNavBar(navController: NavController) {
+fun TopNavBar(navController: NavController, onLogout: () -> Unit) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
@@ -85,6 +85,13 @@ fun TopNavBar(navController: NavController) {
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
                     tint = if (isNotificationsSelected) Color(0xFF00bf63) else Color.White
+                )
+            }
+            IconButton(onClick = onLogout) {
+                Icon(
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = "Logout",
+                    tint = Color.White
                 )
             }
         },

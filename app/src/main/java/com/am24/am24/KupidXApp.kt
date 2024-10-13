@@ -1,32 +1,53 @@
-// KupidXApp.kt
+// KupidXAppActivity.kt
 package com.am24.am24
 
-import androidx.compose.runtime.*
-import androidx.compose.material3.*
-import androidx.navigation.compose.rememberNavController
-import com.google.firebase.auth.FirebaseAuth
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import com.am24.am24.ui.theme.AppTheme
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.runtime.Composable
+import androidx.navigation.compose.rememberNavController
 
-@Composable
-fun KupidXApp() {
-    AppTheme {
-        val navController = rememberNavController()
-        val auth = FirebaseAuth.getInstance()
-        var isAuthenticated by remember { mutableStateOf(auth.currentUser != null) }
+class KupidXAppActivity : ComponentActivity() {
 
-        // Observe authentication state
-        DisposableEffect(auth) {
-            val listener = FirebaseAuth.AuthStateListener { authInstance ->
-                isAuthenticated = authInstance.currentUser != null
-            }
-            auth.addAuthStateListener(listener)
-            onDispose { auth.removeAuthStateListener(listener) }
+    private lateinit var auth: FirebaseAuth
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Initialize Firebase Auth
+        auth = FirebaseAuth.getInstance()
+
+        // Check if the user is authenticated and email is verified
+        val currentUser = auth.currentUser
+        if (currentUser == null || !currentUser.isEmailVerified) {
+            // User is not authenticated, navigate back to LandingActivity
+            startActivity(Intent(this, LandingActivity::class.java))
+            finish()
+            return
         }
 
-        if (isAuthenticated) {
-            MainScreen(navController = navController)
-        } else {
-            AuthenticationNavGraph(navController = navController)
+        setContent {
+            AppTheme {
+                KupidXApp(
+                    onLogout = {
+                        // Handle logout
+                        auth.signOut()
+                        startActivity(Intent(this, LandingActivity::class.java))
+                        finish()
+                    }
+                )
+            }
         }
     }
+}
+
+
+@Composable
+fun KupidXApp(onLogout: () -> Unit) {
+    val navController = rememberNavController()
+
+    MainScreen(navController = navController, onLogout = onLogout)
 }

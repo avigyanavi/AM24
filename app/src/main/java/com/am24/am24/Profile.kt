@@ -9,8 +9,8 @@ data class Profile(
     val dob: String = "",  // Date of birth for age calculation
     val bio: String = "",  // One-liner bio
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
-    val locality: String = "",  // User's locality (searchable dropdown)
-    val customLocality: String? = null,  // Custom value for locality if not found in the dropdown
+    val hometown: String = "",  // User's locality (searchable dropdown)
+    val customHometown: String? = null,  // Custom value for locality if not found in the dropdown
     val highSchool: String = "",  // User's high school (searchable dropdown)
     val customHighSchool: String? = null,  // Custom value for high school if not found in the dropdown
     val gender: String = "",
@@ -21,6 +21,9 @@ data class Profile(
     val matches: List<String> = emptyList(),  // List of matched user IDs
     val religion: String = "",
     val community: String = "",
+    val country: String = "",
+    val city: String = "",
+    val customCity: String? = "",
 
     // Metrics and Rankings
     val am24RankingGlobal: Int = 0,  // Global AM24 ranking (All Kolkata)
@@ -28,7 +31,7 @@ data class Profile(
     val am24RankingHighSchool: Int = 0,  // Ranking per high school
     val am24RankingCollege: Int = 0,     // Ranking per college
     val am24RankingGender: Int = 0,      // Ranking per gender
-    val am24RankingLocality: Int = 0,    // Ranking per hometown (locality)
+    val am24RankingHometown: Int = 0,    // Ranking per hometown (locality)
     val rating: Double = 0.0,            // Average rating given by others in DMs (from Review Bar)
     val numberOfRatings: Int = 0,        // Number of people who rated the user
 
@@ -51,7 +54,14 @@ data class Profile(
     // AM24 Metrics
     val dateOfJoin: Long = System.currentTimeMillis(),  // Date when the user joined
     val am24RankingCompositeScore: Double = 0.0,        // Composite score for AM24 ranking (Kupid Score)
-    val level: Int = 1  // Level determined by composite score
+    val level: Int = 1, // Level determined by composite score
+
+    @Exclude
+    var ratingsGiven: Map<String, Float> = emptyMap(), // Map of userId to rating
+
+    // Ratings received from others
+    @Exclude
+    var ratingsReceived: Map<String, Float> = emptyMap() // Map of userId to rating
 ) {
 
     @Exclude
@@ -70,13 +80,14 @@ data class Profile(
 
     @Exclude
     fun getAverageRating(): Double {
-        return rating
+        return if (ratingsReceived.isNotEmpty()) {
+            ratingsReceived.values.average()
+        } else 0.0
     }
 
     // Placeholder for composite score calculation
     @Exclude
     fun calculateCompositeScore(
-        rating: Double,
         matchCountPerSwipeRight: Double,
         averageUpvoteCount: Double,
         swipeRightToSwipeLeftRatio: Double,
@@ -84,7 +95,7 @@ data class Profile(
         cumulativeDownvotes: Int,
         gender: String
     ): Double {
-        val ratingScore = rating * 0.1
+        val ratingScore = getAverageRating() * 0.1
 
         // Gender-specific multipliers for match score
         val matchScoreMultiplier = when (gender.toLowerCase()) {
@@ -117,7 +128,6 @@ data class Profile(
     @Exclude
     fun determineLevel(): Int {
         val score = calculateCompositeScore(
-            rating = this.rating,
             matchCountPerSwipeRight = this.getCalculatedMatchCountPerSwipeRight(),
             averageUpvoteCount = this.averageUpvoteCount,
             swipeRightToSwipeLeftRatio = this.getCalculatedSwipeRightToLeftRatio(),
@@ -146,3 +156,12 @@ data class Interest(
     // Firebase requires a no-argument constructor
     constructor() : this("", null)
 }
+
+data class Message(
+    val id: String = "",
+    val senderId: String = "",
+    val receiverId: String = "",
+    val text: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+

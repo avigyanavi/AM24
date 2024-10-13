@@ -1519,7 +1519,8 @@ fun handlePostSnapshot(
 
 fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
     return when (filterOption) {
-        "locality" -> profile.locality.equals(filterValue, ignoreCase = true)
+        "country" -> profile.country.equals(filterValue, ignoreCase = true)
+        "city" -> profile.city.equals(filterValue, ignoreCase = true)
         "age" -> {
             val age = calculateAge(profile.dob)
             val requiredAge = filterValue.toIntOrNull()

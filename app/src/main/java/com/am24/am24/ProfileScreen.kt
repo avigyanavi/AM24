@@ -311,8 +311,8 @@ fun UserInfoSectionBasic(profile: Profile) {
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Locality
-        ProfileText(label = "Locality", value = profile.locality)
+        // Hometown
+        ProfileText(label = "Hometown", value = profile.hometown)
         Spacer(modifier = Modifier.height(8.dp))
 
         // High School
@@ -362,7 +362,7 @@ fun UserInfoSectionDetailed(
         ProfileText(label = "High School Ranking", value = profile.am24RankingHighSchool.toString())
         ProfileText(label = "College Ranking", value = profile.am24RankingCollege.toString())
         ProfileText(label = "Gender Ranking", value = profile.am24RankingGender.toString())
-        ProfileText(label = "Locality Ranking", value = profile.am24RankingLocality.toString())
+        ProfileText(label = "Hometown Ranking", value = profile.am24RankingHometown.toString())
         ProfileText(label = "Level", value = profile.level.toString())
 
         Spacer(modifier = Modifier.height(8.dp))

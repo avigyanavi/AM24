@@ -65,8 +65,8 @@ class EditProfileActivity : ComponentActivity() {
         var username by remember { mutableStateOf(TextFieldValue("")) }
         var bio by remember { mutableStateOf(TextFieldValue("")) }
         val interests = remember { mutableStateListOf<Interest>() }
-        var locality by remember { mutableStateOf("") }
-        var customLocality by remember { mutableStateOf("") }
+        var hometown by remember { mutableStateOf("") }
+        var customHometown by remember { mutableStateOf("") }
         var highSchool by remember { mutableStateOf("") }
         var customHighSchool by remember { mutableStateOf("") }
         var college by remember { mutableStateOf("") }
@@ -78,7 +78,7 @@ class EditProfileActivity : ComponentActivity() {
         var showEditInterestsScreen by remember { mutableStateOf(false) }
 
         // Predefined lists (similar to RegistrationActivity)
-        val localities = listOf("Garia", "Chingrighata", "Ballygunge", "Tangra", "Alipore")
+        val hometowns = listOf("Kolkata", "Chennai", "West Lafayette", "Lafayette", "Chicago")
         val highSchools = listOf("St. Xavier's High School", "Delhi Public School", "Modern High School")
         val colleges = listOf("IIT Delhi", "Jadavpur University", "St. Xavier's College")
         val genderOptions = listOf("Male", "Female", "Other")
@@ -108,7 +108,7 @@ class EditProfileActivity : ComponentActivity() {
                     bio = TextFieldValue(profile.bio)
                     interests.clear()
                     interests.addAll(interestList) // Add deserialized interests
-                    locality = profile.locality
+                    hometown = profile.hometown
                     highSchool = profile.highSchool
                     college = profile.college
                     gender = profile.gender
@@ -250,12 +250,12 @@ class EditProfileActivity : ComponentActivity() {
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Locality Dropdown with Custom Input
-                            if (customLocality.isNotEmpty()) {
+                            // Hometown Dropdown with Custom Input
+                            if (customHometown.isNotEmpty()) {
                                 OutlinedTextField(
-                                    value = TextFieldValue(customLocality),
-                                    onValueChange = { customLocality = it.text },
-                                    label = { Text("Custom Locality", color = Color(0xFF00bf63)) },
+                                    value = TextFieldValue(customHometown),
+                                    onValueChange = { customHometown = it.text },
+                                    label = { Text("Custom Hometown", color = Color(0xFF00bf63)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedTextColor = Color.White,
@@ -266,10 +266,10 @@ class EditProfileActivity : ComponentActivity() {
                                 )
                             } else {
                                 DropdownWithSearch(
-                                    title = "Select Locality",
-                                    options = localities,
-                                    selectedOption = locality,
-                                    onOptionSelected = { locality = it }
+                                    title = "Select Hometown",
+                                    options = hometowns,
+                                    selectedOption = hometown,
+                                    onOptionSelected = { hometown = it }
                                 )
                             }
 
@@ -347,7 +347,7 @@ class EditProfileActivity : ComponentActivity() {
                                             name.text,
                                             username.text,
                                             bio.text,
-                                            locality.ifEmpty { customLocality },
+                                            hometown.ifEmpty { customHometown },
                                             highSchool.ifEmpty { customHighSchool },
                                             college.ifEmpty { customCollege },
                                             gender,
@@ -377,7 +377,7 @@ class EditProfileActivity : ComponentActivity() {
         name: String,
         username: String,
         bio: String,
-        locality: String,
+        hometown: String,
         highSchool: String,
         college: String,
         gender: String,
@@ -389,7 +389,7 @@ class EditProfileActivity : ComponentActivity() {
             "name" to name,
             "username" to username,
             "bio" to bio,
-            "locality" to locality,
+            "hometown" to hometown,
             "highSchool" to highSchool,
             "college" to college,
             "gender" to gender,

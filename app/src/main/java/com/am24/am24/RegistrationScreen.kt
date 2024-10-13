@@ -1,11 +1,14 @@
-// RegistrationScreen.kt
+// RegistrationActivity.kt
 package com.am24.am24
 
+import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,7 +25,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,8 +38,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
@@ -46,38 +48,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
-@Composable
-fun RegistrationScreen(navController: NavController) {
-    val registrationViewModel: RegistrationViewModel = viewModel()
-    var currentStep by rememberSaveable { mutableStateOf(1) }
+class RegistrationActivity : ComponentActivity() {
+    private lateinit var auth: FirebaseAuth
+    private val storage = FirebaseStorage.getInstance().reference
 
-    val context = LocalContext.current
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        auth = FirebaseAuth.getInstance()
+        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
 
-    val onNext = { currentStep += 1 }
-    val onBack: () -> Unit = {
-        if (currentStep > 1) {
-            currentStep -= 1
-        } else {
-            navController.popBackStack()
-        }
-    }
-
-    when (currentStep) {
-        1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
-        2 -> EnterNameScreen(registrationViewModel, onNext, onBack)
-        3 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
-        4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
-        5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
-        6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
-        7 -> EnterProfileHeadlineScreen(registrationViewModel, onNext, onBack)
-        8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete = {
-            // After registration, navigate to LoginScreen or HomeScreen
-            navController.navigate("login") {
-                popUpTo("register") { inclusive = true }
+        setContent {
+            AppTheme {
+                RegistrationScreen(onRegistrationComplete = {
+                    // After registration, navigate to LoginActivity
+                    startActivity(Intent(this, LoginActivity::class.java))
+                    finish()
+                })
             }
-        }, onBack = onBack)
+        }
     }
 }
 
@@ -92,16 +84,44 @@ class RegistrationViewModel : ViewModel() {
     var optionalPhotoUris = mutableStateListOf<Uri>()
     var profilePicUrl by mutableStateOf<String?>(null)
     var optionalPhotoUrls = mutableStateListOf<String>()
-    var locality by mutableStateOf("")
+    var hometown by mutableStateOf("")
     var bio by mutableStateOf("")
     var highSchool by mutableStateOf("")
     var college by mutableStateOf("")
     var gender by mutableStateOf("")
     var customCollege by mutableStateOf("")
     var customHighSchool by mutableStateOf("")
-    var customLocality by mutableStateOf("")
+    var customHometown by mutableStateOf("")
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
+}
+
+@Composable
+fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
+    val registrationViewModel: RegistrationViewModel = viewModel()
+    var currentStep by remember { mutableStateOf(1) }
+
+    val context = LocalContext.current
+
+    val onNext = { currentStep += 1 }
+    val onBack: () -> Unit = {
+        if (currentStep > 1) {
+            currentStep -= 1
+        } else {
+            (context as? ComponentActivity)?.finish()
+        }
+    }
+
+    when (currentStep) {
+        1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
+        2 -> EnterNameScreen(registrationViewModel, onNext, onBack)
+        3 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
+        4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
+        5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
+        6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
+        7 -> EnterProfileHeadlineScreen(registrationViewModel, onNext, onBack)
+        8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack) // Username screen comes last
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,29 +134,31 @@ fun EnterLocationAndSchoolScreen(
     val context = LocalContext.current
 
     // Sample predefined lists
-    val localities = listOf("Garia", "Chingrighata", "Ballygunge", "Tangra", "Alipore")
+    val countrys = listOf("India", "USA", "France", "Australia", "England", "Scotland", "Ireland", "Wales", "Northern Ireland")
+    val cities = listOf("Mumbai, New Delhi, Kolkata, Lafayette, Chicago, Los Angeles, Las Vegas, San Francisco")
+    val hometowns = listOf("Kolkata", "Chennai", "West Lafayette", "Lafayette", "Chicago")
     val highSchools = listOf("St. Xavier's High School", "Delhi Public School", "Modern High School")
     val colleges = listOf("IIT Delhi", "Jadavpur University", "St. Xavier's College")
 
-    var localityText by remember { mutableStateOf(registrationViewModel.locality) }
+    var hometownText by remember { mutableStateOf(registrationViewModel.hometown) }
     var highSchoolText by remember { mutableStateOf(registrationViewModel.highSchool) }
     var collegeText by remember { mutableStateOf(registrationViewModel.college) }
 
-    var customLocality by remember { mutableStateOf(false) }
+    var customHometown by remember { mutableStateOf(false) }
     var customHighSchool by remember { mutableStateOf(false) }
     var customCollege by remember { mutableStateOf(false) }
 
-    var expandedLocality by remember { mutableStateOf(false) }
+    var expandedHometown by remember { mutableStateOf(false) }
     var expandedHighSchool by remember { mutableStateOf(false) }
     var expandedCollege by remember { mutableStateOf(false) }
 
     // Search states for the dropdown menus
-    var localitySearch by remember { mutableStateOf("") }
+    var hometownSearch by remember { mutableStateOf("") }
     var highSchoolSearch by remember { mutableStateOf("") }
     var collegeSearch by remember { mutableStateOf("") }
 
     // Filtered dropdown values based on search inputs
-    val filteredLocalities = localities.filter { it.contains(localitySearch, ignoreCase = true) }
+    val filteredHometowns = hometowns.filter { it.contains(hometownSearch, ignoreCase = true) }
     val filteredHighSchools = highSchools.filter { it.contains(highSchoolSearch, ignoreCase = true) }
     val filteredColleges = colleges.filter { it.contains(collegeSearch, ignoreCase = true) }
 
@@ -172,15 +194,15 @@ fun EnterLocationAndSchoolScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    // Locality Dropdown with Search
-                    Text("Enter Your Locality", color = Color.White, fontSize = 18.sp)
-                    if (customLocality) {
+                    // Hometown Dropdown with Search
+                    Text("Enter Your Hometown", color = Color.White, fontSize = 18.sp)
+                    if (customHometown) {
                         OutlinedTextField(
-                            value = registrationViewModel.customLocality,
+                            value = registrationViewModel.customHometown,
                             onValueChange = {
-                                registrationViewModel.customLocality = it
+                                registrationViewModel.customHometown = it
                             },
-                            label = { Text("Custom Locality", color = Color(0xFF00bf63)) },
+                            label = { Text("Custom Hometown", color = Color(0xFF00bf63)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -192,17 +214,17 @@ fun EnterLocationAndSchoolScreen(
                         )
                     } else {
                         ExposedDropdownMenuBox(
-                            expanded = expandedLocality,
-                            onExpandedChange = { expandedLocality = !expandedLocality }
+                            expanded = expandedHometown,
+                            onExpandedChange = { expandedHometown = !expandedHometown }
                         ) {
                             OutlinedTextField(
-                                value = localityText,
+                                value = hometownText,
                                 onValueChange = {
-                                    localityText = it
-                                    expandedLocality = true
-                                    registrationViewModel.locality = it
+                                    hometownText = it
+                                    expandedHometown = true
+                                    registrationViewModel.hometown = it
                                 },
-                                label = { Text("Search Locality", color = Color(0xFF00bf63)) },
+                                label = { Text("Search Hometown", color = Color(0xFF00bf63)) },
                                 singleLine = true,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -215,17 +237,17 @@ fun EnterLocationAndSchoolScreen(
                                 )
                             )
                             DropdownMenu(
-                                expanded = expandedLocality,
-                                onDismissRequest = { expandedLocality = false },
+                                expanded = expandedHometown,
+                                onDismissRequest = { expandedHometown = false },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(Color.Black)
                             ) {
                                 // Search bar inside the dropdown
                                 OutlinedTextField(
-                                    value = localitySearch,
-                                    onValueChange = { localitySearch = it },
-                                    label = { Text("Search Locality", color = Color(0xFF00bf63)) },
+                                    value = hometownSearch,
+                                    onValueChange = { hometownSearch = it },
+                                    label = { Text("Search Hometown", color = Color(0xFF00bf63)) },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -236,22 +258,22 @@ fun EnterLocationAndSchoolScreen(
                                     )
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                filteredLocalities.forEach { option ->
+                                filteredHometowns.forEach { option ->
                                     DropdownMenuItem(
                                         text = { Text(option, color = Color.White) },
                                         onClick = {
-                                            localityText = option
-                                            expandedLocality = false
-                                            registrationViewModel.locality = option
+                                            hometownText = option
+                                            expandedHometown = false
+                                            registrationViewModel.hometown = option
                                         }
                                     )
                                 }
                                 DropdownMenuItem(
-                                    text = { Text("Didn't find your locality, add", color = Color.White) },
+                                    text = { Text("Didn't find your Hometown, add", color = Color.White) },
                                     onClick = {
-                                        expandedLocality = false
-                                        customLocality = true
-                                        registrationViewModel.locality = ""
+                                        expandedHometown = false
+                                        customHometown = true
+                                        registrationViewModel.hometown = ""
                                     }
                                 )
                             }
@@ -439,8 +461,8 @@ fun EnterLocationAndSchoolScreen(
                     // Next Button with validation checks
                     Button(
                         onClick = {
-                            if (localityText.isEmpty() && registrationViewModel.customLocality.isEmpty()) {
-                                Toast.makeText(context, "Please enter a locality or add a custom one.", Toast.LENGTH_SHORT).show()
+                            if (hometownText.isEmpty() && registrationViewModel.customHometown.isEmpty()) {
+                                Toast.makeText(context, "Please enter a hometown or add a custom one.", Toast.LENGTH_SHORT).show()
                             } else if (highSchoolText.isEmpty() && registrationViewModel.customHighSchool.isEmpty()) {
                                 Toast.makeText(context, "Please enter a high school or add a custom one.", Toast.LENGTH_SHORT).show()
                             } else if (collegeText.isEmpty() && registrationViewModel.customCollege.isEmpty()) {
@@ -968,7 +990,7 @@ suspend fun saveProfileToFirebase(
             bio = registrationViewModel.bio,
             gender = registrationViewModel.gender,
             interests = registrationViewModel.interests.toList(),
-            locality = registrationViewModel.locality.ifEmpty { registrationViewModel.customLocality },
+            hometown = registrationViewModel.hometown.ifEmpty { registrationViewModel.customHometown },
             highSchool = registrationViewModel.highSchool.ifEmpty { registrationViewModel.customHighSchool },
             college = registrationViewModel.college.ifEmpty { registrationViewModel.customCollege },
             profilepicUrl = registrationViewModel.profilePicUrl,

@@ -1,9 +1,10 @@
 // DatingScreen.kt
 
-@file:OptIn(ExperimentalWearMaterialApi::class)
+@file:OptIn(ExperimentalMaterialApi::class)
 
 package com.am24.am24
 
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -28,13 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
-import androidx.wear.compose.material.ExperimentalWearMaterialApi
-import androidx.wear.compose.material.FractionalThreshold
-import androidx.wear.compose.material.rememberSwipeableState
-import androidx.wear.compose.material.swipeable
+import androidx.compose.material.FractionalThreshold
+import androidx.compose.material.rememberSwipeableState
+import androidx.compose.material.swipeable
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import com.google.firebase.database.ktx.getValue
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import java.text.ParseException
@@ -55,35 +58,72 @@ fun DatingScreenContent(navController: NavController, startUserId: String?, modi
 
     val firebaseDatabase = FirebaseDatabase.getInstance()
     val usersRef = firebaseDatabase.getReference("users")
+    val swipesRef = firebaseDatabase.getReference("swipes/$currentUserId")
 
     // Fetch profiles
     LaunchedEffect(Unit) {
-        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val fetchedProfiles = mutableListOf<Profile>()
-                for (userSnapshot in snapshot.children) {
-                    val profile = userSnapshot.getValue(Profile::class.java)
-                    if (profile != null && profile.userId != currentUserId) {
-                        fetchedProfiles.add(profile)
-                    }
+        val currentTime = System.currentTimeMillis()
+        val oneWeekAgo = currentTime - (7 * 24 * 60 * 60 * 1000) // 7 days in milliseconds
+        val oneMonthAgo = currentTime - (30L * 24 * 60 * 60 * 1000) // 30 days in milliseconds
+
+        // Fetch swipes to filter profiles
+        swipesRef.get().addOnSuccessListener { swipesSnapshot ->
+            val swipedUserIds = mutableSetOf<String>()
+            for (swipe in swipesSnapshot.children) {
+                val swipeData = swipe.getValue<Map<String, Any>>()
+                val liked = swipeData?.get("liked") as? Boolean
+                val timestamp = swipeData?.get("timestamp") as? Long ?: 0L
+                val userId = swipe.key ?: continue
+
+                if (liked == false && timestamp > oneMonthAgo) {
+                    // Swiped left within last month, exclude
+                    swipedUserIds.add(userId)
+                } else if (liked == true && timestamp > oneWeekAgo) {
+                    // Swiped right within last week, exclude
+                    swipedUserIds.add(userId)
                 }
-                // Rearrange profiles to start with startUserId if provided
-                if (startUserId != null) {
-                    val startProfileIndex = fetchedProfiles.indexOfFirst { it.userId == startUserId }
-                    if (startProfileIndex != -1) {
-                        val startProfile = fetchedProfiles.removeAt(startProfileIndex)
-                        fetchedProfiles.add(0, startProfile)
-                    }
-                }
-                profiles.clear()
-                profiles.addAll(fetchedProfiles)
+                // Else, include in profiles to show
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("FirebaseError", "DatabaseError: ${error.message}")
-                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
+            // Fetch profiles after getting swipedUserIds
+            usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val fetchedProfiles = mutableListOf<Profile>()
+                    for (userSnapshot in snapshot.children) {
+                        val profile = userSnapshot.getValue(Profile::class.java)
+                        if (profile != null && profile.userId != currentUserId && !swipedUserIds.contains(profile.userId)) {
+                            fetchedProfiles.add(profile)
+                        }
+                    }
+                    // Rearrange profiles to start with startUserId if provided
+                    if (startUserId != null) {
+                        val startProfileIndex =
+                            fetchedProfiles.indexOfFirst { it.userId == startUserId }
+                        if (startProfileIndex != -1) {
+                            val startProfile = fetchedProfiles.removeAt(startProfileIndex)
+                            fetchedProfiles.add(0, startProfile)
+                        }
+                    }
+                    profiles.clear()
+                    profiles.addAll(fetchedProfiles)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("FirebaseError", "DatabaseError: ${error.message}")
+                    Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
+        } .addOnFailureListener { exception ->
+            Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
+            // Proceed to fetch profiles without swipes data
+//            fetchProfilesWithoutSwipes(
+//                usersRef = usersRef,
+//                currentUserId = currentUserId,
+//                startUserId = startUserId,
+//                profiles = profiles,
+//                context = context
+//            )
+        }
     }
 
     // Ensure current profile index is valid
@@ -120,10 +160,68 @@ fun DatingScreenContent(navController: NavController, startUserId: String?, modi
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "No profiles available", color = Color.White)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "No more profiles around you",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Re-adjust your filters or wait a while.",
+                    color = Color.Gray,
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        // Navigate to Filters Screen (to be implemented)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                ) {
+                    Text(text = "Adjust Filters", color = Color.White)
+                }
+            }
         }
     }
 }
+
+fun fetchProfilesWithoutSwipes(
+    usersRef: DatabaseReference,
+    currentUserId: String,
+    startUserId: String?,
+    profiles: SnapshotStateList<Profile>,
+    context: Context
+) {
+    usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+        override fun onDataChange(snapshot: DataSnapshot) {
+            val fetchedProfiles = mutableListOf<Profile>()
+            for (userSnapshot in snapshot.children) {
+                val profile = userSnapshot.getValue(Profile::class.java)
+                if (profile != null && profile.userId != currentUserId) {
+                    fetchedProfiles.add(profile)
+                }
+            }
+            // Rearrange profiles to start with startUserId if provided
+            if (startUserId != null) {
+                val startProfileIndex = fetchedProfiles.indexOfFirst { it.userId == startUserId }
+                if (startProfileIndex != -1) {
+                    val startProfile = fetchedProfiles.removeAt(startProfileIndex)
+                    fetchedProfiles.add(0, startProfile)
+                }
+            }
+            profiles.clear()
+            profiles.addAll(fetchedProfiles)
+        }
+
+        override fun onCancelled(error: DatabaseError) {
+            Log.e("FirebaseError", "DatabaseError: ${error.message}")
+            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+        }
+    })
+}
+
 
 @Composable
 fun DatingProfileCard(
@@ -309,7 +407,7 @@ fun DatingProfileCard(
                             ProfileText(label = "Name", value = profile.name)
                             ProfileText(label = "Gender", value = profile.gender)
                             ProfileText(label = "Bio", value = profile.bio)
-                            ProfileText(label = "Locality", value = profile.locality)
+                            ProfileText(label = "Hometown", value = profile.hometown)
                             ProfileText(label = "High School", value = profile.highSchool)
                             ProfileText(label = "College", value = profile.college)
                         }
@@ -401,33 +499,64 @@ fun DatingProfileCard(
 
 fun handleSwipeRight(currentUserId: String, otherUserId: String) {
     val database = FirebaseDatabase.getInstance()
-    val currentUserSwipesRef = database.getReference("swipes/$currentUserId")
-    val otherUserSwipesRef = database.getReference("swipes/$otherUserId")
+    val timestamp = System.currentTimeMillis()
 
-    // Record the swipe right
-    currentUserSwipesRef.child(otherUserId).setValue(true)
+    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+    val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
 
-    // Check if other user has swiped right on current user
-    otherUserSwipesRef.child(currentUserId).get().addOnSuccessListener { snapshot ->
-        val otherUserSwipedRight = snapshot.getValue(Boolean::class.java) ?: false
+    val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
+    val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
+
+    // Record the swipe right with timestamp
+    val swipeData = mapOf(
+        "liked" to true,
+        "timestamp" to timestamp
+    )
+    currentUserSwipesRef.setValue(swipeData)
+
+    // Update likesGiven and likesReceived
+    currentUserLikesGivenRef.setValue(timestamp)
+    otherUserLikesReceivedRef.setValue(timestamp)
+
+    // Check if the other user has swiped right on current user
+    otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
+        val otherUserSwipeData = snapshot.getValue<Map<String, Any>>()
+        val otherUserSwipedRight = otherUserSwipeData?.get("liked") == true
+
         if (otherUserSwipedRight) {
             // It's a match!
-            val currentUserMatchesRef = database.getReference("matches/$currentUserId")
-            val otherUserMatchesRef = database.getReference("matches/$otherUserId")
-            currentUserMatchesRef.child(otherUserId).setValue(true)
-            otherUserMatchesRef.child(currentUserId).setValue(true)
-            // You can notify the users about the match here
+            val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
+            val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
+            currentUserMatchesRef.setValue(timestamp)
+            otherUserMatchesRef.setValue(timestamp)
+
+            // Remove from likesReceived and likesGiven
+            currentUserLikesGivenRef.removeValue()
+            otherUserLikesReceivedRef.removeValue()
+            val otherUserLikesGivenRef = database.getReference("likesGiven/$otherUserId/$currentUserId")
+            val currentUserLikesReceivedRef = database.getReference("likesReceived/$currentUserId/$otherUserId")
+            otherUserLikesGivenRef.removeValue()
+            currentUserLikesReceivedRef.removeValue()
+
+            // Optionally, send notifications to both users about the match
         }
     }
 }
 
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val database = FirebaseDatabase.getInstance()
-    val currentUserSwipesRef = database.getReference("swipes/$currentUserId")
+    val timestamp = System.currentTimeMillis()
 
-    // Record the swipe left
-    currentUserSwipesRef.child(otherUserId).setValue(false)
+    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+
+    // Record the swipe left with timestamp
+    val swipeData = mapOf(
+        "liked" to false,
+        "timestamp" to timestamp
+    )
+    currentUserSwipesRef.setValue(swipeData)
 }
+
 
 @Composable
 fun RatingBar(
