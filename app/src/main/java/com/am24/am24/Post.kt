@@ -15,7 +15,7 @@ data class Post(
     val isStrikethrough: Boolean = false,
     val fontFamily: String = "Default",
     val fontSize: Int = 14,
-    val mediaType: String? = null, // "photo", "voice"
+    val mediaType: String? = null, // "photo", "voice", "video
     val mediaUrl: String? = null,
     val voiceDuration: Int? = null, // in seconds, for voice posts
 
