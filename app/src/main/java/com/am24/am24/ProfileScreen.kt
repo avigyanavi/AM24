@@ -201,33 +201,6 @@ fun ProfileScreenContent(
                     })
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Report and Block Options
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(
-                        onClick = {
-                            // Report action
-                            navController.navigate("reportUser/${profile.value.userId}")
-                        }
-                    ) {
-                        Icon(imageVector = Icons.Default.Report, contentDescription = "Report", tint = Color.Red)
-                    }
-
-                    IconButton(
-                        onClick = {
-                            // Block action
-                            navController.navigate("blockUser/${profile.value.userId}")
-                        }
-                    ) {
-                        Icon(imageVector = Icons.Default.Block, contentDescription = "Block", tint = Color.Gray)
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

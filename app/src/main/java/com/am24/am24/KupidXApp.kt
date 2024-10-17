@@ -2,11 +2,13 @@ package com.am24.am24
 
 import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import com.am24.am24.ui.theme.AppTheme
@@ -37,6 +39,7 @@ class KupidXAppActivity : ComponentActivity() {
             }
         }
 
+    @RequiresApi(Build.VERSION_CODES.O_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -90,6 +93,7 @@ class KupidXAppActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun KupidXApp(onLogout: () -> Unit) {
     val navController = rememberNavController()
