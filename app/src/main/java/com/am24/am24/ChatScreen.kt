@@ -4,202 +4,287 @@
 
 package com.am24.am24
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import java.util.*
+import androidx.compose.ui.*
+import androidx.compose.ui.unit.*
+
 
 @Composable
 fun ChatScreen(navController: NavController, otherUserId: String) {
+    ChatScreenContent(navController = navController, otherUserId = otherUserId)
+}
+
+@Composable
+fun ChatScreenContent(navController: NavController, otherUserId: String) {
+    val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+    val database = FirebaseDatabase.getInstance()
+    val usersRef = database.getReference("users")
+    val chatId = getChatId(currentUserId, otherUserId)
+    val messagesRef = database.getReference("messages/$chatId")
+
+    var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
     val messages = remember { mutableStateListOf<Message>() }
-    val focusManager = LocalFocusManager.current
-
     var messageText by remember { mutableStateOf("") }
-    var rating by remember { mutableStateOf(0f) }
 
-    // Fetch messages
-    LaunchedEffect(Unit) {
-        val database = FirebaseDatabase.getInstance()
-        val messagesRef = database.getReference("messages/${getChatId(currentUserId, otherUserId)}")
+    val coroutineScope = rememberCoroutineScope()
 
-        messagesRef.addChildEventListener(object : ChildEventListener {
-            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                val message = snapshot.getValue(Message::class.java)
-                if (message != null) {
-                    messages.add(message)
+    // Fetch other user's profile
+    LaunchedEffect(otherUserId) {
+        usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
+            val profile = snapshot.getValue(Profile::class.java)
+            if (profile != null) {
+                otherUserProfile = profile
+            }
+        }.addOnFailureListener { exception ->
+            Log.e("ChatScreen", "Failed to fetch user: ${exception.message}")
+            Toast.makeText(context, "Failed to load user", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Listen for messages
+    LaunchedEffect(chatId) {
+        messagesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val newMessages = mutableListOf<Message>()
+                for (messageSnapshot in snapshot.children) {
+                    val message = messageSnapshot.getValue(Message::class.java)
+                    if (message != null) {
+                        newMessages.add(message)
+                    }
                 }
+                // Sort messages by timestamp
+                newMessages.sortBy { it.timestamp }
+                messages.clear()
+                messages.addAll(newMessages)
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle error
+                Log.e("ChatScreen", "DatabaseError: ${error.message}")
+                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
             }
-
-            // Other methods omitted for brevity
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
-            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
-            override fun onChildRemoved(snapshot: DataSnapshot) {}
         })
     }
 
-    Column(
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (otherUserProfile != null && otherUserProfile!!.profilepicUrl?.isNotBlank() == true) {
+                            AsyncImage(
+                                model = otherUserProfile!!.profilepicUrl,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = otherUserProfile!!.username,
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            Text(
+                                text = "Chat",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+            )
+        },
+        content = { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF121212))
+                    .padding(paddingValues)
+            ) {
+                // Messages List
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 8.dp),
+                    reverseLayout = true,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    items(messages.reversed()) { message ->
+                        MessageBubble(message = message, currentUserId = currentUserId)
+                    }
+                }
+
+                // Input Field
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextField(
+                        value = messageText,
+                        onValueChange = { messageText = it },
+                        placeholder = { Text("Type a message...", color = Color.Gray) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(Color.DarkGray, shape = RoundedCornerShape(24.dp)),
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = Color.DarkGray,
+                            focusedTextColor = Color.White,
+                            focusedPlaceholderColor = Color.Gray,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (messageText.isNotBlank()) {
+                                    sendMessage(
+                                        currentUserId = currentUserId,
+                                        otherUserId = otherUserId,
+                                        chatId = chatId,
+                                        messageText = messageText,
+                                        messagesRef = messagesRef
+                                    )
+                                    messageText = ""
+                                }
+                            }
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = {
+                            if (messageText.isNotBlank()) {
+                                sendMessage(
+                                    currentUserId = currentUserId,
+                                    otherUserId = otherUserId,
+                                    chatId = chatId,
+                                    messageText = messageText,
+                                    messagesRef = messagesRef
+                                )
+                                messageText = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color(0xFF00bf63), shape = CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun MessageBubble(message: Message, currentUserId: String) {
+    val isCurrentUser = message.senderId == currentUserId
+    Row(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
     ) {
-        // Top Bar with Username, DP, and Options
-        TopAppBar(
-            title = {
-                Text(text = "Chat with ${otherUserId}", color = Color.White)
-            },
-            actions = {
-                IconButton(onClick = { /* Show options menu */ }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = Color.White)
-                }
-            },
-            colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
-        )
-
-        // Rating Bar and Clear Rating Button
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(text = "Your Rating:", color = Color.White)
-            Spacer(modifier = Modifier.width(8.dp))
-            RatingBar(
-                rating = rating,
-                onRatingChanged = { newRating ->
-                    rating = newRating
-                    // Update rating in database
-                    updateRating(currentUserId, otherUserId, rating)
-                }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(onClick = {
-                rating = 0f
-                updateRating(currentUserId, otherUserId, rating)
-            }) {
-                Icon(Icons.Default.Clear, contentDescription = "Clear Rating", tint = Color.White)
-            }
-        }
-
-        // Messages List
-        LazyColumn(
-            modifier = Modifier.weight(1f)
-        ) {
-            items(messages) { message ->
-                MessageItem(message = message, isCurrentUser = message.senderId == currentUserId)
-            }
-        }
-
-        // Message Input
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.DarkGray)
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .background(
+                    color = if (isCurrentUser) Color(0xFF00bf63) else Color.DarkGray,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(12.dp)
         ) {
-            TextField(
-                value = messageText,
-                onValueChange = { messageText = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text(text = "Type a message", color = Color.Gray) },
-                colors = TextFieldDefaults.textFieldColors(
-                    containerColor = Color.White,
-                    focusedTextColor = Color.Black,
-                    focusedPlaceholderColor = Color.Gray
-                ),
-                keyboardActions = KeyboardActions(onDone = {
-                    sendMessage(currentUserId, otherUserId, messageText)
-                    messageText = ""
-                    focusManager.clearFocus()
-                })
+            Text(
+                text = message.text,
+                color = Color.White,
+                fontSize = 16.sp
             )
-            IconButton(onClick = {
-                sendMessage(currentUserId, otherUserId, messageText)
-                messageText = ""
-                focusManager.clearFocus()
-            }) {
-                Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formatTimestamp(message.timestamp),
+                color = Color.LightGray,
+                fontSize = 12.sp
+            )
         }
     }
 }
 
 fun getChatId(userId1: String, userId2: String): String {
-    return if (userId1 < userId2) "$userId1-$userId2" else "$userId2-$userId1"
+    return if (userId1 < userId2) {
+        "${userId1}_$userId2"
+    } else {
+        "${userId2}_$userId1"
+    }
 }
 
-fun sendMessage(currentUserId: String, otherUserId: String, messageText: String) {
-    val database = FirebaseDatabase.getInstance()
-    val chatId = getChatId(currentUserId, otherUserId)
-    val messagesRef = database.getReference("messages/$chatId")
-
+fun sendMessage(
+    currentUserId: String,
+    otherUserId: String,
+    chatId: String,
+    messageText: String,
+    messagesRef: DatabaseReference
+) {
+    val timestamp = System.currentTimeMillis()
     val messageId = messagesRef.push().key ?: return
     val message = Message(
         id = messageId,
         senderId = currentUserId,
         receiverId = otherUserId,
         text = messageText,
-        timestamp = System.currentTimeMillis()
+        timestamp = timestamp
     )
     messagesRef.child(messageId).setValue(message)
-}
-
-fun updateRating(currentUserId: String, otherUserId: String, rating: Float) {
-    val database = FirebaseDatabase.getInstance()
-    val ratingsRef = database.getReference("ratings/$otherUserId/$currentUserId")
-    ratingsRef.setValue(rating)
-}
-
-@Composable
-fun RatingBar(
-    rating: Float,
-    onRatingChanged: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-    stars: Int = 5,
-    starSize: Dp = 24.dp,
-    starColor: Color = Color.Yellow,
-    starBackgroundColor: Color = Color.Gray
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        for (i in 1..stars) {
-            val filled = i <= rating.toInt()
-            IconButton(onClick = { onRatingChanged(i.toFloat()) }) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Star",
-                    tint = if (filled) starColor else starBackgroundColor,
-                    modifier = Modifier.size(starSize)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun MessageItem(message: Message, isCurrentUser: Boolean) {
-    // Display message bubbles
-    // ...
 }

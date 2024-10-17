@@ -122,8 +122,6 @@ class EditProfileActivity : ComponentActivity() {
             })
         }
 
-
-
         if (showEditInterestsScreen) {
             EditInterestsScreen(
                 initialInterests = interests,
@@ -325,10 +323,9 @@ class EditProfileActivity : ComponentActivity() {
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Place this below the "Bio" field or wherever appropriate in your form
-
+                            // Interests
                             Button(
-                                onClick = { showEditInterestsScreen = true }, // This will trigger the interests screen to show
+                                onClick = { showEditInterestsScreen = true }, // Trigger interests screen
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp),
@@ -372,7 +369,6 @@ class EditProfileActivity : ComponentActivity() {
         }
     }
 
-
     private suspend fun saveProfileData(
         name: String,
         username: String,
@@ -407,7 +403,6 @@ class EditProfileActivity : ComponentActivity() {
             }
         }
     }
-
 }
 
 fun extractEmojiAndText(input: String): Pair<String, String> {
@@ -417,7 +412,6 @@ fun extractEmojiAndText(input: String): Pair<String, String> {
 
     return Pair(emojis, text)
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -434,8 +428,7 @@ fun EditInterestsScreen(
             emoji = "🍽️",
             subcategories = listOf(
                 InterestSubcategory("Phuchka", "🥟"),
-                InterestSubcategory("Kathi Rolls", "🌯"),
-                // Other food interests
+                InterestSubcategory("Kathi Rolls", "🌯")
             )
         ),
         InterestCategory(
@@ -443,11 +436,9 @@ fun EditInterestsScreen(
             emoji = "🎉",
             subcategories = listOf(
                 InterestSubcategory("Durga Puja", "🙏"),
-                InterestSubcategory("Saraswati Puja", "📚"),
-                // Other festival interests
+                InterestSubcategory("Saraswati Puja", "📚")
             )
-        ),
-        // Add other categories here
+        )
     )
 
     val selectedInterests = remember { mutableStateListOf<Interest>().apply { addAll(initialInterests) } }
@@ -558,7 +549,6 @@ fun EditInterestsScreen(
                     ) {
                         Text(text = "Add Interest", color = Color.White)
                     }
-
 
                     // Display Added Interests
                     Text("Your Interests", color = Color.White, fontSize = 18.sp)

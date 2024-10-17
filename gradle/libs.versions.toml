@@ -1,4 +1,5 @@
 [versions]
+accompanistPermissions = "<latest-version>"
 activityComposeVersion = "1.8.0"
 agp = "8.5.1"
 androidVideoTrimmer = "1.6.0"
@@ -8,15 +9,20 @@ ccp = "2.7.3"
 coilCompose = "2.4.0"
 coilComposeVersion = "2.0.0"
 coilKtCoilCompose = "2.2.2"
+coilTransformations = "2.3.0"
 core = "1.45.0"
 coreKtxVersion = "1.8.0"
+datastorePreferences = "1.1.1"
 exoplayer = "2.19.1"
 exoplayerVersion = "2.17.1"
 firebaseDatabaseKtxVersion = "20.2.2"
 foundation = "1.0.0"
 foundationLayout = "1.7.2"
+geofireAndroidVersion = "3.1.0"
 glide = "4.16.0"
+googleExoplayer = "2.18.1"
 googleMaterial = "1.5.0"
+gpuimage = "2.1.0"
 kotlin = "1.9.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -36,12 +42,15 @@ firebaseFunctions = "21.0.0"
 firebaseMessaging = "24.0.0"
 firebaseDatabaseKtx = "21.0.0"
 appcompat = "1.7.0"
+material3 = "1.3.0"
 materialIconsExtended = "1.7.2"
 materialVersion = "1.6.8"
+media3Common = "1.4.1"
 navigationCompose = "2.8.1"
 opencvAndroid = "4.5.5"
 photoeditor = "1.1.0"
 picasso = "2.71828"
+playServicesLocation = "21.3.0"
 recyclerview = "1.3.2"
 recyclerviewV7 = "28.0.0"
 material = "1.12.0"
@@ -54,6 +63,7 @@ media3CommonKtx = "1.4.1"
 constraintlayoutComposeAndroid = "1.1.0-beta01"
 
 [libraries]
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 android-video-trimmer = { module = "com.github.srikanth-lingala:android-video-trimmer", version.ref = "androidVideoTrimmer" }
 androidx-activity-compose-v180 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraView" }
@@ -61,23 +71,31 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraView" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-ktx-v180 = { module = "androidx.core:core-ktx", version.ref = "coreKtxVersion" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundationLayout" }
 androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundationLayout" }
 androidx-foundation-v100 = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "materialVersion" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-material-v100 = { module = "androidx.compose.material:material", version.ref = "androidxMaterial" }
+androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3Common" }
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Common" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Common" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata", version.ref = "runtimeLivedata" }
 ccp = { module = "com.hbb20:ccp", version.ref = "ccp" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 coil-compose-v200 = { module = "io.coil-kt:coil-compose", version.ref = "coilComposeVersion" }
 coil-compose-v222 = { module = "io.coil-kt:coil-compose", version.ref = "coilKtCoilCompose" }
+coil-transformations = { module = "io.coil-kt:coil-transformations", version.ref = "coilTransformations" }
 core = { module = "com.google.ar:core", version.ref = "core" }
 exoplayer = { module = "com.google.android.exoplayer:exoplayer", version.ref = "exoplayer" }
 exoplayer-v2171 = { module = "com.google.android.exoplayer:exoplayer", version.ref = "exoplayerVersion" }
+exoplayer-v2181 = { module = "com.google.android.exoplayer:exoplayer", version.ref = "googleExoplayer" }
 firebase-database-ktx-v2022 = { module = "com.google.firebase:firebase-database-ktx", version.ref = "firebaseDatabaseKtxVersion" }
+firebase-geofire-android = { module = "com.firebase:geofire-android", version.ref = "geofireAndroidVersion" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimage" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -103,9 +121,11 @@ libphonenumber = { module = "com.googlecode.libphonenumber:libphonenumber", vers
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 material-v150 = { module = "com.google.android.material:material", version.ref = "googleMaterial" }
+material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 opencv-android = { module = "org.opencv:opencv-android", version.ref = "opencvAndroid" }
 photoeditor = { module = "com.github.burhanrashid52:PhotoEditor", version.ref = "photoeditor" }
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 recyclerview-v7 = { group = "com.android.support", name = "recyclerview-v7", version.ref = "recyclerviewV7" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }

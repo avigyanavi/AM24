@@ -4,116 +4,197 @@ package com.am24.am24
 
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import coil.compose.AsyncImage
 
 @Composable
 fun DMScreen(navController: NavController) {
+    DMScreenContent(navController = navController)
+}
+
+@Composable
+fun DMScreenContent(navController: NavController) {
+    val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val matches = remember { mutableStateListOf<Profile>() }
 
-    LaunchedEffect(Unit) {
-        val database = FirebaseDatabase.getInstance()
-        val matchesRef = database.getReference("matches/$currentUserId")
-        val usersRef = database.getReference("users")
+    val database = FirebaseDatabase.getInstance()
+    val matchesRef = database.getReference("matches/$currentUserId")
+    val usersRef = database.getReference("users")
 
-        matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+    val matchedUsers = remember { mutableStateListOf<Profile>() }
+
+    // Fetch matches and corresponding profiles
+    LaunchedEffect(currentUserId) {
+        // Listen to matches node for real-time updates
+        matchesRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val matchedUserIds = snapshot.children.map { it.key }.filterNotNull()
-                usersRef.get().addOnSuccessListener { usersSnapshot ->
-                    matches.clear()
-                    for (userSnapshot in usersSnapshot.children) {
-                        val profile = userSnapshot.getValue(Profile::class.java)
-                        if (profile != null && matchedUserIds.contains(profile.userId)) {
-                            matches.add(profile)
-                        }
+                val newMatchedUsers = mutableListOf<Profile>()
+                val userIdsToFetch = mutableListOf<String>()
+
+                for (matchSnapshot in snapshot.children) {
+                    val matchedUserId = matchSnapshot.key
+                    if (matchedUserId != null) {
+                        userIdsToFetch.add(matchedUserId)
                     }
+                }
+
+                if (userIdsToFetch.isNotEmpty()) {
+                    usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(userSnapshot: DataSnapshot) {
+                            for (user in userSnapshot.children) {
+                                val profile = user.getValue(Profile::class.java)
+                                if (profile != null && userIdsToFetch.contains(profile.userId)) {
+                                    newMatchedUsers.add(profile)
+                                }
+                            }
+                            // Update the matchedUsers list
+                            matchedUsers.clear()
+                            matchedUsers.addAll(newMatchedUsers)
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e("DMScreen", "DatabaseError: ${error.message}")
+                            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    })
+                } else {
+                    matchedUsers.clear()
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle error
+                Log.e("DMScreen", "DatabaseError: ${error.message}")
+                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
             }
         })
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        Text(
-            text = "Matches",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(16.dp)
-        )
-        if (matches.isEmpty()) {
+    if (matchedUsers.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = "You have no matches yet.",
-                color = Color.Gray,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(16.dp)
+                text = "No matches yet",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
             )
-        } else {
-            LazyColumn {
-                items(matches) { profile ->
-                    MatchListItem(profile = profile, navController = navController)
-                }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121212))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(matchedUsers) { profile ->
+                MatchedUserCard(profile = profile, navController = navController)
             }
         }
     }
 }
 
 @Composable
-fun MatchListItem(profile: Profile, navController: NavController) {
-    Row(
+fun MatchedUserCard(profile: Profile, navController: NavController) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // Navigate to Chat Screen
+                // Navigate to ChatScreen with matched user's ID
                 navController.navigate("chat/${profile.userId}")
-            }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            },
+        colors = CardDefaults.cardColors(containerColor = Color.Black),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        AsyncImage(
-            model = profile.profilepicUrl,
-            contentDescription = "Profile Picture",
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = profile.username,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Profile picture
+            if (profile.profilepicUrl != null && profile.profilepicUrl.isNotBlank()) {
+                AsyncImage(
+                    model = profile.profilepicUrl,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Default Profile",
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // User details
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = profile.username,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Age: ${calculateAge(profile.dob)}",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "Location: ${profile.city}, ${profile.country}",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+            }
+
+            // Chat Icon
+            Icon(
+                imageVector = Icons.Default.Chat,
+                contentDescription = "Chat",
+                tint = Color(0xFF00bf63),
+                modifier = Modifier.size(24.dp)
             )
-            // Optionally, display last message preview
         }
     }
 }
+

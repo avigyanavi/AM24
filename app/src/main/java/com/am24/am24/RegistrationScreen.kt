@@ -693,7 +693,7 @@ fun EnterGenderCommunityReligionScreen(
     onBack: () -> Unit
 ) {
     // Sample predefined lists
-    val genderOptions = listOf("Male", "Female", "Other")
+    val genderOptions = listOf("Male", "Female", "Non Binary")
     val communityOptions = listOf("Marwari", "Bengali", "Punjabi", "Tamil")
     val religionOptions = listOf("Hindu", "Muslim", "Christian", "Other")
 

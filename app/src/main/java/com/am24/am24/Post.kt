@@ -7,7 +7,7 @@ data class Post(
     val postId: String = "",
     val userId: String = "",  // ID of the user who created the post
     val username: String = "",  // Username of the person who posted
-    val contentText: String = "",  // The text content of the post
+    val contentText: String? = "",  // The text content of the post
     val timestamp: Any = ServerValue.TIMESTAMP,  // Timestamp of post creation
     val profilepicUrl: String? = null,
     val isBold: Boolean = false,
@@ -15,6 +15,9 @@ data class Post(
     val isStrikethrough: Boolean = false,
     val fontFamily: String = "Default",
     val fontSize: Int = 14,
+    val mediaType: String? = null, // "photo", "voice"
+    val mediaUrl: String? = null,
+    val voiceDuration: Int? = null, // in seconds, for voice posts
 
     // Engagement Metrics
     var upvotes: Int = 0,  // Number of upvotes for this post

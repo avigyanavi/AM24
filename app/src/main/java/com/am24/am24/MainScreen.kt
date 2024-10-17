@@ -3,6 +3,8 @@
 
 package com.am24.am24
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
 import androidx.compose.material3.*
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -17,11 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 
+@RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
     val items = listOf(
-        BottomNavItem("DMs", Icons.Default.Message, "dms"),
-        BottomNavItem("Feed", Icons.Default.Feed, "home"),
+        BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
+        BottomNavItem("Feed", Icons.Default.Home, "home"),
+        BottomNavItem("Explore", Icons.Default.Search, "explore"),
         BottomNavItem("Profile", Icons.Default.Person, "profile"),
         BottomNavItem("Dating", Icons.Default.Favorite, "dating"),
         BottomNavItem("Settings", Icons.Default.Settings, "settings")
@@ -53,9 +57,13 @@ fun TopNavBar(navController: NavController, onLogout: () -> Unit) {
 
     val isPeopleWhoLikeMeSelected = currentDestination?.route == "peopleWhoLikeMe"
     val isNotificationsSelected = currentDestination?.route == "notifications"
+    val isSavedPostsSelected = currentDestination?.route == "savedPosts"
+
     val title = when (currentDestination?.route) {
         "dms" -> "DMs"
         "home" -> "Feed"
+        "explore" -> "Explore"
+        "savedPosts" -> "Saved Posts"
         "profile" -> "Profile"
         "dating" -> "Dating"
         "settings" -> "Settings"
@@ -87,6 +95,15 @@ fun TopNavBar(navController: NavController, onLogout: () -> Unit) {
                     tint = if (isNotificationsSelected) Color(0xFF00bf63) else Color.White
                 )
             }
+            IconButton(onClick = {
+                navController.navigate("savedPosts") // New SavedPosts navigation
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Bookmark, // Use a suitable icon
+                    contentDescription = "Saved Posts",
+                    tint = if (isSavedPostsSelected) Color(0xFF00bf63) else Color.White
+                )
+            }
             IconButton(onClick = onLogout) {
                 Icon(
                     imageVector = Icons.Default.ExitToApp,
@@ -98,7 +115,6 @@ fun TopNavBar(navController: NavController, onLogout: () -> Unit) {
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
 }
-
 
 data class BottomNavItem(val label: String, val icon: ImageVector, val route: String)
 

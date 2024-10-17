@@ -74,10 +74,15 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.ccp)
     implementation(libs.androidx.material.icons.extended)
-    implementation(libs.exoplayer.v2171)
 
     // For Coil image loading
     implementation(libs.coil.compose.v222)
+    implementation(libs.gpuimage)
+
+    //geofire
+    implementation(libs.firebase.geofire.android) // Check for the latest version
+    implementation(libs.play.services.location)
+
 
 
     // For Jetpack Compose Navigation
@@ -92,10 +97,11 @@ dependencies {
 
     // Core Android Libraries
     implementation(libs.androidx.core.ktx.v180)
-    implementation(libs.exoplayer)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+
+
 
     implementation(libs.core) // ARCore
     implementation(libs.picasso)

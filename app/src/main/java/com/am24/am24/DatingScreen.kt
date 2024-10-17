@@ -1,5 +1,3 @@
-// DatingScreen.kt
-
 @file:OptIn(ExperimentalMaterialApi::class)
 
 package com.am24.am24
@@ -9,215 +7,276 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
-import androidx.compose.material.FractionalThreshold
-import androidx.compose.material.rememberSwipeableState
-import androidx.compose.material.swipeable
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import coil.compose.AsyncImage
+import com.firebase.geofire.GeoFire
+import com.firebase.geofire.GeoLocation
+import com.firebase.geofire.LocationCallback
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import com.google.firebase.database.ktx.getValue
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import java.text.ParseException
-import java.text.SimpleDateFormat
-import java.util.*
+import kotlin.math.*
+import androidx.compose.material3.Card
+
+
+// Class representing swipe data
+data class SwipeData(
+    val liked: Boolean = false,
+    val timestamp: Long = 0L
+)
 
 @Composable
-fun DatingScreen(navController: NavController, startUserId: String? = null, modifier: Modifier = Modifier) {
-    DatingScreenContent(navController = navController, startUserId = startUserId, modifier = modifier)
+fun DatingScreen(navController: NavController, geoFire: GeoFire, modifier: Modifier = Modifier) {
+    DatingScreenContent(navController = navController, geoFire = geoFire, modifier = modifier)
 }
 
 @Composable
-fun DatingScreenContent(navController: NavController, startUserId: String?, modifier: Modifier = Modifier) {
+fun DatingScreenContent(navController: NavController, geoFire: GeoFire, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val profiles = remember { mutableStateListOf<Profile>() }
     var currentProfileIndex by remember { mutableStateOf(0) }
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    var searchQuery by remember { mutableStateOf("") }
+    var showAIAnalysisPopup by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    val firebaseDatabase = FirebaseDatabase.getInstance()
-    val usersRef = firebaseDatabase.getReference("users")
-    val swipesRef = firebaseDatabase.getReference("swipes/$currentUserId")
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val usersRef = FirebaseDatabase.getInstance().getReference("users")
 
     // Fetch profiles
     LaunchedEffect(Unit) {
-        val currentTime = System.currentTimeMillis()
-        val oneWeekAgo = currentTime - (7 * 24 * 60 * 60 * 1000) // 7 days in milliseconds
-        val oneMonthAgo = currentTime - (30L * 24 * 60 * 60 * 1000) // 30 days in milliseconds
-
-        // Fetch swipes to filter profiles
-        swipesRef.get().addOnSuccessListener { swipesSnapshot ->
-            val swipedUserIds = mutableSetOf<String>()
-            for (swipe in swipesSnapshot.children) {
-                val swipeData = swipe.getValue<Map<String, Any>>()
-                val liked = swipeData?.get("liked") as? Boolean
-                val timestamp = swipeData?.get("timestamp") as? Long ?: 0L
-                val userId = swipe.key ?: continue
-
-                if (liked == false && timestamp > oneMonthAgo) {
-                    // Swiped left within last month, exclude
-                    swipedUserIds.add(userId)
-                } else if (liked == true && timestamp > oneWeekAgo) {
-                    // Swiped right within last week, exclude
-                    swipedUserIds.add(userId)
+        isLoading = true
+        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val fetchedProfiles = mutableListOf<Profile>()
+                for (userSnapshot in snapshot.children) {
+                    val profile = userSnapshot.getValue(Profile::class.java)
+                    if (profile != null && profile.userId != currentUserId) {
+                        fetchedProfiles.add(profile)
+                    }
                 }
-                // Else, include in profiles to show
+                profiles.clear()
+                profiles.addAll(fetchedProfiles)
+                isLoading = false
             }
 
-            // Fetch profiles after getting swipedUserIds
-            usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val fetchedProfiles = mutableListOf<Profile>()
-                    for (userSnapshot in snapshot.children) {
-                        val profile = userSnapshot.getValue(Profile::class.java)
-                        if (profile != null && profile.userId != currentUserId && !swipedUserIds.contains(profile.userId)) {
-                            fetchedProfiles.add(profile)
-                        }
-                    }
-                    // Rearrange profiles to start with startUserId if provided
-                    if (startUserId != null) {
-                        val startProfileIndex =
-                            fetchedProfiles.indexOfFirst { it.userId == startUserId }
-                        if (startProfileIndex != -1) {
-                            val startProfile = fetchedProfiles.removeAt(startProfileIndex)
-                            fetchedProfiles.add(0, startProfile)
-                        }
-                    }
-                    profiles.clear()
-                    profiles.addAll(fetchedProfiles)
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("FirebaseError", "DatabaseError: ${error.message}")
-                    Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-                }
-            })
-        } .addOnFailureListener { exception ->
-            Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
-            // Proceed to fetch profiles without swipes data
-//            fetchProfilesWithoutSwipes(
-//                usersRef = usersRef,
-//                currentUserId = currentUserId,
-//                startUserId = startUserId,
-//                profiles = profiles,
-//                context = context
-//            )
-        }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("FirebaseError", "DatabaseError: ${error.message}")
+                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                isLoading = false
+            }
+        })
     }
 
-    // Ensure current profile index is valid
-    if (profiles.isNotEmpty() && currentProfileIndex >= profiles.size) {
-        currentProfileIndex = 0 // Reset to first profile
-    }
+    // Filter profiles by username search
+    val filteredProfiles = profiles.filter { it.username.contains(searchQuery, ignoreCase = true) }
 
-    // Swipe logic and display current profile
-    if (profiles.isNotEmpty()) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(Color.Black)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .padding(16.dp)
+    ) {
+        // Search Bar and AI Analysis button row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            val currentProfile = profiles[currentProfileIndex]
-
-            DatingProfileCard(
-                profile = currentProfile,
-                onSwipeRight = {
-                    handleSwipeRight(currentUserId, currentProfile.userId)
-                    currentProfileIndex = (currentProfileIndex + 1) % profiles.size
-                },
-                onSwipeLeft = {
-                    handleSwipeLeft(currentUserId, currentProfile.userId)
-                    currentProfileIndex = (currentProfileIndex + 1) % profiles.size
-                },
-                navController = navController
+            // Search bar
+            BasicTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .background(Color.Gray, CircleShape)
+                    .padding(8.dp),
+                singleLine = true
             )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // AI Analysis Button
+            IconButton(
+                onClick = { showAIAnalysisPopup = !showAIAnalysisPopup },
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF00bf63))
+            ) {
+                Icon(Icons.Default.Analytics, contentDescription = "AI Analysis", tint = Color.White)
+            }
         }
-    } else {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+        // Show loading icon when profiles are loading
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF00bf63))
+            }
+        } else if (filteredProfiles.isNotEmpty()) {
+            // Display profile cards
+            val currentProfile = filteredProfiles[currentProfileIndex]
+            var userDistance by remember { mutableStateOf<Float?>(null) }
+
+            // Calculate distance asynchronously
+            LaunchedEffect(currentProfile) {
+                calculateDistance(currentUserId, currentProfile.userId, geoFire) { distance ->
+                    userDistance = distance
+                }
+            }
+
+            userDistance?.let { distance ->
+                Box(modifier = Modifier.fillMaxSize()) {
+                    DatingProfileCard(
+                        profile = currentProfile,
+                        onSwipeRight = {
+                            handleSwipeRight(currentUserId, currentProfile.userId)
+                            // Remove the current profile and show next profile or "no more profiles" message
+                            if (currentProfileIndex + 1 < filteredProfiles.size) {
+                                currentProfileIndex += 1
+                            } else {
+                                profiles.clear()  // Clear all profiles when none are left
+                            }
+                        },
+                        onSwipeLeft = {
+                            handleSwipeLeft(currentUserId, currentProfile.userId)
+                            // Remove the current profile and show next profile or "no more profiles" message
+                            if (currentProfileIndex + 1 < filteredProfiles.size) {
+                                currentProfileIndex += 1
+                            } else {
+                                profiles.clear()  // Clear all profiles when none are left
+                            }
+                        },
+                        navController = navController,
+                        userDistance = distance
+                    )
+
+                    // AI Analysis Pop-up
+                    if (showAIAnalysisPopup) {
+                        Dialog(onDismissRequest = { showAIAnalysisPopup = false }) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .clickable { showAIAnalysisPopup = false }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .padding(16.dp)
+                                        .background(Color.White, CircleShape)
+                                        .padding(32.dp)
+                                ) {
+                                    Text(text = "AI Analysis Placeholder", color = Color.Black)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Display no profiles message
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "No more profiles around you",
+                    text = "No more profiles available.",
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Re-adjust your filters or wait a while.",
-                    color = Color.Gray,
-                    fontSize = 16.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        // Navigate to Filters Screen (to be implemented)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-                ) {
-                    Text(text = "Adjust Filters", color = Color.White)
-                }
             }
         }
     }
 }
 
-fun fetchProfilesWithoutSwipes(
-    usersRef: DatabaseReference,
-    currentUserId: String,
-    startUserId: String?,
-    profiles: SnapshotStateList<Profile>,
-    context: Context
+// Haversine formula to calculate the distance between two geographic points
+fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+    val earthRadius = 6371.0 // Radius of the Earth in kilometers
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLon = Math.toRadians(lon2 - lon1)
+    val a = sin(dLat / 2) * sin(dLat / 2) +
+            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+            sin(dLon / 2) * sin(dLon / 2)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return (earthRadius * c).toFloat() // Distance in kilometers
+}
+
+fun calculateDistance(
+    userId1: String,
+    userId2: String,
+    geoFire: GeoFire,
+    callback: (Float?) -> Unit
 ) {
-    usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-        override fun onDataChange(snapshot: DataSnapshot) {
-            val fetchedProfiles = mutableListOf<Profile>()
-            for (userSnapshot in snapshot.children) {
-                val profile = userSnapshot.getValue(Profile::class.java)
-                if (profile != null && profile.userId != currentUserId) {
-                    fetchedProfiles.add(profile)
-                }
+    geoFire.getLocation(userId1, object : LocationCallback {
+        override fun onLocationResult(key1: String?, location1: GeoLocation?) {
+            if (location1 == null) {
+                callback(null) // Location not found for user 1
+                return
             }
-            // Rearrange profiles to start with startUserId if provided
-            if (startUserId != null) {
-                val startProfileIndex = fetchedProfiles.indexOfFirst { it.userId == startUserId }
-                if (startProfileIndex != -1) {
-                    val startProfile = fetchedProfiles.removeAt(startProfileIndex)
-                    fetchedProfiles.add(0, startProfile)
+            geoFire.getLocation(userId2, object : LocationCallback {
+                override fun onLocationResult(key2: String?, location2: GeoLocation?) {
+                    if (location2 == null) {
+                        callback(null) // Location not found for user 2
+                        return
+                    }
+                    // Both locations are available, calculate the distance
+                    val distance = haversine(
+                        location1.latitude, location1.longitude,
+                        location2.latitude, location2.longitude
+                    )
+                    callback(distance)
                 }
-            }
-            profiles.clear()
-            profiles.addAll(fetchedProfiles)
+
+                override fun onCancelled(error: DatabaseError) {
+                    callback(null) // Handle error for user 2 location retrieval
+                }
+            })
         }
 
         override fun onCancelled(error: DatabaseError) {
-            Log.e("FirebaseError", "DatabaseError: ${error.message}")
-            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+            callback(null) // Handle error for user 1 location retrieval
         }
     })
 }
@@ -228,7 +287,8 @@ fun DatingProfileCard(
     profile: Profile,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
-    navController: NavController
+    navController: NavController,
+    userDistance: Float // Distance to display on the card
 ) {
     var currentPhotoIndex by remember(profile) { mutableStateOf(0) }
     var showDetailsAndMetrics by remember { mutableStateOf(false) }
@@ -285,6 +345,14 @@ fun DatingProfileCard(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
+                // Display user distance on top left
+                Text(
+                    text = "${userDistance.roundToInt()} km away",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+
                 // Picture Carousel
                 Box(
                     modifier = Modifier
@@ -344,7 +412,7 @@ fun DatingProfileCard(
                         Icon(
                             imageVector = Icons.Default.Fullscreen,
                             contentDescription = "Fullscreen",
-                            tint = Color.White
+                            tint = Color(0xFF00bf63)
                         )
                     }
                 }
@@ -508,10 +576,7 @@ fun handleSwipeRight(currentUserId: String, otherUserId: String) {
     val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
 
     // Record the swipe right with timestamp
-    val swipeData = mapOf(
-        "liked" to true,
-        "timestamp" to timestamp
-    )
+    val swipeData = SwipeData(liked = true, timestamp = timestamp)
     currentUserSwipesRef.setValue(swipeData)
 
     // Update likesGiven and likesReceived
@@ -520,8 +585,8 @@ fun handleSwipeRight(currentUserId: String, otherUserId: String) {
 
     // Check if the other user has swiped right on current user
     otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
-        val otherUserSwipeData = snapshot.getValue<Map<String, Any>>()
-        val otherUserSwipedRight = otherUserSwipeData?.get("liked") == true
+        val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
+        val otherUserSwipedRight = otherUserSwipeData?.liked == true
 
         if (otherUserSwipedRight) {
             // It's a match!
@@ -530,16 +595,10 @@ fun handleSwipeRight(currentUserId: String, otherUserId: String) {
             currentUserMatchesRef.setValue(timestamp)
             otherUserMatchesRef.setValue(timestamp)
 
-            // Remove from likesReceived and likesGiven
-            currentUserLikesGivenRef.removeValue()
-            otherUserLikesReceivedRef.removeValue()
-            val otherUserLikesGivenRef = database.getReference("likesGiven/$otherUserId/$currentUserId")
-            val currentUserLikesReceivedRef = database.getReference("likesReceived/$currentUserId/$otherUserId")
-            otherUserLikesGivenRef.removeValue()
-            currentUserLikesReceivedRef.removeValue()
-
             // Optionally, send notifications to both users about the match
         }
+    }.addOnFailureListener { exception ->
+        Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
     }
 }
 
@@ -550,13 +609,9 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
 
     // Record the swipe left with timestamp
-    val swipeData = mapOf(
-        "liked" to false,
-        "timestamp" to timestamp
-    )
+    val swipeData = SwipeData(liked = false, timestamp = timestamp)
     currentUserSwipesRef.setValue(swipeData)
 }
-
 
 @Composable
 fun RatingBar(
@@ -606,5 +661,3 @@ fun RatingBar(
         }
     }
 }
-
-

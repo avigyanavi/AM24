@@ -1,5 +1,3 @@
-// ProfileScreen.kt
-
 package com.am24.am24
 
 import android.util.Log
@@ -9,8 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -31,8 +28,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
-    ProfileScreenContent(navController = navController, modifier = modifier)
+fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier, otherUserId: String? = null) {
+    ProfileScreenContent(navController = navController, modifier = modifier, otherUserId = otherUserId)
 }
 
 @Composable
@@ -40,23 +37,15 @@ fun ProfileScreenContent(
     navController: NavController,
     modifier: Modifier = Modifier,
     isOtherUserProfile: Boolean = false,
-    otherUserId: String? = null // Pass other user's ID if viewing another profile
+    otherUserId: String? = null
 ) {
-    val userId = if (isOtherUserProfile && otherUserId != null) {
-        otherUserId
-    } else {
-        FirebaseAuth.getInstance().currentUser?.uid ?: return
-    }
-
+    val userId = otherUserId ?: FirebaseAuth.getInstance().currentUser?.uid ?: return
     val profile = remember { mutableStateOf(Profile()) }
     var currentPhotoIndex by remember { mutableStateOf(0) }
     var showDetails by remember { mutableStateOf(false) }
     var showMetrics by remember { mutableStateOf(false) }
 
     val firebaseDatabase = FirebaseDatabase.getInstance()
-    val context = LocalContext.current
-
-    // Real-time listener for profile
     val userRef = firebaseDatabase.getReference("users").child(userId)
 
     LaunchedEffect(userId) {
@@ -86,7 +75,7 @@ fun ProfileScreenContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()) // Making the whole profile scrollable
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
                 // Profile Photo Carousel
@@ -102,10 +91,8 @@ fun ProfileScreenContent(
                                     val photoCount = photoUrls.size
                                     if (photoCount > 1) {
                                         if (tapX > size.width / 2) {
-                                            // Tap on right side of the image
                                             currentPhotoIndex = (currentPhotoIndex + 1).coerceAtMost(photoCount - 1)
                                         } else {
-                                            // Tap on left side of the image
                                             currentPhotoIndex = (currentPhotoIndex - 1).coerceAtLeast(0)
                                         }
                                     }
@@ -122,7 +109,6 @@ fun ProfileScreenContent(
                             contentScale = ContentScale.Fit
                         )
 
-                        // Navigation Bars above the photos
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -147,11 +133,7 @@ fun ProfileScreenContent(
                                 .background(Color.Gray),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "No Images",
-                                color = Color.White,
-                                fontSize = 16.sp
-                            )
+                            Text(text = "No Images", color = Color.White, fontSize = 16.sp)
                         }
                     }
                 }
@@ -171,7 +153,6 @@ fun ProfileScreenContent(
                         color = Color.White
                     )
 
-                    // Rating beside username
                     val ratingDisplay = if (profile.value.numberOfRatings > 0) {
                         "${profile.value.rating}★"
                     } else {
@@ -185,62 +166,32 @@ fun ProfileScreenContent(
                         color = Color.White
                     )
 
-                    // If it's not another user's profile, show the edit profile button.
                     if (!isOtherUserProfile) {
-                        IconButton(
-                            onClick = {
-                                // Navigate to EditProfileScreen
-                                navController.navigate("editProfile")
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Profile",
-                                tint = Color.White
-                            )
+                        IconButton(onClick = { navController.navigate("editProfile") }) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Profile", tint = Color.White)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Dropdown Arrow for Details
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                // Details Toggle
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { showDetails = !showDetails }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = "Show Details",
-                            tint = Color.White
-                        )
+                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Show Details", tint = Color.White)
                     }
-                    Text(
-                        text = "Details",
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
+                    Text(text = "Details", fontSize = 16.sp, color = Color.White)
                 }
 
                 if (showDetails) {
                     UserInfoSectionBasic(profile = profile.value)
 
-                    // Dropdown Arrow for Metrics
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    // Metrics Toggle
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showMetrics = !showMetrics }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Show Metrics",
-                                tint = Color.White
-                            )
+                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Show Metrics", tint = Color.White)
                         }
-                        Text(
-                            text = "Metrics",
-                            fontSize = 16.sp,
-                            color = Color.White
-                        )
+                        Text(text = "Metrics", fontSize = 16.sp, color = Color.White)
                     }
                 }
 
@@ -250,7 +201,37 @@ fun ProfileScreenContent(
                     })
                 }
 
-                // "View Likes" and "View Leaderboard" buttons
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Report and Block Options
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(
+                        onClick = {
+                            // Report action
+                            navController.navigate("reportUser/${profile.value.userId}")
+                        }
+                    ) {
+                        Icon(imageVector = Icons.Default.Report, contentDescription = "Report", tint = Color.Red)
+                    }
+
+                    IconButton(
+                        onClick = {
+                            // Block action
+                            navController.navigate("blockUser/${profile.value.userId}")
+                        }
+                    ) {
+                        Icon(imageVector = Icons.Default.Block, contentDescription = "Block", tint = Color.Gray)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // View Likes and Leaderboard Buttons
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -288,19 +269,16 @@ fun UserInfoSectionBasic(profile: Profile) {
             .fillMaxWidth(),
         horizontalAlignment = Alignment.Start
     ) {
-        // Name
+        // Name, Gender, Bio, and other details
         ProfileText(label = "Name", value = profile.name)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Gender
         ProfileText(label = "Gender", value = profile.gender)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Bio
         ProfileText(label = "Bio", value = profile.bio)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Interests
         ProfileText(
             label = "Interests",
             value = if (profile.interests.isNotEmpty()) {
@@ -311,27 +289,21 @@ fun UserInfoSectionBasic(profile: Profile) {
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Hometown
         ProfileText(label = "Hometown", value = profile.hometown)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // High School
         ProfileText(label = "High School", value = profile.highSchool)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // College
         ProfileText(label = "College", value = profile.college)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Community
         ProfileText(label = "Community", value = profile.community)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Religion
         ProfileText(label = "Religion", value = profile.religion)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Level with Color
         ProfileText(label = "Level", value = profile.level.toString())
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -350,7 +322,7 @@ fun UserInfoSectionDetailed(
         modifier = modifier,
         horizontalAlignment = Alignment.Start
     ) {
-        // Ratings and Rankings
+        // Detailed Metrics
         ProfileText(label = "Composite Score", value = profile.am24RankingCompositeScore.toString())
         ProfileText(label = "Rating", value = if (profile.numberOfRatings > 0) {
             "${profile.rating} from (${profile.numberOfRatings} ratings)"
@@ -400,6 +372,7 @@ fun UserInfoSectionDetailed(
         ProfileText(label = "Date Joined", value = formatDate(profile.dateOfJoin))
     }
 }
+
 @Composable
 fun ProfileText(label: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -464,3 +437,5 @@ fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
+
+
