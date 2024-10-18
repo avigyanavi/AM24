@@ -50,6 +50,9 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("create_post/video") {
             VideoPostComposable(navController = navController, postViewModel = postViewModel)
         }
+        composable("create_post/voice"){
+            VoicePostComposable(navController = navController, postViewModel = postViewModel)
+        }
         composable("explore") { // New Explore route
             ExploreScreen(navController = navController, geoFire = geoFire)
         }

@@ -23,8 +23,11 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,7 +37,9 @@ import androidx.compose.material.icons.filled.Photo
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.ui.graphics.asImageBitmap
-
+import androidx.compose.ui.unit.sp
+import java.io.File
+import java.io.IOException
 
 @Composable
 fun CreatePostScreen(

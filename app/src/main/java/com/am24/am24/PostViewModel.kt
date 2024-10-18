@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -679,12 +680,94 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+    fun deletePost(
+        postId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val postRef = FirebaseDatabase.getInstance().getReference("posts").child(postId)
+                postRef.removeValue().await()
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("PostViewModel", "Error deleting post: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Failed to report post.")
+                }
+            }
+        }
+    }
 
     /**
-     * Function to observe posts in real-time.
-     * Already handled in the init block.
+     * Function to save a post for a user.
      */
-    // fun observePosts() { ... }
+    fun savePost(
+        postId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Reference to the "savedPosts" node for the user
+                val savedPostsRef = FirebaseDatabase.getInstance()
+                    .getReference("savedPosts")
+                    .child(userId)
+                    .child(postId)
 
-    // Additional functions (e.g., upvotePost, downvotePost, etc.) remain unchanged
+                // Save the post by setting it as true in "savedPosts"
+                savedPostsRef.setValue(true).await()
+
+                withContext(Dispatchers.Main) {
+                    onSuccess() // Call success callback
+                }
+            } catch (e: Exception) {
+                Log.e("PostViewModel", "Error saving post: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Failed to save post.")
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Function to report a post.
+     */
+    fun reportPost(
+        postId: String,
+        reporterId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val reportsRef = FirebaseDatabase.getInstance().getReference("reportedPosts").child(postId)
+                val reportId = reportsRef.push().key
+                if (reportId == null) {
+                    onFailure("Unable to generate report ID.")
+                    return@launch
+                }
+
+                val report = mapOf(
+                    "reportId" to reportId,
+                    "postId" to postId,
+                    "reporterId" to reporterId,
+                    "timestamp" to ServerValue.TIMESTAMP
+                )
+
+                reportsRef.child(reportId).setValue(report).await()
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("PostViewModel", "Error reporting post: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Failed to report post.")
+                }
+            }
+        }
+    }
 }
+
+
+

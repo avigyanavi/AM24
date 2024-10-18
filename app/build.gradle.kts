@@ -115,6 +115,8 @@ dependencies {
     implementation (libs.ui)
     implementation (libs.androidx.runtime.livedata)
     implementation(libs.androidx.constraintlayout.compose.android)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
