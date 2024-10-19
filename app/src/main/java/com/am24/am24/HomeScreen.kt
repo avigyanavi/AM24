@@ -68,6 +68,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
     var userProfile by remember { mutableStateOf<Profile?>(null) }
 
+
     // Fetch user's profile
     LaunchedEffect(userId) {
         if (userId != null) {
@@ -432,7 +433,6 @@ fun FeedSection(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
             .background(Color.Black)
     ) {
         if (isPosting) {
@@ -500,6 +500,17 @@ fun FeedSection(
                         },
                         onFailure = { errorMsg ->
                             Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                },
+                onSave = {
+                    postViewModel.savePost(
+                        postId = post.postId,
+                        userId = userId ?: "",
+                        onSuccess = {
+                            Toast.makeText(context, "Post saved successfully!", Toast.LENGTH_SHORT).show()
+                        },
+                        onFailure = {
                         }
                     )
                 },
@@ -582,11 +593,28 @@ fun FeedItem(
     onUserClick: () -> Unit,
     onTagClick: (String) -> Unit,
     onShare: () -> Unit,
+    onSave: () -> Unit,
     onComment: (String) -> Unit,
     currentUserId: String,
     onDelete: (Post) -> Unit,
     onReport: (Post) -> Unit
 ) {
+
+
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    val dynamicFontSize = when {
+        screenWidth < 360.dp -> 14.sp
+        screenWidth < 600.dp -> 16.sp
+        else -> 18.sp
+    }
+    val dynamicPadding = when {
+        screenWidth < 360.dp -> 8.dp
+        screenWidth < 600.dp -> 12.dp
+        else -> 16.dp
+    }
+
     var commentText by remember { mutableStateOf(TextFieldValue("")) }
     var showCommentsDialog by remember { mutableStateOf(false) }
     var showMediaFullscreen by remember { mutableStateOf(false) }
@@ -603,22 +631,23 @@ fun FeedItem(
     // Calculate user age from DOB
     val userAge = userProfile?.dob?.let { calculateAge(it) }
 
+    val screenHeight = configuration.screenHeightDp.dp
+    val mediaHeight = screenHeight * 0.5f // Set media content to occupy 40% of the screen height
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 4.dp) // Wider card with less horizontal padding
-            .shadow(8.dp, RoundedCornerShape(16.dp)),
+            .shadow(8.dp, RoundedCornerShape(2.dp)),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
-        border = BorderStroke(2.dp, Color(0xFF00bf63)),
-        shape = RoundedCornerShape(16.dp)
+        border = BorderStroke(2.dp, Color(0xFF00bf63))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(dynamicPadding)) {
             // User Info Row with Delete/Report button
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clickable { onUserClick() }
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = dynamicPadding)
             ) {
                 // User profile picture
                 if (userProfile?.profilepicUrl != null) {
@@ -626,7 +655,7 @@ fun FeedItem(
                         model = userProfile.profilepicUrl,
                         contentDescription = "Profile Picture",
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(if (screenWidth < 360.dp) 40.dp else 48.dp)
                             .clip(CircleShape)
                             .background(Color.Gray)
                     )
@@ -638,26 +667,28 @@ fun FeedItem(
                             .background(Color.Gray)
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(dynamicPadding))
                 Column {
-                    Text(
-                        text = "${userProfile?.username ?: "Unavailable"}, ${userAge ?: "--"}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
+                    Row {
+                        Text(
+                            text = "${userProfile?.username ?: "Unavailable"}, ${userAge ?: "--"}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = dynamicFontSize
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = formatTimestamp(post.getPostTimestamp()),
+                            color = Color.White,
+                            fontSize = dynamicFontSize
+                        )
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row {
                         Text(
                             text = "⭐ ${userProfile?.rating ?: 0.0}  🌎 Rank: ${userProfile?.am24RankingGlobal ?: 0}",
                             color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = formatTimestamp(post.getPostTimestamp()),
-                            color = Color.Gray,
-                            fontSize = 12.sp
+                            fontSize = dynamicFontSize
                         )
                     }
                 }
@@ -665,21 +696,23 @@ fun FeedItem(
                 Spacer(modifier = Modifier.weight(1f))
 
                 // Show Delete or Report button
-                if (post.userId == currentUserId) {
-                    IconButton(onClick = { onDelete(post) }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Post",
-                            tint = Color(0xFF00bf63) // Accent green delete icon
-                        )
-                    }
-                } else {
-                    IconButton(onClick = { onReport(post) }) {
-                        Icon(
-                            imageVector = Icons.Default.Report,
-                            contentDescription = "Report Post",
-                            tint = Color.Yellow
-                        )
+                Box(modifier = Modifier.width(IntrinsicSize.Max)) {
+                    if (post.userId == currentUserId) {
+                        IconButton(onClick = { onDelete(post) }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Post",
+                                tint = Color(0xFF00bf63)
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { onReport(post) }) {
+                            Icon(
+                                imageVector = Icons.Default.Report,
+                                contentDescription = "Report Post",
+                                tint = Color.Yellow
+                            )
+                        }
                     }
                 }
             }
@@ -707,7 +740,7 @@ fun FeedItem(
                                 contentDescription = "Post Image",
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(200.dp)
+                                    .height(mediaHeight)
                                     .clip(RoundedCornerShape(8.dp))
                             )
                         }
@@ -717,7 +750,7 @@ fun FeedItem(
                                 videoUri = post.mediaUrl,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(200.dp)
+                                    .height(mediaHeight)
                                     .clip(RoundedCornerShape(8.dp))
                             )
                         }
@@ -792,9 +825,10 @@ fun FeedItem(
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             // Hashtags Below Main Content
             if (post.userTags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
                 FlowRow(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -839,7 +873,14 @@ fun FeedItem(
                             tint = Color.White
                         )
                     }
-                    // You can add a Save icon here if needed
+                    // Add Save Icon
+                    IconButton(onClick = { onSave() }) {
+                        Icon(
+                            Icons.Default.BookmarkBorder,  // Bookmark or save icon
+                            contentDescription = "Save Post",
+                            tint = Color.White
+                        )
+                    }
                 }
 
                 // Upvote and Downvote Buttons
@@ -961,9 +1002,8 @@ fun FeedItem(
                                 model = post.mediaUrl,
                                 contentDescription = "Fullscreen Image",
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                contentScale = ContentScale.Fit
+                                    .fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
 
@@ -1106,8 +1146,8 @@ fun CommentsDialog(
                                 Spacer(modifier = Modifier.weight(1f))
                                 Text(
                                     text = formatTimestamp(comment.getCommentTimestamp()),
-                                    color = Color.Gray,
-                                    fontSize = 12.sp
+                                    color = Color.White,
+                                    fontSize = 11.sp
                                 )
                             }
                             // Comment Text
@@ -1206,7 +1246,7 @@ fun buildFormattedText(text: String): AnnotatedString {
 }
 
 fun formatTimestamp(timestamp: Long): String {
-    val sdf = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault())
+    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
 
