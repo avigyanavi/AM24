@@ -21,6 +21,6 @@ fun ExploreScreen(navController: NavController, geoFire: GeoFire, modifier: Modi
     ) {
         // Similar to HomeScreen's PostInputSection
         // Implement posting functionality here
-        Text(text = "Explore Screen - Coming Soon!", color = Color.White)
+        Text(text = "Stories Screen - Coming Soon!", color = Color.White)
     }
 }

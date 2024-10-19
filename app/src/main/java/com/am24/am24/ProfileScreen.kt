@@ -364,6 +364,25 @@ fun ProfileText(label: String, value: String) {
     }
 }
 
+fun getLevelBorderColor(level: Int): Brush {
+    return when (level) {
+        1 -> Brush.linearGradient(listOf(Color(0xFF00bf63), Color.Cyan))
+        2 -> Brush.linearGradient(listOf(Color.Cyan, Color.Blue))
+        3 -> Brush.linearGradient(listOf(Color.Blue, Color.White))
+        4 -> Brush.linearGradient(listOf(Color.White, Color.Magenta))
+        5 -> Brush.linearGradient(listOf(Color.Magenta, Color.DarkGray))
+        6 -> Brush.linearGradient(listOf(Color.DarkGray, Color(0xFFFF4500)))
+        7 -> Brush.linearGradient(listOf(Color(0xFFFF4500), Color.Yellow)) // OrangeRed to Yellow gradient
+        else -> Brush.linearGradient(listOf(Color.Gray, Color.DarkGray))
+    }
+}
+
+fun formatDate(timestamp: Long): String {
+    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}
+
+
 fun calculateAge(dob: String?): Int {
     if (dob.isNullOrBlank()) {
         return 0 // Handle missing DOB gracefully
@@ -392,23 +411,3 @@ fun calculateAge(dob: String?): Int {
 
     return 0 // Return 0 if none of the formats work
 }
-
-fun getLevelBorderColor(level: Int): Brush {
-    return when (level) {
-        1 -> Brush.linearGradient(listOf(Color(0xFF00bf63), Color.Cyan))
-        2 -> Brush.linearGradient(listOf(Color.Cyan, Color.Blue))
-        3 -> Brush.linearGradient(listOf(Color.Blue, Color.White))
-        4 -> Brush.linearGradient(listOf(Color.White, Color.Magenta))
-        5 -> Brush.linearGradient(listOf(Color.Magenta, Color.DarkGray))
-        6 -> Brush.linearGradient(listOf(Color.DarkGray, Color(0xFFFF4500)))
-        7 -> Brush.linearGradient(listOf(Color(0xFFFF4500), Color.Yellow)) // OrangeRed to Yellow gradient
-        else -> Brush.linearGradient(listOf(Color.Gray, Color.DarkGray))
-    }
-}
-
-fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
-
-

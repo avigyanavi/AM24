@@ -25,7 +25,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
     val items = listOf(
         BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
         BottomNavItem("Feed", Icons.Default.Home, "home"),
-        BottomNavItem("Explore", Icons.Default.Search, "explore"),
+        BottomNavItem("Stories", Icons.Default.ManageHistory, "explore"),
         BottomNavItem("Profile", Icons.Default.Person, "profile"),
         BottomNavItem("Dating", Icons.Default.Favorite, "dating"),
         BottomNavItem("Settings", Icons.Default.Settings, "settings")
@@ -62,7 +62,7 @@ fun TopNavBar(navController: NavController, onLogout: () -> Unit) {
     val title = when (currentDestination?.route) {
         "dms" -> "DMs"
         "home" -> "Feed"
-        "explore" -> "Explore"
+        "explore" -> "Stories"
         "savedPosts" -> "Saved Posts"
         "profile" -> "Profile"
         "dating" -> "Dating"

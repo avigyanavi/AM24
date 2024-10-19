@@ -15,6 +15,9 @@ import com.google.firebase.database.*
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -23,6 +26,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Locale
 
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
@@ -49,7 +53,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * StateFlow holding the list of posts.
      */
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
-    val posts: StateFlow<List<Post>> get() = _posts.asStateFlow()
+    val posts: StateFlow<List<Post>> get() = _posts
+    private val _userProfiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
+    val userProfiles: StateFlow<Map<String, Profile>> get() = _userProfiles
 
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
@@ -666,20 +672,93 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * However, it can be retained for one-time fetches or pagination.
      */
     fun fetchPosts(
-        onPostsFetched: (List<Post>) -> Unit,
-        onFailure: (String) -> Unit
+        filterOption: String,
+        filterValue: String,
+        searchQuery: String,
+        userId: String?
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val snapshot = postsRef.orderByChild("timestamp").limitToLast(100).get().await()
-                val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                onPostsFetched(postsList)
+                val postsRef = FirebaseDatabase.getInstance().getReference("posts")
+
+                val query = when (filterOption) {
+                    "recent" -> postsRef.orderByChild("timestamp").limitToLast(100)
+                    "popular" -> postsRef.orderByChild("upvotes").limitToLast(100)
+                    "unpopular" -> postsRef.orderByChild("downvotes").limitToLast(100)
+                    "own echoes" -> {
+                        if (userId != null) {
+                            postsRef.orderByChild("userId").equalTo(userId).limitToLast(100)
+                        } else {
+                            postsRef.orderByChild("timestamp").limitToLast(100)
+                        }
+                    }
+                    else -> postsRef.orderByChild("timestamp").limitToLast(100)
+                }
+
+                val snapshot = query.get().await()
+                var postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+
+                // Fetch user profiles
+                val userIds = postsList.map { it.userId }.toSet()
+                val profiles = fetchUserProfiles(userIds)
+                _userProfiles.value = profiles
+
+                // Apply profile-based filters
+                if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
+                    postsList = postsList.filter { post ->
+                        val profile = profiles[post.userId]
+                        if (profile != null) {
+                            checkProfileFilter(profile, filterOption, filterValue)
+                        } else {
+                            false // Exclude if profile not available
+                        }
+                    }
+                }
+
+                // Apply search query filtering
+                if (searchQuery.isNotEmpty()) {
+                    val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
+                    postsList = postsList.filter { post ->
+                        val usernameMatch = post.username.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+                        val userTagsMatch = post.userTags.any { tag ->
+                            tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+                        }
+                        usernameMatch || userTagsMatch
+                    }
+                }
+
+                // Sort posts
+                postsList = when (filterOption) {
+                    "recent", "own echoes" -> postsList.sortedByDescending { it.getPostTimestamp() }
+                    "popular" -> postsList.sortedByDescending { it.upvotes }
+                    "unpopular" -> postsList.sortedByDescending { it.downvotes }
+                    else -> postsList
+                }
+
+                _posts.value = postsList
+
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching posts: ${e.message}", e)
-                onFailure(e.message ?: "Failed to fetch posts.")
+                Log.e("PostViewModel", "Error fetching posts: ${e.message}", e)
+                // Handle failure
             }
         }
     }
+
+    private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
+        val profiles = mutableMapOf<String, Profile>()
+        val deferreds = userIds.map { userId ->
+            async {
+                val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+                val snapshot = userRef.get().await()
+                snapshot.getValue(Profile::class.java)?.let { profile ->
+                    profiles[userId] = profile
+                }
+            }
+        }
+        deferreds.awaitAll()
+        profiles
+    }
+
     fun deletePost(
         postId: String,
         onSuccess: () -> Unit,
@@ -768,6 +847,3 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
-
-
-
