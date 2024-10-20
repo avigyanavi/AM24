@@ -22,7 +22,7 @@ data class Post(
     // Engagement Metrics
     var upvotes: Int = 0,  // Number of upvotes for this post
     var downvotes: Int = 0,  // Number of downvotes for this post
-    val totalComments: Int = 0,  // Number of comments (in case commenting is added later)
+    var totalComments: Int = 0,  // Number of comments (in case commenting is added later)
     var upvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
     var downvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
 

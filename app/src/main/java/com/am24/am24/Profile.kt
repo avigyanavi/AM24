@@ -12,84 +12,97 @@ data class Profile(
     val dob: String = "",  // Date of birth for age calculation
     val bio: String = "",  // One-liner bio
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
-    val hometown: String = "",  // User's locality (searchable dropdown)
-    val customHometown: String? = null,  // Custom value for locality if not found in the dropdown
-    val highSchool: String = "",  // User's high school (searchable dropdown)
-    val customHighSchool: String? = null,  // Custom value for high school if not found in the dropdown
     val gender: String = "",
-    val college: String = "",  // User's college (searchable dropdown)
-    val customCollege: String? = null,  // Custom value for college if not found in the dropdown
     val profilepicUrl: String? = null,
+    val videoUrl: String? = null,
+    val voiceNoteUrl: String? = null,
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos
     val matches: List<String> = emptyList(),  // List of matched user IDs
     val religion: String = "",
     val community: String = "",
-    val country: String = "",
-    val city: String = "",
-    val customCity: String? = "",
-    val followers: MutableMap<String, Boolean> = mutableMapOf(),  // Map of userId to Boolean (true if followed)
-    val following: MutableMap<String, Boolean> = mutableMapOf(),   // Map of userId to Boolean (true if following)
 
-    // New Fields
-    val followersCount: Int = 0,    // Total number of followers
-    val followingCount: Int = 0,    // Total number of following
-    val isBoosted: Boolean = false, // Indicates if the profile is boosted
+    val politics: String = "",  // Political preferences (e.g., liberal, conservative)
+    val fitnessLevel: String = "",  // Fitness level (e.g., active, moderate)
 
-    // Work Details
-    val jobRole: String = "",             // Job role (e.g., Director)
-    val customJobRole: String? = null,    // Custom job role if not listed in dropdown
-    val work: String = "",                // Company or organization (e.g., Microsoft)
-    val customWork: String? = null,       // Custom Company if not listed in dropdown
+    // Updated fields
+    val country: String = "",  // Current country
+    val city: String = "",     // Current city
+    val hometown: String = "",  // User's hometown
+    val customCity: String? = null, // Custom value for city
+    val customHometown: String? = null,  // Custom value for hometown
+
+    // New Fields: Education and Job Role
+    val educationLevel: String = "",  // (New) High School, Bachelors, Masters, PhD, etc.
+    val highSchool: String = "",  // Removed from the registration process for now, moved to Edit Profile
+    val customHighSchool: String? = null,
+    val college: String = "",  // Removed from the registration process for now, moved to Edit Profile
+    val customCollege: String? = null,
+    val postGraduation: String? = "",
+    val customPostGraduation: String? = null,
 
     // New Field: Claimed Income Level
     val claimedIncomeLevel: String? = null, // Optional income level per annum
 
-    // Metrics and Rankings
-    val am24RankingGlobal: Int = 0,        // Global AM24 ranking (All World)
-    val am24RankingAge: Int = 0,           // Ranking per age group (All World)
-    val am24RankingHighSchool: Int = 0,    // Ranking per high school
-    val am24RankingCollege: Int = 0,       // Ranking per college
-    val am24RankingGender: Int = 0,        // Ranking per gender
-    val am24RankingHometown: Int = 0,      // Ranking per hometown (locality)
-    val am24RankingCountry: Int = 0,       // Ranking per country (All World)
-    val am24RankingCity: Int = 0,          // Ranking per city (All World)
-    val rating: Double = 0.0,              // Average rating given by others in DMs (from Review Bar)
-    val numberOfRatings: Int = 0,          // Number of people who rated the user
+    // Lifestyle Section
+    val lifestyle: Lifestyle? = null,
 
-    // Swipe and Match Metrics
-    val numberOfSwipeRights: Int = 0,      // Number of swipe right actions performed by this user
-    val numberOfSwipeLefts: Int = 0,       // Number of swipe left actions performed by this user
-    val swipeRightToSwipeLeftRatio: Double = 0.0,  // Calculated as numberOfSwipeRights / numberOfSwipeLefts
-    val matchCount: Int = 0,               // Total number of matches this user has
-    val matchCountPerSwipeRight: Double = 0.0,    // Calculated as matchCount / numberOfSwipeRights
+    // Work Details
+    val jobRole: String = "",
+    val customJobRole: String? = null,
+    val work: String = "",
+    val customWork: String? = null,
 
-    // Post Metrics
-    val cumulativeUpvotes: Int = 0,        // Cumulative upvotes received on all posts
-    val cumulativeDownvotes: Int = 0,      // Cumulative downvotes received on all posts
-    val averageUpvoteCount: Double = 0.0,  // Average number of upvotes per post
-    val averageDownvoteCount: Double = 0.0, // Average number of downvotes per post
+    // Social Causes, Politics, and Preferences
+    val socialCauses: List<String> = emptyList(),
+    val politicalViews: String = "",  // Conservative, Liberal, Centrist, etc.
+    val lookingFor: String = "",      // What the user is looking for (e.g., Friendship, Dating)
 
-    // Tags
-    val userTags: List<String> = emptyList(),    // User tags aggregated from posts
-    val zodiac: String? = null, // Derived Zodiac
+    val followers: MutableMap<String, Boolean> = mutableMapOf(),
+    val following: MutableMap<String, Boolean> = mutableMapOf(),
 
-    // AM24 Metrics
-    val dateOfJoin: Long = System.currentTimeMillis(),  // Date when the user joined
-    val am24RankingCompositeScore: Double = 0.0,        // Composite score for AM24 ranking (Kupid Score)
-    val level: Int = 1, // Level determined by composite score
+    // New Metrics and Rankings
+    val followersCount: Int = 0,
+    val followingCount: Int = 0,
+    val isBoosted: Boolean = false,
 
+    val am24RankingGlobal: Int = 0,
+    val am24RankingAge: Int = 0,
+    val am24RankingHighSchool: Int = 0,
+    val am24RankingCollege: Int = 0,
+    val am24RankingGender: Int = 0,
+    val am24RankingHometown: Int = 0,
+    val am24RankingCountry: Int = 0,
+    val am24RankingCity: Int = 0,
+    val rating: Double = 0.0,
+    val numberOfRatings: Int = 0,
 
-    // New Fields for Geolocation
-    val latitude: Double = 0.0,   // User's current latitude
-    val longitude: Double = 0.0,  // User's current longitude
-    val distancePreference: Float = 10f, // Add distance preference field
+    val numberOfSwipeRights: Int = 0,
+    val numberOfSwipeLefts: Int = 0,
+    val swipeRightToSwipeLeftRatio: Double = 0.0,
+    val matchCount: Int = 0,
+    val matchCountPerSwipeRight: Double = 0.0,
+
+    val cumulativeUpvotes: Int = 0,
+    val cumulativeDownvotes: Int = 0,
+    val averageUpvoteCount: Double = 0.0,
+    val averageDownvoteCount: Double = 0.0,
+
+    val userTags: List<String> = emptyList(),
+    val zodiac: String? = null,
+
+    val dateOfJoin: Long = System.currentTimeMillis(),
+    val am24RankingCompositeScore: Double = 0.0,
+    val level: Int = 1,
+
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val distancePreference: Float = 10f,
 
     @Exclude
-    var ratingsGiven: Map<String, Float> = emptyMap(), // Map of userId to rating
+    var ratingsGiven: Map<String, Float> = emptyMap(),
 
-    // Ratings received from others
     @Exclude
-    var ratingsReceived: Map<String, Float> = emptyMap() // Map of userId to rating
+    var ratingsReceived: Map<String, Float> = emptyMap()
 ) {
 
     @Exclude
@@ -124,7 +137,6 @@ data class Profile(
         gender: String,
         followersCount: Int,
         followingCount: Int,
-        claimedIncomeLevel: String? = null
     ): Double {
         val ratingScore = getAverageRating() * 0.1
 
@@ -153,41 +165,10 @@ data class Profile(
         val followingScore = followingCount * 0.03
 
         // Incorporate claimed income level
-        val incomeScore = when (claimedIncomeLevel?.lowercase()) {
-            "low" -> 0.0
-            "medium" -> 0.2
-            "high" -> 0.4
-            else -> 0.0
-        }
 
         val engagementScore = (cumulativeUpvotes - cumulativeDownvotes) * 0.05
 
-        return ratingScore + matchScore + upvoteScore + swipeRatioScore + followersScore + followingScore + incomeScore + engagementScore
-    }
-
-    // Updated level determination to use the new composite score
-    @Exclude
-    fun determineLevel(): Int {
-        val score = calculateCompositeScore(
-            matchCountPerSwipeRight = this.getCalculatedMatchCountPerSwipeRight(),
-            averageUpvoteCount = this.averageUpvoteCount,
-            swipeRightToSwipeLeftRatio = this.getCalculatedSwipeRightToLeftRatio(),
-            cumulativeUpvotes = this.cumulativeUpvotes,
-            cumulativeDownvotes = this.cumulativeDownvotes,
-            gender = this.gender,
-            followersCount = this.followersCount,
-            followingCount = this.followingCount,
-            claimedIncomeLevel = this.claimedIncomeLevel
-        )
-        return when {
-            score >= 7 -> 7
-            score >= 6 -> 6
-            score >= 5 -> 5
-            score >= 4 -> 4
-            score >= 3 -> 3
-            score >= 2 -> 2
-            else -> 1
-        }
+        return ratingScore + matchScore + upvoteScore + swipeRatioScore + followersScore + followingScore + engagementScore
     }
 }
 
@@ -206,6 +187,22 @@ data class Message(
     val text: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
+
+data class Lifestyle(
+    val smoking: String = "",               // Smoking habit (e.g., "Non-smoker", "Social Smoker", "Regular Smoker")
+    val drinking: String = "",              // Drinking habit (e.g., "Occasional", "Social Drinker", "Heavy Drinker")
+    val alcoholType: String = "",           // Type of alcohol (e.g., "Beer", "Vodka", "Wine")
+    val cannabisFriendly: Boolean = false,  // Cannabis Friendly
+    val laidBack: Boolean = false,          // Personality trait
+    val socialButterfly: Boolean = false,   // Social Butterfly (outgoing)
+    val diet: String = "",                  // Diet (e.g., "Vegan", "Vegetarian", "Non-Vegetarian", "Keto")
+    val sleepCycle: String = "",            // Sleep cycle (e.g., "Early Riser", "Night Owl", "Balanced")
+    val workLifeBalance: String = "",       // Work-life balance (e.g., "Workaholic", "Balanced", "Relaxed")
+    val exerciseFrequency: String = "",     // Exercise routine (e.g., "Daily", "Occasionally", "Rarely")
+    val adventurous: Boolean = false,       // Adventurous personality
+    val petFriendly: Boolean = false        // Pet-friendly (likes pets or has pets)
+)
+
 
 fun deriveZodiac(dob: String?): String {
     if (dob.isNullOrBlank()) return "Unknown"

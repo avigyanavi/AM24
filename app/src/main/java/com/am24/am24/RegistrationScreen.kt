@@ -1,7 +1,12 @@
 // RegistrationActivity.kt
 package com.am24.am24
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.MediaMetadataRetriever
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -13,6 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -22,35 +28,45 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -74,6 +90,8 @@ class RegistrationActivity : ComponentActivity() {
 }
 
 class RegistrationViewModel : ViewModel() {
+    var videoUri by mutableStateOf<Uri?>(null)  // To hold the video URI
+    var voiceNoteUri by mutableStateOf<Uri?>(null)  // To hold the voice recording URI
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     var name by mutableStateOf("")
@@ -83,6 +101,8 @@ class RegistrationViewModel : ViewModel() {
     var profilePictureUri by mutableStateOf<Uri?>(null)
     var optionalPhotoUris = mutableStateListOf<Uri>()
     var profilePicUrl by mutableStateOf<String?>(null)
+    var voiceNoteUrl by mutableStateOf<String?>(null)
+    var videoUrl by mutableStateOf<String?>(null)
     var optionalPhotoUrls = mutableStateListOf<String>()
     var hometown by mutableStateOf("")
     var bio by mutableStateOf("")
@@ -94,6 +114,19 @@ class RegistrationViewModel : ViewModel() {
     var customHometown by mutableStateOf("")
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
+
+    // Newly added fields
+    var country by mutableStateOf("")         // Current country
+    var city by mutableStateOf("")            // Current city
+    var customCity by mutableStateOf("")      // For custom city input if not in dropdown
+    var educationLevel by mutableStateOf("")  // For user's highest education level
+
+    // Added fields for new Profile components
+    var lifestyle by mutableStateOf(Lifestyle())   // Lifestyle information (smoking, drinking, etc.)
+    var lookingFor by mutableStateOf("")           // What the user is looking for (Friendship, Relationship, etc.)
+    var politics by mutableStateOf("")             // User's political views
+    var fitnessLevel by mutableStateOf("")         // User's fitness activity level
+    var socialCauses = mutableStateListOf<String>() // List of user's selected social causes
 }
 
 @Composable
@@ -115,7 +148,7 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
     when (currentStep) {
         1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
         2 -> EnterNameScreen(registrationViewModel, onNext, onBack)
-        3 -> UploadPhotosScreen(registrationViewModel, onNext, onBack)
+        3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
         4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
         5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
         6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
@@ -134,33 +167,14 @@ fun EnterLocationAndSchoolScreen(
     val context = LocalContext.current
 
     // Sample predefined lists
-    val countrys = listOf("India", "USA", "France", "Australia", "England", "Scotland", "Ireland", "Wales", "Northern Ireland")
-    val cities = listOf("Mumbai, New Delhi, Kolkata, Lafayette, Chicago, Los Angeles, Las Vegas, San Francisco")
-    val hometowns = listOf("Kolkata", "Chennai", "West Lafayette", "Lafayette", "Chicago")
-    val highSchools = listOf("St. Xavier's High School", "Delhi Public School", "Modern High School")
-    val colleges = listOf("IIT Delhi", "Jadavpur University", "St. Xavier's College")
+    val educationLevels = listOf("High School", "Bachelors", "Masters", "PhD")
+    val countrys = listOf("India", "USA", "France", "Australia")
+    val cities = listOf("Mumbai", "New York", "Paris", "Sydney")
 
-    var hometownText by remember { mutableStateOf(registrationViewModel.hometown) }
-    var highSchoolText by remember { mutableStateOf(registrationViewModel.highSchool) }
-    var collegeText by remember { mutableStateOf(registrationViewModel.college) }
-
-    var customHometown by remember { mutableStateOf(false) }
-    var customHighSchool by remember { mutableStateOf(false) }
-    var customCollege by remember { mutableStateOf(false) }
-
-    var expandedHometown by remember { mutableStateOf(false) }
-    var expandedHighSchool by remember { mutableStateOf(false) }
-    var expandedCollege by remember { mutableStateOf(false) }
-
-    // Search states for the dropdown menus
-    var hometownSearch by remember { mutableStateOf("") }
-    var highSchoolSearch by remember { mutableStateOf("") }
-    var collegeSearch by remember { mutableStateOf("") }
-
-    // Filtered dropdown values based on search inputs
-    val filteredHometowns = hometowns.filter { it.contains(hometownSearch, ignoreCase = true) }
-    val filteredHighSchools = highSchools.filter { it.contains(highSchoolSearch, ignoreCase = true) }
-    val filteredColleges = colleges.filter { it.contains(collegeSearch, ignoreCase = true) }
+    // State to track dropdown selection
+    var selectedEducationLevel by remember { mutableStateOf(registrationViewModel.educationLevel) }
+    var selectedCountry by remember { mutableStateOf(registrationViewModel.country) }
+    var selectedCity by remember { mutableStateOf(registrationViewModel.city) }
 
     Scaffold(
         topBar = {
@@ -168,11 +182,7 @@ fun EnterLocationAndSchoolScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
@@ -193,281 +203,91 @@ fun EnterLocationAndSchoolScreen(
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
-                    // Hometown Dropdown with Search
-                    Text("Enter Your Hometown", color = Color.White, fontSize = 18.sp)
-                    if (customHometown) {
-                        OutlinedTextField(
-                            value = registrationViewModel.customHometown,
-                            onValueChange = {
-                                registrationViewModel.customHometown = it
-                            },
-                            label = { Text("Custom Hometown", color = Color(0xFF00bf63)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedLabelColor = Color(0xFF00bf63),
-                                focusedBorderColor = Color(0xFF00bf63),
-                                cursorColor = Color(0xFF00bf63),
-                                focusedTextColor = Color.White
-                            )
-                        )
-                    } else {
-                        ExposedDropdownMenuBox(
-                            expanded = expandedHometown,
-                            onExpandedChange = { expandedHometown = !expandedHometown }
-                        ) {
-                            OutlinedTextField(
-                                value = hometownText,
-                                onValueChange = {
-                                    hometownText = it
-                                    expandedHometown = true
-                                    registrationViewModel.hometown = it
-                                },
-                                label = { Text("Search Hometown", color = Color(0xFF00bf63)) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    focusedLabelColor = Color(0xFF00bf63),
-                                    focusedBorderColor = Color(0xFF00bf63),
-                                    cursorColor = Color(0xFF00bf63),
-                                    focusedTextColor = Color.White
-                                )
-                            )
-                            DropdownMenu(
-                                expanded = expandedHometown,
-                                onDismissRequest = { expandedHometown = false },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color.Black)
-                            ) {
-                                // Search bar inside the dropdown
-                                OutlinedTextField(
-                                    value = hometownSearch,
-                                    onValueChange = { hometownSearch = it },
-                                    label = { Text("Search Hometown", color = Color(0xFF00bf63)) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        focusedLabelColor = Color(0xFF00bf63),
-                                        focusedBorderColor = Color(0xFF00bf63),
-                                        cursorColor = Color(0xFF00bf63),
-                                        focusedTextColor = Color.White
-                                    )
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                filteredHometowns.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option, color = Color.White) },
-                                        onClick = {
-                                            hometownText = option
-                                            expandedHometown = false
-                                            registrationViewModel.hometown = option
-                                        }
-                                    )
-                                }
-                                DropdownMenuItem(
-                                    text = { Text("Didn't find your Hometown, add", color = Color.White) },
-                                    onClick = {
-                                        expandedHometown = false
-                                        customHometown = true
-                                        registrationViewModel.hometown = ""
-                                    }
-                                )
-                            }
+                    // Education Level Dropdown (Mandatory)
+                    Text("Education Level (Mandatory)", color = Color.White, fontSize = 18.sp)
+                    DropdownWithSearch(
+                        title = "Select Education Level",
+                        options = educationLevels,
+                        selectedOption = selectedEducationLevel,
+                        onOptionSelected = {
+                            selectedEducationLevel = it
+                            registrationViewModel.educationLevel = it
                         }
-                    }
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // High School Dropdown with Search
-                    Text("Enter Your High School", color = Color.White, fontSize = 18.sp)
-                    if (customHighSchool) {
-                        OutlinedTextField(
-                            value = registrationViewModel.customHighSchool,
-                            onValueChange = {
-                                registrationViewModel.customHighSchool = it
-                            },
-                            label = { Text("Custom High School", color = Color(0xFF00bf63)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedLabelColor = Color(0xFF00bf63),
-                                focusedBorderColor = Color(0xFF00bf63),
-                                cursorColor = Color(0xFF00bf63),
-                                focusedTextColor = Color.White
-                            )
-                        )
-                    } else {
-                        ExposedDropdownMenuBox(
-                            expanded = expandedHighSchool,
-                            onExpandedChange = { expandedHighSchool = !expandedHighSchool }
-                        ) {
-                            OutlinedTextField(
-                                value = highSchoolText,
-                                onValueChange = {
-                                    highSchoolText = it
-                                    expandedHighSchool = true
-                                    registrationViewModel.highSchool = it
-                                },
-                                label = { Text("Search High School", color = Color(0xFF00bf63)) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    focusedLabelColor = Color(0xFF00bf63),
-                                    focusedBorderColor = Color(0xFF00bf63),
-                                    cursorColor = Color(0xFF00bf63),
-                                    focusedTextColor = Color.White
-                                )
-                            )
-                            DropdownMenu(
-                                expanded = expandedHighSchool,
-                                onDismissRequest = { expandedHighSchool = false },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color.Black)
-                            ) {
-                                // Search bar inside the dropdown
-                                OutlinedTextField(
-                                    value = highSchoolSearch,
-                                    onValueChange = { highSchoolSearch = it },
-                                    label = { Text("Search High School", color = Color(0xFF00bf63)) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        focusedLabelColor = Color(0xFF00bf63),
-                                        focusedBorderColor = Color(0xFF00bf63),
-                                        cursorColor = Color(0xFF00bf63),
-                                        focusedTextColor = Color.White
-                                    )
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                filteredHighSchools.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option, color = Color.White) },
-                                        onClick = {
-                                            highSchoolText = option
-                                            expandedHighSchool = false
-                                            registrationViewModel.highSchool = option
-                                        }
-                                    )
-                                }
-                                DropdownMenuItem(
-                                    text = { Text("Didn't find your high school, add", color = Color.White) },
-                                    onClick = {
-                                        expandedHighSchool = false
-                                        customHighSchool = true
-                                        registrationViewModel.highSchool = ""
-                                    }
-                                )
-                            }
+                    // Country Dropdown (Mandatory)
+                    Text("Current Country (Mandatory)", color = Color.White, fontSize = 18.sp)
+                    DropdownWithSearch(
+                        title = "Select Country",
+                        options = countrys,
+                        selectedOption = selectedCountry,
+                        onOptionSelected = {
+                            selectedCountry = it
+                            registrationViewModel.country = it
                         }
-                    }
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // College Dropdown with Search
-                    Text("Enter Your College", color = Color.White, fontSize = 18.sp)
-                    if (customCollege) {
-                        OutlinedTextField(
-                            value = registrationViewModel.customCollege,
-                            onValueChange = {
-                                registrationViewModel.customCollege = it
-                            },
-                            label = { Text("Custom College", color = Color(0xFF00bf63)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedLabelColor = Color(0xFF00bf63),
-                                focusedBorderColor = Color(0xFF00bf63),
-                                cursorColor = Color(0xFF00bf63),
-                                focusedTextColor = Color.White
-                            )
-                        )
-                    } else {
-                        ExposedDropdownMenuBox(
-                            expanded = expandedCollege,
-                            onExpandedChange = { expandedCollege = !expandedCollege }
-                        ) {
-                            OutlinedTextField(
-                                value = collegeText,
-                                onValueChange = {
-                                    collegeText = it
-                                    expandedCollege = true
-                                    registrationViewModel.college = it
-                                },
-                                label = { Text("Search College", color = Color(0xFF00bf63)) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    focusedLabelColor = Color(0xFF00bf63),
-                                    focusedBorderColor = Color(0xFF00bf63),
-                                    cursorColor = Color(0xFF00bf63),
-                                    focusedTextColor = Color.White
-                                )
-                            )
-                            DropdownMenu(
-                                expanded = expandedCollege,
-                                onDismissRequest = { expandedCollege = false },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color.Black)
-                            ) {
-                                // Search bar inside the dropdown
-                                OutlinedTextField(
-                                    value = collegeSearch,
-                                    onValueChange = { collegeSearch = it },
-                                    label = { Text("Search College", color = Color(0xFF00bf63)) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        focusedLabelColor = Color(0xFF00bf63),
-                                        focusedBorderColor = Color(0xFF00bf63),
-                                        cursorColor = Color(0xFF00bf63),
-                                        focusedTextColor = Color.White
-                                    )
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                filteredColleges.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option, color = Color.White) },
-                                        onClick = {
-                                            collegeText = option
-                                            expandedCollege = false
-                                            registrationViewModel.college = option
-                                        }
-                                    )
-                                }
-                                DropdownMenuItem(
-                                    text = { Text("Didn't find your college, add", color = Color.White) },
-                                    onClick = {
-                                        expandedCollege = false
-                                        customCollege = true
-                                        registrationViewModel.college = ""
-                                    }
-                                )
-                            }
+                    // City Dropdown (Mandatory)
+                    Text("Current City (Mandatory)", color = Color.White, fontSize = 18.sp)
+                    DropdownWithSearch(
+                        title = "Select City",
+                        options = cities,
+                        selectedOption = selectedCity,
+                        onOptionSelected = {
+                            selectedCity = it
+                            registrationViewModel.city = it
                         }
-                    }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Hometown Input (Optional)
+                    Text("Hometown (Optional)", color = Color.White, fontSize = 18.sp)
+                    OutlinedTextField(
+                        value = registrationViewModel.hometown,
+                        onValueChange = { registrationViewModel.hometown = it },
+                        label = { Text("Hometown", color = Color(0xFF00bf63)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedLabelColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            cursorColor = Color(0xFF00bf63),
+                            focusedTextColor = Color.White
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // High School Input (Optional)
+                    Text("High School (Optional)", color = Color.White, fontSize = 18.sp)
+                    OutlinedTextField(
+                        value = registrationViewModel.highSchool,
+                        onValueChange = { registrationViewModel.highSchool = it },
+                        label = { Text("High School", color = Color(0xFF00bf63)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedLabelColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            cursorColor = Color(0xFF00bf63),
+                            focusedTextColor = Color.White
+                        )
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Next Button with validation checks
+                    // Next Button with validation
                     Button(
                         onClick = {
-                            if (hometownText.isEmpty() && registrationViewModel.customHometown.isEmpty()) {
-                                Toast.makeText(context, "Please enter a hometown or add a custom one.", Toast.LENGTH_SHORT).show()
-                            } else if (highSchoolText.isEmpty() && registrationViewModel.customHighSchool.isEmpty()) {
-                                Toast.makeText(context, "Please enter a high school or add a custom one.", Toast.LENGTH_SHORT).show()
-                            } else if (collegeText.isEmpty() && registrationViewModel.customCollege.isEmpty()) {
-                                Toast.makeText(context, "Please enter a college or add a custom one.", Toast.LENGTH_SHORT).show()
+                            if (selectedEducationLevel.isEmpty() || selectedCountry.isEmpty() || selectedCity.isEmpty()) {
+                                Toast.makeText(context, "Please fill out all mandatory fields", Toast.LENGTH_SHORT).show()
                             } else {
+                                registrationViewModel.educationLevel = selectedEducationLevel
+                                registrationViewModel.country = selectedCountry
+                                registrationViewModel.city = selectedCity
                                 onNext()
                             }
                         },
@@ -490,6 +310,7 @@ fun EnterLocationAndSchoolScreen(
         }
     )
 }
+
 
 
 
@@ -982,6 +803,7 @@ suspend fun saveProfileToFirebase(
         val database = FirebaseDatabase.getInstance().reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
+        // Create a Profile object with the new fields
         val profile = Profile(
             userId = userId,
             username = registrationViewModel.username,
@@ -996,9 +818,22 @@ suspend fun saveProfileToFirebase(
             profilepicUrl = registrationViewModel.profilePicUrl,
             optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
             religion = registrationViewModel.religion,
-            community = registrationViewModel.community
+            community = registrationViewModel.community,
+
+            // New fields
+            country = registrationViewModel.country,                 // New: current country
+            city = registrationViewModel.city.ifEmpty { registrationViewModel.customCity }, // New: current city
+            educationLevel = registrationViewModel.educationLevel,   // New: education level
+            lifestyle = registrationViewModel.lifestyle,             // New: lifestyle preferences
+            lookingFor = registrationViewModel.lookingFor,           // New: what the user is looking for
+            politics = registrationViewModel.politics,               // New: political views
+            fitnessLevel = registrationViewModel.fitnessLevel,       // New: fitness level
+            socialCauses = registrationViewModel.socialCauses.toList(), // New: social causes
+            videoUrl = registrationViewModel.videoUrl,  // Add the video URL
+            voiceNoteUrl = registrationViewModel.voiceNoteUrl   // Add the voice URL
         )
 
+        // Save the profile to Firebase Realtime Database
         database.child("users").child(userId).setValue(profile).await()
 
         withContext(Dispatchers.Main) {
@@ -1008,6 +843,7 @@ suspend fun saveProfileToFirebase(
         Log.e("Registration", "Failed to save profile: ${e.message}")
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BasicInputScreen(
@@ -1704,247 +1540,431 @@ fun EnterBirthDateAndInterestsScreen(
 data class InterestSubcategory(val name: String, val emoji: String)
 data class InterestCategory(val category: String, val emoji: String, val subcategories: List<InterestSubcategory>)
 
+//------------------edit media---------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UploadPhotosScreen(registrationViewModel: RegistrationViewModel, onNext: () -> Unit, onBack: () -> Unit) {
+fun UploadMediaComposable(
+    registrationViewModel: RegistrationViewModel,
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
-
-    // State for profile picture
+    val storageRef = FirebaseStorage.getInstance().reference
+    var videoUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var voiceUri by remember { mutableStateOf<Uri?>(null) }
+    var isRecording by remember { mutableStateOf(false) }
+    var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var recordedFilePath by remember { mutableStateOf<String?>(null) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var playbackProgress by remember { mutableStateOf(0f) }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var profilePictureUri by remember { mutableStateOf(registrationViewModel.profilePictureUri) }
-
-    // State for optional photos
     val images = remember { mutableStateListOf<Uri>().apply { addAll(registrationViewModel.optionalPhotoUris) } }
 
-    var isUploading by remember { mutableStateOf(false) }
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (!isGranted) {
+                Toast.makeText(context, "Audio recording permission is required.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
 
-    val profilePicLauncher = rememberLauncherForActivityResult(
+    // Video picker launcher
+    val videoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
-            if (uri != null) {
-                profilePictureUri = uri
-                registrationViewModel.profilePictureUri = uri
-            }
-        }
-    )
-
-    val photosLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents(),
-        onResult = { uris: List<Uri> ->
-            if (images.size + uris.size <= 9) {
-                images.addAll(uris)
-                registrationViewModel.optionalPhotoUris.addAll(uris)
-            } else {
-                Toast.makeText(context, "You can upload up to 9 photos", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+            uri?.let {
+                videoUri = uri
+                val retriever = MediaMetadataRetriever()
+                try {
+                    retriever.setDataSource(context, uri)
+                    val durationMillis = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
+                    retriever.release()
+                    if (durationMillis > 10000) {
+                        Toast.makeText(context, "Video should not exceed 10 seconds.", Toast.LENGTH_SHORT).show()
+                        videoUri = null
+                    } else {
+                        registrationViewModel.videoUri = uri
+                        uploadVideoToFirebase(storageRef, uri, registrationViewModel)
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
-            )
-        },
-        content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Title
-                    Text(
-                        text = "Upload Photos",
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-
-                    // Profile Picture Section
-                    Text(
-                        text = "Profile Picture",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .size(150.dp)
-                            .padding(8.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray)
-                            .clickable { profilePicLauncher.launch("image/*") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (profilePictureUri != null) {
-                            AsyncImage(
-                                model = profilePictureUri,
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier.matchParentSize()
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Add Profile Picture",
-                                tint = Color.White,
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Optional Photos Section
-                    Text(
-                        text = "Optional Photos (up to 9)",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // Display Selected Photos
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        items(images) { uri ->
-                            Box(
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .padding(4.dp)
-                            ) {
-                                AsyncImage(
-                                    model = uri,
-                                    contentDescription = "Uploaded Image",
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-                    }
-
-                    // Add Photos Button
-                    OutlinedButton(
-                        onClick = { photosLauncher.launch("image/*") },
-                        modifier = Modifier.padding(top = 8.dp),
-                        border = BorderStroke(1.dp, Color(0xFF00bf63)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00bf63))
-                    ) {
-                        Text(text = "Add Photos", color = Color(0xFF00bf63))
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    if (isUploading) {
-                        // Show loading indicator
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xAA000000)), // semi-transparent background
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = Color(0xFF00bf63))
-                        }
-                    }
-
-                    // Next Button
-                    Button(
-                        onClick = {
-                            if (profilePictureUri != null) {
-                                isUploading = true
-                                (context as? ComponentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
-                                    try {
-                                        val auth = FirebaseAuth.getInstance()
-                                        val userId = auth.currentUser?.uid ?: throw Exception("User not authenticated")
-
-                                        val storageRef = FirebaseStorage.getInstance().reference.child("users/$userId")
-
-                                        // Upload Profile Picture
-                                        val profilePicRef = storageRef.child("profile_picture")
-                                        profilePicRef.putFile(profilePictureUri!!).await()
-                                        val profilePicUrl = profilePicRef.downloadUrl.await().toString()
-                                        registrationViewModel.profilePicUrl = profilePicUrl
-
-                                        // Upload Optional Photos
-                                        val photoUrls = mutableListOf<String>()
-                                        images.forEachIndexed { index, uri ->
-                                            val imageRef = storageRef.child("optional_photos/photo_$index")
-                                            imageRef.putFile(uri).await()
-                                            val url = imageRef.downloadUrl.await().toString()
-                                            photoUrls.add(url)
-                                        }
-                                        registrationViewModel.optionalPhotoUrls.clear()
-                                        registrationViewModel.optionalPhotoUrls.addAll(photoUrls)
-
-                                        withContext(Dispatchers.Main) {
-                                            isUploading = false
-                                            onNext()
-                                        }
-                                    } catch (e: Exception) {
-                                        withContext(Dispatchers.Main) {
-                                            isUploading = false
-                                            Toast.makeText(context, "Failed to upload photos: ${e.message}", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                }
-                            } else {
-                                Toast.makeText(context, "Please add a profile picture", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        enabled = !isUploading,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = "Next",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                } catch (e: Exception) {
+                    retriever.release()
+                    Toast.makeText(context, "Failed to retrieve video metadata: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     )
+
+    // Image picker launcher for profile picture
+    val profilePicLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                profilePictureUri = uri
+                registrationViewModel.profilePictureUri = uri
+                uploadProfilePicToFirebase(storageRef, uri, registrationViewModel)
+            }
+        }
+    )
+
+    // Image picker launcher for optional photos
+    val photosLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents(),
+        onResult = { uris: List<Uri> ->
+            if (images.size + uris.size <= 5) {
+                images.addAll(uris)
+                registrationViewModel.optionalPhotoUris.addAll(uris)
+                uploadOptionalPhotosToFirebase(storageRef, uris, registrationViewModel)
+            } else {
+                Toast.makeText(context, "You can upload up to 5 photos", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
+    // Start recording with press-and-hold gesture
+    fun startRecording() {
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            mediaRecorder = MediaRecorder().apply {
+                val audioFile = File(context.cacheDir, "voice_recording_${System.currentTimeMillis()}.3gp")
+                recordedFilePath = audioFile.absolutePath
+
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                setOutputFile(recordedFilePath)
+                try {
+                    prepare()
+                    start()
+                    isRecording = true
+                    Toast.makeText(context, "Recording started...", Toast.LENGTH_SHORT).show()
+                } catch (e: IOException) {
+                    Toast.makeText(context, "Failed to start recording: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    // Stop recording
+    fun stopRecording() {
+        mediaRecorder?.apply {
+            try {
+                stop()
+                reset()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error stopping recording: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                release()
+                mediaRecorder = null
+                voiceUri = Uri.fromFile(File(recordedFilePath!!))
+                registrationViewModel.voiceNoteUri = voiceUri
+                uploadVoiceToFirebase(storageRef, voiceUri!!, registrationViewModel)
+                isRecording = false
+                Toast.makeText(context, "Recording stopped.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Trash/Delete recording
+    fun deleteRecording() {
+        voiceUri = null
+        recordedFilePath = null
+        registrationViewModel.voiceNoteUri = null
+        isPlaying = false
+        Toast.makeText(context, "Recording deleted.", Toast.LENGTH_SHORT).show()
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Upload Media", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+            )
+        },
+        content = { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Profile Picture Section
+                Text("Tap to upload Profile Picture", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Box(
+                    modifier = Modifier
+                        .size(150.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray)
+                        .clickable { profilePicLauncher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (profilePictureUri != null) {
+                        AsyncImage(
+                            model = profilePictureUri,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.matchParentSize()
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Add Profile Picture",
+                            tint = Color.White,
+                            modifier = Modifier.size(64.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Optional Photos Section
+                Text("Optional Photos (up to 5)", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    items(images) { uri ->
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .padding(4.dp)
+                        ) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "Uploaded Image",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = { photosLauncher.launch("image/*") },
+                    modifier = Modifier.padding(top = 8.dp),
+                    border = BorderStroke(1.dp, Color(0xFF00bf63)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00bf63))
+                ) {
+                    Text(text = "Add Photos", color = Color(0xFF00bf63))
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Video Section
+                Button(onClick = { videoPickerLauncher.launch("video/*") }) {
+                    Text("Upload Video (10 seconds max)")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                videoUri?.let {
+                    VideoPlayer(videoUrl = it.toString())
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Voice Recording Section
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(CircleShape)
+                        .background(if (isRecording) Color.Gray else Color(0xFF00bf63))
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    startRecording()
+                                    tryAwaitRelease()
+                                    stopRecording()
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isRecording) "Recording..." else "Hold to Record",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Playback and Trash Icons
+                voiceUri?.let {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = {
+                                if (isPlaying) {
+                                    mediaPlayer?.pause()
+                                    isPlaying = false
+                                } else {
+                                    mediaPlayer = MediaPlayer().apply {
+                                        setDataSource(context, voiceUri!!)
+                                        prepare()
+                                        start()
+                                    }
+                                    isPlaying = true
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = "Play/Pause",
+                                tint = Color(0xFF00bf63),
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+
+                        LinearProgressIndicator(
+                            progress = playbackProgress,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 16.dp),
+                            color = Color(0xFF00bf63),
+                            trackColor = Color.Gray
+                        )
+
+                        IconButton(onClick = { deleteRecording() }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Recording",
+                                tint = Color.Red
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Next Button
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                ) {
+                    Text(text = "Next", color = Color.White)
+                }
+            }
+        }
+    )
+
+    // Manage voice playback progress
+    LaunchedEffect(isPlaying) {
+        if (isPlaying && mediaPlayer != null) {
+            while (isPlaying && mediaPlayer?.isPlaying == true) {
+                delay(500L)
+                val current = mediaPlayer?.currentPosition ?: 0
+                val duration = mediaPlayer?.duration ?: 1
+                playbackProgress = current.toFloat() / duration.toFloat()
+            }
+        } else {
+            playbackProgress = 0f
+        }
+    }
+
+    DisposableEffect(voiceUri) {
+        onDispose {
+            mediaPlayer?.release()
+            mediaPlayer = null
+        }
+    }
 }
+
+// Functions to upload media to Firebase Storage
+fun uploadProfilePicToFirebase(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val profilePicRef = storageRef.child("users/${userId}/profile_pic.jpg")
+    profilePicRef.putFile(uri).addOnSuccessListener {
+        profilePicRef.downloadUrl.addOnSuccessListener { downloadUri ->
+            registrationViewModel.profilePicUrl = downloadUri.toString()
+        }
+    }.addOnFailureListener {
+        Log.e("UploadMedia", "Failed to upload profile picture: ${it.message}")
+    }
+}
+
+fun uploadOptionalPhotosToFirebase(storageRef: StorageReference, uris: List<Uri>, registrationViewModel: RegistrationViewModel) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    uris.forEachIndexed { index, uri ->
+        val photoRef = storageRef.child("users/${userId}/optional_photo_$index.jpg")
+        photoRef.putFile(uri).addOnSuccessListener {
+            photoRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                registrationViewModel.optionalPhotoUrls.add(downloadUri.toString())
+            }
+        }.addOnFailureListener {
+            Log.e("UploadMedia", "Failed to upload optional photo: ${it.message}")
+        }
+    }
+}
+
+fun uploadVideoToFirebase(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val videoRef = storageRef.child("users/${userId}/video.mp4")
+    videoRef.putFile(uri).addOnSuccessListener {
+        videoRef.downloadUrl.addOnSuccessListener { downloadUri ->
+            registrationViewModel.videoUrl = downloadUri.toString()
+        }
+    }.addOnFailureListener {
+        Log.e("UploadMedia", "Failed to upload video: ${it.message}")
+    }
+}
+
+fun uploadVoiceToFirebase(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val voiceRef = storageRef.child("users/${userId}/voice_note.3gp")
+    voiceRef.putFile(uri).addOnSuccessListener {
+        voiceRef.downloadUrl.addOnSuccessListener { downloadUri ->
+            registrationViewModel.voiceNoteUrl = downloadUri.toString()
+        }
+    }.addOnFailureListener {
+        Log.e("UploadMedia", "Failed to upload voice note: ${it.message}")
+    }
+}
+
+
+
+
+
+@Composable
+fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    AndroidView(
+        factory = {
+            PlayerView(context).apply {
+                player = ExoPlayer.Builder(context).build().apply {
+                    setMediaItem(MediaItem.fromUri(videoUrl))
+                    prepare()
+                    playWhenReady = false
+                }
+            }
+        },
+        modifier = modifier.size(200.dp)
+    )
+}
+
+//-----------------edit media-----------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterProfileHeadlineScreen(
     registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit, // Added onNext
-    onBack: () -> Unit
+    onNext: () -> Unit, // Triggered after the user proceeds to the next screen
+    onBack: () -> Unit  // Triggered when the user wants to go back
 ) {
     var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    var isSavingProfile by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -1966,59 +1986,55 @@ fun EnterProfileHeadlineScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                if (isSavingProfile) {
-                    CircularProgressIndicator(color = Color(0xFF00bf63))
-                } else {
-                    Column(
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Headline Input (Bio)
+                    OutlinedTextField(
+                        value = headline,
+                        onValueChange = {
+                            headline = it
+                            registrationViewModel.bio = it.text
+                        },
+                        label = { Text("One-liner Bio (optional)", color = Color(0xFF00bf63)) },
+                        singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 32.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Headline Input
-                        OutlinedTextField(
-                            value = headline,
-                            onValueChange = {
-                                headline = it
-                                registrationViewModel.bio = it.text
-                            },
-                            label = { Text("One-liner Bio", color = Color(0xFF00bf63)) },
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = Color(0xFF00bf63),
-                                focusedBorderColor = Color(0xFF00bf63),
-                                unfocusedBorderColor = Color(0xFF00bf63)
-                            )
+                            .padding(bottom = 16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color(0xFF00bf63)
                         )
+                    )
 
-                        // Next Button to move to the next step (username)
-                        Button(
-                            onClick = {
-                                // Optionally save the bio to the viewModel
-                                registrationViewModel.bio = headline.text
-                                // Navigate to the next screen (username screen)
-                                onNext()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
-                            shape = CircleShape,
-                            elevation = ButtonDefaults.buttonElevation(8.dp)
-                        ) {
-                            Text(
-                                text = "Next",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    // Button to move to the next step
+                    Button(
+                        onClick = {
+                            // Save the bio to the ViewModel
+                            registrationViewModel.bio = headline.text
+                            // Proceed to the next screen
+                            onNext()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        shape = CircleShape,
+                        elevation = ButtonDefaults.buttonElevation(8.dp)
+                    ) {
+                        Text(
+                            text = "Next",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

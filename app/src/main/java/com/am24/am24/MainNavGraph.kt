@@ -17,6 +17,10 @@ import com.google.firebase.database.FirebaseDatabase
 
 // Assuming you're initializing GeoFire in your MainNavGraph or somewhere globally
 val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
+//val currentUser = FirebaseAuth.getInstance().currentUser
+//val userId = currentUser?.uid
+//
+//val userRef = userId?.let { FirebaseDatabase.getInstance().getReference("users").child(it) }
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
@@ -37,6 +41,9 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         }
         composable("home") {
             HomeScreen(navController = navController)
+        }
+        composable("editProfile") {
+            EditProfileScreen(navController = navController)
         }
         composable("create_post") {
             CreatePostScreen(navController = navController, postViewModel = postViewModel)
