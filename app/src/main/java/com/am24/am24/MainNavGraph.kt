@@ -51,12 +51,6 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("create_post/text") {
             TextPostComposable(navController = navController, postViewModel = postViewModel)
         }
-        composable("create_post/photo") {
-            PhotoPostComposable(navController = navController, postViewModel = postViewModel)
-        }
-        composable("create_post/video") {
-            VideoPostComposable(navController = navController, postViewModel = postViewModel)
-        }
         composable("create_post/voice"){
             VoicePostComposable(navController = navController, postViewModel = postViewModel)
         }

@@ -70,18 +70,24 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     // Fetch user's profile
     LaunchedEffect(userId) {
         if (userId != null) {
-            val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
-            userRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    userProfile = snapshot.getValue(Profile::class.java)
-                }
+            withContext(Dispatchers.IO) {
+                val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+                userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        // Switch back to Main dispatcher to update UI
+                        snapshot.getValue(Profile::class.java)?.let { fetchedProfile ->
+                            userProfile = fetchedProfile
+                        }
+                    }
 
-                override fun onCancelled(error: DatabaseError) {
-                    // Handle error
-                }
-            })
+                    override fun onCancelled(error: DatabaseError) {
+                        // Handle error
+                    }
+                })
+            }
         }
     }
+
 
     // Fetch posts when filters change
     LaunchedEffect(filterOption, filterValue, searchQuery, sortOption) {
@@ -1149,15 +1155,17 @@ fun CommentsDialog(
     var sortOption by remember { mutableStateOf("Recent") }
     var showSortMenu by remember { mutableStateOf(false) }
 
-    // Track comments and sort them
-    val commentsList = remember(post.comments, sortOption) {
-        post.comments.values.toList().sortedWith(
-            when (sortOption) {
-                "Sort by Upvotes" -> compareByDescending<Comment> { it.upvotes }
-                "Sort by Downvotes" -> compareByDescending<Comment> { it.downvotes }
-                else -> compareByDescending<Comment> { it.getCommentTimestamp() }
-            }
-        )
+    // Sorted comments list based on the selected sort option
+    val sortedCommentsList by produceState<List<Comment>>(initialValue = emptyList(), key1 = post.comments, key2 = sortOption) {
+        value = withContext(Dispatchers.IO) {
+            post.comments.values.sortedWith(
+                when (sortOption) {
+                    "Sort by Upvotes" -> compareByDescending<Comment> { it.upvotes }
+                    "Sort by Downvotes" -> compareByDescending<Comment> { it.downvotes }
+                    else -> compareByDescending<Comment> { it.getCommentTimestamp() }
+                }
+            )
+        }
     }
 
     // Dialog box with extended size
@@ -1225,11 +1233,11 @@ fun CommentsDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Comments List
-                if (commentsList.isEmpty()) {
+                if (sortedCommentsList.isEmpty()) {
                     Text("No comments yet.", color = Color.White)
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxHeight(0.7f)) {
-                        items(commentsList) { comment ->
+                        items(sortedCommentsList) { comment ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1289,8 +1297,7 @@ fun CommentsDialog(
                                             progress = commentPlaybackProgress,
                                             duration = commentMediaPlayer?.duration?.toLong() ?: 0L
                                         )
-                                    }
-                                    else {
+                                    } else {
                                         // Text Comment
                                         Text(
                                             text = comment.commentText,
@@ -1340,7 +1347,6 @@ fun CommentsDialog(
         }
     }
 }
-
 
 
 @Composable
@@ -1408,32 +1414,39 @@ fun cacheVoiceFile(context: Context, voiceUrl: String, onDownloadComplete: (File
 
 
 fun playVoice(context: Context, voiceUrl: String, onPlay: (MediaPlayer) -> Unit) {
-    val cachedFile = getCachedVoiceFile(context, voiceUrl)
+    CoroutineScope(Dispatchers.IO).launch {
+        val cachedFile = getCachedVoiceFile(context, voiceUrl)
 
-    if (cachedFile != null) {
-        // Play from the cached file
-        val mediaPlayer = MediaPlayer().apply {
-            setDataSource(cachedFile.absolutePath)
-            prepare()
-            start()
-        }
-        onPlay(mediaPlayer)
-    } else {
-        // Download and play, and cache the file after the first download
-        cacheVoiceFile(context, voiceUrl) { downloadedFile ->
-            if (downloadedFile != null) {
-                val mediaPlayer = MediaPlayer().apply {
-                    setDataSource(downloadedFile.absolutePath)
-                    prepare()
-                    start()
-                }
+        if (cachedFile != null) {
+            val mediaPlayer = MediaPlayer().apply {
+                setDataSource(cachedFile.absolutePath)
+                prepare()
+            }
+            withContext(Dispatchers.Main) {
+                mediaPlayer.start()
                 onPlay(mediaPlayer)
-            } else {
-                Toast.makeText(context, "Failed to play voice note.", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            cacheVoiceFile(context, voiceUrl) { downloadedFile ->
+                if (downloadedFile != null) {
+                    val mediaPlayer = MediaPlayer().apply {
+                        setDataSource(downloadedFile.absolutePath)
+                        prepare()
+                    }
+                    CoroutineScope(Dispatchers.Main).launch {
+                        mediaPlayer.start()
+                        onPlay(mediaPlayer)
+                    }
+                } else {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        Toast.makeText(context, "Failed to play voice note.", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }
 }
+
 
 // Define a function to handle voice comment addition
 fun handleAddVoiceComment(

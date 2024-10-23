@@ -71,10 +71,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private fun observePosts() {
         postsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                // Sort posts by timestamp descending
-                val sortedPosts = postsList.sortedByDescending { parseTimestamp(it.timestamp) }
-                _posts.value = sortedPosts
+                viewModelScope.launch(Dispatchers.IO) {
+                    val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                    val sortedPosts = postsList.sortedByDescending { parseTimestamp(it.timestamp) }
+                    withContext(Dispatchers.Main) {
+                        _posts.value = sortedPosts
+                    }
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -154,116 +157,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Function to create a photo post.
-     */
-    fun createPhotoPost(
-        userId: String,
-        username: String,
-        imageUri: Uri,
-        userTags: List<String>,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // Ensure image is in JPEG format
-                val jpegUri = ensureJpegFormat(imageUri, onFailure) ?: return@launch
-
-                // Check and compress image if necessary
-                val compressedImageUri = compressImageIfNeeded(jpegUri, PHOTO_MAX_SIZE, onFailure) ?: return@launch
-
-                // Upload image to Firebase Storage
-                val downloadUrl = uploadMediaToStorage(compressedImageUri, "photos", onFailure) ?: return@launch
-
-                // Generate post ID
-                val postId = postsRef.push().key
-                if (postId == null) {
-                    onFailure("Unable to generate post ID.")
-                    return@launch
-                }
-
-                // Create Post object
-                val post = Post(
-                    postId = postId,
-                    userId = userId,
-                    username = username,
-                    contentText = null,
-                    timestamp = ServerValue.TIMESTAMP,
-                    userTags = userTags,
-                    mediaType = "photo",
-                    mediaUrl = downloadUrl
-                )
-
-                // Save post to Realtime Database
-                postsRef.child(postId).setValue(post).await()
-
-                onSuccess()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error creating photo post: ${e.message}", e)
-                onFailure(e.message ?: "Unknown error occurred.")
-            }
-        }
-    }
-
-    /**
-     * Function to create a video post.
-     */
-    fun createVideoPost(
-        userId: String,
-        username: String,
-        videoUri: Uri,
-        userTags: List<String>,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // Ensure video is in MP4 format
-                val mp4Uri = ensureMp4Format(videoUri, onFailure) ?: return@launch
-
-                // Check video duration
-                val duration = getVideoDuration(mp4Uri, onFailure) ?: return@launch
-                if (duration > VIDEO_MAX_DURATION) {
-                    onFailure("Video exceeds the maximum allowed duration of $VIDEO_MAX_DURATION seconds.")
-                    return@launch
-                }
-
-                // Check and compress video if necessary
-                val compressedVideoUri = compressVideoIfNeeded(mp4Uri, VIDEO_MAX_SIZE, onFailure) ?: return@launch
-
-                // Upload video to Firebase Storage
-                val downloadUrl = uploadMediaToStorage(compressedVideoUri, "videos", onFailure) ?: return@launch
-
-                // Generate post ID
-                val postId = postsRef.push().key
-                if (postId == null) {
-                    onFailure("Unable to generate post ID.")
-                    return@launch
-                }
-
-                // Create Post object
-                val post = Post(
-                    postId = postId,
-                    userId = userId,
-                    username = username,
-                    contentText = null,
-                    timestamp = ServerValue.TIMESTAMP,
-                    userTags = userTags,
-                    mediaType = "video",
-                    mediaUrl = downloadUrl
-                )
-
-                // Save post to Realtime Database
-                postsRef.child(postId).setValue(post).await()
-
-                onSuccess()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error creating video post: ${e.message}", e)
-                onFailure(e.message ?: "Unknown error occurred.")
-            }
-        }
-    }
 
     /**
      * Function to create a voice post.
@@ -501,14 +394,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     override fun doTransaction(currentData: MutableData): Transaction.Result {
                         val post = currentData.getValue(Post::class.java) ?: return Transaction.success(currentData)
                         if (post.upvotedUsers.containsKey(userId)) {
-                            // User already upvoted; remove upvote
                             post.upvotedUsers.remove(userId)
                             post.upvotes -= 1
                         } else {
-                            // Add upvote
                             post.upvotedUsers[userId] = true
                             post.upvotes += 1
-                            // If the user had downvoted before, remove the downvote
                             if (post.downvotedUsers.containsKey(userId)) {
                                 post.downvotedUsers.remove(userId)
                                 post.downvotes -= 1
@@ -523,17 +413,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         committed: Boolean,
                         currentData: DataSnapshot?
                     ) {
-                        if (error != null) {
-                            Log.e(TAG, "Upvote transaction failed: ${error.message}")
-                            onFailure("Upvote failed: ${error.message}")
-                        } else if (committed) {
-                            onSuccess()
+                        viewModelScope.launch(Dispatchers.Main) {
+                            if (error != null) {
+                                onFailure("Upvote failed: ${error.message}")
+                            } else if (committed) {
+                                onSuccess()
+                            }
                         }
                     }
                 })
             } catch (e: Exception) {
                 Log.e(TAG, "Error upvoting post: ${e.message}", e)
-                onFailure(e.message ?: "Upvote failed.")
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Upvote failed.")
+                }
             }
         }
     }
@@ -576,17 +469,21 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         committed: Boolean,
                         currentData: DataSnapshot?
                     ) {
-                        if (error != null) {
-                            Log.e(TAG, "Downvote transaction failed: ${error.message}")
-                            onFailure("Downvote failed: ${error.message}")
-                        } else if (committed) {
-                            onSuccess()
+                        viewModelScope.launch(Dispatchers.Main) {
+                            if (error != null) {
+                                Log.e(TAG, "Downvote transaction failed: ${error.message}")
+                                onFailure("Downvote failed: ${error.message}")
+                            } else if (committed) {
+                                onSuccess()
+                            }
                         }
                     }
                 })
             } catch (e: Exception) {
-                Log.e(TAG, "Error downvoting post: ${e.message}", e)
-                onFailure(e.message ?: "Downvote failed.")
+                withContext(Dispatchers.Main) {
+                    Log.e(TAG, "Error downvoting post: ${e.message}", e)
+                    onFailure(e.message ?: "Downvote failed.")
+                }
             }
         }
     }
@@ -784,69 +681,33 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         sortOption: String,
         userId: String?
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                val postsRef = FirebaseDatabase.getInstance().getReference("posts")
                 val context = getApplication<Application>().applicationContext
-
-                val query = when (filterOption) {
-                    "recent" -> postsRef.orderByChild("timestamp").limitToLast(100)
-                    "my posts" -> {
-                        if (userId != null) {
+                val postsList = withContext(Dispatchers.IO) {
+                    // Define your query
+                    val postsRef = FirebaseDatabase.getInstance().getReference("posts")
+                    val query = when (filterOption) {
+                        "recent" -> postsRef.orderByChild("timestamp").limitToLast(100)
+                        "my posts" -> if (userId != null) {
                             postsRef.orderByChild("userId").equalTo(userId).limitToLast(100)
                         } else {
                             postsRef.orderByChild("timestamp").limitToLast(100)
                         }
+                        else -> postsRef.orderByChild("timestamp").limitToLast(100)
                     }
-                    else -> postsRef.orderByChild("timestamp").limitToLast(100)
+
+                    // Fetch posts from cache or Firebase
+                    val postsList = query.get().await().children.mapNotNull { snapshot ->
+                        val cachedData = getCachedPostData(context, snapshot.key!!)
+                        cachedData?.let { Post.fromJson(it) } ?: snapshot.getValue(Post::class.java)
+                    }.filter { it?.mediaType == null || it.mediaType == "voice" }
+
+                    // Apply filters, search, and sorting
+                    applyFiltersAndSort(postsList, filterOption, filterValue, searchQuery, sortOption, context)
                 }
 
-                // Initialize a list of posts from cache
-                var postsList: List<Post> = query.get().await().children.mapNotNull { snapshot ->
-                    val cachedData = getCachedPostData(context, snapshot.key!!)
-                    cachedData?.let { // Load from cache if exists
-                        Post.fromJson(it)
-                    } ?: snapshot.getValue(Post::class.java)
-                }.filter { it?.mediaType == null || it.mediaType == "voice" }
-
-                // Fetch user profiles for the filtered posts
-                val userIds = postsList.map { it.userId }.toSet()
-                val profiles = fetchUserProfiles(userIds)
-                _userProfiles.value = profiles
-
-                // Apply profile-based filters
-                if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
-                    postsList = postsList.filter { post ->
-                        val profile = profiles[post.userId]
-                        profile != null && checkProfileFilter(profile, filterOption, filterValue)
-                    }
-                }
-
-                // Apply search query filtering
-                if (searchQuery.isNotEmpty()) {
-                    val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
-                    postsList = postsList.filter { post ->
-                        val usernameMatch = post.username.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
-                        val userTagsMatch = post.userTags.any { tag ->
-                            tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
-                        }
-                        usernameMatch || userTagsMatch
-                    }
-                }
-
-                // Sort posts based on the selected sorting option
-                postsList = when (sortOption) {
-                    "Sort by Upvotes" -> postsList.sortedByDescending { it.upvotes }
-                    "Sort by Downvotes" -> postsList.sortedByDescending { it.downvotes }
-                    else -> postsList.sortedByDescending { it.getPostTimestamp() }
-                }
-
-                // Cache the fetched post data locally for future use
-                postsList.forEach { post ->
-                    cachePostData(context, post.postId, post.toJson())
-                }
-
-                // Update the state with the final list of posts
+                // Update the state on the main thread
                 _posts.value = postsList
 
             } catch (e: Exception) {
@@ -855,6 +716,57 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    private suspend fun applyFiltersAndSort(
+        postsList: List<Post>,
+        filterOption: String,
+        filterValue: String,
+        searchQuery: String,
+        sortOption: String,
+        context: Context
+    ): List<Post> {
+        // Fetch user profiles for the filtered posts
+        val userIds = postsList.map { it.userId }.toSet()
+        val profiles = fetchUserProfiles(userIds)
+        _userProfiles.value = profiles
+
+        var filteredList = postsList
+
+        // Apply profile-based filters
+        if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
+            filteredList = filteredList.filter { post ->
+                val profile = profiles[post.userId]
+                profile != null && checkProfileFilter(profile, filterOption, filterValue)
+            }
+        }
+
+        // Apply search query filtering
+        if (searchQuery.isNotEmpty()) {
+            val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
+            filteredList = filteredList.filter { post ->
+                val usernameMatch = post.username.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+                val userTagsMatch = post.userTags.any { tag ->
+                    tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+                }
+                usernameMatch || userTagsMatch
+            }
+        }
+
+        // Sort posts based on the selected sorting option
+        filteredList = when (sortOption) {
+            "Sort by Upvotes" -> filteredList.sortedByDescending { it.upvotes }
+            "Sort by Downvotes" -> filteredList.sortedByDescending { it.downvotes }
+            else -> filteredList.sortedByDescending { it.getPostTimestamp() }
+        }
+
+        // Cache the fetched post data locally for future use
+        filteredList.forEach { post ->
+            cachePostData(context, post.postId, post.toJson())
+        }
+
+        return filteredList
+    }
+
 
     private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
         val profiles = mutableMapOf<String, Profile>()
