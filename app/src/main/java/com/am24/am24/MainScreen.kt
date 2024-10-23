@@ -1,5 +1,5 @@
 // MainScreen.kt
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 
 package com.am24.am24
 
@@ -25,7 +25,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
     val items = listOf(
         BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
         BottomNavItem("Feed", Icons.Default.Home, "home"),
-        BottomNavItem("Stories", Icons.Default.ManageHistory, "explore"),
         BottomNavItem("Profile", Icons.Default.Person, "profile"),
         BottomNavItem("Dating", Icons.Default.Favorite, "dating"),
         BottomNavItem("Settings", Icons.Default.Settings, "settings")
@@ -62,7 +61,6 @@ fun TopNavBar(navController: NavController, onLogout: () -> Unit) {
     val title = when (currentDestination?.route) {
         "dms" -> "DMs"
         "home" -> "Feed"
-        "explore" -> "Stories"
         "savedPosts" -> "Saved Posts"
         "profile" -> "Profile"
         "dating" -> "Dating"

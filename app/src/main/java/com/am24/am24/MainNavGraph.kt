@@ -54,9 +54,6 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("create_post/voice"){
             VoicePostComposable(navController = navController, postViewModel = postViewModel)
         }
-        composable("explore") { // New Explore route
-            ExploreScreen(navController = navController, geoFire = geoFire)
-        }
         composable("profile") {
             ProfileScreen(navController = navController)
         }
