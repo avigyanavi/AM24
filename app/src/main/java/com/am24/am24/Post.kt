@@ -2,6 +2,7 @@ package com.am24.am24
 
 import com.google.firebase.database.Exclude
 import com.google.firebase.database.ServerValue
+import com.google.gson.Gson
 
 data class Post(
     val postId: String = "",
@@ -39,6 +40,13 @@ data class Post(
     fun getPostTimestamp(): Long {
         return if (timestamp is Long) timestamp as Long else System.currentTimeMillis()
     }
+    // Serialize the Post object to JSON
+    fun toJson(): String = Gson().toJson(this)
+
+    // Deserialize a JSON string to a Post object
+    companion object {
+        fun fromJson(json: String): Post = Gson().fromJson(json, Post::class.java)
+    }
 }
 
 data class Comment(
@@ -55,6 +63,13 @@ data class Comment(
 ) {
     fun getCommentTimestamp(): Long {
         return if (timestamp is Long) timestamp else (timestamp as? Map<*, *>)?.get("timestamp") as? Long ?: 0L
+    }
+    // Serialize the Comment object to JSON
+    fun toJson(): String = Gson().toJson(this)
+
+    // Deserialize a JSON string to a Comment object
+    companion object {
+        fun fromJson(json: String): Comment = Gson().fromJson(json, Comment::class.java)
     }
 }
 

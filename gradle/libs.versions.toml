@@ -23,6 +23,7 @@ glide = "4.16.0"
 googleExoplayer = "2.18.1"
 googleMaterial = "1.5.0"
 gpuimage = "2.1.0"
+gson = "2.10.1"
 kotlin = "1.9.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -96,6 +97,7 @@ firebase-database-ktx-v2022 = { module = "com.google.firebase:firebase-database-
 firebase-geofire-android = { module = "com.firebase:geofire-android", version.ref = "geofireAndroidVersion" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimage" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

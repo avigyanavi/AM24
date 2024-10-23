@@ -3,6 +3,7 @@ package com.am24.am24
 
 import android.app.Application
 import android.content.ContentResolver
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
@@ -786,6 +787,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val postsRef = FirebaseDatabase.getInstance().getReference("posts")
+                val context = getApplication<Application>().applicationContext
 
                 val query = when (filterOption) {
                     "recent" -> postsRef.orderByChild("timestamp").limitToLast(100)
@@ -799,11 +801,15 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     else -> postsRef.orderByChild("timestamp").limitToLast(100)
                 }
 
-                val snapshot = query.get().await()
-                var postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                postsList = postsList.filter { it.mediaType == null || it.mediaType == "voice" }
+                // Initialize a list of posts from cache
+                var postsList: List<Post> = query.get().await().children.mapNotNull { snapshot ->
+                    val cachedData = getCachedPostData(context, snapshot.key!!)
+                    cachedData?.let { // Load from cache if exists
+                        Post.fromJson(it)
+                    } ?: snapshot.getValue(Post::class.java)
+                }.filter { it?.mediaType == null || it.mediaType == "voice" }
 
-                // Fetch user profiles
+                // Fetch user profiles for the filtered posts
                 val userIds = postsList.map { it.userId }.toSet()
                 val profiles = fetchUserProfiles(userIds)
                 _userProfiles.value = profiles
@@ -812,11 +818,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
                     postsList = postsList.filter { post ->
                         val profile = profiles[post.userId]
-                        if (profile != null) {
-                            checkProfileFilter(profile, filterOption, filterValue)
-                        } else {
-                            false // Exclude if profile not available
-                        }
+                        profile != null && checkProfileFilter(profile, filterOption, filterValue)
                     }
                 }
 
@@ -832,23 +834,24 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                // Sort posts
-                postsList = when (filterOption) {
-                    "recent", "my posts", "age", "gender", "city", "country", "high-school", "college"-> postsList.sortedByDescending { it.getPostTimestamp() }
-                    else -> postsList
-                }
-
+                // Sort posts based on the selected sorting option
                 postsList = when (sortOption) {
                     "Sort by Upvotes" -> postsList.sortedByDescending { it.upvotes }
                     "Sort by Downvotes" -> postsList.sortedByDescending { it.downvotes }
-                    else -> postsList // No sorting applied
+                    else -> postsList.sortedByDescending { it.getPostTimestamp() }
                 }
 
+                // Cache the fetched post data locally for future use
+                postsList.forEach { post ->
+                    cachePostData(context, post.postId, post.toJson())
+                }
+
+                // Update the state with the final list of posts
                 _posts.value = postsList
 
             } catch (e: Exception) {
                 Log.e("PostViewModel", "Error fetching posts: ${e.message}", e)
-                // Handle failure
+                // Handle failure (you can show a toast or other error message if needed)
             }
         }
     }
@@ -866,6 +869,21 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
         deferreds.awaitAll()
         profiles
+    }
+
+    fun cachePostData(context: Context, postId: String, postData: String) {
+        val cacheDir = File(context.cacheDir, "post_cache")
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs()
+        }
+        val postFile = File(cacheDir, "$postId.json")
+        postFile.writeText(postData)
+    }
+
+    fun getCachedPostData(context: Context, postId: String): String? {
+        val cacheDir = File(context.cacheDir, "post_cache")
+        val postFile = File(cacheDir, "$postId.json")
+        return if (postFile.exists()) postFile.readText() else null
     }
 
     fun deletePost(

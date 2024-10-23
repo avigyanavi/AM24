@@ -1419,7 +1419,7 @@ fun playVoice(context: Context, voiceUrl: String, onPlay: (MediaPlayer) -> Unit)
         }
         onPlay(mediaPlayer)
     } else {
-        // Download and play
+        // Download and play, and cache the file after the first download
         cacheVoiceFile(context, voiceUrl) { downloadedFile ->
             if (downloadedFile != null) {
                 val mediaPlayer = MediaPlayer().apply {
@@ -1434,7 +1434,6 @@ fun playVoice(context: Context, voiceUrl: String, onPlay: (MediaPlayer) -> Unit)
         }
     }
 }
-
 
 // Define a function to handle voice comment addition
 fun handleAddVoiceComment(
