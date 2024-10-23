@@ -590,6 +590,111 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun upvoteComment(
+        postId: String,
+        commentId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val commentReference = postsRef.child(postId).child("comments").child(commentId)
+            try {
+                commentReference.runTransaction(object : Transaction.Handler {
+                    override fun doTransaction(currentData: MutableData): Transaction.Result {
+                        val comment = currentData.getValue(Comment::class.java) ?: return Transaction.success(currentData)
+                        if (comment.upvotedUsers.containsKey(userId)) {
+                            // User already upvoted; remove upvote
+                            comment.upvotedUsers.remove(userId)
+                            comment.upvotes -= 1
+                        } else {
+                            // Add upvote
+                            comment.upvotedUsers[userId] = true
+                            comment.upvotes += 1
+                            // If the user had downvoted before, remove the downvote
+                            if (comment.downvotedUsers.containsKey(userId)) {
+                                comment.downvotedUsers.remove(userId)
+                                comment.downvotes -= 1
+                            }
+                        }
+                        currentData.value = comment
+                        return Transaction.success(currentData)
+                    }
+
+                    override fun onComplete(
+                        error: DatabaseError?,
+                        committed: Boolean,
+                        currentData: DataSnapshot?
+                    ) {
+                        if (error != null) {
+                            Log.e("PostViewModel", "Upvote comment transaction failed: ${error.message}")
+                            onFailure("Upvote failed: ${error.message}")
+                        } else if (committed) {
+                            onSuccess()
+                        }
+                    }
+                })
+            } catch (e: Exception) {
+                Log.e("PostViewModel", "Error upvoting comment: ${e.message}", e)
+                onFailure(e.message ?: "Upvote failed.")
+            }
+        }
+    }
+
+    /**
+     * Function to downvote a comment.
+     */
+    fun downvoteComment(
+        postId: String,
+        commentId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val commentReference = postsRef.child(postId).child("comments").child(commentId)
+            try {
+                commentReference.runTransaction(object : Transaction.Handler {
+                    override fun doTransaction(currentData: MutableData): Transaction.Result {
+                        val comment = currentData.getValue(Comment::class.java) ?: return Transaction.success(currentData)
+                        if (comment.downvotedUsers.containsKey(userId)) {
+                            // User already downvoted; remove downvote
+                            comment.downvotedUsers.remove(userId)
+                            comment.downvotes -= 1
+                        } else {
+                            // Add downvote
+                            comment.downvotedUsers[userId] = true
+                            comment.downvotes += 1
+                            // If the user had upvoted before, remove the upvote
+                            if (comment.upvotedUsers.containsKey(userId)) {
+                                comment.upvotedUsers.remove(userId)
+                                comment.upvotes -= 1
+                            }
+                        }
+                        currentData.value = comment
+                        return Transaction.success(currentData)
+                    }
+
+                    override fun onComplete(
+                        error: DatabaseError?,
+                        committed: Boolean,
+                        currentData: DataSnapshot?
+                    ) {
+                        if (error != null) {
+                            Log.e("PostViewModel", "Downvote comment transaction failed: ${error.message}")
+                            onFailure("Downvote failed: ${error.message}")
+                        } else if (committed) {
+                            onSuccess()
+                        }
+                    }
+                })
+            } catch (e: Exception) {
+                Log.e("PostViewModel", "Error downvoting comment: ${e.message}", e)
+                onFailure(e.message ?: "Downvote failed.")
+            }
+        }
+    }
+
     /**
      * Function to add a comment to a post.
      */
@@ -675,6 +780,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         filterOption: String,
         filterValue: String,
         searchQuery: String,
+        sortOption: String,
         userId: String?
     ) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -683,9 +789,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 val query = when (filterOption) {
                     "recent" -> postsRef.orderByChild("timestamp").limitToLast(100)
-                    "popular" -> postsRef.orderByChild("upvotes").limitToLast(100)
-                    "unpopular" -> postsRef.orderByChild("downvotes").limitToLast(100)
-                    "own echoes" -> {
+                    "my posts" -> {
                         if (userId != null) {
                             postsRef.orderByChild("userId").equalTo(userId).limitToLast(100)
                         } else {
@@ -697,6 +801,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 val snapshot = query.get().await()
                 var postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                postsList = postsList.filter { it.mediaType == null || it.mediaType == "voice" }
 
                 // Fetch user profiles
                 val userIds = postsList.map { it.userId }.toSet()
@@ -729,10 +834,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 // Sort posts
                 postsList = when (filterOption) {
-                    "recent", "own echoes" -> postsList.sortedByDescending { it.getPostTimestamp() }
-                    "popular" -> postsList.sortedByDescending { it.upvotes }
-                    "unpopular" -> postsList.sortedByDescending { it.downvotes }
+                    "recent", "my posts", "age", "gender", "city", "country", "high-school", "college"-> postsList.sortedByDescending { it.getPostTimestamp() }
                     else -> postsList
+                }
+
+                postsList = when (sortOption) {
+                    "Sort by Upvotes" -> postsList.sortedByDescending { it.upvotes }
+                    "Sort by Downvotes" -> postsList.sortedByDescending { it.downvotes }
+                    else -> postsList // No sorting applied
                 }
 
                 _posts.value = postsList

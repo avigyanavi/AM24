@@ -353,13 +353,13 @@ fun ProfileText(label: String, value: String) {
             text = "$label:",
             fontSize = 16.sp,
             color = Color(0xFF00bf63),
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Normal
         )
         Text(
             text = value,
-            fontSize = 16.sp,
+            fontSize = 24.sp,
             color = Color.White,
-            modifier = Modifier.padding(start = 8.dp)
+            modifier = Modifier.padding(start = 15.dp)
         )
     }
 }
@@ -381,7 +381,6 @@ fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
-
 
 fun calculateAge(dob: String?): Int {
     if (dob.isNullOrBlank()) {

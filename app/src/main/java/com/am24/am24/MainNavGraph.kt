@@ -68,7 +68,9 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         }
         composable("profile/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")
-            ProfileScreen(navController = navController, otherUserId = otherUserId)
+            if (otherUserId != null) {
+                OtherUserProfileScreen(navController = navController, otherUserId = otherUserId)
+            }
         }
         composable("dating") {
             // Navigate to DatingScreen without startUserId

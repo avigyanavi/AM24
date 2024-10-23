@@ -57,12 +57,10 @@ data class Profile(
     val politicalViews: String = "",  // Conservative, Liberal, Centrist, etc.
     val lookingFor: String = "",      // What the user is looking for (e.g., Friendship, Dating)
 
-    val followers: MutableMap<String, Boolean> = mutableMapOf(),
-    val following: MutableMap<String, Boolean> = mutableMapOf(),
+    val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
+    val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
 
     // New Metrics and Rankings
-    val followersCount: Int = 0,
-    val followingCount: Int = 0,
     val isBoosted: Boolean = false,
 
     val am24RankingGlobal: Int = 0,
@@ -86,6 +84,16 @@ data class Profile(
     val cumulativeDownvotes: Int = 0,
     val averageUpvoteCount: Double = 0.0,
     val averageDownvoteCount: Double = 0.0,
+
+    // New fields for upvotes, downvotes, report, and block
+    val profileUpvotes: MutableMap<String, Boolean> = mutableMapOf(), // Users who upvoted
+    val profileDownvotes: MutableMap<String, Boolean> = mutableMapOf(), // Users who downvoted
+    val reportUsers: MutableMap<String, Boolean> = mutableMapOf(), // Users who reported this profile
+    val blockedUsers: MutableMap<String, Boolean> = mutableMapOf(), // Users who blocked this profile
+
+    // New counts for easy access
+    var upvoteCount: Int = 0,
+    var downvoteCount: Int = 0,
 
     val userTags: List<String> = emptyList(),
     val zodiac: String? = null,
@@ -124,51 +132,6 @@ data class Profile(
         return if (ratingsReceived.isNotEmpty()) {
             ratingsReceived.values.average()
         } else 0.0
-    }
-
-    // Updated composite score calculation to include followers and following counts, and income level
-    @Exclude
-    fun calculateCompositeScore(
-        matchCountPerSwipeRight: Double,
-        averageUpvoteCount: Double,
-        swipeRightToSwipeLeftRatio: Double,
-        cumulativeUpvotes: Int,
-        cumulativeDownvotes: Int,
-        gender: String,
-        followersCount: Int,
-        followingCount: Int,
-    ): Double {
-        val ratingScore = getAverageRating() * 0.1
-
-        // Gender-specific multipliers for match score
-        val matchScoreMultiplier = when (gender.lowercase()) {
-            "male" -> 1.5
-            "female" -> 1.0
-            "non-binary" -> 1.2
-            else -> 1.0
-        }
-        val matchScore = matchCountPerSwipeRight * matchScoreMultiplier * 0.1
-
-        val upvoteScore = averageUpvoteCount * 0.1
-
-        // Gender-specific multipliers for swipe ratio score
-        val swipeRatioMultiplier = when (gender.lowercase()) {
-            "male" -> 1.5
-            "female" -> 1.0
-            "non-binary" -> 1.2
-            else -> 1.0
-        }
-        val swipeRatioScore = swipeRightToSwipeLeftRatio * swipeRatioMultiplier * 0.1
-
-        // Incorporate followers and following counts
-        val followersScore = followersCount * 0.05
-        val followingScore = followingCount * 0.03
-
-        // Incorporate claimed income level
-
-        val engagementScore = (cumulativeUpvotes - cumulativeDownvotes) * 0.05
-
-        return ratingScore + matchScore + upvoteScore + swipeRatioScore + followersScore + followingScore + engagementScore
     }
 }
 

@@ -6,10 +6,12 @@ package com.am24.am24
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -19,7 +21,6 @@ import androidx.compose.material.icons.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -35,20 +36,15 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.tasks.await
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import androidx.media3.common.MediaItem
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
+import com.google.firebase.storage.FirebaseStorage
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -63,6 +59,8 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     var filterOption by remember { mutableStateOf("recent") }
     var filterValue by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
+    var sortOption by remember { mutableStateOf("None") }
+    var showSortMenu by remember { mutableStateOf(false) }
 
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
@@ -86,8 +84,8 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     }
 
     // Fetch posts when filters change
-    LaunchedEffect(filterOption, filterValue, searchQuery) {
-        postViewModel.fetchPosts(filterOption, filterValue, searchQuery, userId)
+    LaunchedEffect(filterOption, filterValue, searchQuery, sortOption) {
+        postViewModel.fetchPosts(filterOption, filterValue, searchQuery, sortOption, userId)
     }
 
     HomeScreenContent(
@@ -110,7 +108,15 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             searchQuery = newQuery
         },
         userId = userId,
-        userProfile = userProfile
+        userProfile = userProfile,
+        sortOption = sortOption, // pass sortOption
+        onSortOptionChanged = { newSortOption ->
+            sortOption = newSortOption
+        },
+        showSortMenu = showSortMenu, // pass showSortMenu
+        onShowSortMenuChange = { newShowSortMenuState ->
+            showSortMenu = newShowSortMenuState
+        }
     )
 }
 
@@ -128,14 +134,15 @@ fun HomeScreenContent(
     onFilterValueChanged: (String) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     userId: String?,
-    userProfile: Profile?
+    userProfile: Profile?,
+    sortOption: String, // Add sortOption parameter
+    onSortOptionChanged: (String) -> Unit, // Add handler for sort option change
+    showSortMenu: Boolean, // Add showSortMenu parameter
+    onShowSortMenuChange: (Boolean) -> Unit // Add handler for toggling sort menu visibility
 ) {
-    val coroutineScope = rememberCoroutineScope()
     var showFilterMenu by remember { mutableStateOf(false) }
-
     val focusManager = LocalFocusManager.current
 
-    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -166,13 +173,13 @@ fun HomeScreenContent(
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Create Post Button
+            // Create Post Button (Slightly smaller)
             Button(
                 onClick = { navController.navigate("create_post") },
                 border = BorderStroke(1.dp, Color(0xFF00bf63)),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(0.9f)
                     .padding(end = 8.dp)
             ) {
                 Icon(
@@ -181,7 +188,7 @@ fun HomeScreenContent(
                     tint = Color(0xFF00bf63)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(text = "Create Post", color = Color(0xFF00bf63))
+                Text(text = "Post", color = Color(0xFF00bf63))
             }
 
             // Filter Button
@@ -208,7 +215,7 @@ fun HomeScreenContent(
                     onDismissRequest = { showFilterMenu = false },
                 ) {
                     val filterOptions = listOf(
-                        "recent", "popular", "unpopular", "own echoes",
+                        "recent", "my posts",
                         "city", "age", "level", "gender", "high-school", "college"
                     )
                     filterOptions.filter { it != filterOption }.forEach { option ->
@@ -222,6 +229,42 @@ fun HomeScreenContent(
                             onClick = {
                                 onFilterOptionChanged(option)
                                 showFilterMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            //Sort
+            Box {// Sort Button
+                IconButton(
+                    onClick = { onShowSortMenuChange(!showSortMenu) },
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sort,
+                        contentDescription = "Sort options",
+                        tint = Color(0xFF00bf63)
+                    )
+                }
+
+                // Sort Dropdown Menu
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { onShowSortMenuChange(false) },
+                ) {
+                    val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
+                    sortOptions.filter { it != sortOption }.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = option,
+                                    color = Color(0xFF00bf63)
+                                )
+                            },
+                            onClick = {
+                                onSortOptionChanged(option)
+                                onShowSortMenuChange(false) // Close menu after selection
                             }
                         )
                     }
@@ -363,12 +406,9 @@ fun HomeScreenContent(
         FeedSection(
             navController = navController,
             posts = posts,
-            filterOption = filterOption,
-            filterValue = filterValue,
-            searchQuery = searchQuery,
             userId = userId,
             userProfile = userProfile,
-            isPosting = false, // or use some state to indicate loading
+            isPosting = false,
             postViewModel = postViewModel,
             userProfiles = userProfiles,
             onTagClick = { tag ->
@@ -416,9 +456,6 @@ fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: Stri
 fun FeedSection(
     navController: NavController,
     posts: List<Post>,
-    filterOption: String,
-    filterValue: String,
-    searchQuery: String,
     userId: String?,
     userProfile: Profile?,
     isPosting: Boolean,
@@ -485,7 +522,7 @@ fun FeedSection(
                         navController.navigate("profile")
                     } else {
                         // Navigate to DatingScreen with the other user's ID
-                        navController.navigate("dating/${post.userId}")
+                        navController.navigate("profile/${post.userId}")
                     }
                 },
                 onTagClick = { tag ->
@@ -559,7 +596,8 @@ fun FeedSection(
                             // Handle post report failure
                         }
                     )
-                }
+                },
+                postViewModel = postViewModel,
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -582,11 +620,11 @@ fun FeedSection(
     }
 }
 
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FeedItem(
     post: Post,
+    postViewModel: PostViewModel,
     userProfile: Profile?,
     onUpvote: () -> Unit,
     onDownvote: () -> Unit,
@@ -599,10 +637,9 @@ fun FeedItem(
     onDelete: (Post) -> Unit,
     onReport: (Post) -> Unit
 ) {
-
-
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
+    var mediaDuration by remember { mutableStateOf(0L) }
 
     val dynamicFontSize = when {
         screenWidth < 360.dp -> 14.sp
@@ -617,22 +654,20 @@ fun FeedItem(
 
     var commentText by remember { mutableStateOf(TextFieldValue("")) }
     var showCommentsDialog by remember { mutableStateOf(false) }
-    var showMediaFullscreen by remember { mutableStateOf(false) }
     var showCommentSection by remember { mutableStateOf(false) }
+    var recordedVoiceUri by remember { mutableStateOf<Uri?>(null) }
 
     // State for voice post playback
     var isPlaying by remember { mutableStateOf(false) }
     var playbackProgress by remember { mutableStateOf(0f) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var isRecordingVoiceComment by remember { mutableStateOf(false) }
 
     // Annotate post content based on formatting markers
     val annotatedText = buildFormattedText(post.contentText ?: "")
 
     // Calculate user age from DOB
     val userAge = userProfile?.dob?.let { calculateAge(it) }
-
-    val screenHeight = configuration.screenHeightDp.dp
-    val mediaHeight = screenHeight * 0.5f // Set media content to occupy 40% of the screen height
 
     Card(
         modifier = Modifier
@@ -674,12 +709,6 @@ fun FeedItem(
                             text = "${userProfile?.username ?: "Unavailable"}, ${userAge ?: "--"}",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = dynamicFontSize
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = formatTimestamp(post.getPostTimestamp()),
-                            color = Color.White,
                             fontSize = dynamicFontSize
                         )
                     }
@@ -731,30 +760,10 @@ fun FeedItem(
 
             // Media Content - Photo, Video, Voice
             if (post.mediaType != null && post.mediaUrl != null) {
+                val context = LocalContext.current // Get the context once outside
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(modifier = Modifier.fillMaxWidth()) {
                     when (post.mediaType) {
-                        "photo" -> {
-                            AsyncImage(
-                                model = post.mediaUrl,
-                                contentDescription = "Post Image",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(mediaHeight)
-                                    .clip(RoundedCornerShape(8.dp))
-                            )
-                        }
-
-                        "video" -> {
-                            ExoPlayerComposable(
-                                videoUri = post.mediaUrl,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(mediaHeight)
-                                    .clip(RoundedCornerShape(8.dp))
-                            )
-                        }
-
                         "voice" -> {
                             // Voice Post Playback UI
                             Column(
@@ -771,8 +780,17 @@ fun FeedItem(
                                                 mediaPlayer?.pause()
                                                 isPlaying = false
                                             } else {
-                                                mediaPlayer?.start()
-                                                isPlaying = true
+                                                // Play using caching logic
+                                                playVoice(context, post.mediaUrl ?: "") { player ->
+                                                    mediaPlayer = player
+                                                    isPlaying = true
+
+                                                    // Set completion listener to stop playback once done
+                                                    mediaPlayer?.setOnCompletionListener {
+                                                        isPlaying = false
+                                                        playbackProgress = 0f
+                                                    }
+                                                }
                                             }
                                         }
                                     ) {
@@ -796,30 +814,13 @@ fun FeedItem(
 
                                     // Duration label
                                     Text(
-                                        text = formatDuration((mediaPlayer?.duration ?: 0).toLong()),
+                                        text = formatDuration(mediaDuration),
                                         color = Color.Gray,
                                         fontSize = 12.sp,
                                         modifier = Modifier.padding(start = 8.dp)
                                     )
                                 }
                             }
-                        }
-                    }
-
-                    // Fullscreen Icon for photos/videos
-                    if (post.mediaType != "voice") {
-                        IconButton(
-                            onClick = { showMediaFullscreen = true },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                                .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Fullscreen,
-                                contentDescription = "Fullscreen",
-                                tint = Color.White
-                            )
                         }
                     }
                 }
@@ -856,6 +857,13 @@ fun FeedItem(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = formatTimestamp(post.getPostTimestamp()),
+                color = Color.Gray,
+                fontSize = 10.sp
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -928,124 +936,192 @@ fun FeedItem(
                     }
                 }
             }
+            if (post.comments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "View Comments (${post.comments.size})",
+                    color = Color(0xFF00bf63),
+                    modifier = Modifier.clickable {
+                        showCommentsDialog = true
+                    },
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-            // Conditional Comment Section based on showCommentSection state
+            // Inside FeedItem where the comment section is displayed
             if (showCommentSection) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = commentText,
-                        onValueChange = { commentText = it },
-                        placeholder = { Text("Add a comment...", color = Color.Gray) },
-                        textStyle = LocalTextStyle.current.copy(color = Color.White),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFF00bf63)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Button(
-                        onClick = {
-                            if (commentText.text.isNotBlank()) {
-                                onComment(commentText.text.trim())
-                                commentText = TextFieldValue("") // Clear comment input after submitting
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.End),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-                    ) {
-                        Text("Comment", color = Color.White)
+                    // Hide the text comment input if recording a voice comment
+                    if (!isRecordingVoiceComment) {
+                        OutlinedTextField(
+                            value = commentText,
+                            onValueChange = { commentText = it },
+                            placeholder = { Text("Add a comment...", color = Color.Gray) },
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF00bf63),
+                                unfocusedBorderColor = Color.Gray,
+                                cursorColor = Color(0xFF00bf63)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Button(
+                            onClick = {
+                                if (commentText.text.isNotBlank()) {
+                                    onComment(commentText.text.trim())
+                                    commentText = TextFieldValue("") // Clear comment input after submitting
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.End),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                        ) {
+                            Text("Comment", color = Color.White)
+                        }
                     }
 
-                    if (post.comments.isNotEmpty()) {
+                    // Record Voice Comment Button
+                    RecordVoiceCommentButton(
+                        onVoiceRecorded = { voiceUri ->
+                            recordedVoiceUri = voiceUri
+                        },
+                        onStartRecording = {
+                            isRecordingVoiceComment = true // Start recording mode
+                        },
+                        onStopRecording = {
+                        }
+                    )
+
+                    // Show recorded voice note before submission
+                    recordedVoiceUri?.let { uri ->
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "View Comments (${post.comments.size})",
-                            color = Color(0xFF00bf63),
-                            modifier = Modifier.clickable {
-                                showCommentsDialog = true
+                        // Add state for playback control
+                        var isRecordingPlaying by remember { mutableStateOf(false) }
+                        var playbackProgress by remember { mutableStateOf(0f) }
+                        var recordedMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+                        val context = LocalContext.current // Get the context once outside
+
+                        // Show playback controls for the recorded audio
+                        VoiceCommentPlayer(
+                            mediaUrl = uri.toString(),
+                            isPlaying = isRecordingPlaying,
+                            onPlayToggle = {
+                                if (isRecordingPlaying) {
+                                    recordedMediaPlayer?.pause()
+                                    isRecordingPlaying = false
+                                } else {
+                                    playVoice(context, uri.toString()) { player ->
+                                        recordedMediaPlayer = player
+                                        isRecordingPlaying = true
+
+                                        // Set completion listener to stop playback once done
+                                        recordedMediaPlayer?.setOnCompletionListener {
+                                            isRecordingPlaying = false
+                                            playbackProgress = 0f
+                                        }
+                                    }
+                                }
                             },
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                            progress = playbackProgress,
+                            duration = recordedMediaPlayer?.duration?.toLong() ?: 0L
                         )
+                        // Submit and Delete buttons
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Button(
+                                onClick = {
+                                    // Delete the recorded voice comment
+                                    recordedVoiceUri = null
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                            ) {
+                                Text("Delete", color = Color.White)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    handleAddVoiceComment(
+                                        postId = post.postId,
+                                        voiceUri = uri,
+                                        userId = currentUserId,
+                                        username = userProfile?.username ?: "Unknown User",
+                                        onSuccess = {
+                                            // Handle success, e.g., show a Toast or update the state to refresh the comments
+                                            recordedVoiceUri = null // Reset after submitting
+                                            isRecordingVoiceComment = false // Set to false only when the comment is successfully submitted
+                                        },
+                                        onFailure = {
+                                            // Handle failure, e.g., show a Toast or log the error
+                                        }
+                                    )
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                            ) {
+                                Text("Submit Voice Comment", color = Color.White)
+                            }
+                        }
                     }
                 }
             }
 
-            // Comments Dialog
+
+
+            // In FeedItem, when showing the CommentsDialog:
             if (showCommentsDialog) {
                 CommentsDialog(
                     post = post,
                     onDismiss = { showCommentsDialog = false },
-                    onUpvoteComment = { /* Implement if needed */ },
-                    onDownvoteComment = { /* Implement if needed */ }
+                    onUpvoteComment = { commentId ->
+                        postViewModel.upvoteComment(
+                            postId = post.postId,
+                            commentId = commentId,
+                            userId = currentUserId,
+                            onSuccess = {
+                                // Handle success
+                            },
+                            onFailure = {
+                            }
+                        )
+                    },
+                    onDownvoteComment = { commentId ->
+                        postViewModel.downvoteComment(
+                            postId = post.postId,
+                            commentId = commentId,
+                            userId = currentUserId,
+                            onSuccess = {
+                                // Handle success
+                            },
+                            onFailure = {
+                            }
+                        )
+                    }
                 )
             }
 
+
             Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        // Fullscreen Media View using Dialog
-        if (showMediaFullscreen) {
-            Dialog(onDismissRequest = { showMediaFullscreen = false }) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                ) {
-                    when (post.mediaType) {
-                        "photo" -> {
-                            AsyncImage(
-                                model = post.mediaUrl,
-                                contentDescription = "Fullscreen Image",
-                                modifier = Modifier
-                                    .fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        "video" -> {
-                            post.mediaUrl?.let {
-                                ExoPlayerComposable(
-                                    videoUri = it,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-                    }
-
-                    // Close Button
-                    IconButton(
-                        onClick = { showMediaFullscreen = false },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
         }
     }
 
     // Initialize MediaPlayer and manage playback for voice posts
     DisposableEffect(post.mediaUrl) {
         if (post.mediaType == "voice" && post.mediaUrl != null) {
-            mediaPlayer = MediaPlayer().apply {
+            val mediaPlayerTemp = MediaPlayer().apply {
                 setDataSource(post.mediaUrl)
                 prepare()
+                mediaDuration = duration.toLong() // Fetch and set the duration
                 setOnCompletionListener {
                     isPlaying = false
                 }
             }
+            mediaPlayer = mediaPlayerTemp
         }
 
         onDispose {
@@ -1081,116 +1157,427 @@ fun CommentsDialog(
     post: Post,
     onDismiss: () -> Unit,
     onUpvoteComment: (String) -> Unit,
-    onDownvoteComment: (String) -> Unit
+    onDownvoteComment: (String) -> Unit,
 ) {
-    val context = LocalContext.current
-
-    // Convert comments map to list and sort
+    // Sort Option State
     var sortOption by remember { mutableStateOf("Recent") }
+    var showSortMenu by remember { mutableStateOf(false) }
 
+    // Track comments and sort them
     val commentsList = remember(post.comments, sortOption) {
         post.comments.values.toList().sortedWith(
             when (sortOption) {
-                "Recent" -> compareByDescending<Comment> { it.getCommentTimestamp() }
-                "Popular" -> compareByDescending<Comment> { it.upvotes - it.downvotes }
+                "Sort by Upvotes" -> compareByDescending<Comment> { it.upvotes }
+                "Sort by Downvotes" -> compareByDescending<Comment> { it.downvotes }
                 else -> compareByDescending<Comment> { it.getCommentTimestamp() }
             }
         )
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+    // Dialog box with extended size
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color.Black,
+            modifier = Modifier
+                .fillMaxWidth(0.95f) // Set the width closer to the full screen width
+                .fillMaxHeight(0.8f)
+                .padding(8.dp) // Adjust padding for the dialog
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                Text(text = "Comments", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Row {
-                    Button(
-                        onClick = { sortOption = "Recent" },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (sortOption == "Recent") Color(0xFF00bf63) else Color.Gray
-                        )
-                    ) {
-                        Text("Recent", color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = { sortOption = "Popular" },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (sortOption == "Popular") Color(0xFF00bf63) else Color.Gray
-                        )
-                    ) {
-                        Text("Popular", color = Color.White)
-                    }
-                }
-            }
-        },
-        text = {
-            if (commentsList.isEmpty()) {
-                Text("No comments yet.", color = Color.White)
-            } else {
-                LazyColumn {
-                    items(commentsList) { comment ->
-                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                            // Comment Header
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = comment.username,
-                                    color = Color(0xFF00bf63),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                                Spacer(modifier = Modifier.weight(1f))
-                                Text(
-                                    text = formatTimestamp(comment.getCommentTimestamp()),
-                                    color = Color.White,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            // Comment Text
-                            Text(
-                                text = comment.commentText,
-                                color = Color.White,
-                                fontSize = 14.sp
+                // Title and Sort Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Comments",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+
+                    // Sort Button similar to the HomeScreenContent
+                    Box {
+                        IconButton(
+                            onClick = { showSortMenu = !showSortMenu }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = "Sort options",
+                                tint = Color(0xFF00bf63)
                             )
-                            // Upvote/Downvote Buttons
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(onClick = { onUpvoteComment(comment.commentId) }) {
-                                    Icon(
-                                        Icons.Default.ArrowUpward,
-                                        contentDescription = "Upvote",
-                                        tint = Color(0xFF00ff00)
-                                    )
-                                }
-                                Text(text = "${comment.upvotes}", color = Color.White)
-                                IconButton(onClick = { onDownvoteComment(comment.commentId) }) {
-                                    Icon(
-                                        Icons.Default.ArrowDownward,
-                                        contentDescription = "Downvote",
-                                        tint = Color(0xffff0000)
-                                    )
-                                }
-                                Text(text = "${comment.downvotes}", color = Color.White)
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false },
+                        ) {
+                            val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
+                            sortOptions.filter { it != sortOption }.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = option,
+                                            color = Color(0xFF00bf63)
+                                        )
+                                    },
+                                    onClick = {
+                                        sortOption = option
+                                        showSortMenu = false // Close menu after selection
+                                    }
+                                )
                             }
                         }
-                        Divider(color = Color.Gray, thickness = 0.5.dp)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Comments List
+                if (commentsList.isEmpty()) {
+                    Text("No comments yet.", color = Color.White)
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxHeight(0.7f)) {
+                        items(commentsList) { comment ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp), // Adjusted padding
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    // Comment Header
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = comment.username,
+                                            color = Color(0xFF00bf63),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp,
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        )
+                                        Text(
+                                            text = formatTimestamp(comment.getCommentTimestamp()),
+                                            color = Color.Gray,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    // Display voice comment if available
+                                    if (comment.mediaUrl != null) {
+                                        // Voice comment playback UI
+                                        var isCommentPlaying by remember { mutableStateOf(false) }
+                                        var commentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+                                        var commentPlaybackProgress by remember { mutableStateOf(0f) }
+                                        val context = LocalContext.current // Get the context once outside
+
+                                        VoiceCommentPlayer(
+                                            mediaUrl = comment.mediaUrl,
+                                            isPlaying = isCommentPlaying,
+                                            onPlayToggle = {
+                                                if (isCommentPlaying) {
+                                                    commentMediaPlayer?.pause()
+                                                    isCommentPlaying = false
+                                                } else {
+                                                    playVoice(context, comment.mediaUrl) { player ->
+                                                        commentMediaPlayer = player
+                                                        isCommentPlaying = true
+
+                                                        // Set up completion listener to stop playback once done
+                                                        commentMediaPlayer?.setOnCompletionListener {
+                                                            isCommentPlaying = false
+                                                            commentPlaybackProgress = 0f
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            progress = commentPlaybackProgress,
+                                            duration = commentMediaPlayer?.duration?.toLong() ?: 0L
+                                        )
+                                    }
+                                    else {
+                                        // Text Comment
+                                        Text(
+                                            text = comment.commentText,
+                                            color = Color.White,
+                                            fontSize = 14.sp,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+
+                                    // Upvote/Downvote Section for Comment
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp)
+                                    ) {
+                                        IconButton(onClick = { onUpvoteComment(comment.commentId) }) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowUpward,
+                                                contentDescription = "Upvote Comment",
+                                                tint = Color(0xFF00ff00)
+                                            )
+                                        }
+                                        Text(text = "${comment.upvotes}", color = Color.White)
+                                        IconButton(onClick = { onDownvoteComment(comment.commentId) }) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowDownward,
+                                                contentDescription = "Downvote Comment",
+                                                tint = Color(0xffff0000)
+                                            )
+                                        }
+                                        Text(text = "${comment.downvotes}", color = Color.White)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Close Button
+                Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))) {
+                    Text("Close", color = Color.White)
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = Color(0xFF00bf63))
-            }
-        },
-        containerColor = Color.Black
-    )
+        }
+    }
 }
+
+
+
+@Composable
+fun VoiceCommentPlayer(
+    mediaUrl: String,
+    isPlaying: Boolean,
+    onPlayToggle: () -> Unit,
+    progress: Float,
+    duration: Long
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+            onClick = { onPlayToggle() }
+        ) {
+            Icon(
+                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = "Play/Pause",
+                tint = Color(0xFF00bf63)
+            )
+        }
+        LinearProgressIndicator(
+            progress = progress,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            color = Color(0xFF00bf63),
+            trackColor = Color.Gray
+        )
+
+        // Display duration
+        Text(
+            text = formatDuration(duration),
+            color = Color.Gray,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+    }
+}
+
+
+
+fun getCachedVoiceFile(context: Context, voiceUrl: String): File? {
+    val cacheDir = File(context.cacheDir, "voice_cache")
+    val fileName = voiceUrl.hashCode().toString() + ".aac"
+    val cachedFile = File(cacheDir, fileName)
+
+    return if (cachedFile.exists()) cachedFile else null
+}
+
+fun cacheVoiceFile(context: Context, voiceUrl: String, onDownloadComplete: (File?) -> Unit) {
+    val storageRef = FirebaseStorage.getInstance().getReferenceFromUrl(voiceUrl)
+    val cacheDir = File(context.cacheDir, "voice_cache")
+    if (!cacheDir.exists()) {
+        cacheDir.mkdirs()
+    }
+
+    val localFile = File(cacheDir, voiceUrl.hashCode().toString() + ".aac")
+    storageRef.getFile(localFile).addOnSuccessListener {
+        onDownloadComplete(localFile)
+    }.addOnFailureListener {
+        Log.e("VoiceDownload", "Failed to download voice file: ${it.message}")
+        onDownloadComplete(null)
+    }
+}
+
+
+fun playVoice(context: Context, voiceUrl: String, onPlay: (MediaPlayer) -> Unit) {
+    val cachedFile = getCachedVoiceFile(context, voiceUrl)
+
+    if (cachedFile != null) {
+        // Play from the cached file
+        val mediaPlayer = MediaPlayer().apply {
+            setDataSource(cachedFile.absolutePath)
+            prepare()
+            start()
+        }
+        onPlay(mediaPlayer)
+    } else {
+        // Download and play
+        cacheVoiceFile(context, voiceUrl) { downloadedFile ->
+            if (downloadedFile != null) {
+                val mediaPlayer = MediaPlayer().apply {
+                    setDataSource(downloadedFile.absolutePath)
+                    prepare()
+                    start()
+                }
+                onPlay(mediaPlayer)
+            } else {
+                Toast.makeText(context, "Failed to play voice note.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}
+
+
+// Define a function to handle voice comment addition
+fun handleAddVoiceComment(
+    postId: String,
+    voiceUri: Uri,
+    userId: String,
+    username: String,
+    database: DatabaseReference = FirebaseDatabase.getInstance().getReference("posts"),
+    storage: FirebaseStorage = FirebaseStorage.getInstance(),
+    onSuccess: () -> Unit,
+    onFailure: (String) -> Unit
+) {
+    // Create a storage reference to upload the voice file
+    val voiceRef = storage.reference.child("voice_comments/$postId/${voiceUri.lastPathSegment}")
+
+    // Upload the voice file to Firebase Storage
+    voiceRef.putFile(voiceUri)
+        .addOnSuccessListener { taskSnapshot ->
+            // Get the download URL for the uploaded voice file
+            voiceRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                // Prepare the comment data with the download URL
+                val commentId = database.child(postId).child("comments").push().key
+                if (commentId == null) {
+                    onFailure("Failed to generate comment ID.")
+                    return@addOnSuccessListener
+                }
+
+                val commentData = mapOf(
+                    "commentId" to commentId,
+                    "userId" to userId,
+                    "username" to username,
+                    "mediaUrl" to downloadUrl.toString(),
+                    "upvotes" to 0,
+                    "downvotes" to 0,
+                    "timestamp" to ServerValue.TIMESTAMP // Capture the server-side timestamp
+                )
+
+                // Save the comment data to the database
+                database.child(postId).child("comments").child(commentId)
+                    .setValue(commentData)
+                    .addOnSuccessListener {
+                        onSuccess()
+                    }
+                    .addOnFailureListener { exception ->
+                        onFailure(exception.message ?: "Failed to add comment to database.")
+                    }
+            }.addOnFailureListener { exception ->
+                onFailure(exception.message ?: "Failed to get download URL.")
+            }
+        }
+        .addOnFailureListener { exception ->
+            onFailure(exception.message ?: "Voice file upload failed.")
+        }
+}
+
+@Composable
+fun RecordVoiceCommentButton(
+    modifier: Modifier = Modifier,
+    onVoiceRecorded: (Uri) -> Unit,
+    onStartRecording: () -> Unit,
+    onStopRecording: () -> Unit
+) {
+    val context = LocalContext.current
+    var isRecording by remember { mutableStateOf(false) }
+    val recorder = remember { mutableStateOf<MediaRecorder?>(null) }
+    val maxDurationMs = 60 * 1000 // 1 minute
+
+    var recordFile by remember { mutableStateOf<File?>(null) }
+
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            try {
+                recordFile = File(context.cacheDir, "voice_comment_${System.currentTimeMillis()}.aac")
+                recorder.value = MediaRecorder().apply {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    setOutputFile(recordFile?.absolutePath)
+                    setMaxDuration(maxDurationMs)
+                    prepare()
+                    start()
+                }
+                onStartRecording() // Notify that recording has started
+            } catch (e: Exception) {
+                Log.e("VoiceComment", "Recording error: ${e.message}")
+                isRecording = false
+                recorder.value?.release()
+                recorder.value = null
+                Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            try {
+                recorder.value?.apply {
+                    stop()
+                    release()
+                }
+                recorder.value = null
+                val fileUri = recordFile?.let { Uri.fromFile(it) }
+                if (fileUri != null) {
+                    onVoiceRecorded(fileUri)
+                } else {
+                }
+                onStopRecording() // Notify that recording has stopped
+            } catch (e: Exception) {
+                Log.e("VoiceComment", "Stop recording error: ${e.message}")
+                recorder.value?.release()
+                recorder.value = null
+                Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    Button(
+        onClick = { isRecording = !isRecording },
+        modifier = modifier
+            .padding(8.dp)
+            .fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isRecording) Color.Red else Color(0xFF00bf63)
+        )
+    ) {
+        Text(
+            text = if (isRecording) "Stop Recording" else "Record Voice Comment",
+            color = Color.White
+        )
+    }
+}
+
+
 
 // HomeScreen.kt - Part 3
 
@@ -1249,38 +1636,6 @@ fun formatTimestamp(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
-
-@androidx.annotation.OptIn(UnstableApi::class)
-@Composable
-fun ExoPlayerComposable(
-    videoUri: String,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            val mediaItem = MediaItem.fromUri(Uri.parse(videoUri))
-            setMediaItem(mediaItem)
-            prepare()
-            playWhenReady = false
-        }
-    }
-
-    DisposableEffect(
-        AndroidView(factory = {
-            PlayerView(context).apply {
-                player = exoPlayer
-                useController = true
-                setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
-            }
-        }, modifier = modifier)
-    ) {
-        onDispose {
-            exoPlayer.release()
-        }
-    }
-}
-
 
 @Composable
 fun CustomSearchBar(

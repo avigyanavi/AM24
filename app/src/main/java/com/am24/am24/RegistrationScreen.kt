@@ -70,7 +70,6 @@ import java.util.Calendar
 
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
-    private val storage = FirebaseStorage.getInstance().reference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -1629,13 +1628,16 @@ fun UploadMediaComposable(
     fun startRecording() {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             mediaRecorder = MediaRecorder().apply {
-                val audioFile = File(context.cacheDir, "voice_recording_${System.currentTimeMillis()}.3gp")
+                val audioFile = File(context.cacheDir, "voice_recording_${System.currentTimeMillis()}.aac")
                 recordedFilePath = audioFile.absolutePath
 
                 setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4) // Use a more universal format
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC) // Use AAC encoder for higher compatibility
+                setAudioSamplingRate(44100) // Set proper sampling rate
+                setAudioEncodingBitRate(96000) // Set bit rate for good quality audio
                 setOutputFile(recordedFilePath)
+
                 try {
                     prepare()
                     start()
@@ -1669,6 +1671,7 @@ fun UploadMediaComposable(
             }
         }
     }
+
 
     // Trash/Delete recording
     fun deleteRecording() {
@@ -1924,18 +1927,16 @@ fun uploadVideoToFirebase(storageRef: StorageReference, uri: Uri, registrationVi
 
 fun uploadVoiceToFirebase(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val voiceRef = storageRef.child("users/${userId}/voice_note.3gp")
+    val voiceRef = storageRef.child("users/${userId}/voice_note.aac") // Use the correct extension
     voiceRef.putFile(uri).addOnSuccessListener {
         voiceRef.downloadUrl.addOnSuccessListener { downloadUri ->
             registrationViewModel.voiceNoteUrl = downloadUri.toString()
+            Log.d("UploadMedia", "Voice note uploaded successfully: $downloadUri")
         }
     }.addOnFailureListener {
         Log.e("UploadMedia", "Failed to upload voice note: ${it.message}")
     }
 }
-
-
-
 
 
 @Composable

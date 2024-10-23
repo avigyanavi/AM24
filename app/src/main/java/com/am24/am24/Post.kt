@@ -50,7 +50,8 @@ data class Comment(
     var upvotes: Int = 0,
     var downvotes: Int = 0,
     var upvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
-    var downvotedUsers: MutableMap<String, Boolean> = mutableMapOf()
+    var downvotedUsers: MutableMap<String, Boolean> = mutableMapOf(),
+    val mediaUrl: String? = null
 ) {
     fun getCommentTimestamp(): Long {
         return if (timestamp is Long) timestamp else (timestamp as? Map<*, *>)?.get("timestamp") as? Long ?: 0L

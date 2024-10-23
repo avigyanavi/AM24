@@ -80,18 +80,6 @@ fun CreatePostScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 PostTypeButton(
-                    icon = Icons.Default.Photo,
-                    label = "Photo Post",
-                    onClick = { navController.navigate("create_post/photo") }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                PostTypeButton(
-                    icon = Icons.Default.Videocam,
-                    label = "Video Post",
-                    onClick = { navController.navigate("create_post/video") }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                PostTypeButton(
                     icon = Icons.Default.Mic,
                     label = "Voice Post",
                     onClick = { navController.navigate("create_post/voice") }
