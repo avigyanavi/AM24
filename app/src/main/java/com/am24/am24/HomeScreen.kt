@@ -785,6 +785,9 @@ fun FeedItem(
                                                     mediaPlayer = player
                                                     isPlaying = true
 
+                                                    // Fetch and set the duration for the media
+                                                    mediaDuration = player.duration.toLong()
+
                                                     // Set completion listener to stop playback once done
                                                     mediaPlayer?.setOnCompletionListener {
                                                         isPlaying = false
@@ -1110,25 +1113,7 @@ fun FeedItem(
         }
     }
 
-    // Initialize MediaPlayer and manage playback for voice posts
-    DisposableEffect(post.mediaUrl) {
-        if (post.mediaType == "voice" && post.mediaUrl != null) {
-            val mediaPlayerTemp = MediaPlayer().apply {
-                setDataSource(post.mediaUrl)
-                prepare()
-                mediaDuration = duration.toLong() // Fetch and set the duration
-                setOnCompletionListener {
-                    isPlaying = false
-                }
-            }
-            mediaPlayer = mediaPlayerTemp
-        }
-
-        onDispose {
-            mediaPlayer?.release()
-            mediaPlayer = null
-        }
-    }
+    // Removed the initialization logic for voice posts here
 
     // Update progress for the voice post
     LaunchedEffect(isPlaying) {
@@ -1144,6 +1129,7 @@ fun FeedItem(
         }
     }
 }
+
 
 fun formatDuration(durationMs: Long): String {
     val minutes = (durationMs / 1000) / 60
