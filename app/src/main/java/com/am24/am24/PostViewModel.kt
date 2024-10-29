@@ -39,13 +39,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val storageRef = FirebaseStorage.getInstance().reference
 
     // Define media size limits (in bytes)
-    private val PHOTO_MAX_SIZE = 10 * 1024 * 1024      // 10 MB
-    private val VIDEO_MAX_SIZE = 50 * 1024 * 1024     // 50 MB
     private val VOICE_MAX_SIZE = 5 * 1024 * 1024      // 5 MB
 
     // Define media time limits (in seconds)
     private val VOICE_MAX_DURATION = 60               // 1 minute
-    private val VIDEO_MAX_DURATION = 20               // 20 seconds
 
     // Tag for logging
     private val TAG = "PostViewModel"
@@ -86,6 +83,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
         postsRef.addValueEventListener(postsListener!!)
     }
+
 
     override fun onCleared() {
         super.onCleared()
@@ -151,13 +149,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 "userId" to userId,
                 "username" to username,
                 "contentText" to contentText,
-                "timestamp" to ServerValue.TIMESTAMP, // Pass the special map for server timestamp
+                "timestamp" to ServerValue.TIMESTAMP,
                 "userTags" to userTags,
                 "fontFamily" to fontFamily,
                 "fontSize" to fontSize,
                 "mediaType" to null,
-                "mediaUrl" to null
+                "mediaUrl" to null,
+                "upvotes" to 0,
+                "downvotes" to 0
             )
+
 
             try {
                 postsRef.child(postId).setValue(post).await()
@@ -216,7 +217,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     "userTags" to userTags,
                     "mediaType" to "voice",
                     "mediaUrl" to downloadUrl,
-                    "voiceDuration" to duration
+                    "voiceDuration" to duration,
+                    "upvotes" to 0,
+                    "downvotes" to 0
                 )
 
                 // Save post to Realtime Database

@@ -10,11 +10,6 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -137,7 +132,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             showSortMenu = newShowSortMenuState
         },
         geoFire = geoFire,
-        )
+    )
 }
 
 @Composable
@@ -160,7 +155,7 @@ fun HomeScreenContent(
     showSortMenu: Boolean, // Add showSortMenu parameter
     onShowSortMenuChange: (Boolean) -> Unit, // Add handler for toggling sort menu visibility
     geoFire: GeoFire
-    ) {
+) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
@@ -512,159 +507,159 @@ fun FeedSection(
         state = swipeRefreshState,
         onRefresh = { isRefreshing = true }
     ) {
-    LazyColumn(
-        state = listState,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        if (isPosting) {
-            // Show a loading indicator in place of the post
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            if (isPosting) {
+                // Show a loading indicator in place of the post
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF00bf63))
+                    }
+                }
+            }
+
+            items(posts) { post ->
+                val profile = userProfiles[post.userId]
+                FeedItem(
+                    post = post,
+                    userProfile = profile,
+                    onUpvote = {
+                        postViewModel.upvotePost(
+                            postId = post.postId,
+                            userId = userId ?: "",
+                            onSuccess = {
+                                // Optionally, show a success message or update UI
+                            },
+                            onFailure = { errorMsg ->
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    },
+                    onDownvote = {
+                        postViewModel.downvotePost(
+                            postId = post.postId,
+                            userId = userId ?: "",
+                            onSuccess = {
+                                // Optionally, show a success message or update UI
+                            },
+                            onFailure = { errorMsg ->
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    },
+                    onUserClick = {
+                        if (post.userId == userId) {
+                            // Navigate to ProfileScreen if it's your own profile
+                            navController.navigate("profile")
+                        } else {
+                            // Navigate to DatingScreen with the other user's ID
+                            navController.navigate("profile/${post.userId}")
+                        }
+                    },
+                    onTagClick = { tag ->
+                        onTagClick(tag)
+                    },
+                    onShare = {
+                        postViewModel.sharePostWithMatches(
+                            postId = post.postId,
+                            matches = listOf(), // Replace with actual list of matches
+                            onSuccess = {
+                                Toast.makeText(context, "Post shared successfully!", Toast.LENGTH_SHORT).show()
+                            },
+                            onFailure = { errorMsg ->
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    },
+                    onSave = {
+                        postViewModel.savePost(
+                            postId = post.postId,
+                            userId = userId ?: "",
+                            onSuccess = {
+                                Toast.makeText(context, "Post saved successfully!", Toast.LENGTH_SHORT).show()
+                            },
+                            onFailure = {
+                            }
+                        )
+                    },
+                    onComment = { commentText ->
+                        // Comment logic using ViewModel
+                        val comment = Comment(
+                            commentId = UUID.randomUUID().toString(), // Generate a unique ID
+                            userId = userId ?: "",
+                            username = userProfile?.username ?: "Anonymous",
+                            commentText = commentText,
+                            timestamp = ServerValue.TIMESTAMP
+                        )
+                        postViewModel.addComment(
+                            postId = post.postId,
+                            comment = comment,
+                            onSuccess = {
+                                Toast.makeText(context, "Comment added!", Toast.LENGTH_SHORT).show()
+                            },
+                            onFailure = { errorMsg ->
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    },
+                    currentUserId = userId ?: "",
+                    onDelete = { postToDelete ->
+                        // Implement delete logic, possibly calling PostViewModel's deletePost
+                        postViewModel.deletePost(
+                            postId = postToDelete.postId,
+                            onSuccess = {
+                                // Handle post deletion success
+                            },
+                            onFailure = {
+                                // Handle post deletion failure
+                            }
+                        )
+                    },
+                    onReport = { postToReport ->
+                        // Implement report logic, possibly calling PostViewModel's reportPost
+                        postViewModel.reportPost(
+                            postId = postToReport.postId,
+                            reporterId = userId ?: "",
+                            onSuccess = {
+                                // Handle post report success
+                            },
+                            onFailure = {
+                                // Handle post report failure
+                            }
+                        )
+                    },
+                    postViewModel = postViewModel,
+                    geoFire = geoFire // Pass GeoFire here
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // No more posts indicator
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp)
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFF00bf63))
+                    Text(
+                        text = "No more older posts",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
                 }
             }
         }
-
-        items(posts) { post ->
-            val profile = userProfiles[post.userId]
-            FeedItem(
-                post = post,
-                userProfile = profile,
-                onUpvote = {
-                    postViewModel.upvotePost(
-                        postId = post.postId,
-                        userId = userId ?: "",
-                        onSuccess = {
-                            // Optionally, show a success message or update UI
-                        },
-                        onFailure = { errorMsg ->
-                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                },
-                onDownvote = {
-                    postViewModel.downvotePost(
-                        postId = post.postId,
-                        userId = userId ?: "",
-                        onSuccess = {
-                            // Optionally, show a success message or update UI
-                        },
-                        onFailure = { errorMsg ->
-                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                },
-                onUserClick = {
-                    if (post.userId == userId) {
-                        // Navigate to ProfileScreen if it's your own profile
-                        navController.navigate("profile")
-                    } else {
-                        // Navigate to DatingScreen with the other user's ID
-                        navController.navigate("profile/${post.userId}")
-                    }
-                },
-                onTagClick = { tag ->
-                    onTagClick(tag)
-                },
-                onShare = {
-                    postViewModel.sharePostWithMatches(
-                        postId = post.postId,
-                        matches = listOf(), // Replace with actual list of matches
-                        onSuccess = {
-                            Toast.makeText(context, "Post shared successfully!", Toast.LENGTH_SHORT).show()
-                        },
-                        onFailure = { errorMsg ->
-                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                },
-                onSave = {
-                    postViewModel.savePost(
-                        postId = post.postId,
-                        userId = userId ?: "",
-                        onSuccess = {
-                            Toast.makeText(context, "Post saved successfully!", Toast.LENGTH_SHORT).show()
-                        },
-                        onFailure = {
-                        }
-                    )
-                },
-                onComment = { commentText ->
-                    // Comment logic using ViewModel
-                    val comment = Comment(
-                        commentId = UUID.randomUUID().toString(), // Generate a unique ID
-                        userId = userId ?: "",
-                        username = userProfile?.username ?: "Anonymous",
-                        commentText = commentText,
-                        timestamp = ServerValue.TIMESTAMP
-                    )
-                    postViewModel.addComment(
-                        postId = post.postId,
-                        comment = comment,
-                        onSuccess = {
-                            Toast.makeText(context, "Comment added!", Toast.LENGTH_SHORT).show()
-                        },
-                        onFailure = { errorMsg ->
-                            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
-                        }
-                    )
-                },
-                currentUserId = userId ?: "",
-                onDelete = { postToDelete ->
-                    // Implement delete logic, possibly calling PostViewModel's deletePost
-                    postViewModel.deletePost(
-                        postId = postToDelete.postId,
-                        onSuccess = {
-                            // Handle post deletion success
-                        },
-                        onFailure = {
-                            // Handle post deletion failure
-                        }
-                    )
-                },
-                onReport = { postToReport ->
-                    // Implement report logic, possibly calling PostViewModel's reportPost
-                    postViewModel.reportPost(
-                        postId = postToReport.postId,
-                        reporterId = userId ?: "",
-                        onSuccess = {
-                            // Handle post report success
-                        },
-                        onFailure = {
-                            // Handle post report failure
-                        }
-                    )
-                },
-                postViewModel = postViewModel,
-                geoFire = geoFire // Pass GeoFire here
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // No more posts indicator
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No more older posts",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
-            }
-        }
-    }
     }
 }
 
@@ -775,7 +770,7 @@ fun FeedItem(
         colors = CardDefaults.cardColors(containerColor = Color.Black),
         border = BorderStroke(2.dp, Color(0xFF00bf63))
     ) {
-            Column(modifier = Modifier.padding(dynamicPadding)) {
+        Column(modifier = Modifier.padding(dynamicPadding)) {
             // User Info Row with Delete/Report button
             Row(
                 verticalAlignment = Alignment.CenterVertically,

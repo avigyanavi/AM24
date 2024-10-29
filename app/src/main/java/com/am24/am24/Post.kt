@@ -10,7 +10,7 @@ data class Post(
     val userId: String = "",  // ID of the user who created the post
     val username: String = "",  // Username of the person who posted
     val contentText: String? = "",  // The text content of the post
-    val timestamp: Long = 0,  // Timestamp of post creation
+    val timestamp: Any? = null,  // Timestamp of post creation
     val profilepicUrl: String? = null,
     val isBold: Boolean = false,
     val isItalic: Boolean = false,
