@@ -88,12 +88,13 @@ fun OtherUserProfileContent(
         })
     }
 
-    // Calculate distance between users
     LaunchedEffect(userId) {
-        calculateDistance(currentUserId, userId, geoFire) { distance ->
+        if (currentUserId.isNotEmpty() && userId.isNotEmpty()) {
+            val distance = calculateDistance(currentUserId, userId, geoFire)
             userDistance = distance
         }
     }
+
 
     // Scrollable content for other user's profile
     Column(

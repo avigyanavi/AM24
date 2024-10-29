@@ -51,6 +51,11 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import kotlin.math.*
 import androidx.compose.material3.Card
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 
 // Class representing swipe data
@@ -156,9 +161,12 @@ fun DatingScreenContent(navController: NavController, geoFire: GeoFire, modifier
             val currentProfile = filteredProfiles[currentProfileIndex]
             var userDistance by remember { mutableStateOf<Float?>(null) }
 
-            // Calculate distance asynchronously
+            // Calculate distance asynchronously when currentProfile changes
             LaunchedEffect(currentProfile) {
-                calculateDistance(currentUserId, currentProfile.userId, geoFire) { distance ->
+                // Ensure currentProfile and currentUserId are valid
+                if (currentUserId.isNotEmpty() && currentProfile.userId.isNotEmpty()) {
+                    // Call the suspending function calculateDistance
+                    val distance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
                     userDistance = distance
                 }
             }
@@ -243,40 +251,32 @@ fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     return (earthRadius * c).toFloat() // Distance in kilometers
 }
 
-fun calculateDistance(
+suspend fun calculateDistance(
     userId1: String,
     userId2: String,
-    geoFire: GeoFire,
-    callback: (Float?) -> Unit
-) {
-    geoFire.getLocation(userId1, object : LocationCallback {
-        override fun onLocationResult(key1: String?, location1: GeoLocation?) {
-            if (location1 == null) {
-                callback(null) // Location not found for user 1
-                return
-            }
-            geoFire.getLocation(userId2, object : LocationCallback {
-                override fun onLocationResult(key2: String?, location2: GeoLocation?) {
-                    if (location2 == null) {
-                        callback(null) // Location not found for user 2
-                        return
-                    }
-                    // Both locations are available, calculate the distance
-                    val distance = haversine(
-                        location1.latitude, location1.longitude,
-                        location2.latitude, location2.longitude
-                    )
-                    callback(distance)
-                }
+    geoFire: GeoFire
+): Float? = withContext(Dispatchers.Default) {
+    val location1 = getUserLocation(userId1, geoFire)
+    val location2 = getUserLocation(userId2, geoFire)
 
-                override fun onCancelled(error: DatabaseError) {
-                    callback(null) // Handle error for user 2 location retrieval
-                }
-            })
+    if (location1 != null && location2 != null) {
+        haversine(
+            location1.latitude, location1.longitude,
+            location2.latitude, location2.longitude
+        )
+    } else {
+        null
+    }
+}
+
+suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? = suspendCancellableCoroutine { continuation ->
+    geoFire.getLocation(userId, object : LocationCallback {
+        override fun onLocationResult(key: String?, location: GeoLocation?) {
+            continuation.resume(location)
         }
 
-        override fun onCancelled(error: DatabaseError) {
-            callback(null) // Handle error for user 1 location retrieval
+        override fun onCancelled(databaseError: DatabaseError) {
+            continuation.resumeWithException(databaseError.toException())
         }
     })
 }

@@ -695,13 +695,12 @@ fun FeedItem(
     LaunchedEffect(userProfile) {
         userProfile?.let {
             if (currentUserId.isNotEmpty() && it.userId.isNotEmpty()) {
-                // Fetch and calculate distance
-                calculateDistance(currentUserId, it.userId, geoFire) { distance ->
-                    userDistance = distance
-                }
+                val distance = calculateDistance(currentUserId, it.userId, geoFire)
+                userDistance = distance
             }
         }
     }
+
     // Gesture detector for double-tap and long-press
     val gestureDetector = Modifier.pointerInput(Unit) {
         detectTapGestures(
