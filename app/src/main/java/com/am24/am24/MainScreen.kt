@@ -50,7 +50,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
 }
 
 @Composable
-fun TopNavBar(navController: NavController, onLogout: () -> Unit) {
+fun TopNavBar(navController: NavController,
+              onLogout: () -> Unit) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 

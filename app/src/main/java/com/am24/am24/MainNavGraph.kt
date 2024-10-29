@@ -13,14 +13,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.firebase.geofire.GeoFire
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
 // Assuming you're initializing GeoFire in your MainNavGraph or somewhere globally
 val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
-//val currentUser = FirebaseAuth.getInstance().currentUser
-//val userId = currentUser?.uid
-//
-//val userRef = userId?.let { FirebaseDatabase.getInstance().getReference("users").child(it) }
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
@@ -30,6 +27,11 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
             LocalContext.current.applicationContext as Application
         )
     )
+
+    // Get the current user's ID and username
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val currentUserId = currentUser?.uid
+    val currentUserName = currentUser?.displayName ?: "defaultName" // Replace with actual username retrieval logic if needed
 
     NavHost(
         navController = navController,
@@ -51,7 +53,7 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("create_post/text") {
             TextPostComposable(navController = navController, postViewModel = postViewModel)
         }
-        composable("create_post/voice"){
+        composable("create_post/voice") {
             VoicePostComposable(navController = navController, postViewModel = postViewModel)
         }
         composable("profile") {
@@ -59,8 +61,13 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         }
         composable("profile/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")
-            if (otherUserId != null) {
-                OtherUserProfileScreen(navController = navController, otherUserId = otherUserId)
+            if (otherUserId != null && currentUserId != null) {
+                OtherUserProfileScreen(
+                    navController = navController,
+                    otherUserId = otherUserId,
+                    currentUserId = currentUserId,
+                    currentUserName = currentUserName
+                )
             }
         }
         composable("dating") {

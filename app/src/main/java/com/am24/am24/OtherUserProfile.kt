@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,31 +42,34 @@ import java.io.File
 fun OtherUserProfileScreen(
     navController: NavController,
     otherUserId: String,
-    profileViewModel: ProfileViewModel = viewModel(), // Create ProfileViewModel instance here
+    currentUserId: String,
+    currentUserName: String,
+    profileViewModel: ProfileViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     OtherUserProfileContent(
         navController = navController,
         userId = otherUserId,
-        profileViewModel = profileViewModel, // Pass to content
+        currentUserId = currentUserId,
+        currentUserName = currentUserName,
+        profileViewModel = profileViewModel,
         modifier = modifier
     )
 }
 
-@OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 fun OtherUserProfileContent(
     navController: NavController,
     userId: String,
-    profileViewModel: ProfileViewModel, // Add ProfileViewModel parameter
+    currentUserId: String,
+    currentUserName: String,
+    profileViewModel: ProfileViewModel,
     modifier: Modifier = Modifier
 ) {
     val profile = remember { mutableStateOf(Profile()) }
     var currentPhotoIndex by remember { mutableStateOf(0) }
     var showFullScreenMedia by remember { mutableStateOf(false) }
-
-    val firebaseDatabase = FirebaseDatabase.getInstance()
-    val userRef = firebaseDatabase.getReference("users").child(userId)
+    val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
 
     // Load the other user's profile data
     LaunchedEffect(userId) {
@@ -80,34 +84,6 @@ fun OtherUserProfileContent(
         })
     }
 
-    // Swipeable logic for the entire profile
-    val swipeableState = rememberSwipeableState(initialValue = 0)
-    val anchors = mapOf(
-        -300f to -1, // Swiped left
-        0f to 0,     // Neutral position
-        300f to 1    // Swiped right
-    )
-
-    val coroutineScope = rememberCoroutineScope()
-
-    // Action to handle swipe completion
-    LaunchedEffect(swipeableState.currentValue) {
-        when (swipeableState.currentValue) {
-            -1 -> {
-                // Handle swipe left action
-                profileViewModel.swipeLeft(userId, profile.value.userId)
-                navController.navigate("datingScreen") // Navigate after swipe
-                swipeableState.snapTo(0) // Reset state
-            }
-            1 -> {
-                // Handle swipe right action
-                profileViewModel.swipeRight(userId, profile.value.userId)
-                navController.navigate("datingScreen") // Navigate after swipe
-                swipeableState.snapTo(0) // Reset state
-            }
-        }
-    }
-
     // Scrollable content for other user's profile
     Column(
         modifier = modifier
@@ -115,64 +91,41 @@ fun OtherUserProfileContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // 1. Profile Media Section (Profile photo, video, username, age, etc.)
         ProfileMediaSection(
             profile = profile.value,
             currentPhotoIndex = currentPhotoIndex,
             onPhotoIndexChanged = { index -> currentPhotoIndex = index },
-            navController = navController,
-            showFullScreenMedia = showFullScreenMedia,
             onFullscreenClick = { showFullScreenMedia = true },
-            isOtherUserProfile = true
+            navController = navController
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 2. Profile Actions Section (Follow, Report, Upvote/Downvote, etc.)
         ProfileActionsSection(
-            navController = navController,
-            userId = userId,
+            userId = currentUserId,
             profile = profile.value,
-            profileViewModel = profileViewModel,
-            onSwipeLeft = {
-                coroutineScope.launch { swipeableState.animateTo(-1) }
-            },
-            onSwipeRight = {
-                coroutineScope.launch { swipeableState.animateTo(1) }
-            }
+            profileViewModel = profileViewModel
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Details Section (Gender, username, community, religion, zodiac, etc.)
         ProfileDetailsSection(profile = profile.value)
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Bio and Voice Bio Section (Bio and Voice Note)
         ProfileBioVoiceSection(profile = profile.value)
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 5. Location Section (City, hometown, country)
         ProfileLocationSection(profile = profile.value)
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 6. Lifestyle Section (Lifestyle details and what the user is looking for)
         ProfileLifestyleSection(profile = profile.value)
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 7. Interests Section (User's interests)
         ProfileInterestsSection(profile = profile.value)
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 8. Metrics Section (Rankings, swipe ratios, etc.)
         ProfileMetricsSection(profile = profile.value)
 
-        // Fullscreen media dialog
         if (showFullScreenMedia) {
             FullscreenMediaDialog(
                 profile = profile.value,
@@ -188,68 +141,61 @@ fun ProfileMediaSection(
     profile: Profile,
     currentPhotoIndex: Int,
     onPhotoIndexChanged: (Int) -> Unit,
-    navController: NavController,
-    showFullScreenMedia: Boolean,
     onFullscreenClick: () -> Unit,
-    isOtherUserProfile: Boolean
+    navController: NavController
 ) {
-    val context = LocalContext.current
-
-    // Media Section logic with photos, video, and fullscreen icons
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     val videoUrl = profile.videoUrl
+
+    // Handle tap to change photos
+    val totalMediaCount = photoUrls.size + if (videoUrl != null) 1 else 0
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
+            .clickable {
+                // Move to the next photo or video when tapped
+                val nextIndex = (currentPhotoIndex + 1) % totalMediaCount
+                onPhotoIndexChanged(nextIndex)
+            }
     ) {
-        if (photoUrls.isNotEmpty()) {
-            AsyncImage(
-                model = photoUrls[currentPhotoIndex],
-                contentDescription = "Profile Photo",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
-            // Fullscreen Icon for images
-            FullscreenIcon(onClick = onFullscreenClick)
+        when {
+            currentPhotoIndex < photoUrls.size -> {
+                AsyncImage(
+                    model = photoUrls[currentPhotoIndex],
+                    contentDescription = "Profile Photo",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
+            videoUrl != null && currentPhotoIndex == photoUrls.size -> {
+                // Handle video display logic here
+                FullscreenIcon(onClick = onFullscreenClick)
+            }
         }
 
-        // Video Bio logic
-        videoUrl?.let {
-            FullscreenIcon(onClick = onFullscreenClick)
-        }
-
-        if (!isOtherUserProfile) {
-            // Edit profile icon for the user's own profile
-            IconButton(onClick = { navController.navigate("editProfile") }) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Profile",
-                    tint = Color.White
+        // Navigation bars above photos
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            photoUrls.forEachIndexed { index, _ ->
+                Box(
+                    modifier = Modifier
+                        .size(20.dp, 4.dp)
+                        .padding(horizontal = 2.dp)
+                        .clip(CircleShape)
+                        .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
                 )
             }
         }
-    }
 
-    // Name, age, rating, and composite score
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "${profile.username}, ${calculateAge(profile.dob)}",
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            color = Color.White
-        )
-        RatingBar(rating = profile.rating)
-        Text(
-            text = "Composite Score: ${profile.am24RankingCompositeScore}",
-            fontSize = 16.sp,
-            color = Color.White
-        )
+        // Fullscreen Icon
+        FullscreenIcon(onClick = onFullscreenClick)
     }
 }
 
@@ -585,50 +531,105 @@ fun FeedItemCard(content: @Composable () -> Unit) {
 
 @Composable
 fun ProfileActionsSection(
-    navController: NavController,
     userId: String,
     profile: Profile,
-    profileViewModel: ProfileViewModel,
-    onSwipeLeft: () -> Unit,
-    onSwipeRight: () -> Unit// Inject the ViewModel
+    profileViewModel: ProfileViewModel
 ) {
+    val friendStatus = remember { mutableStateOf("not_requested") }
+    val dynamicUsername = remember { mutableStateOf("") }
+
+    // Fetch the friend request status on each visit to this screen
+    LaunchedEffect(profile.userId) {
+        profileViewModel.getFriendRequestStatus(
+            currentUserId = userId,
+            targetUserId = profile.userId,
+            onStatusRetrieved = { status ->
+                friendStatus.value = status
+            },
+            onFailure = {
+                friendStatus.value = "not_requested"
+            }
+        )
+    }
+
+    // Fetch the current user's username
+    LaunchedEffect(userId) {
+        profileViewModel.fetchUsernameById(
+            userId,
+            onSuccess = { username -> dynamicUsername.value = username },
+            onFailure = { dynamicUsername.value = "Unknown" }
+        )
+    }
+
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        // Swipe Left (Cross)
+        // Handle friend status changes
         IconButton(
-            onClick = onSwipeLeft,
+            onClick = {
+                when (friendStatus.value) {
+                    "not_requested" -> {
+                        profileViewModel.sendFriendRequest(
+                            currentUserId = userId,
+                            targetUserId = profile.userId,
+                            onSuccess = {
+                                friendStatus.value = "requested"
+                            },
+                            onFailure = { /* Handle error */ }
+                        )
+                    }
+                    "requested" -> {
+                        profileViewModel.rejectFriendRequest(
+                            currentUserId = userId,
+                            requesterId = profile.userId,
+                            onSuccess = {
+                                friendStatus.value = "not_requested"
+                            },
+                            onFailure = { /* Handle error */ }
+                        )
+                    }
+                    "accepted" -> {
+                        profileViewModel.removeFriend(
+                            currentUserId = userId,
+                            targetUserId = profile.userId,
+                            onSuccess = {
+                                friendStatus.value = "not_requested"
+                            },
+                            onFailure = { /* Handle error */ }
+                        )
+                    }
+                }
+            },
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(Color.Red)
+                .background(
+                    when (friendStatus.value) {
+                        "accepted" -> Color.Red
+                        "requested" -> Color.Gray
+                        else -> Color(0xFF00bf63)
+                    }
+                )
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Swipe Left",
+                imageVector = when (friendStatus.value) {
+                    "accepted" -> Icons.Default.PersonRemove
+                    "requested" -> Icons.Default.Pending
+                    else -> Icons.Default.PersonAdd
+                },
+                contentDescription = when (friendStatus.value) {
+                    "accepted" -> "Remove Friend"
+                    "requested" -> "Withdraw Request"
+                    else -> "Add Friend"
+                },
                 tint = Color.White
             )
         }
 
-        // Swipe Right (Tick)
-        IconButton(
-            onClick = onSwipeRight,
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(Color.Green)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Swipe Right",
-                tint = Color.White
-            )
-        }
-
-        // Upvote logic
+        // Upvote button
         IconButton(
             onClick = {
                 profileViewModel.upvoteProfile(
@@ -646,7 +647,7 @@ fun ProfileActionsSection(
             )
         }
 
-        // Downvote logic
+        // Downvote button
         IconButton(
             onClick = {
                 profileViewModel.downvoteProfile(
@@ -664,7 +665,7 @@ fun ProfileActionsSection(
             )
         }
 
-        // Report logic
+        // Report profile button
         IconButton(
             onClick = {
                 profileViewModel.reportProfile(
@@ -682,7 +683,7 @@ fun ProfileActionsSection(
             )
         }
 
-        // Block logic
+        // Block profile button
         IconButton(
             onClick = {
                 profileViewModel.blockProfile(
@@ -701,3 +702,14 @@ fun ProfileActionsSection(
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+

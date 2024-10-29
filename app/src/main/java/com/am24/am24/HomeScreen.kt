@@ -1631,7 +1631,7 @@ fun buildFormattedText(text: String): AnnotatedString {
 }
 
 fun formatTimestamp(timestamp: Long): String {
-    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val sdf = SimpleDateFormat("MMM dd, yyyy, hh:mm:ss", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
 

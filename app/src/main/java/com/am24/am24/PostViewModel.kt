@@ -96,17 +96,29 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Parses the timestamp from Firebase (could be Long or ServerValue.TIMESTAMP).
      */
+    /**
+     * Parses the timestamp from Firebase (could be Long or ServerValue.TIMESTAMP).
+     * Returns a Long representing the timestamp in milliseconds.
+     */
     private fun parseTimestamp(timestamp: Any?): Long {
         return when (timestamp) {
             is Long -> timestamp
             is Map<*, *> -> {
-                // Handle ServerValue.TIMESTAMP if needed
-                // For simplicity, returning current time
-                System.currentTimeMillis()
+                // Check for known keys like .sv for ServerValue.TIMESTAMP or other timestamp formats
+                val serverTimestamp = timestamp[".sv"] // Firebase usually uses ".sv" for server values
+                if (serverTimestamp == "timestamp") {
+                    // Interpret as current time, assuming that this was set by ServerValue.TIMESTAMP
+                    System.currentTimeMillis()
+                } else {
+                    // In case of other structures, attempt a direct conversion
+                    (timestamp["timestamp"] as? Long) ?: System.currentTimeMillis()
+                }
             }
             else -> System.currentTimeMillis()
         }
     }
+
+
 
     /**
      * Function to create a text post.
@@ -134,17 +146,17 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
 
-            val post = Post(
-                postId = postId,
-                userId = userId,
-                username = username,
-                contentText = contentText,
-                timestamp = ServerValue.TIMESTAMP,
-                userTags = userTags,
-                fontFamily = fontFamily,
-                fontSize = fontSize,
-                mediaType = null,
-                mediaUrl = null
+            val post = mapOf(
+                "postId" to postId,
+                "userId" to userId,
+                "username" to username,
+                "contentText" to contentText,
+                "timestamp" to ServerValue.TIMESTAMP, // Pass the special map for server timestamp
+                "userTags" to userTags,
+                "fontFamily" to fontFamily,
+                "fontSize" to fontSize,
+                "mediaType" to null,
+                "mediaUrl" to null
             )
 
             try {
@@ -195,16 +207,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 // Create Post object
-                val post = Post(
-                    postId = postId,
-                    userId = userId,
-                    username = username,
-                    contentText = null,
-                    timestamp = ServerValue.TIMESTAMP,
-                    userTags = userTags,
-                    mediaType = "voice",
-                    mediaUrl = downloadUrl,
-                    voiceDuration = duration
+                val post = mapOf(
+                    "postId" to postId,
+                    "userId" to userId,
+                    "username" to username,
+                    "contentText" to null,
+                    "timestamp" to ServerValue.TIMESTAMP, // Pass the special map for server timestamp
+                    "userTags" to userTags,
+                    "mediaType" to "voice",
+                    "mediaUrl" to downloadUrl,
+                    "voiceDuration" to duration
                 )
 
                 // Save post to Realtime Database

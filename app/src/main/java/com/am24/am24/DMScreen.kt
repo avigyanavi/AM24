@@ -4,12 +4,12 @@ package com.am24.am24
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
@@ -36,62 +36,71 @@ fun DMScreen(navController: NavController) {
 
 @Composable
 fun DMScreenContent(navController: NavController) {
-    val context = LocalContext.current
+    var selectedTab by remember { mutableStateOf("Matches") }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val context = LocalContext.current
 
     val database = FirebaseDatabase.getInstance()
     val matchesRef = database.getReference("matches/$currentUserId")
+    val friendsRef = database.getReference("friends/$currentUserId")
     val usersRef = database.getReference("users")
 
     val matchedUsers = remember { mutableStateListOf<Profile>() }
+    val friendUsers = remember { mutableStateListOf<Profile>() }
 
-    // Fetch matches and corresponding profiles
+    // Fetch matched users and corresponding profiles
     LaunchedEffect(currentUserId) {
-        // Listen to matches node for real-time updates
-        matchesRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val newMatchedUsers = mutableListOf<Profile>()
-                val userIdsToFetch = mutableListOf<String>()
-
-                for (matchSnapshot in snapshot.children) {
-                    val matchedUserId = matchSnapshot.key
-                    if (matchedUserId != null) {
-                        userIdsToFetch.add(matchedUserId)
-                    }
-                }
-
-                if (userIdsToFetch.isNotEmpty()) {
-                    usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(userSnapshot: DataSnapshot) {
-                            for (user in userSnapshot.children) {
-                                val profile = user.getValue(Profile::class.java)
-                                if (profile != null && userIdsToFetch.contains(profile.userId)) {
-                                    newMatchedUsers.add(profile)
-                                }
-                            }
-                            // Update the matchedUsers list
-                            matchedUsers.clear()
-                            matchedUsers.addAll(newMatchedUsers)
-                        }
-
-                        override fun onCancelled(error: DatabaseError) {
-                            Log.e("DMScreen", "DatabaseError: ${error.message}")
-                            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    })
-                } else {
-                    matchedUsers.clear()
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("DMScreen", "DatabaseError: ${error.message}")
-                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
+        fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context)
     }
 
-    if (matchedUsers.isEmpty()) {
+    // Fetch friends and corresponding profiles
+    LaunchedEffect(currentUserId) {
+        fetchUsersFromNode(friendsRef, usersRef, friendUsers, context)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        // Top toggle buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(
+                onClick = { selectedTab = "Matches" },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedTab == "Matches") Color(0xFF00bf63) else Color.Gray
+                )
+            ) {
+                Text(text = "Matches", color = Color.White)
+            }
+            Button(
+                onClick = { selectedTab = "Friends" },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedTab == "Friends") Color(0xFF00bf63) else Color.Gray
+                )
+            ) {
+                Text(text = "Friends", color = Color.White)
+            }
+        }
+
+        // Display content based on selected tab
+        if (selectedTab == "Matches") {
+            UserListSection(users = matchedUsers, navController = navController, emptyText = "No matches yet")
+        } else {
+            UserListSection(users = friendUsers, navController = navController, emptyText = "No friends yet")
+        }
+    }
+}
+
+
+@Composable
+fun UserListSection(users: List<Profile>, navController: NavController, emptyText: String) {
+    if (users.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -99,7 +108,7 @@ fun DMScreenContent(navController: NavController) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "No matches yet",
+                text = emptyText,
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -113,20 +122,20 @@ fun DMScreenContent(navController: NavController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(matchedUsers) { profile ->
-                MatchedUserCard(profile = profile, navController = navController)
+            items(users) { profile ->
+                UserCard(profile = profile, navController = navController)
             }
         }
     }
 }
 
 @Composable
-fun MatchedUserCard(profile: Profile, navController: NavController) {
+fun UserCard(profile: Profile, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // Navigate to ChatScreen with matched user's ID
+                // Navigate to ChatScreen with user's ID
                 navController.navigate("chat/${profile.userId}")
             },
         colors = CardDefaults.cardColors(containerColor = Color.Black),
@@ -198,3 +207,51 @@ fun MatchedUserCard(profile: Profile, navController: NavController) {
     }
 }
 
+private fun fetchUsersFromNode(
+    ref: DatabaseReference,
+    usersRef: DatabaseReference,
+    usersList: MutableList<Profile>,
+    context: android.content.Context
+) {
+    ref.addValueEventListener(object : ValueEventListener {
+        override fun onDataChange(snapshot: DataSnapshot) {
+            val newUsers = mutableListOf<Profile>()
+            val userIdsToFetch = mutableListOf<String>()
+
+            for (userSnapshot in snapshot.children) {
+                val userId = userSnapshot.key
+                if (userId != null) {
+                    userIdsToFetch.add(userId)
+                }
+            }
+
+            if (userIdsToFetch.isNotEmpty()) {
+                usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(userSnapshot: DataSnapshot) {
+                        for (user in userSnapshot.children) {
+                            val profile = user.getValue(Profile::class.java)
+                            if (profile != null && userIdsToFetch.contains(profile.userId)) {
+                                newUsers.add(profile)
+                            }
+                        }
+                        // Update the users list
+                        usersList.clear()
+                        usersList.addAll(newUsers)
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("DMScreen", "DatabaseError: ${error.message}")
+                        Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
+            } else {
+                usersList.clear()
+            }
+        }
+
+        override fun onCancelled(error: DatabaseError) {
+            Log.e("DMScreen", "DatabaseError: ${error.message}")
+            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+        }
+    })
+}

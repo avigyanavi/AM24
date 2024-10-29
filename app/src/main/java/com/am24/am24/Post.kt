@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import android.util.Log
 import com.google.firebase.database.Exclude
 import com.google.firebase.database.ServerValue
 import com.google.gson.Gson
@@ -9,7 +10,7 @@ data class Post(
     val userId: String = "",  // ID of the user who created the post
     val username: String = "",  // Username of the person who posted
     val contentText: String? = "",  // The text content of the post
-    val timestamp: Any = ServerValue.TIMESTAMP,  // Timestamp of post creation
+    val timestamp: Long = 0,  // Timestamp of post creation
     val profilepicUrl: String? = null,
     val isBold: Boolean = false,
     val isItalic: Boolean = false,
@@ -38,8 +39,9 @@ data class Post(
 ) {
     @Exclude
     fun getPostTimestamp(): Long {
-        return if (timestamp is Long) timestamp as Long else System.currentTimeMillis()
+        return if (true) timestamp as Long else System.currentTimeMillis()
     }
+
     // Serialize the Post object to JSON
     fun toJson(): String = Gson().toJson(this)
 
