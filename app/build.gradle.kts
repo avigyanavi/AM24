@@ -109,6 +109,7 @@ dependencies {
     implementation(libs.androidx.compose.material)
 
     //swipable
+    implementation(libs.accompanist.swiperefresh)
     implementation (libs.androidx.foundation.v100)
     implementation (libs.androidx.material.v100)
     implementation (libs.ui)

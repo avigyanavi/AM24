@@ -16,7 +16,7 @@ import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
-// Assuming you're initializing GeoFire in your MainNavGraph or somewhere globally
+// Initialize GeoFire instance globally in your MainNavGraph
 val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -66,7 +66,8 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
                     navController = navController,
                     otherUserId = otherUserId,
                     currentUserId = currentUserId,
-                    currentUserName = currentUserName
+                    currentUserName = currentUserName,
+                    geoFire = geoFire // Pass the geoFire instance here
                 )
             }
         }

@@ -432,7 +432,7 @@ fun DatingProfileCard(
                     )
                     RatingBar(rating = profile.rating)
                     Text(
-                        text = "Composite Score: ${profile.am24RankingCompositeScore}",
+                        text = "Vibe Score: ${profile.vibepoints}",
                         fontSize = 16.sp,
                         color = Color.White
                     )

@@ -752,11 +752,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Apply search query filtering
+        // Apply search query filtering for both username and tags
         if (searchQuery.isNotEmpty()) {
             val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
             filteredList = filteredList.filter { post ->
-                val usernameMatch = post.username.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+                val profile = profiles[post.userId]
+                val usernameMatch = profile?.username?.lowercase(Locale.getDefault())
+                    ?.contains(lowerSearchQuery) ?: false
                 val userTagsMatch = post.userTags.any { tag ->
                     tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
                 }

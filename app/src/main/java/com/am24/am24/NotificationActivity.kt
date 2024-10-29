@@ -151,7 +151,7 @@ fun NotificationCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Received at: ${notification.timestamp}",
+                    text = "Received at: ${formatTimestamp(notification.timestamp)}",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )

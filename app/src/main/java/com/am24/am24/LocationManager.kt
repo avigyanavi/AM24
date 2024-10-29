@@ -25,8 +25,8 @@ class LocationManager(private val context: Context) {
     private val geoFire = GeoFire(geoFireDatabaseRef)
 
     private val locationRequest: LocationRequest = LocationRequest.create().apply {
-        interval = 10000 // 10 seconds
-        fastestInterval = 5000 // 5 seconds
+        interval = 600000 // 10 minutes
+        fastestInterval = 60000 // 1 minute
         priority = LocationRequest.PRIORITY_HIGH_ACCURACY
     }
 

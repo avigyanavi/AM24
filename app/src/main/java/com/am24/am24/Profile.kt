@@ -100,6 +100,7 @@ data class Profile(
 
     val dateOfJoin: Long = System.currentTimeMillis(),
     val am24RankingCompositeScore: Double = 0.0,
+    var vibepoints: Double = 0.0,
     val level: Int = 1,
 
     val latitude: Double = 0.0,

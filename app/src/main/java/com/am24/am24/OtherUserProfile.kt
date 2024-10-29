@@ -29,14 +29,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.wear.compose.material.ExperimentalWearMaterialApi
-import androidx.wear.compose.material.rememberSwipeableState
 import coil.compose.AsyncImage
+import com.firebase.geofire.GeoFire
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.math.roundToInt
 
 @Composable
 fun OtherUserProfileScreen(
@@ -44,6 +44,7 @@ fun OtherUserProfileScreen(
     otherUserId: String,
     currentUserId: String,
     currentUserName: String,
+    geoFire: GeoFire,
     profileViewModel: ProfileViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -52,6 +53,7 @@ fun OtherUserProfileScreen(
         userId = otherUserId,
         currentUserId = currentUserId,
         currentUserName = currentUserName,
+        geoFire = geoFire,
         profileViewModel = profileViewModel,
         modifier = modifier
     )
@@ -64,15 +66,17 @@ fun OtherUserProfileContent(
     currentUserId: String,
     currentUserName: String,
     profileViewModel: ProfileViewModel,
+    geoFire: GeoFire,  // Pass geoFire instance
     modifier: Modifier = Modifier
 ) {
     val profile = remember { mutableStateOf(Profile()) }
     var currentPhotoIndex by remember { mutableStateOf(0) }
     var showFullScreenMedia by remember { mutableStateOf(false) }
-    val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+    var userDistance by remember { mutableStateOf<Float?>(null) }
 
     // Load the other user's profile data
     LaunchedEffect(userId) {
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
         userRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 profile.value = snapshot.getValue(Profile::class.java) ?: Profile()
@@ -82,6 +86,13 @@ fun OtherUserProfileContent(
                 Log.e("Firebase", "Failed to fetch user profile: ${error.message}")
             }
         })
+    }
+
+    // Calculate distance between users
+    LaunchedEffect(userId) {
+        calculateDistance(currentUserId, userId, geoFire) { distance ->
+            userDistance = distance
+        }
     }
 
     // Scrollable content for other user's profile
@@ -99,33 +110,48 @@ fun OtherUserProfileContent(
             navController = navController
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Display user distance and rating bar at the top
+        userDistance?.let { distance ->
+            Text(
+                text = "${distance.roundToInt()} km away",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.Start)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
 
-        ProfileActionsSection(
-            userId = currentUserId,
-            profile = profile.value,
-            profileViewModel = profileViewModel
+        // Name, Age, Rating, Composite Score
+        Text(
+            text = "${profile.value.username}, ${calculateAge(profile.value.dob)}",
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            color = Color.White
+        )
+        RatingBar(rating = profile.value.rating)
+        Text(
+            text = "Vibe Score: ${profile.value.vibepoints}",
+            fontSize = 16.sp,
+            color = Color.White
         )
 
+        // Other sections (ProfileActionsSection, ProfileDetailsSection, etc.)
         Spacer(modifier = Modifier.height(16.dp))
-
-        ProfileDetailsSection(profile = profile.value)
+        ProfileActionsSection(userId, profile.value, profileViewModel)
         Spacer(modifier = Modifier.height(16.dp))
-
-        ProfileBioVoiceSection(profile = profile.value)
+        ProfileDetailsSection(profile.value)
         Spacer(modifier = Modifier.height(16.dp))
-
-        ProfileLocationSection(profile = profile.value)
+        ProfileBioVoiceSection(profile.value)
         Spacer(modifier = Modifier.height(16.dp))
-
-        ProfileLifestyleSection(profile = profile.value)
+        ProfileLocationSection(profile.value)
         Spacer(modifier = Modifier.height(16.dp))
-
-        ProfileInterestsSection(profile = profile.value)
+        ProfileLifestyleSection(profile.value)
         Spacer(modifier = Modifier.height(16.dp))
+        ProfileInterestsSection(profile.value)
+        Spacer(modifier = Modifier.height(16.dp))
+        ProfileMetricsSection(profile.value)
 
-        ProfileMetricsSection(profile = profile.value)
-
+        // Handle full-screen media dialog
         if (showFullScreenMedia) {
             FullscreenMediaDialog(
                 profile = profile.value,
@@ -135,6 +161,8 @@ fun OtherUserProfileContent(
         }
     }
 }
+
+
 
 @Composable
 fun ProfileMediaSection(

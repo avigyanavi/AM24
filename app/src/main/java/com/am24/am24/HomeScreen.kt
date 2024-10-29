@@ -10,6 +10,12 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -43,12 +49,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.firebase.geofire.GeoFire
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
@@ -66,6 +76,9 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
     var userProfile by remember { mutableStateOf<Profile?>(null) }
 
+    //geofire reference
+    val geoFireRef = FirebaseDatabase.getInstance().getReference("geoFireLocations")
+    val geoFire = remember { GeoFire(geoFireRef) } // Initialize GeoFire with the correct Firebase reference
 
     // Fetch user's profile
     LaunchedEffect(userId) {
@@ -122,8 +135,9 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
         showSortMenu = showSortMenu, // pass showSortMenu
         onShowSortMenuChange = { newShowSortMenuState ->
             showSortMenu = newShowSortMenuState
-        }
-    )
+        },
+        geoFire = geoFire,
+        )
 }
 
 @Composable
@@ -144,8 +158,9 @@ fun HomeScreenContent(
     sortOption: String, // Add sortOption parameter
     onSortOptionChanged: (String) -> Unit, // Add handler for sort option change
     showSortMenu: Boolean, // Add showSortMenu parameter
-    onShowSortMenuChange: (Boolean) -> Unit // Add handler for toggling sort menu visibility
-) {
+    onShowSortMenuChange: (Boolean) -> Unit, // Add handler for toggling sort menu visibility
+    geoFire: GeoFire
+    ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
@@ -419,7 +434,8 @@ fun HomeScreenContent(
             userProfiles = userProfiles,
             onTagClick = { tag ->
                 onSearchQueryChanged(tag)
-            }
+            },
+            geoFire = geoFire, // Pass GeoFire here
         )
     }
 }
@@ -467,11 +483,35 @@ fun FeedSection(
     isPosting: Boolean,
     postViewModel: PostViewModel,
     userProfiles: Map<String, Profile>,
-    onTagClick: (String) -> Unit
+    onTagClick: (String) -> Unit,
+    geoFire: GeoFire // Pass GeoFire here
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
 
+    // Swipe Refresh State
+    var isRefreshing by remember { mutableStateOf(false) }
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
+
+    // Launching coroutine for swipe refresh
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            postViewModel.fetchPosts(
+                filterOption = "recent",
+                filterValue = "",
+                searchQuery = "",
+                sortOption = "None",
+                userId = userId
+            )
+            delay(1500) // Simulate refresh time
+            isRefreshing = false
+        }
+    }
+
+    SwipeRefresh(
+        state = swipeRefreshState,
+        onRefresh = { isRefreshing = true }
+    ) {
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -604,6 +644,7 @@ fun FeedSection(
                     )
                 },
                 postViewModel = postViewModel,
+                geoFire = geoFire // Pass GeoFire here
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -624,6 +665,7 @@ fun FeedSection(
             }
         }
     }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -641,11 +683,61 @@ fun FeedItem(
     onComment: (String) -> Unit,
     currentUserId: String,
     onDelete: (Post) -> Unit,
-    onReport: (Post) -> Unit
+    onReport: (Post) -> Unit,
+    geoFire: GeoFire // Add this to calculate distance
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     var mediaDuration by remember { mutableStateOf(0L) }
+
+    var userDistance by remember { mutableStateOf<Float?>(null) }
+    val hapticFeedback = LocalHapticFeedback.current
+
+    // Animation states
+    var showUpvoteAnimation by remember { mutableStateOf(false) }
+    var showDownvoteAnimation by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userProfile) {
+        userProfile?.let {
+            if (currentUserId.isNotEmpty() && it.userId.isNotEmpty()) {
+                // Fetch and calculate distance
+                calculateDistance(currentUserId, it.userId, geoFire) { distance ->
+                    userDistance = distance
+                }
+            }
+        }
+    }
+    // Gesture detector for double-tap and long-press
+    val gestureDetector = Modifier.pointerInput(Unit) {
+        detectTapGestures(
+            onDoubleTap = {
+                // Trigger haptic feedback
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                // Trigger upvote action and show animation
+                onUpvote()
+                showUpvoteAnimation = true
+            },
+            onLongPress = {
+                // Trigger haptic feedback
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                // Trigger downvote action and show animation
+                onDownvote()
+                showDownvoteAnimation = true
+
+            }
+        )
+    }
+    // Hide animation after a delay
+    LaunchedEffect(Unit) {
+        delay(1000)
+        showDownvoteAnimation = false
+    }
+
+    // Hide animation after a delay
+    LaunchedEffect(Unit) {
+        delay(1000)
+        showUpvoteAnimation = false
+    }
 
     val dynamicFontSize = when {
         screenWidth < 360.dp -> 14.sp
@@ -678,11 +770,12 @@ fun FeedItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(2.dp)),
+            .shadow(8.dp, RoundedCornerShape(2.dp))
+            .then(gestureDetector),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
         border = BorderStroke(2.dp, Color(0xFF00bf63))
     ) {
-        Column(modifier = Modifier.padding(dynamicPadding)) {
+            Column(modifier = Modifier.padding(dynamicPadding)) {
             // User Info Row with Delete/Report button
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -719,13 +812,12 @@ fun FeedItem(
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row {
-                        Text(
-                            text = "⭐ ${userProfile?.rating ?: 0.0}  🌎 Rank: ${userProfile?.am24RankingGlobal ?: 0}",
-                            color = Color.Gray,
-                            fontSize = dynamicFontSize
-                        )
-                    }
+                    RatingBar(rating = userProfile?.rating ?: 0.0)
+                    Text(
+                        text = "Vibe Score: ${userProfile?.vibepoints}",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -868,12 +960,23 @@ fun FeedItem(
             }
 
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = formatTimestamp(post.getPostTimestamp()),
-                color = Color.Gray,
-                fontSize = 10.sp
-            )
-
+            Row(
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = formatTimestamp(post.getPostTimestamp()),
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+                Spacer(modifier = Modifier.weight(1f)) // Flexible space to push the distance text to the right
+                userDistance?.let {
+                    Text(
+                        text = "Distance: ${it.roundToInt()} km",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
 
             // Sharing, Upvote/Downvote, and Comment Section
