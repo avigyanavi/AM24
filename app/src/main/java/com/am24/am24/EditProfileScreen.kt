@@ -45,8 +45,8 @@ fun EditProfileScreen(navController: NavController? = null) {
 
 // State variables for fields
     var profile by remember { mutableStateOf(Profile()) }
-    var name by remember { mutableStateOf(TextFieldValue("")) }
-    var username by remember { mutableStateOf(TextFieldValue("")) }
+    var firstname by remember { mutableStateOf(TextFieldValue("")) }
+    var lastname by remember { mutableStateOf(TextFieldValue("")) }
     var bio by remember { mutableStateOf(TextFieldValue("")) }
     val interests = remember { mutableStateListOf<Interest>() }
     var hometown by remember { mutableStateOf("") }
@@ -119,7 +119,8 @@ fun EditProfileScreen(navController: NavController? = null) {
         userRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 profile = snapshot.getValue(Profile::class.java) ?: Profile()
-                name = TextFieldValue(profile.name)
+                firstname = TextFieldValue(profile.firstName)
+                lastname = TextFieldValue(profile.lastName)
                 hometownText = profile.hometown
                 highSchoolText = profile.highSchool
                 collegeText = profile.college
@@ -138,8 +139,8 @@ fun EditProfileScreen(navController: NavController? = null) {
                     }
                 }
 
-                name = TextFieldValue(profile.name)
-                username = TextFieldValue(profile.username)
+                firstname = TextFieldValue(profile.firstName)
+                lastname = TextFieldValue(profile.lastName)
                 bio = TextFieldValue(profile.bio)
                 hometown = profile.hometown
                 highSchool = profile.highSchool
@@ -207,9 +208,9 @@ if (showEditInterestsScreen) {
                 ) {
                     // Name
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Name", color = Color(0xFF00bf63)) },
+                        value = firstname,
+                        onValueChange = { firstname = it },
+                        label = { Text("First Name", color = Color(0xFF00bf63)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -225,9 +226,9 @@ if (showEditInterestsScreen) {
 
                     // Username
                     OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Username", color = Color(0xFF00bf63)) },
+                        value = lastname,
+                        onValueChange = { lastname = it },
+                        label = { Text("Last Name", color = Color(0xFF00bf63)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -663,58 +664,521 @@ if (showEditInterestsScreen) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                        // Lifestyle Section
-                        Text("Lifestyle", color = Color(0xFF00bf63), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    // Lifestyle Section
+                    Text("Lifestyle", color = Color(0xFF00bf63), fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
-                        // Smoking Dropdown
-                        DropdownWithSearch(
-                            title = "Smoking",
-                            options = smokingOptions,
-                            selectedOption = lifestyle.smoking,
-                            onOptionSelected = { lifestyle = lifestyle.copy(smoking = it) }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Smoking Level Slider
+                    Text("Smoking Level", color = Color.White)
+                    Slider(
+                        value = lifestyle.smoking.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(smoking = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
                         )
+                    )
+                    Text(
+                        text = when (lifestyle.smoking) {
+                            in 0..2 -> "Non-Smoker"
+                            in 3..6 -> "Social Smoker"
+                            else -> "Regular Smoker"
+                        },
+                        color = Color.White
+                    )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        // Drinking Dropdown
-                        DropdownWithSearch(
-                            title = "Drinking",
-                            options = drinkingOptions,
-                            selectedOption = lifestyle.drinking,
-                            onOptionSelected = { lifestyle = lifestyle.copy(drinking = it) }
+// Drinking Level Slider
+                    Text("Drinking Level", color = Color.White)
+                    Slider(
+                        value = lifestyle.drinking.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(drinking = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
                         )
+                    )
+                    Text(
+                        text = when (lifestyle.drinking) {
+                            in 0..2 -> "Non-Drinker"
+                            in 3..6 -> "Occasional Drinker"
+                            else -> "Heavy Drinker"
+                        },
+                        color = Color.White
+                    )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        // Diet Dropdown
-                        DropdownWithSearch(
-                            title = "Diet",
-                            options = dietOptions,
-                            selectedOption = lifestyle.diet,
-                            onOptionSelected = { lifestyle = lifestyle.copy(diet = it) }
+// Alcohol Type Dropdown
+                    DropdownWithSearch(
+                        title = "Preferred Alcohol Type",
+                        options = listOf("Beer", "Wine", "Vodka", "Whiskey", "None"),
+                        selectedOption = lifestyle.alcoholType,
+                        onOptionSelected = { lifestyle = lifestyle.copy(alcoholType = it) }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Cannabis Friendly Checkbox
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            lifestyle = lifestyle.copy(cannabisFriendly = !lifestyle.cannabisFriendly)
+                        }
+                    ) {
+                        Checkbox(
+                            checked = lifestyle.cannabisFriendly,
+                            onCheckedChange = { lifestyle = lifestyle.copy(cannabisFriendly = it) },
+                            colors = CheckboxDefaults.colors(checkmarkColor = Color(0xFF00bf63))
                         )
+                        Text("Cannabis Friendly", color = Color.White)
+                    }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        // Sleep Cycle Dropdown
-                        DropdownWithSearch(
-                            title = "Sleep Cycle",
-                            options = sleepCycleOptions,
-                            selectedOption = lifestyle.sleepCycle,
-                            onOptionSelected = { lifestyle = lifestyle.copy(sleepCycle = it) }
+// Indoorsy to Outdoorsy Slider
+                    Text("Indoorsy to Outdoorsy", color = Color.White)
+                    Slider(
+                        value = lifestyle.indoorsyToOutdoorsy.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(indoorsyToOutdoorsy = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
                         )
+                    )
+                    Text(
+                        text = when (lifestyle.indoorsyToOutdoorsy) {
+                            in 0..2 -> "Homebody"
+                            in 3..6 -> "Balanced"
+                            else -> "Outdoorsy"
+                        },
+                        color = Color.White
+                    )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        // Work-Life Balance Dropdown
-                        DropdownWithSearch(
-                            title = "Work-Life Balance",
-                            options = workLifeBalanceOptions,
-                            selectedOption = lifestyle.workLifeBalance,
-                            onOptionSelected = { lifestyle = lifestyle.copy(workLifeBalance = it) }
+// Social Butterfly Slider
+                    Text("Social Butterfly", color = Color.White)
+                    Slider(
+                        value = lifestyle.socialButterfly.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(socialButterfly = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
                         )
+                    )
+                    Text(
+                        text = when (lifestyle.socialButterfly) {
+                            in 0..2 -> "Introverted"
+                            in 3..6 -> "Ambivert"
+                            else -> "Extroverted"
+                        },
+                        color = Color.White
+                    )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Diet Dropdown
+                    DropdownWithSearch(
+                        title = "Diet",
+                        options = listOf("Vegan", "Vegetarian", "Non-Vegetarian", "Keto", "Paleo"),
+                        selectedOption = lifestyle.diet,
+                        onOptionSelected = { lifestyle = lifestyle.copy(diet = it) }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Sleep Cycle Slider
+                    Text("Sleep Cycle", color = Color.White)
+                    Slider(
+                        value = lifestyle.sleepCycle.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(sleepCycle = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.sleepCycle) {
+                            in 0..2 -> "Early Riser"
+                            in 3..6 -> "Balanced"
+                            else -> "Night Owl"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Work-Life Balance Slider
+                    Text("Work-Life Balance", color = Color.White)
+                    Slider(
+                        value = lifestyle.workLifeBalance.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(workLifeBalance = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.workLifeBalance) {
+                            in 0..2 -> "Workaholic"
+                            in 3..6 -> "Balanced"
+                            else -> "Relaxed"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Exercise Frequency Slider
+                    Text("Exercise Frequency", color = Color.White)
+                    Slider(
+                        value = lifestyle.exerciseFrequency.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(exerciseFrequency = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.exerciseFrequency) {
+                            in 0..2 -> "Never Exercises"
+                            in 3..6 -> "Occasionally Exercises"
+                            else -> "Exercises Daily"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Pet Friendly Checkbox
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            lifestyle = lifestyle.copy(petFriendly = !lifestyle.petFriendly)
+                        }
+                    ) {
+                        Checkbox(
+                            checked = lifestyle.petFriendly,
+                            onCheckedChange = { lifestyle = lifestyle.copy(petFriendly = it) },
+                            colors = CheckboxDefaults.colors(checkmarkColor = Color(0xFF00bf63))
+                        )
+                        Text("Pet Friendly", color = Color.White)
+                    }
+                    // Family-Oriented Slider
+                    Text("Family Oriented", color = Color.White)
+                    Slider(
+                        value = lifestyle.familyOriented.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(familyOriented = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.familyOriented) {
+                            in 0..2 -> "Independent"
+                            in 3..6 -> "Balanced"
+                            else -> "Family-Oriented"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Intellectual Slider
+                    Text("Intellectual", color = Color.White)
+                    Slider(
+                        value = lifestyle.intellectual.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(intellectual = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.intellectual) {
+                            in 0..2 -> "Casual"
+                            in 3..6 -> "Inquisitive"
+                            else -> "Intellectual"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Creative/Artistic Slider
+                    Text("Creative/Artistic", color = Color.White)
+                    Slider(
+                        value = lifestyle.creativeArtistic.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(creativeArtistic = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.creativeArtistic) {
+                            in 0..2 -> "Practical"
+                            in 3..6 -> "Occasionally Creative"
+                            else -> "Artistic"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Health/Fitness Enthusiast Slider
+                    Text("Health/Fitness Enthusiast", color = Color.White)
+                    Slider(
+                        value = lifestyle.healthFitnessEnthusiast.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(healthFitnessEnthusiast = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.healthFitnessEnthusiast) {
+                            in 0..2 -> "Occasional"
+                            in 3..6 -> "Moderate"
+                            else -> "Dedicated"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Spiritual/Mindful Slider
+                    Text("Spiritual/Mindful", color = Color.White)
+                    Slider(
+                        value = lifestyle.spiritualMindful.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(spiritualMindful = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.spiritualMindful) {
+                            in 0..2 -> "Non-Spiritual"
+                            in 3..6 -> "Occasionally Mindful"
+                            else -> "Deeply Mindful"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Humorous/Easy-Going Slider
+                    Text("Humorous/Easy-Going", color = Color.White)
+                    Slider(
+                        value = lifestyle.humorousEasyGoing.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(humorousEasyGoing = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.humorousEasyGoing) {
+                            in 0..2 -> "Serious"
+                            in 3..6 -> "Balanced"
+                            else -> "Humorous"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Professional/Ambitious Slider
+                    Text("Professional/Ambitious", color = Color.White)
+                    Slider(
+                        value = lifestyle.professionalAmbitious.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(professionalAmbitious = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.professionalAmbitious) {
+                            in 0..2 -> "Relaxed"
+                            in 3..6 -> "Balanced"
+                            else -> "Ambitious"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Environmentally Conscious Slider
+                    Text("Environmentally Conscious", color = Color.White)
+                    Slider(
+                        value = lifestyle.environmentallyConscious.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(environmentallyConscious = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.environmentallyConscious) {
+                            in 0..2 -> "Not Conscious"
+                            in 3..6 -> "Occasionally Conscious"
+                            else -> "Eco-Conscious"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Cultural Heritage-Oriented Slider
+                    Text("Cultural Heritage-Oriented", color = Color.White)
+                    Slider(
+                        value = lifestyle.culturalHeritageOriented.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(culturalHeritageOriented = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.culturalHeritageOriented) {
+                            in 0..2 -> "Open-Minded"
+                            in 3..6 -> "Balanced"
+                            else -> "Culturally Rooted"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Foodie/Culinary Enthusiast Slider
+                    Text("Foodie/Culinary Enthusiast", color = Color.White)
+                    Slider(
+                        value = lifestyle.foodieCulinaryEnthusiast.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(foodieCulinaryEnthusiast = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.foodieCulinaryEnthusiast) {
+                            in 0..2 -> "Basic"
+                            in 3..6 -> "Moderate"
+                            else -> "Food Enthusiast"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Urban Wanderer Slider
+                    Text("Urban Wanderer", color = Color.White)
+                    Slider(
+                        value = lifestyle.urbanWanderer.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(urbanWanderer = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.urbanWanderer) {
+                            in 0..2 -> "Homebody"
+                            in 3..6 -> "Balanced"
+                            else -> "City Explorer"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Politically Aware Slider
+                    Text("Politically Aware", color = Color.White)
+                    Slider(
+                        value = lifestyle.politicallyAware.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(politicallyAware = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.politicallyAware) {
+                            in 0..2 -> "Not Interested"
+                            in 3..6 -> "Aware"
+                            else -> "Engaged"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+// Community-Oriented Slider
+                    Text("Community-Oriented", color = Color.White)
+                    Slider(
+                        value = lifestyle.communityOriented.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(communityOriented = it.toInt()) },
+                        valueRange = 0f..10f,
+                        steps = 9,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00bf63),
+                            activeTrackColor = Color(0xFF00bf63)
+                        )
+                    )
+                    Text(
+                        text = when (lifestyle.communityOriented) {
+                            in 0..2 -> "Individualist"
+                            in 3..6 -> "Balanced"
+                            else -> "Community-Oriented"
+                        },
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Interests
                     Button(
@@ -738,8 +1202,8 @@ if (showEditInterestsScreen) {
                         onClick = {
                             scope.launch {
                                 saveProfileData(
-                                    name.text,
-                                    username.text,
+                                    firstname.text,
+                                    lastname.text,
                                     bio.text,
                                     if (customHometown) hometownText else hometown,
                                     if (customHighSchool) highSchoolText else highSchool,
@@ -775,8 +1239,8 @@ if (showEditInterestsScreen) {
 }
 
 private suspend fun saveProfileData(
-    name: String,
-    username: String,
+    firstname: String,
+    lastname: String,
     bio: String,
     hometown: String,
     highSchool: String,
@@ -793,8 +1257,8 @@ private suspend fun saveProfileData(
     lifestyle: Lifestyle,
 ) {
     val updates = mapOf(
-        "name" to name,
-        "username" to username,
+        "firstname" to firstname,
+        "lastname" to lastname,
         "bio" to bio,
         "hometown" to hometown,
         "highSchool" to highSchool,

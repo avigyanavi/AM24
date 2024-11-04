@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -124,7 +126,7 @@ fun OtherUserProfileContent(
 
         // Name, Age, Rating, Composite Score
         Text(
-            text = "${profile.value.username}, ${calculateAge(profile.value.dob)}",
+            text = "${profile.value.firstName} ${profile.value.lastName}, ${calculateAge(profile.value.dob)}",
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             color = Color.White
@@ -272,16 +274,16 @@ fun RatingBar(rating: Double) {
     ) {
         Text(
             text = String.format("%.1f", rating),
-            color = Color.Yellow,
+            color = Color(0xFFFF4500),
             fontWeight = FontWeight.Bold,
-            fontSize = 20.sp
+            fontSize = 14.sp
         )
         Spacer(modifier = Modifier.width(4.dp))
         repeat(5) { index ->
             Icon(
                 imageVector = if (index < rating.toInt()) Icons.Default.Star else Icons.Default.StarBorder,
                 contentDescription = null,
-                tint = Color.Yellow
+                tint = Color(0xFFFF4500)
             )
         }
     }
@@ -294,7 +296,7 @@ fun ProfileDetailsSection(profile: Profile) {
     FeedItemCard {
         Column {
             ProfileText(label = "Gender", value = profile.gender)
-            ProfileText(label = "Username", value = profile.username)
+            ProfileText(label = "Username", value = profile.firstName)
             ProfileText(label = "Community", value = profile.community)
             ProfileText(label = "Religion", value = profile.religion)
             ProfileText(label = "Zodiac", value = deriveZodiac(profile.dob))
@@ -302,7 +304,7 @@ fun ProfileDetailsSection(profile: Profile) {
             ProfileText(label = "College", value = profile.college.takeIf { it.isNotBlank() } ?: "N/A")
             ProfileText(label = "Post-Graduation", value = profile.postGraduation.takeIf { it!!.isNotBlank() } ?: "N/A")
             ProfileText(label = "Job Role", value = profile.jobRole.takeIf { it.isNotBlank() } ?: "N/A")
-            ProfileText(label = "KupidX Score", value = String.format("%.1f", profile.rating))
+            ProfileText(label = "Total Rating", value = String.format("%.1f", profile.rating))
         }
     }
 }
@@ -324,7 +326,7 @@ fun ProfileBioVoiceSection(profile: Profile) {
 
             // Voice Note Playback Section
             profile.voiceNoteUrl?.let { voiceUrl ->
-                Text("Voice Bio:", color = Color(0xFF00bf63))
+                Text("Voice Bio:", color = Color.White)
 
                 // Playback button and downloading indicator
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -363,7 +365,7 @@ fun ProfileBioVoiceSection(profile: Profile) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = "Play/Pause",
-                                tint = Color(0xFF00bf63),
+                                tint = Color(0xFFFF4500),
                                 modifier = Modifier.size(48.dp)
                             )
                         }
@@ -374,7 +376,7 @@ fun ProfileBioVoiceSection(profile: Profile) {
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 16.dp),
-                        color = Color(0xFF00bf63),
+                        color =Color(0xFFFF4500),
                         trackColor = Color.Gray
                     )
                 }
@@ -442,18 +444,140 @@ fun ProfileLifestyleSection(profile: Profile) {
     FeedItemCard {
         Column {
             profile.lifestyle?.let { lifestyle ->
-                ProfileText(label = "Smoking", value = lifestyle.smoking)
-                ProfileText(label = "Drinking", value = lifestyle.drinking)
-                ProfileText(label = "Alcohol Type", value = lifestyle.alcoholType)
+
+                ProfileText(label = "Smoking", value = when (lifestyle.smoking) {
+                    in 0..2 -> "Non-Smoker"
+                    in 3..6 -> "Social Smoker"
+                    else -> "Regular Smoker"
+                })
+
+                ProfileText(label = "Drinking", value = when (lifestyle.drinking) {
+                    in 0..2 -> "Non-Drinker"
+                    in 3..6 -> "Occasional Drinker"
+                    else -> "Heavy Drinker"
+                })
+
+                ProfileText(label = "Alcohol Type", value = lifestyle.alcoholType.ifBlank { "None" })
+
                 ProfileText(label = "Cannabis Friendly", value = if (lifestyle.cannabisFriendly) "Yes" else "No")
-                ProfileText(label = "Laid Back", value = if (lifestyle.laidBack) "Yes" else "No")
-                ProfileText(label = "Social Butterfly", value = if (lifestyle.socialButterfly) "Yes" else "No")
+
+                ProfileText(label = "Indoorsy to Outdoorsy", value = when (lifestyle.indoorsyToOutdoorsy) {
+                    in 0..2 -> "Homebody"
+                    in 3..6 -> "Balanced"
+                    else -> "Outdoorsy"
+                })
+
+                ProfileText(label = "Social Butterfly", value = when (lifestyle.socialButterfly) {
+                    in 0..2 -> "Introverted"
+                    in 3..6 -> "Ambivert"
+                    else -> "Extroverted"
+                })
+
                 ProfileText(label = "Diet", value = lifestyle.diet)
-                ProfileText(label = "Sleep Cycle", value = lifestyle.sleepCycle)
-                ProfileText(label = "Work-Life Balance", value = lifestyle.workLifeBalance)
-                ProfileText(label = "Exercise Frequency", value = lifestyle.exerciseFrequency)
-                ProfileText(label = "Adventurous", value = if (lifestyle.adventurous) "Yes" else "No")
+
+                ProfileText(label = "Sleep Cycle", value = when (lifestyle.sleepCycle) {
+                    in 0..2 -> "Early Riser"
+                    in 3..6 -> "Balanced"
+                    else -> "Night Owl"
+                })
+
+                ProfileText(label = "Work-Life Balance", value = when (lifestyle.workLifeBalance) {
+                    in 0..2 -> "Workaholic"
+                    in 3..6 -> "Balanced"
+                    else -> "Relaxed"
+                })
+
+                ProfileText(label = "Exercise Frequency", value = when (lifestyle.exerciseFrequency) {
+                    in 0..2 -> "Never Exercises"
+                    in 3..6 -> "Occasionally Exercises"
+                    else -> "Exercises Daily"
+                })
+
+                ProfileText(label = "Adventurous", value = when (lifestyle.adventurous) {
+                    in 0..2 -> "Cautious"
+                    in 3..6 -> "Moderate"
+                    else -> "Adventurous"
+                })
+
                 ProfileText(label = "Pet Friendly", value = if (lifestyle.petFriendly) "Yes" else "No")
+
+                ProfileText(label = "Family Oriented", value = when (lifestyle.familyOriented) {
+                    in 0..2 -> "Independent"
+                    in 3..6 -> "Balanced"
+                    else -> "Family-Oriented"
+                })
+
+                ProfileText(label = "Intellectual", value = when (lifestyle.intellectual) {
+                    in 0..2 -> "Casual"
+                    in 3..6 -> "Inquisitive"
+                    else -> "Intellectual"
+                })
+
+                ProfileText(label = "Creative/Artistic", value = when (lifestyle.creativeArtistic) {
+                    in 0..2 -> "Practical"
+                    in 3..6 -> "Occasionally Creative"
+                    else -> "Artistic"
+                })
+
+                ProfileText(label = "Health/Fitness Enthusiast", value = when (lifestyle.healthFitnessEnthusiast) {
+                    in 0..2 -> "Occasional"
+                    in 3..6 -> "Moderate"
+                    else -> "Dedicated"
+                })
+
+                ProfileText(label = "Spiritual/Mindful", value = when (lifestyle.spiritualMindful) {
+                    in 0..2 -> "Non-Spiritual"
+                    in 3..6 -> "Occasionally Mindful"
+                    else -> "Deeply Mindful"
+                })
+
+                ProfileText(label = "Humorous/Easy-Going", value = when (lifestyle.humorousEasyGoing) {
+                    in 0..2 -> "Serious"
+                    in 3..6 -> "Balanced"
+                    else -> "Humorous"
+                })
+
+                ProfileText(label = "Professional/Ambitious", value = when (lifestyle.professionalAmbitious) {
+                    in 0..2 -> "Relaxed"
+                    in 3..6 -> "Balanced"
+                    else -> "Ambitious"
+                })
+
+                ProfileText(label = "Environmentally Conscious", value = when (lifestyle.environmentallyConscious) {
+                    in 0..2 -> "Not Conscious"
+                    in 3..6 -> "Occasionally Conscious"
+                    else -> "Eco-Conscious"
+                })
+
+                ProfileText(label = "Cultural Heritage-Oriented", value = when (lifestyle.culturalHeritageOriented) {
+                    in 0..2 -> "Open-Minded"
+                    in 3..6 -> "Balanced"
+                    else -> "Culturally Rooted"
+                })
+
+                ProfileText(label = "Foodie/Culinary Enthusiast", value = when (lifestyle.foodieCulinaryEnthusiast) {
+                    in 0..2 -> "Basic"
+                    in 3..6 -> "Moderate"
+                    else -> "Food Enthusiast"
+                })
+
+                ProfileText(label = "Urban Wanderer", value = when (lifestyle.urbanWanderer) {
+                    in 0..2 -> "Homebody"
+                    in 3..6 -> "Balanced"
+                    else -> "City Explorer"
+                })
+
+                ProfileText(label = "Politically Aware", value = when (lifestyle.politicallyAware) {
+                    in 0..2 -> "Not Interested"
+                    in 3..6 -> "Aware"
+                    else -> "Engaged"
+                })
+
+                ProfileText(label = "Community-Oriented", value = when (lifestyle.communityOriented) {
+                    in 0..2 -> "Individualist"
+                    in 3..6 -> "Balanced"
+                    else -> "Community-Oriented"
+                })
             }
 
             ProfileText(label = "Looking For", value = profile.lookingFor.takeIf { it.isNotBlank() } ?: "N/A")
@@ -547,7 +671,7 @@ fun FeedItemCard(content: @Composable () -> Unit) {
             .padding(8.dp)
             .background(Color.Black),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
-        border = BorderStroke(2.dp, Color(0xFF00bf63)),
+        border = BorderStroke(2.dp, Color(0xFFFF00D1)),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(
@@ -560,17 +684,17 @@ fun FeedItemCard(content: @Composable () -> Unit) {
 
 @Composable
 fun ProfileActionsSection(
-    userId: String,
+    currentUserId: String,
     profile: Profile,
     profileViewModel: ProfileViewModel
 ) {
     val friendStatus = remember { mutableStateOf("not_requested") }
     val dynamicUsername = remember { mutableStateOf("") }
 
-    // Fetch the friend request status on each visit to this screen
+    // Fetch the friend request status
     LaunchedEffect(profile.userId) {
         profileViewModel.getFriendRequestStatus(
-            currentUserId = userId,
+            currentUserId = currentUserId,
             targetUserId = profile.userId,
             onStatusRetrieved = { status ->
                 friendStatus.value = status
@@ -582,27 +706,28 @@ fun ProfileActionsSection(
     }
 
     // Fetch the current user's username
-    LaunchedEffect(userId) {
+    LaunchedEffect(currentUserId) {
         profileViewModel.fetchUsernameById(
-            userId,
+            currentUserId,
             onSuccess = { username -> dynamicUsername.value = username },
             onFailure = { dynamicUsername.value = "Unknown" }
         )
     }
 
+    // Actions Row
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        // Handle friend status changes
+        // Friend Request Button
         IconButton(
             onClick = {
                 when (friendStatus.value) {
                     "not_requested" -> {
                         profileViewModel.sendFriendRequest(
-                            currentUserId = userId,
+                            currentUserId = currentUserId,
                             targetUserId = profile.userId,
                             onSuccess = {
                                 friendStatus.value = "requested"
@@ -612,7 +737,7 @@ fun ProfileActionsSection(
                     }
                     "requested" -> {
                         profileViewModel.rejectFriendRequest(
-                            currentUserId = userId,
+                            currentUserId = currentUserId,
                             requesterId = profile.userId,
                             onSuccess = {
                                 friendStatus.value = "not_requested"
@@ -622,7 +747,7 @@ fun ProfileActionsSection(
                     }
                     "accepted" -> {
                         profileViewModel.removeFriend(
-                            currentUserId = userId,
+                            currentUserId = currentUserId,
                             targetUserId = profile.userId,
                             onSuccess = {
                                 friendStatus.value = "not_requested"
@@ -639,7 +764,7 @@ fun ProfileActionsSection(
                     when (friendStatus.value) {
                         "accepted" -> Color.Red
                         "requested" -> Color.Gray
-                        else -> Color(0xFF00bf63)
+                        else -> Color(0xFFFF00D1)
                     }
                 )
         ) {
@@ -658,48 +783,12 @@ fun ProfileActionsSection(
             )
         }
 
-        // Upvote button
-        IconButton(
-            onClick = {
-                profileViewModel.upvoteProfile(
-                    profileId = profile.userId,
-                    userId = userId,
-                    onSuccess = { /* Handle success */ },
-                    onFailure = { /* Handle error */ }
-                )
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.ThumbUp,
-                contentDescription = "Upvote",
-                tint = if (profile.profileUpvotes.contains(userId)) Color.Green else Color.White
-            )
-        }
-
-        // Downvote button
-        IconButton(
-            onClick = {
-                profileViewModel.downvoteProfile(
-                    profileId = profile.userId,
-                    userId = userId,
-                    onSuccess = { /* Handle success */ },
-                    onFailure = { /* Handle error */ }
-                )
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.ThumbDown,
-                contentDescription = "Downvote",
-                tint = if (profile.profileDownvotes.contains(userId)) Color.Red else Color.White
-            )
-        }
-
-        // Report profile button
+        // Report Profile Button
         IconButton(
             onClick = {
                 profileViewModel.reportProfile(
                     profileId = profile.userId,
-                    reporterId = userId,
+                    reporterId = currentUserId,
                     onSuccess = { /* Handle success */ },
                     onFailure = { /* Handle error */ }
                 )
@@ -712,11 +801,11 @@ fun ProfileActionsSection(
             )
         }
 
-        // Block profile button
+        // Block Profile Button
         IconButton(
             onClick = {
                 profileViewModel.blockProfile(
-                    currentUserId = userId,
+                    currentUserId = currentUserId,
                     targetUserId = profile.userId,
                     onSuccess = { /* Handle success */ },
                     onFailure = { /* Handle error */ }
@@ -730,7 +819,133 @@ fun ProfileActionsSection(
             )
         }
     }
+
+    // Display User Review Section if users are friends or matches
+    if (friendStatus.value == "accepted") {
+        Spacer(modifier = Modifier.height(8.dp))
+        UserReviewSection(
+            currentUserId = currentUserId,
+            targetUserId = profile.userId,
+            profileViewModel = profileViewModel
+        )
+    }
 }
+
+@Composable
+fun UserReviewSection(
+    currentUserId: String,
+    targetUserId: String,
+    profileViewModel: ProfileViewModel
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var rating by remember { mutableStateOf(0.0) }
+    var inputRatingText by remember { mutableStateOf("") }
+
+    // Load existing rating
+    LaunchedEffect(targetUserId) {
+        profileViewModel.getUserReview(
+            currentUserId = currentUserId,
+            targetUserId = targetUserId,
+            onSuccess = { existingRating ->
+                rating = existingRating
+                inputRatingText = existingRating.toString()
+            },
+            onFailure = {
+                // Handle error if needed
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Text(
+            text = "Your review of this user:",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        // Star Rating Bar
+        Row {
+            (1..5).forEach { starCount ->
+                Icon(
+                    imageVector = if (rating >= starCount) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = null,
+                    tint = Color(0xFFFF4500),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clickable {
+                            rating = starCount.toDouble()
+                            inputRatingText = rating.toString()
+                            // Save rating
+                            profileViewModel.submitUserReview(
+                                currentUserId = currentUserId,
+                                targetUserId = targetUserId,
+                                rating = rating,
+                                onSuccess = {
+                                    Toast.makeText(context, "Rating submitted", Toast.LENGTH_SHORT).show()
+                                },
+                                onFailure = {
+                                    Toast.makeText(context, "Failed to submit rating", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        // Input Field for Double Value
+        OutlinedTextField(
+            value = inputRatingText,
+            onValueChange = { newValue ->
+                inputRatingText = newValue
+            },
+            label = { Text("Enter rating (0.0 - 5.0)", color = Color.White) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            textStyle = LocalTextStyle.current.copy(color = Color.White),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFFF4500),
+                unfocusedBorderColor = Color.Gray,
+                cursorColor = Color(0xFFFF4500)
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                val inputRating = inputRatingText.toDoubleOrNull()
+                if (inputRating != null && inputRating in 0.0..5.0) {
+                    rating = inputRating
+                    profileViewModel.submitUserReview(
+                        currentUserId = currentUserId,
+                        targetUserId = targetUserId,
+                        rating = rating,
+                        onSuccess = {
+                            Toast.makeText(context, "Rating submitted", Toast.LENGTH_SHORT).show()
+                        },
+                        onFailure = {
+                            Toast.makeText(context, "Failed to submit rating", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                } else {
+                    Toast.makeText(context, "Please enter a valid rating between 0.0 and 5.0", Toast.LENGTH_SHORT).show()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500)),
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(text = "Submit", color = Color.White)
+        }
+    }
+}
+
 
 
 

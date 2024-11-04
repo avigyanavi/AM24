@@ -70,7 +70,7 @@ fun ProfileScreenContent(
                 .fillMaxSize()
                 .padding(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Black),
-            border = BorderStroke(3.dp, getLevelBorderColor(profile.value.level))
+            border = BorderStroke(3.dp, getLevelBorderColor(profile.value.rating))
         ) {
             Column(
                 modifier = Modifier
@@ -147,7 +147,7 @@ fun ProfileScreenContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${profile.value.username}, ${calculateAge(profile.value.dob)}",
+                        text = "${profile.value.firstName} ${profile.value.lastName}, ${calculateAge(profile.value.dob)}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
                         color = Color.White
@@ -243,7 +243,7 @@ fun UserInfoSectionBasic(profile: Profile) {
         horizontalAlignment = Alignment.Start
     ) {
         // Name, Gender, Bio, and other details
-        ProfileText(label = "Name", value = profile.name)
+        ProfileText(label = "Name", value = (profile.firstName + " " + profile.lastName))
         Spacer(modifier = Modifier.height(8.dp))
 
         ProfileText(label = "Gender", value = profile.gender)
@@ -352,30 +352,29 @@ fun ProfileText(label: String, value: String) {
         Text(
             text = "$label:",
             fontSize = 16.sp,
-            color = Color(0xFF00bf63),
+            color = Color.White,
             fontWeight = FontWeight.Normal
         )
         Text(
             text = value,
             fontSize = 24.sp,
-            color = Color.White,
+            color = Color(0xFFFF4500),
             modifier = Modifier.padding(start = 15.dp)
         )
     }
 }
 
-fun getLevelBorderColor(level: Int): Brush {
-    return when (level) {
-        1 -> Brush.linearGradient(listOf(Color(0xFF00bf63), Color.Cyan))
-        2 -> Brush.linearGradient(listOf(Color.Cyan, Color.Blue))
-        3 -> Brush.linearGradient(listOf(Color.Blue, Color.White))
-        4 -> Brush.linearGradient(listOf(Color.White, Color.Magenta))
-        5 -> Brush.linearGradient(listOf(Color.Magenta, Color.DarkGray))
-        6 -> Brush.linearGradient(listOf(Color.DarkGray, Color(0xFFFF4500)))
-        7 -> Brush.linearGradient(listOf(Color(0xFFFF4500), Color.Yellow)) // OrangeRed to Yellow gradient
-        else -> Brush.linearGradient(listOf(Color.Gray, Color.DarkGray))
+fun getLevelBorderColor(rating: Double): Color {
+    return when {
+        rating in 0.0..1.0 -> Color(0xFFFFBE1A)    // 0 to 1 Rating
+        rating in 1.1..2.0 -> Color(0xFFFFA500)    // 1.1 to 2.0 Rating
+        rating in 2.1..3.0 -> Color(0xFFE68C00)    // 2.1 to 3.0 Rating
+        rating in 3.1..4.0 -> Color(0xFFE68C00)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
+        rating in 4.1..5.0 -> Color(0xFFF23800)    // 4.1 to 5.0 Rating
+        else -> Color.Gray                         // Default color if rating is out of range
     }
 }
+
 
 fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())

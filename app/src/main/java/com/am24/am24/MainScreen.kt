@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.sp
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
     val items = listOf(
         BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
-        BottomNavItem("Feed", Icons.Default.Home, "home"),
         BottomNavItem("Profile", Icons.Default.Person, "profile"),
+        BottomNavItem("Feed", Icons.Default.Home, "home"),
         BottomNavItem("Dating", Icons.Default.Favorite, "dating"),
         BottomNavItem("Settings", Icons.Default.Settings, "settings")
     )
@@ -127,7 +127,7 @@ fun TopNavBar(
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "People Who Like Me",
-                    tint = if (isPeopleWhoLikeMeSelected) Color(0xFF00bf63) else Color.White,
+                    tint = if (isPeopleWhoLikeMeSelected) Color(0xFFFF4500) else Color.White,
                     modifier = Modifier.size(18.dp) // Slightly smaller size for better alignment
                 )
             }
@@ -156,7 +156,7 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications",
-                        tint = if (isNotificationsSelected) Color(0xFF00bf63) else Color.White,
+                        tint = if (isNotificationsSelected) Color(0xFFFF4500)else Color.White,
                         modifier = Modifier.size(18.dp) // Smaller icon size for balance
                     )
                 }
@@ -167,7 +167,7 @@ fun TopNavBar(
                 Icon(
                     imageVector = Icons.Default.Bookmark,
                     contentDescription = "Saved Posts",
-                    tint = if (isSavedPostsSelected) Color(0xFF00bf63) else Color.White,
+                    tint = if (isSavedPostsSelected) Color(0xFFFF4500) else Color.White,
                     modifier = Modifier.size(18.dp) // Smaller icon size for balance
                 )
             }
@@ -194,6 +194,7 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
     NavigationBar(containerColor = Color.Black) {
         items.forEach { item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+
             NavigationBarItem(
                 selected = selected,
                 onClick = {
@@ -207,19 +208,19 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
-                        tint = if (selected) Color(0xFF00bf63) else Color.Gray
+                        tint = if (selected) Color(0xFFFF4500) else Color.Gray
                     )
                 },
                 label = {
                     Text(
                         text = item.label,
-                        color = if (selected) Color(0xFF00bf63) else Color.Gray
+                        color = if (selected) Color(0xFFFF4500) else Color.Gray
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFF00bf63),
+                    selectedIconColor = Color(0xFFFF4500),
                     unselectedIconColor = Color.Gray,
-                    selectedTextColor = Color(0xFF00bf63),
+                    selectedTextColor = Color(0xFFFF4500),
                     unselectedTextColor = Color.Gray,
                     indicatorColor = Color.DarkGray
                 )

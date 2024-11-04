@@ -26,3 +26,10 @@ class Notification(
     @get:PropertyName("isRead") @set:PropertyName("isRead")
     var isRead by mutableStateOf(isRead)
 }
+
+data class FilterSettings(
+    val filterOption: String = "Global",
+    val filterValue: String = "",
+    val searchQuery: String = "",
+    val sortOption: String = "None"
+)

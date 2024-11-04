@@ -4,12 +4,16 @@
 
 package com.am24.am24
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -41,9 +45,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
 import com.firebase.geofire.GeoFire
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -58,20 +65,22 @@ import kotlin.math.roundToInt
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     val postViewModel: PostViewModel = viewModel()
-    val posts by postViewModel.posts.collectAsState()
-    val userProfiles by postViewModel.userProfiles.collectAsState()
 
-    var filterOption by remember { mutableStateOf("recent") }
-    var filterValue by remember { mutableStateOf("") }
-    var searchQuery by remember { mutableStateOf("") }
-    var sortOption by remember { mutableStateOf("None") }
-    var showSortMenu by remember { mutableStateOf(false) }
+    // Collect filteredPosts instead of posts
+    val posts by postViewModel.filteredPosts.collectAsState()
+    val userProfiles by postViewModel.userProfiles.collectAsState()
+    val filterSettings by postViewModel.filterSettings.collectAsState()
 
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
+    // Set current user ID in ViewModel
+    LaunchedEffect(userId) {
+        postViewModel.setCurrentUserId(userId)
+    }
+
     var userProfile by remember { mutableStateOf<Profile?>(null) }
 
-    //geofire reference
+    // GeoFire reference
     val geoFireRef = FirebaseDatabase.getInstance().getReference("geoFireLocations")
     val geoFire = remember { GeoFire(geoFireRef) } // Initialize GeoFire with the correct Firebase reference
 
@@ -82,7 +91,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
                 userRef.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        // Switch back to Main dispatcher to update UI
                         snapshot.getValue(Profile::class.java)?.let { fetchedProfile ->
                             userProfile = fetchedProfile
                         }
@@ -96,44 +104,35 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
         }
     }
 
-
-    // Fetch posts when filters change
-    LaunchedEffect(filterOption, filterValue, searchQuery, sortOption) {
-        postViewModel.fetchPosts(filterOption, filterValue, searchQuery, sortOption, userId)
-    }
-
     HomeScreenContent(
         navController = navController,
         modifier = modifier,
-        posts = posts,
+        posts = posts, // Use filteredPosts here
         postViewModel = postViewModel,
         userProfiles = userProfiles,
-        filterOption = filterOption,
-        filterValue = filterValue,
-        searchQuery = searchQuery,
+        filterOption = filterSettings.filterOption,
+        filterValue = filterSettings.filterValue,
+        searchQuery = filterSettings.searchQuery,
         onFilterOptionChanged = { newOption ->
-            filterOption = newOption
-            filterValue = ""
+            postViewModel.setFilterOption(newOption)
         },
         onFilterValueChanged = { newValue ->
-            filterValue = newValue
+            postViewModel.setFilterValue(newValue)
         },
         onSearchQueryChanged = { newQuery ->
-            searchQuery = newQuery
+            postViewModel.setSearchQuery(newQuery)
         },
         userId = userId,
         userProfile = userProfile,
-        sortOption = sortOption, // pass sortOption
+        sortOption = filterSettings.sortOption,
         onSortOptionChanged = { newSortOption ->
-            sortOption = newSortOption
-        },
-        showSortMenu = showSortMenu, // pass showSortMenu
-        onShowSortMenuChange = { newShowSortMenuState ->
-            showSortMenu = newShowSortMenuState
+            postViewModel.setSortOption(newSortOption)
         },
         geoFire = geoFire,
     )
 }
+
+
 
 @Composable
 fun HomeScreenContent(
@@ -150,15 +149,14 @@ fun HomeScreenContent(
     onSearchQueryChanged: (String) -> Unit,
     userId: String?,
     userProfile: Profile?,
-    sortOption: String, // Add sortOption parameter
-    onSortOptionChanged: (String) -> Unit, // Add handler for sort option change
-    showSortMenu: Boolean, // Add showSortMenu parameter
-    onShowSortMenuChange: (Boolean) -> Unit, // Add handler for toggling sort menu visibility
+    sortOption: String,
+    onSortOptionChanged: (String) -> Unit,
     geoFire: GeoFire
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
+    var isMinimized by remember { mutableStateOf(true) }
     val focusManager = LocalFocusManager.current
-
 
     Column(
         modifier = Modifier
@@ -171,247 +169,353 @@ fun HomeScreenContent(
                 focusManager.clearFocus()
             }
     ) {
-        // Search Bar
-        CustomSearchBar(
-            query = searchQuery,
-            onQueryChange = onSearchQueryChanged,
-            onSearch = {
-                // Do nothing, fetchPosts will be called via LaunchedEffect
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Create Post and Filter Section
+        // Minimize Button Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Create Post Button (Slightly smaller)
-            Button(
-                onClick = { navController.navigate("create_post") },
-                border = BorderStroke(1.dp, Color(0xFF00bf63)),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                modifier = Modifier
-                    .weight(0.9f)
-                    .padding(end = 8.dp)
+            IconButton(
+                onClick = { isMinimized = !isMinimized }, // Toggle state
+                modifier = Modifier.padding(end = 8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Create Post",
-                    tint = Color(0xFF00bf63)
+                    imageVector = if (isMinimized) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                    contentDescription = "Minimize or Expand",
+                    tint = Color(0xFFFF4500)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = "Post", color = Color(0xFF00bf63))
             }
-
-            // Filter Button
-            Box {
-                Button(
-                    onClick = { showFilterMenu = !showFilterMenu },
-                    border = BorderStroke(1.dp, Color(0xFF00bf63)),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                ) {
-                    Text(
-                        text = filterOption.replaceFirstChar { it.uppercaseChar() },
-                        color = Color(0xFF00bf63)
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Filter options",
-                        tint = Color(0xFF00bf63)
-                    )
-                }
-
-                // Dropdown Menu for Filter Options
-                DropdownMenu(
-                    expanded = showFilterMenu,
-                    onDismissRequest = { showFilterMenu = false },
-                ) {
-                    val filterOptions = listOf(
-                        "recent", "my posts",
-                        "city", "age", "level", "gender", "high-school", "college"
-                    )
-                    filterOptions.filter { it != filterOption }.forEach { option ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = option.replaceFirstChar { it.uppercaseChar() },
-                                    color = Color(0xFF00bf63)
-                                )
-                            },
-                            onClick = {
-                                onFilterOptionChanged(option)
-                                showFilterMenu = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            //Sort
-            Box {// Sort Button
-                IconButton(
-                    onClick = { onShowSortMenuChange(!showSortMenu) },
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Sort,
-                        contentDescription = "Sort options",
-                        tint = Color(0xFF00bf63)
-                    )
-                }
-
-                // Sort Dropdown Menu
-                DropdownMenu(
-                    expanded = showSortMenu,
-                    onDismissRequest = { onShowSortMenuChange(false) },
-                ) {
-                    val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
-                    sortOptions.filter { it != sortOption }.forEach { option ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = option,
-                                    color = Color(0xFF00bf63)
-                                )
-                            },
-                            onClick = {
-                                onSortOptionChanged(option)
-                                onShowSortMenuChange(false) // Close menu after selection
-                            }
-                        )
-                    }
-                }
-            }
+            Text(
+                text = if (isMinimized) "Show Search, Post and Filter Row" else "Hide Search, Post and Filter Row",
+                color = Color(0xFFFF4500),
+                fontSize = 15.sp,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { isMinimized = !isMinimized } // Toggle minimize state on click
+            )
         }
 
-        // Input Field for Additional Filters
-        if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
+        // Conditionally display the search bar and create post section
+        if (!isMinimized) {
             Spacer(modifier = Modifier.height(8.dp))
-            when (filterOption) {
-                "age" -> {
-                    // Integer input field
-                    OutlinedTextField(
-                        value = filterValue,
-                        onValueChange = { newValue ->
-                            // Allow only numbers
-                            if (newValue.all { it.isDigit() }) {
-                                onFilterValueChanged(newValue)
-                            }
-                        },
-                        label = { Text("Enter Age", color = Color.White) },
-                        placeholder = { Text("e.g., 25", color = Color.Gray) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        textStyle = LocalTextStyle.current.copy(color = Color.White),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFF00bf63)
-                        ),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            // Search Bar
+            CustomSearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChanged,
+                onSearch = {
+                    // Do nothing, data updates via ViewModel
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Create Post and Filter Section
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Create Post Button
+                Button(
+                    onClick = { navController.navigate("create_post") },
+                    border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                    modifier = Modifier
+                        .weight(0.9f)
+                        .padding(end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Create Post",
+                        tint = Color(0xFFFF4500)
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "Post", color = Color(0xFFFF4500), fontSize = 14.sp)
                 }
 
-                "gender" -> {
-                    // Dropdown with options 'M', 'F', 'NB'
-                    var expanded by remember { mutableStateOf(false) }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                // Filter Button
+                Box {
+                    Button(
+                        onClick = { showFilterMenu = !showFilterMenu },
+                        border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                     ) {
-                        OutlinedTextField(
-                            value = filterValue,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Select Gender", color = Color.White) },
-                            placeholder = { Text("M/F/NB", color = Color.Gray) },
-                            modifier = Modifier.fillMaxWidth(),
-                            textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF00bf63),
-                                unfocusedBorderColor = Color.Gray,
-                                cursorColor = Color(0xFF00bf63)
-                            ),
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Dropdown",
-                                    tint = Color.White,
-                                    modifier = Modifier.clickable { expanded = true }
-                                )
-                            }
+                        Text(
+                            text = filterOption.replaceFirstChar { it.uppercaseChar() },
+                            color = Color(0xFFFF4500),
+                            fontSize = 14.sp
                         )
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            listOf("M", "F", "NB").forEach { gender ->
-                                DropdownMenuItem(
-                                    text = { Text(gender, color = Color(0xFF00bf63)) },
-                                    onClick = {
-                                        onFilterValueChanged(gender)
-                                        expanded = false
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Filter options",
+                            tint = Color(0xFFFF4500)
+                        )
+                    }
+
+                    // Dropdown Menu for Filter Options
+                    DropdownMenu(
+                        expanded = showFilterMenu,
+                        onDismissRequest = { showFilterMenu = false },
+                    ) {
+                        val filterOptions = listOf(
+                            "global", "country",
+                            "city", "my posts", "voice only", "rating", "age", "gender", "high-school", "college"
+                        )
+                        filterOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = option.replaceFirstChar { it.uppercaseChar() },
+                                        color = if (option == filterOption) Color(0xFFFFA500) else Color(0xFFFF4500)
+                                    )
+                                },
+                                onClick = {
+                                    onFilterOptionChanged(option)
+                                    onFilterValueChanged("") // Reset filter value when filter option changes
+                                    showFilterMenu = false
+                                },
+                                leadingIcon = {
+                                    if (option == filterOption) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFA500)
+                                        )
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
                 }
 
-                "level" -> {
-                    // Integer input field (1-7)
-                    OutlinedTextField(
-                        value = filterValue,
-                        onValueChange = { newValue ->
-                            // Allow only numbers between 1 and 7
-                            val intValue = newValue.toIntOrNull()
-                            if (newValue.all { it.isDigit() } && intValue in 1..7) {
-                                onFilterValueChanged(newValue)
-                            }
-                        },
-                        label = { Text("Enter Level (1-7)", color = Color.White) },
-                        placeholder = { Text("e.g., 3", color = Color.Gray) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        textStyle = LocalTextStyle.current.copy(color = Color.White),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFF00bf63)
-                        ),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-
-                else -> {
-                    // Text input field
-                    OutlinedTextField(
-                        value = filterValue,
-                        onValueChange = onFilterValueChanged,
-                        label = {
-                            Text(
-                                "Enter ${filterOption.replaceFirstChar { it.uppercaseChar() }}",
-                                color = Color.White
-                            )
-                        },
-                        placeholder = { Text("Type here", color = Color.Gray) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        textStyle = LocalTextStyle.current.copy(color = Color.White),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFF00bf63)
+                // Sort Button
+                Box {
+                    IconButton(
+                        onClick = { showSortMenu = !showSortMenu },
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sort,
+                            contentDescription = "Sort options",
+                            tint = Color(0xFFFF4500)
                         )
-                    )
+                    }
+
+                    // Sort Dropdown Menu
+                    DropdownMenu(
+                        expanded = showSortMenu,
+                        onDismissRequest = { showSortMenu = false },
+                    ) {
+                        val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
+                        sortOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = option,
+                                        color = if (option == sortOption) Color(0xFFFFA500) else Color(0xFFFF4500),
+                                        fontSize = 14.sp
+                                    )
+                                },
+                                onClick = {
+                                    onSortOptionChanged(option)
+                                    showSortMenu = false
+                                },
+                                leadingIcon = {
+                                    if (option == sortOption) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFA500)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Input Field for Additional Filters
+            if (filterOption in listOf(
+                    "city",
+                    "age",
+                    "rating",
+                    "gender",
+                    "high-school",
+                    "college",
+                    "country"
+                )
+            ) {
+                Spacer(modifier = Modifier.height(8.dp))
+                when (filterOption) {
+                    "age" -> {
+                        // Integer input field
+                        OutlinedTextField(
+                            value = filterValue,
+                            onValueChange = { newValue ->
+                                // Allow only numbers
+                                if (newValue.all { it.isDigit() }) {
+                                    onFilterValueChanged(newValue)
+                                }
+                            },
+                            label = { Text("Enter Age", color = Color.White) },
+                            placeholder = { Text("e.g., 25", color = Color.Gray) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFFFF4500),
+                                unfocusedBorderColor = Color.Gray,
+                                cursorColor = Color(0xFFFF4500)
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+
+                    "gender" -> {
+                        // Dropdown with options 'M', 'F', 'NB'
+                        var expanded by remember { mutableStateOf(false) }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .clickable { expanded = true }
+                        ) {
+                            OutlinedTextField(
+                                value = filterValue,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Select Gender", color = Color.White) },
+                                placeholder = { Text("Please click the dropdown icon -------------- >", color = Color.Gray) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { expanded = true },
+                                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFFF4500),
+                                    unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color(0xFFFF4500)
+                                ),
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Dropdown",
+                                        tint = Color.White,
+                                        modifier = Modifier.clickable { expanded = true }
+                                    )
+                                }
+                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                listOf("Male", "Female", "Non Binary").forEach { gender ->
+                                    DropdownMenuItem(
+                                        text = { Text(gender, color = Color(0xFFFF4500)) },
+                                        onClick = {
+                                            onFilterValueChanged(gender)
+                                            expanded = false
+                                        },
+                                        leadingIcon = {
+                                            if (gender == filterValue) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFFFA500)
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    "rating" -> {
+                        // Dropdown with options '0-2', '3-4', '5'
+                        var expanded by remember { mutableStateOf(false) }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .clickable { expanded = true }
+                        ) {
+                            OutlinedTextField(
+                                value = filterValue,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Select Rating", color = Color.White) },
+                                placeholder = { Text("Please click the dropdown icon -------------- >", color = Color.Gray) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { expanded = true },
+                                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFFF4500),
+                                    unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color(0xFFFF4500)
+                                ),
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Dropdown",
+                                        tint = Color.White,
+                                        modifier = Modifier.clickable { expanded = true }
+                                    )
+                                }
+                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                listOf("0-2", "3-4", "5").forEach { rating ->
+                                    DropdownMenuItem(
+                                        text = { Text(rating, color = Color(0xFFFF4500)) },
+                                        onClick = {
+                                            onFilterValueChanged(rating)
+                                            expanded = false
+                                        },
+                                        leadingIcon = {
+                                            if (rating == filterValue) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFFFA500)
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        // Text input field
+                        OutlinedTextField(
+                            value = filterValue,
+                            onValueChange = onFilterValueChanged,
+                            label = {
+                                Text(
+                                    "Enter ${filterOption.replaceFirstChar { it.uppercaseChar() }}",
+                                    color = Color.White
+                                )
+                            },
+                            placeholder = { Text("Type here", color = Color.Gray) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFFFF4500),
+                                unfocusedBorderColor = Color.Gray,
+                                cursorColor = Color(0xFFFF4500)
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -430,44 +534,13 @@ fun HomeScreenContent(
             onTagClick = { tag ->
                 onSearchQueryChanged(tag)
             },
-            geoFire = geoFire, // Pass GeoFire here
+            geoFire = geoFire,
         )
     }
 }
 
-/**
- * Function to handle the fetched posts snapshot.
- */
 
 
-/**
- * Function to apply profile-based filters.
- */
-fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
-    return when (filterOption) {
-        "country" -> profile.country.equals(filterValue, ignoreCase = true)
-        "city" -> profile.city.equals(filterValue, ignoreCase = true)
-        "age" -> {
-            val age = calculateAge(profile.dob)
-            val requiredAge = filterValue.toIntOrNull()
-            age != null && requiredAge != null && age == requiredAge
-        }
-        "level" -> {
-            val requiredLevel = filterValue.toIntOrNull()
-            requiredLevel != null && profile.level == requiredLevel
-        }
-        "gender" -> profile.gender.equals(filterValue, ignoreCase = true)
-        "high-school" -> profile.highSchool.equals(filterValue, ignoreCase = true)
-        "college" -> profile.college.equals(filterValue, ignoreCase = true)
-        else -> true
-    }
-}
-
-/**
- * Function to fetch user profiles from Firebase.
- */
-
-// HomeScreen.kt - Part 2
 
 @Composable
 fun FeedSection(
@@ -491,13 +564,6 @@ fun FeedSection(
     // Launching coroutine for swipe refresh
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
-            postViewModel.fetchPosts(
-                filterOption = "recent",
-                filterValue = "",
-                searchQuery = "",
-                sortOption = "None",
-                userId = userId
-            )
             delay(1500) // Simulate refresh time
             isRefreshing = false
         }
@@ -523,7 +589,7 @@ fun FeedSection(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Color(0xFF00bf63))
+                        CircularProgressIndicator(color = Color(0xFFFF4500))
                     }
                 }
             }
@@ -563,7 +629,7 @@ fun FeedSection(
                             navController.navigate("profile")
                         } else {
                             // Navigate to DatingScreen with the other user's ID
-                            navController.navigate("profile/${post.userId}")
+                            navController.navigate("profile/${post.userId}?currentUserId=${userId}")
                         }
                     },
                     onTagClick = { tag ->
@@ -597,7 +663,7 @@ fun FeedSection(
                         val comment = Comment(
                             commentId = UUID.randomUUID().toString(), // Generate a unique ID
                             userId = userId ?: "",
-                            username = userProfile?.username ?: "Anonymous",
+                            username = ((userProfile?.firstName ?: "Unknown") + " " + (userProfile?.lastName ?: "Unknown")),
                             commentText = commentText,
                             timestamp = ServerValue.TIMESTAMP
                         )
@@ -734,26 +800,22 @@ fun FeedItem(
     }
 
     val dynamicFontSize = when {
-        screenWidth < 360.dp -> 14.sp
-        screenWidth < 600.dp -> 16.sp
-        else -> 18.sp
+        screenWidth < 360.dp -> 12.sp
+        screenWidth < 600.dp -> 14.sp
+        else -> 16.sp
     }
     val dynamicPadding = when {
-        screenWidth < 360.dp -> 8.dp
-        screenWidth < 600.dp -> 12.dp
-        else -> 16.dp
+        screenWidth < 360.dp -> 6.dp
+        screenWidth < 600.dp -> 10.dp
+        else -> 14.dp
     }
 
-    var commentText by remember { mutableStateOf(TextFieldValue("")) }
     var showCommentsDialog by remember { mutableStateOf(false) }
-    var showCommentSection by remember { mutableStateOf(false) }
-    var recordedVoiceUri by remember { mutableStateOf<Uri?>(null) }
 
     // State for voice post playback
     var isPlaying by remember { mutableStateOf(false) }
     var playbackProgress by remember { mutableStateOf(0f) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-    var isRecordingVoiceComment by remember { mutableStateOf(false) }
 
     // Annotate post content based on formatting markers
     val annotatedText = buildFormattedText(post.contentText ?: "")
@@ -761,13 +823,18 @@ fun FeedItem(
     // Calculate user age from DOB
     val userAge = userProfile?.dob?.let { calculateAge(it) }
 
+
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center // Center-align the card within the Box
+    ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(0.95f)
             .shadow(8.dp, RoundedCornerShape(2.dp))
             .then(gestureDetector),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
-        border = BorderStroke(2.dp, Color(0xFF00bf63))
+        border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.rating ?: 0.0)) // Dynamic border color
     ) {
         Column(modifier = Modifier.padding(dynamicPadding)) {
             // User Info Row with Delete/Report button
@@ -783,14 +850,14 @@ fun FeedItem(
                         model = userProfile.profilepicUrl,
                         contentDescription = "Profile Picture",
                         modifier = Modifier
-                            .size(if (screenWidth < 360.dp) 40.dp else 48.dp)
+                            .size(if (screenWidth < 360.dp) 32.dp else 40.dp)
                             .clip(CircleShape)
                             .background(Color.Gray)
                     )
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
                             .background(Color.Gray)
                     )
@@ -799,19 +866,15 @@ fun FeedItem(
                 Column {
                     Row {
                         Text(
-                            text = "${userProfile?.username ?: "Unavailable"}, ${userAge ?: "--"}",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
+                            text = "${userProfile?.firstName ?: ""} ${userProfile?.lastName ?: ""}, ${userAge ?: "--"}",
+                            color = Color(0xFFFFA500),
+                            fontWeight = FontWeight.Light,
                             fontSize = dynamicFontSize
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     RatingBar(rating = userProfile?.rating ?: 0.0)
-                    Text(
-                        text = "Vibe Score: ${userProfile?.vibepoints}",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -823,7 +886,7 @@ fun FeedItem(
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete Post",
-                                tint = Color(0xFF00bf63)
+                                tint = Color(0xFFFF4500)
                             )
                         }
                     } else {
@@ -831,24 +894,33 @@ fun FeedItem(
                             Icon(
                                 imageVector = Icons.Default.Report,
                                 contentDescription = "Report Post",
-                                tint = Color.Yellow
+                                tint = Color(0xFFFFA500)
                             )
                         }
                     }
                 }
             }
 
-            // Post Content (Formatted Text)
+// Post Content (Formatted Text)
             if (!post.contentText.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = annotatedText,
-                    color = Color.White,
-                    maxLines = 10,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 18.sp
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth(), // Make the Box full width
+                    contentAlignment = Alignment.Center // Center content inside the Box
+                ) {
+                    Text(
+                        text = annotatedText,
+                        color = Color.White,
+                        maxLines = 10,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 28.sp,
+                        textAlign = TextAlign.Center, // Center-align the text itself
+                        lineHeight = 34.sp, // Add line spacing (adjust as needed)
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
             }
+
 
             // Media Content - Photo, Video, Voice
             if (post.mediaType != null && post.mediaUrl != null) {
@@ -892,8 +964,8 @@ fun FeedItem(
                                         Icon(
                                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                             contentDescription = "Play/Pause",
-                                            tint = Color(0xFF00bf63),
-                                            modifier = Modifier.size(48.dp)
+                                            tint = Color(0xFFFFA500),
+                                            modifier = Modifier.size(70.dp)
                                         )
                                     }
 
@@ -903,8 +975,8 @@ fun FeedItem(
                                         modifier = Modifier
                                             .weight(1f)
                                             .padding(horizontal = 16.dp),
-                                        color = Color(0xFF00bf63),
-                                        trackColor = Color.Gray
+                                        color = Color(0xFFFFA500),
+                                        trackColor = Color.White
                                     )
 
                                     // Duration label
@@ -921,7 +993,7 @@ fun FeedItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Hashtags Below Main Content
             if (post.userTags.isNotEmpty()) {
@@ -937,15 +1009,15 @@ fun FeedItem(
                                     RoundedCornerShape(8.dp)
                                 )
                                 .border(
-                                    BorderStroke(1.dp, Color(0xFF00bf63)),
+                                    BorderStroke(1.dp, Color(0xFFFF4500)),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "#$tag",
-                                color = Color.White,
-                                fontSize = 14.sp,
+                                color = Color.LightGray,
+                                fontSize = 8.sp,
                                 modifier = Modifier.clickable { onTagClick(tag) }
                             )
                         }
@@ -960,18 +1032,18 @@ fun FeedItem(
                 Text(
                     text = formatTimestamp(post.getPostTimestamp()),
                     color = Color.Gray,
-                    fontSize = 12.sp
+                    fontSize = 10.sp
                 )
                 Spacer(modifier = Modifier.weight(1f)) // Flexible space to push the distance text to the right
                 userDistance?.let {
                     Text(
                         text = "Distance: ${it.roundToInt()} km",
                         color = Color.Gray,
-                        fontSize = 12.sp
+                        fontSize = 10.sp
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
             // Sharing, Upvote/Downvote, and Comment Section
             Row(
@@ -1007,12 +1079,12 @@ fun FeedItem(
                             Icon(
                                 Icons.Default.ArrowUpward,
                                 contentDescription = "Upvote",
-                                tint = Color(0xFF00ff00)
+                                tint = Color(0xFFFFA500)
                             )
                         }
                         Text(
                             text = "${post.upvotes}",
-                            color = Color.White,
+                            color = Color(0xFFFFA500),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1022,161 +1094,38 @@ fun FeedItem(
                             Icon(
                                 Icons.Default.ArrowDownward,
                                 contentDescription = "Downvote",
-                                tint = Color(0xffff0000)
+                                tint = Color(0xFFFF4500)
                             )
                         }
                         Text(
                             text = "${post.downvotes}",
-                            color = Color.White,
+                            color = Color(0xFFFF4500),
                             fontWeight = FontWeight.Bold
                         )
                     }
 
                     // Comment button icon to show/hide comment section
-                    IconButton(onClick = { showCommentSection = !showCommentSection }) {
+                    IconButton(onClick = { showCommentsDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Comment,
-                            contentDescription = "Show/Hide Comments",
-                            tint = Color.White
+                            contentDescription = "Show Comments",
+                            tint = Color(0xFFFF4500)
                         )
                     }
                 }
             }
             if (post.comments.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "View Comments (${post.comments.size})",
-                    color = Color(0xFF00bf63),
+                    color = Color(0xFFFF4500),
                     modifier = Modifier.clickable {
                         showCommentsDialog = true
                     },
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-
-            // Inside FeedItem where the comment section is displayed
-            if (showCommentSection) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // Hide the text comment input if recording a voice comment
-                    if (!isRecordingVoiceComment) {
-                        OutlinedTextField(
-                            value = commentText,
-                            onValueChange = { commentText = it },
-                            placeholder = { Text("Add a comment...", color = Color.Gray) },
-                            textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF00bf63),
-                                unfocusedBorderColor = Color.Gray,
-                                cursorColor = Color(0xFF00bf63)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Button(
-                            onClick = {
-                                if (commentText.text.isNotBlank()) {
-                                    onComment(commentText.text.trim())
-                                    commentText = TextFieldValue("") // Clear comment input after submitting
-                                }
-                            },
-                            modifier = Modifier.align(Alignment.End),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-                        ) {
-                            Text("Comment", color = Color.White)
-                        }
-                    }
-
-                    // Record Voice Comment Button
-                    RecordVoiceCommentButton(
-                        onVoiceRecorded = { voiceUri ->
-                            recordedVoiceUri = voiceUri
-                        },
-                        onStartRecording = {
-                            isRecordingVoiceComment = true // Start recording mode
-                        },
-                        onStopRecording = {
-                        }
-                    )
-
-                    // Show recorded voice note before submission
-                    recordedVoiceUri?.let { uri ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Add state for playback control
-                        var isRecordingPlaying by remember { mutableStateOf(false) }
-                        var playbackProgress by remember { mutableStateOf(0f) }
-                        var recordedMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-                        val context = LocalContext.current // Get the context once outside
-
-                        // Show playback controls for the recorded audio
-                        VoiceCommentPlayer(
-                            mediaUrl = uri.toString(),
-                            isPlaying = isRecordingPlaying,
-                            onPlayToggle = {
-                                if (isRecordingPlaying) {
-                                    recordedMediaPlayer?.pause()
-                                    isRecordingPlaying = false
-                                } else {
-                                    playVoice(context, uri.toString()) { player ->
-                                        recordedMediaPlayer = player
-                                        isRecordingPlaying = true
-
-                                        // Set completion listener to stop playback once done
-                                        recordedMediaPlayer?.setOnCompletionListener {
-                                            isRecordingPlaying = false
-                                            playbackProgress = 0f
-                                        }
-                                    }
-                                }
-                            },
-                            progress = playbackProgress,
-                            duration = recordedMediaPlayer?.duration?.toLong() ?: 0L
-                        )
-                        // Submit and Delete buttons
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Button(
-                                onClick = {
-                                    // Delete the recorded voice comment
-                                    recordedVoiceUri = null
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                            ) {
-                                Text("Delete", color = Color.White)
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Button(
-                                onClick = {
-                                    handleAddVoiceComment(
-                                        postId = post.postId,
-                                        voiceUri = uri,
-                                        userId = currentUserId,
-                                        username = userProfile?.username ?: "Unknown User",
-                                        onSuccess = {
-                                            // Handle success, e.g., show a Toast or update the state to refresh the comments
-                                            recordedVoiceUri = null // Reset after submitting
-                                            isRecordingVoiceComment = false // Set to false only when the comment is successfully submitted
-                                        },
-                                        onFailure = {
-                                            // Handle failure, e.g., show a Toast or log the error
-                                        }
-                                    )
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-                            ) {
-                                Text("Submit Voice Comment", color = Color.White)
-                            }
-                        }
-                    }
-                }
-            }
-
 
 
             // In FeedItem, when showing the CommentsDialog:
@@ -1193,6 +1142,7 @@ fun FeedItem(
                                 // Handle success
                             },
                             onFailure = {
+                                // Handle failure
                             }
                         )
                     },
@@ -1205,15 +1155,47 @@ fun FeedItem(
                                 // Handle success
                             },
                             onFailure = {
+                                // Handle failure
+                            }
+                        )
+                    },
+                    onComment = { commentText ->
+                        // Handle text comment submission
+                        val comment = Comment(
+                            commentId = UUID.randomUUID().toString(),
+                            userId = currentUserId,
+                            username = ((userProfile?.firstName ?: "Unknown") + " " + (userProfile?.lastName ?: "Unknown")),
+                            commentText = commentText,
+                            timestamp = ServerValue.TIMESTAMP
+                        )
+                        postViewModel.addComment(
+                            postId = post.postId,
+                            comment = comment,
+                            onSuccess = {
+                                // Show success message or update UI
+                            },
+                            onFailure = {
+                            }
+                        )
+                    },
+                    onVoiceComment = { voiceUri ->
+                        // Handle voice comment submission
+                        handleAddVoiceComment(
+                            postId = post.postId,
+                            voiceUri = voiceUri,
+                            userId = currentUserId,
+                            username = ((userProfile?.firstName ?: "Unknown") + " " + (userProfile?.lastName ?: "Unknown")),
+                            onSuccess = {
+                                // Show success message or update UI
+                            },
+                            onFailure = {
                             }
                         )
                     }
                 )
             }
-
-
-            Spacer(modifier = Modifier.height(8.dp))
         }
+    }
     }
 
     // Removed the initialization logic for voice posts here
@@ -1240,6 +1222,116 @@ fun formatDuration(durationMs: Long): String {
     return String.format("%d:%02d", minutes, seconds)
 }
 
+@Composable
+fun CommentCard(
+    comment: Comment,
+    onUpvoteComment: (String) -> Unit,
+    onDownvoteComment: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = comment.username,
+                    color = Color(0xFFFFA500),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = formatTimestamp(comment.getCommentTimestamp()),
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Check if it's a voice comment or text comment
+            if (comment.mediaUrl != null) {
+                var isCommentPlaying by remember { mutableStateOf(false) }
+                var commentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+                var commentPlaybackProgress by remember { mutableStateOf(0f) }
+                val context = LocalContext.current
+
+                VoiceCommentPlayer(
+                    mediaUrl = comment.mediaUrl,
+                    isPlaying = isCommentPlaying,
+                    onPlayToggle = {
+                        if (isCommentPlaying) {
+                            commentMediaPlayer?.pause()
+                            isCommentPlaying = false
+                        } else {
+                            playVoice(context, comment.mediaUrl) { player ->
+                                commentMediaPlayer = player
+                                isCommentPlaying = true
+                                commentMediaPlayer?.setOnCompletionListener {
+                                    isCommentPlaying = false
+                                    commentPlaybackProgress = 0f
+                                }
+                            }
+                        }
+                    },
+                    progress = commentPlaybackProgress,
+                    duration = commentMediaPlayer?.duration?.toLong() ?: 0L
+                )
+            } else {
+                Text(
+                    text = comment.commentText,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+            ) {
+                IconButton(onClick = { onUpvoteComment(comment.commentId) }) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowUpward,
+                        contentDescription = "Upvote Comment",
+                        tint = Color(0xFFFFA500)
+                    )
+                }
+                Text(text = "${comment.upvotes}", color = Color.White)
+                IconButton(onClick = { onDownvoteComment(comment.commentId) }) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDownward,
+                        contentDescription = "Downvote Comment",
+                        tint = Color(0xFFFF4500)
+                    )
+                }
+                Text(text = "${comment.downvotes}", color = Color.White)
+            }
+        }
+    }
+}
+
+fun playLocalVoice(context: Context, voiceUri: Uri, onPlay: (MediaPlayer) -> Unit) {
+    CoroutineScope(Dispatchers.IO).launch {
+        val mediaPlayer = MediaPlayer().apply {
+            setDataSource(context, voiceUri)
+            prepare()
+        }
+        withContext(Dispatchers.Main) {
+            mediaPlayer.start()
+            onPlay(mediaPlayer)
+        }
+    }
+}
+
 
 @Composable
 fun CommentsDialog(
@@ -1247,40 +1339,193 @@ fun CommentsDialog(
     onDismiss: () -> Unit,
     onUpvoteComment: (String) -> Unit,
     onDownvoteComment: (String) -> Unit,
+    onComment: (String) -> Unit,
+    onVoiceComment: (Uri) -> Unit
 ) {
-    // Sort Option State
-    var sortOption by remember { mutableStateOf("Recent") }
+    // State variables
+    var sortOption by remember { mutableStateOf("No Sort") }
     var showSortMenu by remember { mutableStateOf(false) }
+    var showCommentInput by remember { mutableStateOf(true) }
+    var commentText by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Sorted comments list based on the selected sort option
-    val sortedCommentsList by produceState<List<Comment>>(initialValue = emptyList(), key1 = post.comments, key2 = sortOption) {
+    // Voice recording states
+    var isRecording by remember { mutableStateOf(false) }
+    var recorder: MediaRecorder? by remember { mutableStateOf(null) }
+    var recordFile: File? by remember { mutableStateOf(null) }
+    var recordedVoiceUri by remember { mutableStateOf<Uri?>(null) }
+    val maxDurationMs = 60 * 1000 // 1 minute
+    var recordingTimeLeft by remember { mutableStateOf(maxDurationMs) }
+
+    // Playback states for recorded voice note
+    var isRecordingPlaying by remember { mutableStateOf(false) }
+    var playbackProgress by remember { mutableStateOf(0f) }
+    var recordedMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    val context = LocalContext.current
+
+    // Permission launcher for RECORD_AUDIO
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            isRecording = true
+        } else {
+            Toast.makeText(
+                context,
+                "Microphone permission is required to record audio.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    // Define sortedCommentsList here
+    val sortedCommentsList by produceState<List<Comment>>(
+        initialValue = emptyList(),
+        key1 = post.comments,
+        key2 = sortOption
+    ) {
         value = withContext(Dispatchers.IO) {
             post.comments.values.sortedWith(
                 when (sortOption) {
                     "Sort by Upvotes" -> compareByDescending<Comment> { it.upvotes }
                     "Sort by Downvotes" -> compareByDescending<Comment> { it.downvotes }
+                    "No Sort" -> compareByDescending<Comment> { it.getCommentTimestamp() }
                     else -> compareByDescending<Comment> { it.getCommentTimestamp() }
                 }
             )
         }
     }
 
-    // Dialog box with extended size
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = Color.Black,
+    // Handle recording logic
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                try {
+                    withContext(Dispatchers.IO) {
+                        recorder?.release()
+                        recorder = null
+
+                        recordFile =
+                            File(context.cacheDir, "voice_comment_${System.currentTimeMillis()}.aac")
+
+                        recorder = MediaRecorder().apply {
+                            setAudioSource(MediaRecorder.AudioSource.MIC)
+                            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                            setOutputFile(recordFile?.absolutePath)
+                            setMaxDuration(maxDurationMs)
+                            prepare()
+                            start()
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        recordingTimeLeft = maxDurationMs
+                    }
+
+                    // Start countdown timer
+                    while (isRecording && recordingTimeLeft > 0) {
+                        delay(1000)
+                        withContext(Dispatchers.Main) {
+                            recordingTimeLeft -= 1000
+                        }
+                    }
+
+                    // Stop recording if time is up
+                    if (isRecording && recordingTimeLeft <= 0) {
+                        withContext(Dispatchers.Main) {
+                            isRecording = false
+                        }
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("VoiceComment", "Recording error: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        isRecording = false
+                        Toast.makeText(
+                            context,
+                            "Recording failed: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    withContext(Dispatchers.IO) {
+                        recorder?.release()
+                        recorder = null
+                    }
+                }
+            } else {
+                isRecording = false
+                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        } else {
+            try {
+                withContext(Dispatchers.IO) {
+                    recorder?.apply {
+                        stop()
+                        release()
+                    }
+                    recorder = null
+                }
+                val fileUri = recordFile?.let { Uri.fromFile(it) }
+                withContext(Dispatchers.Main) {
+                    if (fileUri != null) {
+                        recordedVoiceUri = fileUri
+                    }
+                    // Reset recordingTimeLeft
+                    recordingTimeLeft = maxDurationMs
+                }
+            } catch (e: Exception) {
+                Log.e("VoiceComment", "Stop recording error: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Recording failed: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                withContext(Dispatchers.IO) {
+                    recorder?.release()
+                    recorder = null
+                }
+            }
+        }
+    }
+
+    // Handle playback of recorded voice note
+    LaunchedEffect(isRecordingPlaying) {
+        if (isRecordingPlaying && recordedMediaPlayer != null) {
+            while (isRecordingPlaying && recordedMediaPlayer?.isPlaying == true) {
+                delay(500L)
+                val current = recordedMediaPlayer?.currentPosition ?: 0
+                val duration = recordedMediaPlayer?.duration ?: 1
+                playbackProgress = current.toFloat() / duration.toFloat()
+            }
+        } else {
+            playbackProgress = 0f
+        }
+    }
+
+    // Dialog UI
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth(0.95f) // Set the width closer to the full screen width
-                .fillMaxHeight(0.8f)
-                .padding(8.dp) // Adjust padding for the dialog
+                .fillMaxSize()
+                .background(Color.Black)
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .align(Alignment.TopCenter)
             ) {
-                // Title and Sort Button
+                // Comments header and sort options...
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1292,34 +1537,48 @@ fun CommentsDialog(
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
-
-                    // Sort Button similar to the HomeScreenContent
-                    Box {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = sortOption,
+                            color = Color(0xFFFFA500),
+                            modifier = Modifier.clickable { showSortMenu = !showSortMenu }
+                        )
                         IconButton(
                             onClick = { showSortMenu = !showSortMenu }
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Sort,
                                 contentDescription = "Sort options",
-                                tint = Color(0xFF00bf63)
+                                tint = Color(0xFFFF4500)
                             )
                         }
                         DropdownMenu(
                             expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false },
+                            onDismissRequest = { showSortMenu = false }
                         ) {
-                            val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
-                            sortOptions.filter { it != sortOption }.forEach { option ->
+                            val sortOptions = listOf("No Sort", "Sort by Upvotes", "Sort by Downvotes")
+                            sortOptions.forEach { option ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(
                                             text = option,
-                                            color = Color(0xFF00bf63)
+                                            color = if (option == sortOption) Color(0xFFFFA500) else Color(0xFFFF4500)
                                         )
                                     },
                                     onClick = {
                                         sortOption = option
-                                        showSortMenu = false // Close menu after selection
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (option == sortOption) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFFA500)
+                                            )
+                                        }
                                     }
                                 )
                             }
@@ -1329,121 +1588,197 @@ fun CommentsDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Comments List
                 if (sortedCommentsList.isEmpty()) {
-                    Text("No comments yet.", color = Color.White)
+                    Text(
+                        "No comments yet.",
+                        color = Color.White,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxHeight(0.7f)) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
                         items(sortedCommentsList) { comment ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp), // Adjusted padding
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    // Comment Header
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = comment.username,
-                                            color = Color(0xFF00bf63),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 16.sp,
-                                            modifier = Modifier.padding(end = 8.dp)
-                                        )
-                                        Text(
-                                            text = formatTimestamp(comment.getCommentTimestamp()),
-                                            color = Color.Gray,
-                                            fontSize = 12.sp
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
+                            CommentCard(
+                                comment = comment,
+                                onUpvoteComment = onUpvoteComment,
+                                onDownvoteComment = onDownvoteComment
+                            )
+                        }
+                    }
+                }
 
-                                    // Display voice comment if available
-                                    if (comment.mediaUrl != null) {
-                                        // Voice comment playback UI
-                                        var isCommentPlaying by remember { mutableStateOf(false) }
-                                        var commentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-                                        var commentPlaybackProgress by remember { mutableStateOf(0f) }
-                                        val context = LocalContext.current // Get the context once outside
-
-                                        VoiceCommentPlayer(
-                                            mediaUrl = comment.mediaUrl,
-                                            isPlaying = isCommentPlaying,
-                                            onPlayToggle = {
-                                                if (isCommentPlaying) {
-                                                    commentMediaPlayer?.pause()
-                                                    isCommentPlaying = false
-                                                } else {
-                                                    playVoice(context, comment.mediaUrl) { player ->
-                                                        commentMediaPlayer = player
-                                                        isCommentPlaying = true
-
-                                                        // Set up completion listener to stop playback once done
-                                                        commentMediaPlayer?.setOnCompletionListener {
-                                                            isCommentPlaying = false
-                                                            commentPlaybackProgress = 0f
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            progress = commentPlaybackProgress,
-                                            duration = commentMediaPlayer?.duration?.toLong() ?: 0L
-                                        )
-                                    } else {
-                                        // Text Comment
-                                        Text(
-                                            text = comment.commentText,
-                                            color = Color.White,
-                                            fontSize = 14.sp,
-                                            modifier = Modifier.padding(top = 4.dp)
-                                        )
-                                    }
-
-                                    // Upvote/Downvote Section for Comment
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 8.dp)
-                                    ) {
-                                        IconButton(onClick = { onUpvoteComment(comment.commentId) }) {
-                                            Icon(
-                                                imageVector = Icons.Default.ArrowUpward,
-                                                contentDescription = "Upvote Comment",
-                                                tint = Color(0xFF00ff00)
-                                            )
+                // Comment input and action buttons
+                if (showCommentInput) {
+                    if (isRecording) {
+                        // Show recording indicator and countdown timer
+                        Text(
+                            text = "Recording... Time left: ${recordingTimeLeft / 1000}s",
+                            color = Color.White,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    } else if (recordedVoiceUri != null) {
+                        // Show playback controls and submit option
+                        VoiceCommentPlayer(
+                            mediaUrl = recordedVoiceUri.toString(),
+                            isPlaying = isRecordingPlaying,
+                            onPlayToggle = {
+                                if (isRecordingPlaying) {
+                                    recordedMediaPlayer?.pause()
+                                    isRecordingPlaying = false
+                                } else {
+                                    playLocalVoice(context, recordedVoiceUri!!) { player ->
+                                        recordedMediaPlayer = player
+                                        isRecordingPlaying = true
+                                        recordedMediaPlayer?.setOnCompletionListener {
+                                            isRecordingPlaying = false
+                                            playbackProgress = 0f
                                         }
-                                        Text(text = "${comment.upvotes}", color = Color.White)
-                                        IconButton(onClick = { onDownvoteComment(comment.commentId) }) {
-                                            Icon(
-                                                imageVector = Icons.Default.ArrowDownward,
-                                                contentDescription = "Downvote Comment",
-                                                tint = Color(0xffff0000)
-                                            )
-                                        }
-                                        Text(text = "${comment.downvotes}", color = Color.White)
                                     }
                                 }
+                            },
+                            progress = playbackProgress,
+                            duration = recordedMediaPlayer?.duration?.toLong() ?: 0L
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Button(
+                                onClick = {
+                                    // Delete the recorded voice comment
+                                    recordedVoiceUri = null
+                                    recordFile = null
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                            ) {
+                                Text("Delete", color = Color.White)
+                            }
+                            Button(
+                                onClick = {
+                                    onVoiceComment(recordedVoiceUri!!)
+                                    // Reset states
+                                    recordedVoiceUri = null
+                                    recordFile = null
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(
+                                        0xFFFFA500
+                                    )
+                                )
+                            ) {
+                                Text("Submit Voice Comment", color = Color.White)
+                            }
+                        }
+
+                    } else {
+                        // Show text input field for text comments
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = commentText,
+                                onValueChange = { commentText = it },
+                                placeholder = { Text("Add a comment...", color = Color.Gray) },
+                                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 8.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFFF4500),
+                                    unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color(0xFFFF4500)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // Submit Text Comment Button
+                            Button(
+                                onClick = {
+                                    if (commentText.text.isNotBlank()) {
+                                        onComment(commentText.text)
+                                        commentText = TextFieldValue("")
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(
+                                        0xFFFF4500
+                                    )
+                                )
+                            ) {
+                                Text("Submit", color = Color.White)
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Recording and action icons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Mic Icon for recording voice comment
+                    IconButton(onClick = {
+                        if (isRecording) {
+                            // Stop recording
+                            isRecording = false
+                        } else {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.RECORD_AUDIO
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                // Start recording
+                                isRecording = true
+                                showCommentInput = true // Open the comment input section when recording starts
+                                // Remove text input field
+                                commentText = TextFieldValue("")
+                                recordedVoiceUri = null
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = if (isRecording) "Stop Recording" else "Record Voice Comment",
+                            tint = Color(0xFFFFA500)
+                        )
+                    }
 
-                // Close Button
-                Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))) {
-                    Text("Close", color = Color.White)
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Hide/Show Input IconButton
+                    IconButton(
+                        onClick = { showCommentInput = !showCommentInput }
+                    ) {
+                        Icon(
+                            imageVector = if (showCommentInput) Icons.Default.KeyboardHide else Icons.Default.Keyboard,
+                            contentDescription = if (showCommentInput) "Hide Comment Input" else "Show Comment Input",
+                            tint = Color(0xFFFFA500)
+                        )
+                    }
+
+                    // Close IconButton
+                    IconButton(
+                        onClick = onDismiss
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color(0xFFFF4500)
+                        )
+                    }
                 }
             }
         }
     }
 }
+
 
 
 @Composable
@@ -1461,7 +1796,7 @@ fun VoiceCommentPlayer(
             Icon(
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = "Play/Pause",
-                tint = Color(0xFF00bf63)
+                tint = Color(0xFFFF4500)
             )
         }
         LinearProgressIndicator(
@@ -1469,7 +1804,7 @@ fun VoiceCommentPlayer(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp),
-            color = Color(0xFF00bf63),
+            color = Color(0xFFFFA500),
             trackColor = Color.Gray
         )
 
@@ -1600,83 +1935,6 @@ fun handleAddVoiceComment(
 }
 
 @Composable
-fun RecordVoiceCommentButton(
-    modifier: Modifier = Modifier,
-    onVoiceRecorded: (Uri) -> Unit,
-    onStartRecording: () -> Unit,
-    onStopRecording: () -> Unit
-) {
-    val context = LocalContext.current
-    var isRecording by remember { mutableStateOf(false) }
-    val recorder = remember { mutableStateOf<MediaRecorder?>(null) }
-    val maxDurationMs = 60 * 1000 // 1 minute
-
-    var recordFile by remember { mutableStateOf<File?>(null) }
-
-    LaunchedEffect(isRecording) {
-        if (isRecording) {
-            try {
-                recordFile = File(context.cacheDir, "voice_comment_${System.currentTimeMillis()}.aac")
-                recorder.value = MediaRecorder().apply {
-                    setAudioSource(MediaRecorder.AudioSource.MIC)
-                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                    setOutputFile(recordFile?.absolutePath)
-                    setMaxDuration(maxDurationMs)
-                    prepare()
-                    start()
-                }
-                onStartRecording() // Notify that recording has started
-            } catch (e: Exception) {
-                Log.e("VoiceComment", "Recording error: ${e.message}")
-                isRecording = false
-                recorder.value?.release()
-                recorder.value = null
-                Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            try {
-                recorder.value?.apply {
-                    stop()
-                    release()
-                }
-                recorder.value = null
-                val fileUri = recordFile?.let { Uri.fromFile(it) }
-                if (fileUri != null) {
-                    onVoiceRecorded(fileUri)
-                } else {
-                }
-                onStopRecording() // Notify that recording has stopped
-            } catch (e: Exception) {
-                Log.e("VoiceComment", "Stop recording error: ${e.message}")
-                recorder.value?.release()
-                recorder.value = null
-                Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    Button(
-        onClick = { isRecording = !isRecording },
-        modifier = modifier
-            .padding(8.dp)
-            .fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isRecording) Color.Red else Color(0xFF00bf63)
-        )
-    ) {
-        Text(
-            text = if (isRecording) "Stop Recording" else "Record Voice Comment",
-            color = Color.White
-        )
-    }
-}
-
-
-
-// HomeScreen.kt - Part 3
-
-@Composable
 fun buildFormattedText(text: String): AnnotatedString {
     return buildAnnotatedString {
         var i = 0
@@ -1741,19 +1999,19 @@ fun CustomSearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = { onQueryChange(it) },
-        placeholder = { Text("Search by username or tags", color = Color.Gray) },
+        placeholder = { Text("Search by name or tags", color = Color.Gray, fontSize = 12.sp) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         textStyle = LocalTextStyle.current.copy(color = Color.White),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color(0xFF00bf63),
+            focusedBorderColor = Color(0xFFFFA500),
             unfocusedBorderColor = Color.Gray,
-            cursorColor = Color(0xFF00bf63)
+            cursorColor = Color(0xFFFF4500)
         ),
         trailingIcon = {
             IconButton(onClick = onSearch) {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF00bf63))
+                Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color(0xFFFF4500))
             }
         }
     )

@@ -107,7 +107,9 @@ fun DatingScreenContent(navController: NavController, geoFire: GeoFire, modifier
     }
 
     // Filter profiles by username search
-    val filteredProfiles = profiles.filter { it.username.contains(searchQuery, ignoreCase = true) }
+    val filteredProfiles = profiles.filter {
+        "${it.firstName} ${it.lastName}".contains(searchQuery, ignoreCase = true)
+    }
 
     Column(
         modifier = Modifier
@@ -338,7 +340,7 @@ fun DatingProfileCard(
                 .fillMaxSize()
                 .padding(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Black),
-            border = BorderStroke(3.dp, getLevelBorderColor(profile.level))
+            border = BorderStroke(3.dp, getLevelBorderColor(profile.rating))
         ) {
             Column(
                 modifier = Modifier
@@ -425,7 +427,7 @@ fun DatingProfileCard(
                     verticalArrangement = Arrangement.Top
                 ) {
                     Text(
-                        text = "${profile.username}, ${calculateAge(profile.dob)}",
+                        text = "${profile.firstName} ${profile.lastName}, ${calculateAge(profile.dob)}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = Color.White
@@ -472,7 +474,7 @@ fun DatingProfileCard(
                             horizontalAlignment = Alignment.Start
                         ) {
                             // Details Section
-                            ProfileText(label = "Name", value = profile.name)
+                            ProfileText(label = "Name", value = (profile.firstName + " " + profile.lastName))
                             ProfileText(label = "Gender", value = profile.gender)
                             ProfileText(label = "Bio", value = profile.bio)
                             ProfileText(label = "Hometown", value = profile.hometown)

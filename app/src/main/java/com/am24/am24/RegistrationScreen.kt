@@ -93,8 +93,8 @@ class RegistrationViewModel : ViewModel() {
     var voiceNoteUri by mutableStateOf<Uri?>(null)  // To hold the voice recording URI
     var email by mutableStateOf("")
     var password by mutableStateOf("")
-    var name by mutableStateOf("")
-    var username by mutableStateOf("")
+    var lastname by mutableStateOf("")
+    var firstname by mutableStateOf("")
     var dob by mutableStateOf("")
     var interests = mutableStateListOf<Interest>()
     var profilePictureUri by mutableStateOf<Uri?>(null)
@@ -151,8 +151,11 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
         4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
         5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
         6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
-        7 -> EnterProfileHeadlineScreen(registrationViewModel, onNext, onBack)
-        8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack) // Username screen comes last
+        7 -> EnterProfileHeadlineScreen(
+            registrationViewModel,
+            onRegistrationComplete = onRegistrationComplete, // Call this to finish registration
+            onBack = onBack
+        )
     }
 }
 
@@ -657,143 +660,6 @@ fun DropdownWithSearch(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EnterUsernameScreen(
-    registrationViewModel: RegistrationViewModel,
-    onRegistrationComplete: () -> Unit,
-    onBack: () -> Unit
-) {
-    var username by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
-    val database = FirebaseDatabase.getInstance().reference
-    var isUsernameValid by remember { mutableStateOf(true) }
-    var usernameErrorMessage by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
-            )
-        },
-        content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = {
-                            username = it
-                            isUsernameValid = true
-                            usernameErrorMessage = ""
-                        },
-                        label = { Text("Username", color = Color(0xFF00bf63)) },
-                        singleLine = true,
-                        isError = !isUsernameValid,
-                        supportingText = {
-                            if (!isUsernameValid) {
-                                Text(text = usernameErrorMessage, color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63)
-                        )
-                    )
-
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val trimmedUsername = username.text.trim()
-                                val invalidChars = listOf('.', '#', '$', '[', ']')
-
-                                if (trimmedUsername.isEmpty()) {
-                                    isUsernameValid = false
-                                    usernameErrorMessage = "Username cannot be empty"
-                                    return@launch
-                                }
-                                if (invalidChars.any { trimmedUsername.contains(it) }) {
-                                    isUsernameValid = false
-                                    usernameErrorMessage = "Username contains invalid characters (., #, $, [, ])"
-                                    return@launch
-                                }
-
-                                isUsernameValid = true
-
-                                val encodedUsername = URLEncoder.encode(trimmedUsername, "UTF-8")
-                                database.child("usernames").child(encodedUsername)
-                                    .addListenerForSingleValueEvent(object : ValueEventListener {
-                                        override fun onDataChange(snapshot: DataSnapshot) {
-                                            if (snapshot.exists()) {
-                                                isUsernameValid = false
-                                                usernameErrorMessage = "Username already taken"
-                                            } else {
-                                                // Save the username both globally and in user's profile
-                                                scope.launch {
-                                                    try {
-                                                        // Save to global usernames node for future validation
-                                                        database.child("usernames").child(encodedUsername).setValue(true)
-                                                        registrationViewModel.username = trimmedUsername
-
-                                                        // Save the profile to Firebase
-                                                        saveProfileToFirebase(registrationViewModel, onRegistrationComplete)
-                                                    } catch (e: Exception) {
-                                                        Log.e("EnterUsernameScreen", "Error saving username: ${e.message}")
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        override fun onCancelled(error: DatabaseError) {
-                                            isUsernameValid = false
-                                            usernameErrorMessage = "Error: ${error.message}"
-                                        }
-                                    })
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = "Finish",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    )
-}
-
 suspend fun saveProfileToFirebase(
     registrationViewModel: RegistrationViewModel,
     onRegistrationComplete: () -> Unit
@@ -805,8 +671,8 @@ suspend fun saveProfileToFirebase(
         // Create a Profile object with the new fields
         val profile = Profile(
             userId = userId,
-            username = registrationViewModel.username,
-            name = registrationViewModel.name,
+            firstName = registrationViewModel.firstname,
+            lastName = registrationViewModel.lastname,
             dob = registrationViewModel.dob,
             bio = registrationViewModel.bio,
             gender = registrationViewModel.gender,
@@ -845,25 +711,17 @@ suspend fun saveProfileToFirebase(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BasicInputScreen(
-    title: String,
-    label: String,
-    value: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit,
-    onNext: () -> Unit,
-    onBack: () -> Unit
-) {
+fun EnterNameScreen(registrationViewModel: RegistrationViewModel, onNext: () -> Unit, onBack: () -> Unit) {
+    var firstName by remember { mutableStateOf(TextFieldValue(registrationViewModel.firstname)) }
+    var lastName by remember { mutableStateOf(TextFieldValue(registrationViewModel.lastname)) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
@@ -884,20 +742,14 @@ fun BasicInputScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Title
-                    Text(
-                        text = title,
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-
-                    // Input Field
+                    // First Name Input
                     OutlinedTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        label = { Text(label, color = Color(0xFF00bf63)) },
+                        value = firstName,
+                        onValueChange = {
+                            firstName = it
+                            registrationViewModel.firstname = it.text
+                        },
+                        label = { Text("First Name", color = Color(0xFF00bf63)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -907,15 +759,33 @@ fun BasicInputScreen(
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFF00bf63),
                             focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63),
-                            focusedLabelColor = Color(0xFF00bf63),
-                            unfocusedLabelColor = Color(0xFF00bf63)
+                            unfocusedBorderColor = Color(0xFF00bf63)
                         )
                     )
 
-                    // Next Button
+                    // Last Name Input
+                    OutlinedTextField(
+                        value = lastName,
+                        onValueChange = {
+                            lastName = it
+                            registrationViewModel.lastname = it.text
+                        },
+                        label = { Text("Last Name", color = Color(0xFF00bf63)) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFF00bf63),
+                            focusedBorderColor = Color(0xFF00bf63),
+                            unfocusedBorderColor = Color(0xFF00bf63)
+                        )
+                    )
+
                     Button(
-                        onClick = { onNext() },
+                        onClick = onNext,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -936,22 +806,6 @@ fun BasicInputScreen(
     )
 }
 
-@Composable
-fun EnterNameScreen(registrationViewModel: RegistrationViewModel, onNext: () -> Unit, onBack: () -> Unit) {
-    var name by remember { mutableStateOf(TextFieldValue(registrationViewModel.name)) }
-
-    BasicInputScreen(
-        title = "Enter Your Name",
-        label = "Full Name",
-        value = name,
-        onValueChange = {
-            name = it
-            registrationViewModel.name = it.text
-        },
-        onNext = onNext,
-        onBack = onBack
-    )
-}
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1962,10 +1816,11 @@ fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
 @Composable
 fun EnterProfileHeadlineScreen(
     registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit, // Triggered after the user proceeds to the next screen
+    onRegistrationComplete: () -> Unit,  // Triggered after registration completion
     onBack: () -> Unit  // Triggered when the user wants to go back
 ) {
     var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
+    val scope = rememberCoroutineScope()  // Coroutine scope for calling suspend functions
 
     Scaffold(
         topBar = {
@@ -2015,13 +1870,13 @@ fun EnterProfileHeadlineScreen(
                         )
                     )
 
-                    // Button to move to the next step
+                    // Finish Button to complete registration
                     Button(
                         onClick = {
-                            // Save the bio to the ViewModel
-                            registrationViewModel.bio = headline.text
-                            // Proceed to the next screen
-                            onNext()
+                            // Launch coroutine to call the suspend function
+                            scope.launch {
+                                saveProfileToFirebase(registrationViewModel, onRegistrationComplete)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2031,7 +1886,7 @@ fun EnterProfileHeadlineScreen(
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
                         Text(
-                            text = "Next",
+                            text = "Finish",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -2042,3 +1897,4 @@ fun EnterProfileHeadlineScreen(
         }
     )
 }
+

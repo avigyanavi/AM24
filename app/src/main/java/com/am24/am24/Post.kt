@@ -39,7 +39,7 @@ data class Post(
 ) {
     @Exclude
     fun getPostTimestamp(): Long {
-        return if (true) timestamp as Long else System.currentTimeMillis()
+        return (timestamp as? Number)?.toLong() ?: 0L
     }
 
     // Serialize the Post object to JSON
@@ -64,7 +64,7 @@ data class Comment(
     val mediaUrl: String? = null
 ) {
     fun getCommentTimestamp(): Long {
-        return if (timestamp is Long) timestamp else (timestamp as? Map<*, *>)?.get("timestamp") as? Long ?: 0L
+        return (timestamp as? Number)?.toLong() ?: 0L
     }
     // Serialize the Comment object to JSON
     fun toJson(): String = Gson().toJson(this)

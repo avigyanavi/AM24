@@ -52,12 +52,42 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      */
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> get() = _posts
+
     private val _userProfiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
     val userProfiles: StateFlow<Map<String, Profile>> get() = _userProfiles
 
+    // MutableStateFlow for filter settings
+    private val _filterSettings = MutableStateFlow(FilterSettings())
+    val filterSettings: StateFlow<FilterSettings> get() = _filterSettings
+
+    // Add currentUserId StateFlow
+    private val _currentUserId = MutableStateFlow<String?>(null)
+    val currentUserIdFlow: StateFlow<String?> get() = _currentUserId
+
+    fun setCurrentUserId(userId: String?) {
+        _currentUserId.value = userId
+    }
+
+    // Update filteredPosts StateFlow
+    val filteredPosts: StateFlow<List<Post>> = combine(
+        _posts,
+        _userProfiles,
+        _filterSettings,
+        currentUserIdFlow
+    ) { posts, profiles, filterSettings, currentUserId ->
+        applyFiltersAndSort(
+            posts,
+            profiles,
+            filterSettings.filterOption,
+            filterSettings.filterValue,
+            filterSettings.searchQuery,
+            filterSettings.sortOption,
+            currentUserId
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
-
     init {
         observePosts()
     }
@@ -65,15 +95,22 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Sets up a real-time listener to observe changes in "posts" node.
      */
+
     private fun observePosts() {
         postsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 viewModelScope.launch(Dispatchers.IO) {
                     val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
                     val sortedPosts = postsList.sortedByDescending { parseTimestamp(it.timestamp) }
-                    withContext(Dispatchers.Main) {
-                        _posts.value = sortedPosts
-                    }
+
+                    // Fetch user profiles
+                    val userIds = sortedPosts.map { it.userId }.toSet()
+                    val profiles = fetchUserProfiles(userIds)
+
+                    // Update the StateFlows
+                    _userProfiles.value = profiles
+                    _posts.value = sortedPosts
+                    // The filteredPosts StateFlow will automatically update
                 }
             }
 
@@ -83,7 +120,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
         postsRef.addValueEventListener(postsListener!!)
     }
-
 
     override fun onCleared() {
         super.onCleared()
@@ -258,43 +294,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Ensures that the image is in JPEG format.
-     */
-    private suspend fun ensureJpegFormat(imageUri: Uri, onFailure: (String) -> Unit): Uri? {
-        return try {
-            val contentResolver: ContentResolver = getApplication<Application>().contentResolver
-            val inputStream = contentResolver.openInputStream(imageUri) ?: run {
-                onFailure("Unable to open image for conversion.")
-                return null
-            }
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream.close()
-
-            // Compress bitmap to JPEG
-            val jpegFile = File.createTempFile("jpeg_", ".jpg", getApplication<Application>().cacheDir)
-            val outputStream = FileOutputStream(jpegFile)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
-            outputStream.flush()
-            outputStream.close()
-
-            Uri.fromFile(jpegFile)
-        } catch (e: IOException) {
-            Log.e(TAG, "Error converting image to JPEG: ${e.message}", e)
-            onFailure("Image format conversion failed.")
-            null
-        }
-    }
-
-    /**
-     * Ensures that the video is in MP4 format.
-     */
-    private suspend fun ensureMp4Format(videoUri: Uri, onFailure: (String) -> Unit): Uri? {
-        // Placeholder: Implement video format conversion if necessary.
-        // For simplicity, assume video is already in MP4.
-        return videoUri
-    }
-
-    /**
      * Ensures that the audio is in MP3 format.
      */
     private suspend fun ensureMp3Format(voiceUri: Uri, onFailure: (String) -> Unit): Uri? {
@@ -304,76 +303,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Compresses the image if it exceeds the maximum allowed size.
-     */
-    private suspend fun compressImageIfNeeded(imageUri: Uri, maxSize: Int, onFailure: (String) -> Unit): Uri? {
-        return try {
-            val contentResolver: ContentResolver = getApplication<Application>().contentResolver
-            val inputStream = contentResolver.openInputStream(imageUri) ?: run {
-                onFailure("Unable to open image for compression.")
-                return null
-            }
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream.close()
-
-            var quality = 85
-            var byteArray: ByteArray
-
-            do {
-                val outputStream = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
-                byteArray = outputStream.toByteArray()
-                outputStream.close()
-                quality -= 5
-            } while (byteArray.size > maxSize && quality > 5)
-
-            val compressedFile = File.createTempFile("compressed_", ".jpg", getApplication<Application>().cacheDir)
-            val fos = FileOutputStream(compressedFile)
-            fos.write(byteArray)
-            fos.flush()
-            fos.close()
-
-            Uri.fromFile(compressedFile)
-        } catch (e: IOException) {
-            Log.e(TAG, "Error compressing image: ${e.message}", e)
-            onFailure("Image compression failed.")
-            null
-        }
-    }
-
-    /**
-     * Compresses the video if it exceeds the maximum allowed size.
-     */
-    private suspend fun compressVideoIfNeeded(videoUri: Uri, maxSize: Int, onFailure: (String) -> Unit): Uri? {
-        // Placeholder: Implement video compression using libraries like FFmpeg.
-        // For simplicity, assume video is within size limits.
-        return videoUri
-    }
-
-    /**
      * Compresses the audio if it exceeds the maximum allowed size.
      */
     private suspend fun compressAudioIfNeeded(audioUri: Uri, maxSize: Int, onFailure: (String) -> Unit): Uri? {
         // Placeholder: Implement audio compression using libraries like FFmpeg.
         // For simplicity, assume audio is within size limits.
         return audioUri
-    }
-
-    /**
-     * Retrieves the duration of a video in seconds.
-     */
-    private suspend fun getVideoDuration(videoUri: Uri, onFailure: (String) -> Unit): Int? {
-        return try {
-            val retriever = MediaMetadataRetriever()
-            retriever.setDataSource(getApplication<Application>(), videoUri)
-            val time = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-            retriever.release()
-            time?.toLongOrNull()?.div(1000)?.toInt()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error retrieving video duration: ${e.message}", e)
-            onFailure("Failed to retrieve video duration.")
-            null
-        }
     }
 
     /**
@@ -684,106 +619,139 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+
     /**
-     * Function to fetch posts from Firebase Realtime Database.
-     * Since we're using real-time listeners, this function might not be needed.
-     * However, it can be retained for one-time fetches or pagination.
+     * Function to apply filters and sorting to the list of posts.
      */
-    fun fetchPosts(
-        filterOption: String,
-        filterValue: String,
-        searchQuery: String,
-        sortOption: String,
-        userId: String?
-    ) {
-        viewModelScope.launch {
-            try {
-                val context = getApplication<Application>().applicationContext
-                val postsList = withContext(Dispatchers.IO) {
-                    // Define your query
-                    val postsRef = FirebaseDatabase.getInstance().getReference("posts")
-                    val query = when (filterOption) {
-                        "recent" -> postsRef.orderByChild("timestamp").limitToLast(100)
-                        "my posts" -> if (userId != null) {
-                            postsRef.orderByChild("userId").equalTo(userId).limitToLast(100)
-                        } else {
-                            postsRef.orderByChild("timestamp").limitToLast(100)
-                        }
-                        else -> postsRef.orderByChild("timestamp").limitToLast(100)
-                    }
-
-                    // Fetch posts from cache or Firebase
-                    val postsList = query.get().await().children.mapNotNull { snapshot ->
-                        val cachedData = getCachedPostData(context, snapshot.key!!)
-                        cachedData?.let { Post.fromJson(it) } ?: snapshot.getValue(Post::class.java)
-                    }.filter { it?.mediaType == null || it.mediaType == "voice" }
-
-                    // Apply filters, search, and sorting
-                    applyFiltersAndSort(postsList, filterOption, filterValue, searchQuery, sortOption, context)
-                }
-
-                // Update the state on the main thread
-                _posts.value = postsList
-
-            } catch (e: Exception) {
-                Log.e("PostViewModel", "Error fetching posts: ${e.message}", e)
-                // Handle failure (you can show a toast or other error message if needed)
-            }
-        }
-    }
-
-    private suspend fun applyFiltersAndSort(
+    /**
+     * Function to apply filters and sorting to the list of posts.
+     */
+    private fun applyFiltersAndSort(
         postsList: List<Post>,
+        profiles: Map<String, Profile>,
         filterOption: String,
         filterValue: String,
         searchQuery: String,
         sortOption: String,
-        context: Context
+        currentUserId: String?
     ): List<Post> {
-        // Fetch user profiles for the filtered posts
-        val userIds = postsList.map { it.userId }.toSet()
-        val profiles = fetchUserProfiles(userIds)
-        _userProfiles.value = profiles
-
         var filteredList = postsList
 
+        Log.d(TAG, "Filter Option: $filterOption")
+        Log.d(TAG, "Filter Value: $filterValue")
+        Log.d(TAG, "Search Query: $searchQuery")
+        Log.d(TAG, "Sort Option: $sortOption")
+
+        Log.d(TAG, "Original posts count: ${filteredList.size}")
+
+        // Apply "my posts" filter
+        if (filterOption == "my posts" && currentUserId != null) {
+            filteredList = filteredList.filter { post ->
+                post.userId == currentUserId
+            }
+            Log.d(TAG, "After 'my posts' filter, count: ${filteredList.size}")
+        }
+
+        // Apply "voice only" filter
+        if (filterOption == "voice only") {
+            filteredList = filteredList.filter { post ->
+                post.mediaType == "voice"
+            }
+            Log.d(TAG, "After 'voice only' filter, count: ${filteredList.size}")
+        }
+
         // Apply profile-based filters
-        if (filterOption in listOf("city", "age", "level", "gender", "high-school", "college")) {
+        if (filterOption in listOf("city", "age", "rating", "gender", "high-school", "college", "country")) {
             filteredList = filteredList.filter { post ->
                 val profile = profiles[post.userId]
                 profile != null && checkProfileFilter(profile, filterOption, filterValue)
             }
+            Log.d(TAG, "After profile-based filter, count: ${filteredList.size}")
         }
 
-        // Apply search query filtering for both username and tags
+        // Apply search query filtering
         if (searchQuery.isNotEmpty()) {
             val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
             filteredList = filteredList.filter { post ->
                 val profile = profiles[post.userId]
-                val usernameMatch = profile?.username?.lowercase(Locale.getDefault())
-                    ?.contains(lowerSearchQuery) ?: false
+
+                val fullName = ((profile?.firstName ?: "Unknown") + " " + (profile?.lastName ?: "Unknown"))
+                    .lowercase(Locale.getDefault())
+                val nameMatch = fullName.contains(lowerSearchQuery)
+
                 val userTagsMatch = post.userTags.any { tag ->
                     tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
                 }
-                usernameMatch || userTagsMatch
+
+                nameMatch || userTagsMatch
             }
+            Log.d(TAG, "After search query filter, count: ${filteredList.size}")
         }
 
-        // Sort posts based on the selected sorting option
+        // Sort posts
         filteredList = when (sortOption) {
             "Sort by Upvotes" -> filteredList.sortedByDescending { it.upvotes }
             "Sort by Downvotes" -> filteredList.sortedByDescending { it.downvotes }
+            "No Sort" -> filteredList // Do not sort
             else -> filteredList.sortedByDescending { it.getPostTimestamp() }
-        }
-
-        // Cache the fetched post data locally for future use
-        filteredList.forEach { post ->
-            cachePostData(context, post.postId, post.toJson())
         }
 
         return filteredList
     }
 
+
+    /**
+     * Function to check profile-based filters.
+     */
+    private fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
+        return when (filterOption) {
+            "country" -> {
+                // Exact match (case-insensitive)
+                profile.country.contains(filterValue, ignoreCase = true)
+            }
+            "city" -> {
+                // Contains match (case-insensitive)
+                profile.city.contains(filterValue, ignoreCase = true)
+            }
+            "age" -> {
+                val age = calculateAge(profile.dob)
+                val requiredAge = filterValue.toIntOrNull()
+                age != null && requiredAge != null && age == requiredAge
+            }
+            "rating" -> {
+                val userRating = profile.rating ?: 0.0
+                when (filterValue) {
+                    "0-2" -> userRating in 0.0..2.0
+                    "3-4" -> userRating > 2 && userRating <= 4
+                    "5" -> userRating > 4 && userRating <= 5
+                    else -> false
+                }
+            }
+            "gender" -> profile.gender.contains(filterValue, ignoreCase = true)
+            "high-school" -> profile.highSchool.contains(filterValue, ignoreCase = true)
+            "college" -> profile.college.contains(filterValue, ignoreCase = true)
+            else -> true
+        }
+    }
+
+    /**
+     * Functions to update filter options.
+     */
+    fun setFilterOption(newOption: String) {
+        _filterSettings.value = _filterSettings.value.copy(filterOption = newOption)
+    }
+
+    fun setFilterValue(newValue: String) {
+        _filterSettings.value = _filterSettings.value.copy(filterValue = newValue)
+    }
+
+    fun setSearchQuery(newQuery: String) {
+        _filterSettings.value = _filterSettings.value.copy(searchQuery = newQuery)
+    }
+
+    fun setSortOption(newSortOption: String) {
+        _filterSettings.value = _filterSettings.value.copy(sortOption = newSortOption)
+    }
 
     private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
         val profiles = mutableMapOf<String, Profile>()
@@ -800,20 +768,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         profiles
     }
 
-    fun cachePostData(context: Context, postId: String, postData: String) {
-        val cacheDir = File(context.cacheDir, "post_cache")
-        if (!cacheDir.exists()) {
-            cacheDir.mkdirs()
-        }
-        val postFile = File(cacheDir, "$postId.json")
-        postFile.writeText(postData)
-    }
-
-    fun getCachedPostData(context: Context, postId: String): String? {
-        val cacheDir = File(context.cacheDir, "post_cache")
-        val postFile = File(cacheDir, "$postId.json")
-        return if (postFile.exists()) postFile.readText() else null
-    }
 
     fun deletePost(
         postId: String,

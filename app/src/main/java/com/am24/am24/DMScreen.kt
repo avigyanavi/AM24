@@ -179,7 +179,7 @@ fun UserCard(profile: Profile, navController: NavController) {
             // User details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = profile.username,
+                    text = (profile.firstName + " " + profile.lastName),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
