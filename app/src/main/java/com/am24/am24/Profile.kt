@@ -7,8 +7,8 @@ import java.util.Locale
 
 data class Profile(
     val userId: String = "",
-    val firstName: String = "",  // First name, limit 20 characters
-    val lastName: String = "",   // Last name, limit 20 characters
+    val username: String = "",  // Unique username (e.g., MS1)
+    val name: String = "",
     val dob: String = "",  // Date of birth for age calculation
     val bio: String = "",  // One-liner bio
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
@@ -92,7 +92,7 @@ data class Profile(
     val profileCompletionPercentage: Int
         get() {
             val fields = listOf(
-                firstName, lastName, dob, bio, gender, profilepicUrl, religion, community,
+                name, username, dob, bio, gender, profilepicUrl, religion, community,
                 country, city, hometown, educationLevel, highSchool, college, postGraduation,
                 claimedIncomeLevel, jobRole, work, lookingFor
             )

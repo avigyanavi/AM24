@@ -64,11 +64,11 @@ fun OtherUserProfileScreen(
 @Composable
 fun OtherUserProfileContent(
     navController: NavController,
-    userId: String,
-    currentUserId: String,
+    userId: String,            // Target user's ID
+    currentUserId: String,     // Current user's ID
     currentUserName: String,
     profileViewModel: ProfileViewModel,
-    geoFire: GeoFire,  // Pass geoFire instance
+    geoFire: GeoFire,
     modifier: Modifier = Modifier
 ) {
     val profile = remember { mutableStateOf(Profile()) }
@@ -90,13 +90,13 @@ fun OtherUserProfileContent(
         })
     }
 
+    // Calculate distance between users
     LaunchedEffect(userId) {
         if (currentUserId.isNotEmpty() && userId.isNotEmpty()) {
             val distance = calculateDistance(currentUserId, userId, geoFire)
             userDistance = distance
         }
     }
-
 
     // Scrollable content for other user's profile
     Column(
@@ -126,7 +126,7 @@ fun OtherUserProfileContent(
 
         // Name, Age, Rating, Composite Score
         Text(
-            text = "${profile.value.firstName} ${profile.value.lastName}, ${calculateAge(profile.value.dob)}",
+            text = "${profile.value.name}, ${calculateAge(profile.value.dob)}",
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             color = Color.White
@@ -140,7 +140,15 @@ fun OtherUserProfileContent(
 
         // Other sections (ProfileActionsSection, ProfileDetailsSection, etc.)
         Spacer(modifier = Modifier.height(16.dp))
-        ProfileActionsSection(userId, profile.value, profileViewModel)
+
+        // Updated call to ProfileActionsSection with correct IDs
+        ProfileActionsSection(
+            currentUserId = currentUserId,   // Corrected
+            targetUserId = userId,           // Corrected
+            profile = profile.value,
+            profileViewModel = profileViewModel
+        )
+
         Spacer(modifier = Modifier.height(16.dp))
         ProfileDetailsSection(profile.value)
         Spacer(modifier = Modifier.height(16.dp))
@@ -165,7 +173,146 @@ fun OtherUserProfileContent(
     }
 }
 
+@Composable
+fun ProfileActionsSection(
+    currentUserId: String,     // Corrected
+    targetUserId: String,      // Corrected
+    profile: Profile,
+    profileViewModel: ProfileViewModel
+) {
+    val friendStatus = remember { mutableStateOf("not_requested") }
+    val dynamicUsername = remember { mutableStateOf("") }
 
+    // Fetch the friend request status
+    LaunchedEffect(targetUserId) {
+        profileViewModel.getFriendRequestStatus(
+            currentUserId = currentUserId,   // Corrected
+            targetUserId = targetUserId,     // Corrected
+            onStatusRetrieved = { status ->
+                friendStatus.value = status
+            },
+            onFailure = {
+                friendStatus.value = "not_requested"
+            }
+        )
+    }
+
+    // Fetch the current user's username
+    LaunchedEffect(currentUserId) {
+        profileViewModel.fetchUsernameById(
+            currentUserId,
+            onSuccess = { username -> dynamicUsername.value = username },
+            onFailure = { dynamicUsername.value = "Unknown" }
+        )
+    }
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        // Friend Request Button
+        IconButton(
+            onClick = {
+                when (friendStatus.value) {
+                    "not_requested" -> {
+                        profileViewModel.sendFriendRequest(
+                            currentUserId = currentUserId,   // Corrected
+                            targetUserId = targetUserId,     // Corrected
+                            onSuccess = {
+                                friendStatus.value = "requested"
+                            },
+                            onFailure = { /* Handle error */ }
+                        )
+                    }
+
+                    "requested" -> {
+                        profileViewModel.rejectFriendRequest(
+                            currentUserId = currentUserId,   // Corrected
+                            requesterId = targetUserId,      // Corrected
+                            onSuccess = {
+                                friendStatus.value = "not_requested"
+                            },
+                            onFailure = { /* Handle error */ }
+                        )
+                    }
+
+                    "accepted" -> {
+                        profileViewModel.removeFriend(
+                            currentUserId = currentUserId,   // Corrected
+                            targetUserId = targetUserId,     // Corrected
+                            onSuccess = {
+                                friendStatus.value = "not_requested"
+                            },
+                            onFailure = { /* Handle error */ }
+                        )
+                    }
+                }
+            },
+            modifier = Modifier
+                .size(50.dp)
+                .clip(CircleShape)
+                .background(
+                    when (friendStatus.value) {
+                        "accepted" -> Color.Red
+                        "requested" -> Color.Gray
+                        else -> Color(0xFF00bf63)
+                    }
+                )
+        ) {
+            Icon(
+                imageVector = when (friendStatus.value) {
+                    "accepted" -> Icons.Default.PersonRemove
+                    "requested" -> Icons.Default.Pending
+                    else -> Icons.Default.PersonAdd
+                },
+                contentDescription = when (friendStatus.value) {
+                    "accepted" -> "Remove Friend"
+                    "requested" -> "Withdraw Request"
+                    else -> "Add Friend"
+                },
+                tint = Color.White
+            )
+        }
+
+        // Report Profile Button
+        IconButton(
+            onClick = {
+                profileViewModel.reportProfile(
+                    profileId = targetUserId,      // Corrected
+                    reporterId = currentUserId,    // Corrected
+                    onSuccess = { /* Handle success */ },
+                    onFailure = { /* Handle error */ }
+                )
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.Flag,
+                contentDescription = "Report",
+                tint = Color.Yellow
+            )
+        }
+
+        // Block Profile Button
+        IconButton(
+            onClick = {
+                profileViewModel.blockProfile(
+                    currentUserId = currentUserId, // Corrected
+                    targetUserId = targetUserId,   // Corrected
+                    onSuccess = { /* Handle success */ },
+                    onFailure = { /* Handle error */ }
+                )
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.Block,
+                contentDescription = "Block",
+                tint = Color.Red
+            )
+        }
+    }
+}
 
 @Composable
 fun ProfileMediaSection(
@@ -296,7 +443,7 @@ fun ProfileDetailsSection(profile: Profile) {
     FeedItemCard {
         Column {
             ProfileText(label = "Gender", value = profile.gender)
-            ProfileText(label = "Username", value = profile.firstName)
+            ProfileText(label = "Username", value = profile.username)
             ProfileText(label = "Community", value = profile.community)
             ProfileText(label = "Religion", value = profile.religion)
             ProfileText(label = "Zodiac", value = deriveZodiac(profile.dob))
@@ -679,155 +826,6 @@ fun FeedItemCard(content: @Composable () -> Unit) {
         ) {
             content()
         }
-    }
-}
-
-@Composable
-fun ProfileActionsSection(
-    currentUserId: String,
-    profile: Profile,
-    profileViewModel: ProfileViewModel
-) {
-    val friendStatus = remember { mutableStateOf("not_requested") }
-    val dynamicUsername = remember { mutableStateOf("") }
-
-    // Fetch the friend request status
-    LaunchedEffect(profile.userId) {
-        profileViewModel.getFriendRequestStatus(
-            currentUserId = currentUserId,
-            targetUserId = profile.userId,
-            onStatusRetrieved = { status ->
-                friendStatus.value = status
-            },
-            onFailure = {
-                friendStatus.value = "not_requested"
-            }
-        )
-    }
-
-    // Fetch the current user's username
-    LaunchedEffect(currentUserId) {
-        profileViewModel.fetchUsernameById(
-            currentUserId,
-            onSuccess = { username -> dynamicUsername.value = username },
-            onFailure = { dynamicUsername.value = "Unknown" }
-        )
-    }
-
-    // Actions Row
-    Row(
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        // Friend Request Button
-        IconButton(
-            onClick = {
-                when (friendStatus.value) {
-                    "not_requested" -> {
-                        profileViewModel.sendFriendRequest(
-                            currentUserId = currentUserId,
-                            targetUserId = profile.userId,
-                            onSuccess = {
-                                friendStatus.value = "requested"
-                            },
-                            onFailure = { /* Handle error */ }
-                        )
-                    }
-                    "requested" -> {
-                        profileViewModel.rejectFriendRequest(
-                            currentUserId = currentUserId,
-                            requesterId = profile.userId,
-                            onSuccess = {
-                                friendStatus.value = "not_requested"
-                            },
-                            onFailure = { /* Handle error */ }
-                        )
-                    }
-                    "accepted" -> {
-                        profileViewModel.removeFriend(
-                            currentUserId = currentUserId,
-                            targetUserId = profile.userId,
-                            onSuccess = {
-                                friendStatus.value = "not_requested"
-                            },
-                            onFailure = { /* Handle error */ }
-                        )
-                    }
-                }
-            },
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(
-                    when (friendStatus.value) {
-                        "accepted" -> Color.Red
-                        "requested" -> Color.Gray
-                        else -> Color(0xFFFF00D1)
-                    }
-                )
-        ) {
-            Icon(
-                imageVector = when (friendStatus.value) {
-                    "accepted" -> Icons.Default.PersonRemove
-                    "requested" -> Icons.Default.Pending
-                    else -> Icons.Default.PersonAdd
-                },
-                contentDescription = when (friendStatus.value) {
-                    "accepted" -> "Remove Friend"
-                    "requested" -> "Withdraw Request"
-                    else -> "Add Friend"
-                },
-                tint = Color.White
-            )
-        }
-
-        // Report Profile Button
-        IconButton(
-            onClick = {
-                profileViewModel.reportProfile(
-                    profileId = profile.userId,
-                    reporterId = currentUserId,
-                    onSuccess = { /* Handle success */ },
-                    onFailure = { /* Handle error */ }
-                )
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Flag,
-                contentDescription = "Report",
-                tint = Color.Yellow
-            )
-        }
-
-        // Block Profile Button
-        IconButton(
-            onClick = {
-                profileViewModel.blockProfile(
-                    currentUserId = currentUserId,
-                    targetUserId = profile.userId,
-                    onSuccess = { /* Handle success */ },
-                    onFailure = { /* Handle error */ }
-                )
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Block,
-                contentDescription = "Block",
-                tint = Color.Red
-            )
-        }
-    }
-
-    // Display User Review Section if users are friends or matches
-    if (friendStatus.value == "accepted") {
-        Spacer(modifier = Modifier.height(8.dp))
-        UserReviewSection(
-            currentUserId = currentUserId,
-            targetUserId = profile.userId,
-            profileViewModel = profileViewModel
-        )
     }
 }
 

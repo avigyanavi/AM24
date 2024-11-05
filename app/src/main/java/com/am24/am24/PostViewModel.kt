@@ -675,7 +675,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             filteredList = filteredList.filter { post ->
                 val profile = profiles[post.userId]
 
-                val fullName = ((profile?.firstName ?: "Unknown") + " " + (profile?.lastName ?: "Unknown"))
+                val fullName = ((profile?.username ?: "Unknown"))
                     .lowercase(Locale.getDefault())
                 val nameMatch = fullName.contains(lowerSearchQuery)
 

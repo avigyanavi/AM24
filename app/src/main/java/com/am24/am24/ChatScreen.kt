@@ -113,7 +113,7 @@ fun ChatScreenContent(navController: NavController, otherUserId: String) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = (otherUserProfile!!.firstName + " " + otherUserProfile!!.lastName),
+                                text = otherUserProfile!!.name,
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold

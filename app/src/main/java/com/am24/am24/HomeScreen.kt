@@ -663,7 +663,7 @@ fun FeedSection(
                         val comment = Comment(
                             commentId = UUID.randomUUID().toString(), // Generate a unique ID
                             userId = userId ?: "",
-                            username = ((userProfile?.firstName ?: "Unknown") + " " + (userProfile?.lastName ?: "Unknown")),
+                            username = userProfile?.username.toString(),
                             commentText = commentText,
                             timestamp = ServerValue.TIMESTAMP
                         )
@@ -866,7 +866,7 @@ fun FeedItem(
                 Column {
                     Row {
                         Text(
-                            text = "${userProfile?.firstName ?: ""} ${userProfile?.lastName ?: ""}, ${userAge ?: "--"}",
+                            text = userProfile?.username.toString(),
                             color = Color(0xFFFFA500),
                             fontWeight = FontWeight.Light,
                             fontSize = dynamicFontSize
@@ -1164,7 +1164,7 @@ fun FeedItem(
                         val comment = Comment(
                             commentId = UUID.randomUUID().toString(),
                             userId = currentUserId,
-                            username = ((userProfile?.firstName ?: "Unknown") + " " + (userProfile?.lastName ?: "Unknown")),
+                            username = userProfile?.username.toString(),
                             commentText = commentText,
                             timestamp = ServerValue.TIMESTAMP
                         )
@@ -1184,7 +1184,7 @@ fun FeedItem(
                             postId = post.postId,
                             voiceUri = voiceUri,
                             userId = currentUserId,
-                            username = ((userProfile?.firstName ?: "Unknown") + " " + (userProfile?.lastName ?: "Unknown")),
+                            username = userProfile?.username.toString(),
                             onSuccess = {
                                 // Show success message or update UI
                             },

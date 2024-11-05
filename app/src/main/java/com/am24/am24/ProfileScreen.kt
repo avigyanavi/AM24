@@ -147,7 +147,7 @@ fun ProfileScreenContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${profile.value.firstName} ${profile.value.lastName}, ${calculateAge(profile.value.dob)}",
+                        text = "${profile.value.name}, ${calculateAge(profile.value.dob)}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
                         color = Color.White
@@ -243,7 +243,7 @@ fun UserInfoSectionBasic(profile: Profile) {
         horizontalAlignment = Alignment.Start
     ) {
         // Name, Gender, Bio, and other details
-        ProfileText(label = "Name", value = (profile.firstName + " " + profile.lastName))
+        ProfileText(label = "Name", value = (profile.name))
         Spacer(modifier = Modifier.height(8.dp))
 
         ProfileText(label = "Gender", value = profile.gender)

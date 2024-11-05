@@ -45,8 +45,8 @@ fun EditProfileScreen(navController: NavController? = null) {
 
 // State variables for fields
     var profile by remember { mutableStateOf(Profile()) }
-    var firstname by remember { mutableStateOf(TextFieldValue("")) }
-    var lastname by remember { mutableStateOf(TextFieldValue("")) }
+    var name by remember { mutableStateOf(TextFieldValue("")) }
+    var username by remember { mutableStateOf(TextFieldValue("")) }
     var bio by remember { mutableStateOf(TextFieldValue("")) }
     val interests = remember { mutableStateListOf<Interest>() }
     var hometown by remember { mutableStateOf("") }
@@ -119,8 +119,7 @@ fun EditProfileScreen(navController: NavController? = null) {
         userRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 profile = snapshot.getValue(Profile::class.java) ?: Profile()
-                firstname = TextFieldValue(profile.firstName)
-                lastname = TextFieldValue(profile.lastName)
+                name = TextFieldValue(profile.name)
                 hometownText = profile.hometown
                 highSchoolText = profile.highSchool
                 collegeText = profile.college
@@ -139,8 +138,7 @@ fun EditProfileScreen(navController: NavController? = null) {
                     }
                 }
 
-                firstname = TextFieldValue(profile.firstName)
-                lastname = TextFieldValue(profile.lastName)
+                name = TextFieldValue(profile.name)
                 bio = TextFieldValue(profile.bio)
                 hometown = profile.hometown
                 highSchool = profile.highSchool
@@ -208,27 +206,9 @@ if (showEditInterestsScreen) {
                 ) {
                     // Name
                     OutlinedTextField(
-                        value = firstname,
-                        onValueChange = { firstname = it },
-                        label = { Text("First Name", color = Color(0xFF00bf63)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63)
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Username
-                    OutlinedTextField(
-                        value = lastname,
-                        onValueChange = { lastname = it },
-                        label = { Text("Last Name", color = Color(0xFF00bf63)) },
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name", color = Color(0xFF00bf63)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -1202,8 +1182,7 @@ if (showEditInterestsScreen) {
                         onClick = {
                             scope.launch {
                                 saveProfileData(
-                                    firstname.text,
-                                    lastname.text,
+                                    name.text,
                                     bio.text,
                                     if (customHometown) hometownText else hometown,
                                     if (customHighSchool) highSchoolText else highSchool,
@@ -1239,8 +1218,7 @@ if (showEditInterestsScreen) {
 }
 
 private suspend fun saveProfileData(
-    firstname: String,
-    lastname: String,
+    name: String,
     bio: String,
     hometown: String,
     highSchool: String,
@@ -1257,8 +1235,7 @@ private suspend fun saveProfileData(
     lifestyle: Lifestyle,
 ) {
     val updates = mapOf(
-        "firstname" to firstname,
-        "lastname" to lastname,
+        "name" to name,
         "bio" to bio,
         "hometown" to hometown,
         "highSchool" to highSchool,
