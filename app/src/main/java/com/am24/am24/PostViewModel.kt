@@ -47,6 +47,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     // Tag for logging
     private val TAG = "PostViewModel"
 
+    // Firebase Realtime Database reference to "notifications"
+    private val notificationsRef = FirebaseDatabase.getInstance().getReference("notifications")
+
+    // Firebase Realtime Database reference to "friends" and "matches"
+    private val friendsRef = FirebaseDatabase.getInstance().getReference("friends")
+    private val matchesRef = FirebaseDatabase.getInstance().getReference("matches")
+
     /**
      * StateFlow holding the list of posts.
      */
@@ -152,7 +159,107 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Helper function to send a notification
+    private suspend fun sendNotification(
+        receiverId: String,
+        type: String,
+        senderId: String,
+        senderUsername: String,
+        message: String
+    ) {
+        try {
+            val timestamp = System.currentTimeMillis()
+            val notificationId = notificationsRef.child(receiverId).push().key
+                ?: throw Exception("Failed to generate notification ID")
 
+            val notification = Notification(
+                id = notificationId,
+                type = type,
+                senderId = senderId,
+                senderUsername = senderUsername,
+                message = message,
+                timestamp = timestamp,
+                isRead = "false"
+            )
+            notificationsRef.child(receiverId).child(notificationId).setValue(notification).await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send notification: ${e.message}")
+            // Handle the error if necessary
+        }
+    }
+
+    // Helper function to fetch a username by user ID
+    private suspend fun fetchUsernameById(userId: String): String {
+        return try {
+            val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+            val snapshot = userRef.child("username").get().await()
+            snapshot.getValue(String::class.java) ?: "Unknown"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch username: ${e.message}")
+            "Unknown"
+        }
+    }
+
+    // Helper function to get the relationship between two users
+    private suspend fun getRelationship(userId1: String, userId2: String): String {
+        var isFriend = false
+        var isMatch = false
+        try {
+            // Check if userId2 is a friend of userId1
+            val friendSnapshot = friendsRef.child(userId1).child(userId2).get().await()
+            val friendStatus = friendSnapshot.child("status").getValue(String::class.java)
+            if (friendStatus == "accepted") {
+                isFriend = true
+            }
+
+            // Check if userId2 is a match of userId1
+            val matchSnapshot = matchesRef.child(userId1).child(userId2).get().await()
+            if (matchSnapshot.exists()) {
+                isMatch = true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch relationship between $userId1 and $userId2: ${e.message}")
+        }
+
+        return when {
+            isFriend && isMatch -> "friend and match"
+            isFriend -> "friend"
+            isMatch -> "match"
+            else -> ""
+        }
+    }
+
+
+    // Helper function to get friends and matches along with their relationship
+    private suspend fun getFriendsAndMatches(userId: String): Map<String, String> {
+        val relationships = mutableMapOf<String, String>()
+        try {
+            // Fetch friends
+            val friendsSnapshot = friendsRef.child(userId).get().await()
+            friendsSnapshot.children.forEach { child ->
+                val status = child.child("status").getValue(String::class.java)
+                if (status == "accepted") {
+                    val friendId = child.key ?: ""
+                    relationships[friendId] = "friend"
+                }
+            }
+
+            // Fetch matches
+            val matchesSnapshot = matchesRef.child(userId).get().await()
+            matchesSnapshot.children.forEach { child ->
+                val matchId = child.key ?: ""
+                val existingRelation = relationships[matchId]
+                if (existingRelation == "friend") {
+                    relationships[matchId] = "friend and match"
+                } else {
+                    relationships[matchId] = "match"
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch friends and matches: ${e.message}")
+        }
+        return relationships
+    }
 
     /**
      * Function to create a text post.
@@ -192,20 +299,33 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 "mediaType" to null,
                 "mediaUrl" to null,
                 "upvotes" to 0,
-                "downvotes" to 0
+                "downvotes" to 0,
+                "upvotedUsers" to emptyMap<String, Boolean>(),
+                "downvotedUsers" to emptyMap<String, Boolean>(),
+                "totalComments" to 0
             )
-
 
             try {
                 postsRef.child(postId).setValue(post).await()
                 onSuccess()
+                // Send notifications to friends and matches
+                val relationships = getFriendsAndMatches(userId)
+                relationships.forEach { (receiverId, relationship) ->
+                    val message = "$username - your $relationship posted a new update."
+                    sendNotification(
+                        receiverId = receiverId,
+                        type = "new_post",
+                        senderId = userId,
+                        senderUsername = username,
+                        message = message
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating text post: ${e.message}", e)
                 onFailure(e.message ?: "Unknown error occurred.")
             }
         }
     }
-
 
     /**
      * Function to create a voice post.
@@ -255,13 +375,29 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     "mediaUrl" to downloadUrl,
                     "voiceDuration" to duration,
                     "upvotes" to 0,
-                    "downvotes" to 0
+                    "downvotes" to 0,
+                    "upvotedUsers" to emptyMap<String, Boolean>(),
+                    "downvotedUsers" to emptyMap<String, Boolean>(),
+                    "totalComments" to 0
                 )
 
                 // Save post to Realtime Database
                 postsRef.child(postId).setValue(post).await()
 
                 onSuccess()
+
+                // Send notifications to friends and matches
+                val relationships = getFriendsAndMatches(userId)
+                relationships.forEach { (receiverId, relationship) ->
+                    val message = "$username - your $relationship posted a new voice update."
+                    sendNotification(
+                        receiverId = receiverId,
+                        type = "new_post",
+                        senderId = userId,
+                        senderUsername = username,
+                        message = message
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating voice post: ${e.message}", e)
                 onFailure(e.message ?: "Unknown error occurred.")
@@ -368,6 +504,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                 onFailure("Upvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
+                                // Send notification to post owner
+                                val post = currentData?.getValue(Post::class.java)
+                                if (post != null && post.userId != userId) {
+                                    // Fetch the upvoter's username
+                                    val upvoterUsername = fetchUsernameById(userId)
+                                    val message = "$upvoterUsername upvoted your post."
+                                    sendNotification(
+                                        receiverId = post.userId,
+                                        type = "post_upvote",
+                                        senderId = userId,
+                                        senderUsername = upvoterUsername,
+                                        message = message
+                                    )
+                                }
                             }
                         }
                     }
@@ -425,6 +575,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                 onFailure("Downvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
+                                // Send notification to post owner
+                                val post = currentData?.getValue(Post::class.java)
+                                if (post != null && post.userId != userId) {
+                                    // Fetch the downvoter's username
+                                    val downvoterUsername = fetchUsernameById(userId)
+                                    val message = "$downvoterUsername downvoted your post."
+                                    sendNotification(
+                                        receiverId = post.userId,
+                                        type = "post_downvote",
+                                        senderId = userId,
+                                        senderUsername = downvoterUsername,
+                                        message = message
+                                    )
+                                }
                             }
                         }
                     }
@@ -438,6 +602,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Function to upvote a comment.
+     */
     fun upvoteComment(
         postId: String,
         commentId: String,
@@ -474,17 +641,37 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         committed: Boolean,
                         currentData: DataSnapshot?
                     ) {
-                        if (error != null) {
-                            Log.e("PostViewModel", "Upvote comment transaction failed: ${error.message}")
-                            onFailure("Upvote failed: ${error.message}")
-                        } else if (committed) {
-                            onSuccess()
+                        viewModelScope.launch(Dispatchers.Main) {
+                            if (error != null) {
+                                Log.e("PostViewModel", "Upvote comment transaction failed: ${error.message}")
+                                onFailure("Upvote failed: ${error.message}")
+                            } else if (committed) {
+                                onSuccess()
+                                // Send notification to comment owner
+                                val comment = currentData?.getValue(Comment::class.java)
+                                if (comment != null && comment.userId != userId) {
+                                    // Fetch the upvoter's username and relationship
+                                    val upvoterUsername = withContext(Dispatchers.IO) { fetchUsernameById(userId) }
+                                    val relationship = withContext(Dispatchers.IO) { getRelationship(userId, comment.userId) }
+                                    val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
+                                    val message = "$upvoterUsername$relationshipText upvoted your comment."
+                                    sendNotification(
+                                        receiverId = comment.userId,
+                                        type = "comment_upvote",
+                                        senderId = userId,
+                                        senderUsername = upvoterUsername,
+                                        message = message
+                                    )
+                                }
+                            }
                         }
                     }
                 })
             } catch (e: Exception) {
                 Log.e("PostViewModel", "Error upvoting comment: ${e.message}", e)
-                onFailure(e.message ?: "Upvote failed.")
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Upvote failed.")
+                }
             }
         }
     }
@@ -528,17 +715,37 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         committed: Boolean,
                         currentData: DataSnapshot?
                     ) {
-                        if (error != null) {
-                            Log.e("PostViewModel", "Downvote comment transaction failed: ${error.message}")
-                            onFailure("Downvote failed: ${error.message}")
-                        } else if (committed) {
-                            onSuccess()
+                        viewModelScope.launch(Dispatchers.Main) {
+                            if (error != null) {
+                                Log.e("PostViewModel", "Downvote comment transaction failed: ${error.message}")
+                                onFailure("Downvote failed: ${error.message}")
+                            } else if (committed) {
+                                onSuccess()
+                                // Send notification to comment owner
+                                val comment = currentData?.getValue(Comment::class.java)
+                                if (comment != null && comment.userId != userId) {
+                                    // Fetch the downvoter's username and relationship
+                                    val downvoterUsername = withContext(Dispatchers.IO) { fetchUsernameById(userId) }
+                                    val relationship = withContext(Dispatchers.IO) { getRelationship(userId, comment.userId) }
+                                    val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
+                                    val message = "$downvoterUsername$relationshipText downvoted your comment."
+                                    sendNotification(
+                                        receiverId = comment.userId,
+                                        type = "comment_downvote",
+                                        senderId = userId,
+                                        senderUsername = downvoterUsername,
+                                        message = message
+                                    )
+                                }
+                            }
                         }
                     }
                 })
             } catch (e: Exception) {
                 Log.e("PostViewModel", "Error downvoting comment: ${e.message}", e)
-                onFailure(e.message ?: "Downvote failed.")
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Downvote failed.")
+                }
             }
         }
     }
@@ -584,6 +791,23 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                             onFailure("Failed to update comment count.")
                         } else if (committed) {
                             onSuccess()
+                            // Send notification to post owner
+                            viewModelScope.launch(Dispatchers.Main) {
+                                val postSnapshot = postsRef.child(postId).get().await()
+                                val post = postSnapshot.getValue(Post::class.java)
+                                if (post != null && post.userId != comment.userId) {
+                                    // Fetch the commenter's username
+                                    val commenterUsername = fetchUsernameById(comment.userId)
+                                    val message = "$commenterUsername commented on your post."
+                                    sendNotification(
+                                        receiverId = post.userId,
+                                        type = "post_comment",
+                                        senderId = comment.userId,
+                                        senderUsername = commenterUsername,
+                                        message = message
+                                    )
+                                }
+                            }
                         }
                     }
                 })
@@ -661,7 +885,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Apply profile-based filters
-        if (filterOption in listOf("city", "age", "rating", "gender", "high-school", "college", "country")) {
+        if (filterOption in listOf("city", "age", "rating", "gender", "high-school", "college", "locality")) {
             filteredList = filteredList.filter { post ->
                 val profile = profiles[post.userId]
                 profile != null && checkProfileFilter(profile, filterOption, filterValue)
@@ -705,9 +929,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      */
     private fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
         return when (filterOption) {
-            "country" -> {
+            "locality" -> {
                 // Exact match (case-insensitive)
-                profile.country.contains(filterValue, ignoreCase = true)
+                profile.hometown.contains(filterValue, ignoreCase = true)
             }
             "city" -> {
                 // Contains match (case-insensitive)
@@ -856,4 +1080,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+
 }

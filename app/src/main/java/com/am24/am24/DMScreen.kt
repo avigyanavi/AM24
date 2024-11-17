@@ -73,7 +73,7 @@ fun DMScreenContent(navController: NavController) {
             Button(
                 onClick = { selectedTab = "Matches" },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == "Matches") Color(0xFF00bf63) else Color.Gray
+                    containerColor = if (selectedTab == "Matches") Color(0xFFFF4500) else Color.Gray
                 )
             ) {
                 Text(text = "Matches", color = Color.White)
@@ -81,7 +81,7 @@ fun DMScreenContent(navController: NavController) {
             Button(
                 onClick = { selectedTab = "Friends" },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == "Friends") Color(0xFF00bf63) else Color.Gray
+                    containerColor = if (selectedTab == "Friends") Color(0xFFFF4500) else Color.Gray
                 )
             ) {
                 Text(text = "Friends", color = Color.White)
@@ -190,7 +190,7 @@ fun UserCard(profile: Profile, navController: NavController) {
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "Location: ${profile.city}, ${profile.country}",
+                    text = "Location: ${profile.city}, ${profile.hometown}",
                     color = Color.Gray,
                     fontSize = 14.sp
                 )
@@ -200,7 +200,7 @@ fun UserCard(profile: Profile, navController: NavController) {
             Icon(
                 imageVector = Icons.Default.Chat,
                 contentDescription = "Chat",
-                tint = Color(0xFF00bf63),
+                tint = Color(0xFFFF4500),
                 modifier = Modifier.size(24.dp)
             )
         }

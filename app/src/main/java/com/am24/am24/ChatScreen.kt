@@ -216,7 +216,7 @@ fun ChatScreenContent(navController: NavController, otherUserId: String) {
                         },
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF00bf63), shape = CircleShape)
+                            .background(Color(0xFFFF4500), shape = CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
@@ -242,7 +242,7 @@ fun MessageBubble(message: Message, currentUserId: String) {
         Column(
             modifier = Modifier
                 .background(
-                    color = if (isCurrentUser) Color(0xFF00bf63) else Color.DarkGray,
+                    color = if (isCurrentUser) Color(0xFFFF4500) else Color.DarkGray,
                     shape = RoundedCornerShape(12.dp)
                 )
                 .padding(12.dp)

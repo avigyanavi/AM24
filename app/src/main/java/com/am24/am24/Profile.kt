@@ -14,7 +14,6 @@ data class Profile(
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
     val gender: String = "",
     val profilepicUrl: String? = null,
-    val videoUrl: String? = null,
     val voiceNoteUrl: String? = null,
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos
     val matches: List<String> = emptyList(),  // List of matched user IDs
@@ -22,7 +21,6 @@ data class Profile(
     val community: String = "",
     val politics: String = "",  // Political preferences (e.g., liberal, conservative)
     val fitnessLevel: String = "",  // Fitness level (e.g., active, moderate)
-    val country: String = "",  // Current country
     val city: String = "",     // Current city
     val hometown: String = "",  // User's hometown
     val customCity: String? = null, // Custom value for city
@@ -30,10 +28,13 @@ data class Profile(
     val educationLevel: String = "",  // (New) High School, Bachelors, Masters, PhD, etc.
     val highSchool: String = "",
     val customHighSchool: String? = null,
+    val highSchoolGraduationYear: String = "", // New field
     val college: String = "",
     val customCollege: String? = null,
+    val collegeGraduationYear: String = "", // New field
     val postGraduation: String? = "",
     val customPostGraduation: String? = null,
+    val postGraduationYear: String = "", // New field
     val claimedIncomeLevel: String? = null, // Optional income level per annum
     val lifestyle: Lifestyle? = null, // Lifestyle Section
     val jobRole: String = "",
@@ -46,19 +47,16 @@ data class Profile(
     val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
     val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
     val isBoosted: Boolean = false,
-    val am24RankingGlobal: Int = 0,
     val am24RankingAge: Int = 0,
     val am24RankingHighSchool: Int = 0,
     val am24RankingCollege: Int = 0,
     val am24RankingGender: Int = 0,
     val am24RankingHometown: Int = 0,
-    val am24RankingCountry: Int = 0,
+    val am24Ranking: Int = 0,
     val am24RankingCity: Int = 0,
     val rating: Double = 0.0,
     val numberOfRatings: Int = 0,
     val numberOfSwipeRights: Int = 0,
-    val numberOfSwipeLefts: Int = 0,
-    val swipeRightToSwipeLeftRatio: Double = 0.0,
     val matchCount: Int = 0,
     val matchCountPerSwipeRight: Double = 0.0,
     val cumulativeUpvotes: Int = 0,
@@ -93,7 +91,7 @@ data class Profile(
         get() {
             val fields = listOf(
                 name, username, dob, bio, gender, profilepicUrl, religion, community,
-                country, city, hometown, educationLevel, highSchool, college, postGraduation,
+                city, hometown, educationLevel, highSchool, college, postGraduation,
                 claimedIncomeLevel, jobRole, work, lookingFor
             )
             val filledFieldsCount = fields.count { !it.isNullOrEmpty() }
@@ -104,12 +102,6 @@ data class Profile(
             return ((completedFields.toDouble() / totalFields) * 100).toInt()
         }
 
-    @Exclude
-    fun getCalculatedSwipeRightToLeftRatio(): Double {
-        return if (numberOfSwipeLefts > 0) {
-            numberOfSwipeRights.toDouble() / numberOfSwipeLefts
-        } else 0.0
-    }
 
     @Exclude
     fun getCalculatedMatchCountPerSwipeRight(): Double {

@@ -1,82 +1,121 @@
-// PeopleWhoLikeMe.kt
-
 package com.am24.am24
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
 
 @Composable
-fun PeopleWhoLikeMeScreen(navController: NavController) {
-    // Replace this with actual user subscription data
-    val isPremiumUser by remember { mutableStateOf(false) } // Hardcoded for now
+fun PeopleWhoLikeMeScreen(
+    navController: NavController,
+    currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+) {
+    val likesReceivedRef = FirebaseDatabase.getInstance().getReference("likesReceived/$currentUserId")
+    val usersRef = FirebaseDatabase.getInstance().getReference("users")
+    val likedUsers = remember { mutableStateListOf<Profile>() }
 
-    if (isPremiumUser) {
-        PremiumUserView()
-    } else {
-        NonPremiumUserView(navController)
+    LaunchedEffect(Unit) {
+        likesReceivedRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val userIds = snapshot.children.mapNotNull { it.key }
+                userIds.forEach { userId ->
+                    usersRef.child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(userSnapshot: DataSnapshot) {
+                            val profile = userSnapshot.getValue(Profile::class.java)
+                            if (profile != null) {
+                                likedUsers.add(profile)
+                            }
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            // Handle error
+                        }
+                    })
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error
+            }
+        })
     }
-}
 
-@Composable
-fun PremiumUserView() {
-    Column(
+    // Display the list of liked users
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "People Who Like You",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        // Add logic to display list of people who liked the user.
-        Text(
-            text = "Here will be the list of users who liked you.",
-            color = Color.Gray,
-            fontSize = 16.sp
-        )
-    }
-}
-
-@Composable
-fun NonPremiumUserView(navController: NavController) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Upgrade to Premium to See Who Likes You!",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        Button(
-            onClick = {
-                // Navigate to Payment Screen or handle the upgrade logic here.
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-        ) {
-            Text(text = "Upgrade Now", color = Color.White)
+        if (likedUsers.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No one has liked you yet.",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        } else {
+            items(likedUsers) { profile ->
+                // Display each profile in a card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .clickable {
+                            val username = profile.username
+                            navController.navigate("dating_screen?initialQuery=$username")
+                        },
+                    colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Profile Picture
+                        AsyncImage(
+                            model = profile.profilepicUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.size(50.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        // User Details
+                        Column {
+                            Text(
+                                text = profile.name,
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = profile.username,
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

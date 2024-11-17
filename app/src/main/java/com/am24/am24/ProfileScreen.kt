@@ -302,7 +302,6 @@ fun UserInfoSectionDetailed(
         } else {
             "No rating yet"
         })
-        ProfileText(label = "Global Ranking", value = profile.am24RankingGlobal.toString())
         ProfileText(label = "Age Ranking", value = profile.am24RankingAge.toString())
         ProfileText(label = "High School Ranking", value = profile.am24RankingHighSchool.toString())
         ProfileText(label = "College Ranking", value = profile.am24RankingCollege.toString())
@@ -315,11 +314,6 @@ fun UserInfoSectionDetailed(
         // Swipe and Match Metrics
         ProfileText(label = "Matches", value = profile.matchCount.toString())
         ProfileText(label = "Number of Swipe Rights", value = profile.numberOfSwipeRights.toString())
-        ProfileText(label = "Number of Swipe Lefts", value = profile.numberOfSwipeLefts.toString())
-        ProfileText(
-            label = "Swipe Right to Left Ratio",
-            value = String.format("%.2f", profile.getCalculatedSwipeRightToLeftRatio())
-        )
         ProfileText(
             label = "Match Count per Swipe Right",
             value = String.format("%.2f", profile.getCalculatedMatchCountPerSwipeRight())

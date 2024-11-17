@@ -35,7 +35,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
         BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
         BottomNavItem("Profile", Icons.Default.Person, "profile"),
         BottomNavItem("Feed", Icons.Default.Home, "home"),
-        BottomNavItem("Dating", Icons.Default.Favorite, "dating"),
+        BottomNavItem("Dating", Icons.Default.HeartBroken, "dating"),
         BottomNavItem("Settings", Icons.Default.Settings, "settings")
     )
 
@@ -76,18 +76,18 @@ fun TopNavBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val isPeopleWhoLikeMeSelected = currentDestination?.route == "peopleWhoLikeMe"
     val isNotificationsSelected = currentDestination?.route == "notifications"
+    val isPeopleWhoLikeMeSelected = currentDestination?.route == "peopleWhoLikedMe"
     val isSavedPostsSelected = currentDestination?.route == "savedPosts"
 
     val title = when (currentDestination?.route) {
-        "dms" -> "DMs"
-        "home" -> "Feed"
-        "savedPosts" -> "Saved Posts"
+        "dms" -> "Chat"
+        "home" -> "KupidX"
+        "savedPosts" -> "Saved"
         "profile" -> "Profile"
         "dating" -> "Dating"
         "settings" -> "Settings"
-        "peopleWhoLikeMe" -> "People Who Like Me"
+        "peopleWhoLikedMe" -> "People Who Like Me"
         "notifications" -> "Notifications"
         else -> ""
     }
@@ -119,64 +119,76 @@ fun TopNavBar(
     }
 
     TopAppBar(
-        title = { Text(text = title, color = Color.White, fontSize = 18.sp) },
+        title = { Text(text = title, color = Color(0xFFFFA500), fontSize = 18.sp) }, // Title in light orange
         navigationIcon = {
             IconButton(onClick = {
-                navController.navigate("peopleWhoLikeMe")
+                if (isPeopleWhoLikeMeSelected) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("peopleWhoLikedMe")
+                }
             }) {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = Icons.Default.Favorite,
                     contentDescription = "People Who Like Me",
-                    tint = if (isPeopleWhoLikeMeSelected) Color(0xFFFF4500) else Color.White,
-                    modifier = Modifier.size(18.dp) // Slightly smaller size for better alignment
+                    tint = if (isPeopleWhoLikeMeSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
+                    modifier = Modifier.size(18.dp)
                 )
             }
         },
         actions = {
             IconButton(onClick = {
-                navController.navigate("notifications")
+                if (isNotificationsSelected) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("notifications")
+                }
             }) {
                 BadgedBox(
                     badge = {
                         if (unreadCount.value > 0) {
                             Badge(
-                                containerColor = Color.Red, // Set a background color for visibility
-                                modifier = Modifier.size(15.dp) // Smaller badge size
+                                containerColor = Color.Red,
+                                modifier = Modifier.size(15.dp)
                             ) {
                                 Text(
                                     text = unreadCount.value.toString(),
                                     color = Color.White,
-                                    fontSize = 10.sp // Smaller font size
+                                    fontSize = 10.sp
                                 )
                             }
                         }
                     },
-                    modifier = Modifier.size(20.dp) // Set size for the BadgedBox
+                    modifier = Modifier.size(20.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications",
-                        tint = if (isNotificationsSelected) Color(0xFFFF4500)else Color.White,
-                        modifier = Modifier.size(18.dp) // Smaller icon size for balance
+                        tint = if (isNotificationsSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
             IconButton(onClick = {
-                navController.navigate("savedPosts") // New SavedPosts navigation
+                if (isSavedPostsSelected) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("savedPosts")
+                }
             }) {
                 Icon(
                     imageVector = Icons.Default.Bookmark,
                     contentDescription = "Saved Posts",
-                    tint = if (isSavedPostsSelected) Color(0xFFFF4500) else Color.White,
-                    modifier = Modifier.size(18.dp) // Smaller icon size for balance
+                    tint = if (isSavedPostsSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
+                    modifier = Modifier.size(18.dp)
                 )
             }
             IconButton(onClick = onLogout) {
                 Icon(
                     imageVector = Icons.Default.ExitToApp,
                     contentDescription = "Logout",
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp) // Smaller icon size for balance
+                    tint = Color.Gray,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         },

@@ -237,6 +237,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                             notifications.add(notification)
                         }
                     }
+                    notifications.sortByDescending { it.timestamp }
                     onSuccess(notifications)
                 }.addOnFailureListener { error ->
                     onFailure(error.message ?: "Failed to fetch notifications.")
@@ -375,6 +376,66 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to block profile: ${e.message}")
                 onFailure(e.message ?: "Failed to block profile.")
+            }
+        }
+    }
+
+    // Send a like notification
+    fun sendLikeNotification(
+        senderId: String,
+        receiverId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val timestamp = System.currentTimeMillis()
+                val notificationId = notificationsRef.child(receiverId).push().key
+                    ?: throw Exception("Failed to generate notification ID")
+
+                val notification = Notification(
+                    id = notificationId,
+                    type = "new_like",
+                    senderId = senderId,
+                    senderUsername = "", // Do not include username
+                    message = "You have a new like!",
+                    timestamp = timestamp,
+                    isRead = "false"
+                )
+                notificationsRef.child(receiverId).child(notificationId).setValue(notification).await()
+                onSuccess()
+            } catch (e: Exception) {
+                onFailure(e.message ?: "Failed to send like notification.")
+            }
+        }
+    }
+
+    // Send a match notification
+    fun sendMatchNotification(
+        senderId: String,
+        receiverId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val timestamp = System.currentTimeMillis()
+                val notificationId = notificationsRef.child(receiverId).push().key
+                    ?: throw Exception("Failed to generate notification ID")
+
+                val notification = Notification(
+                    id = notificationId,
+                    type = "new_match",
+                    senderId = senderId,
+                    senderUsername = "", // Do not include username
+                    message = "You have matched with a user!",
+                    timestamp = timestamp,
+                    isRead = "false"
+                )
+                notificationsRef.child(receiverId).child(notificationId).setValue(notification).await()
+                onSuccess()
+            } catch (e: Exception) {
+                onFailure(e.message ?: "Failed to send match notification.")
             }
         }
     }

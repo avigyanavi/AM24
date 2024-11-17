@@ -71,6 +71,14 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
                 )
             }
         }
+        composable("dating_screen?initialQuery={initialQuery}") { backStackEntry ->
+            val initialQuery = backStackEntry.arguments?.getString("initialQuery")
+            DatingScreen(
+                navController = navController,
+                geoFire = geoFire,
+                initialQuery = initialQuery
+            )
+        }
         composable("dating") {
             // Navigate to DatingScreen without startUserId
             DatingScreen(navController = navController, geoFire = geoFire)
@@ -78,7 +86,7 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("settings") {
             SettingsScreen(navController = navController)
         }
-        composable("peopleWhoLikeMe") {
+        composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(navController = navController)
         }
         composable("notifications") {

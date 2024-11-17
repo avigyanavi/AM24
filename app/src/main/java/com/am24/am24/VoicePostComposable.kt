@@ -46,6 +46,14 @@ fun VoicePostComposable(
     var recordedAudioUri by remember { mutableStateOf<Uri?>(null) }
     var tagsInput by remember { mutableStateOf("") }
     var recordingFilePath by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+
+
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    // Fetch username from the database
+    LaunchedEffect(userId) {
+        username = userId?.let { fetchUsernameById(it) } ?: "Anonymous"
+    }
 
     // MediaRecorder and MediaPlayer instances
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
@@ -189,10 +197,6 @@ fun VoicePostComposable(
                             return@TextButton
                         }
 
-                        val userId = FirebaseAuth.getInstance().currentUser?.uid
-                        val username =
-                            FirebaseAuth.getInstance().currentUser?.displayName ?: "Anonymous"
-
                         if (userId == null) {
                             Toast.makeText(context, "User not authenticated.", Toast.LENGTH_SHORT)
                                 .show()
@@ -231,10 +235,10 @@ fun VoicePostComposable(
                     },
                         enabled = recordedAudioUri != null,
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = if (recordedAudioUri != null) Color(0xFF00bf63) else Color.Gray
+                            contentColor = if (recordedAudioUri != null) Color(0xFFFFA500) else Color.Gray
                         )
                         ) {
-                        Text("Post", color = Color(0xFF00bf63))
+                        Text("Post", color = Color(0xFFFF4500))
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -266,7 +270,7 @@ fun VoicePostComposable(
                         .fillMaxWidth()
                         .height(60.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRecording) Color.Red else Color(0xFF00bf63)
+                        containerColor = if (isRecording) Color(0xFFFF4500) else Color(0xFFFFA500)
                     )
                 ) {
                     Icon(
@@ -336,9 +340,9 @@ fun VoicePostComposable(
                         keyboardType = KeyboardType.Text
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF00bf63),
+                        focusedBorderColor = Color(0xFFFF4500),
                         unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color(0xFF00bf63)
+                        cursorColor = Color(0xFFFF4500)
                     )
                 )
             }
@@ -382,7 +386,7 @@ fun PlaybackControls(
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = Color(0xFF00bf63),
+                    tint = Color(0xFFFF4500),
                     modifier = Modifier.size(48.dp)
                 )
             }
@@ -392,7 +396,7 @@ fun PlaybackControls(
                 Icon(
                     imageVector = Icons.Default.Repeat,
                     contentDescription = "Re-record",
-                    tint = Color(0xFF00bf63),
+                    tint = Color(0xFFFF4500),
                     modifier = Modifier.size(48.dp)
                 )
             }
@@ -404,7 +408,7 @@ fun PlaybackControls(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
-            color = Color(0xFF00bf63),
+            color = Color(0xFFFFA500),
             trackColor = Color.Gray,
         )
     }

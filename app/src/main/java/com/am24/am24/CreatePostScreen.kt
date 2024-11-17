@@ -29,6 +29,7 @@ import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -38,6 +39,8 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.sp
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.IOException
 
@@ -100,7 +103,7 @@ fun PostTypeButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(60.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
         shape = MaterialTheme.shapes.medium
     ) {
         Icon(
@@ -111,6 +114,18 @@ fun PostTypeButton(
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = label, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+// Add the fetchUsernameById function
+suspend fun fetchUsernameById(userId: String): String? {
+    return try {
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+        val snapshot = userRef.child("username").get().await()
+        snapshot.getValue(String::class.java)
+    } catch (e: Exception) {
+        Log.e("CreatePostScreen", "Failed to fetch username: ${e.message}")
+        null
     }
 }
 
@@ -126,8 +141,13 @@ fun TextPostComposable(
 
     var contentText by remember { mutableStateOf("") }
     var userTags by remember { mutableStateOf("") }
-    var fontFamily by remember { mutableStateOf("Default") }
-    var fontSize by remember { mutableStateOf(14) }
+    var username by remember { mutableStateOf("") }
+
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    // Fetch username from the database
+    LaunchedEffect(userId) {
+        username = userId?.let { fetchUsernameById(it) } ?: "Anonymous"
+    }
 
     Scaffold(
         topBar = {
@@ -146,9 +166,6 @@ fun TextPostComposable(
                             return@TextButton
                         }
 
-                        val userId = FirebaseAuth.getInstance().currentUser?.uid
-                        val username = FirebaseAuth.getInstance().currentUser?.displayName ?: "Anonymous"
-
                         if (userId == null) {
                             Toast.makeText(context, "User not authenticated.", Toast.LENGTH_SHORT).show()
                             return@TextButton
@@ -162,8 +179,8 @@ fun TextPostComposable(
                             username = username,
                             contentText = contentText,
                             userTags = tagsList,
-                            fontFamily = fontFamily,
-                            fontSize = fontSize,
+                            fontFamily = "Default", // Default font family since it's removed
+                            fontSize = 14, // Default font size since it's removed
                             onSuccess = {
                                 coroutineScope.launch {
                                     Toast.makeText(context, "Text post created successfully.", Toast.LENGTH_SHORT).show()
@@ -177,7 +194,7 @@ fun TextPostComposable(
                             }
                         )
                     }) {
-                        Text("Post", color = Color(0xFF00bf63))
+                        Text("Post", color = Color(0xFFFF4500)) // Dark orange for the "Post" button
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -202,9 +219,9 @@ fun TextPostComposable(
                         keyboardType = KeyboardType.Text
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF00bf63),
+                        focusedBorderColor = Color(0xFFFFA500), // Light orange
                         unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color(0xFF00bf63)
+                        cursorColor = Color(0xFFFFA500) // Light orange
                     )
                 )
 
@@ -219,92 +236,13 @@ fun TextPostComposable(
                         keyboardType = KeyboardType.Text
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF00bf63),
+                        focusedBorderColor = Color(0xFFFF4500),
                         unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color(0xFF00bf63)
+                        cursorColor = Color(0xFFFF4500)
                     )
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Font Family Selection (Dropdown)
-                var expandedFontFamily by remember { mutableStateOf(false) }
-                val fontFamilies = listOf("Default", "Serif", "Sans-Serif", "Monospace")
-
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = fontFamily,
-                        onValueChange = {},
-                        label = { Text("Select Font Family", color = Color.Gray) },
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = true,
-                        trailingIcon = {
-                            IconButton(onClick = { expandedFontFamily = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFF00bf63)
-                        )
-                    )
-                    DropdownMenu(
-                        expanded = expandedFontFamily,
-                        onDismissRequest = { expandedFontFamily = false }
-                    ) {
-                        fontFamilies.forEach { family ->
-                            DropdownMenuItem(
-                                text = { Text(family, color = Color(0xFF00bf63)) },
-                                onClick = {
-                                    fontFamily = family
-                                    expandedFontFamily = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Font Size Selection (Dropdown)
-                var expandedFontSize by remember { mutableStateOf(false) }
-                val fontSizes = listOf("12", "14", "16", "18", "20", "24")
-
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = fontSize.toString(),
-                        onValueChange = {},
-                        label = { Text("Select Font Size", color = Color.Gray) },
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = true,
-                        trailingIcon = {
-                            IconButton(onClick = { expandedFontSize = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFF00bf63)
-                        )
-                    )
-                    DropdownMenu(
-                        expanded = expandedFontSize,
-                        onDismissRequest = { expandedFontSize = false }
-                    ) {
-                        fontSizes.forEach { size ->
-                            DropdownMenuItem(
-                                text = { Text(size, color = Color(0xFF00bf63)) },
-                                onClick = {
-                                    fontSize = size.toInt()
-                                    expandedFontSize = false
-                                }
-                            )
-                        }
-                    }
-                }
             }
         }
     )
 }
+

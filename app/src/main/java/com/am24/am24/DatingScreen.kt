@@ -17,7 +17,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.firebase.geofire.GeoFire
@@ -57,7 +57,6 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-
 // Class representing swipe data
 data class SwipeData(
     val liked: Boolean = false,
@@ -65,17 +64,37 @@ data class SwipeData(
 )
 
 @Composable
-fun DatingScreen(navController: NavController, geoFire: GeoFire, modifier: Modifier = Modifier) {
-    DatingScreenContent(navController = navController, geoFire = geoFire, modifier = modifier)
+fun DatingScreen(
+    navController: NavController,
+    geoFire: GeoFire,
+    modifier: Modifier = Modifier,
+    initialQuery: String? = null, // Optional initial query parameter
+) {
+    val profileViewModel: ProfileViewModel = viewModel()
+    var searchQuery by remember { mutableStateOf(initialQuery ?: "") } // Set initial query if provided
+
+    DatingScreenContent(
+        navController = navController,
+        geoFire = geoFire,
+        profileViewModel = profileViewModel,
+        searchQuery = searchQuery,
+        onSearchQueryChange = { newQuery -> searchQuery = newQuery },
+        modifier = modifier
+    )
 }
 
 @Composable
-fun DatingScreenContent(navController: NavController, geoFire: GeoFire, modifier: Modifier = Modifier) {
+fun DatingScreenContent(
+    navController: NavController,
+    geoFire: GeoFire,
+    profileViewModel: ProfileViewModel,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val profiles = remember { mutableStateListOf<Profile>() }
     var currentProfileIndex by remember { mutableStateOf(0) }
-    var searchQuery by remember { mutableStateOf("") }
-    var showAIAnalysisPopup by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -106,10 +125,80 @@ fun DatingScreenContent(navController: NavController, geoFire: GeoFire, modifier
         })
     }
 
-    // Filter profiles by username search
+    // Filter profiles by username or name search
     val filteredProfiles = profiles.filter {
-        it.username.contains(searchQuery, ignoreCase = true)
-        it.name.contains(searchQuery, ignoreCase = true)
+        it.username.contains(searchQuery, ignoreCase = true) ||
+                it.name.contains(searchQuery, ignoreCase = true)
+    }
+
+    // Function to handle swipe right (like)
+    fun handleSwipeRight(currentUserId: String, otherUserId: String) {
+        val database = FirebaseDatabase.getInstance()
+        val timestamp = System.currentTimeMillis()
+
+        val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+        val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
+
+        val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
+        val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
+
+        // Record the swipe right with timestamp
+        val swipeData = SwipeData(liked = true, timestamp = timestamp)
+        currentUserSwipesRef.setValue(swipeData)
+
+        // Update likesGiven and likesReceived
+        currentUserLikesGivenRef.setValue(timestamp)
+        otherUserLikesReceivedRef.setValue(timestamp)
+
+        // Check if the other user has swiped right on current user
+        otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
+            val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
+            val otherUserSwipedRight = otherUserSwipeData?.liked == true
+
+            if (otherUserSwipedRight) {
+                // It's a match!
+                val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
+                val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
+                currentUserMatchesRef.setValue(timestamp)
+                otherUserMatchesRef.setValue(timestamp)
+
+                // Send match notifications to both users
+                profileViewModel.sendMatchNotification(
+                    senderId = currentUserId,
+                    receiverId = otherUserId,
+                    onSuccess = { /* Handle success */ },
+                    onFailure = { /* Handle failure */ }
+                )
+                profileViewModel.sendMatchNotification(
+                    senderId = otherUserId,
+                    receiverId = currentUserId,
+                    onSuccess = { /* Handle success */ },
+                    onFailure = { /* Handle failure */ }
+                )
+            } else {
+                // The other user hasn't swiped right yet; send a like notification
+                profileViewModel.sendLikeNotification(
+                    senderId = currentUserId,
+                    receiverId = otherUserId,
+                    onSuccess = { /* Handle success */ },
+                    onFailure = { /* Handle failure */ }
+                )
+            }
+        }.addOnFailureListener { exception ->
+            Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
+        }
+    }
+
+    // Function to handle swipe left (dislike)
+    fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
+        val database = FirebaseDatabase.getInstance()
+        val timestamp = System.currentTimeMillis()
+
+        val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+
+        // Record the swipe left with timestamp
+        val swipeData = SwipeData(liked = false, timestamp = timestamp)
+        currentUserSwipesRef.setValue(swipeData)
     }
 
     Column(
@@ -118,37 +207,23 @@ fun DatingScreenContent(navController: NavController, geoFire: GeoFire, modifier
             .background(Color.Black)
             .padding(16.dp)
     ) {
-        // Search Bar and AI Analysis button row
+        // Search Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Search bar
             BasicTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
+                onValueChange = { newQuery -> onSearchQueryChange(newQuery) },
                 modifier = Modifier
                     .weight(1f)
                     .background(Color.Gray, CircleShape)
                     .padding(8.dp),
                 singleLine = true
             )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // AI Analysis Button
-            IconButton(
-                onClick = { showAIAnalysisPopup = !showAIAnalysisPopup },
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF00bf63))
-            ) {
-                Icon(Icons.Default.Analytics, contentDescription = "AI Analysis", tint = Color.White)
-            }
         }
 
         // Show loading icon when profiles are loading
@@ -199,28 +274,6 @@ fun DatingScreenContent(navController: NavController, geoFire: GeoFire, modifier
                         navController = navController,
                         userDistance = distance
                     )
-
-                    // AI Analysis Pop-up
-                    if (showAIAnalysisPopup) {
-                        Dialog(onDismissRequest = { showAIAnalysisPopup = false }) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.5f))
-                                    .clickable { showAIAnalysisPopup = false }
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .padding(16.dp)
-                                        .background(Color.White, CircleShape)
-                                        .padding(32.dp)
-                                ) {
-                                    Text(text = "AI Analysis Placeholder", color = Color.Black)
-                                }
-                            }
-                        }
-                    }
                 }
             }
         } else {
@@ -283,7 +336,6 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? = su
         }
     })
 }
-
 
 @Composable
 fun DatingProfileCard(
@@ -566,54 +618,6 @@ fun DatingProfileCard(
             }
         }
     }
-}
-
-fun handleSwipeRight(currentUserId: String, otherUserId: String) {
-    val database = FirebaseDatabase.getInstance()
-    val timestamp = System.currentTimeMillis()
-
-    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
-    val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
-
-    val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
-    val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
-
-    // Record the swipe right with timestamp
-    val swipeData = SwipeData(liked = true, timestamp = timestamp)
-    currentUserSwipesRef.setValue(swipeData)
-
-    // Update likesGiven and likesReceived
-    currentUserLikesGivenRef.setValue(timestamp)
-    otherUserLikesReceivedRef.setValue(timestamp)
-
-    // Check if the other user has swiped right on current user
-    otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
-        val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
-        val otherUserSwipedRight = otherUserSwipeData?.liked == true
-
-        if (otherUserSwipedRight) {
-            // It's a match!
-            val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
-            val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
-            currentUserMatchesRef.setValue(timestamp)
-            otherUserMatchesRef.setValue(timestamp)
-
-            // Optionally, send notifications to both users about the match
-        }
-    }.addOnFailureListener { exception ->
-        Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
-    }
-}
-
-fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
-    val database = FirebaseDatabase.getInstance()
-    val timestamp = System.currentTimeMillis()
-
-    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
-
-    // Record the swipe left with timestamp
-    val swipeData = SwipeData(liked = false, timestamp = timestamp)
-    currentUserSwipesRef.setValue(swipeData)
 }
 
 @Composable

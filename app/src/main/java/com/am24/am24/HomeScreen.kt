@@ -1031,14 +1031,14 @@ fun FeedItem(
             ) {
                 Text(
                     text = formatTimestamp(post.getPostTimestamp()),
-                    color = Color.Gray,
+                    color = Color(0xFFFFA500),
                     fontSize = 10.sp
                 )
                 Spacer(modifier = Modifier.weight(1f)) // Flexible space to push the distance text to the right
                 userDistance?.let {
                     Text(
                         text = "Distance: ${it.roundToInt()} km",
-                        color = Color.Gray,
+                        color = Color(0xFFFFA500),
                         fontSize = 10.sp
                     )
                 }
@@ -1056,7 +1056,7 @@ fun FeedItem(
                         Icon(
                             Icons.Default.Share,
                             contentDescription = "Share",
-                            tint = Color.White
+                            tint = Color(0xFFFFA500)
                         )
                     }
                     // Add Save Icon
@@ -1064,7 +1064,7 @@ fun FeedItem(
                         Icon(
                             Icons.Default.BookmarkBorder,  // Bookmark or save icon
                             contentDescription = "Save Post",
-                            tint = Color.White
+                            tint = Color(0xFFFFA500)
                         )
                     }
                 }
@@ -1109,7 +1109,7 @@ fun FeedItem(
                         Icon(
                             imageVector = Icons.Default.Comment,
                             contentDescription = "Show Comments",
-                            tint = Color(0xFFFF4500)
+                            tint = Color(0xFFFFA500)
                         )
                     }
                 }
@@ -1249,7 +1249,7 @@ fun CommentCard(
                 )
                 Text(
                     text = formatTimestamp(comment.getCommentTimestamp()),
-                    color = Color.Gray,
+                    color = Color(0xFFFFA500),
                     fontSize = 12.sp
                 )
             }

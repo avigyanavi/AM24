@@ -22,7 +22,10 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun NotificationsScreen(navController: NavController, profileViewModel: ProfileViewModel = viewModel()) {
+fun NotificationsScreen(
+    navController: NavController,
+    profileViewModel: ProfileViewModel = viewModel()
+) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
     // Single ActiveNotificationsView to display all notifications with visual distinction for read/unread
@@ -74,6 +77,7 @@ fun ActiveNotificationsView(
                     notification = notification,
                     currentUserId = currentUserId,
                     profileViewModel = profileViewModel,
+                    navController = navController, // Pass navController
                     onRead = {
                         profileViewModel.markNotificationAsRead(
                             userId = currentUserId,
@@ -101,6 +105,7 @@ fun NotificationCard(
     notification: Notification,
     currentUserId: String,
     profileViewModel: ProfileViewModel,
+    navController: NavController, // Add navController parameter
     onRead: () -> Unit,
     onAction: () -> Unit
 ) {
@@ -122,10 +127,23 @@ fun NotificationCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                if (notification.type != "friend_request") {
-                    onRead()
-                } else {
-                    onAction()
+                when (notification.type) {
+                    "friend_request" -> {
+                        // Handle friend request action if needed
+                    }
+                    "new_like" -> {
+                        // Navigate to PeopleWhoLikedMeScreen
+                        navController.navigate("peopleWhoLikedMe")
+                        onRead()
+                    }
+                    "new_match" -> {
+                        // Navigate to DMScreen
+                        navController.navigate("dms")
+                        onRead()
+                    }
+                    else -> {
+                        onRead()
+                    }
                 }
             },
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
@@ -217,4 +235,3 @@ fun NotificationCard(
         }
     }
 }
-

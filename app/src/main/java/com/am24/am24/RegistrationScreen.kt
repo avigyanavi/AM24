@@ -17,9 +17,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -27,8 +29,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardVoice
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
@@ -37,12 +43,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -59,6 +67,7 @@ import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -89,7 +98,6 @@ class RegistrationActivity : ComponentActivity() {
 }
 
 class RegistrationViewModel : ViewModel() {
-    var videoUri by mutableStateOf<Uri?>(null)  // To hold the video URI
     var voiceNoteUri by mutableStateOf<Uri?>(null)  // To hold the voice recording URI
     var email by mutableStateOf("")
     var password by mutableStateOf("")
@@ -101,24 +109,33 @@ class RegistrationViewModel : ViewModel() {
     var optionalPhotoUris = mutableStateListOf<Uri>()
     var profilePicUrl by mutableStateOf<String?>(null)
     var voiceNoteUrl by mutableStateOf<String?>(null)
-    var videoUrl by mutableStateOf<String?>(null)
     var optionalPhotoUrls = mutableStateListOf<String>()
     var hometown by mutableStateOf("")
     var bio by mutableStateOf("")
-    var highSchool by mutableStateOf("")
-    var college by mutableStateOf("")
     var gender by mutableStateOf("")
-    var customCollege by mutableStateOf("")
-    var customHighSchool by mutableStateOf("")
     var customHometown by mutableStateOf("")
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
 
     // Newly added fields
-    var country by mutableStateOf("")         // Current country
     var city by mutableStateOf("")            // Current city
     var customCity by mutableStateOf("")      // For custom city input if not in dropdown
     var educationLevel by mutableStateOf("")  // For user's highest education level
+
+    var highSchool by mutableStateOf("")
+    var customHighSchool by mutableStateOf("")
+    var highSchoolGraduationYear by mutableStateOf("")
+
+    var college by mutableStateOf("")
+    var customCollege by mutableStateOf("")
+    var collegeGraduationYear by mutableStateOf("")
+
+    var postGraduation by mutableStateOf("")
+    var customPostGraduation by mutableStateOf("")
+    var postGraduationYear by mutableStateOf("")
+
+    var work by mutableStateOf("")
+    var customWork by mutableStateOf("")
 
     // Added fields for new Profile components
     var lifestyle by mutableStateOf(Lifestyle())   // Lifestyle information (smoking, drinking, etc.)
@@ -165,15 +182,27 @@ fun EnterLocationAndSchoolScreen(
 ) {
     val context = LocalContext.current
 
-    // Sample predefined lists
-    val educationLevels = listOf("High School", "Bachelors", "Masters", "PhD")
-    val countrys = listOf("India", "USA", "France", "Australia")
-    val cities = listOf("Mumbai", "New York", "Paris", "Sydney")
+    // Predefined lists for dropdowns
+    val cities = listOf("Kolkata", "Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Ahmedabad")
+    val cityLocalities = mapOf(
+        "Kolkata" to listOf("Salt Lake", "Garia", "Dumdum", "Park Street", "Behala"),
+        "Mumbai" to listOf("Andheri", "Bandra", "Dadar", "Borivali", "Colaba"),
+        "Delhi" to listOf("Connaught Place", "Dwarka", "Saket", "Karol Bagh", "Lajpat Nagar"),
+        "Bangalore" to listOf("Whitefield", "Koramangala", "Indiranagar", "Jayanagar", "Marathahalli"),
+        "Hyderabad" to listOf("Banjara Hills", "Begumpet", "Hitech City", "Kukatpally", "Gachibowli"),
+        "Chennai" to listOf("Adyar", "T Nagar", "Velachery", "Anna Nagar", "Besant Nagar"),
+        "Ahmedabad" to listOf("Satellite", "Navrangpura", "Vastrapur", "Bopal", "Paldi")
+    )
+    val highSchools = listOf("St. Xavier's", "La Martiniere", "South Point", "Modern High School")
+    val colleges = listOf("IIT Kharagpur", "Jadavpur University", "Presidency University")
+    val postGraduations = listOf("IIM Calcutta", "ISB Hyderabad")
+    val companies = listOf("Google", "Microsoft", "Amazon", "Facebook", "Apple")
 
-    // State to track dropdown selection
-    var selectedEducationLevel by remember { mutableStateOf(registrationViewModel.educationLevel) }
-    var selectedCountry by remember { mutableStateOf(registrationViewModel.country) }
-    var selectedCity by remember { mutableStateOf(registrationViewModel.city) }
+    // Default city setup
+    if (registrationViewModel.city.isEmpty()) {
+        registrationViewModel.city = "Kolkata"
+    }
+    var localities by remember { mutableStateOf(cityLocalities[registrationViewModel.city] ?: emptyList()) }
 
     Scaffold(
         topBar = {
@@ -192,117 +221,128 @@ fun EnterLocationAndSchoolScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
+                    .padding(innerPadding)
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxSize()
                         .padding(horizontal = 32.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Education Level Dropdown (Mandatory)
-                    Text("Education Level (Mandatory)", color = Color.White, fontSize = 18.sp)
-                    DropdownWithSearch(
-                        title = "Select Education Level",
-                        options = educationLevels,
-                        selectedOption = selectedEducationLevel,
-                        onOptionSelected = {
-                            selectedEducationLevel = it
-                            registrationViewModel.educationLevel = it
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Country Dropdown (Mandatory)
-                    Text("Current Country (Mandatory)", color = Color.White, fontSize = 18.sp)
-                    DropdownWithSearch(
-                        title = "Select Country",
-                        options = countrys,
-                        selectedOption = selectedCountry,
-                        onOptionSelected = {
-                            selectedCountry = it
-                            registrationViewModel.country = it
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // City Dropdown (Mandatory)
-                    Text("Current City (Mandatory)", color = Color.White, fontSize = 18.sp)
-                    DropdownWithSearch(
-                        title = "Select City",
-                        options = cities,
-                        selectedOption = selectedCity,
-                        onOptionSelected = {
-                            selectedCity = it
-                            registrationViewModel.city = it
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Hometown Input (Optional)
-                    Text("Hometown (Optional)", color = Color.White, fontSize = 18.sp)
-                    OutlinedTextField(
-                        value = registrationViewModel.hometown,
-                        onValueChange = { registrationViewModel.hometown = it },
-                        label = { Text("Hometown", color = Color(0xFF00bf63)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedLabelColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            cursorColor = Color(0xFF00bf63),
-                            focusedTextColor = Color.White
+                    item {
+                        Text("City", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        SearchableDropdownWithCustomOption(
+                            title = "Select or type your city",
+                            options = cities,
+                            selectedOption = registrationViewModel.city,
+                            onOptionSelected = { city ->
+                                registrationViewModel.city = city
+                                localities = cityLocalities[city] ?: emptyList()
+                                registrationViewModel.hometown = "" // Reset locality
+                            },
+                            customInput = registrationViewModel.customCity,
+                            onCustomInputChange = { registrationViewModel.customCity = it }
                         )
-                    )
+                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // High School Input (Optional)
-                    Text("High School (Optional)", color = Color.White, fontSize = 18.sp)
-                    OutlinedTextField(
-                        value = registrationViewModel.highSchool,
-                        onValueChange = { registrationViewModel.highSchool = it },
-                        label = { Text("High School", color = Color(0xFF00bf63)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedLabelColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            cursorColor = Color(0xFF00bf63),
-                            focusedTextColor = Color.White
+                    item {
+                        Text("Locality", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        SearchableDropdownWithCustomOption(
+                            title = "Select or type your locality",
+                            options = localities,
+                            selectedOption = registrationViewModel.hometown,
+                            onOptionSelected = { locality ->
+                                registrationViewModel.hometown = locality
+                            },
+                            customInput = registrationViewModel.customHometown,
+                            onCustomInputChange = { registrationViewModel.customHometown = it }
                         )
-                    )
+                    }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // Next Button with validation
-                    Button(
-                        onClick = {
-                            if (selectedEducationLevel.isEmpty() || selectedCountry.isEmpty() || selectedCity.isEmpty()) {
-                                Toast.makeText(context, "Please fill out all mandatory fields", Toast.LENGTH_SHORT).show()
-                            } else {
-                                registrationViewModel.educationLevel = selectedEducationLevel
-                                registrationViewModel.country = selectedCountry
-                                registrationViewModel.city = selectedCity
-                                onNext()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = "Next",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                    item {
+                        Text("High School", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        SearchableDropdownWithCustomOption(
+                            title = "Select or type your high school",
+                            options = highSchools,
+                            selectedOption = registrationViewModel.highSchool,
+                            onOptionSelected = { registrationViewModel.highSchool = it },
+                            customInput = registrationViewModel.customHighSchool,
+                            onCustomInputChange = { registrationViewModel.customHighSchool = it }
                         )
+                    }
+
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                    item {
+                        Text("College", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        SearchableDropdownWithCustomOption(
+                            title = "Select or type your college",
+                            options = colleges,
+                            selectedOption = registrationViewModel.college,
+                            onOptionSelected = { registrationViewModel.college = it },
+                            customInput = registrationViewModel.customCollege,
+                            onCustomInputChange = { registrationViewModel.customCollege = it }
+                        )
+                    }
+
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                    item {
+                        Text("Post Graduation", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        SearchableDropdownWithCustomOption(
+                            title = "Select or type your post-graduation institute",
+                            options = postGraduations,
+                            selectedOption = registrationViewModel.postGraduation,
+                            onOptionSelected = { registrationViewModel.postGraduation = it },
+                            customInput = registrationViewModel.customPostGraduation,
+                            onCustomInputChange = { registrationViewModel.customPostGraduation = it }
+                        )
+                    }
+
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                    item {
+                        Text("Work", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        SearchableDropdownWithCustomOption(
+                            title = "Select or type your workplace",
+                            options = companies,
+                            selectedOption = registrationViewModel.work,
+                            onOptionSelected = { registrationViewModel.work = it },
+                            customInput = registrationViewModel.customWork,
+                            onCustomInputChange = { registrationViewModel.customWork = it }
+                        )
+                    }
+
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
+
+                    item {
+                        Button(
+                            onClick = {
+                                if (registrationViewModel.city.isEmpty()) {
+                                    Toast.makeText(context, "City cannot be empty", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    onNext()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+                            shape = CircleShape,
+                            elevation = ButtonDefaults.buttonElevation(8.dp)
+                        ) {
+                            Text(
+                                text = "Next",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -311,6 +351,100 @@ fun EnterLocationAndSchoolScreen(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchableDropdownWithCustomOption(
+    title: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit,
+    customInput: String,
+    onCustomInputChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
+    var showCustomInput by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = title, color = Color.White, fontSize = 18.sp)
+
+        // Main button to toggle dropdown
+        OutlinedButton(
+            onClick = {
+                expanded = !expanded
+                searchText = ""
+            },
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500))
+        ) {
+            Text(
+                text = if (showCustomInput) customInput else selectedOption.ifEmpty { "Select or type" },
+                color = Color(0xFFFFA500)
+            )
+        }
+
+        // Dropdown menu with search functionality
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black)
+        ) {
+            TextField(
+                value = searchText,
+                onValueChange = { input ->
+                    searchText = input
+                    // Show custom input if no match is found
+                    showCustomInput = options.none { it.equals(input, ignoreCase = true) }
+                },
+                label = { Text("Search", color = Color(0xFFFFA500)) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedLabelColor = Color(0xFFFF4500),
+                    focusedBorderColor = Color(0xFFFF4500),
+                    cursorColor = Color(0xFFFF4500),
+                    focusedTextColor = Color.White
+                )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Filtered options
+            options.filter { it.contains(searchText, ignoreCase = true) }
+                .forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option, color = Color.White) },
+                        onClick = {
+                            onOptionSelected(option)
+                            searchText = "" // Clear search text
+                            expanded = false
+                            showCustomInput = false
+                        }
+                    )
+                }
+        }
+
+        // Show custom input field only if the user enters a unique value
+        if (showCustomInput) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = customInput,
+                onValueChange = {
+                    onCustomInputChange(it)
+                    onOptionSelected("") // Clear selected dropdown value when custom input is typed
+                },
+                label = { Text("Enter custom value", color = Color(0xFFFFA500)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedLabelColor = Color(0xFFFF4500),
+                    focusedBorderColor = Color(0xFFFF4500),
+                    cursorColor = Color(0xFFFF4500),
+                    focusedTextColor = Color.White
+                )
+            )
+        }
+    }
+}
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -355,7 +489,7 @@ fun EnterEmailAndPasswordScreen(
                             .background(Color(0xAA000000)),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Color(0xFF00bf63))
+                        CircularProgressIndicator(color = Color(0xFFFF4500))
                     }
                 }
 
@@ -381,7 +515,7 @@ fun EnterEmailAndPasswordScreen(
                             email = it
                             registrationViewModel.email = it.text
                         },
-                        label = { Text("Email", color = Color(0xFF00bf63)) },
+                        label = { Text("Email", color = Color(0xFFFF4500)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -389,11 +523,11 @@ fun EnterEmailAndPasswordScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63),
-                            focusedLabelColor = Color(0xFF00bf63),
-                            unfocusedLabelColor = Color(0xFF00bf63)
+                            cursorColor = Color(0xFFFF4500),
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color(0xFFFFA500),
+                            focusedLabelColor = Color(0xFFFF4500),
+                            unfocusedLabelColor = Color(0xFFFFA500)
                         )
                     )
 
@@ -404,7 +538,7 @@ fun EnterEmailAndPasswordScreen(
                             password = it
                             registrationViewModel.password = it.text
                         },
-                        label = { Text("Password", color = Color(0xFF00bf63)) },
+                        label = { Text("Password", color = Color(0xFFFF4500)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier
@@ -413,11 +547,11 @@ fun EnterEmailAndPasswordScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63),
-                            focusedLabelColor = Color(0xFF00bf63),
-                            unfocusedLabelColor = Color(0xFF00bf63)
+                            cursorColor = Color(0xFFFF4500),
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color(0xFFFFA500),
+                            focusedLabelColor = Color(0xFFFF4500),
+                            unfocusedLabelColor = Color(0xFFFFA500)
                         )
                     )
 
@@ -425,7 +559,7 @@ fun EnterEmailAndPasswordScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text("Confirm Password", color = Color(0xFF00bf63)) },
+                        label = { Text("Confirm Password", color = Color(0xFFFF4500)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         isError = passwordError,
@@ -435,11 +569,11 @@ fun EnterEmailAndPasswordScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63),
-                            focusedLabelColor = Color(0xFF00bf63),
-                            unfocusedLabelColor = Color(0xFF00bf63)
+                            cursorColor = Color(0xFFFF4500),
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color(0xFFFFA500),
+                            focusedLabelColor = Color(0xFFFF4500),
+                            unfocusedLabelColor = Color(0xFFFFA500)
                         )
                     )
 
@@ -488,7 +622,7 @@ fun EnterEmailAndPasswordScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         enabled = !isCreatingAccount,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -584,7 +718,7 @@ fun EnterGenderCommunityReligionScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -607,7 +741,8 @@ fun DropdownWithSearch(
     title: String,
     options: List<String>,
     selectedOption: String,
-    onOptionSelected: (String) -> Unit
+    onOptionSelected: (String) -> Unit,
+    onDropdownClicked: () -> Unit = {} // Optional callback for dropdown click
 ) {
     var expanded by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
@@ -615,12 +750,15 @@ fun DropdownWithSearch(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(text = title, color = Color.White, fontSize = 18.sp)
         OutlinedButton(
-            onClick = { expanded = !expanded },
+            onClick = {
+                onDropdownClicked() // Invoke the callback on dropdown click
+                expanded = !expanded
+            },
             modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, Color(0xFF00bf63)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00bf63))
+            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF4500))
         ) {
-            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFF00bf63))
+            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFFA500))
         }
 
         DropdownMenu(
@@ -633,11 +771,11 @@ fun DropdownWithSearch(
             TextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search", color = Color(0xFF00bf63)) },
+                label = { Text("Search", color = Color(0xFFFFA500)) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedLabelColor = Color(0xFF00bf63),
-                    focusedBorderColor = Color(0xFF00bf63),
-                    cursorColor = Color(0xFF00bf63),
+                    focusedLabelColor = Color(0xFFFF4500),
+                    focusedBorderColor = Color(0xFFFF4500),
+                    cursorColor = Color(0xFFFF4500),
                     focusedTextColor = Color.White
                 )
             )
@@ -656,6 +794,7 @@ fun DropdownWithSearch(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -704,7 +843,7 @@ fun EnterUsernameScreen(
                             isUsernameValid = true
                             usernameErrorMessage = ""
                         },
-                        label = { Text("Username", color = Color(0xFF00bf63)) },
+                        label = { Text("Username", color = Color(0xFFFF4500)) },
                         singleLine = true,
                         isError = !isUsernameValid,
                         supportingText = {
@@ -718,9 +857,9 @@ fun EnterUsernameScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63)
+                            cursorColor = Color(0xFFFF4500),
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color(0xFFFFA500)
                         )
                     )
 
@@ -777,7 +916,7 @@ fun EnterUsernameScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -812,15 +951,16 @@ suspend fun saveProfileToFirebase(
             gender = registrationViewModel.gender,
             interests = registrationViewModel.interests.toList(),
             hometown = registrationViewModel.hometown.ifEmpty { registrationViewModel.customHometown },
-            highSchool = registrationViewModel.highSchool.ifEmpty { registrationViewModel.customHighSchool },
-            college = registrationViewModel.college.ifEmpty { registrationViewModel.customCollege },
+            highSchool = if (registrationViewModel.highSchool == "Other") registrationViewModel.customHighSchool else registrationViewModel.highSchool,
+            college = if (registrationViewModel.college == "Other") registrationViewModel.customCollege else registrationViewModel.college,
+            postGraduation = if (registrationViewModel.postGraduation == "Other") registrationViewModel.customPostGraduation else registrationViewModel.postGraduation,
+            work = if (registrationViewModel.work == "Other") registrationViewModel.customWork else registrationViewModel.work,
             profilepicUrl = registrationViewModel.profilePicUrl,
             optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
             religion = registrationViewModel.religion,
             community = registrationViewModel.community,
 
             // New fields
-            country = registrationViewModel.country,                 // New: current country
             city = registrationViewModel.city.ifEmpty { registrationViewModel.customCity }, // New: current city
             educationLevel = registrationViewModel.educationLevel,   // New: education level
             lifestyle = registrationViewModel.lifestyle,             // New: lifestyle preferences
@@ -828,7 +968,6 @@ suspend fun saveProfileToFirebase(
             politics = registrationViewModel.politics,               // New: political views
             fitnessLevel = registrationViewModel.fitnessLevel,       // New: fitness level
             socialCauses = registrationViewModel.socialCauses.toList(), // New: social causes
-            videoUrl = registrationViewModel.videoUrl,  // Add the video URL
             voiceNoteUrl = registrationViewModel.voiceNoteUrl   // Add the voice URL
         )
 
@@ -897,7 +1036,7 @@ fun BasicInputScreen(
                     OutlinedTextField(
                         value = value,
                         onValueChange = onValueChange,
-                        label = { Text(label, color = Color(0xFF00bf63)) },
+                        label = { Text(label, color = Color(0xFFFF4500)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -905,11 +1044,11 @@ fun BasicInputScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63),
-                            focusedLabelColor = Color(0xFF00bf63),
-                            unfocusedLabelColor = Color(0xFF00bf63)
+                            cursorColor = Color(0xFFFF4500),
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color(0xFFFFA500),
+                            focusedLabelColor = Color(0xFFFF4500),
+                            unfocusedLabelColor = Color(0xFFFFA500)
                         )
                     )
 
@@ -919,7 +1058,7 @@ fun BasicInputScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -1376,13 +1515,13 @@ fun EnterBirthDateAndInterestsScreen(
                             .padding(bottom = 16.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color.Black,
-                            contentColor = Color(0xFF00bf63)
+                            contentColor = Color(0xFFFFA500)
                         ),
-                        border = BorderStroke(1.dp, Color(0xFF00bf63))
+                        border = BorderStroke(1.dp, Color(0xFFFF4500))
                     ) {
                         Text(
                             text = if (selectedDate.isNotEmpty()) selectedDate else "Select Birth Date",
-                            color = Color(0xFF00bf63)
+                            color = Color(0xFFFFA500)
                         )
                     }
 
@@ -1405,9 +1544,9 @@ fun EnterBirthDateAndInterestsScreen(
                                     .padding(vertical = 4.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = Color.Black,
-                                    contentColor = Color(0xFF00bf63)
+                                    contentColor = Color(0xFFFFA500)
                                 ),
-                                border = BorderStroke(1.dp, Color(0xFF00bf63))
+                                border = BorderStroke(1.dp, Color(0xFFFF4500))
                             ) {
                                 Text(text = "${category.emoji} ${category.category}")
                             }
@@ -1425,7 +1564,7 @@ fun EnterBirthDateAndInterestsScreen(
                                         text = {
                                             Text(
                                                 text = "${subcategory.emoji} ${subcategory.name}",
-                                                color = if (isSelected) Color(0xFF00bf63) else Color.White
+                                                color = if (isSelected) Color(0xFFFF4500) else Color.White
                                             )
                                         },
                                         onClick = {
@@ -1447,11 +1586,11 @@ fun EnterBirthDateAndInterestsScreen(
                         TextField(
                             value = customInterest,
                             onValueChange = { customInterest = it },
-                            label = { Text("Add Custom Interest", color = Color(0xFF00bf63)) },
+                            label = { Text("Add Custom Interest", color = Color(0xFFFF4500)) },
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedLabelColor = Color(0xFF00bf63),
-                                focusedBorderColor = Color(0xFF00bf63),
-                                cursorColor = Color(0xFF00bf63),
+                                focusedLabelColor = Color(0xFFFF4500),
+                                focusedBorderColor = Color(0xFFFFA500),
+                                cursorColor = Color(0xFFFF4500),
                                 focusedTextColor = Color.White
                             ),
                             modifier = Modifier
@@ -1466,7 +1605,7 @@ fun EnterBirthDateAndInterestsScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
                         ) {
                             Text(text = "Add Interest", color = Color.White)
                         }
@@ -1519,7 +1658,7 @@ fun EnterBirthDateAndInterestsScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         enabled = isNextEnabled,
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isNextEnabled) Color(0xFF00bf63) else Color.Gray),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isNextEnabled) Color(0xFFFFA500) else Color.Gray),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -1550,7 +1689,6 @@ fun UploadMediaComposable(
 ) {
     val context = LocalContext.current
     val storageRef = FirebaseStorage.getInstance().reference
-    var videoUri by remember { mutableStateOf<Uri?>(null) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var voiceUri by remember { mutableStateOf<Uri?>(null) }
     var isRecording by remember { mutableStateOf(false) }
@@ -1568,32 +1706,6 @@ fun UploadMediaComposable(
         onResult = { isGranted ->
             if (!isGranted) {
                 Toast.makeText(context, "Audio recording permission is required.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
-
-    // Video picker launcher
-    val videoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri: Uri? ->
-            uri?.let {
-                videoUri = uri
-                val retriever = MediaMetadataRetriever()
-                try {
-                    retriever.setDataSource(context, uri)
-                    val durationMillis = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
-                    retriever.release()
-                    if (durationMillis > 10000) {
-                        Toast.makeText(context, "Video should not exceed 10 seconds.", Toast.LENGTH_SHORT).show()
-                        videoUri = null
-                    } else {
-                        registrationViewModel.videoUri = uri
-                        uploadVideoToFirebase(storageRef, uri, registrationViewModel)
-                    }
-                } catch (e: Exception) {
-                    retriever.release()
-                    Toast.makeText(context, "Failed to retrieve video metadata: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
             }
         }
     )
@@ -1706,11 +1818,13 @@ fun UploadMediaComposable(
             ) {
                 // Profile Picture Section
                 Text("Tap to upload Profile Picture", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
-                        .size(150.dp)
+                        .size(99.dp)
                         .clip(CircleShape)
-                        .background(Color.Gray)
+                        .background(Color.Black)
+                        .border(2.dp, Color(0xFFFF4500), CircleShape)
                         .clickable { profilePicLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
@@ -1724,16 +1838,16 @@ fun UploadMediaComposable(
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Add Profile Picture",
-                            tint = Color.White,
-                            modifier = Modifier.size(64.dp)
+                            tint = Color(0xFFFF4500),
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Optional Photos Section
-                Text("Optional Photos (up to 5)", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Optional Photos (up to 5)", color = Color.White, fontSize = 14.sp)
 
                 LazyRow(
                     modifier = Modifier
@@ -1757,34 +1871,24 @@ fun UploadMediaComposable(
 
                 OutlinedButton(
                     onClick = { photosLauncher.launch("image/*") },
-                    modifier = Modifier.padding(top = 8.dp),
-                    border = BorderStroke(1.dp, Color(0xFF00bf63)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00bf63))
+                    border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500))
                 ) {
-                    Text(text = "Add Photos", color = Color(0xFF00bf63))
+                    Text(text = "Add Photos", color = Color(0xFFFF4500))
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Video Section
-                Button(onClick = { videoPickerLauncher.launch("video/*") }) {
-                    Text("Upload Video (10 seconds max)")
-                }
+                Text("Tap to upload Voice Bio", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                videoUri?.let {
-                    VideoPlayer(videoUrl = it.toString())
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Voice Recording Section
                 Box(
                     modifier = Modifier
-                        .size(200.dp)
+                        .size(99.dp)
                         .clip(CircleShape)
-                        .background(if (isRecording) Color.Gray else Color(0xFF00bf63))
+                        .background(if (isRecording) Color(0xFFFF4500) else Color.Black)
+                        .border(2.dp, Color(0xFFFF4500), CircleShape)
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onPress = {
@@ -1796,14 +1900,24 @@ fun UploadMediaComposable(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (isRecording) "Recording..." else "Hold to Record",
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
+                    if (isRecording) {
+                        Icon(
+                            imageVector = Icons.Default.MicOff, // Use Mic icon for recording
+                            contentDescription = "Stop Recording",
+                            tint = Color(0xFFFFA500),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Mic, // Use MicOff icon for idle state
+                            contentDescription = "Start Recording",
+                            tint = Color(0xFFFF4500),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Playback and Trash Icons
                 voiceUri?.let {
@@ -1826,7 +1940,7 @@ fun UploadMediaComposable(
                             Icon(
                                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = "Play/Pause",
-                                tint = Color(0xFF00bf63),
+                                tint = Color(0xFFFF4500),
                                 modifier = Modifier.size(48.dp)
                             )
                         }
@@ -1836,7 +1950,7 @@ fun UploadMediaComposable(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 16.dp),
-                            color = Color(0xFF00bf63),
+                            color = Color(0xFFFFA500),
                             trackColor = Color.Gray
                         )
 
@@ -1856,7 +1970,7 @@ fun UploadMediaComposable(
                 Button(
                     onClick = onNext,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
                 ) {
                     Text(text = "Next", color = Color.White)
                 }
@@ -1913,18 +2027,6 @@ fun uploadOptionalPhotosToFirebase(storageRef: StorageReference, uris: List<Uri>
     }
 }
 
-fun uploadVideoToFirebase(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
-    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val videoRef = storageRef.child("users/${userId}/video.mp4")
-    videoRef.putFile(uri).addOnSuccessListener {
-        videoRef.downloadUrl.addOnSuccessListener { downloadUri ->
-            registrationViewModel.videoUrl = downloadUri.toString()
-        }
-    }.addOnFailureListener {
-        Log.e("UploadMedia", "Failed to upload video: ${it.message}")
-    }
-}
-
 fun uploadVoiceToFirebase(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val voiceRef = storageRef.child("users/${userId}/voice_note.aac") // Use the correct extension
@@ -1936,24 +2038,6 @@ fun uploadVoiceToFirebase(storageRef: StorageReference, uri: Uri, registrationVi
     }.addOnFailureListener {
         Log.e("UploadMedia", "Failed to upload voice note: ${it.message}")
     }
-}
-
-
-@Composable
-fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    AndroidView(
-        factory = {
-            PlayerView(context).apply {
-                player = ExoPlayer.Builder(context).build().apply {
-                    setMediaItem(MediaItem.fromUri(videoUrl))
-                    prepare()
-                    playWhenReady = false
-                }
-            }
-        },
-        modifier = modifier.size(200.dp)
-    )
 }
 
 //-----------------edit media-----------------
@@ -2001,7 +2085,7 @@ fun EnterProfileHeadlineScreen(
                             headline = it
                             registrationViewModel.bio = it.text
                         },
-                        label = { Text("One-liner Bio (optional)", color = Color(0xFF00bf63)) },
+                        label = { Text("One-liner Bio (optional)", color = Color(0xFFFFA500)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2009,9 +2093,9 @@ fun EnterProfileHeadlineScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF00bf63),
-                            focusedBorderColor = Color(0xFF00bf63),
-                            unfocusedBorderColor = Color(0xFF00bf63)
+                            cursorColor = Color(0xFFFF4500),
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color(0xFFFFA500)
                         )
                     )
 
@@ -2026,7 +2110,7 @@ fun EnterProfileHeadlineScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {

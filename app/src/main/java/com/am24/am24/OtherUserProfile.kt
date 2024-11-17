@@ -323,10 +323,9 @@ fun ProfileMediaSection(
     navController: NavController
 ) {
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
-    val videoUrl = profile.videoUrl
 
     // Handle tap to change photos
-    val totalMediaCount = photoUrls.size + if (videoUrl != null) 1 else 0
+    val totalMediaCount = photoUrls.size
 
     Box(
         modifier = Modifier
@@ -346,10 +345,6 @@ fun ProfileMediaSection(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
                 )
-            }
-            videoUrl != null && currentPhotoIndex == photoUrls.size -> {
-                // Handle video display logic here
-                FullscreenIcon(onClick = onFullscreenClick)
             }
         }
 
@@ -580,7 +575,6 @@ fun ProfileLocationSection(profile: Profile) {
         Column {
             ProfileText(label = "Current City", value = profile.city.takeIf { it.isNotBlank() } ?: profile.customCity ?: "N/A")
             ProfileText(label = "Hometown", value = profile.hometown.takeIf { it.isNotBlank() } ?: profile.customHometown ?: "N/A")
-            ProfileText(label = "Country", value = profile.country.takeIf { it.isNotBlank() } ?: "N/A")
         }
     }
 }
@@ -763,18 +757,16 @@ fun ProfileInterestsSection(profile: Profile) {
 fun ProfileMetricsSection(profile: Profile) {
     FeedItemCard {
         Column {
-            ProfileText(label = "Global Ranking", value = profile.am24RankingGlobal.toString())
             ProfileText(label = "Age Ranking", value = profile.am24RankingAge.toString())
             ProfileText(label = "High School Ranking", value = profile.am24RankingHighSchool.toString())
             ProfileText(label = "College Ranking", value = profile.am24RankingCollege.toString())
             ProfileText(label = "Gender Ranking", value = profile.am24RankingGender.toString())
             ProfileText(label = "Hometown Ranking", value = profile.am24RankingHometown.toString())
-            ProfileText(label = "Country Ranking", value = profile.am24RankingCountry.toString())
+            ProfileText(label = "Country Ranking", value = profile.am24Ranking.toString())
             ProfileText(label = "City Ranking", value = profile.am24RankingCity.toString())
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ProfileText(label = "Swipe Right to Left Ratio", value = String.format("%.2f", profile.getCalculatedSwipeRightToLeftRatio()))
             ProfileText(label = "Match Count per Swipe Right", value = String.format("%.2f", profile.getCalculatedMatchCountPerSwipeRight()))
 
             Spacer(modifier = Modifier.height(8.dp))

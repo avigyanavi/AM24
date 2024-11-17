@@ -147,7 +147,6 @@ fun EditProfileScreen(navController: NavController? = null) {
                 gender = profile.gender
                 community = profile.community
                 religion = profile.religion
-                country = profile.country
                 city = profile.city
                 lookingFor = profile.lookingFor
                 claimedIncomeLevel = profile.claimedIncomeLevel ?: ""
