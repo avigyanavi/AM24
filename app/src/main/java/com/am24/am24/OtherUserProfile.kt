@@ -131,7 +131,7 @@ fun OtherUserProfileContent(
             fontSize = 20.sp,
             color = Color.White
         )
-        RatingBar(rating = profile.value.rating)
+        RatingBar(rating = profile.value.averageRating)
         Text(
             text = "Vibe Score: ${profile.value.vibepoints}",
             fontSize = 16.sp,
@@ -414,13 +414,6 @@ fun RatingBar(rating: Double) {
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = String.format("%.1f", rating),
-            color = Color(0xFFFF4500),
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.width(4.dp))
         repeat(5) { index ->
             Icon(
                 imageVector = if (index < rating.toInt()) Icons.Default.Star else Icons.Default.StarBorder,
@@ -428,8 +421,17 @@ fun RatingBar(rating: Double) {
                 tint = Color(0xFFFF4500)
             )
         }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = String.format("%.1f", rating),
+            color = Color(0xFFFF4500),
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
     }
 }
+
+
 
 
 // 3. Details Section (Gender, username, community, religion, zodiac, etc.)
@@ -446,7 +448,7 @@ fun ProfileDetailsSection(profile: Profile) {
             ProfileText(label = "College", value = profile.college.takeIf { it.isNotBlank() } ?: "N/A")
             ProfileText(label = "Post-Graduation", value = profile.postGraduation.takeIf { it!!.isNotBlank() } ?: "N/A")
             ProfileText(label = "Job Role", value = profile.jobRole.takeIf { it.isNotBlank() } ?: "N/A")
-            ProfileText(label = "Total Rating", value = String.format("%.1f", profile.rating))
+            ProfileText(label = "Total Rating", value = String.format("%.1f", profile.averageRating))
         }
     }
 }
@@ -810,7 +812,7 @@ fun FeedItemCard(content: @Composable () -> Unit) {
             .padding(8.dp)
             .background(Color.Black),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
-        border = BorderStroke(2.dp, Color(0xFFFF00D1)),
+        border = BorderStroke(2.dp, Color(0xFFFF4500)),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(

@@ -28,27 +28,53 @@ import kotlin.math.roundToInt
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
 
-    // State for Dating Filters
-    var ageRange by remember { mutableStateOf(18f..30f) }
-    var distance by remember { mutableStateOf(10f) }
-    var selectedGender by remember { mutableStateOf("Any") }
+    // State variables
+    var selectedCity by remember { mutableStateOf("Kolkata") } // Default city
+    var selectedLocality by remember { mutableStateOf("") }
+    val cityLocalities = mapOf(
+        "Kolkata" to listOf("Salt Lake", "Garia", "Dumdum", "Park Street", "Behala"),
+        "Mumbai" to listOf("Andheri", "Bandra", "Dadar", "Borivali", "Colaba"),
+        "Delhi" to listOf("Connaught Place", "Dwarka", "Saket", "Karol Bagh", "Lajpat Nagar"),
+        "Bangalore" to listOf("Whitefield", "Koramangala", "Indiranagar", "Jayanagar", "Marathahalli"),
+        "Hyderabad" to listOf("Banjara Hills", "Begumpet", "Hitech City", "Kukatpally", "Gachibowli"),
+        "Chennai" to listOf("Adyar", "T Nagar", "Velachery", "Anna Nagar", "Besant Nagar"),
+        "Ahmedabad" to listOf("Satellite", "Navrangpura", "Vastrapur", "Bopal", "Paldi")
+    )
+    var availableLocalities by remember { mutableStateOf(cityLocalities[selectedCity] ?: listOf()) }
+    var distance by remember { mutableStateOf(10) }
+    var enableFriendsToDM by remember { mutableStateOf(false) }
+    var privateAccount by remember { mutableStateOf(false) }
+    var ageRange by remember { mutableStateOf(18..30) }
+
+    // Firebase references
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val database = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
 
-    // State for Additional Settings
-    var enableMessagesFromFollowers by remember { mutableStateOf(false) }
-    var postOnlyForFollowers by remember { mutableStateOf(false) }
-    var age by remember { mutableStateOf(18f) }
-
-
-    // Fetch the current user's distance preference from Firebase
+    // Load user profile to prefill settings
     LaunchedEffect(Unit) {
         database.get().addOnSuccessListener { snapshot ->
             val profile = snapshot.getValue(Profile::class.java)
             if (profile != null) {
-                distance = profile.distancePreference // Load saved distance from profile
+                selectedCity = profile.city ?: "Kolkata"
+                availableLocalities = cityLocalities[selectedCity] ?: listOf()
+                selectedLocality = profile.localityFilter ?: ""
+                distance = profile.distancePreference.toInt()
+                ageRange = (profile.ageRangeStart ?: 18)..(profile.ageRangeEnd ?: 30)
+                enableFriendsToDM = profile.enableFriendsToDM ?: false
+                privateAccount = profile.privateAccount ?: false
             }
         }
+    }
+
+    // Save settings function
+    fun saveSettings() {
+        database.child("distancePreference").setValue(distance)
+        database.child("localityFilter").setValue(selectedLocality)
+        database.child("ageRangeStart").setValue(ageRange.start)
+        database.child("ageRangeEnd").setValue(ageRange.endInclusive)
+        database.child("enableFriendsToDM").setValue(enableFriendsToDM)
+        database.child("privateAccount").setValue(privateAccount)
+        Toast.makeText(context, "Settings saved.", Toast.LENGTH_SHORT).show()
     }
 
     Scaffold(
@@ -61,7 +87,7 @@ fun SettingsScreen(navController: NavController) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // 1. Dating Filters Section
+                // Dating Filters Section
                 item {
                     Text(
                         text = "Dating Filters",
@@ -78,15 +104,14 @@ fun SettingsScreen(navController: NavController) {
                     ) {
                         // Age Range Slider
                         Text(
-                            text = "Age Range: ${ageRange.start.roundToInt()} - ${ageRange.endInclusive.roundToInt()}",
+                            text = "Age Range: ${ageRange.start} - ${ageRange.endInclusive}",
                             color = Color.White,
                             fontSize = 16.sp
                         )
                         RangeSlider(
-                            value = ageRange,
-                            onValueChange = { newRange ->
-                                ageRange = newRange
-                                // TODO: Handle the age range change (e.g., update settings or filters)
+                            value = ageRange.start.toFloat()..ageRange.endInclusive.toFloat(),
+                            onValueChange = { range ->
+                                ageRange = range.start.roundToInt()..range.endInclusive.roundToInt()
                             },
                             valueRange = 18f..100f,
                             steps = 82,
@@ -100,15 +125,13 @@ fun SettingsScreen(navController: NavController) {
 
                         // Distance Slider
                         Text(
-                            text = "Maximum Distance: ${distance.roundToInt()} km",
+                            text = "Maximum Distance: ${distance} km",
                             color = Color.White,
                             fontSize = 16.sp
                         )
                         Slider(
-                            value = distance,
-                            onValueChange = { newDistance ->
-                                distance = newDistance
-                            },
+                            value = distance.toFloat(),
+                            onValueChange = { newDistance -> distance = newDistance.roundToInt() },
                             valueRange = 0f..100f,
                             steps = 100,
                             colors = SliderDefaults.colors(
@@ -119,73 +142,103 @@ fun SettingsScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // "People You Want to See" Dropdown
+                        // City Dropdown
                         Text(
-                            text = "People You Want to See",
+                            text = "Select City",
                             color = Color.White,
                             fontSize = 16.sp
                         )
-                        var expanded by remember { mutableStateOf(false) }
-                        val genders = listOf("Any", "Male (M)", "Female (F)", "Non-Binary (NB)", "Everyone (E)")
+                        var expandedCity by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
-                                value = selectedGender,
+                                value = selectedCity,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Select Gender") },
+                                label = { Text("City") },
                                 trailingIcon = {
-                                    IconButton(onClick = { expanded = true }) {
+                                    IconButton(onClick = { expandedCity = true }) {
                                         Icon(
                                             imageVector = Icons.Default.ArrowDropDown,
                                             contentDescription = "Dropdown"
                                         )
                                     }
                                 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth()
                             )
                             DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false },
+                                expanded = expandedCity,
+                                onDismissRequest = { expandedCity = false },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                genders.forEach { gender ->
+                                cityLocalities.keys.forEach { city ->
                                     DropdownMenuItem(
-                                        text = { Text(text = gender) },
+                                        text = { Text(text = city) },
                                         onClick = {
-                                            selectedGender = gender
-                                            expanded = false
+                                            selectedCity = city
+                                            availableLocalities = cityLocalities[city] ?: listOf()
+                                            expandedCity = false
                                         }
                                     )
                                 }
                             }
                         }
-                        // Save button to store filters
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Locality Dropdown
+                        Text(
+                            text = "Select Locality",
+                            color = Color.White,
+                            fontSize = 16.sp
+                        )
+                        var expandedLocality by remember { mutableStateOf(false) }
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = selectedLocality,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Locality") },
+                                trailingIcon = {
+                                    IconButton(onClick = { expandedLocality = true }) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDropDown,
+                                            contentDescription = "Dropdown"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            DropdownMenu(
+                                expanded = expandedLocality,
+                                onDismissRequest = { expandedLocality = false },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                availableLocalities.forEach { locality ->
+                                    DropdownMenuItem(
+                                        text = { Text(text = locality) },
+                                        onClick = {
+                                            selectedLocality = locality
+                                            expandedLocality = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Save Filters Button
                         Button(
-                            onClick = {
-                                // Save the distance preference to Firebase
-                                database.child("distancePreference").setValue(distance)
-                                    .addOnSuccessListener {
-                                        Toast.makeText(context, "Filters saved.", Toast.LENGTH_SHORT).show()
-                                    }
-                                    .addOnFailureListener {
-                                        Toast.makeText(context, "Failed to save filters.", Toast.LENGTH_SHORT).show()
-                                    }
-                            },
+                            onClick = { saveSettings() },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
                         ) {
-                            Text(text = "Save & Apply Filters", color = Color.White)
+                            Text(text = "Save Filters", color = Color.White)
                         }
                     }
                 }
 
-                // 2. Premium Filters Section (Under Paywall)
-
-
-                // 2. Premium Filters Section (Under Paywall)
+                // Additional Settings Section
                 item {
                     Text(
-                        text = "Premium Filters",
+                        text = "Additional Settings",
                         color = Color(0xFF00bf63),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
@@ -197,334 +250,81 @@ fun SettingsScreen(navController: NavController) {
                             .background(Color.Black, shape = RoundedCornerShape(8.dp))
                             .padding(16.dp)
                     ) {
-                        // Rating Minimum
-                        Text(
-                            text = "Minimum Rating",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = { Text("Rating") },
-                            enabled = false,
-                            placeholder = { Text("Premium Feature") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.DarkGray,
-                                focusedTextColor = Color.Gray,
-                                focusedPlaceholderColor = Color.Gray
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Level Minimum
-                        Text(
-                            text = "Minimum Level",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = { Text("Level") },
-                            enabled = false,
-                            placeholder = { Text("Premium Feature") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.DarkGray,
-                                focusedTextColor = Color.Gray,
-                                focusedPlaceholderColor = Color.Gray
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // High School
-                        Text(
-                            text = "High School",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = { Text("High School") },
-                            enabled = false,
-                            placeholder = { Text("Premium Feature") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.DarkGray,
-                                focusedTextColor = Color.Gray,
-                                focusedPlaceholderColor = Color.Gray
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // College
-                        Text(
-                            text = "College",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = { Text("College") },
-                            enabled = false,
-                            placeholder = { Text("Premium Feature") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.DarkGray,
-                                focusedTextColor = Color.Gray,
-                                focusedPlaceholderColor = Color.Gray
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Job Role (New Premium Filter)
-                        Text(
-                            text = "Job Role",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = { Text("Job Role") },
-                            enabled = false,
-                            placeholder = { Text("Premium Feature") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.DarkGray,
-                                focusedTextColor = Color.Gray,
-                                focusedPlaceholderColor = Color.Gray
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Work (Company) (New Premium Filter)
-                        Text(
-                            text = "Work (Company)",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = { Text("Company") },
-                            enabled = false,
-                            placeholder = { Text("Premium Feature") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.DarkGray,
-                                focusedTextColor = Color.Gray,
-                                focusedPlaceholderColor = Color.Gray
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Claimed Income Level (New Premium Filter)
-                        Text(
-                            text = "Claimed Income Level",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = { Text("Income Level") },
-                            enabled = false,
-                            placeholder = { Text("Premium Feature") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.DarkGray,
-                                focusedTextColor = Color.Gray,
-                                focusedPlaceholderColor = Color.Gray
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                }
-
-                // 3. Enable Messages from Followers
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.Black, shape = RoundedCornerShape(8.dp))
-                            .padding(16.dp)
-                    ) {
+                        // Enable Friends to DM
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Enable messages from followers",
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "Allow your followers to send you messages",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
-                                )
-                            }
+                            Text(
+                                text = "Enable Friends to DM",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                modifier = Modifier.weight(1f)
+                            )
                             Switch(
-                                checked = enableMessagesFromFollowers,
-                                onCheckedChange = { enabled ->
-                                    enableMessagesFromFollowers = enabled
-                                    Toast.makeText(
-                                        context,
-                                        "Enable messages from followers: $enabled",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
+                                checked = enableFriendsToDM,
+                                onCheckedChange = { enableFriendsToDM = it },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color(0xFF00bf63),
                                     uncheckedThumbColor = Color.Gray
                                 )
                             )
                         }
-                    }
-                }
 
-                // 4. View Composite Score History
-                item {
-                    Button(
-                        onClick = {
-                            Toast.makeText(
-                                context,
-                                "Composite Score History - Coming Soon",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "Composite Score History",
-                            tint = Color(0xFF00bf63),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "View Composite Score History",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                // 5. Post Only for Followers
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.Black, shape = RoundedCornerShape(8.dp))
-                            .padding(16.dp)
-                    ) {
+                        // Private Account
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Post only for followers",
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "Only your followers will see your posts",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
-                                )
-                            }
+                            Text(
+                                text = "Private Account",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                modifier = Modifier.weight(1f)
+                            )
                             Switch(
-                                checked = postOnlyForFollowers,
-                                onCheckedChange = { enabled ->
-                                    postOnlyForFollowers = enabled
-                                    Toast.makeText(
-                                        context,
-                                        "Post only for followers: $enabled",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
+                                checked = privateAccount,
+                                onCheckedChange = { privateAccount = it },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color(0xFF00bf63),
                                     uncheckedThumbColor = Color.Gray
                                 )
                             )
                         }
-                    }
-                }
 
-                // 6. View Leaderboard
-                item {
-                    Button(
-                        onClick = {
-                            navController.navigate("leaderboard")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Leaderboard,
-                            contentDescription = "View Leaderboard",
-                            tint = Color(0xFF00bf63),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "View Leaderboard",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                // 7. Send Feedback
-                item {
-                    Button(
-                        onClick = {
-                            Toast.makeText(
-                                context,
-                                "Send Feedback - Coming Soon",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "Send Feedback",
-                            tint = Color(0xFF00bf63),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "Send Feedback",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        // Logout Button
+                        Button(
+                            onClick = {
+                                FirebaseAuth.getInstance().signOut()
+                                navController.navigate("login") {
+                                    popUpTo("settings") { inclusive = true }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text(text = "Logout", color = Color.White)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Delete Account Button
+                        Button(
+                            onClick = {
+                                database.removeValue()
+                                FirebaseAuth.getInstance().currentUser?.delete()
+                                navController.navigate("login") {
+                                    popUpTo("settings") { inclusive = true }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text(text = "Delete Account", color = Color.White)
+                        }
                     }
                 }
             }
         }
     )
 }
-

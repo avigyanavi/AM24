@@ -78,6 +78,13 @@ data class Profile(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val distancePreference: Float = 10f,
+    var averageRating: Double = 0.0,
+    val enableFriendsToDM: Boolean = false, // Whether friends can DM
+    val privateAccount: Boolean = false, // Whether the account is private
+    val ageRangeStart: Int = 18, // Start of the preferred age range
+    val ageRangeEnd: Int = 30, // End of the preferred age range
+    val localityFilter: String = "", // Selected locality for filtering
+
 
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
@@ -110,12 +117,6 @@ data class Profile(
         } else 0.0
     }
 
-    @Exclude
-    fun getAverageRating(): Double {
-        return if (ratingsReceived.isNotEmpty()) {
-            ratingsReceived.values.average()
-        } else 0.0
-    }
 }
 
 data class Interest(

@@ -834,7 +834,7 @@ fun FeedItem(
             .shadow(8.dp, RoundedCornerShape(2.dp))
             .then(gestureDetector),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
-        border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.rating ?: 0.0)) // Dynamic border color
+        border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.averageRating ?: 0.0)) // Dynamic border color
     ) {
         Column(modifier = Modifier.padding(dynamicPadding)) {
             // User Info Row with Delete/Report button
@@ -873,7 +873,7 @@ fun FeedItem(
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    RatingBar(rating = userProfile?.rating ?: 0.0)
+                    RatingBar(rating = userProfile?.averageRating ?: 0.0)
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
