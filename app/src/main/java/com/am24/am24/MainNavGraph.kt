@@ -92,7 +92,7 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
             NotificationsScreen(navController = navController)
         }
         composable("filters") { // New SavedPosts route
-            FiltersScreen(navController = navController)
+            FiltersScreen()
         }
         composable("chat/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")
