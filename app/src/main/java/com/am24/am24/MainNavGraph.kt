@@ -75,8 +75,7 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
             val initialQuery = backStackEntry.arguments?.getString("initialQuery")
             DatingScreen(
                 navController = navController,
-                geoFire = geoFire,
-                initialQuery = initialQuery
+                geoFire = geoFire
             )
         }
         composable("dating") {
@@ -92,8 +91,8 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("notifications") {
             NotificationsScreen(navController = navController)
         }
-        composable("savedPosts") { // New SavedPosts route
-            SavedPostsScreen(navController = navController)
+        composable("filters") { // New SavedPosts route
+            FiltersScreen(navController = navController)
         }
         composable("chat/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")

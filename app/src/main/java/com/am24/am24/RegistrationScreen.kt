@@ -1689,28 +1689,9 @@ fun UploadMediaComposable(
 ) {
     val context = LocalContext.current
     val storageRef = FirebaseStorage.getInstance().reference
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var voiceUri by remember { mutableStateOf<Uri?>(null) }
-    var isRecording by remember { mutableStateOf(false) }
-    var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
-    var recordedFilePath by remember { mutableStateOf<String?>(null) }
-    var isPlaying by remember { mutableStateOf(false) }
-    var playbackProgress by remember { mutableStateOf(0f) }
-    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var profilePictureUri by remember { mutableStateOf(registrationViewModel.profilePictureUri) }
     val images = remember { mutableStateListOf<Uri>().apply { addAll(registrationViewModel.optionalPhotoUris) } }
 
-    // Permission launcher
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (!isGranted) {
-                Toast.makeText(context, "Audio recording permission is required.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
-
-    // Image picker launcher for profile picture
     val profilePicLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
@@ -1722,77 +1703,7 @@ fun UploadMediaComposable(
         }
     )
 
-    // Image picker launcher for optional photos
-    val photosLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents(),
-        onResult = { uris: List<Uri> ->
-            if (images.size + uris.size <= 5) {
-                images.addAll(uris)
-                registrationViewModel.optionalPhotoUris.addAll(uris)
-                uploadOptionalPhotosToFirebase(storageRef, uris, registrationViewModel)
-            } else {
-                Toast.makeText(context, "You can upload up to 5 photos", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
-
-    // Start recording with press-and-hold gesture
-    fun startRecording() {
-        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            mediaRecorder = MediaRecorder().apply {
-                val audioFile = File(context.cacheDir, "voice_recording_${System.currentTimeMillis()}.aac")
-                recordedFilePath = audioFile.absolutePath
-
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4) // Use a more universal format
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC) // Use AAC encoder for higher compatibility
-                setAudioSamplingRate(44100) // Set proper sampling rate
-                setAudioEncodingBitRate(96000) // Set bit rate for good quality audio
-                setOutputFile(recordedFilePath)
-
-                try {
-                    prepare()
-                    start()
-                    isRecording = true
-                    Toast.makeText(context, "Recording started...", Toast.LENGTH_SHORT).show()
-                } catch (e: IOException) {
-                    Toast.makeText(context, "Failed to start recording: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } else {
-            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-        }
-    }
-
-    // Stop recording
-    fun stopRecording() {
-        mediaRecorder?.apply {
-            try {
-                stop()
-                reset()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error stopping recording: ${e.message}", Toast.LENGTH_SHORT).show()
-            } finally {
-                release()
-                mediaRecorder = null
-                voiceUri = Uri.fromFile(File(recordedFilePath!!))
-                registrationViewModel.voiceNoteUri = voiceUri
-                uploadVoiceToFirebase(storageRef, voiceUri!!, registrationViewModel)
-                isRecording = false
-                Toast.makeText(context, "Recording stopped.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-
-    // Trash/Delete recording
-    fun deleteRecording() {
-        voiceUri = null
-        recordedFilePath = null
-        registrationViewModel.voiceNoteUri = null
-        isPlaying = false
-        Toast.makeText(context, "Recording deleted.", Toast.LENGTH_SHORT).show()
-    }
+    val placeholderUrl = "https://firebasestorage.googleapis.com/v0/b/am-twentyfour.appspot.com/o/photos%2Fplaceholder.jpg?alt=media&token=7eec2ce4-094d-4b4a-be04-0d988dda242c"
 
     Scaffold(
         topBar = {
@@ -1816,7 +1727,6 @@ fun UploadMediaComposable(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Profile Picture Section
                 Text("Tap to upload Profile Picture", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
@@ -1846,129 +1756,15 @@ fun UploadMediaComposable(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Optional Photos Section
-                Text("Optional Photos (up to 5)", color = Color.White, fontSize = 14.sp)
-
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    items(images) { uri ->
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .padding(4.dp)
-                        ) {
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = "Uploaded Image",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
-                }
-
-                OutlinedButton(
-                    onClick = { photosLauncher.launch("image/*") },
-                    border = BorderStroke(1.dp, Color(0xFFFF4500)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500))
-                ) {
-                    Text(text = "Add Photos", color = Color(0xFFFF4500))
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text("Tap to upload Voice Bio", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Box(
-                    modifier = Modifier
-                        .size(99.dp)
-                        .clip(CircleShape)
-                        .background(if (isRecording) Color(0xFFFF4500) else Color.Black)
-                        .border(2.dp, Color(0xFFFF4500), CircleShape)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    startRecording()
-                                    tryAwaitRelease()
-                                    stopRecording()
-                                }
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isRecording) {
-                        Icon(
-                            imageVector = Icons.Default.MicOff, // Use Mic icon for recording
-                            contentDescription = "Stop Recording",
-                            tint = Color(0xFFFFA500),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Mic, // Use MicOff icon for idle state
-                            contentDescription = "Start Recording",
-                            tint = Color(0xFFFF4500),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Playback and Trash Icons
-                voiceUri?.let {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = {
-                                if (isPlaying) {
-                                    mediaPlayer?.pause()
-                                    isPlaying = false
-                                } else {
-                                    mediaPlayer = MediaPlayer().apply {
-                                        setDataSource(context, voiceUri!!)
-                                        prepare()
-                                        start()
-                                    }
-                                    isPlaying = true
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = "Play/Pause",
-                                tint = Color(0xFFFF4500),
-                                modifier = Modifier.size(48.dp)
-                            )
-                        }
-
-                        LinearProgressIndicator(
-                            progress = playbackProgress,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 16.dp),
-                            color = Color(0xFFFFA500),
-                            trackColor = Color.Gray
-                        )
-
-                        IconButton(onClick = { deleteRecording() }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Recording",
-                                tint = Color.Red
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 // Next Button
                 Button(
-                    onClick = onNext,
+                    onClick = {
+                        if (profilePictureUri == null) {
+                            // Assign placeholder URL if no profile picture is provided
+                            registrationViewModel.profilePicUrl = placeholderUrl
+                        }
+                        onNext()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
                 ) {
@@ -1977,28 +1773,8 @@ fun UploadMediaComposable(
             }
         }
     )
-
-    // Manage voice playback progress
-    LaunchedEffect(isPlaying) {
-        if (isPlaying && mediaPlayer != null) {
-            while (isPlaying && mediaPlayer?.isPlaying == true) {
-                delay(500L)
-                val current = mediaPlayer?.currentPosition ?: 0
-                val duration = mediaPlayer?.duration ?: 1
-                playbackProgress = current.toFloat() / duration.toFloat()
-            }
-        } else {
-            playbackProgress = 0f
-        }
-    }
-
-    DisposableEffect(voiceUri) {
-        onDispose {
-            mediaPlayer?.release()
-            mediaPlayer = null
-        }
-    }
 }
+
 
 // Functions to upload media to Firebase Storage
 fun uploadProfilePicToFirebase(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {

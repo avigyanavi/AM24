@@ -66,6 +66,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopNavBar(
     navController: NavController,
@@ -78,17 +79,17 @@ fun TopNavBar(
 
     val isNotificationsSelected = currentDestination?.route == "notifications"
     val isPeopleWhoLikeMeSelected = currentDestination?.route == "peopleWhoLikedMe"
-    val isSavedPostsSelected = currentDestination?.route == "savedPosts"
+    val isFiltersSelected = currentDestination?.route == "filters"
 
     val title = when (currentDestination?.route) {
         "dms" -> "Chat"
         "home" -> "KupidX"
-        "savedPosts" -> "Saved"
         "profile" -> "Profile"
         "dating" -> "Dating"
         "settings" -> "Settings"
         "peopleWhoLikedMe" -> "People Who Like Me"
         "notifications" -> "Notifications"
+        "filters" -> "Filters"
         else -> ""
     }
 
@@ -170,16 +171,16 @@ fun TopNavBar(
                 }
             }
             IconButton(onClick = {
-                if (isSavedPostsSelected) {
+                if (isFiltersSelected) {
                     navController.popBackStack()
                 } else {
-                    navController.navigate("savedPosts")
+                    navController.navigate("filters")
                 }
             }) {
                 Icon(
-                    imageVector = Icons.Default.Bookmark,
-                    contentDescription = "Saved Posts",
-                    tint = if (isSavedPostsSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = "Filters",
+                    tint = if (isFiltersSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
                     modifier = Modifier.size(18.dp)
                 )
             }

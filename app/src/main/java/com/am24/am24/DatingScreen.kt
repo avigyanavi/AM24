@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Star
@@ -51,6 +52,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import kotlin.math.*
 import androidx.compose.material3.Card
+import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -68,17 +70,17 @@ fun DatingScreen(
     navController: NavController,
     geoFire: GeoFire,
     modifier: Modifier = Modifier,
-    initialQuery: String? = null, // Optional initial query parameter
 ) {
     val profileViewModel: ProfileViewModel = viewModel()
-    var searchQuery by remember { mutableStateOf(initialQuery ?: "") } // Set initial query if provided
+    var searchQuery by remember { mutableStateOf("") } // Search bar state
 
+    // Use `DatingScreenContent` for the main functionality
     DatingScreenContent(
         navController = navController,
         geoFire = geoFire,
         profileViewModel = profileViewModel,
         searchQuery = searchQuery,
-        onSearchQueryChange = { newQuery -> searchQuery = newQuery },
+        onSearchQueryChange = { searchQuery = it },
         modifier = modifier
     )
 }
@@ -105,15 +107,9 @@ fun DatingScreenContent(
         isLoading = true
         usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val fetchedProfiles = mutableListOf<Profile>()
-                for (userSnapshot in snapshot.children) {
-                    val profile = userSnapshot.getValue(Profile::class.java)
-                    if (profile != null && profile.userId != currentUserId) {
-                        fetchedProfiles.add(profile)
-                    }
-                }
+                val fetchedProfiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
                 profiles.clear()
-                profiles.addAll(fetchedProfiles)
+                profiles.addAll(fetchedProfiles.filter { it.userId != currentUserId })
                 isLoading = false
             }
 
@@ -125,99 +121,22 @@ fun DatingScreenContent(
         })
     }
 
-    // Filter profiles by username or name search
+    // Filter profiles based on the search query
     val filteredProfiles = profiles.filter {
-        it.username.contains(searchQuery, ignoreCase = true) ||
-                it.name.contains(searchQuery, ignoreCase = true)
+        it.username.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
     }
 
-    // Function to handle swipe right (like)
-    fun handleSwipeRight(currentUserId: String, otherUserId: String) {
-        val database = FirebaseDatabase.getInstance()
-        val timestamp = System.currentTimeMillis()
-
-        val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
-        val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
-
-        val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
-        val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
-
-        // Record the swipe right with timestamp
-        val swipeData = SwipeData(liked = true, timestamp = timestamp)
-        currentUserSwipesRef.setValue(swipeData)
-
-        // Update likesGiven and likesReceived
-        currentUserLikesGivenRef.setValue(timestamp)
-        otherUserLikesReceivedRef.setValue(timestamp)
-
-        // Check if the other user has swiped right on current user
-        otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
-            val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
-            val otherUserSwipedRight = otherUserSwipeData?.liked == true
-
-            if (otherUserSwipedRight) {
-                // It's a match!
-                val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
-                val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
-                currentUserMatchesRef.setValue(timestamp)
-                otherUserMatchesRef.setValue(timestamp)
-
-                // Send match notifications to both users
-                profileViewModel.sendMatchNotification(
-                    senderId = currentUserId,
-                    receiverId = otherUserId,
-                    onSuccess = { /* Handle success */ },
-                    onFailure = { /* Handle failure */ }
-                )
-                profileViewModel.sendMatchNotification(
-                    senderId = otherUserId,
-                    receiverId = currentUserId,
-                    onSuccess = { /* Handle success */ },
-                    onFailure = { /* Handle failure */ }
-                )
-            } else {
-                // The other user hasn't swiped right yet; send a like notification
-                profileViewModel.sendLikeNotification(
-                    senderId = currentUserId,
-                    receiverId = otherUserId,
-                    onSuccess = { /* Handle success */ },
-                    onFailure = { /* Handle failure */ }
-                )
-            }
-        }.addOnFailureListener { exception ->
-            Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
-        }
-    }
-
-    // Function to handle swipe left (dislike)
-    fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
-        val database = FirebaseDatabase.getInstance()
-        val timestamp = System.currentTimeMillis()
-
-        val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
-
-        // Record the swipe left with timestamp
-        val swipeData = SwipeData(liked = false, timestamp = timestamp)
-        currentUserSwipesRef.setValue(swipeData)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .padding(16.dp)
-    ) {
+    Column(modifier = modifier.fillMaxSize().background(Color.Black)) {
         // Search Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Search bar
             BasicTextField(
                 value = searchQuery,
-                onValueChange = { newQuery -> onSearchQueryChange(newQuery) },
+                onValueChange = onSearchQueryChange,
                 modifier = Modifier
                     .weight(1f)
                     .background(Color.Gray, CircleShape)
@@ -226,75 +145,265 @@ fun DatingScreenContent(
             )
         }
 
-        // Show loading icon when profiles are loading
         if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 CircularProgressIndicator(color = Color(0xFF00bf63))
             }
         } else if (filteredProfiles.isNotEmpty()) {
-            // Display profile cards
             val currentProfile = filteredProfiles[currentProfileIndex]
             var userDistance by remember { mutableStateOf<Float?>(null) }
 
-            // Calculate distance asynchronously when currentProfile changes
             LaunchedEffect(currentProfile) {
-                // Ensure currentProfile and currentUserId are valid
-                if (currentUserId.isNotEmpty() && currentProfile.userId.isNotEmpty()) {
-                    // Call the suspending function calculateDistance
-                    val distance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-                    userDistance = distance
-                }
+                userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
             }
 
             userDistance?.let { distance ->
-                Box(modifier = Modifier.fillMaxSize()) {
-                    DatingProfileCard(
-                        profile = currentProfile,
-                        onSwipeRight = {
-                            handleSwipeRight(currentUserId, currentProfile.userId)
-                            // Remove the current profile and show next profile or "no more profiles" message
-                            if (currentProfileIndex + 1 < filteredProfiles.size) {
-                                currentProfileIndex += 1
-                            } else {
-                                profiles.clear()  // Clear all profiles when none are left
-                            }
-                        },
-                        onSwipeLeft = {
-                            handleSwipeLeft(currentUserId, currentProfile.userId)
-                            // Remove the current profile and show next profile or "no more profiles" message
-                            if (currentProfileIndex + 1 < filteredProfiles.size) {
-                                currentProfileIndex += 1
-                            } else {
-                                profiles.clear()  // Clear all profiles when none are left
-                            }
-                        },
-                        navController = navController,
-                        userDistance = distance
-                    )
-                }
+                DatingProfileCard(
+                    profile = currentProfile,
+                    onSwipeRight = {
+                        handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
+                        if (currentProfileIndex + 1 < filteredProfiles.size) {
+                            currentProfileIndex++
+                        } else {
+                            profiles.clear()
+                        }
+                    },
+                    onSwipeLeft = {
+                        handleSwipeLeft(currentUserId, currentProfile.userId)
+                        if (currentProfileIndex + 1 < filteredProfiles.size) {
+                            currentProfileIndex++
+                        } else {
+                            profiles.clear()
+                        }
+                    },
+                    navController = navController,
+                    userDistance = distance
+                )
             }
         } else {
-            // Display no profiles message
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No more profiles available.",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Text(text = "No more profiles available.", color = Color.White, fontSize = 18.sp)
             }
         }
     }
 }
 
+@Composable
+fun DatingProfileCard(
+    profile: Profile,
+    onSwipeRight: () -> Unit,
+    onSwipeLeft: () -> Unit,
+    userDistance: Float,
+    navController: NavController
+) {
+    var currentPhotoIndex by remember(profile) { mutableStateOf(0) }
+    var isDetailedView by remember { mutableStateOf(false) }
+    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+
+    // Reset current photo index when profile changes
+    LaunchedEffect(profile) {
+        currentPhotoIndex = 0
+    }
+
+    val swipeableState = rememberSwipeableState(initialValue = 0)
+    val anchors = mapOf(
+        -300f to -1, // Swiped left
+        0f to 0,     // Neutral
+        300f to 1    // Swiped right
+    )
+
+    val swipeOffset = swipeableState.offset.value
+
+    LaunchedEffect(swipeableState.currentValue) {
+        if (swipeableState.currentValue == -1) {
+            onSwipeLeft()
+            swipeableState.snapTo(0)
+        } else if (swipeableState.currentValue == 1) {
+            onSwipeRight()
+            swipeableState.snapTo(0)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        if (isDetailedView) {
+            ProfileDetailsTabs(
+                profile = profile,
+                navController = navController,
+                onBack = { isDetailedView = false }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .swipeable(
+                        state = swipeableState,
+                        anchors = anchors,
+                        thresholds = { _, _ -> FractionalThreshold(0.3f) },
+                        orientation = Orientation.Horizontal
+                    )
+                    .offset { IntOffset(swipeOffset.roundToInt(), 0) }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(7 / 10f)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { offset ->
+                                    val tapX = offset.x
+                                    val photoCount = photoUrls.size
+                                    if (photoCount > 1) {
+                                        currentPhotoIndex = if (tapX > size.width / 2) {
+                                            (currentPhotoIndex + 1) % photoCount
+                                        } else {
+                                            (currentPhotoIndex - 1 + photoCount) % photoCount
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                ) {
+                    AsyncImage(
+                        model = photoUrls[currentPhotoIndex],
+                        contentDescription = "Profile Photo",
+                        placeholder = painterResource(R.drawable.local_placeholder),
+                        error = painterResource(R.drawable.local_placeholder),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    if (swipeableState.offset.value < -100) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(150.dp)
+                                .align(Alignment.CenterStart)
+                                .background(Color.Red.copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dislike",
+                                tint = Color.White,
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
+                    } else if (swipeableState.offset.value > 100) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(150.dp)
+                                .align(Alignment.CenterEnd)
+                                .background(Color.Green.copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Like",
+                                tint = Color.White,
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .background(Color.Black.copy(alpha = 0.6f))
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            Text(
+                                text = "${profile.name}, ${calculateAge(profile.dob)}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Distance: ${userDistance.roundToInt()} km away",
+                                fontSize = 16.sp,
+                                color = Color.White
+                            )
+                            if (profile.hometown.isNotEmpty()) {
+                                Text(
+                                    text = "From ${profile.hometown}",
+                                    fontSize = 16.sp,
+                                    color = Color.White
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            RatingBar(rating = profile.rating, modifier = Modifier.fillMaxWidth())
+                            Text(
+                                text = "Vibe Score: ${profile.vibepoints}",
+                                fontSize = 14.sp,
+                                color = Color.White
+                            )
+                        }
+                        IconButton(
+                            onClick = { isDetailedView = true },
+                            modifier = Modifier.align(Alignment.TopEnd)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "View More Info",
+                                tint = Color.White
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        photoUrls.forEachIndexed { index, _ ->
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .padding(horizontal = 2.dp)
+                                    .clip(CircleShape)
+                                    .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+fun handleSwipeRight(currentUserId: String, otherUserId: String, profileViewModel: ProfileViewModel) {
+    val database = FirebaseDatabase.getInstance()
+    val timestamp = System.currentTimeMillis()
+
+    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+    val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
+
+    currentUserSwipesRef.setValue(SwipeData(liked = true, timestamp = timestamp))
+
+    otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
+        val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
+        if (otherUserSwipeData?.liked == true) {
+            val matchesRef = database.getReference("matches")
+            matchesRef.child("$currentUserId/$otherUserId").setValue(timestamp)
+            matchesRef.child("$otherUserId/$currentUserId").setValue(timestamp)
+        }
+    }
+}
+
+fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
+    val database = FirebaseDatabase.getInstance()
+    val timestamp = System.currentTimeMillis()
+
+    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+    currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
+}
 // Haversine formula to calculate the distance between two geographic points
 fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     val earthRadius = 6371.0 // Radius of the Earth in kilometers
@@ -325,6 +434,95 @@ suspend fun calculateDistance(
     }
 }
 
+@Composable
+fun ProfileDetailsTabs(
+    profile: Profile,
+    navController: NavController,
+    onBack: () -> Unit // Callback for back button
+) {
+    val tabTitles = listOf("Profile", "Posts", "Score")
+    var selectedTabIndex by remember { mutableStateOf(0) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        // Back Button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { onBack() }) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            Text(
+                text = "Details",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+
+        // Tabs
+        TabRow(selectedTabIndex = selectedTabIndex) {
+            tabTitles.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index },
+                    text = { Text(title, color = Color.White) }
+                )
+            }
+        }
+
+        // Tab Content
+        when (selectedTabIndex) {
+            0 -> ProfileDetails(profile)
+            1 -> ProfilePosts(profile)
+            2 -> ProfileScore(profile)
+        }
+    }
+}
+
+@Composable
+fun ProfileDetails(profile: Profile) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Text(text = "Name: ${profile.name}", color = Color.White, fontSize = 18.sp)
+        Text(text = "Bio: ${profile.bio}", color = Color.White, fontSize = 16.sp)
+        Text(text = "Gender: ${profile.gender}", color = Color.White, fontSize = 16.sp)
+        Text(text = "Hometown: ${profile.hometown}", color = Color.White, fontSize = 16.sp)
+    }
+}
+
+@Composable
+fun ProfilePosts(profile: Profile) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text(text = "Posts by ${profile.name}", color = Color.White, fontSize = 16.sp)
+        // Dynamically fetch and display user's posts
+    }
+}
+
+@Composable
+fun ProfileScore(profile: Profile) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text(text = "Rating: ${profile.rating}", color = Color.White, fontSize = 16.sp)
+        Text(text = "Social Score: ${profile.vibepoints}", color = Color.White, fontSize = 16.sp)
+        // Add other metrics, like compatibility score
+    }
+}
+
+
 suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? = suspendCancellableCoroutine { continuation ->
     geoFire.getLocation(userId, object : LocationCallback {
         override fun onLocationResult(key: String?, location: GeoLocation?) {
@@ -335,289 +533,6 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? = su
             continuation.resumeWithException(databaseError.toException())
         }
     })
-}
-
-@Composable
-fun DatingProfileCard(
-    profile: Profile,
-    onSwipeRight: () -> Unit,
-    onSwipeLeft: () -> Unit,
-    navController: NavController,
-    userDistance: Float // Distance to display on the card
-) {
-    var currentPhotoIndex by remember(profile) { mutableStateOf(0) }
-    var showDetailsAndMetrics by remember { mutableStateOf(false) }
-    var showFullScreenImage by remember { mutableStateOf(false) } // For fullscreen image
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
-
-    LaunchedEffect(profile) {
-        currentPhotoIndex = 0
-    }
-
-    // Create swipeable state
-    val swipeableState = rememberSwipeableState(initialValue = 0)
-    val anchors = mapOf(
-        -300f to -1, // Swiped left
-        0f to 0,     // Neutral position
-        300f to 1    // Swiped right
-    )
-
-    val coroutineScope = rememberCoroutineScope()
-
-    // Check swipe direction after swipe completes
-    LaunchedEffect(swipeableState.currentValue) {
-        if (swipeableState.currentValue == -1) {
-            onSwipeLeft()
-            swipeableState.snapTo(0) // Reset swipeable state
-        } else if (swipeableState.currentValue == 1) {
-            onSwipeRight()
-            swipeableState.snapTo(0) // Reset swipeable state
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .swipeable(
-                state = swipeableState,
-                anchors = anchors,
-                thresholds = { _, _ -> FractionalThreshold(0.3f) },
-                orientation = Orientation.Horizontal
-            )
-            .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
-            .verticalScroll(rememberScrollState())
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Black),
-            border = BorderStroke(3.dp, getLevelBorderColor(profile.rating))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                // Display user distance on top left
-                Text(
-                    text = "${userDistance.roundToInt()} km away",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-
-                // Picture Carousel
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { offset ->
-                                    val tapX = offset.x
-                                    val photoCount = photoUrls.size
-                                    if (photoCount > 1) {
-                                        currentPhotoIndex = if (tapX > size.width / 2) {
-                                            (currentPhotoIndex + 1) % photoCount
-                                        } else {
-                                            (currentPhotoIndex - 1 + photoCount) % photoCount
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                ) {
-                    if (photoUrls.isNotEmpty()) {
-                        AsyncImage(
-                            model = photoUrls[currentPhotoIndex],
-                            contentDescription = "Profile Photo",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-
-                    // Navigation Bars above the photos
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        photoUrls.forEachIndexed { index, _ ->
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp, 4.dp)
-                                    .padding(horizontal = 2.dp)
-                                    .clip(CircleShape)
-                                    .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
-                            )
-                        }
-                    }
-
-                    // Fullscreen Icon
-                    IconButton(
-                        onClick = { showFullScreenImage = true },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Fullscreen,
-                            contentDescription = "Fullscreen",
-                            tint = Color(0xFF00bf63)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Name, Age, Rating, Composite Score
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.Top
-                ) {
-                    Text(
-                        text = "${profile.name}, ${calculateAge(profile.dob)}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color.White
-                    )
-                    RatingBar(rating = profile.rating)
-                    Text(
-                        text = "Vibe Score: ${profile.vibepoints}",
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Toggle Details and Metrics Section
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { showDetailsAndMetrics = !showDetailsAndMetrics }) {
-                        Icon(
-                            imageVector = if (showDetailsAndMetrics) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Toggle Details and Metrics",
-                            tint = Color.White
-                        )
-                    }
-                    Text(
-                        text = if (showDetailsAndMetrics) "Hide Details and Metrics" else "Show Details and Metrics",
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-
-                if (showDetailsAndMetrics) {
-                    // Display Details and Metrics side by side
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        // Details Column
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 8.dp),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            // Details Section
-                            ProfileText(label = "Name", value = profile.name)
-                            ProfileText(label = "Gender", value = profile.gender)
-                            ProfileText(label = "Bio", value = profile.bio)
-                            ProfileText(label = "Hometown", value = profile.hometown)
-                            ProfileText(label = "High School", value = profile.highSchool)
-                            ProfileText(label = "College", value = profile.college)
-                        }
-
-                        // Metrics Column
-                        UserInfoSectionDetailed(
-                            profile = profile,
-                            onLeaderboardClick = {
-                                navController.navigate("leaderboard")
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 8.dp)
-                        )
-                    }
-                }
-
-                // Button Row (Swipe Left/Right)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // Swipe Left Button
-                    IconButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                swipeableState.animateTo(-1)
-                            }
-                        },
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(CircleShape)
-                            .background(Color.Red)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Swipe Left", tint = Color.White)
-                    }
-
-                    // Swipe Right Button
-                    IconButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                swipeableState.animateTo(1)
-                            }
-                        },
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(CircleShape)
-                            .background(Color.Green)
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = "Swipe Right", tint = Color.White)
-                    }
-                }
-            }
-        }
-    }
-
-    // Fullscreen Image Dialog
-    if (showFullScreenImage) {
-        Dialog(onDismissRequest = { showFullScreenImage = false }) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-            ) {
-                AsyncImage(
-                    model = photoUrls[currentPhotoIndex],
-                    contentDescription = "Full Screen Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-                IconButton(
-                    onClick = { showFullScreenImage = false },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = Color.White
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable

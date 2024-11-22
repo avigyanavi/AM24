@@ -133,7 +133,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 }
 
 
-
 @Composable
 fun HomeScreenContent(
     navController: NavController,
@@ -177,7 +176,7 @@ fun HomeScreenContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
-                onClick = { isMinimized = !isMinimized }, // Toggle state
+                onClick = { isMinimized = !isMinimized },
                 modifier = Modifier.padding(end = 8.dp)
             ) {
                 Icon(
@@ -187,30 +186,29 @@ fun HomeScreenContent(
                 )
             }
             Text(
-                text = if (isMinimized) "Show Search, Post and Filter Row" else "Hide Search, Post and Filter Row",
+                text = if (isMinimized) "Show Search and Filter Row" else "Hide Search and Filter Row",
                 color = Color(0xFFFF4500),
                 fontSize = 15.sp,
                 modifier = Modifier
                     .weight(1f)
-                    .clickable { isMinimized = !isMinimized } // Toggle minimize state on click
+                    .clickable { isMinimized = !isMinimized }
             )
         }
 
-        // Conditionally display the search bar and create post section
+        // Conditionally display the search bar and filter section
         if (!isMinimized) {
             Spacer(modifier = Modifier.height(8.dp))
+
             // Search Bar
             CustomSearchBar(
                 query = searchQuery,
                 onQueryChange = onSearchQueryChanged,
-                onSearch = {
-                    // Do nothing, data updates via ViewModel
-                }
+                onSearch = { /* Logic handled via ViewModel */ }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Create Post and Filter Section
+            // Create Post, Filter, and Sort Section
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -259,10 +257,7 @@ fun HomeScreenContent(
                         expanded = showFilterMenu,
                         onDismissRequest = { showFilterMenu = false },
                     ) {
-                        val filterOptions = listOf(
-                            "global", "country",
-                            "city", "my posts", "voice only", "rating", "age", "gender", "high-school", "college"
-                        )
+                        val filterOptions = listOf("everyone", "friends", "matches", "friends + matches", "my posts")
                         filterOptions.forEach { option ->
                             DropdownMenuItem(
                                 text = {
@@ -303,7 +298,7 @@ fun HomeScreenContent(
                         )
                     }
 
-                    // Sort Dropdown Menu
+                    // Dropdown Menu for Sort Options
                     DropdownMenu(
                         expanded = showSortMenu,
                         onDismissRequest = { showSortMenu = false },
@@ -336,188 +331,6 @@ fun HomeScreenContent(
                     }
                 }
             }
-
-            // Input Field for Additional Filters
-            if (filterOption in listOf(
-                    "city",
-                    "age",
-                    "rating",
-                    "gender",
-                    "high-school",
-                    "college",
-                    "country"
-                )
-            ) {
-                Spacer(modifier = Modifier.height(8.dp))
-                when (filterOption) {
-                    "age" -> {
-                        // Integer input field
-                        OutlinedTextField(
-                            value = filterValue,
-                            onValueChange = { newValue ->
-                                // Allow only numbers
-                                if (newValue.all { it.isDigit() }) {
-                                    onFilterValueChanged(newValue)
-                                }
-                            },
-                            label = { Text("Enter Age", color = Color.White) },
-                            placeholder = { Text("e.g., 25", color = Color.Gray) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFFF4500),
-                                unfocusedBorderColor = Color.Gray,
-                                cursorColor = Color(0xFFFF4500)
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                        )
-                    }
-
-                    "gender" -> {
-                        // Dropdown with options 'M', 'F', 'NB'
-                        var expanded by remember { mutableStateOf(false) }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .clickable { expanded = true }
-                        ) {
-                            OutlinedTextField(
-                                value = filterValue,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Select Gender", color = Color.White) },
-                                placeholder = { Text("Please click the dropdown icon -------------- >", color = Color.Gray) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { expanded = true },
-                                textStyle = LocalTextStyle.current.copy(color = Color.White),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFFFF4500),
-                                    unfocusedBorderColor = Color.Gray,
-                                    cursorColor = Color(0xFFFF4500)
-                                ),
-                                trailingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDropDown,
-                                        contentDescription = "Dropdown",
-                                        tint = Color.White,
-                                        modifier = Modifier.clickable { expanded = true }
-                                    )
-                                }
-                            )
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                listOf("Male", "Female", "Non Binary").forEach { gender ->
-                                    DropdownMenuItem(
-                                        text = { Text(gender, color = Color(0xFFFF4500)) },
-                                        onClick = {
-                                            onFilterValueChanged(gender)
-                                            expanded = false
-                                        },
-                                        leadingIcon = {
-                                            if (gender == filterValue) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Check,
-                                                    contentDescription = null,
-                                                    tint = Color(0xFFFFA500)
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    "rating" -> {
-                        // Dropdown with options '0-2', '3-4', '5'
-                        var expanded by remember { mutableStateOf(false) }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .clickable { expanded = true }
-                        ) {
-                            OutlinedTextField(
-                                value = filterValue,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Select Rating", color = Color.White) },
-                                placeholder = { Text("Please click the dropdown icon -------------- >", color = Color.Gray) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { expanded = true },
-                                textStyle = LocalTextStyle.current.copy(color = Color.White),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFFFF4500),
-                                    unfocusedBorderColor = Color.Gray,
-                                    cursorColor = Color(0xFFFF4500)
-                                ),
-                                trailingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDropDown,
-                                        contentDescription = "Dropdown",
-                                        tint = Color.White,
-                                        modifier = Modifier.clickable { expanded = true }
-                                    )
-                                }
-                            )
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                listOf("0-2", "3-4", "5").forEach { rating ->
-                                    DropdownMenuItem(
-                                        text = { Text(rating, color = Color(0xFFFF4500)) },
-                                        onClick = {
-                                            onFilterValueChanged(rating)
-                                            expanded = false
-                                        },
-                                        leadingIcon = {
-                                            if (rating == filterValue) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Check,
-                                                    contentDescription = null,
-                                                    tint = Color(0xFFFFA500)
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    else -> {
-                        // Text input field
-                        OutlinedTextField(
-                            value = filterValue,
-                            onValueChange = onFilterValueChanged,
-                            label = {
-                                Text(
-                                    "Enter ${filterOption.replaceFirstChar { it.uppercaseChar() }}",
-                                    color = Color.White
-                                )
-                            },
-                            placeholder = { Text("Type here", color = Color.Gray) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFFF4500),
-                                unfocusedBorderColor = Color.Gray,
-                                cursorColor = Color(0xFFFF4500)
-                            )
-                        )
-                    }
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -538,6 +351,7 @@ fun HomeScreenContent(
         )
     }
 }
+
 
 
 

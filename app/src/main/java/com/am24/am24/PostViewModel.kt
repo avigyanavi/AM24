@@ -861,65 +861,39 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     ): List<Post> {
         var filteredList = postsList
 
-        Log.d(TAG, "Filter Option: $filterOption")
-        Log.d(TAG, "Filter Value: $filterValue")
-        Log.d(TAG, "Search Query: $searchQuery")
-        Log.d(TAG, "Sort Option: $sortOption")
-
-        Log.d(TAG, "Original posts count: ${filteredList.size}")
-
-        // Apply "my posts" filter
-        if (filterOption == "my posts" && currentUserId != null) {
-            filteredList = filteredList.filter { post ->
-                post.userId == currentUserId
+        // Apply top-level filters
+        when (filterOption) {
+            "everyone" -> {
+                // No filter; keep all posts
             }
-            Log.d(TAG, "After 'my posts' filter, count: ${filteredList.size}")
-        }
-
-        // Apply "voice only" filter
-        if (filterOption == "voice only") {
-            filteredList = filteredList.filter { post ->
-                post.mediaType == "voice"
-            }
-            Log.d(TAG, "After 'voice only' filter, count: ${filteredList.size}")
-        }
-
-        // Apply profile-based filters
-        if (filterOption in listOf("city", "age", "rating", "gender", "high-school", "college", "locality")) {
-            filteredList = filteredList.filter { post ->
-                val profile = profiles[post.userId]
-                profile != null && checkProfileFilter(profile, filterOption, filterValue)
-            }
-            Log.d(TAG, "After profile-based filter, count: ${filteredList.size}")
-        }
-
-        // Apply search query filtering
-        if (searchQuery.isNotEmpty()) {
-            val lowerSearchQuery = searchQuery.lowercase(Locale.getDefault())
-            filteredList = filteredList.filter { post ->
-                val profile = profiles[post.userId]
-
-                val fullName = ((profile?.username ?: "Unknown"))
-                    .lowercase(Locale.getDefault())
-                val nameMatch = fullName.contains(lowerSearchQuery)
-
-                val userTagsMatch = post.userTags.any { tag ->
-                    tag.lowercase(Locale.getDefault()).contains(lowerSearchQuery)
+            "friends" -> {
+                filteredList = filteredList.filter { post ->
+                    profiles[post.userId]?.relationship == "friend" ||
+                            profiles[post.userId]?.relationship == "friend and match"
                 }
-
-                nameMatch || userTagsMatch
             }
-            Log.d(TAG, "After search query filter, count: ${filteredList.size}")
+            "matches" -> {
+                filteredList = filteredList.filter { post ->
+                    profiles[post.userId]?.relationship == "match" ||
+                            profiles[post.userId]?.relationship == "friend and match"
+                }
+            }
+            "friends + matches" -> {
+                filteredList = filteredList.filter { post ->
+                    profiles[post.userId]?.relationship == "friend" ||
+                            profiles[post.userId]?.relationship == "match" ||
+                            profiles[post.userId]?.relationship == "friend and match"
+                }
+            }
+            "my posts" -> {
+                filteredList = filteredList.filter { post -> post.userId == currentUserId }
+            }
         }
 
-        // Sort posts
-        filteredList = when (sortOption) {
-            "Sort by Upvotes" -> filteredList.sortedByDescending { it.upvotes }
-            "Sort by Downvotes" -> filteredList.sortedByDescending { it.downvotes }
-            "No Sort" -> filteredList // Do not sort
-            else -> filteredList.sortedByDescending { it.getPostTimestamp() }
-        }
+        // Log the filtered list
+        Log.d(TAG, "Filtered posts for $filterOption: ${filteredList.size}")
 
+        // Apply other filters (e.g., search query, additional profile filters)
         return filteredList
     }
 
@@ -929,14 +903,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      */
     private fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
         return when (filterOption) {
-            "locality" -> {
-                // Exact match (case-insensitive)
-                profile.hometown.contains(filterValue, ignoreCase = true)
-            }
-            "city" -> {
-                // Contains match (case-insensitive)
-                profile.city.contains(filterValue, ignoreCase = true)
-            }
+            "locality" -> profile.hometown.contains(filterValue, ignoreCase = true)
+            "city" -> profile.city.contains(filterValue, ignoreCase = true)
             "age" -> {
                 val age = calculateAge(profile.dob)
                 val requiredAge = filterValue.toIntOrNull()
@@ -978,12 +946,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
+        val relationships = getFriendsAndMatches(currentUserIdFlow.value ?: "")
         val profiles = mutableMapOf<String, Profile>()
         val deferreds = userIds.map { userId ->
             async {
                 val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
                 val snapshot = userRef.get().await()
                 snapshot.getValue(Profile::class.java)?.let { profile ->
+                    profile.relationship = relationships[userId] // Add relationship to the profile
                     profiles[userId] = profile
                 }
             }
@@ -991,6 +961,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         deferreds.awaitAll()
         profiles
     }
+
 
 
     fun deletePost(

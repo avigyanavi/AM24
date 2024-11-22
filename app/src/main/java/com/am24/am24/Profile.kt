@@ -13,6 +13,9 @@ data class Profile(
     val bio: String = "",  // One-liner bio
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
     val gender: String = "",
+    val lastActive: Long = System.currentTimeMillis(),
+    val badges: List<String> = emptyList(),
+    var trendingPostEngagement: Int = 0, // Count of user interactions with trending posts // Example: ["Top Poll Creator", "Community Leader"] // Timestamp of last activity
     val profilepicUrl: String? = null,
     val voiceNoteUrl: String? = null,
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos
@@ -75,16 +78,31 @@ data class Profile(
     val am24RankingCompositeScore: Double = 0.0,
     var vibepoints: Double = 0.0,
     val level: Int = 1,
+    val locality: String = "", // Current locality (NEW FIELD)
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
-    val distancePreference: Float = 10f,
+    val datingDistancePreference: Float = 10f,
+    val feedDistancePreference: Float = 10f,
     var averageRating: Double = 0.0,
     val enableFriendsToDM: Boolean = false, // Whether friends can DM
     val privateAccount: Boolean = false, // Whether the account is private
-    val ageRangeStart: Int = 18, // Start of the preferred age range
-    val ageRangeEnd: Int = 30, // End of the preferred age range
+    val useUnifiedFilters: Boolean = false,
+    val datingAgeStart: Int = 18, // Start of the preferred age range
+    val feedAgeStart: Int = 18,
+    val datingAgeEnd: Int = 30,
+    val feedAgeEnd: Int = 30, // End of the preferred age range
     val localityFilter: String = "", // Selected locality for filtering
-
+    var relationship: String? = null, // Add this to hold "friend", "match", etc.
+    val datingLocality: String? = null,
+    val datingRating: String? = null,
+    val datingGender: String? = null,
+    val datingHighSchool: String? = null,
+    val datingCollege: String? = null,
+    val feedLocality: String? = null,
+    val feedCollege: String? = null,
+    val feedHighSchool: String? = null,
+    val feedGender: String? = null,
+    val feedRating: String? = null,
 
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
