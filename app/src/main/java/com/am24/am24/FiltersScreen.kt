@@ -6,11 +6,15 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -18,10 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import kotlin.math.roundToInt
@@ -32,6 +35,28 @@ fun FiltersScreen() {
 
     // State for selected tab
     var selectedTab by remember { mutableStateOf(0) } // 0 for Dating Filters, 1 for Feed Filters
+
+    // City selection
+    val cities = listOf("Kolkata", "Mumbai", "Delhi")
+    var selectedCity by remember { mutableStateOf("") }
+
+    // City-based data mappings
+    val cityLocalitiesMap = mapOf(
+        "Kolkata" to listOf("North Kolkata", "South Kolkata", "East Kolkata", "West Kolkata"),
+        "Mumbai" to listOf("Andheri", "Bandra", "Juhu", "Colaba"),
+        "Delhi" to listOf("South Delhi", "North Delhi", "East Delhi", "West Delhi")
+    )
+    val cityHighSchoolsMap = mapOf(
+        "Kolkata" to listOf("Kolkata High School 1", "Kolkata High School 2"),
+        "Mumbai" to listOf("Mumbai High School 1", "Mumbai High School 2"),
+        "Delhi" to listOf("Delhi High School 1", "Delhi High School 2")
+    )
+    val cityCollegesMap = mapOf(
+        "Kolkata" to listOf("Kolkata College 1", "Kolkata College 2"),
+        "Mumbai" to listOf("Mumbai College 1", "Mumbai College 2"),
+        "Delhi" to listOf("Delhi College 1", "Delhi College 2")
+    )
+    // Add postgrad and work mappings similarly
 
     // Dating Filters
     var datingLocalities by remember { mutableStateOf(setOf<String>()) } // Immutable Set
@@ -51,14 +76,15 @@ fun FiltersScreen() {
     var feedDistance by remember { mutableStateOf(10) }
     var feedGender by remember { mutableStateOf("") }
 
-    // Sample Data
-    val allLocalities = listOf("North Kolkata", "South Kolkata", "East Kolkata", "West Kolkata", "Locality 1", "Locality 2")
+    // Dynamic Localities based on selected city
+    val allLocalities = cityLocalitiesMap[selectedCity] ?: emptyList()
     var searchQueryLocalities by remember { mutableStateOf("") }
     val filteredLocalities = allLocalities.filter { it.contains(searchQueryLocalities, ignoreCase = true) }
 
     // Save Filters Function
     fun saveFilters() {
         val updates = mapOf(
+            "city" to selectedCity,
             "datingLocalities" to datingLocalities.toList(),
             "feedLocalities" to feedLocalities.toList(),
             "datingRating" to datingRating,
@@ -75,6 +101,7 @@ fun FiltersScreen() {
             "feedAgeEnd" to feedAgeRange.endInclusive,
             "datingDistancePreference" to datingDistance,
             "feedDistancePreference" to feedDistance
+            // Add postgrad and work fields if needed
         )
 
         FirebaseDatabase.getInstance().reference.child("users")
@@ -97,6 +124,20 @@ fun FiltersScreen() {
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // City Dropdown
+        Text(text = "Select City", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(16.dp))
+        CityDropdown(
+            cities = cities,
+            selectedCity = selectedCity,
+            onCitySelected = { city ->
+                selectedCity = city
+                // Reset localities and other selections when city changes
+                datingLocalities = emptySet()
+                feedLocalities = emptySet()
+                searchQueryLocalities = ""
+            }
+        )
+
         // Tab Selector
         TabRow(
             selectedTabIndex = selectedTab,
@@ -106,7 +147,7 @@ fun FiltersScreen() {
             indicator = { tabPositions ->
                 TabRowDefaults.Indicator(
                     Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    color = Color(0xFFFFA500) // Indicator color under the selected tab
+                    color = Color(0xFFFFA500)
                 )
             }
         ) {
@@ -136,6 +177,10 @@ fun FiltersScreen() {
                     }
                 }
 
+                val highSchoolOptions = cityHighSchoolsMap[selectedCity] ?: emptyList()
+                val collegeOptions = cityCollegesMap[selectedCity] ?: emptyList()
+                // Add postgradOptions and workOptions similarly
+
                 FilterFields(
                     localities = localities,
                     onLocalityChange = onLocalityChange,
@@ -146,10 +191,13 @@ fun FiltersScreen() {
                     onHighSchoolChange = { newHighSchool ->
                         if (selectedTab == 0) datingHighSchool = newHighSchool else feedHighSchool = newHighSchool
                     },
+                    highSchoolOptions = highSchoolOptions,
                     college = if (selectedTab == 0) datingCollege else feedCollege,
                     onCollegeChange = { newCollege ->
                         if (selectedTab == 0) datingCollege = newCollege else feedCollege = newCollege
                     },
+                    collegeOptions = collegeOptions,
+                    // Add postgrad and work parameters similarly
                     ageRange = if (selectedTab == 0) datingAgeRange else feedAgeRange,
                     onAgeRangeChange = { newRange ->
                         if (selectedTab == 0) datingAgeRange = newRange else feedAgeRange = newRange
@@ -177,12 +225,9 @@ fun Set<String>.toggleImmutable(item: String): Set<String> {
     return if (contains(item)) this - item else this + item
 }
 
-
 fun toggleSelection(currentValue: String, newValue: String): String {
-    // If the new value is the same as the current value, deselect it; otherwise, select it
     return if (currentValue == newValue) "" else newValue
 }
-
 
 @Composable
 fun FilterFields(
@@ -193,8 +238,11 @@ fun FilterFields(
     filteredLocalities: List<String>,
     highSchool: String,
     onHighSchoolChange: (String) -> Unit,
+    highSchoolOptions: List<String>,
     college: String,
     onCollegeChange: (String) -> Unit,
+    collegeOptions: List<String>,
+    // Add postgrad and work parameters similarly
     ageRange: IntRange = 18..30,
     onAgeRangeChange: (IntRange) -> Unit = {},
     distance: Int = 10,
@@ -224,7 +272,10 @@ fun FilterFields(
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = Color(0xFFFF4500),
                 unfocusedBorderColor = Color.Gray,
-                focusedTextColor = Color.White
+                focusedLabelColor = Color.White,
+                focusedTextColor = Color.White,
+                cursorColor = Color(0xFFFF4500),
+                containerColor = Color.Black
             )
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -308,20 +359,23 @@ fun FilterFields(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // High School Searchable Field
-        TextFieldWithLabel(
-            label = "High School",
-            value = highSchool,
-            onValueChange = onHighSchoolChange
+        // High School Searchable Dropdown
+        SearchableDropdown(
+            title = "High School",
+            options = highSchoolOptions,
+            selectedOption = highSchool,
+            onOptionSelected = onHighSchoolChange
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // College Searchable Field
-        TextFieldWithLabel(
-            label = "College",
-            value = college,
-            onValueChange = onCollegeChange
+        // College Searchable Dropdown
+        SearchableDropdown(
+            title = "College",
+            options = collegeOptions,
+            selectedOption = college,
+            onOptionSelected = onCollegeChange
         )
+        // Add postgrad and work fields similarly
     }
 }
 
@@ -377,20 +431,97 @@ fun SelectionButtons(
     }
 }
 
+@Composable
+fun CityDropdown(
+    cities: List<String>,
+    selectedCity: String,
+    onCitySelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
 
+    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500))
+        ) {
+            Text(text = selectedCity.ifEmpty { "Select City" }, color = Color(0xFFFFA500))
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black)
+        ) {
+            cities.forEach { city ->
+                DropdownMenuItem(
+                    text = { Text(city, color = Color.White) },
+                    onClick = {
+                        onCitySelected(city)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
 
 @Composable
-fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text(label, color = Color.White) },
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = Color(0xFFFF4500),
-            unfocusedBorderColor = Color.Gray,
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.Black
-        )
-    )
+fun SearchableDropdown(
+    title: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = title, color = Color.White, fontSize = 16.sp)
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500))
+        ) {
+            Text(
+                text = selectedOption.ifEmpty { "Select or type" },
+                color = Color(0xFFFFA500)
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black)
+        ) {
+            TextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                label = { Text("Search", color = Color(0xFFFFA500)) },
+                textStyle = TextStyle(color = Color.White),
+                colors = TextFieldDefaults.textFieldColors(
+                    cursorColor = Color(0xFFFFA500),
+                    focusedIndicatorColor = Color(0xFFFFA500),
+                    focusedLabelColor = Color(0xFFFFA500),
+                    containerColor = Color.Black
+                )
+            )
+            options.filter { it.contains(searchText, ignoreCase = true) }
+                .forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option, color = Color.White) },
+                        onClick = {
+                            onOptionSelected(option)
+                            searchText = ""
+                            expanded = false
+                        }
+                    )
+                }
+        }
+    }
 }
