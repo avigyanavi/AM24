@@ -50,12 +50,10 @@ fun DMScreenContent(navController: NavController) {
     val ratingsRef = database.getReference("ratings/$currentUserId")
 
     val matchedUsers = remember { mutableStateListOf<Profile>() }
-    val friendUsers = remember { mutableStateListOf<Profile>() }
 
     // Fetch matched users and friends
     LaunchedEffect(currentUserId) {
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context)
-        fetchUsersFromNode(friendsRef, usersRef, friendUsers, context)
     }
 
     Column(
@@ -105,16 +103,8 @@ fun DMScreenContent(navController: NavController) {
                 ratingsRef = ratingsRef,
                 usersRef = usersRef
             )
-            "Friends" -> UserListSection(
-                users = friendUsers,
-                navController = navController,
-                emptyText = "No friends yet",
-                ratingsRef = ratingsRef,
-                usersRef = usersRef
-            )
             "ListView" -> RatingListView(
                 matchedUsers = matchedUsers,
-                friendUsers = friendUsers,
                 ratingsRef = ratingsRef,
                 usersRef = usersRef
             )
@@ -163,12 +153,11 @@ fun UserListSection(
 @Composable
 fun RatingListView(
     matchedUsers: List<Profile>,
-    friendUsers: List<Profile>,
     ratingsRef: DatabaseReference,
     usersRef: DatabaseReference
 ) {
     // Merge lists, avoid duplicates, and sort by am24Ranking
-    val combinedUsers = (matchedUsers + friendUsers)
+    val combinedUsers = (matchedUsers)
         .distinctBy { it.userId } // Remove duplicates
         .sortedWith(compareByDescending<Profile> { it.am24Ranking } // Sort by am24Ranking (higher is better)
             .thenByDescending { it.averageRating } // Tie-break by averageRating
@@ -184,9 +173,8 @@ fun RatingListView(
         itemsIndexed(combinedUsers) { index, profile ->
             // Determine connection type
             val connectionType = when {
-                matchedUsers.any { it.userId == profile.userId } && friendUsers.any { it.userId == profile.userId } -> "Friend & Match"
                 matchedUsers.any { it.userId == profile.userId } -> "Match"
-                else -> "Friend"
+                else -> "Exception"
             }
 
             // Render user card with ranking

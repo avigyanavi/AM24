@@ -180,22 +180,8 @@ fun ProfileActionsSection(
     profile: Profile,
     profileViewModel: ProfileViewModel
 ) {
-    val friendStatus = remember { mutableStateOf("not_requested") }
     val dynamicUsername = remember { mutableStateOf("") }
 
-    // Fetch the friend request status
-    LaunchedEffect(targetUserId) {
-        profileViewModel.getFriendRequestStatus(
-            currentUserId = currentUserId,   // Corrected
-            targetUserId = targetUserId,     // Corrected
-            onStatusRetrieved = { status ->
-                friendStatus.value = status
-            },
-            onFailure = {
-                friendStatus.value = "not_requested"
-            }
-        )
-    }
 
     // Fetch the current user's username
     LaunchedEffect(currentUserId) {
@@ -212,70 +198,6 @@ fun ProfileActionsSection(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        // Friend Request Button
-        IconButton(
-            onClick = {
-                when (friendStatus.value) {
-                    "not_requested" -> {
-                        profileViewModel.sendFriendRequest(
-                            currentUserId = currentUserId,   // Corrected
-                            targetUserId = targetUserId,     // Corrected
-                            onSuccess = {
-                                friendStatus.value = "requested"
-                            },
-                            onFailure = { /* Handle error */ }
-                        )
-                    }
-
-                    "requested" -> {
-                        profileViewModel.rejectFriendRequest(
-                            currentUserId = currentUserId,   // Corrected
-                            requesterId = targetUserId,      // Corrected
-                            onSuccess = {
-                                friendStatus.value = "not_requested"
-                            },
-                            onFailure = { /* Handle error */ }
-                        )
-                    }
-
-                    "accepted" -> {
-                        profileViewModel.removeFriend(
-                            currentUserId = currentUserId,   // Corrected
-                            targetUserId = targetUserId,     // Corrected
-                            onSuccess = {
-                                friendStatus.value = "not_requested"
-                            },
-                            onFailure = { /* Handle error */ }
-                        )
-                    }
-                }
-            },
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(
-                    when (friendStatus.value) {
-                        "accepted" -> Color.Red
-                        "requested" -> Color.Gray
-                        else -> Color(0xFF00bf63)
-                    }
-                )
-        ) {
-            Icon(
-                imageVector = when (friendStatus.value) {
-                    "accepted" -> Icons.Default.PersonRemove
-                    "requested" -> Icons.Default.Pending
-                    else -> Icons.Default.PersonAdd
-                },
-                contentDescription = when (friendStatus.value) {
-                    "accepted" -> "Remove Friend"
-                    "requested" -> "Withdraw Request"
-                    else -> "Add Friend"
-                },
-                tint = Color.White
-            )
-        }
-
         // Report Profile Button
         IconButton(
             onClick = {

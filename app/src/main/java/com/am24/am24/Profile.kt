@@ -15,7 +15,6 @@ data class Profile(
     val gender: String = "",
     val lastActive: Long = System.currentTimeMillis(),
     val badges: List<String> = emptyList(),
-    var trendingPostEngagement: Int = 0, // Count of user interactions with trending posts // Example: ["Top Poll Creator", "Community Leader"] // Timestamp of last activity
     val profilepicUrl: String? = null,
     val voiceNoteUrl: String? = null,
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos
@@ -77,12 +76,10 @@ data class Profile(
     val dateOfJoin: Long = System.currentTimeMillis(),
     val am24RankingCompositeScore: Double = 0.0,
     var vibepoints: Double = 0.0,
-    val level: Int = 1,
     val locality: String = "", // Current locality (NEW FIELD)
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     var averageRating: Double = 0.0,
-    val enableFriendsToDM: Boolean = false, // Whether friends can DM
     val privateAccount: Boolean = false, // Whether the account is private
     var relationship: String? = null, // Add this to hold "friend", "match", etc.
     val datingLocalities: List<String> = emptyList(),

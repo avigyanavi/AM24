@@ -51,14 +51,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val notificationsRef = FirebaseDatabase.getInstance().getReference("notifications")
 
     // Firebase Realtime Database reference to "friends" and "matches"
-    private val friendsRef = FirebaseDatabase.getInstance().getReference("friends")
     private val matchesRef = FirebaseDatabase.getInstance().getReference("matches")
 
     /**
      * StateFlow holding the list of posts.
      */
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
-    val posts: StateFlow<List<Post>> get() = _posts
 
     private val _userProfiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
     val userProfiles: StateFlow<Map<String, Profile>> get() = _userProfiles
@@ -75,23 +73,31 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _currentUserId.value = userId
     }
 
-    // Update filteredPosts StateFlow
+    private val _feedFilters = MutableStateFlow(FilterSettings())
+    val feedFilters: StateFlow<FilterSettings> get() = _feedFilters
+
+    fun setFeedFilters(newFilters: FilterSettings) {
+        _feedFilters.value = newFilters
+    }
+
+    // Update filteredPosts to combine both filters
     val filteredPosts: StateFlow<List<Post>> = combine(
         _posts,
         _userProfiles,
         _filterSettings,
+        _feedFilters,
         currentUserIdFlow
-    ) { posts, profiles, filterSettings, currentUserId ->
-        applyFiltersAndSort(
-            posts,
-            profiles,
-            filterSettings.filterOption,
-            filterSettings.filterValue,
-            filterSettings.searchQuery,
-            filterSettings.sortOption,
-            currentUserId
-        )
+    ) { posts, profiles, homeFilters, feedFilters, currentUserId ->
+        Log.d(TAG, "Combining filters with ${posts.size} posts and ${profiles.size} profiles")
+        val homeFilteredPosts = applyFiltersAndSort(posts, profiles, homeFilters.filterOption, homeFilters.searchQuery, homeFilters.sortOption, currentUserId)
+        val finalFilteredPosts = applyFiltersAndSort(homeFilteredPosts, profiles, feedFilters.filterOption, feedFilters.searchQuery, feedFilters.sortOption, currentUserId, feedFilters.feedFilters)
+        finalFilteredPosts
+    }.onEach {
+        Log.d(TAG, "filteredPosts StateFlow emitted ${it.size} posts")
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+
+
 
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
@@ -108,25 +114,27 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             override fun onDataChange(snapshot: DataSnapshot) {
                 viewModelScope.launch(Dispatchers.IO) {
                     val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    val sortedPosts = postsList.sortedByDescending { parseTimestamp(it.timestamp) }
-
-                    // Fetch user profiles
+                    val sortedPosts = postsList.sortedByDescending { it.timestamp as Comparable<Any> }
                     val userIds = sortedPosts.map { it.userId }.toSet()
                     val profiles = fetchUserProfiles(userIds)
 
-                    // Update the StateFlows
+                    Log.d(TAG, "Fetched ${sortedPosts.size} posts and ${profiles.size} profiles")
+
                     _userProfiles.value = profiles
                     _posts.value = sortedPosts
-                    // The filteredPosts StateFlow will automatically update
+
+                    // Add a log to confirm StateFlow update
+                    Log.d(TAG, "Updated _posts with ${_posts.value.size} posts")
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Failed to read posts: ${error.message}")
+                Log.e(TAG, "Failed to observe posts: ${error.message}")
             }
         }
         postsRef.addValueEventListener(postsListener!!)
     }
+
 
     override fun onCleared() {
         super.onCleared()
@@ -200,65 +208,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Helper function to get the relationship between two users
     private suspend fun getRelationship(userId1: String, userId2: String): String {
-        var isFriend = false
-        var isMatch = false
         try {
-            // Check if userId2 is a friend of userId1
-            val friendSnapshot = friendsRef.child(userId1).child(userId2).get().await()
-            val friendStatus = friendSnapshot.child("status").getValue(String::class.java)
-            if (friendStatus == "accepted") {
-                isFriend = true
-            }
-
-            // Check if userId2 is a match of userId1
             val matchSnapshot = matchesRef.child(userId1).child(userId2).get().await()
             if (matchSnapshot.exists()) {
-                isMatch = true
+                return "match"
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch relationship between $userId1 and $userId2: ${e.message}")
+            Log.e(TAG, "Failed to fetch relationship: ${e.message}")
         }
-
-        return when {
-            isFriend && isMatch -> "friend and match"
-            isFriend -> "friend"
-            isMatch -> "match"
-            else -> ""
-        }
-    }
-
-
-    // Helper function to get friends and matches along with their relationship
-    private suspend fun getFriendsAndMatches(userId: String): Map<String, String> {
-        val relationships = mutableMapOf<String, String>()
-        try {
-            // Fetch friends
-            val friendsSnapshot = friendsRef.child(userId).get().await()
-            friendsSnapshot.children.forEach { child ->
-                val status = child.child("status").getValue(String::class.java)
-                if (status == "accepted") {
-                    val friendId = child.key ?: ""
-                    relationships[friendId] = "friend"
-                }
-            }
-
-            // Fetch matches
-            val matchesSnapshot = matchesRef.child(userId).get().await()
-            matchesSnapshot.children.forEach { child ->
-                val matchId = child.key ?: ""
-                val existingRelation = relationships[matchId]
-                if (existingRelation == "friend") {
-                    relationships[matchId] = "friend and match"
-                } else {
-                    relationships[matchId] = "match"
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch friends and matches: ${e.message}")
-        }
-        return relationships
+        return ""
     }
 
     /**
@@ -309,9 +268,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 postsRef.child(postId).setValue(post).await()
                 onSuccess()
                 // Send notifications to friends and matches
-                val relationships = getFriendsAndMatches(userId)
-                relationships.forEach { (receiverId, relationship) ->
-                    val message = "$username - your $relationship posted a new update."
+                val matches = getMatches(userId)
+                matches.forEach { receiverId ->
+                    val message = "$username - your match posted a new text update."
                     sendNotification(
                         receiverId = receiverId,
                         type = "new_post",
@@ -387,9 +346,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 onSuccess()
 
                 // Send notifications to friends and matches
-                val relationships = getFriendsAndMatches(userId)
-                relationships.forEach { (receiverId, relationship) ->
-                    val message = "$username - your $relationship posted a new voice update."
+                val matches = getMatches(userId)
+                matches.forEach { receiverId ->
+                    val message = "$username - your match posted a new voice update."
                     sendNotification(
                         receiverId = receiverId,
                         type = "new_post",
@@ -854,74 +813,86 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         postsList: List<Post>,
         profiles: Map<String, Profile>,
         filterOption: String,
-        filterValue: String,
         searchQuery: String,
         sortOption: String,
-        currentUserId: String?
+        currentUserId: String?,
+        feedFilters: FeedFilterSettings? = null
     ): List<Post> {
         var filteredList = postsList
 
-        // Apply top-level filters
+        Log.d(TAG, "Initial Post Count: ${filteredList.size}")
+        Log.d(TAG, "Initial Profiles Count: ${profiles.size}")
+
+        // Apply HomeScreen filters
         when (filterOption) {
-            "everyone" -> {
-                // No filter; keep all posts
-            }
-            "friends" -> {
-                filteredList = filteredList.filter { post ->
-                    profiles[post.userId]?.relationship == "friend" ||
-                            profiles[post.userId]?.relationship == "friend and match"
-                }
-            }
+            "everyone" -> Log.d(TAG, "Filter Option: everyone (no filtering)")
             "matches" -> {
-                filteredList = filteredList.filter { post ->
-                    profiles[post.userId]?.relationship == "match" ||
-                            profiles[post.userId]?.relationship == "friend and match"
-                }
-            }
-            "friends + matches" -> {
-                filteredList = filteredList.filter { post ->
-                    profiles[post.userId]?.relationship == "friend" ||
-                            profiles[post.userId]?.relationship == "match" ||
-                            profiles[post.userId]?.relationship == "friend and match"
-                }
+                val beforeMatchFilter = filteredList.size
+                filteredList = filteredList.filter { post -> profiles[post.userId]?.relationship == "match" }
+                Log.d(TAG, "After Matches Filter: ${filteredList.size} posts remain (filtered out ${beforeMatchFilter - filteredList.size})")
             }
             "my posts" -> {
+                val beforeMyPostsFilter = filteredList.size
                 filteredList = filteredList.filter { post -> post.userId == currentUserId }
+                Log.d(TAG, "After My Posts Filter: ${filteredList.size} posts remain (filtered out ${beforeMyPostsFilter - filteredList.size})")
             }
         }
 
-        // Log the filtered list
-        Log.d(TAG, "Filtered posts for $filterOption: ${filteredList.size}")
+        // Apply Feed Filters
+        feedFilters?.let { filters ->
+            Log.d(TAG, "Applying Feed Filters: $filters")
 
-        // Apply other filters (e.g., search query, additional profile filters)
+            // Gender filter
+            if (filters.gender.isNotBlank()) {
+                val beforeGenderFilter = filteredList.size
+                filteredList = filteredList.filter { profiles[it.userId]?.gender.equals(filters.gender, true) }
+                Log.d(TAG, "After Gender Filter: ${filteredList.size} posts remain (filtered out ${beforeGenderFilter - filteredList.size})")
+            }
+
+            // Age range filter
+            val beforeAgeFilter = filteredList.size
+            filteredList = filteredList.filter { post ->
+                val age = profiles[post.userId]?.dob?.let { calculateAge(it) }
+                age == null || (age in filters.ageStart..filters.ageEnd)
+            }
+            Log.d(TAG, "After Age Range Filter: ${filteredList.size} posts remain (filtered out ${beforeAgeFilter - filteredList.size})")
+        }
+
+        // Apply search query
+        if (searchQuery.isNotBlank()) {
+            val beforeSearchFilter = filteredList.size
+            filteredList = filteredList.filter { post ->
+                post.contentText?.contains(searchQuery, ignoreCase = true) == true ||
+                        post.userTags.any { tag -> tag.contains(searchQuery, ignoreCase = true) }
+            }
+            Log.d(TAG, "After Search Filter: ${filteredList.size} posts remain (filtered out ${beforeSearchFilter - filteredList.size})")
+        }
+
+        // Sorting
+        filteredList = when (sortOption) {
+            "Sort by Upvotes" -> filteredList.sortedByDescending { it.upvotes }
+            "Sort by Downvotes" -> filteredList.sortedByDescending { it.downvotes }
+            else -> filteredList.sortedByDescending { parseTimestamp(it.timestamp) }
+        }
+        Log.d(TAG, "After Sorting: ${filteredList.size} posts sorted")
+
         return filteredList
     }
+
+
 
 
     /**
      * Function to check profile-based filters.
      */
-    private fun checkProfileFilter(profile: Profile, filterOption: String, filterValue: String): Boolean {
+    private fun checkProfileFilter(profile: Profile, filterOption: String): Boolean {
         return when (filterOption) {
-            "locality" -> profile.hometown.contains(filterValue, ignoreCase = true)
-            "city" -> profile.city.contains(filterValue, ignoreCase = true)
+            "locality" -> profile.hometown.contains(filterOption, ignoreCase = true)
+            "city" -> profile.city.contains(filterOption, ignoreCase = true)
             "age" -> {
                 val age = calculateAge(profile.dob)
-                val requiredAge = filterValue.toIntOrNull()
-                age != null && requiredAge != null && age == requiredAge
+                age != null && age.toString() == filterOption
             }
-            "rating" -> {
-                val userRating = profile.rating ?: 0.0
-                when (filterValue) {
-                    "0-2" -> userRating in 0.0..2.0
-                    "3-4" -> userRating > 2 && userRating <= 4
-                    "5" -> userRating > 4 && userRating <= 5
-                    else -> false
-                }
-            }
-            "gender" -> profile.gender.contains(filterValue, ignoreCase = true)
-            "high-school" -> profile.highSchool.contains(filterValue, ignoreCase = true)
-            "college" -> profile.college.contains(filterValue, ignoreCase = true)
             else -> true
         }
     }
@@ -930,30 +901,30 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * Functions to update filter options.
      */
     fun setFilterOption(newOption: String) {
+        Log.d(TAG, "Filter Option Changed to: $newOption")
         _filterSettings.value = _filterSettings.value.copy(filterOption = newOption)
     }
 
-    fun setFilterValue(newValue: String) {
-        _filterSettings.value = _filterSettings.value.copy(filterValue = newValue)
-    }
-
     fun setSearchQuery(newQuery: String) {
+        Log.d(TAG, "Search Query Changed to: $newQuery")
         _filterSettings.value = _filterSettings.value.copy(searchQuery = newQuery)
     }
 
     fun setSortOption(newSortOption: String) {
+        Log.d(TAG, "Sort Option Changed to: $newSortOption")
         _filterSettings.value = _filterSettings.value.copy(sortOption = newSortOption)
     }
 
+
     private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
-        val relationships = getFriendsAndMatches(currentUserIdFlow.value ?: "")
+        val matches = getMatches(currentUserIdFlow.value ?: "")
         val profiles = mutableMapOf<String, Profile>()
         val deferreds = userIds.map { userId ->
             async {
                 val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
                 val snapshot = userRef.get().await()
                 snapshot.getValue(Profile::class.java)?.let { profile ->
-                    profile.relationship = relationships[userId] // Add relationship to the profile
+                    profile.relationship = if (matches.contains(userId)) "match" else null
                     profiles[userId] = profile
                 }
             }
@@ -962,6 +933,34 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         profiles
     }
 
+
+    private suspend fun getMatches(userId: String): List<String> {
+        val matches = mutableListOf<String>()
+        try {
+            val matchesSnapshot = matchesRef.child(userId).get().await()
+            matchesSnapshot.children.forEach { child ->
+                child.key?.let { matches.add(it) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch matches: ${e.message}")
+        }
+        return matches
+    }
+
+    fun loadFeedFiltersFromFirebase(userId: String) {
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("feedFilters")
+        userRef.get().addOnSuccessListener { snapshot ->
+            val feedFilters = snapshot.getValue(FeedFilterSettings::class.java)
+            if (feedFilters != null) {
+                Log.d(TAG, "Loaded Feed Filters: $feedFilters")
+                setFeedFilters(FilterSettings(feedFilters = feedFilters))
+            } else {
+                Log.d(TAG, "No Feed Filters found for user.")
+            }
+        }.addOnFailureListener {
+            Log.e(TAG, "Failed to load feed filters: ${it.message}")
+        }
+    }
 
 
     fun deletePost(

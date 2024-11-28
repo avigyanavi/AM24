@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelStoreOwner
 import com.firebase.geofire.GeoFire
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -64,10 +65,12 @@ import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    val postViewModel: PostViewModel = viewModel()
+    val postViewModel: PostViewModel = viewModel(LocalContext.current as ViewModelStoreOwner)
 
     // Collect filteredPosts instead of posts
     val posts by postViewModel.filteredPosts.collectAsState()
+    Log.d("HomeScreen", "Filtered Posts Count in Homescreen: ${posts.size}")
+
     val userProfiles by postViewModel.userProfiles.collectAsState()
     val filterSettings by postViewModel.filterSettings.collectAsState()
 
@@ -111,13 +114,10 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
         postViewModel = postViewModel,
         userProfiles = userProfiles,
         filterOption = filterSettings.filterOption,
-        filterValue = filterSettings.filterValue,
+        filterValue = "",
         searchQuery = filterSettings.searchQuery,
         onFilterOptionChanged = { newOption ->
             postViewModel.setFilterOption(newOption)
-        },
-        onFilterValueChanged = { newValue ->
-            postViewModel.setFilterValue(newValue)
         },
         onSearchQueryChanged = { newQuery ->
             postViewModel.setSearchQuery(newQuery)
@@ -144,7 +144,6 @@ fun HomeScreenContent(
     filterValue: String,
     searchQuery: String,
     onFilterOptionChanged: (String) -> Unit,
-    onFilterValueChanged: (String) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     userId: String?,
     userProfile: Profile?,
@@ -257,7 +256,7 @@ fun HomeScreenContent(
                         expanded = showFilterMenu,
                         onDismissRequest = { showFilterMenu = false },
                     ) {
-                        val filterOptions = listOf("everyone", "friends", "matches", "friends + matches", "my posts")
+                        val filterOptions = listOf("everyone", "matches", "my posts")
                         filterOptions.forEach { option ->
                             DropdownMenuItem(
                                 text = {
@@ -268,7 +267,6 @@ fun HomeScreenContent(
                                 },
                                 onClick = {
                                     onFilterOptionChanged(option)
-                                    onFilterValueChanged("") // Reset filter value when filter option changes
                                     showFilterMenu = false
                                 },
                                 leadingIcon = {

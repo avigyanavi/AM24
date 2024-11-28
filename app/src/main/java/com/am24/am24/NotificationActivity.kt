@@ -128,9 +128,6 @@ fun NotificationCard(
             .fillMaxWidth()
             .clickable {
                 when (notification.type) {
-                    "friend_request" -> {
-                        // Handle friend request action if needed
-                    }
                     "new_like" -> {
                         // Navigate to PeopleWhoLikedMeScreen
                         navController.navigate("peopleWhoLikedMe")
@@ -173,64 +170,6 @@ fun NotificationCard(
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
-
-                // Modified condition
-                if (notification.type == "friend_request" && notification.isRead == "false") {
-                    Row {
-                        // Accept Button
-                        Button(
-                            onClick = {
-                                profileViewModel.acceptFriendRequest(
-                                    currentUserId = currentUserId,
-                                    requesterId = notification.senderId,
-                                    onSuccess = {
-                                        notification.message = "You accepted ${dynamicUsername.value}'s friend request"
-                                        onRead()
-                                        profileViewModel.updateNotificationMessage(
-                                            userId = currentUserId,
-                                            notificationId = notification.id,
-                                            newMessage = notification.message,
-                                            newIsRead = "true",
-                                            onSuccess = { /* Handle success */ },
-                                            onFailure = { /* Handle failure */ }
-                                        )
-                                    },
-                                    onFailure = { /* Handle error */ }
-                                )
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Green)
-                        ) {
-                            Text("Accept")
-                        }
-
-                        // Reject Button
-                        Button(
-                            onClick = {
-                                profileViewModel.rejectFriendRequest(
-                                    currentUserId = currentUserId,
-                                    requesterId = notification.senderId,
-                                    onSuccess = {
-                                        notification.message = "You rejected ${dynamicUsername.value}'s friend request"
-                                        onRead()
-                                        profileViewModel.updateNotificationMessage(
-                                            userId = currentUserId,
-                                            notificationId = notification.id,
-                                            newMessage = notification.message,
-                                            newIsRead = "true",
-                                            onSuccess = { /* Handle success */ },
-                                            onFailure = { /* Handle failure */ }
-                                        )
-                                    },
-                                    onFailure = { /* Handle error */ }
-                                )
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                        ) {
-                            Text("Reject")
-                        }
-                    }
-                }
-
             }
         }
     }
