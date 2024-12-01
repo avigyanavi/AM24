@@ -91,8 +91,9 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
         composable("notifications") {
             NotificationsScreen(navController = navController)
         }
-        composable("filters") {
-            FiltersScreen(postViewModel = postViewModel)
+        composable("filters?initialTab={initialTab}") { backStackEntry ->
+            val initialTab = backStackEntry.arguments?.getString("initialTab")?.toIntOrNull() ?: 0 // Default to 0 (Dating Tab)
+            FiltersScreen(postViewModel = postViewModel, initialTab = initialTab)
         }
         composable("chat/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")

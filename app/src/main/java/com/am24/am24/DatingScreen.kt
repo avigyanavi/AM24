@@ -378,22 +378,76 @@ fun DatingProfileCard(
 }
 
 
-fun handleSwipeRight(currentUserId: String, otherUserId: String, profileViewModel: ProfileViewModel) {
+fun handleSwipeRight(
+    currentUserId: String,
+    otherUserId: String,
+    profileViewModel: ProfileViewModel
+) {
     val database = FirebaseDatabase.getInstance()
     val timestamp = System.currentTimeMillis()
 
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
 
-    currentUserSwipesRef.setValue(SwipeData(liked = true, timestamp = timestamp))
+    val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
+    val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
 
+    // Record the swipe right with timestamp
+    val swipeData = SwipeData(liked = true, timestamp = timestamp)
+    currentUserSwipesRef.setValue(swipeData)
+
+    // Update likesGiven and likesReceived
+    currentUserLikesGivenRef.setValue(timestamp)
+    otherUserLikesReceivedRef.setValue(timestamp)
+
+    // Check if the other user has swiped right on the current user
     otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
         val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
-        if (otherUserSwipeData?.liked == true) {
-            val matchesRef = database.getReference("matches")
-            matchesRef.child("$currentUserId/$otherUserId").setValue(timestamp)
-            matchesRef.child("$otherUserId/$currentUserId").setValue(timestamp)
+        val otherUserSwipedRight = otherUserSwipeData?.liked == true
+
+        if (otherUserSwipedRight) {
+            // It's a match!
+            val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
+            val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
+            currentUserMatchesRef.setValue(timestamp)
+            otherUserMatchesRef.setValue(timestamp)
+
+            // Send match notifications to both users
+            profileViewModel.sendMatchNotification(
+                senderId = currentUserId,
+                receiverId = otherUserId,
+                onSuccess = {
+                    Log.d("MatchNotification", "Match notification sent to $otherUserId successfully")
+                },
+                onFailure = { error ->
+                    Log.e("MatchNotification", "Failed to send match notification: $error")
+                }
+            )
+            profileViewModel.sendMatchNotification(
+                senderId = otherUserId,
+                receiverId = currentUserId,
+                onSuccess = {
+                    Log.d("MatchNotification", "Match notification sent to $currentUserId successfully")
+                },
+                onFailure = { error ->
+                    Log.e("MatchNotification", "Failed to send match notification: $error")
+                }
+            )
+        } else {
+            // The other user hasn't swiped right yet; send a like notification
+            profileViewModel.sendLikeNotification(
+                senderId = currentUserId,
+                receiverId = otherUserId,
+                onSuccess = {
+                    Log.d("LikeNotification", "Like notification sent to $otherUserId successfully")
+                },
+                onFailure = { error ->
+                    Log.e("LikeNotification", "Failed to send like notification: $error")
+                }
+            )
         }
+    }.addOnFailureListener { exception ->
+        Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
     }
 }
 

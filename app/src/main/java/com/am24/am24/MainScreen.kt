@@ -89,7 +89,7 @@ fun TopNavBar(
         "settings" -> "Settings"
         "peopleWhoLikedMe" -> "People Who Like Me"
         "notifications" -> "Notifications"
-        "filters" -> "Filters"
+        "filters?initialTab={initialTab}" -> "Filters"
         else -> ""
     }
 
@@ -171,19 +171,22 @@ fun TopNavBar(
                 }
             }
             IconButton(onClick = {
-                if (isFiltersSelected) {
-                    navController.popBackStack()
+                val currentRoute = navController.currentBackStackEntry?.destination?.route
+                val initialTab = if (currentRoute == "home") 1 else 0 // 1 for Feed, 0 for Dating
+                if (currentDestination?.route?.startsWith("filters") == true) {
+                    navController.popBackStack() // Return to previous screen
                 } else {
-                    navController.navigate("filters")
+                    navController.navigate("filters?initialTab=$initialTab") // Navigate to FiltersScreen
                 }
             }) {
                 Icon(
                     imageVector = Icons.Default.FilterList,
                     contentDescription = "Filters",
-                    tint = if (isFiltersSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
+                    tint = if (currentDestination?.route?.startsWith("filters") == true) Color(0xFFFF4500) else Color.Gray, // Preserve tint color on selection
                     modifier = Modifier.size(18.dp)
                 )
             }
+
             IconButton(onClick = onLogout) {
                 Icon(
                     imageVector = Icons.Default.ExitToApp,

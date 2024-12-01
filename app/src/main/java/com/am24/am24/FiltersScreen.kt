@@ -32,11 +32,14 @@ import com.google.firebase.database.FirebaseDatabase
 import kotlin.math.roundToInt
 
 @Composable
-fun FiltersScreen(postViewModel: PostViewModel) {
+fun FiltersScreen(
+    postViewModel: PostViewModel,
+    initialTab: Int = 0 // Default to 0 (Dating Tab)
+) {
     val context = LocalContext.current
 
     // State for selected tab
-    var selectedTab by remember { mutableStateOf(0) } // 0 for Dating Filters, 1 for Feed Filters
+    var selectedTab by remember { mutableStateOf(initialTab) } // 0 for Dating Filters, 1 for Feed Filters
 
     // City selection
     val cities = listOf("Kolkata", "Mumbai", "Delhi")
