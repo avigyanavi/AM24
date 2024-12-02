@@ -70,7 +70,7 @@ fun ProfileScreenContent(
                 .fillMaxSize()
                 .padding(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Black),
-            border = BorderStroke(3.dp, getLevelBorderColor(profile.value.rating))
+            border = BorderStroke(3.dp, getLevelBorderColor(profile.value.averageRating))
         ) {
             Column(
                 modifier = Modifier
@@ -154,7 +154,7 @@ fun ProfileScreenContent(
                     )
 
                     val ratingDisplay = if (profile.value.numberOfRatings > 0) {
-                        "${profile.value.rating}★"
+                        "${profile.value.averageRating}★"
                     } else {
                         "No ratings"
                     }
@@ -295,7 +295,7 @@ fun UserInfoSectionDetailed(
         // Detailed Metrics
         ProfileText(label = "Composite Score", value = profile.am24RankingCompositeScore.toString())
         ProfileText(label = "Rating", value = if (profile.numberOfRatings > 0) {
-            "${profile.rating} from (${profile.numberOfRatings} ratings)"
+            "${profile.averageRating} from (${profile.numberOfRatings} ratings)"
         } else {
             "No rating yet"
         })
@@ -353,6 +353,29 @@ fun ProfileText(label: String, value: String) {
         )
     }
 }
+
+@Composable
+fun RatingBar(rating: Double) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(5) { index ->
+            Icon(
+                imageVector = if (index < rating.toInt()) Icons.Default.Star else Icons.Default.StarBorder,
+                contentDescription = null,
+                tint = Color(0xFFFF4500)
+            )
+        }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = String.format("%.1f", rating),
+            color = Color(0xFFFF4500),
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+    }
+}
+
 
 fun getLevelBorderColor(rating: Double): Color {
     return when {

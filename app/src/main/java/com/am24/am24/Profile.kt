@@ -56,7 +56,6 @@ data class Profile(
     val am24RankingHometown: Int = 0,
     val am24Ranking: Int = 0,
     val am24RankingCity: Int = 0,
-    val rating: Double = 0.0,
     val numberOfRatings: Int = 0,
     val numberOfSwipeRights: Int = 0,
     val matchCount: Int = 0,

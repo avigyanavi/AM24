@@ -132,7 +132,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     )
 }
 
-
 @Composable
 fun HomeScreenContent(
     navController: NavController,
@@ -153,7 +152,6 @@ fun HomeScreenContent(
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
-    var isMinimized by remember { mutableStateOf(true) }
     val focusManager = LocalFocusManager.current
 
     Column(
@@ -167,165 +165,135 @@ fun HomeScreenContent(
                 focusManager.clearFocus()
             }
     ) {
-        // Minimize Button Row
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Search Bar
+        CustomSearchBar(
+            query = searchQuery,
+            onQueryChange = onSearchQueryChanged,
+            onSearch = { /* Logic handled via ViewModel */ }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Create Post, Filter, and Sort Section
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = { isMinimized = !isMinimized },
-                modifier = Modifier.padding(end = 8.dp)
+            // Create Post Button
+            Button(
+                onClick = { navController.navigate("create_post") },
+                border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                modifier = Modifier
+                    .weight(0.9f)
+                    .padding(end = 8.dp)
             ) {
                 Icon(
-                    imageVector = if (isMinimized) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-                    contentDescription = "Minimize or Expand",
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Create Post",
                     tint = Color(0xFFFF4500)
                 )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(text = "Post", color = Color(0xFFFF4500), fontSize = 14.sp)
             }
-            Text(
-                text = if (isMinimized) "Show Search and Filter Row" else "Hide Search and Filter Row",
-                color = Color(0xFFFF4500),
-                fontSize = 15.sp,
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { isMinimized = !isMinimized }
-            )
-        }
 
-        // Conditionally display the search bar and filter section
-        if (!isMinimized) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Search Bar
-            CustomSearchBar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChanged,
-                onSearch = { /* Logic handled via ViewModel */ }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Create Post, Filter, and Sort Section
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Create Post Button
+            // Filter Button
+            Box {
                 Button(
-                    onClick = { navController.navigate("create_post") },
+                    onClick = { showFilterMenu = !showFilterMenu },
                     border = BorderStroke(1.dp, Color(0xFFFF4500)),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                    modifier = Modifier
-                        .weight(0.9f)
-                        .padding(end = 8.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                 ) {
+                    Text(
+                        text = filterOption.replaceFirstChar { it.uppercaseChar() },
+                        color = Color(0xFFFF4500),
+                        fontSize = 14.sp
+                    )
                     Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Create Post",
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Filter options",
                         tint = Color(0xFFFF4500)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Post", color = Color(0xFFFF4500), fontSize = 14.sp)
                 }
 
-                // Filter Button
-                Box {
-                    Button(
-                        onClick = { showFilterMenu = !showFilterMenu },
-                        border = BorderStroke(1.dp, Color(0xFFFF4500)),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                    ) {
-                        Text(
-                            text = filterOption.replaceFirstChar { it.uppercaseChar() },
-                            color = Color(0xFFFF4500),
-                            fontSize = 14.sp
-                        )
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = "Filter options",
-                            tint = Color(0xFFFF4500)
-                        )
-                    }
-
-                    // Dropdown Menu for Filter Options
-                    DropdownMenu(
-                        expanded = showFilterMenu,
-                        onDismissRequest = { showFilterMenu = false },
-                    ) {
-                        val filterOptions = listOf("everyone", "matches", "my posts")
-                        filterOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = option.replaceFirstChar { it.uppercaseChar() },
-                                        color = if (option == filterOption) Color(0xFFFFA500) else Color(0xFFFF4500)
+                // Dropdown Menu for Filter Options
+                DropdownMenu(
+                    expanded = showFilterMenu,
+                    onDismissRequest = { showFilterMenu = false },
+                ) {
+                    val filterOptions = listOf("everyone", "matches", "my posts")
+                    filterOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = option.replaceFirstChar { it.uppercaseChar() },
+                                    color = if (option == filterOption) Color(0xFFFFA500) else Color(0xFFFF4500)
+                                )
+                            },
+                            onClick = {
+                                onFilterOptionChanged(option)
+                                showFilterMenu = false
+                            },
+                            leadingIcon = {
+                                if (option == filterOption) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFA500)
                                     )
-                                },
-                                onClick = {
-                                    onFilterOptionChanged(option)
-                                    showFilterMenu = false
-                                },
-                                leadingIcon = {
-                                    if (option == filterOption) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = Color(0xFFFFA500)
-                                        )
-                                    }
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
+            }
 
-                // Sort Button
-                Box {
-                    IconButton(
-                        onClick = { showSortMenu = !showSortMenu },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Sort,
-                            contentDescription = "Sort options",
-                            tint = Color(0xFFFF4500)
-                        )
-                    }
+            // Sort Button
+            Box {
+                IconButton(
+                    onClick = { showSortMenu = !showSortMenu },
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sort,
+                        contentDescription = "Sort options",
+                        tint = Color(0xFFFF4500)
+                    )
+                }
 
-                    // Dropdown Menu for Sort Options
-                    DropdownMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false },
-                    ) {
-                        val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
-                        sortOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = option,
-                                        color = if (option == sortOption) Color(0xFFFFA500) else Color(0xFFFF4500),
-                                        fontSize = 14.sp
+                // Dropdown Menu for Sort Options
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { showSortMenu = false },
+                ) {
+                    val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
+                    sortOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = option,
+                                    color = if (option == sortOption) Color(0xFFFFA500) else Color(0xFFFF4500),
+                                    fontSize = 14.sp
+                                )
+                            },
+                            onClick = {
+                                onSortOptionChanged(option)
+                                showSortMenu = false
+                            },
+                            leadingIcon = {
+                                if (option == sortOption) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFA500)
                                     )
-                                },
-                                onClick = {
-                                    onSortOptionChanged(option)
-                                    showSortMenu = false
-                                },
-                                leadingIcon = {
-                                    if (option == sortOption) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = Color(0xFFFFA500)
-                                        )
-                                    }
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }
@@ -349,8 +317,6 @@ fun HomeScreenContent(
         )
     }
 }
-
-
 
 
 
@@ -569,6 +535,8 @@ fun FeedItem(
     // Animation states
     var showUpvoteAnimation by remember { mutableStateOf(false) }
     var showDownvoteAnimation by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(userProfile) {
         userProfile?.let {
@@ -613,13 +581,13 @@ fun FeedItem(
 
     val dynamicFontSize = when {
         screenWidth < 360.dp -> 12.sp
-        screenWidth < 600.dp -> 14.sp
-        else -> 16.sp
+        screenWidth < 600.dp -> 13.sp // Reduced font size
+        else -> 14.sp
     }
     val dynamicPadding = when {
-        screenWidth < 360.dp -> 6.dp
-        screenWidth < 600.dp -> 10.dp
-        else -> 14.dp
+        screenWidth < 360.dp -> 4.dp   // Reduced padding
+        screenWidth < 600.dp -> 6.dp
+        else -> 8.dp
     }
 
     var showCommentsDialog by remember { mutableStateOf(false) }
@@ -643,7 +611,7 @@ fun FeedItem(
     Card(
         modifier = Modifier
             .fillMaxWidth(0.95f)
-            .shadow(8.dp, RoundedCornerShape(2.dp))
+            .shadow(4.dp, RoundedCornerShape(2.dp))
             .then(gestureDetector),
         colors = CardDefaults.cardColors(containerColor = Color.Black),
         border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.averageRating ?: 0.0)) // Dynamic border color
@@ -713,25 +681,48 @@ fun FeedItem(
                 }
             }
 
-// Post Content (Formatted Text)
+
+            // Post Content (Formatted Text)
             if (!post.contentText.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier.fillMaxWidth(), // Make the Box full width
-                    contentAlignment = Alignment.Center // Center content inside the Box
-                ) {
+                Spacer(modifier = Modifier.height(4.dp))
+
+                val collapsedCharLimit = 700
+                val isTextOverflowing = annotatedText.length > collapsedCharLimit
+
+                val displayText = if (isExpanded || !isTextOverflowing) {
+                    annotatedText
+                } else {
+                    // Truncate the text and add ellipsis
+                    buildAnnotatedString {
+                        append(annotatedText.subSequence(0, collapsedCharLimit))
+                        append("...")  // Indicate that text is truncated
+                    }
+                }
+
+                // Text Content
+                Text(
+                    text = displayText,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    lineHeight = 20.sp,
+                    overflow = TextOverflow.Clip,
+                    textAlign = TextAlign.Justify,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                // "See more" Text
+                if (isTextOverflowing && !isExpanded) {
                     Text(
-                        text = annotatedText,
-                        color = Color.White,
-                        maxLines = 10,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 28.sp,
-                        textAlign = TextAlign.Center, // Center-align the text itself
-                        lineHeight = 34.sp, // Add line spacing (adjust as needed)
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        text = "See more",
+                        color = Color(0xFFFFA500),
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .clickable { isExpanded = true }
+                            .padding(vertical = 4.dp)
                     )
                 }
             }
+
 
 
             // Media Content - Photo, Video, Voice
@@ -805,7 +796,7 @@ fun FeedItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Hashtags Below Main Content
             if (post.userTags.isNotEmpty()) {
@@ -815,21 +806,21 @@ fun FeedItem(
                     post.userTags.forEach { tag ->
                         Box(
                             modifier = Modifier
-                                .padding(4.dp)
+                                .padding(2.dp)
                                 .background(
                                     Color.Black,
-                                    RoundedCornerShape(8.dp)
+                                    RoundedCornerShape(4.dp)
                                 )
                                 .border(
                                     BorderStroke(1.dp, Color(0xFFFF4500)),
-                                    RoundedCornerShape(8.dp)
+                                    RoundedCornerShape(4.dp)
                                 )
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "#$tag",
                                 color = Color.LightGray,
-                                fontSize = 8.sp,
+                                fontSize = 10.sp,
                                 modifier = Modifier.clickable { onTagClick(tag) }
                             )
                         }
@@ -837,25 +828,25 @@ fun FeedItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(4.dp))
             Row(
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = formatTimestamp(post.getPostTimestamp()),
+                    text = formatRelativeTime(post.getPostTimestamp()),
                     color = Color(0xFFFFA500),
-                    fontSize = 10.sp
+                    fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.weight(1f)) // Flexible space to push the distance text to the right
                 userDistance?.let {
                     Text(
-                        text = "Distance: ${it.roundToInt()} km",
+                        text = "${it.roundToInt()} km",
                         color = Color(0xFFFFA500),
-                        fontSize = 10.sp
+                        fontSize = 14.sp
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Sharing, Upvote/Downvote, and Comment Section
             Row(
@@ -884,12 +875,12 @@ fun FeedItem(
                 // Upvote and Downvote Buttons
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onUpvote) {
                             Icon(
-                                Icons.Default.ArrowUpward,
+                                Icons.Default.ThumbUpOffAlt,
                                 contentDescription = "Upvote",
                                 tint = Color(0xFFFFA500)
                             )
@@ -904,7 +895,7 @@ fun FeedItem(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onDownvote) {
                             Icon(
-                                Icons.Default.ArrowDownward,
+                                Icons.Default.ThumbDownOffAlt,
                                 contentDescription = "Downvote",
                                 tint = Color(0xFFFF4500)
                             )
@@ -1027,6 +1018,26 @@ fun FeedItem(
     }
 }
 
+fun formatRelativeTime(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+
+    val seconds = diff / 1000
+    val minutes = seconds / 60
+    val hours = minutes / 60
+    val days = hours / 24
+    val months = days / 30
+    val years = days / 365
+
+    return when {
+        seconds < 60 -> "${seconds}s ago"
+        minutes < 60 -> "${minutes}m ago"
+        hours < 24 -> "${hours}h ago"
+        days < 30 -> "${days}d ago"
+        months < 12 -> "${months}mo ago"
+        else -> "${years}y ago"
+    }
+}
 
 fun formatDuration(durationMs: Long): String {
     val minutes = (durationMs / 1000) / 60

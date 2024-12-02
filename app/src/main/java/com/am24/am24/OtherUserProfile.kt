@@ -331,28 +331,6 @@ fun FullscreenMediaDialog(
     }
 }
 
-@Composable
-fun RatingBar(rating: Double) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        repeat(5) { index ->
-            Icon(
-                imageVector = if (index < rating.toInt()) Icons.Default.Star else Icons.Default.StarBorder,
-                contentDescription = null,
-                tint = Color(0xFFFF4500)
-            )
-        }
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = String.format("%.1f", rating),
-            color = Color(0xFFFF4500),
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
-    }
-}
-
 
 
 

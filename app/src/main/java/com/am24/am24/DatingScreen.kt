@@ -335,7 +335,7 @@ fun DatingProfileCard(
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            RatingBar(rating = profile.rating, modifier = Modifier.fillMaxWidth())
+                            RatingBar(rating = profile.averageRating, modifier = Modifier.fillMaxWidth())
                             Text(
                                 text = "Vibe Score: ${profile.vibepoints}",
                                 fontSize = 14.sp,
@@ -570,7 +570,7 @@ fun ProfilePosts(profile: Profile) {
 @Composable
 fun ProfileScore(profile: Profile) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = "Rating: ${profile.rating}", color = Color.White, fontSize = 16.sp)
+        Text(text = "Rating: ${profile.averageRating}", color = Color.White, fontSize = 16.sp)
         Text(text = "Social Score: ${profile.vibepoints}", color = Color.White, fontSize = 16.sp)
         // Add other metrics, like compatibility score
     }
@@ -595,8 +595,8 @@ fun RatingBar(
     modifier: Modifier = Modifier,
     stars: Int = 5,
     starSize: Dp = 20.dp,
-    starColor: Color = Color.Yellow,
-    starBackgroundColor: Color = Color.Gray
+    starColor: Color = Color(0xFFFFA500),
+    starBackgroundColor: Color = Color.Black
 ) {
     Row(
         modifier = modifier,

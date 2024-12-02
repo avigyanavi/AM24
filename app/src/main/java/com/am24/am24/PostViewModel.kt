@@ -114,7 +114,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             override fun onDataChange(snapshot: DataSnapshot) {
                 viewModelScope.launch(Dispatchers.IO) {
                     val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    val sortedPosts = postsList.sortedByDescending { it.timestamp as Comparable<Any> }
+                    val sortedPosts = postsList.sortedByDescending { it.timestamp ?: 0L }
                     val userIds = sortedPosts.map { it.userId }.toSet()
                     val profiles = fetchUserProfiles(userIds)
 
@@ -149,23 +149,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * Parses the timestamp from Firebase (could be Long or ServerValue.TIMESTAMP).
      * Returns a Long representing the timestamp in milliseconds.
      */
-    private fun parseTimestamp(timestamp: Any?): Long {
-        return when (timestamp) {
-            is Long -> timestamp
-            is Map<*, *> -> {
-                // Check for known keys like .sv for ServerValue.TIMESTAMP or other timestamp formats
-                val serverTimestamp = timestamp[".sv"] // Firebase usually uses ".sv" for server values
-                if (serverTimestamp == "timestamp") {
-                    // Interpret as current time, assuming that this was set by ServerValue.TIMESTAMP
-                    System.currentTimeMillis()
-                } else {
-                    // In case of other structures, attempt a direct conversion
-                    (timestamp["timestamp"] as? Long) ?: System.currentTimeMillis()
-                }
-            }
-            else -> System.currentTimeMillis()
-        }
+    private fun parseTimestamp(timestamp: Long?): Long {
+        return timestamp ?: System.currentTimeMillis()
     }
+
 
     // Helper function to send a notification
     private suspend fun sendNotification(
@@ -872,7 +859,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         filteredList = when (sortOption) {
             "Sort by Upvotes" -> filteredList.sortedByDescending { it.upvotes }
             "Sort by Downvotes" -> filteredList.sortedByDescending { it.downvotes }
-            else -> filteredList.sortedByDescending { parseTimestamp(it.timestamp) }
+            else -> filteredList.sortedByDescending { it.timestamp ?: 0L }
         }
         Log.d(TAG, "After Sorting: ${filteredList.size} posts sorted")
 
