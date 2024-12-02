@@ -10,7 +10,7 @@ data class Post(
     val userId: String = "",  // ID of the user who created the post
     val username: String = "",  // Username of the person who posted
     val contentText: String? = "",  // The text content of the post
-    val timestamp: Long? = null,  // Timestamp of post creation
+    val timestamp: Any? = null,  // Timestamp of post creation
     val profilepicUrl: String? = null,
     val isBold: Boolean = false,
     val isItalic: Boolean = false,
@@ -38,16 +38,17 @@ data class Post(
     val upvoteToDownvoteRatio: Double = 0.0  // Ratio of upvotes to downvotes for leaderboard rankings
 ) {
     @Exclude
-    fun getPostTimestamp(): Long {
-        return (timestamp as? Number)?.toLong() ?: 0L
-    }
-
-    // Serialize the Post object to JSON
-    fun toJson(): String = Gson().toJson(this)
-
-    // Deserialize a JSON string to a Post object
-    companion object {
-        fun fromJson(json: String): Post = Gson().fromJson(json, Post::class.java)
+    fun getTimestampLong(): Long {
+        return when (val time = timestamp) {
+            is Long -> time
+            is Double -> time.toLong()
+            is Map<*, *> -> {
+                // Handle unresolved ServerValue.TIMESTAMP
+                // You can choose to return 0L or current system time
+                System.currentTimeMillis()
+            }
+            else -> 0L
+        }
     }
 }
 

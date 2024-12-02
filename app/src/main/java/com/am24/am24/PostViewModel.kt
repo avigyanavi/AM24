@@ -80,6 +80,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _feedFilters.value = newFilters
     }
 
+    fun setIsVoiceOnly(isVoiceOnly: Boolean) {
+        _filterSettings.value = _filterSettings.value.copy(isVoiceOnly = isVoiceOnly)
+    }
+
+
     // Update filteredPosts to combine both filters
     val filteredPosts: StateFlow<List<Post>> = combine(
         _posts,
@@ -97,8 +102,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
 
-
-
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
     init {
@@ -114,7 +117,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             override fun onDataChange(snapshot: DataSnapshot) {
                 viewModelScope.launch(Dispatchers.IO) {
                     val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    val sortedPosts = postsList.sortedByDescending { it.timestamp ?: 0L }
+                    val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                     val userIds = sortedPosts.map { it.userId }.toSet()
                     val profiles = fetchUserProfiles(userIds)
 
@@ -424,19 +427,42 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 postReference.runTransaction(object : Transaction.Handler {
                     override fun doTransaction(currentData: MutableData): Transaction.Result {
+                        if (currentData.value == null) {
+                            return Transaction.success(currentData)
+                        }
+
                         val post = currentData.getValue(Post::class.java) ?: return Transaction.success(currentData)
-                        if (post.upvotedUsers.containsKey(userId)) {
-                            post.upvotedUsers.remove(userId)
-                            post.upvotes -= 1
+                        // Ensure timestamp is correctly handled
+                        val originalTimestamp = post.timestamp
+
+                        // Read the current values
+                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
+                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
+                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+
+
+                        // Modify the vote counts and user lists
+                        if (upvotedUsers.containsKey(userId)) {
+                            upvotedUsers.remove(userId)
+                            upvotes -= 1
                         } else {
-                            post.upvotedUsers[userId] = true
-                            post.upvotes += 1
-                            if (post.downvotedUsers.containsKey(userId)) {
-                                post.downvotedUsers.remove(userId)
-                                post.downvotes -= 1
+                            upvotedUsers[userId] = true
+                            upvotes += 1
+                            if (downvotedUsers.containsKey(userId)) {
+                                downvotedUsers.remove(userId)
+                                downvotes -= 1
                             }
                         }
-                        currentData.value = post
+
+                        // Update only the necessary fields
+                        currentData.child("upvotes").value = upvotes
+                        currentData.child("downvotes").value = downvotes
+                        currentData.child("upvotedUsers").value = upvotedUsers
+                        currentData.child("downvotedUsers").value = downvotedUsers
+                        currentData.child("timestamp").value = originalTimestamp
+
+                        // Do not modify other fields like timestamp
                         return Transaction.success(currentData)
                     }
 
@@ -453,7 +479,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                 // Send notification to post owner
                                 val post = currentData?.getValue(Post::class.java)
                                 if (post != null && post.userId != userId) {
-                                    // Fetch the upvoter's username
                                     val upvoterUsername = fetchUsernameById(userId)
                                     val message = "$upvoterUsername upvoted your post."
                                     sendNotification(
@@ -469,13 +494,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 })
             } catch (e: Exception) {
-                Log.e(TAG, "Error upvoting post: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Upvote failed.")
                 }
             }
         }
     }
+
 
     /**
      * Function to downvote a post.
@@ -491,22 +516,41 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 postReference.runTransaction(object : Transaction.Handler {
                     override fun doTransaction(currentData: MutableData): Transaction.Result {
+                        if (currentData.value == null) {
+                            return Transaction.success(currentData)
+                        }
                         val post = currentData.getValue(Post::class.java) ?: return Transaction.success(currentData)
-                        if (post.downvotedUsers.containsKey(userId)) {
-                            // User already downvoted; remove downvote
-                            post.downvotedUsers.remove(userId)
-                            post.downvotes -= 1
+                        // Ensure timestamp is correctly handled
+                        val originalTimestamp = post.timestamp
+
+                        // Read the current values
+                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
+                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
+                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+
+
+                        // Modify the vote counts and user lists
+                        if (downvotedUsers.containsKey(userId)) {
+                            downvotedUsers.remove(userId)
+                            downvotes -= 1
                         } else {
-                            // Add downvote
-                            post.downvotedUsers[userId] = true
-                            post.downvotes += 1
-                            // If the user had upvoted before, remove the upvote
-                            if (post.upvotedUsers.containsKey(userId)) {
-                                post.upvotedUsers.remove(userId)
-                                post.upvotes -= 1
+                            downvotedUsers[userId] = true
+                            downvotes += 1
+                            if (upvotedUsers.containsKey(userId)) {
+                                upvotedUsers.remove(userId)
+                                upvotes -= 1
                             }
                         }
-                        currentData.value = post
+
+                        // Update only the necessary fields
+                        currentData.child("upvotes").value = upvotes
+                        currentData.child("downvotes").value = downvotes
+                        currentData.child("upvotedUsers").value = upvotedUsers
+                        currentData.child("downvotedUsers").value = downvotedUsers
+                        currentData.child("timestamp").value = originalTimestamp
+
+                        // Do not modify other fields like timestamp
                         return Transaction.success(currentData)
                     }
 
@@ -517,14 +561,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     ) {
                         viewModelScope.launch(Dispatchers.Main) {
                             if (error != null) {
-                                Log.e(TAG, "Downvote transaction failed: ${error.message}")
                                 onFailure("Downvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
                                 // Send notification to post owner
                                 val post = currentData?.getValue(Post::class.java)
                                 if (post != null && post.userId != userId) {
-                                    // Fetch the downvoter's username
                                     val downvoterUsername = fetchUsernameById(userId)
                                     val message = "$downvoterUsername downvoted your post."
                                     sendNotification(
@@ -541,12 +583,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 })
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Log.e(TAG, "Error downvoting post: ${e.message}", e)
                     onFailure(e.message ?: "Downvote failed.")
                 }
             }
         }
     }
+
 
     /**
      * Function to upvote a comment.
@@ -563,22 +605,36 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 commentReference.runTransaction(object : Transaction.Handler {
                     override fun doTransaction(currentData: MutableData): Transaction.Result {
-                        val comment = currentData.getValue(Comment::class.java) ?: return Transaction.success(currentData)
-                        if (comment.upvotedUsers.containsKey(userId)) {
-                            // User already upvoted; remove upvote
-                            comment.upvotedUsers.remove(userId)
-                            comment.upvotes -= 1
+                        if (currentData.value == null) {
+                            return Transaction.success(currentData)
+                        }
+
+                        // Read the current values
+                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
+                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
+                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+
+                        // Modify the vote counts and user lists
+                        if (upvotedUsers.containsKey(userId)) {
+                            upvotedUsers.remove(userId)
+                            upvotes -= 1
                         } else {
-                            // Add upvote
-                            comment.upvotedUsers[userId] = true
-                            comment.upvotes += 1
-                            // If the user had downvoted before, remove the downvote
-                            if (comment.downvotedUsers.containsKey(userId)) {
-                                comment.downvotedUsers.remove(userId)
-                                comment.downvotes -= 1
+                            upvotedUsers[userId] = true
+                            upvotes += 1
+                            if (downvotedUsers.containsKey(userId)) {
+                                downvotedUsers.remove(userId)
+                                downvotes -= 1
                             }
                         }
-                        currentData.value = comment
+
+                        // Update only the necessary fields
+                        currentData.child("upvotes").value = upvotes
+                        currentData.child("downvotes").value = downvotes
+                        currentData.child("upvotedUsers").value = upvotedUsers
+                        currentData.child("downvotedUsers").value = downvotedUsers
+
+                        // Do not modify other fields like timestamp
                         return Transaction.success(currentData)
                     }
 
@@ -589,16 +645,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     ) {
                         viewModelScope.launch(Dispatchers.Main) {
                             if (error != null) {
-                                Log.e("PostViewModel", "Upvote comment transaction failed: ${error.message}")
                                 onFailure("Upvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
                                 // Send notification to comment owner
                                 val comment = currentData?.getValue(Comment::class.java)
                                 if (comment != null && comment.userId != userId) {
-                                    // Fetch the upvoter's username and relationship
-                                    val upvoterUsername = withContext(Dispatchers.IO) { fetchUsernameById(userId) }
-                                    val relationship = withContext(Dispatchers.IO) { getRelationship(userId, comment.userId) }
+                                    val upvoterUsername = fetchUsernameById(userId)
+                                    val relationship = getRelationship(userId, comment.userId)
                                     val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
                                     val message = "$upvoterUsername$relationshipText upvoted your comment."
                                     sendNotification(
@@ -614,13 +668,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 })
             } catch (e: Exception) {
-                Log.e("PostViewModel", "Error upvoting comment: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Upvote failed.")
                 }
             }
         }
     }
+
 
     /**
      * Function to downvote a comment.
@@ -637,22 +691,37 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 commentReference.runTransaction(object : Transaction.Handler {
                     override fun doTransaction(currentData: MutableData): Transaction.Result {
-                        val comment = currentData.getValue(Comment::class.java) ?: return Transaction.success(currentData)
-                        if (comment.downvotedUsers.containsKey(userId)) {
-                            // User already downvoted; remove downvote
-                            comment.downvotedUsers.remove(userId)
-                            comment.downvotes -= 1
+                        if (currentData.value == null) {
+                            return Transaction.success(currentData)
+                        }
+
+                        // Read the current values
+                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
+                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
+                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+
+                        // Modify the vote counts and user lists
+                        if (downvotedUsers.containsKey(userId)) {
+                            downvotedUsers.remove(userId)
+                            downvotes -= 1
                         } else {
-                            // Add downvote
-                            comment.downvotedUsers[userId] = true
-                            comment.downvotes += 1
-                            // If the user had upvoted before, remove the upvote
-                            if (comment.upvotedUsers.containsKey(userId)) {
-                                comment.upvotedUsers.remove(userId)
-                                comment.upvotes -= 1
+                            downvotedUsers[userId] = true
+                            downvotes += 1
+                            if (upvotedUsers.containsKey(userId)) {
+                                upvotedUsers.remove(userId)
+                                upvotes -= 1
                             }
                         }
-                        currentData.value = comment
+
+                        // Update only the necessary fields
+                        currentData.child("upvotes").value = upvotes
+                        currentData.child("downvotes").value = downvotes
+                        currentData.child("upvotedUsers").value = upvotedUsers
+                        currentData.child("downvotedUsers").value = downvotedUsers
+
+
+                        // Do not modify other fields like timestamp
                         return Transaction.success(currentData)
                     }
 
@@ -663,16 +732,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     ) {
                         viewModelScope.launch(Dispatchers.Main) {
                             if (error != null) {
-                                Log.e("PostViewModel", "Downvote comment transaction failed: ${error.message}")
                                 onFailure("Downvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
                                 // Send notification to comment owner
                                 val comment = currentData?.getValue(Comment::class.java)
                                 if (comment != null && comment.userId != userId) {
-                                    // Fetch the downvoter's username and relationship
-                                    val downvoterUsername = withContext(Dispatchers.IO) { fetchUsernameById(userId) }
-                                    val relationship = withContext(Dispatchers.IO) { getRelationship(userId, comment.userId) }
+                                    val downvoterUsername = fetchUsernameById(userId)
+                                    val relationship = getRelationship(userId, comment.userId)
                                     val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
                                     val message = "$downvoterUsername$relationshipText downvoted your comment."
                                     sendNotification(
@@ -688,13 +755,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 })
             } catch (e: Exception) {
-                Log.e("PostViewModel", "Error downvoting comment: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Downvote failed.")
                 }
             }
         }
     }
+
 
     /**
      * Function to add a comment to a post.
@@ -856,10 +923,17 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Sorting
+        // Sorting with a secondary key (timestamp) to stabilize sort order
         filteredList = when (sortOption) {
-            "Sort by Upvotes" -> filteredList.sortedByDescending { it.upvotes }
-            "Sort by Downvotes" -> filteredList.sortedByDescending { it.downvotes }
-            else -> filteredList.sortedByDescending { it.timestamp ?: 0L }
+            "Sort by Upvotes" -> filteredList.sortedWith(
+                compareByDescending<Post> { it.upvotes }
+                    .thenByDescending { it.getTimestampLong() }
+            )
+            "Sort by Downvotes" -> filteredList.sortedWith(
+                compareByDescending<Post> { it.downvotes }
+                    .thenByDescending { it.getTimestampLong() }
+            )
+            else -> filteredList.sortedByDescending { it.getTimestampLong() }
         }
         Log.d(TAG, "After Sorting: ${filteredList.size} posts sorted")
 

@@ -557,7 +557,7 @@ fun FeedItem(
                 onUpvote()
                 showUpvoteAnimation = true
             },
-            onLongPress = {
+            onTap = {
                 // Trigger haptic feedback
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 // Trigger downvote action and show animation
@@ -567,17 +567,23 @@ fun FeedItem(
             }
         )
     }
-    // Hide animation after a delay
-    LaunchedEffect(Unit) {
-        delay(1000)
-        showDownvoteAnimation = false
+
+    // Hide upvote animation after a delay
+    LaunchedEffect(showUpvoteAnimation) {
+        if (showUpvoteAnimation) {
+            delay(500)
+            showUpvoteAnimation = false
+        }
     }
 
-    // Hide animation after a delay
-    LaunchedEffect(Unit) {
-        delay(1000)
-        showUpvoteAnimation = false
+    // Hide downvote animation after a delay
+    LaunchedEffect(showDownvoteAnimation) {
+        if (showDownvoteAnimation) {
+            delay(500)
+            showDownvoteAnimation = false
+        }
     }
+
 
     val dynamicFontSize = when {
         screenWidth < 360.dp -> 12.sp
@@ -703,7 +709,7 @@ fun FeedItem(
                 Text(
                     text = displayText,
                     color = Color.White,
-                    fontSize = 20.sp,
+                    fontSize = 17.sp,
                     lineHeight = 20.sp,
                     overflow = TextOverflow.Clip,
                     textAlign = TextAlign.Justify,
@@ -715,7 +721,7 @@ fun FeedItem(
                     Text(
                         text = "See more",
                         color = Color(0xFFFFA500),
-                        fontSize = 12.sp,
+                        fontSize = 20.sp,
                         modifier = Modifier
                             .clickable { isExpanded = true }
                             .padding(vertical = 4.dp)
@@ -833,7 +839,7 @@ fun FeedItem(
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = formatRelativeTime(post.getPostTimestamp()),
+                    text = formatRelativeTime(post.getTimestampLong()),
                     color = Color(0xFFFFA500),
                     fontSize = 14.sp
                 )
@@ -999,6 +1005,24 @@ fun FeedItem(
             }
         }
     }
+        // Overlay the Icon when showUpvoteAnimation or showDownvoteAnimation is true
+        if (showUpvoteAnimation) {
+            Icon(
+                imageVector = Icons.Default.ThumbUpOffAlt,
+                contentDescription = null,
+                tint = Color(0xFFFFA500),
+                modifier = Modifier.size(100.dp)
+            )
+        }
+
+        if (showDownvoteAnimation) {
+            Icon(
+                imageVector = Icons.Default.ThumbDownOffAlt,
+                contentDescription = null,
+                tint = Color(0xFFFF4500),
+                modifier = Modifier.size(100.dp)
+            )
+        }
     }
 
     // Removed the initialization logic for voice posts here

@@ -1,5 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3Api::class
+    ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class
 )
 
 package com.am24.am24
@@ -450,6 +450,7 @@ fun saveFeedFiltersToViewModel(
     feedDistance: Int,
     feedGender: String
 ) {
+    val currentSortOption = postViewModel.filterSettings.value.sortOption
     postViewModel.setFeedFilters(
         FilterSettings(
             filterOption = "everyone", // Set appropriately based on screen selections
@@ -463,7 +464,7 @@ fun saveFeedFiltersToViewModel(
                 gender = feedGender,
                 rating = feedRating
             ),
-            sortOption = "Sort by Upvotes",
+            sortOption = currentSortOption, // Preserve the existing sort option
             searchQuery = ""
         )
     )
