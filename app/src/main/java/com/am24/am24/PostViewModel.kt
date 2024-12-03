@@ -83,6 +83,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     fun setIsVoiceOnly(isVoiceOnly: Boolean) {
         _filterSettings.value = _filterSettings.value.copy(isVoiceOnly = isVoiceOnly)
     }
+    private val _filtersLoaded = MutableStateFlow(false)
+    val filtersLoaded: StateFlow<Boolean> get() = _filtersLoaded
+
 
     // Update filteredPosts to combine both filters
     val filteredPosts: StateFlow<List<Post>> = combine(
@@ -1048,6 +1051,27 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
+    fun loadFiltersFromFirebase(userId: String) {
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("feedFilters")
+        userRef.get().addOnSuccessListener { snapshot ->
+            val feedFilters = snapshot.getValue(FeedFilterSettings::class.java)
+            if (feedFilters != null) {
+                Log.d(TAG, "Loaded Feed Filters: $feedFilters")
+                // Use setFeedFilters to update _feedFilters
+                setFeedFilters(_feedFilters.value.copy(feedFilters = feedFilters))
+            } else {
+                Log.d(TAG, "No Feed Filters found for user.")
+                // Optionally, set default feedFilters
+                setFeedFilters(_feedFilters.value.copy(feedFilters = FeedFilterSettings()))
+            }
+            // Set filtersLoaded to true here
+            _filtersLoaded.value = true
+        }.addOnFailureListener {
+            Log.e(TAG, "Failed to load feed filters: ${it.message}")
+            // Even if there's an error, set filtersLoaded to true to proceed
+            _filtersLoaded.value = true
+        }
+    }
 
 
 

@@ -21,7 +21,7 @@ val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocati
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
-fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
+fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier, postViewModel: PostViewModel) {
     val postViewModel: PostViewModel = viewModel(
         factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
             LocalContext.current.applicationContext as Application
@@ -42,7 +42,7 @@ fun MainNavGraph(navController: NavHostController, modifier: Modifier = Modifier
             DMScreen(navController = navController)
         }
         composable("home") {
-            HomeScreen(navController = navController)
+            HomeScreen(navController = navController, postViewModel = postViewModel)
         }
         composable("editProfile") {
             EditProfileScreen(navController = navController)

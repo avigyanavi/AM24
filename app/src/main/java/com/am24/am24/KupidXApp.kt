@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
@@ -20,6 +21,8 @@ class KupidXAppActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
+    private val postViewModel: PostViewModel by viewModels()
+
 
     // Registering the permission result launcher
     private val requestPermissionLauncher =
@@ -61,6 +64,9 @@ class KupidXAppActivity : ComponentActivity() {
         // Check location permissions and update user's location
         checkLocationPermissionsAndUpdate(currentUser.uid)
 
+        // **Call loadFiltersFromFirebase here**
+        postViewModel.loadFiltersFromFirebase(currentUser.uid)
+
         setContent {
             AppTheme {
                 KupidXApp(
@@ -69,11 +75,13 @@ class KupidXAppActivity : ComponentActivity() {
                         auth.signOut()
                         startActivity(Intent(this, LandingActivity::class.java))
                         finish()
-                    }
+                    },
+                    postViewModel = postViewModel // Pass the ViewModel to the Composable
                 )
             }
         }
     }
+
 
     private fun checkLocationPermissionsAndUpdate(userId: String) {
         // Check if location permissions are granted
@@ -95,8 +103,8 @@ class KupidXAppActivity : ComponentActivity() {
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
-fun KupidXApp(onLogout: () -> Unit) {
+fun KupidXApp(onLogout: () -> Unit, postViewModel: PostViewModel) {
     val navController = rememberNavController()
 
-    MainScreen(navController = navController, onLogout = onLogout)
+    MainScreen(navController = navController, onLogout = onLogout, postViewModel = postViewModel)
 }

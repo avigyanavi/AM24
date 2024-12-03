@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
-fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
+fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
         BottomNavItem("Profile", Icons.Default.Person, "profile"),
@@ -61,7 +61,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit) {
         // Pass the innerPadding to MainNavGraph via the modifier
         MainNavGraph(
             navController = navController,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            postViewModel = postViewModel // Pass it here
         )
     }
 }

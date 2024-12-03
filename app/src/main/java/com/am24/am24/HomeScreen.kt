@@ -64,74 +64,83 @@ import java.util.UUID
 import kotlin.math.roundToInt
 
 @Composable
-fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    val postViewModel: PostViewModel = viewModel(LocalContext.current as ViewModelStoreOwner)
+fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modifier: Modifier = Modifier) {
 
-    // Collect filteredPosts instead of posts
-    val posts by postViewModel.filteredPosts.collectAsState()
-    Log.d("HomeScreen", "Filtered Posts Count in Homescreen: ${posts.size}")
+    val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
 
-    val userProfiles by postViewModel.userProfiles.collectAsState()
-    val filterSettings by postViewModel.filterSettings.collectAsState()
+    // Check if filters are loaded
+    if (filtersLoaded) {
+        // Collect filteredPosts instead of posts
+        val posts by postViewModel.filteredPosts.collectAsState()
+        Log.d("HomeScreen", "Filtered Posts Count in Homescreen: ${posts.size}")
 
-    val userId = FirebaseAuth.getInstance().currentUser?.uid
+        val userProfiles by postViewModel.userProfiles.collectAsState()
+        val filterSettings by postViewModel.filterSettings.collectAsState()
 
-    // Set current user ID in ViewModel
-    LaunchedEffect(userId) {
-        postViewModel.setCurrentUserId(userId)
-    }
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
 
-    var userProfile by remember { mutableStateOf<Profile?>(null) }
-    var isVoiceOnly by remember { mutableStateOf(false) }
+        // Set current user ID in ViewModel
+        LaunchedEffect(userId) {
+            postViewModel.setCurrentUserId(userId)
+        }
+
+        var userProfile by remember { mutableStateOf<Profile?>(null) }
 
 
-    // GeoFire reference
-    val geoFireRef = FirebaseDatabase.getInstance().getReference("geoFireLocations")
-    val geoFire = remember { GeoFire(geoFireRef) } // Initialize GeoFire with the correct Firebase reference
+        // GeoFire reference
+        val geoFireRef = FirebaseDatabase.getInstance().getReference("geoFireLocations")
+        val geoFire =
+            remember { GeoFire(geoFireRef) } // Initialize GeoFire with the correct Firebase reference
 
-    // Fetch user's profile
-    LaunchedEffect(userId) {
-        if (userId != null) {
-            withContext(Dispatchers.IO) {
-                val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
-                userRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        snapshot.getValue(Profile::class.java)?.let { fetchedProfile ->
-                            userProfile = fetchedProfile
+        // Fetch user's profile
+        LaunchedEffect(userId) {
+            if (userId != null) {
+                withContext(Dispatchers.IO) {
+                    val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+                    userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            snapshot.getValue(Profile::class.java)?.let { fetchedProfile ->
+                                userProfile = fetchedProfile
+                            }
                         }
-                    }
 
-                    override fun onCancelled(error: DatabaseError) {
-                        // Handle error
-                    }
-                })
+                        override fun onCancelled(error: DatabaseError) {
+                            // Handle error
+                        }
+                    })
+                }
             }
         }
-    }
 
-    HomeScreenContent(
-        navController = navController,
-        modifier = modifier,
-        posts = posts, // Use filteredPosts here
-        postViewModel = postViewModel,
-        userProfiles = userProfiles,
-        filterOption = filterSettings.filterOption,
-        filterValue = "",
-        searchQuery = filterSettings.searchQuery,
-        onFilterOptionChanged = { newOption ->
-            postViewModel.setFilterOption(newOption)
-        },
-        onSearchQueryChanged = { newQuery ->
-            postViewModel.setSearchQuery(newQuery)
-        },
-        userId = userId,
-        userProfile = userProfile,
-        sortOption = filterSettings.sortOption,
-        onSortOptionChanged = { newSortOption ->
-            postViewModel.setSortOption(newSortOption)
-        },
-        geoFire = geoFire,
-    )
+        HomeScreenContent(
+            navController = navController,
+            modifier = modifier,
+            posts = posts, // Use filteredPosts here
+            postViewModel = postViewModel,
+            userProfiles = userProfiles,
+            filterOption = filterSettings.filterOption,
+            filterValue = "",
+            searchQuery = filterSettings.searchQuery,
+            onFilterOptionChanged = { newOption ->
+                postViewModel.setFilterOption(newOption)
+            },
+            onSearchQueryChanged = { newQuery ->
+                postViewModel.setSearchQuery(newQuery)
+            },
+            userId = userId,
+            userProfile = userProfile,
+            sortOption = filterSettings.sortOption,
+            onSortOptionChanged = { newSortOption ->
+                postViewModel.setSortOption(newSortOption)
+            },
+            geoFire = geoFire,
+        )
+    } else {
+        // Show a loading indicator or placeholder
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Color(0xFFFFA500))
+        }
+    }
 }
 
 @Composable

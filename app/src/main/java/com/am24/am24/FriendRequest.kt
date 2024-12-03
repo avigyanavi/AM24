@@ -23,13 +23,13 @@ class Notification(
 // friendrequest.kt
 
 data class FilterSettings(
-    val filterOption: String = "everyone",
-    val datingFilters: DatingFilterSettings = DatingFilterSettings(),
-    val feedFilters: FeedFilterSettings = FeedFilterSettings(),
-    val sortOption: String = "No Sort",
-    val searchQuery: String = "",
+    var filterOption: String = "everyone",
+    var datingFilters: DatingFilterSettings = DatingFilterSettings(),
+    var feedFilters: FeedFilterSettings = FeedFilterSettings(),
+    var sortOption: String = "No Sort",
+    var searchQuery: String = "",
     val additionalFilters: Map<String, Any?> = emptyMap(),
-    val isVoiceOnly: Boolean = false
+    var isVoiceOnly: Boolean = false
 )
 
 data class DatingFilterSettings(
@@ -59,8 +59,3 @@ data class FeedFilterSettings(
     val rating: String = ""
     // Removed distance field
 )
-
-
-
-
-
