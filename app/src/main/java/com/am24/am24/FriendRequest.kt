@@ -20,37 +20,46 @@ class Notification(
     var isRead by mutableStateOf(isRead)
 }
 
+// friendrequest.kt
+
 data class FilterSettings(
-    val filterOption: String = "everyone",               // Filter scope: "everyone", "my posts", etc.
+    val filterOption: String = "everyone",
     val datingFilters: DatingFilterSettings = DatingFilterSettings(),
     val feedFilters: FeedFilterSettings = FeedFilterSettings(),
-    val sortOption: String = "timestamp",               // Sorting option: "timestamp", "upvotes", "comments"
-    val searchQuery: String = "",                       // Search query for posts or usernames
-    val additionalFilters: Map<String, Any?> = emptyMap(), // Extensibility for future filters
-    val isVoiceOnly: Boolean = false // New field to track toggle state
-    )
+    val sortOption: String = "No Sort",
+    val searchQuery: String = "",
+    val additionalFilters: Map<String, Any?> = emptyMap(),
+    val isVoiceOnly: Boolean = false
+)
 
 data class DatingFilterSettings(
-    val localities: List<String> = emptyList(),          // List of selected localities for dating
-    val highSchool: String = "",                        // Selected high school for dating
-    val college: String = "",                           // Selected college for dating
-    val ageStart: Int = 0,                             // Minimum age for dating filter
-    val ageEnd: Int = 100,                               // Maximum age for dating filter
-    val distance: Int = 10,                             // Distance preference for dating filter
-    val gender: String = "",                             // Gender preference for dating filter
-    val rating: String = ""
-    )
-
-data class FeedFilterSettings(
-    val localities: List<String> = emptyList(),          // List of selected localities for feed
-    val highSchool: String = "",                        // Selected high school for feed
-    val college: String = "",                           // Selected college for feed
-    val ageStart: Int = 0,                             // Minimum age for feed filter
-    val ageEnd: Int = 100,                               // Maximum age for feed filter
-    val distance: Int = 10,                             // Distance preference for feed filter
-    val gender: String = "",                             // Gender preference for feed filter
+    val localities: List<String> = emptyList(),
+    val city: String = "All",       // Changed from capitalRegion to city
+    val highSchool: String = "",
+    val college: String = "",
+    val postGrad: String = "",
+    val work: String = "",
+    val ageStart: Int = 18,
+    val ageEnd: Int = 100,
+    val distance: Int = 10,
+    val gender: String = "",
     val rating: String = ""
 )
+
+data class FeedFilterSettings(
+    val localities: List<String> = emptyList(),
+    val city: String = "All",       // Changed from capitalRegion to city
+    val highSchool: String = "",
+    val college: String = "",
+    val postGrad: String = "",
+    val work: String = "",
+    val ageStart: Int = 18,
+    val ageEnd: Int = 100,
+    val gender: String = "",
+    val rating: String = ""
+    // Removed distance field
+)
+
 
 
 

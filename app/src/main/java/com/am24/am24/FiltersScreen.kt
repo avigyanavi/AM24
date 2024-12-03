@@ -1,6 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class
-)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.am24.am24
 
@@ -9,11 +7,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.tasks.await
 import kotlin.math.roundToInt
 
 @Composable
@@ -42,8 +36,8 @@ fun FiltersScreen(
     var selectedTab by remember { mutableStateOf(initialTab) } // 0 for Dating Filters, 1 for Feed Filters
 
     // City selection
-    val cities = listOf("Kolkata", "Mumbai", "Delhi")
-    var selectedCity by remember { mutableStateOf("") }
+    val cities = listOf("All", "Kolkata", "Mumbai", "Delhi")
+    var selectedCity by remember { mutableStateOf("All") }
 
     // City-based data mappings
     val cityLocalitiesMap = mapOf(
@@ -61,29 +55,46 @@ fun FiltersScreen(
         "Mumbai" to listOf("Mumbai College 1", "Mumbai College 2"),
         "Delhi" to listOf("Delhi College 1", "Delhi College 2")
     )
-    // Add postgrad and work mappings similarly
-
-    // Feed Filters
-    var feedLocalities by remember { mutableStateOf(setOf<String>()) } // Immutable Set
-    var feedHighSchool by remember { mutableStateOf("") }
-    var feedCollege by remember { mutableStateOf("") }
-    var feedRating by remember { mutableStateOf("") }
-    var feedAgeRange by remember { mutableStateOf(18..70) }
-    var feedDistance by remember { mutableStateOf(10) }
-    var feedGender by remember { mutableStateOf("") }
+    val cityPostGradMap = mapOf(
+        "Kolkata" to listOf("IIM Calcutta", "Jadavpur University"),
+        "Mumbai" to listOf("IIT Bombay", "Mumbai University"),
+        "Delhi" to listOf("IIT Delhi", "Delhi University")
+    )
+    val cityWorkMap = mapOf(
+        "Kolkata" to listOf("TCS", "Wipro"),
+        "Mumbai" to listOf("Reliance", "Tata Motors"),
+        "Delhi" to listOf("Infosys", "HCL")
+    )
 
     // Dating Filters
-    var datingLocalities by remember { mutableStateOf(setOf<String>()) } // Immutable Set
+    var datingLocalities by remember { mutableStateOf(setOf<String>()) }
     var datingHighSchool by remember { mutableStateOf("") }
     var datingCollege by remember { mutableStateOf("") }
+    var datingPostGrad by remember { mutableStateOf("") }
+    var datingWork by remember { mutableStateOf("") }
     var datingRating by remember { mutableStateOf("") }
     var datingAgeRange by remember { mutableStateOf(18..30) }
     var datingDistance by remember { mutableStateOf(10) }
     var datingGender by remember { mutableStateOf("") }
+    var datingCity by remember { mutableStateOf("All") }
 
+    // Feed Filters
+    var feedLocalities by remember { mutableStateOf(setOf<String>()) }
+    var feedHighSchool by remember { mutableStateOf("") }
+    var feedCollege by remember { mutableStateOf("") }
+    var feedPostGrad by remember { mutableStateOf("") }
+    var feedWork by remember { mutableStateOf("") }
+    var feedRating by remember { mutableStateOf("") }
+    var feedAgeRange by remember { mutableStateOf(18..70) }
+    var feedGender by remember { mutableStateOf("") }
+    var feedCity by remember { mutableStateOf("All") }
 
     // Dynamic Localities based on selected city
-    val allLocalities = cityLocalitiesMap[selectedCity] ?: emptyList()
+    val allLocalities = if (selectedCity != "All") {
+        cityLocalitiesMap[selectedCity] ?: emptyList()
+    } else {
+        emptyList()
+    }
     var searchQueryLocalities by remember { mutableStateOf("") }
     val filteredLocalities = allLocalities.filter { it.contains(searchQueryLocalities, ignoreCase = true) }
 
@@ -96,8 +107,11 @@ fun FiltersScreen(
             "filterOption" to filterSettings.filterOption,
             "datingFilters" to mapOf(
                 "localities" to filterSettings.datingFilters.localities,
+                "city" to filterSettings.datingFilters.city,
                 "highSchool" to filterSettings.datingFilters.highSchool,
                 "college" to filterSettings.datingFilters.college,
+                "postGrad" to filterSettings.datingFilters.postGrad,
+                "work" to filterSettings.datingFilters.work,
                 "ageStart" to filterSettings.datingFilters.ageStart,
                 "ageEnd" to filterSettings.datingFilters.ageEnd,
                 "distance" to filterSettings.datingFilters.distance,
@@ -106,11 +120,13 @@ fun FiltersScreen(
             ),
             "feedFilters" to mapOf(
                 "localities" to filterSettings.feedFilters.localities,
+                "city" to filterSettings.feedFilters.city,
                 "highSchool" to filterSettings.feedFilters.highSchool,
                 "college" to filterSettings.feedFilters.college,
+                "postGrad" to filterSettings.feedFilters.postGrad,
+                "work" to filterSettings.feedFilters.work,
                 "ageStart" to filterSettings.feedFilters.ageStart,
                 "ageEnd" to filterSettings.feedFilters.ageEnd,
-                "distance" to filterSettings.feedFilters.distance,
                 "gender" to filterSettings.feedFilters.gender,
                 "rating" to filterSettings.feedFilters.rating
             ),
@@ -129,6 +145,48 @@ fun FiltersScreen(
             }
     }
 
+    // Load Filters from Firebase
+    LaunchedEffect(Unit) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+            try {
+                val snapshot = userRef.get().await()
+                val filterSettings = snapshot.getValue(FilterSettings::class.java)
+                if (filterSettings != null) {
+                    // Update state variables with loaded filter settings
+
+                    // Update selected city
+                    selectedCity = filterSettings.datingFilters.city
+                    datingCity = filterSettings.datingFilters.city
+                    feedCity = filterSettings.feedFilters.city
+
+                    // Update dating filters
+                    datingLocalities = filterSettings.datingFilters.localities.toSet()
+                    datingHighSchool = filterSettings.datingFilters.highSchool
+                    datingCollege = filterSettings.datingFilters.college
+                    datingPostGrad = filterSettings.datingFilters.postGrad
+                    datingWork = filterSettings.datingFilters.work
+                    datingAgeRange = filterSettings.datingFilters.ageStart..filterSettings.datingFilters.ageEnd
+                    datingDistance = filterSettings.datingFilters.distance
+                    datingGender = filterSettings.datingFilters.gender
+                    datingRating = filterSettings.datingFilters.rating
+
+                    // Update feed filters
+                    feedLocalities = filterSettings.feedFilters.localities.toSet()
+                    feedHighSchool = filterSettings.feedFilters.highSchool
+                    feedCollege = filterSettings.feedFilters.college
+                    feedPostGrad = filterSettings.feedFilters.postGrad
+                    feedWork = filterSettings.feedFilters.work
+                    feedAgeRange = filterSettings.feedFilters.ageStart..filterSettings.feedFilters.ageEnd
+                    feedGender = filterSettings.feedFilters.gender
+                    feedRating = filterSettings.feedFilters.rating
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to load filters: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -136,8 +194,11 @@ fun FiltersScreen(
                 filterOption = "everyone",
                 datingFilters = DatingFilterSettings(
                     localities = datingLocalities.toList(),
+                    city = datingCity,
                     highSchool = datingHighSchool,
                     college = datingCollege,
+                    postGrad = datingPostGrad,
+                    work = datingWork,
                     ageStart = datingAgeRange.start,
                     ageEnd = datingAgeRange.endInclusive,
                     distance = datingDistance,
@@ -146,15 +207,17 @@ fun FiltersScreen(
                 ),
                 feedFilters = FeedFilterSettings(
                     localities = feedLocalities.toList(),
+                    city = feedCity,
                     highSchool = feedHighSchool,
                     college = feedCollege,
+                    postGrad = feedPostGrad,
+                    work = feedWork,
                     ageStart = feedAgeRange.start,
                     ageEnd = feedAgeRange.endInclusive,
-                    distance = feedDistance,
                     gender = feedGender,
                     rating = feedRating
                 ),
-                sortOption = "timestamp",
+                sortOption = "No Sort",
                 searchQuery = ""
             )
 
@@ -167,15 +230,15 @@ fun FiltersScreen(
                 feedLocalities = feedLocalities,
                 feedHighSchool = feedHighSchool,
                 feedCollege = feedCollege,
+                feedPostGrad = feedPostGrad,
+                feedWork = feedWork,
                 feedRating = feedRating,
                 feedAgeRange = feedAgeRange,
-                feedDistance = feedDistance,
-                feedGender = feedGender
+                feedGender = feedGender,
+                feedCity = feedCity
             )
         }
     }
-
-
 
     Column(
         modifier = Modifier
@@ -189,12 +252,24 @@ fun FiltersScreen(
             selectedCity = selectedCity,
             onCitySelected = { city ->
                 selectedCity = city
+                datingCity = city
+                feedCity = city
                 // Reset localities and other selections when city changes
                 datingLocalities = emptySet()
                 feedLocalities = emptySet()
                 searchQueryLocalities = ""
             }
         )
+
+        // Display message if "All" is selected
+        if (selectedCity == "All") {
+            Text(
+                text = "Select a city for its localities to show up",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
 
         // Tab Selector
         TabRow(
@@ -235,11 +310,10 @@ fun FiltersScreen(
                     }
                 }
 
-                val highSchoolOptions = cityHighSchoolsMap[selectedCity] ?: emptyList()
-                val collegeOptions = cityCollegesMap[selectedCity] ?: emptyList()
-                // Add postgradOptions and workOptions similarly
-
-
+                val highSchoolOptions = if (selectedCity != "All") cityHighSchoolsMap[selectedCity] ?: emptyList() else emptyList()
+                val collegeOptions = if (selectedCity != "All") cityCollegesMap[selectedCity] ?: emptyList() else emptyList()
+                val postGradOptions = if (selectedCity != "All") cityPostGradMap[selectedCity] ?: emptyList() else emptyList()
+                val workOptions = if (selectedCity != "All") cityWorkMap[selectedCity] ?: emptyList() else emptyList()
 
                 FilterFields(
                     localities = localities,
@@ -257,6 +331,16 @@ fun FiltersScreen(
                         if (selectedTab == 0) datingCollege = newCollege else feedCollege = newCollege
                     },
                     collegeOptions = collegeOptions,
+                    postGrad = if (selectedTab == 0) datingPostGrad else feedPostGrad,
+                    onPostGradChange = { newPostGrad ->
+                        if (selectedTab == 0) datingPostGrad = newPostGrad else feedPostGrad = newPostGrad
+                    },
+                    postGradOptions = postGradOptions,
+                    work = if (selectedTab == 0) datingWork else feedWork,
+                    onWorkChange = { newWork ->
+                        if (selectedTab == 0) datingWork = newWork else feedWork = newWork
+                    },
+                    workOptions = workOptions,
                     ageRange = if (selectedTab == 0) datingAgeRange else feedAgeRange,
                     onAgeRangeChange = { newRange ->
                         if (selectedTab == 0) datingAgeRange = newRange else feedAgeRange = newRange
@@ -266,9 +350,9 @@ fun FiltersScreen(
                         if (selectedTab == 0) datingRating = toggleSelection(datingRating, newRating)
                         else feedRating = toggleSelection(feedRating, newRating)
                     },
-                    distance = if (selectedTab == 0) datingDistance else feedDistance,
+                    distance = if (selectedTab == 0) datingDistance else null, // Remove distance for feed filters
                     onDistanceChange = { newDistance ->
-                        if (selectedTab == 0) datingDistance = newDistance else feedDistance = newDistance
+                        if (selectedTab == 0) datingDistance = newDistance
                     },
                     gender = if (selectedTab == 0) datingGender else feedGender,
                     onGenderChange = { newGender ->
@@ -303,10 +387,15 @@ fun FilterFields(
     college: String,
     onCollegeChange: (String) -> Unit,
     collegeOptions: List<String>,
-    // Add postgrad and work parameters similarly
+    postGrad: String,
+    onPostGradChange: (String) -> Unit,
+    postGradOptions: List<String>,
+    work: String,
+    onWorkChange: (String) -> Unit,
+    workOptions: List<String>,
     ageRange: IntRange = 18..30,
     onAgeRangeChange: (IntRange) -> Unit = {},
-    distance: Int = 10,
+    distance: Int? = null, // Nullable to remove distance for feed filters
     onDistanceChange: (Int) -> Unit = {},
     rating: String = "",
     onRatingChange: (String) -> Unit = {},
@@ -319,52 +408,54 @@ fun FilterFields(
             .background(Color.Black, shape = RoundedCornerShape(8.dp))
             .padding(16.dp)
     ) {
-        // Searchable Localities
-        Text(
-            text = "Search Localities",
-            color = Color.White,
-            fontSize = 16.sp
-        )
-        OutlinedTextField(
-            value = searchQueryLocalities,
-            onValueChange = onSearchLocalitiesChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Type locality name", color = Color.White) },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF4500),
-                unfocusedBorderColor = Color.Gray,
-                focusedLabelColor = Color.White,
-                focusedTextColor = Color.White,
-                cursorColor = Color(0xFFFF4500),
-                containerColor = Color.Black
+        // Show localities only if a city is selected
+        if (filteredLocalities.isNotEmpty()) {
+            // Searchable Localities
+            Text(
+                text = "Search Localities",
+                color = Color.White,
+                fontSize = 16.sp
             )
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .background(Color.Black)
-        ) {
-            items(items = filteredLocalities) { locality ->
-                Button(
-                    onClick = { onLocalityChange(locality) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (localities.contains(locality)) Color(0xFFFFA500) else Color.Transparent,
-                        contentColor = if (localities.contains(locality)) Color.Black else Color.White
-                    ),
-                    border = if (localities.contains(locality)) null else BorderStroke(1.dp, Color(0xFFFF4500)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(4.dp)
-                        .height(40.dp)
-                ) {
-                    Text(text = locality, fontSize = 14.sp)
+            OutlinedTextField(
+                value = searchQueryLocalities,
+                onValueChange = onSearchLocalitiesChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Type locality name", color = Color.White) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF4500),
+                    unfocusedBorderColor = Color.Gray,
+                    focusedLabelColor = Color.White,
+                    focusedTextColor = Color.White,
+                    cursorColor = Color(0xFFFF4500),
+                    containerColor = Color.Black
+                )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(Color.Black)
+            ) {
+                items(items = filteredLocalities) { locality ->
+                    Button(
+                        onClick = { onLocalityChange(locality) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (localities.contains(locality)) Color(0xFFFFA500) else Color.Transparent,
+                            contentColor = if (localities.contains(locality)) Color.Black else Color.White
+                        ),
+                        border = if (localities.contains(locality)) null else BorderStroke(1.dp, Color(0xFFFF4500)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                            .height(40.dp)
+                    ) {
+                        Text(text = locality, fontSize = 14.sp)
+                    }
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         // Age Range Slider
         Text(text = "Age Range: ${ageRange.start} - ${ageRange.endInclusive}", color = Color.White, fontSize = 16.sp)
@@ -379,24 +470,24 @@ fun FilterFields(
                 inactiveTrackColor = Color.Gray
             )
         )
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Distance Slider
-        Text(text = "Distance: $distance km", color = Color.White, fontSize = 16.sp)
-        Slider(
-            value = distance.toFloat(),
-            onValueChange = { newDistance -> onDistanceChange(newDistance.roundToInt()) },
-            valueRange = 0f..100f,
-            steps = 10,
-            colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFFA500),
-                activeTrackColor = Color(0xFFFFA500),
-                inactiveTrackColor = Color.Gray
+        // Distance Slider (only for dating filters)
+        if (distance != null) {
+            Text(text = "Distance: $distance km", color = Color.White, fontSize = 16.sp)
+            Slider(
+                value = distance.toFloat(),
+                onValueChange = { newDistance -> onDistanceChange(newDistance.roundToInt()) },
+                valueRange = 0f..100f,
+                steps = 10,
+                colors = SliderDefaults.colors(
+                    thumbColor = Color(0xFFFFA500),
+                    activeTrackColor = Color(0xFFFFA500),
+                    inactiveTrackColor = Color.Gray
+                )
             )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         // Rating Buttons
         Text(text = "Rating", color = Color.White, fontSize = 16.sp)
@@ -406,7 +497,6 @@ fun FilterFields(
             onOptionSelected = onRatingChange,
             vertical = false
         )
-
         Spacer(modifier = Modifier.height(16.dp))
 
         // Gender Buttons
@@ -417,7 +507,6 @@ fun FilterFields(
             onOptionSelected = onGenderChange,
             vertical = false
         )
-
         Spacer(modifier = Modifier.height(16.dp))
 
         // High School Searchable Dropdown
@@ -436,7 +525,25 @@ fun FilterFields(
             selectedOption = college,
             onOptionSelected = onCollegeChange
         )
-        // Add postgrad and work fields similarly
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Post Graduation Searchable Dropdown
+        SearchableDropdown(
+            title = "Post Graduation",
+            options = postGradOptions,
+            selectedOption = postGrad,
+            onOptionSelected = onPostGradChange
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Work Searchable Dropdown
+        SearchableDropdown(
+            title = "Work",
+            options = workOptions,
+            selectedOption = work,
+            onOptionSelected = onWorkChange
+        )
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -445,31 +552,34 @@ fun saveFeedFiltersToViewModel(
     feedLocalities: Set<String>,
     feedHighSchool: String,
     feedCollege: String,
+    feedPostGrad: String,
+    feedWork: String,
     feedRating: String,
     feedAgeRange: IntRange,
-    feedDistance: Int,
-    feedGender: String
+    feedGender: String,
+    feedCity: String
 ) {
     val currentSortOption = postViewModel.filterSettings.value.sortOption
     postViewModel.setFeedFilters(
         FilterSettings(
-            filterOption = "everyone", // Set appropriately based on screen selections
+            filterOption = "everyone",
             feedFilters = FeedFilterSettings(
                 localities = feedLocalities.toList(),
+                city = feedCity,
                 highSchool = feedHighSchool,
                 college = feedCollege,
+                postGrad = feedPostGrad,
+                work = feedWork,
                 ageStart = feedAgeRange.start,
                 ageEnd = feedAgeRange.endInclusive,
-                distance = feedDistance,
                 gender = feedGender,
                 rating = feedRating
             ),
-            sortOption = currentSortOption, // Preserve the existing sort option
+            sortOption = currentSortOption,
             searchQuery = ""
         )
     )
 }
-
 
 @Composable
 fun SelectionButtons(

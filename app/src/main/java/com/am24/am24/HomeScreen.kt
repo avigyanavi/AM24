@@ -82,6 +82,8 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     }
 
     var userProfile by remember { mutableStateOf<Profile?>(null) }
+    var isVoiceOnly by remember { mutableStateOf(false) }
+
 
     // GeoFire reference
     val geoFireRef = FirebaseDatabase.getInstance().getReference("geoFireLocations")
@@ -153,6 +155,8 @@ fun HomeScreenContent(
     var showFilterMenu by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    var isVoiceOnly by remember { mutableStateOf(false) }
+
 
     Column(
         modifier = Modifier
@@ -180,7 +184,8 @@ fun HomeScreenContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp), // Add padding to ensure spacing from screen edges
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Create Post Button
@@ -190,16 +195,33 @@ fun HomeScreenContent(
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .weight(0.9f)
-                    .padding(end = 8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Create Post",
-                    tint = Color(0xFFFF4500)
+                    tint = Color(0xFFFFA500),
+                    modifier = Modifier.size(18.dp) // Adjust icon size for better fit
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = "Post", color = Color(0xFFFF4500), fontSize = 14.sp)
             }
+
+            Spacer(modifier = Modifier.width(8.dp)) // Add spacing between buttons
+
+            Button(
+                onClick = {
+                    isVoiceOnly = !isVoiceOnly
+                    postViewModel.setIsVoiceOnly(isVoiceOnly)
+                },
+                border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceOnly) Color(0xFFFFA500) else Color.Black),
+            ) {
+                Text(
+                    text = if (isVoiceOnly) "Voice Only" else "All Posts",
+                    color = if (isVoiceOnly) Color.Black else Color(0xFFFFA500),
+                    fontSize = 12.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp)) // Add spacing between buttons
 
             // Filter Button
             Box {
@@ -210,8 +232,8 @@ fun HomeScreenContent(
                 ) {
                     Text(
                         text = filterOption.replaceFirstChar { it.uppercaseChar() },
-                        color = Color(0xFFFF4500),
-                        fontSize = 14.sp
+                        color = Color(0xFFFFA500),
+                        fontSize = 12.sp
                     )
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
@@ -256,12 +278,11 @@ fun HomeScreenContent(
             Box {
                 IconButton(
                     onClick = { showSortMenu = !showSortMenu },
-                    modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sort,
                         contentDescription = "Sort options",
-                        tint = Color(0xFFFF4500)
+                        tint = Color(0xFFFFA500)
                     )
                 }
 
@@ -1855,11 +1876,6 @@ fun CustomSearchBar(
             focusedBorderColor = Color(0xFFFFA500),
             unfocusedBorderColor = Color.Gray,
             cursorColor = Color(0xFFFF4500)
-        ),
-        trailingIcon = {
-            IconButton(onClick = onSearch) {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color(0xFFFF4500))
-            }
-        }
+        )
     )
 }
