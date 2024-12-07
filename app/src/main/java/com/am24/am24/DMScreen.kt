@@ -1,37 +1,44 @@
 // DMScreen.kt
 
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.am24.am24
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-
+import kotlinx.coroutines.tasks.await
 @Composable
 fun DMScreen(navController: NavController) {
     DMScreenContent(navController = navController)
@@ -39,21 +46,64 @@ fun DMScreen(navController: NavController) {
 
 @Composable
 fun DMScreenContent(navController: NavController) {
-    var selectedTab by remember { mutableStateOf("Matches") } // "Matches", "Friends", or "ListView"
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
 
     val database = FirebaseDatabase.getInstance()
     val matchesRef = database.getReference("matches/$currentUserId")
-    val friendsRef = database.getReference("friends/$currentUserId")
     val usersRef = database.getReference("users")
-    val ratingsRef = database.getReference("ratings/$currentUserId")
+    val messagesRootRef = database.getReference("messages")
 
     val matchedUsers = remember { mutableStateListOf<Profile>() }
+    val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
+    var searchQuery by remember { mutableStateOf("") }
 
-    // Fetch matched users and friends
+    var likedCount by remember { mutableStateOf(0) }
     LaunchedEffect(currentUserId) {
-        fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context)
+        val likesReceivedRef = database.getReference("likesReceived/$currentUserId")
+        likesReceivedRef.get().addOnSuccessListener {
+            likedCount = it.childrenCount.toInt()
+        }
+    }
+
+    // lastMessages map: Key = userId, Value = Triple(msg, fromCurrentUser, read)
+    val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
+
+    LaunchedEffect(currentUserId) {
+        fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
+            checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
+                nonInitiatedMatches.clear()
+                nonInitiatedMatches.addAll(nonInitiated)
+            }
+
+            // Listen for last message updates in real-time
+            matchedUsers.forEach { profile ->
+                val chatId = getChatId(currentUserId, profile.userId)
+                messagesRootRef.child(chatId)
+                    .orderByChild("timestamp")
+                    .limitToLast(1)
+                    .addValueEventListener(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            if (!snapshot.exists()) {
+                                lastMessages[profile.userId] = Triple("", false, true)
+                                return
+                            }
+                            for (msgSnap in snapshot.children) {
+                                val text = msgSnap.child("text").getValue(String::class.java) ?: ""
+                                val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
+                                // Default to false if not present
+                                val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
+                                val fromCurrentUser = (senderId == currentUserId)
+                                lastMessages[profile.userId] = Triple(text, fromCurrentUser, read)
+                            }
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e("DMScreen", "Failed to listen last message: ${error.message}")
+                        }
+                    })
+            }
+        }
     }
 
     Column(
@@ -61,332 +111,181 @@ fun DMScreenContent(navController: NavController) {
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Top toggle buttons
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Search matches", color = Color.Gray) },
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF4500),
+                unfocusedBorderColor = Color.Gray,
+                cursorColor = Color(0xFFFF4500),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.Gray
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        )
+
+        val scrollState = rememberScrollState()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .horizontalScroll(scrollState)
                 .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = { selectedTab = "Matches" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == "Matches") Color(0xFFFF4500) else Color.Gray
-                )
+            Box(
+                modifier = Modifier
+                    .size(70.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray)
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {
+                            Toast.makeText(context, "Upgrade to premium to view who liked you!", Toast.LENGTH_SHORT).show()
+                        })
+                    },
+                contentAlignment = Alignment.Center
             ) {
-                Text(text = "Matches", color = Color.White)
-            }
-            Button(
-                onClick = { selectedTab = "Friends" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == "Friends") Color(0xFFFF4500) else Color.Gray
+                Text(
+                    text = "+$likedCount",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
                 )
-            ) {
-                Text(text = "Friends", color = Color.White)
-            }
-            Button(
-                onClick = { selectedTab = "ListView" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedTab == "ListView") Color(0xFFFF4500) else Color.Gray
-                )
-            ) {
-                Text(text = "List View", color = Color.White)
-            }
-        }
-
-        // Show content based on selectedTab
-        when (selectedTab) {
-            "Matches" -> UserListSection(
-                users = matchedUsers,
-                navController = navController,
-                emptyText = "No matches yet",
-                ratingsRef = ratingsRef,
-                usersRef = usersRef
-            )
-            "ListView" -> RatingListView(
-                matchedUsers = matchedUsers,
-                ratingsRef = ratingsRef,
-                usersRef = usersRef
-            )
-        }
-    }
-}
-
-
-@Composable
-fun UserListSection(
-    users: List<Profile>,
-    navController: NavController,
-    emptyText: String,
-    ratingsRef: DatabaseReference,
-    usersRef: DatabaseReference // Add usersRef here
-) {
-    if (users.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = emptyText,
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF121212))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(users) { profile ->
-                UserCard(profile = profile, navController = navController, ratingsRef = ratingsRef, usersRef = usersRef)
-            }
-        }
-    }
-}
-
-@Composable
-fun RatingListView(
-    matchedUsers: List<Profile>,
-    ratingsRef: DatabaseReference,
-    usersRef: DatabaseReference
-) {
-    // Merge lists, avoid duplicates, and sort by am24Ranking
-    val combinedUsers = (matchedUsers)
-        .distinctBy { it.userId } // Remove duplicates
-        .sortedWith(compareByDescending<Profile> { it.am24Ranking } // Sort by am24Ranking (higher is better)
-            .thenByDescending { it.averageRating } // Tie-break by averageRating
-            .thenByDescending { it.vibepoints }) // Further tie-break by vibepoints
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        itemsIndexed(combinedUsers) { index, profile ->
-            // Determine connection type
-            val connectionType = when {
-                matchedUsers.any { it.userId == profile.userId } -> "Match"
-                else -> "Exception"
             }
 
-            // Render user card with ranking
-            UserCardWithRanking(
-                profile = profile,
-                navController = null,
-                ratingsRef = ratingsRef,
-                usersRef = usersRef,
-                ranking = index + 1, // Global ranking starts from 1
-                connectionType = connectionType
-            )
-        }
-    }
-}
+            Spacer(modifier = Modifier.width(8.dp))
 
-@Composable
-fun UserCardWithRanking(
-    profile: Profile,
-    navController: NavController?,
-    ratingsRef: DatabaseReference,
-    usersRef: DatabaseReference,
-    ranking: Int,
-    connectionType: String
-) {
-    var yourRating by rememberSaveable(profile.userId) { mutableStateOf(-1.0) }
-    var averageRating by remember { mutableStateOf(profile.averageRating) }
-    val context = LocalContext.current
-
-    // Fetch ratings
-    LaunchedEffect(profile.userId) {
-        if (yourRating == -1.0) {
-            fetchUserRating(ratingsRef, profile.userId) { rating ->
-                yourRating = rating
-            }
-        }
-        fetchAverageRating(ratingsRef, profile.userId) { avg ->
-            averageRating = avg
-        }
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                navController?.navigate("chat/${profile.userId}")
-            },
-        colors = CardDefaults.cardColors(containerColor = Color.Black),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Profile picture
-            if (profile.profilepicUrl?.isNotBlank() == true) {
+            for (profile in nonInitiatedMatches) {
                 AsyncImage(
                     model = profile.profilepicUrl,
-                    contentDescription = "Profile Picture",
+                    contentDescription = profile.username,
                     modifier = Modifier
-                        .size(60.dp)
+                        .size(70.dp)
                         .clip(CircleShape)
-                        .background(Color.Gray),
+                        .background(Color.Gray)
+                        .clickable {
+                            navController.navigate("chat/${profile.userId}")
+                        },
                     contentScale = ContentScale.Crop
                 )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Default Profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
+                Spacer(modifier = Modifier.width(8.dp))
             }
+        }
 
-            Spacer(modifier = Modifier.width(16.dp))
+        val displayedUsers = matchedUsers.filter {
+            it.username.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
+        }
 
-            // User details and ratings
-            Column(modifier = Modifier.weight(1f)) {
+        if (displayedUsers.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "#$ranking ${profile.username} ($connectionType)",
+                    text = "No matches found",
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "Average Rating: ${String.format("%.1f", averageRating)}",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
-                RatingBar(rating = averageRating)
-                Text(
-                    text = "Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
-                RatingBar(rating = yourRating)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF121212))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(displayedUsers) { profile ->
+                    val lastMsgState = lastMessages[profile.userId] ?: Triple("", false, true)
+                    DMUserCard(
+                        profile = profile,
+                        navController = navController,
+                        lastMessage = lastMsgState.first,
+                        lastMessageFromCurrentUser = lastMsgState.second,
+                        lastMessageRead = lastMsgState.third
+                    )
+                }
             }
         }
     }
 }
 
-
 @Composable
-fun UserCard(
+fun DMUserCard(
     profile: Profile,
-    navController: NavController?, // Make navController nullable
-    ratingsRef: DatabaseReference,
-    usersRef: DatabaseReference
+    navController: NavController,
+    lastMessage: String,
+    lastMessageFromCurrentUser: Boolean,
+    lastMessageRead: Boolean
 ) {
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    var yourRating by rememberSaveable(profile.userId) { mutableStateOf(-1.0) } // Use -1.0 as an unset marker
-    var averageRating by remember { mutableStateOf(profile.averageRating) }
-    val context = LocalContext.current
-
-    // Fetch your rating and average rating only if yourRating is unset
-    LaunchedEffect(profile.userId) {
-        if (yourRating == -1.0) { // Fetch only if not already set
-            fetchUserRating(ratingsRef, profile.userId) { rating ->
-                yourRating = rating
-            }
-        }
-        fetchAverageRating(ratingsRef, profile.userId) { avg ->
-            averageRating = avg
-        }
-    }
-
-    Card(
+    // Wrap the card in a Box to apply gradient border
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                navController?.navigate("chat/${profile.userId}") // Only navigate if navController is not null
-            },
-        colors = CardDefaults.cardColors(containerColor = Color.Black),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .background(Color.Black)
+            .border(BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)), shape = RoundedCornerShape(8.dp))
+            .clickable { navController.navigate("chat/${profile.userId}") }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(16.dp)
         ) {
-            // Profile picture
-            if (profile.profilepicUrl?.isNotBlank() == true) {
-                AsyncImage(
-                    model = profile.profilepicUrl,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Default Profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-            }
+            AsyncImage(
+                model = profile.profilepicUrl,
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray),
+                contentScale = ContentScale.Crop
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // User details and rating
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = profile.username,
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "Average Rating: ${String.format("%.1f", averageRating)}",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
 
-                // Rating Slider
-                Slider(
-                    value = if (yourRating >= 0) yourRating.toFloat() else 0f, // Default slider position
-                    onValueChange = { yourRating = it.toDouble() },
-                    onValueChangeFinished = {
-                        if (yourRating >= 0) {
-                            updateUserRating(ratingsRef, usersRef, profile.userId, yourRating, context)
+                val messageText = when {
+                    lastMessage.isEmpty() -> "No messages yet"
+                    lastMessageFromCurrentUser -> "Sent: $lastMessage"
+                    else -> lastMessage
+                }
+
+                // Determine ticks
+                val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
+                    if (lastMessageRead) " ✔✔" else " ✔"
+                } else {
+                    ""
+                }
+
+                // Apply blue color to ticks if present
+                val fullText = messageText + ticks
+                val styledText = buildAnnotatedString {
+                    val tickIndex = fullText.indexOf('✔')
+                    if (tickIndex != -1) {
+                        append(fullText.substring(0, tickIndex))
+                        withStyle(SpanStyle(color = Color(0xFFFF4500))) {
+                            append(fullText.substring(tickIndex))
                         }
-                    },
-                    valueRange = 0f..5f,
-                    steps = 4,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFFF4500),
-                        activeTrackColor = Color(0xFFFF4500)
-                    )
+                    } else {
+                        append(fullText)
+                    }
+                }
+
+                Text(
+                    text = styledText,
+                    fontSize = 14.sp,
+                    color = Color.White
                 )
             }
         }
@@ -394,78 +293,32 @@ fun UserCard(
 }
 
 
-private fun fetchAverageRating(
-    ratingsRef: DatabaseReference,
-    userId: String,
-    onAverageFetched: (Double) -> Unit
+private fun checkNonInitiatedConversations(
+    matchedUsers: List<Profile>,
+    messagesRootRef: DatabaseReference,
+    currentUserId: String,
+    onResult: (List<Profile>) -> Unit
 ) {
-    ratingsRef.child(userId).child("averageRating").get().addOnSuccessListener { snapshot ->
-        val average = snapshot.getValue(Double::class.java) ?: 0.0
-        onAverageFetched(average)
+    val nonInitiated = mutableListOf<Profile>()
+    var remaining = matchedUsers.size
+    if (remaining == 0) {
+        onResult(nonInitiated)
+        return
     }
-}
 
-
-private fun fetchUserRating(
-    ratingsRef: DatabaseReference,
-    userId: String,
-    onRatingFetched: (Double) -> Unit
-) {
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-    ratingsRef.child(userId).child("ratings").child(currentUserId).get().addOnSuccessListener { snapshot ->
-        val yourRating = snapshot.getValue(Double::class.java) ?: 0.0
-        onRatingFetched(yourRating)
-    }.addOnFailureListener {
-        onRatingFetched(0.0) // Default to 0.0 on failure
-    }
-}
-
-
-private fun updateUserRating(
-    ratingsRef: DatabaseReference,
-    usersRef: DatabaseReference,
-    userId: String,
-    rating: Double,
-    context: android.content.Context
-) {
-    val userRatingRef = ratingsRef.child(userId)
-    userRatingRef.get().addOnSuccessListener { snapshot ->
-        val ratingsMap = if (snapshot.exists() && snapshot.child("ratings").value is Map<*, *>) {
-            snapshot.child("ratings").getValue(object : GenericTypeIndicator<MutableMap<String, Double>>() {})
-                ?: mutableMapOf()
-        } else {
-            mutableMapOf()
-        }
-
-        // Get the current user's ID
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@addOnSuccessListener
-
-        // Update the current user's rating
-        ratingsMap[currentUserId] = rating
-
-        // Recalculate the average rating
-        val averageRating = if (ratingsMap.isNotEmpty()) {
-            ratingsMap.values.average()
-        } else 0.0
-
-        // Update the ratings map and average rating in the `ratings` node
-        val updates = mapOf(
-            "ratings" to ratingsMap,
-            "averageRating" to averageRating
-        )
-        userRatingRef.updateChildren(updates).addOnSuccessListener {
-            // Update the average rating in the user's profile
-            usersRef.child(userId).child("averageRating").setValue(averageRating).addOnSuccessListener {
-                Toast.makeText(context, "Rating updated!", Toast.LENGTH_SHORT).show()
-            }.addOnFailureListener {
-                Toast.makeText(context, "Failed to update average rating in profile.", Toast.LENGTH_SHORT).show()
+    // Check if there's at least one message
+    matchedUsers.forEach { profile ->
+        val chatId = getChatId(currentUserId, profile.userId)
+        messagesRootRef.child(chatId).limitToFirst(1).get().addOnSuccessListener {
+            if (!it.exists()) {
+                nonInitiated.add(profile)
             }
+            remaining--
+            if (remaining == 0) onResult(nonInitiated)
         }.addOnFailureListener {
-            Toast.makeText(context, "Failed to update ratings.", Toast.LENGTH_SHORT).show()
+            remaining--
+            if (remaining == 0) onResult(nonInitiated)
         }
-    }.addOnFailureListener {
-        Toast.makeText(context, "Failed to fetch current ratings.", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -473,41 +326,36 @@ private fun fetchUsersFromNode(
     ref: DatabaseReference,
     usersRef: DatabaseReference,
     usersList: MutableList<Profile>,
-    context: android.content.Context
+    context: android.content.Context,
+    onComplete: (() -> Unit)? = null
 ) {
     ref.addValueEventListener(object : ValueEventListener {
         override fun onDataChange(snapshot: DataSnapshot) {
-            val newUsers = mutableListOf<Profile>()
-            val userIdsToFetch = mutableListOf<String>()
-
-            for (userSnapshot in snapshot.children) {
-                val userId = userSnapshot.key
-                if (userId != null) {
-                    userIdsToFetch.add(userId)
-                }
-            }
+            val userIdsToFetch = snapshot.children.mapNotNull { it.key }
 
             if (userIdsToFetch.isNotEmpty()) {
                 usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(userSnapshot: DataSnapshot) {
+                        val newUsers = mutableListOf<Profile>()
                         for (user in userSnapshot.children) {
                             val profile = user.getValue(Profile::class.java)
                             if (profile != null && userIdsToFetch.contains(profile.userId)) {
                                 newUsers.add(profile)
                             }
                         }
-                        // Update the users list
                         usersList.clear()
                         usersList.addAll(newUsers)
+                        onComplete?.invoke()
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        Log.e("DMScreen", "DatabaseError: ${error.message}")
+                        Log.e("DMScreen", "DBError: ${error.message}")
                         Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
                     }
                 })
             } else {
                 usersList.clear()
+                onComplete?.invoke()
             }
         }
 

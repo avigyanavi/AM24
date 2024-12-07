@@ -379,11 +379,11 @@ fun RatingBar(rating: Double) {
 
 fun getLevelBorderColor(rating: Double): Color {
     return when {
-        rating in 0.0..1.0 -> Color(0x00000000)    // 0 to 1 Rating
-        rating in 1.1..2.0 -> Color(0x00000000)    // 1.1 to 2.0 Rating
-        rating in 2.1..3.5 -> Color(0x00000000)    // 2.1 to 3.0 Rating
-        rating in 3.6..4.7 -> Color(0x00000000)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
-        rating in 4.8..5.0 -> Color(0x00000000)    // 4.1 to 5.0 Rating
+        rating in 0.0..1.0 -> Color(0xFF000000)    // 0 to 1 Rating
+        rating in 1.1..2.1 -> Color(0xFF444444)    // 1.1 to 2.0 Rating
+        rating in 2.1..3.6 -> Color(0xFFBBBBBB)    // 2.1 to 3.0 Rating
+        rating in 3.6..4.7 -> Color(0xFFFFA500)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
+        rating in 4.7..5.0 -> Color(0xFFFF4500)    // 4.1 to 5.0 Rating
         else -> Color.Gray                         // Default color if rating is out of range
     }
 }

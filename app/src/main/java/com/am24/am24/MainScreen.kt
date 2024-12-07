@@ -42,17 +42,26 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     // Obtain the current user ID
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
+    // Get the current destination
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Determine if TopNavBar should be visible
+    val isTopNavBarVisible = currentRoute != "chat/{otherUserId}" // Hide on ChatScreen
+
     // Obtain the ProfileViewModel instance
     val profileViewModel: ProfileViewModel = viewModel()
 
     Scaffold(
         topBar = {
-            TopNavBar(
-                navController = navController,
-                profileViewModel = profileViewModel,
-                currentUserId = currentUserId,
-                onLogout = onLogout
-            )
+            if (isTopNavBarVisible) {
+                TopNavBar(
+                    navController = navController,
+                    profileViewModel = profileViewModel,
+                    currentUserId = currentUserId,
+                    onLogout = onLogout
+                )
+            }
         },
         bottomBar = {
             BottomNavigationBar(navController = navController, items = items)

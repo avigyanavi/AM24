@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import DatingViewModel
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
@@ -53,6 +54,8 @@ import kotlin.math.roundToInt
 import kotlin.math.*
 import androidx.compose.material3.Card
 import androidx.compose.ui.res.painterResource
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -72,17 +75,154 @@ fun DatingScreen(
     modifier: Modifier = Modifier,
 ) {
     val profileViewModel: ProfileViewModel = viewModel()
-    var searchQuery by remember { mutableStateOf("") } // Search bar state
+    val datingViewModel: DatingViewModel = viewModel()
 
-    // Use `DatingScreenContent` for the main functionality
-    DatingScreenContent(
-        navController = navController,
-        geoFire = geoFire,
-        profileViewModel = profileViewModel,
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        modifier = modifier
-    )
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+    // Load dating filters
+    LaunchedEffect(Unit) {
+        datingViewModel.loadDatingFiltersFromFirebase(currentUserId)
+    }
+
+    val filtersLoaded by datingViewModel.filtersLoaded.collectAsState()
+
+    // Once filters are loaded, load profiles
+    LaunchedEffect(filtersLoaded) {
+        if (filtersLoaded) {
+            datingViewModel.loadProfiles(currentUserId)
+        }
+    }
+
+    val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
+    val datingFilters by datingViewModel.datingFilters.collectAsState()
+
+    var searchQuery by remember { mutableStateOf("") }
+    val distances = remember { mutableStateMapOf<String, Float>() }
+
+    // Compute distances whenever filteredProfiles change
+    LaunchedEffect(filteredProfiles) {
+        withContext(Dispatchers.IO) {
+            for (p in filteredProfiles) {
+                val d = calculateDistance(currentUserId, p.userId, geoFire)
+                distances[p.userId] = d ?: Float.MAX_VALUE
+            }
+        }
+    }
+
+    val fullyFilteredProfiles = remember(filteredProfiles, distances, datingFilters, searchQuery) {
+        var result = filteredProfiles
+
+        // Apply all filters (city, localities, highSchool, etc.)
+        if (datingFilters.city.isNotEmpty() && datingFilters.city != "All") {
+            result = result.filter { it.city.equals(datingFilters.city, ignoreCase = true) }
+        }
+
+        if (datingFilters.localities.isNotEmpty()) {
+            result = result.filter { datingFilters.localities.contains(it.locality) }
+        }
+
+        if (datingFilters.highSchool.isNotBlank()) {
+            result = result.filter { it.highSchool.equals(datingFilters.highSchool, ignoreCase = true) }
+        }
+
+        if (datingFilters.college.isNotBlank()) {
+            result = result.filter { it.college.equals(datingFilters.college, ignoreCase = true) }
+        }
+
+        if (datingFilters.postGrad.isNotBlank()) {
+            result = result.filter { (it.postGraduation ?: "").equals(datingFilters.postGrad, ignoreCase = true) }
+        }
+
+        if (datingFilters.work.isNotBlank()) {
+            result = result.filter { it.work.equals(datingFilters.work, ignoreCase = true) }
+        }
+
+        if (datingFilters.ageStart != 0 && datingFilters.ageEnd != 0) {
+            result = result.filter { profile ->
+                val age = calculateAge(profile.dob)
+                age != null && age in datingFilters.ageStart..datingFilters.ageEnd
+            }
+        }
+
+        if (datingFilters.rating.isNotBlank()) {
+            val ratingRange = when (datingFilters.rating) {
+                "0-1.9" -> 0.0..1.9
+                "2-3.9" -> 2.0..3.9
+                "4-5" -> 4.0..5.0
+                else -> 0.0..5.0
+            }
+            result = result.filter { it.averageRating in ratingRange }
+        }
+
+        if (datingFilters.gender.isNotBlank()) {
+            result = result.filter { it.gender.equals(datingFilters.gender, ignoreCase = true) }
+        }
+
+        // Distance filter
+        if (datingFilters.distance < 100) {
+            result = result.filter { p ->
+                val dist = distances[p.userId] ?: Float.MAX_VALUE
+                dist <= datingFilters.distance
+            }
+        }
+
+        val query = searchQuery.trim()
+        if (query.isNotEmpty()) {
+            result = result.filter {
+                it.username.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true)
+            }
+        }
+
+        result
+    }
+
+    if (!filtersLoaded) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Color(0xFF00bf63))
+        }
+    } else {
+        // Implement pull-to-refresh
+        var isRefreshing by remember { mutableStateOf(false) }
+        val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
+
+        // Function to refresh data
+        fun refreshData() {
+            isRefreshing = true
+            // Reload filters and profiles
+            datingViewModel.loadDatingFiltersFromFirebase(currentUserId)
+            datingViewModel.loadProfiles(currentUserId)
+        }
+
+        // Observe changes to filtersLoaded or profiles to end refresh
+        LaunchedEffect(filtersLoaded, filteredProfiles) {
+            if (filtersLoaded) {
+                // Once data is loaded, stop refreshing
+                isRefreshing = false
+            }
+        }
+
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = { refreshData() }
+        ) {
+            // Make content scrollable to enable pull-down gesture
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                DatingScreenContent(
+                    navController = navController,
+                    geoFire = geoFire,
+                    profileViewModel = profileViewModel,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    profiles = fullyFilteredProfiles
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -92,39 +232,11 @@ fun DatingScreenContent(
     profileViewModel: ProfileViewModel,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    profiles: List<Profile>,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val profiles = remember { mutableStateListOf<Profile>() }
     var currentProfileIndex by remember { mutableStateOf(0) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val usersRef = FirebaseDatabase.getInstance().getReference("users")
-
-    // Fetch profiles
-    LaunchedEffect(Unit) {
-        isLoading = true
-        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val fetchedProfiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
-                profiles.clear()
-                profiles.addAll(fetchedProfiles.filter { it.userId != currentUserId })
-                isLoading = false
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("FirebaseError", "DatabaseError: ${error.message}")
-                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-                isLoading = false
-            }
-        })
-    }
-
-    // Filter profiles based on the search query
-    val filteredProfiles = profiles.filter {
-        it.username.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
-    }
 
     Column(modifier = modifier.fillMaxSize().background(Color.Black)) {
         // Search Bar
@@ -134,25 +246,31 @@ fun DatingScreenContent(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BasicTextField(
+            OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .background(Color.Gray, CircleShape)
-                    .padding(8.dp),
-                singleLine = true
+                label = { Text("Search", color = Color.White) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF4500),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color(0xFFFF4500),
+                    focusedLabelColor = Color.White,
+                    textColor = Color.White
+                ),
+                modifier = Modifier.weight(1f)
             )
         }
 
-        if (isLoading) {
+        if (profiles.isEmpty()) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                CircularProgressIndicator(color = Color(0xFF00bf63))
+                Text(text = "No more profiles available.", color = Color.White, fontSize = 18.sp)
             }
-        } else if (filteredProfiles.isNotEmpty()) {
-            val currentProfile = filteredProfiles[currentProfileIndex]
-            var userDistance by remember { mutableStateOf<Float?>(null) }
+        } else {
+            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+            val currentProfile = profiles[currentProfileIndex]
 
+            // Calculate distance for the current profile (optional if we want to show it)
+            var userDistance by remember { mutableStateOf<Float?>(null) }
             LaunchedEffect(currentProfile) {
                 userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
             }
@@ -162,31 +280,24 @@ fun DatingScreenContent(
                     profile = currentProfile,
                     onSwipeRight = {
                         handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
-                        if (currentProfileIndex + 1 < filteredProfiles.size) {
+                        if (currentProfileIndex + 1 < profiles.size) {
                             currentProfileIndex++
-                        } else {
-                            profiles.clear()
                         }
                     },
                     onSwipeLeft = {
                         handleSwipeLeft(currentUserId, currentProfile.userId)
-                        if (currentProfileIndex + 1 < filteredProfiles.size) {
+                        if (currentProfileIndex + 1 < profiles.size) {
                             currentProfileIndex++
-                        } else {
-                            profiles.clear()
                         }
                     },
                     navController = navController,
                     userDistance = distance
                 )
             }
-        } else {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Text(text = "No more profiles available.", color = Color.White, fontSize = 18.sp)
-            }
         }
     }
 }
+
 
 @Composable
 fun DatingProfileCard(

@@ -472,9 +472,10 @@ fun FilterFields(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Distance Slider (only for dating filters)
+// Distance Slider (only for dating filters)
         if (distance != null) {
-            Text(text = "Distance: $distance km", color = Color.White, fontSize = 16.sp)
+            val displayedDistanceText = if (distance == 100) "Global" else "$distance km"
+            Text(text = "Distance: $displayedDistanceText", color = Color.White, fontSize = 16.sp)
             Slider(
                 value = distance.toFloat(),
                 onValueChange = { newDistance -> onDistanceChange(newDistance.roundToInt()) },
