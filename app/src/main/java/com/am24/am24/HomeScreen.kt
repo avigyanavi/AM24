@@ -437,7 +437,8 @@ fun FeedSection(
                             navController.navigate("profile")
                         } else {
                             // Navigate to DatingScreen with the other user's ID
-                            navController.navigate("profile/${post.userId}?currentUserId=${userId}")
+                            val username = userProfiles[post.userId]?.name ?: "Unknown"
+                            navController.navigate("dating_screen?initialQuery=$username")
                         }
                     },
                     onTagClick = { tag ->

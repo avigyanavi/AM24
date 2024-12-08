@@ -73,154 +73,55 @@ fun DatingScreen(
     navController: NavController,
     geoFire: GeoFire,
     modifier: Modifier = Modifier,
+    initialQuery: String = "",
 ) {
-    val profileViewModel: ProfileViewModel = viewModel()
     val datingViewModel: DatingViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-    // Load dating filters
-    LaunchedEffect(Unit) {
-        datingViewModel.loadDatingFiltersFromFirebase(currentUserId)
-    }
-
     val filtersLoaded by datingViewModel.filtersLoaded.collectAsState()
-
-    // Once filters are loaded, load profiles
-    LaunchedEffect(filtersLoaded) {
-        if (filtersLoaded) {
-            datingViewModel.loadProfiles(currentUserId)
-        }
-    }
-
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
-    val datingFilters by datingViewModel.datingFilters.collectAsState()
 
-    var searchQuery by remember { mutableStateOf("") }
-    val distances = remember { mutableStateMapOf<String, Float>() }
+    // State for search query
+    var searchQuery by remember { mutableStateOf(initialQuery) }
 
-    // Compute distances whenever filteredProfiles change
-    LaunchedEffect(filteredProfiles) {
-        withContext(Dispatchers.IO) {
-            for (p in filteredProfiles) {
-                val d = calculateDistance(currentUserId, p.userId, geoFire)
-                distances[p.userId] = d ?: Float.MAX_VALUE
+    // Apply search query to filteredProfiles
+    val displayedProfiles = remember(filteredProfiles, searchQuery) {
+        if (searchQuery.isNotBlank()) {
+            filteredProfiles.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.username.contains(searchQuery, ignoreCase = true)
             }
+        } else {
+            filteredProfiles
         }
     }
 
-    val fullyFilteredProfiles = remember(filteredProfiles, distances, datingFilters, searchQuery) {
-        var result = filteredProfiles
-
-        // Apply all filters (city, localities, highSchool, etc.)
-        if (datingFilters.city.isNotEmpty() && datingFilters.city != "All") {
-            result = result.filter { it.city.equals(datingFilters.city, ignoreCase = true) }
-        }
-
-        if (datingFilters.localities.isNotEmpty()) {
-            result = result.filter { datingFilters.localities.contains(it.locality) }
-        }
-
-        if (datingFilters.highSchool.isNotBlank()) {
-            result = result.filter { it.highSchool.equals(datingFilters.highSchool, ignoreCase = true) }
-        }
-
-        if (datingFilters.college.isNotBlank()) {
-            result = result.filter { it.college.equals(datingFilters.college, ignoreCase = true) }
-        }
-
-        if (datingFilters.postGrad.isNotBlank()) {
-            result = result.filter { (it.postGraduation ?: "").equals(datingFilters.postGrad, ignoreCase = true) }
-        }
-
-        if (datingFilters.work.isNotBlank()) {
-            result = result.filter { it.work.equals(datingFilters.work, ignoreCase = true) }
-        }
-
-        if (datingFilters.ageStart != 0 && datingFilters.ageEnd != 0) {
-            result = result.filter { profile ->
-                val age = calculateAge(profile.dob)
-                age != null && age in datingFilters.ageStart..datingFilters.ageEnd
-            }
-        }
-
-        if (datingFilters.rating.isNotBlank()) {
-            val ratingRange = when (datingFilters.rating) {
-                "0-1.9" -> 0.0..1.9
-                "2-3.9" -> 2.0..3.9
-                "4-5" -> 4.0..5.0
-                else -> 0.0..5.0
-            }
-            result = result.filter { it.averageRating in ratingRange }
-        }
-
-        if (datingFilters.gender.isNotBlank()) {
-            result = result.filter { it.gender.equals(datingFilters.gender, ignoreCase = true) }
-        }
-
-        // Distance filter
-        if (datingFilters.distance < 100) {
-            result = result.filter { p ->
-                val dist = distances[p.userId] ?: Float.MAX_VALUE
-                dist <= datingFilters.distance
-            }
-        }
-
-        val query = searchQuery.trim()
-        if (query.isNotEmpty()) {
-            result = result.filter {
-                it.username.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true)
-            }
-        }
-
-        result
+    // Real-time updates for profiles and filters
+    LaunchedEffect(Unit) {
+        datingViewModel.startRealTimeProfileUpdates(currentUserId)
+        datingViewModel.startRealTimeFilterUpdates(currentUserId)
     }
 
+    // Display UI
     if (!filtersLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFF00bf63))
+            CircularProgressIndicator(color = Color(0xFFFFA500))
         }
     } else {
-        // Implement pull-to-refresh
-        var isRefreshing by remember { mutableStateOf(false) }
-        val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
-
-        // Function to refresh data
-        fun refreshData() {
-            isRefreshing = true
-            // Reload filters and profiles
-            datingViewModel.loadDatingFiltersFromFirebase(currentUserId)
-            datingViewModel.loadProfiles(currentUserId)
-        }
-
-        // Observe changes to filtersLoaded or profiles to end refresh
-        LaunchedEffect(filtersLoaded, filteredProfiles) {
-            if (filtersLoaded) {
-                // Once data is loaded, stop refreshing
-                isRefreshing = false
+        if (displayedProfiles.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No profiles match your search or filters.", color = Color.White, fontSize = 18.sp)
             }
-        }
-
-        SwipeRefresh(
-            state = swipeRefreshState,
-            onRefresh = { refreshData() }
-        ) {
-            // Make content scrollable to enable pull-down gesture
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                DatingScreenContent(
-                    navController = navController,
-                    geoFire = geoFire,
-                    profileViewModel = profileViewModel,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    profiles = fullyFilteredProfiles
-                )
-            }
+        } else {
+            DatingScreenContent(
+                navController = navController,
+                geoFire = geoFire,
+                profileViewModel = profileViewModel,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                profiles = displayedProfiles
+            )
         }
     }
 }
@@ -235,7 +136,6 @@ fun DatingScreenContent(
     profiles: List<Profile>,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
     var currentProfileIndex by remember { mutableStateOf(0) }
 
     Column(modifier = modifier.fillMaxSize().background(Color.Black)) {
@@ -342,9 +242,7 @@ fun DatingProfileCard(
     ) {
         if (isDetailedView) {
             ProfileDetailsTabs(
-                profile = profile,
-                navController = navController,
-                onBack = { isDetailedView = false }
+                profile = profile
             )
         } else {
             Box(
@@ -599,76 +497,7 @@ suspend fun calculateDistance(
     }
 }
 
-@Composable
-fun ProfileDetailsTabs(
-    profile: Profile,
-    navController: NavController,
-    onBack: () -> Unit // Callback for back button
-) {
-    val tabTitles = listOf("Profile", "Posts", "Score")
-    var selectedTabIndex by remember { mutableStateOf(0) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Back Button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { onBack() }) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-            Text(
-                text = "Details",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
-
-        // Tabs
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            tabTitles.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(title, color = Color.White) }
-                )
-            }
-        }
-
-        // Tab Content
-        when (selectedTabIndex) {
-            0 -> ProfileDetails(profile)
-            1 -> ProfilePosts(profile)
-            2 -> ProfileScore(profile)
-        }
-    }
-}
-
-@Composable
-fun ProfileDetails(profile: Profile) {
-    Column(
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        Text(text = "Name: ${profile.name}", color = Color.White, fontSize = 18.sp)
-        Text(text = "Bio: ${profile.bio}", color = Color.White, fontSize = 16.sp)
-        Text(text = "Gender: ${profile.gender}", color = Color.White, fontSize = 16.sp)
-        Text(text = "Hometown: ${profile.hometown}", color = Color.White, fontSize = 16.sp)
-    }
-}
 
 @Composable
 fun ProfilePosts(profile: Profile) {

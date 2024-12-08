@@ -182,6 +182,26 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun fetchUserProfile(
+        userId: String,
+        onSuccess: (Profile) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        usersRef.child(userId).get()
+            .addOnSuccessListener { snapshot ->
+                val profile = snapshot.getValue(Profile::class.java)
+                if (profile != null) {
+                    onSuccess(profile)
+                } else {
+                    onFailure("Profile not found")
+                }
+            }
+            .addOnFailureListener { error ->
+                onFailure(error.message ?: "Failed to fetch profile")
+            }
+    }
+
+
     // Send a match notification
     fun sendMatchNotification(
         senderId: String,

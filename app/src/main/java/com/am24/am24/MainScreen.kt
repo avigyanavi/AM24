@@ -32,11 +32,11 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
-        BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
         BottomNavItem("Profile", Icons.Default.Person, "profile"),
-        BottomNavItem("Feed", Icons.Default.Home, "home"),
+        BottomNavItem("Leaderboard", Icons.Default.Leaderboard, "leaderboard"),
         BottomNavItem("Dating", Icons.Default.HeartBroken, "dating"),
-        BottomNavItem("Settings", Icons.Default.Settings, "settings")
+        BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
+        BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
     )
 
     // Obtain the current user ID
@@ -89,14 +89,14 @@ fun TopNavBar(
 
     val isNotificationsSelected = currentDestination?.route == "notifications"
     val isPeopleWhoLikeMeSelected = currentDestination?.route == "peopleWhoLikedMe"
-    val isFiltersSelected = currentDestination?.route == "filters"
+    val isProfileScreen = currentDestination?.route == "profile"
 
     val title = when (currentDestination?.route) {
         "dms" -> "Chat"
         "home" -> "KupidX"
         "profile" -> "Profile"
         "dating" -> "Dating"
-        "settings" -> "Settings"
+        "leaderboard" -> "Rankings"
         "peopleWhoLikedMe" -> "People Who Like Me"
         "notifications" -> "Notifications"
         "filters?initialTab={initialTab}" -> "Filters"
@@ -130,7 +130,7 @@ fun TopNavBar(
     }
 
     TopAppBar(
-        title = { Text(text = title, color = Color(0xFFFFA500), fontSize = 18.sp) }, // Title in light orange
+        title = { Text(text = title, color = Color(0xFFFF4500), fontSize = 18.sp) }, // Title in light orange
         navigationIcon = {
             IconButton(onClick = {
                 if (isPeopleWhoLikeMeSelected) {
@@ -180,23 +180,35 @@ fun TopNavBar(
                     )
                 }
             }
-            IconButton(onClick = {
-                val currentRoute = navController.currentBackStackEntry?.destination?.route
-                val initialTab = if (currentRoute == "home") 1 else 0 // 1 for Feed, 0 for Dating
-                if (currentDestination?.route?.startsWith("filters") == true) {
-                    navController.popBackStack() // Return to previous screen
-                } else {
-                    navController.navigate("filters?initialTab=$initialTab") // Navigate to FiltersScreen
+            if (isProfileScreen) {
+                IconButton(onClick = {
+                    navController.navigate("settings")
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-            }) {
-                Icon(
-                    imageVector = Icons.Default.FilterList,
-                    contentDescription = "Filters",
-                    tint = if (currentDestination?.route?.startsWith("filters") == true) Color(0xFFFF4500) else Color.Gray, // Preserve tint color on selection
-                    modifier = Modifier.size(18.dp)
-                )
+            } else {
+                IconButton(onClick = {
+                    val currentRoute = navController.currentBackStackEntry?.destination?.route
+                    val initialTab = if (currentRoute == "home") 1 else 0 // 1 for Feed, 0 for Dating
+                    if (currentDestination?.route?.startsWith("filters") == true) {
+                        navController.popBackStack() // Return to previous screen
+                    } else {
+                        navController.navigate("filters?initialTab=$initialTab") // Navigate to FiltersScreen
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filters",
+                        tint = if (currentDestination?.route?.startsWith("filters") == true) Color(0xFFFF4500) else Color.Gray, // Preserve tint color on selection
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
-
             IconButton(onClick = onLogout) {
                 Icon(
                     imageVector = Icons.Default.ExitToApp,
@@ -234,13 +246,15 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
-                        tint = if (selected) Color(0xFFFF4500) else Color.Gray
+                        tint = if (selected) Color(0xFFFF4500) else Color.Gray,
+                        modifier = Modifier.size(18.dp)
                     )
                 },
                 label = {
                     Text(
                         text = item.label,
-                        color = if (selected) Color(0xFFFF4500) else Color.Gray
+                        color = if (selected) Color(0xFFFF4500) else Color.Gray,
+                        fontSize = 11.sp
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

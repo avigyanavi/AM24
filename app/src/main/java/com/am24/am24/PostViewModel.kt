@@ -164,17 +164,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         postsListener?.let { postsRef.removeEventListener(it) }
     }
 
-    /**
-     * Parses the timestamp from Firebase (could be Long or ServerValue.TIMESTAMP).
-     */
-    /**
-     * Parses the timestamp from Firebase (could be Long or ServerValue.TIMESTAMP).
-     * Returns a Long representing the timestamp in milliseconds.
-     */
-    private fun parseTimestamp(timestamp: Long?): Long {
-        return timestamp ?: System.currentTimeMillis()
-    }
-
 
     // Helper function to send a notification
     private suspend fun sendNotification(
@@ -1074,22 +1063,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
-
-    /**
-     * Function to check profile-based filters.
-     */
-    private fun checkProfileFilter(profile: Profile, filterOption: String): Boolean {
-        return when (filterOption) {
-            "locality" -> profile.hometown.contains(filterOption, ignoreCase = true)
-            "city" -> profile.city.contains(filterOption, ignoreCase = true)
-            "age" -> {
-                val age = calculateAge(profile.dob)
-                age != null && age.toString() == filterOption
-            }
-            else -> true
-        }
-    }
-
     /**
      * Functions to update filter options.
      */
@@ -1138,21 +1111,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             Log.e(TAG, "Failed to fetch matches: ${e.message}")
         }
         return matches
-    }
-
-    fun loadFeedFiltersFromFirebase(userId: String) {
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("feedFilters")
-        userRef.get().addOnSuccessListener { snapshot ->
-            val feedFilters = snapshot.getValue(FeedFilterSettings::class.java)
-            if (feedFilters != null) {
-                Log.d(TAG, "Loaded Feed Filters: $feedFilters")
-                setFeedFilters(FilterSettings(feedFilters = feedFilters))
-            } else {
-                Log.d(TAG, "No Feed Filters found for user.")
-            }
-        }.addOnFailureListener {
-            Log.e(TAG, "Failed to load feed filters: ${it.message}")
-        }
     }
 
 

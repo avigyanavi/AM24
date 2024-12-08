@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import DatingViewModel
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun FiltersScreen(
+    datingViewModel: DatingViewModel,
     postViewModel: PostViewModel,
     initialTab: Int = 0 // Default to 0 (Dating Tab)
 ) {
@@ -38,6 +40,9 @@ fun FiltersScreen(
     // City selection
     val cities = listOf("All", "Kolkata", "Mumbai", "Delhi")
     var selectedCity by remember { mutableStateOf("All") }
+
+    // Observe dating filters from the DatingViewModel
+    val datingFilters by datingViewModel.datingFilters.collectAsState()
 
     // City-based data mappings
     val cityLocalitiesMap = mapOf(
@@ -98,13 +103,11 @@ fun FiltersScreen(
     var searchQueryLocalities by remember { mutableStateOf("") }
     val filteredLocalities = allLocalities.filter { it.contains(searchQueryLocalities, ignoreCase = true) }
 
-    // Save Filters Function
     fun saveFilters(
         filterSettings: FilterSettings,
         context: android.content.Context
     ) {
         val updates = mapOf(
-            "filterOption" to filterSettings.filterOption,
             "datingFilters" to mapOf(
                 "localities" to filterSettings.datingFilters.localities,
                 "city" to filterSettings.datingFilters.city,
@@ -129,21 +132,20 @@ fun FiltersScreen(
                 "ageEnd" to filterSettings.feedFilters.ageEnd,
                 "gender" to filterSettings.feedFilters.gender,
                 "rating" to filterSettings.feedFilters.rating
-            ),
-            "sortOption" to filterSettings.sortOption,
-            "searchQuery" to filterSettings.searchQuery
+            )
         )
 
         FirebaseDatabase.getInstance().reference.child("users")
             .child(FirebaseAuth.getInstance().currentUser?.uid ?: return)
             .updateChildren(updates)
             .addOnSuccessListener {
-                Toast.makeText(context, "Filters saved successfully!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Filters are saved!", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener {
                 Toast.makeText(context, "Failed to save filters.", Toast.LENGTH_SHORT).show()
             }
     }
+
 
     // Load Filters from Firebase
     LaunchedEffect(Unit) {
@@ -670,6 +672,7 @@ fun CityDropdown(
         }
     }
 }
+
 
 @Composable
 fun SearchableDropdown(
