@@ -744,7 +744,7 @@ fun FeedItem(
                     lineHeight = 20.sp,
                     overflow = TextOverflow.Clip,
                     textAlign = TextAlign.Justify,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
                 )
 
                 // "See more" Text
@@ -1111,7 +1111,7 @@ fun CommentCard(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+        colors = CardDefaults.cardColors(containerColor = Color.Black)
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             Row(
@@ -1126,7 +1126,7 @@ fun CommentCard(
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = formatTimestamp(comment.getCommentTimestamp()),
+                    text = formatRelativeTime(comment.getCommentTimestamp()),
                     color = Color(0xFFFFA500),
                     fontSize = 12.sp
                 )
@@ -1223,7 +1223,6 @@ fun CommentsDialog(
     // State variables
     var sortOption by remember { mutableStateOf("No Sort") }
     var showSortMenu by remember { mutableStateOf(false) }
-    var showCommentInput by remember { mutableStateOf(true) }
     var commentText by remember { mutableStateOf(TextFieldValue("")) }
 
     // Voice recording states
@@ -1256,7 +1255,6 @@ fun CommentsDialog(
         }
     }
 
-    // Define sortedCommentsList here
     val sortedCommentsList by produceState<List<Comment>>(
         initialValue = emptyList(),
         key1 = post.comments,
@@ -1271,6 +1269,14 @@ fun CommentsDialog(
                     else -> compareByDescending<Comment> { it.getCommentTimestamp() }
                 }
             )
+        }
+    }
+
+    // After a new comment, scroll to top (reverseLayout = true)
+    val listState = rememberLazyListState()
+    LaunchedEffect(sortedCommentsList.size) {
+        if (sortedCommentsList.isNotEmpty()) {
+            listState.animateScrollToItem(0)
         }
     }
 
@@ -1313,7 +1319,7 @@ fun CommentsDialog(
                         }
                     }
 
-                    // Stop recording if time is up
+                    // Stop if time up
                     if (isRecording && recordingTimeLeft <= 0) {
                         withContext(Dispatchers.Main) {
                             isRecording = false
@@ -1353,17 +1359,12 @@ fun CommentsDialog(
                     if (fileUri != null) {
                         recordedVoiceUri = fileUri
                     }
-                    // Reset recordingTimeLeft
                     recordingTimeLeft = maxDurationMs
                 }
             } catch (e: Exception) {
                 Log.e("VoiceComment", "Stop recording error: ${e.message}")
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context,
-                        "Recording failed: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
                 withContext(Dispatchers.IO) {
                     recorder?.release()
@@ -1387,23 +1388,25 @@ fun CommentsDialog(
         }
     }
 
-    // Dialog UI
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        // Add imePadding() to respect the keyboard and ensure input row stays visible
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
+                .imePadding() // ensures we move content up when keyboard appears
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .align(Alignment.TopCenter)
+                    .navigationBarsPadding()
             ) {
-                // Comments header and sort options...
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1415,9 +1418,7 @@ fun CommentsDialog(
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = sortOption,
                             color = Color(0xFFFFA500),
@@ -1461,6 +1462,17 @@ fun CommentsDialog(
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onDismiss
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color(0xFFFF4500)
+                            )
+                        }
                     }
                 }
 
@@ -1473,10 +1485,12 @@ fun CommentsDialog(
                         modifier = Modifier.padding(16.dp)
                     )
                 } else {
+                    // Comments list (reverseLayout = true)
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
+                            .weight(1f), // Take available space for comments
+                        state = listState
                     ) {
                         items(sortedCommentsList) { comment ->
                             CommentCard(
@@ -1488,118 +1502,78 @@ fun CommentsDialog(
                     }
                 }
 
-                // Comment input and action buttons
-                if (showCommentInput) {
-                    if (isRecording) {
-                        // Show recording indicator and countdown timer
-                        Text(
-                            text = "Recording... Time left: ${recordingTimeLeft / 1000}s",
-                            color = Color.White,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    } else if (recordedVoiceUri != null) {
-                        // Show playback controls and submit option
-                        VoiceCommentPlayer(
-                            mediaUrl = recordedVoiceUri.toString(),
-                            isPlaying = isRecordingPlaying,
-                            onPlayToggle = {
-                                if (isRecordingPlaying) {
-                                    recordedMediaPlayer?.pause()
-                                    isRecordingPlaying = false
-                                } else {
-                                    playLocalVoice(context, recordedVoiceUri!!) { player ->
-                                        recordedMediaPlayer = player
-                                        isRecordingPlaying = true
-                                        recordedMediaPlayer?.setOnCompletionListener {
-                                            isRecordingPlaying = false
-                                            playbackProgress = 0f
-                                        }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // If recording or recorded voice present, show that UI above input row
+                if (isRecording) {
+                    Text(
+                        text = "Recording... Time left: ${recordingTimeLeft / 1000}s",
+                        color = Color.White,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                } else if (recordedVoiceUri != null) {
+                    // Show playback controls and submit/delete for recorded voice
+                    VoiceCommentPlayer(
+                        mediaUrl = recordedVoiceUri.toString(),
+                        isPlaying = isRecordingPlaying,
+                        onPlayToggle = {
+                            if (isRecordingPlaying) {
+                                recordedMediaPlayer?.pause()
+                                isRecordingPlaying = false
+                            } else {
+                                playLocalVoice(context, recordedVoiceUri!!) { player ->
+                                    recordedMediaPlayer = player
+                                    isRecordingPlaying = true
+                                    recordedMediaPlayer?.setOnCompletionListener {
+                                        isRecordingPlaying = false
+                                        playbackProgress = 0f
                                     }
                                 }
+                            }
+                        },
+                        progress = playbackProgress,
+                        duration = recordedMediaPlayer?.duration?.toLong() ?: 0L
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Button(
+                            onClick = {
+                                recordedVoiceUri = null
+                                recordFile = null
                             },
-                            progress = playbackProgress,
-                            duration = recordedMediaPlayer?.duration?.toLong() ?: 0L
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                         ) {
-                            Button(
-                                onClick = {
-                                    // Delete the recorded voice comment
-                                    recordedVoiceUri = null
-                                    recordFile = null
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                            ) {
-                                Text("Delete", color = Color.White)
-                            }
-                            Button(
-                                onClick = {
-                                    onVoiceComment(recordedVoiceUri!!)
-                                    // Reset states
-                                    recordedVoiceUri = null
-                                    recordFile = null
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(
-                                        0xFFFFA500
-                                    )
-                                )
-                            ) {
-                                Text("Submit Voice Comment", color = Color.White)
-                            }
+                            Text("Delete", color = Color.White)
                         }
-
-                    } else {
-                        // Show text input field for text comments
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                        Button(
+                            onClick = {
+                                onVoiceComment(recordedVoiceUri!!)
+                                recordedVoiceUri = null
+                                recordFile = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
                         ) {
-                            OutlinedTextField(
-                                value = commentText,
-                                onValueChange = { commentText = it },
-                                placeholder = { Text("Add a comment...", color = Color.Gray) },
-                                textStyle = LocalTextStyle.current.copy(color = Color.White),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(vertical = 8.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFFFF4500),
-                                    unfocusedBorderColor = Color.Gray,
-                                    cursorColor = Color(0xFFFF4500)
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            // Submit Text Comment Button
-                            Button(
-                                onClick = {
-                                    if (commentText.text.isNotBlank()) {
-                                        onComment(commentText.text)
-                                        commentText = TextFieldValue("")
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(
-                                        0xFFFF4500
-                                    )
-                                )
-                            ) {
-                                Text("Submit", color = Color.White)
-                            }
+                            Text("Submit Voice Comment", color = Color.White)
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Recording and action icons
+                // Comment input row with mic icon on the left
+                // Add more bottom padding to lift it higher above screen bottom
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 64.dp), // Increased bottom padding to lift input row higher
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Mic Icon for recording voice comment
+                    // Mic / Stop icon on the left of the text field
                     IconButton(onClick = {
                         if (isRecording) {
                             // Stop recording
@@ -1612,8 +1586,7 @@ fun CommentsDialog(
                             ) {
                                 // Start recording
                                 isRecording = true
-                                showCommentInput = true // Open the comment input section when recording starts
-                                // Remove text input field
+                                // Clear text and recordedVoiceUri since starting fresh recording
                                 commentText = TextFieldValue("")
                                 recordedVoiceUri = null
                             } else {
@@ -1623,39 +1596,47 @@ fun CommentsDialog(
                     }) {
                         Icon(
                             imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                            contentDescription = if (isRecording) "Stop Recording" else "Record Voice Comment",
+                            contentDescription = "Record",
                             tint = Color(0xFFFFA500)
                         )
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                    // Hide/Show Input IconButton
-                    IconButton(
-                        onClick = { showCommentInput = !showCommentInput }
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = { commentText = it },
+                        placeholder = { Text("Add a comment...", color = Color.Gray) },
+                        textStyle = LocalTextStyle.current.copy(color = Color.White),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFFFF4500)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (commentText.text.isNotBlank()) {
+                                onComment(commentText.text)
+                                commentText = TextFieldValue("")
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
                     ) {
-                        Icon(
-                            imageVector = if (showCommentInput) Icons.Default.KeyboardHide else Icons.Default.Keyboard,
-                            contentDescription = if (showCommentInput) "Hide Comment Input" else "Show Comment Input",
-                            tint = Color(0xFFFFA500)
-                        )
-                    }
-
-                    // Close IconButton
-                    IconButton(
-                        onClick = onDismiss
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = Color(0xFFFF4500)
-                        )
+                        Text("Submit", color = Color.White)
                     }
                 }
             }
         }
     }
 }
+
+
 
 
 
