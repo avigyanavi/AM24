@@ -495,7 +495,7 @@ fun FilterFields(
         // Rating Buttons
         Text(text = "Rating", color = Color.White, fontSize = 16.sp)
         SelectionButtons(
-            options = listOf("0-1.9", "2-3.9", "4-5"),
+            options = listOf("0-2", "2-4", "4-5"),
             selectedOption = rating,
             onOptionSelected = onRatingChange,
             vertical = false

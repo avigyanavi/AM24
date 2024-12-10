@@ -6,9 +6,7 @@ import DatingViewModel
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -28,18 +26,14 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -62,7 +56,6 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-// Class representing swipe data
 data class SwipeData(
     val liked: Boolean = false,
     val timestamp: Long = 0L
@@ -103,25 +96,51 @@ fun DatingScreen(
         datingViewModel.startRealTimeFilterUpdates(currentUserId)
     }
 
-    // Display UI
     if (!filtersLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Color(0xFFFFA500))
         }
     } else {
-        if (displayedProfiles.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No profiles match your search or filters.", color = Color.White, fontSize = 18.sp)
+        // Show the search bar always at the top
+        Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+            // Search Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search", color = Color.White) },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF4500),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color(0xFFFF4500),
+                        focusedLabelColor = Color.White,
+                        textColor = Color.White
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
             }
-        } else {
-            DatingScreenContent(
-                navController = navController,
-                geoFire = geoFire,
-                profileViewModel = profileViewModel,
-                searchQuery = searchQuery,
-                onSearchQueryChange = { searchQuery = it },
-                profiles = displayedProfiles
-            )
+
+            if (displayedProfiles.isEmpty()) {
+                // Show "No profiles found" below the search bar if no profiles match
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No profiles match your search or filters.", color = Color.White, fontSize = 18.sp)
+                }
+            } else {
+                // If profiles are available, show content
+                DatingScreenContent(
+                    navController = navController,
+                    geoFire = geoFire,
+                    profileViewModel = profileViewModel,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    profiles = displayedProfiles
+                )
+            }
         }
     }
 }
@@ -139,28 +158,6 @@ fun DatingScreenContent(
     var currentProfileIndex by remember { mutableStateOf(0) }
 
     Column(modifier = modifier.fillMaxSize().background(Color.Black)) {
-        // Search Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                label = { Text("Search", color = Color.White) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFFFF4500),
-                    unfocusedBorderColor = Color.Gray,
-                    cursorColor = Color(0xFFFF4500),
-                    focusedLabelColor = Color.White,
-                    textColor = Color.White
-                ),
-                modifier = Modifier.weight(1f)
-            )
-        }
-
         if (profiles.isEmpty()) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Text(text = "No more profiles available.", color = Color.White, fontSize = 18.sp)
@@ -169,7 +166,6 @@ fun DatingScreenContent(
             val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
             val currentProfile = profiles[currentProfileIndex]
 
-            // Calculate distance for the current profile (optional if we want to show it)
             var userDistance by remember { mutableStateOf<Float?>(null) }
             LaunchedEffect(currentProfile) {
                 userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
@@ -198,7 +194,6 @@ fun DatingScreenContent(
     }
 }
 
-
 @Composable
 fun DatingProfileCard(
     profile: Profile,
@@ -211,16 +206,15 @@ fun DatingProfileCard(
     var isDetailedView by remember { mutableStateOf(false) }
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
 
-    // Reset current photo index when profile changes
     LaunchedEffect(profile) {
         currentPhotoIndex = 0
     }
 
     val swipeableState = rememberSwipeableState(initialValue = 0)
     val anchors = mapOf(
-        -300f to -1, // Swiped left
-        0f to 0,     // Neutral
-        300f to 1    // Swiped right
+        -300f to -1,
+        0f to 0,
+        300f to 1
     )
 
     val swipeOffset = swipeableState.offset.value
@@ -241,9 +235,7 @@ fun DatingProfileCard(
             .background(Color.Black)
     ) {
         if (isDetailedView) {
-            ProfileDetailsTabs(
-                profile = profile
-            )
+            ProfileDetailsTabs(profile = profile)
         } else {
             Box(
                 modifier = Modifier
@@ -266,10 +258,11 @@ fun DatingProfileCard(
                                     val tapX = offset.x
                                     val photoCount = photoUrls.size
                                     if (photoCount > 1) {
-                                        currentPhotoIndex = if (tapX > size.width / 2) {
-                                            (currentPhotoIndex + 1) % photoCount
+                                        val width = size.width
+                                        if (tapX > width / 2) {
+                                            currentPhotoIndex = (currentPhotoIndex + 1) % photoCount
                                         } else {
-                                            (currentPhotoIndex - 1 + photoCount) % photoCount
+                                            currentPhotoIndex = (currentPhotoIndex - 1 + photoCount) % photoCount
                                         }
                                     }
                                 }
@@ -386,7 +379,6 @@ fun DatingProfileCard(
     }
 }
 
-
 fun handleSwipeRight(
     currentUserId: String,
     otherUserId: String,
@@ -401,27 +393,21 @@ fun handleSwipeRight(
     val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
     val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
 
-    // Record the swipe right with timestamp
     val swipeData = SwipeData(liked = true, timestamp = timestamp)
     currentUserSwipesRef.setValue(swipeData)
-
-    // Update likesGiven and likesReceived
     currentUserLikesGivenRef.setValue(timestamp)
     otherUserLikesReceivedRef.setValue(timestamp)
 
-    // Check if the other user has swiped right on the current user
     otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
         val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
         val otherUserSwipedRight = otherUserSwipeData?.liked == true
 
         if (otherUserSwipedRight) {
-            // It's a match!
             val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
             val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
             currentUserMatchesRef.setValue(timestamp)
             otherUserMatchesRef.setValue(timestamp)
 
-            // Send match notifications to both users
             profileViewModel.sendMatchNotification(
                 senderId = currentUserId,
                 receiverId = otherUserId,
@@ -443,7 +429,6 @@ fun handleSwipeRight(
                 }
             )
         } else {
-            // The other user hasn't swiped right yet; send a like notification
             profileViewModel.sendLikeNotification(
                 senderId = currentUserId,
                 receiverId = otherUserId,
@@ -467,16 +452,16 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
 }
-// Haversine formula to calculate the distance between two geographic points
+
 fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
-    val earthRadius = 6371.0 // Radius of the Earth in kilometers
+    val earthRadius = 6371.0
     val dLat = Math.toRadians(lat2 - lat1)
     val dLon = Math.toRadians(lon2 - lon1)
     val a = sin(dLat / 2) * sin(dLat / 2) +
             cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
             sin(dLon / 2) * sin(dLon / 2)
     val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return (earthRadius * c).toFloat() // Distance in kilometers
+    return (earthRadius * c).toFloat()
 }
 
 suspend fun calculateDistance(
@@ -497,13 +482,10 @@ suspend fun calculateDistance(
     }
 }
 
-
-
 @Composable
 fun ProfilePosts(profile: Profile) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(text = "Posts by ${profile.name}", color = Color.White, fontSize = 16.sp)
-        // Dynamically fetch and display user's posts
     }
 }
 
@@ -512,10 +494,8 @@ fun ProfileScore(profile: Profile) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(text = "Rating: ${profile.averageRating}", color = Color.White, fontSize = 16.sp)
         Text(text = "Social Score: ${profile.vibepoints}", color = Color.White, fontSize = 16.sp)
-        // Add other metrics, like compatibility score
     }
 }
-
 
 suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? = suspendCancellableCoroutine { continuation ->
     geoFire.getLocation(userId, object : LocationCallback {
@@ -572,7 +552,6 @@ fun RatingBar(
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(4.dp))
         }
     }

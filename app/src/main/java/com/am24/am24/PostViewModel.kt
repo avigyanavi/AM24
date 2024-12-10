@@ -898,7 +898,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             "everyone" -> Log.d(TAG, "Filter Option: everyone (no filtering)")
             "matches" -> {
                 val beforeMatchFilter = filteredList.size
-                filteredList = filteredList.filter { post -> profiles[post.userId]?.relationship == "match" }
+                filteredList = filteredList.filter { post ->
+                    profiles[post.userId]?.relationship == "match"
+                }
                 Log.d(TAG, "After Matches Filter: ${filteredList.size} posts remain (filtered out ${beforeMatchFilter - filteredList.size})")
             }
             "my posts" -> {
@@ -939,8 +941,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     val profile = profiles[post.userId]
                     val averageRating = profile?.averageRating ?: 0.0
                     val ratingRange = when (filters.rating) {
-                        "0-1.9" -> 0.0..1.9
-                        "2-3.9" -> 2.0..3.9
+                        "0-2" -> 0.0..2.0
+                        "2-4" -> 2.0..4.0
                         "4-5" -> 4.0..5.0
                         else -> 0.0..5.0
                     }
@@ -1083,13 +1085,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
 
     private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
-        val matches = getMatches(currentUserIdFlow.value ?: "")
+        val currentUserId = currentUserIdFlow.value ?: ""
+        val matches = getMatches(currentUserId)
+
         val profiles = mutableMapOf<String, Profile>()
         val deferreds = userIds.map { userId ->
             async {
                 val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
                 val snapshot = userRef.get().await()
                 snapshot.getValue(Profile::class.java)?.let { profile ->
+                    // Set relationship to "match" if userId is in matches
                     profile.relationship = if (matches.contains(userId)) "match" else null
                     profiles[userId] = profile
                 }
@@ -1098,6 +1103,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         deferreds.awaitAll()
         profiles
     }
+
 
 
     private suspend fun getMatches(userId: String): List<String> {
