@@ -32,9 +32,9 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
-        BottomNavItem("Profile", Icons.Default.Person, "profile"),
+        BottomNavItem("Profile", Icons.Default.PersonOutline, "profile"),
         BottomNavItem("Leaderboard", Icons.Default.Leaderboard, "leaderboard"),
-        BottomNavItem("Dating", Icons.Default.HeartBroken, "dating"),
+        BottomNavItem("Dating", Icons.Default.FavoriteBorder, "dating"),
         BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
         BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
     )
@@ -187,7 +187,7 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Settings",
-                        tint = Color.Gray,
+                        tint = Color(0xFFFFA500),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -204,7 +204,7 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.FilterList,
                         contentDescription = "Filters",
-                        tint = if (currentDestination?.route?.startsWith("filters") == true) Color(0xFFFF4500) else Color.Gray, // Preserve tint color on selection
+                        tint = if (currentDestination?.route?.startsWith("filters") == true) Color(0xFFFF4500) else Color(0xFFFFA500), // Preserve tint color on selection
                         modifier = Modifier.size(18.dp)
                     )
                 }

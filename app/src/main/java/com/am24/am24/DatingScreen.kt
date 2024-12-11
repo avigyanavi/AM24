@@ -3,38 +3,28 @@
 package com.am24.am24
 
 import DatingViewModel
-import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -43,13 +33,9 @@ import com.firebase.geofire.GeoLocation
 import com.firebase.geofire.LocationCallback
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import kotlin.math.*
-import androidx.compose.material3.Card
 import androidx.compose.ui.res.painterResource
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -314,7 +300,6 @@ fun DatingProfileCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.BottomCenter)
-                            .background(Color.Black.copy(alpha = 0.6f))
                             .padding(16.dp)
                     ) {
                         Column {
@@ -325,16 +310,24 @@ fun DatingProfileCard(
                                 color = Color.White
                             )
                             Text(
-                                text = "Distance: ${userDistance.roundToInt()} km away",
+                                text = "${userDistance.roundToInt()} km away",
                                 fontSize = 16.sp,
                                 color = Color.White
                             )
                             if (profile.hometown.isNotEmpty()) {
-                                Text(
-                                    text = "From ${profile.hometown}",
-                                    fontSize = 16.sp,
-                                    color = Color.White
-                                )
+                                if(profile.locality != "") {
+                                    Text(
+                                        text = "${profile.locality}, ${profile.city}",
+                                        fontSize = 16.sp,
+                                        color = Color.White
+                                    )
+                                } else {
+                                    Text(
+                                        text = profile.city,
+                                        fontSize = 16.sp,
+                                        color = Color.White
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             RatingBar(rating = profile.averageRating, modifier = Modifier.fillMaxWidth())
@@ -366,7 +359,7 @@ fun DatingProfileCard(
                         photoUrls.forEachIndexed { index, _ ->
                             Box(
                                 modifier = Modifier
-                                    .size(8.dp)
+                                    .size(10.dp)
                                     .padding(horizontal = 2.dp)
                                     .clip(CircleShape)
                                     .background(if (index == currentPhotoIndex) Color.White else Color.Gray)

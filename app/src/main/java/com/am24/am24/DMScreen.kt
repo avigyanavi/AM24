@@ -1,5 +1,3 @@
-// DMScreen.kt
-
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.am24.am24
@@ -10,7 +8,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,14 +15,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
@@ -38,7 +32,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import kotlinx.coroutines.tasks.await
+
 @Composable
 fun DMScreen(navController: NavController) {
     DMScreenContent(navController = navController)
@@ -135,15 +129,14 @@ fun DMScreenContent(navController: NavController) {
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Instead of toast, navigate to peopleWhoLikedMe
             Box(
                 modifier = Modifier
                     .size(70.dp)
                     .clip(CircleShape)
                     .background(Color.Gray)
-                    .pointerInput(Unit) {
-                        detectTapGestures(onTap = {
-                            Toast.makeText(context, "Upgrade to premium to view who liked you!", Toast.LENGTH_SHORT).show()
-                        })
+                    .clickable {
+                        navController.navigate("peopleWhoLikedMe")
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -223,7 +216,6 @@ fun DMUserCard(
     lastMessageFromCurrentUser: Boolean,
     lastMessageRead: Boolean
 ) {
-    // Wrap the card in a Box to apply gradient border
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -248,12 +240,34 @@ fun DMUserCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                // Display username
                 Text(
                     text = profile.username,
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
+
+                // Calculate age
+                val age = profile.dob?.let { calculateAge(it) }
+                // Location info
+                val locality = profile.locality
+                val city = profile.city
+
+                if(profile.locality != "") {
+                    Text(
+                        text = "${locality}, ${profile.city}, Age: ${age ?: ""}",
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                } else {
+                    // Show username, location, age
+                    Text(
+                        text = "${city ?: ""}, Age: ${age ?: ""}",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                }
 
                 val messageText = when {
                     lastMessage.isEmpty() -> "No messages yet"
@@ -263,12 +277,12 @@ fun DMUserCard(
 
                 // Determine ticks
                 val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
-                    if (lastMessageRead) " ✔✔" else " ✔"
+                    if (lastMessageRead) " ✔✔ Seen" else " ✔ Delivered"
                 } else {
                     ""
                 }
 
-                // Apply blue color to ticks if present
+                // Apply color to ticks
                 val fullText = messageText + ticks
                 val styledText = buildAnnotatedString {
                     val tickIndex = fullText.indexOf('✔')
@@ -291,7 +305,6 @@ fun DMUserCard(
         }
     }
 }
-
 
 private fun checkNonInitiatedConversations(
     matchedUsers: List<Profile>,
