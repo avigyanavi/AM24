@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.floor
 
 @Composable
 fun ProfileScreen(
@@ -497,20 +498,77 @@ fun Chip(text: String, color: Color, textColor: Color) {
 
 @Composable
 fun RatingBar(rating: Double) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        repeat(5) { index ->
+    val maxStars = 5
+    val starSize = 20.dp
+    val fullStars = kotlin.math.floor(rating).toInt()
+    val fraction = rating - fullStars // fractional part (0.0 to <1.0)
+    val orange = Color(0xFFFF4500)
+    val backgroundColor = Color.Black // match your background color
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // Draw full stars
+        repeat(fullStars) {
             Icon(
-                imageVector = if (index < rating.toInt()) Icons.Default.Star else Icons.Default.StarBorder,
+                imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = Color(0xFFFF4500)
+                tint = orange,
+                modifier = Modifier.size(starSize)
             )
         }
+
+        // Draw partially filled star if fraction > 0
+        if (fraction > 0) {
+            // We'll draw one star border underneath, then a full star,
+            // then mask part of it with a background rectangle to simulate partial filling.
+            Box(modifier = Modifier.size(starSize)) {
+                // Draw the star border as the base
+                Icon(
+                    imageVector = Icons.Default.StarBorder,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Draw the full star on top
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Cover the unfilled fraction on the right with a background-colored box.
+                // fraction = 0.5 means half star is filled, so half is uncovered and half is masked.
+                val fractionUnfilled = 1 - fraction
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(starSize * fractionUnfilled.toFloat()) // cover the unfilled portion
+                        .align(Alignment.CenterEnd)
+                        .background(backgroundColor) // mask it with the background color
+                )
+            }
+        }
+
+        // Calculate how many stars have been used
+        val starsUsed = fullStars + if (fraction > 0) 1 else 0
+        val remaining = maxStars - starsUsed
+
+//        // Draw remaining empty stars
+//        repeat(remaining) {
+//            Icon(
+//                imageVector = Icons.Default.StarBorder,
+//                contentDescription = null,
+//                tint = orange,
+//                modifier = Modifier.size(starSize)
+//            )
+//        }
+
         Spacer(modifier = Modifier.width(4.dp))
+        // Display rating with two decimal places
         Text(
-            text = String.format("%.1f", rating),
-            color = Color(0xFFFF4500),
+            text = String.format("%.2f", rating),
+            color = orange,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
         )
@@ -518,12 +576,13 @@ fun RatingBar(rating: Double) {
 }
 
 
+
 fun getLevelBorderColor(rating: Double): Color {
     return when {
-        rating in 0.0..1.0 -> Color(0xFF000000)    // 0 to 1 Rating
-        rating in 1.1..2.1 -> Color(0xFF444444)    // 1.1 to 2.0 Rating
-        rating in 2.1..3.6 -> Color(0xFFBBBBBB)    // 2.1 to 3.0 Rating
-        rating in 3.6..4.7 -> Color(0xFFFFA500)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
+        rating in 0.0..1.0 -> Color(0xFF444444)    // 0 to 1 Rating
+        rating in 1.1..2.1 -> Color(0xFF555555)    // 1.1 to 2.0 Rating
+        rating in 2.1..3.6 -> Color(0xFF886633)    // 2.1 to 3.0 Rating
+        rating in 3.6..4.7 -> Color(0xFFAA6633)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
         rating in 4.7..5.0 -> Color(0xFFFF4500)    // 4.1 to 5.0 Rating
         else -> Color.Gray                         // Default color if rating is out of range
     }

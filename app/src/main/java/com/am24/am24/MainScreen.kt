@@ -202,7 +202,7 @@ fun TopNavBar(
                     }
                 }) {
                     Icon(
-                        imageVector = Icons.Default.FilterList,
+                        imageVector = Icons.Default.Tornado,
                         contentDescription = "Filters",
                         tint = if (currentDestination?.route?.startsWith("filters") == true) Color(0xFFFF4500) else Color(0xFFFFA500), // Preserve tint color on selection
                         modifier = Modifier.size(18.dp)

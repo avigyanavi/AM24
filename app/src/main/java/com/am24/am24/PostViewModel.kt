@@ -1104,6 +1104,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         profiles
     }
 
+    fun refreshUserProfiles() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentProfiles = _posts.value
+            val userIds = currentProfiles.map { it.userId }.toSet()
+            val refreshedProfiles = fetchUserProfiles(userIds) // same method used internally
+            _userProfiles.value = refreshedProfiles
+        }
+    }
 
 
     private suspend fun getMatches(userId: String): List<String> {

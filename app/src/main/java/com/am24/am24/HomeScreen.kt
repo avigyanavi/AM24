@@ -369,13 +369,22 @@ fun FeedSection(
     var isRefreshing by remember { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
 
-    // Launching coroutine for swipe refresh
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
-            delay(1500) // Simulate refresh time
+            val currentUser = userId
+            if (currentUser != null) {
+                // Re-load feed filters from Firebase
+                postViewModel.loadFiltersFromFirebase(currentUser)
+
+                // Re-fetch user profiles (a new function you'll write)
+                postViewModel.refreshUserProfiles()
+            }
+
+            delay(500)
             isRefreshing = false
         }
     }
+
 
     SwipeRefresh(
         state = swipeRefreshState,
@@ -659,7 +668,7 @@ fun FeedItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clickable { onUserClick() }
-                    .padding(bottom = dynamicPadding)
+                    .padding(start = 8.dp, bottom = dynamicPadding)
             ) {
                 // User profile picture
                 if (userProfile?.profilepicUrl != null) {
@@ -744,7 +753,7 @@ fun FeedItem(
                     lineHeight = 20.sp,
                     overflow = TextOverflow.Clip,
                     textAlign = TextAlign.Justify,
-                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp)
                 )
 
                 // "See more" Text
@@ -755,7 +764,7 @@ fun FeedItem(
                         fontSize = 20.sp,
                         modifier = Modifier
                             .clickable { isExpanded = true }
-                            .padding(vertical = 4.dp)
+                            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
                     )
                 }
             }
@@ -838,7 +847,9 @@ fun FeedItem(
             // Hashtags Below Main Content
             if (post.userTags.isNotEmpty()) {
                 FlowRow(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp) // Add horizontal padding
                 ) {
                     post.userTags.forEach { tag ->
                         Box(
@@ -867,7 +878,8 @@ fun FeedItem(
 
             Spacer(modifier = Modifier.width(4.dp))
             Row(
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.padding(horizontal = 8.dp) // Add horizontal padding
             ) {
                 Text(
                     text = formatRelativeTime(post.getTimestampLong()),
@@ -959,9 +971,12 @@ fun FeedItem(
                 Text(
                     text = "View Comments (${post.comments.size})",
                     color = Color(0xFFFF4500),
-                    modifier = Modifier.clickable {
+                    modifier = Modifier
+                        .clickable {
                         showCommentsDialog = true
-                    },
+                    }
+                        .padding(start = 8.dp) // Add start padding
+                    ,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
