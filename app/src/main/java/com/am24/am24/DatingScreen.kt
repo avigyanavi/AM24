@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -38,6 +39,7 @@ import kotlin.math.*
 import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -63,16 +65,19 @@ fun DatingScreen(
 
     // State for search query
     var searchQuery by remember { mutableStateOf(initialQuery) }
+    var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
 
-    // Apply search query to filteredProfiles
-    val displayedProfiles = remember(filteredProfiles, searchQuery) {
-        if (searchQuery.isNotBlank()) {
-            filteredProfiles.filter {
-                it.name.contains(searchQuery, ignoreCase = true) ||
-                        it.username.contains(searchQuery, ignoreCase = true)
-            }
-        } else {
-            filteredProfiles
+    // Fetch excluded users (matches and recent likes)
+    LaunchedEffect(currentUserId) {
+        excludedUserIds = fetchExcludedUsers(currentUserId)
+    }
+
+    // Apply search query and exclusions to filteredProfiles
+    val displayedProfiles = remember(filteredProfiles, searchQuery, excludedUserIds) {
+        filteredProfiles.filter { profile ->
+            (profile.name.contains(searchQuery, ignoreCase = true) ||
+                    profile.username.contains(searchQuery, ignoreCase = true)) &&
+                    profile.userId !in excludedUserIds
         }
     }
 
@@ -130,6 +135,36 @@ fun DatingScreen(
         }
     }
 }
+
+suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
+    val database = FirebaseDatabase.getInstance()
+    val matchesRef = database.getReference("matches/$currentUserId")
+    val likesRef = database.getReference("likesGiven/$currentUserId")
+
+    val oneWeekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
+
+    return withContext(Dispatchers.IO) {
+        val excludedIds = mutableSetOf<String>()
+
+        // Fetch matched users
+        matchesRef.get().addOnSuccessListener { snapshot ->
+            snapshot.children.forEach { excludedIds.add(it.key!!) }
+        }.await()
+
+        // Fetch recently liked users
+        likesRef.get().addOnSuccessListener { snapshot ->
+            snapshot.children.forEach { likeSnapshot ->
+                val timestamp = likeSnapshot.getValue(Long::class.java) ?: 0L
+                if (timestamp >= oneWeekAgo) {
+                    excludedIds.add(likeSnapshot.key!!)
+                }
+            }
+        }.await()
+
+        excludedIds
+    }
+}
+
 
 @Composable
 fun DatingScreenContent(
@@ -330,7 +365,7 @@ fun DatingProfileCard(
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            RatingBar(rating = profile.averageRating, modifier = Modifier.fillMaxWidth())
+                            RatingBar(rating = profile.averageRating,ratingCount = profile.numberOfRatings)
                             Text(
                                 text = "Vibe Score: ${profile.vibepoints}",
                                 fontSize = 14.sp,
@@ -485,8 +520,7 @@ fun ProfilePosts(profile: Profile) {
 @Composable
 fun ProfileScore(profile: Profile) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = "Rating: ${profile.averageRating}", color = Color.White, fontSize = 16.sp)
-        Text(text = "Social Score: ${profile.vibepoints}", color = Color.White, fontSize = 16.sp)
+        Text(text = "Rating: ${profile.averageRating} (${profile.numberOfRatings})", color = Color.White, fontSize = 16.sp)
     }
 }
 
@@ -500,52 +534,4 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? = su
             continuation.resumeWithException(databaseError.toException())
         }
     })
-}
-
-@Composable
-fun RatingBar(
-    rating: Double,
-    modifier: Modifier = Modifier,
-    stars: Int = 5,
-    starSize: Dp = 20.dp,
-    starColor: Color = Color(0xFFFFA500),
-    starBackgroundColor: Color = Color.Black
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        for (i in 1..stars) {
-            val filledPortion = when {
-                i <= rating -> 1f
-                i - rating < 1 -> (rating % 1).toFloat()
-                else -> 0f
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(starSize)
-                    .clip(CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Star background",
-                    tint = starBackgroundColor,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                if (filledPortion > 0f) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Star foreground",
-                        tint = starColor,
-                        modifier = Modifier
-                            .fillMaxSize(filledPortion)
-                            .align(Alignment.CenterStart)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-        }
-    }
 }

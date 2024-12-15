@@ -883,60 +883,48 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     ): List<Post> {
         var filteredList = postsList
 
-        Log.d(TAG, "Initial Post Count: ${filteredList.size}")
-        Log.d(TAG, "Initial Profiles Count: ${profiles.size}")
-
+        // Special case: "My Posts" bypasses all other filters
+        if (filterOption == "my posts" && currentUserId != null) {
+            filteredList = filteredList.filter { post -> post.userId == currentUserId }
+            Log.d(TAG, "Applying 'My Posts' filter: Showing only posts by user $currentUserId")
+            return filteredList // Early return ensures no further filters are applied
+        }
         // Apply Voice Only filter
         if (isVoiceOnly) {
-            val beforeVoiceFilter = filteredList.size
             filteredList = filteredList.filter { post -> post.mediaType == "voice" }
-            Log.d(TAG, "After Voice Only Filter: ${filteredList.size} posts remain (filtered out ${beforeVoiceFilter - filteredList.size})")
         }
 
         // Apply HomeScreen filters
         when (filterOption) {
             "everyone" -> Log.d(TAG, "Filter Option: everyone (no filtering)")
             "matches" -> {
-                val beforeMatchFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     profiles[post.userId]?.relationship == "match"
                 }
-                Log.d(TAG, "After Matches Filter: ${filteredList.size} posts remain (filtered out ${beforeMatchFilter - filteredList.size})")
-            }
-            "my posts" -> {
-                val beforeMyPostsFilter = filteredList.size
-                filteredList = filteredList.filter { post -> post.userId == currentUserId }
-                Log.d(TAG, "After My Posts Filter: ${filteredList.size} posts remain (filtered out ${beforeMyPostsFilter - filteredList.size})")
             }
         }
 
         // Apply Feed Filters
         feedFilters?.let { filters ->
-            Log.d(TAG, "Applying Feed Filters: $filters")
 
             // Gender filter
             if (filters.gender.isNotBlank()) {
-                val beforeGenderFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profileGender = profiles[post.userId]?.gender ?: ""
                     profileGender.equals(filters.gender, ignoreCase = true)
                 }
-                Log.d(TAG, "After Gender Filter: ${filteredList.size} posts remain (filtered out ${beforeGenderFilter - filteredList.size})")
             }
 
             // Age range filter
             if (filters.ageStart != 0 && filters.ageEnd != 0) {
-                val beforeAgeFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val age = profiles[post.userId]?.dob?.let { calculateAge(it) }
                     age != null && (age in filters.ageStart..filters.ageEnd)
                 }
-                Log.d(TAG, "After Age Range Filter: ${filteredList.size} posts remain (filtered out ${beforeAgeFilter - filteredList.size})")
             }
 
             // Rating filter
             if (filters.rating.isNotBlank()) {
-                val beforeRatingFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profile = profiles[post.userId]
                     val averageRating = profile?.averageRating ?: 0.0
@@ -948,67 +936,54 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     averageRating in ratingRange
                 }
-                Log.d(TAG, "After Rating Filter: ${filteredList.size} posts remain (filtered out ${beforeRatingFilter - filteredList.size})")
             }
 
             // City filter
             if (filters.city.isNotBlank() && filters.city != "All") {
-                val beforeCityFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profileCity = profiles[post.userId]?.city ?: ""
                     profileCity.equals(filters.city, ignoreCase = true)
                 }
-                Log.d(TAG, "After City Filter: ${filteredList.size} posts remain (filtered out ${beforeCityFilter - filteredList.size})")
             }
 
             // Localities filter
             if (filters.localities.isNotEmpty()) {
-                val beforeLocalityFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profileLocality = profiles[post.userId]?.locality ?: ""
                     filters.localities.contains(profileLocality)
                 }
-                Log.d(TAG, "After Localities Filter: ${filteredList.size} posts remain (filtered out ${beforeLocalityFilter - filteredList.size})")
             }
 
             // High School filter
             if (filters.highSchool.isNotBlank()) {
-                val beforeHighSchoolFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profileHighSchool = profiles[post.userId]?.highSchool ?: ""
                     profileHighSchool.equals(filters.highSchool, ignoreCase = true)
                 }
-                Log.d(TAG, "After High School Filter: ${filteredList.size} posts remain (filtered out ${beforeHighSchoolFilter - filteredList.size})")
             }
 
             // College filter
             if (filters.college.isNotBlank()) {
-                val beforeCollegeFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profileCollege = profiles[post.userId]?.college ?: ""
                     profileCollege.equals(filters.college, ignoreCase = true)
                 }
-                Log.d(TAG, "After College Filter: ${filteredList.size} posts remain (filtered out ${beforeCollegeFilter - filteredList.size})")
             }
 
             // PostGrad filter
             if (filters.postGrad.isNotBlank()) {
-                val beforePostGradFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profilePostGrad = profiles[post.userId]?.postGraduation ?: ""
                     profilePostGrad.equals(filters.postGrad, ignoreCase = true)
                 }
-                Log.d(TAG, "After PostGrad Filter: ${filteredList.size} posts remain (filtered out ${beforePostGradFilter - filteredList.size})")
             }
 
             // Work filter
             if (filters.work.isNotBlank()) {
-                val beforeWorkFilter = filteredList.size
                 filteredList = filteredList.filter { post ->
                     val profileWork = profiles[post.userId]?.work ?: ""
                     profileWork.equals(filters.work, ignoreCase = true)
                 }
-                Log.d(TAG, "After Work Filter: ${filteredList.size} posts remain (filtered out ${beforeWorkFilter - filteredList.size})")
             }
 
             // Additional filters can be added here
@@ -1016,12 +991,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
         // Apply search query
         if (searchQuery.isNotBlank()) {
-            val beforeSearchFilter = filteredList.size
             filteredList = filteredList.filter { post ->
                 post.contentText?.contains(searchQuery, ignoreCase = true) == true ||
                         post.userTags.any { tag -> tag.contains(searchQuery, ignoreCase = true) }
             }
-            Log.d(TAG, "After Search Filter: ${filteredList.size} posts remain (filtered out ${beforeSearchFilter - filteredList.size})")
         }
 
         // Sorting with a secondary key (timestamp) to stabilize sort order
@@ -1047,18 +1020,15 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         userRef.get().addOnSuccessListener { snapshot ->
             val feedFilters = snapshot.getValue(FeedFilterSettings::class.java)
             if (feedFilters != null) {
-                Log.d(TAG, "Loaded Feed Filters: $feedFilters")
                 // Use setFeedFilters to update _feedFilters
                 setFeedFilters(_feedFilters.value.copy(feedFilters = feedFilters))
             } else {
-                Log.d(TAG, "No Feed Filters found for user.")
                 // Optionally, set default feedFilters
                 setFeedFilters(_feedFilters.value.copy(feedFilters = FeedFilterSettings()))
             }
             // Set filtersLoaded to true here
             _filtersLoaded.value = true
         }.addOnFailureListener {
-            Log.e(TAG, "Failed to load feed filters: ${it.message}")
             // Even if there's an error, set filtersLoaded to true to proceed
             _filtersLoaded.value = true
         }
@@ -1070,8 +1040,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun setFilterOption(newOption: String) {
         Log.d(TAG, "Filter Option Changed to: $newOption")
+
+        // Update filter settings
         _filterSettings.value = _filterSettings.value.copy(filterOption = newOption)
+
+        // Reset feed filters when switching filters (except for "my posts")
+        if (newOption != "my posts") {
+            setFeedFilters(FilterSettings())
+        }
     }
+
 
     fun setSearchQuery(newQuery: String) {
         Log.d(TAG, "Search Query Changed to: $newQuery")

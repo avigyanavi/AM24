@@ -172,7 +172,7 @@ fun ProfileContent(
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                RatingBar(rating = profile.averageRating, modifier = Modifier.fillMaxWidth())
+                RatingBar(rating = profile.averageRating,ratingCount = profile.numberOfRatings)
                 Text(
                     text = "Vibe Score: ${profile.vibepoints}",
                     fontSize = 14.sp,
