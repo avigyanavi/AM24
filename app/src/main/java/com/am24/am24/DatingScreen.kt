@@ -93,18 +93,18 @@ fun DatingScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(top = 0.dp, bottom = 10.dp, start = 10.dp, end = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Search", color = Color.White) },
+                    label = { Text("Search", color = Color.Gray) },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = Color(0xFFFF4500),
                         unfocusedBorderColor = Color.Gray,
                         cursorColor = Color(0xFFFF4500),
-                        focusedLabelColor = Color.White,
+                        focusedLabelColor = Color.Gray,
                         textColor = Color.White
                     ),
                     modifier = Modifier.weight(1f)
@@ -143,7 +143,7 @@ fun DatingScreenContent(
 ) {
     var currentProfileIndex by remember { mutableStateOf(0) }
 
-    Column(modifier = modifier.fillMaxSize().background(Color.Black)) {
+    Column(modifier = modifier.fillMaxSize().background(Color.Black).padding(5.dp)) {
         if (profiles.isEmpty()) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Text(text = "No more profiles available.", color = Color.White, fontSize = 18.sp)
@@ -221,7 +221,7 @@ fun DatingProfileCard(
             .background(Color.Black)
     ) {
         if (isDetailedView) {
-            ProfileDetailsTabs(profile = profile)
+            ProfileDetailsTabs(profile = profile, onCloseClick = { isDetailedView = false })
         } else {
             Box(
                 modifier = Modifier

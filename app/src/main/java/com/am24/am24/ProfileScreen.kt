@@ -58,7 +58,7 @@ fun ProfileScreen(
 
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFFFF4500))
+            CircularProgressIndicator(color = Color(0xFFFF6F00))
         }
     } else if (userProfile == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -71,7 +71,8 @@ fun ProfileScreen(
     } else {
         if (isDetailedView) {
             ProfileDetailsTabs(
-                profile = userProfile!!
+                profile = userProfile!!,
+                onCloseClick = { isDetailedView = false }
             )
         } else {
             ProfileContent(
@@ -202,8 +203,8 @@ fun ProfileContent(
 }
 
 @Composable
-fun ProfileDetailsTabs(profile: Profile) {
-    val tabTitles = listOf("Profile", "Posts", "Saved Posts")
+fun ProfileDetailsTabs(profile: Profile, onCloseClick: () -> Unit) {
+    val tabTitles = listOf("Profile", "Posts", "Saved")
     var selectedTabIndex by remember { mutableStateOf(0) }
 
     Column(
@@ -211,13 +212,39 @@ fun ProfileDetailsTabs(profile: Profile) {
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Tabs
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            tabTitles.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(title, color = Color.White) }
+        // Tab Row with Close Button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                modifier = Modifier.weight(1f)
+            ) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title, color = Color.White) }
+                    )
+                }
+            }
+
+            // Close Button
+            IconButton(
+                onClick = { onCloseClick() }, // Calls the back action
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color(0xFFFF6F00)
                 )
             }
         }
@@ -281,7 +308,7 @@ fun SectionHeader(title: String, icon: ImageVector, onClick: () -> Unit) {
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = Color(0xFFFF4500),
+            tint = Color(0xFFFF6F00),
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -320,7 +347,7 @@ fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color(0xFFFF4500),
+                tint = Color(0xFFFF6F00),
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -328,7 +355,7 @@ fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
                 Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Text(
                     text = value,
-                    color = Color(0xFFFF4500),
+                    color = Color(0xFFFF6F00),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Normal
                 )
@@ -406,7 +433,7 @@ fun InterestsSection(profile: Profile) {
             profile.interests.forEach { interest ->
                 Chip(
                     text = "${interest.emoji} ${interest.name}",
-                    color = Color(0xFFFF4500),
+                    color = Color(0xFFFF6F00),
                     textColor = Color.White
                 )
             }
@@ -422,7 +449,7 @@ fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = label, tint = Color(0xFFFF4500))
+        Icon(imageVector = icon, contentDescription = label, tint = Color(0xFFFF6F00))
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
@@ -432,8 +459,8 @@ fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
                 valueRange = 0f..10f,
                 steps = 9,
                 colors = SliderDefaults.colors(
-                    thumbColor = Color(0xFFFF4500),
-                    activeTrackColor = Color(0xFFFF4500)
+                    thumbColor = Color(0xFFFF6F00),
+                    activeTrackColor = Color(0xFFFF6F00)
                 )
             )
         }
@@ -477,32 +504,13 @@ fun Chip(text: String, color: Color, textColor: Color) {
     }
 }
 
-
-//@Composable
-//fun ProfileText(label: String, value: String) {
-//    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-//        Text(
-//            text = "$label:",
-//            fontSize = 16.sp,
-//            color = Color.White,
-//            fontWeight = FontWeight.Normal
-//        )
-//        Text(
-//            text = value,
-//            fontSize = 24.sp,
-//            color = Color(0xFFFF4500),
-//            modifier = Modifier.padding(start = 15.dp)
-//        )
-//    }
-//}
-
 @Composable
-fun RatingBar(rating: Double) {
+fun RatingBar(rating: Double, ratingCount: Int) {
     val maxStars = 5
     val starSize = 20.dp
     val fullStars = kotlin.math.floor(rating).toInt()
     val fraction = rating - fullStars // fractional part (0.0 to <1.0)
-    val orange = Color(0xFFFF4500)
+    val orange = Color(0xFFFF6F00)
     val backgroundColor = Color.Black // match your background color
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -518,10 +526,8 @@ fun RatingBar(rating: Double) {
 
         // Draw partially filled star if fraction > 0
         if (fraction > 0) {
-            // We'll draw one star border underneath, then a full star,
-            // then mask part of it with a background rectangle to simulate partial filling.
             Box(modifier = Modifier.size(starSize)) {
-                // Draw the star border as the base
+                // Draw star border
                 Icon(
                     imageVector = Icons.Default.StarBorder,
                     contentDescription = null,
@@ -529,7 +535,7 @@ fun RatingBar(rating: Double) {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Draw the full star on top
+                // Draw full star
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
@@ -537,37 +543,23 @@ fun RatingBar(rating: Double) {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Cover the unfilled fraction on the right with a background-colored box.
-                // fraction = 0.5 means half star is filled, so half is uncovered and half is masked.
+                // Mask unfilled portion
                 val fractionUnfilled = 1 - fraction
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(starSize * fractionUnfilled.toFloat()) // cover the unfilled portion
+                        .width(starSize * fractionUnfilled.toFloat())
                         .align(Alignment.CenterEnd)
-                        .background(backgroundColor) // mask it with the background color
+                        .background(backgroundColor)
                 )
             }
         }
 
-        // Calculate how many stars have been used
-        val starsUsed = fullStars + if (fraction > 0) 1 else 0
-        val remaining = maxStars - starsUsed
-
-//        // Draw remaining empty stars
-//        repeat(remaining) {
-//            Icon(
-//                imageVector = Icons.Default.StarBorder,
-//                contentDescription = null,
-//                tint = orange,
-//                modifier = Modifier.size(starSize)
-//            )
-//        }
-
         Spacer(modifier = Modifier.width(4.dp))
-        // Display rating with two decimal places
+
+        // Display rating with two decimal places and the count in brackets
         Text(
-            text = String.format("%.2f", rating),
+            text = String.format("%.2f (%d)", rating, ratingCount), // Add count
             color = orange,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
@@ -577,13 +569,14 @@ fun RatingBar(rating: Double) {
 
 
 
+
 fun getLevelBorderColor(rating: Double): Color {
     return when {
         rating in 0.0..1.0 -> Color(0xFF444444)    // 0 to 1 Rating
         rating in 1.1..2.1 -> Color(0xFF555555)    // 1.1 to 2.0 Rating
         rating in 2.1..3.6 -> Color(0xFF886633)    // 2.1 to 3.0 Rating
         rating in 3.6..4.7 -> Color(0xFFAA6633)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
-        rating in 4.7..5.0 -> Color(0xFFFF4500)    // 4.1 to 5.0 Rating
+        rating in 4.7..5.0 -> Color(0xFFFF6F00)    // 4.1 to 5.0 Rating
         else -> Color.Gray                         // Default color if rating is out of range
     }
 }

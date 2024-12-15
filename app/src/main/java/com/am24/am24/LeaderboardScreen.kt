@@ -19,7 +19,7 @@ fun LeaderboardScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Leaderboard", color = Color.White) },
+                title = { Text("", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(

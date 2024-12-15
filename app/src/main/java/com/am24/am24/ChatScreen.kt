@@ -789,6 +789,7 @@ fun updateUserRating(
 ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val userRatingRef = ratingsRef.child(userId)
+
     userRatingRef.get().addOnSuccessListener { snapshot ->
         val ratingsMap = if (snapshot.exists() && snapshot.child("ratings").value is Map<*, *>) {
             snapshot.child("ratings")
@@ -797,25 +798,84 @@ fun updateUserRating(
             mutableMapOf()
         }
 
+        // Check if the user has already rated this profile
+        val isNewRating = !ratingsMap.containsKey(currentUserId)
+
+        // Update the user's rating
         ratingsMap[currentUserId] = rating
+
+        // Calculate the new average rating
         val averageRating = if (ratingsMap.isNotEmpty()) ratingsMap.values.average() else 0.0
 
+        // Prepare updates for the "ratings" and "averageRating" fields
         val updates = mapOf(
             "ratings" to ratingsMap,
             "averageRating" to averageRating
         )
+
         userRatingRef.updateChildren(updates).addOnSuccessListener {
-            usersRef.child(userId).child("averageRating").setValue(averageRating)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "Rating updated!", Toast.LENGTH_SHORT).show()
-                }.addOnFailureListener {
-                    Toast.makeText(context, "Failed to update average rating in profile.", Toast.LENGTH_SHORT).show()
-                }
+            // Update the user's profile with the new average rating
+            usersRef.child(userId).child("averageRating").setValue(averageRating).addOnSuccessListener {
+                Toast.makeText(context, "Rating updated!", Toast.LENGTH_SHORT).show()
+            }.addOnFailureListener {
+                Toast.makeText(context, "Failed to update average rating in profile.", Toast.LENGTH_SHORT).show()
+            }
+
+            // Increment numberOfRatings only if this is a new rating
+            if (isNewRating) {
+                usersRef.child(userId).child("numberOfRatings").runTransaction(object : Transaction.Handler {
+                    override fun doTransaction(mutableData: MutableData): Transaction.Result {
+                        val currentCount = mutableData.getValue(Int::class.java) ?: 0
+                        mutableData.value = currentCount + 1
+                        return Transaction.success(mutableData)
+                    }
+
+                    override fun onComplete(
+                        error: DatabaseError?,
+                        committed: Boolean,
+                        currentData: DataSnapshot?
+                    ) {
+                        if (committed) {
+                            Log.d("Rating", "numberOfRatings incremented successfully.")
+                        } else {
+                            Log.e("Rating", "Failed to increment numberOfRatings: ${error?.message}")
+                        }
+                    }
+                })
+            }
         }.addOnFailureListener {
             Toast.makeText(context, "Failed to update ratings.", Toast.LENGTH_SHORT).show()
         }
     }.addOnFailureListener {
         Toast.makeText(context, "Failed to fetch current ratings.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun resetUserRatings(
+    ratingsRef: DatabaseReference,
+    usersRef: DatabaseReference,
+    userId: String,
+    context: android.content.Context,
+    onResetComplete: () -> Unit // Callback to notify the UI
+) {
+    val userRatingRef = ratingsRef.child(userId)
+
+    // Reset ratings in the "ratings" node
+    userRatingRef.child("ratings").removeValue().addOnSuccessListener {
+        // Reset averageRating
+        userRatingRef.child("averageRating").setValue(0.0).addOnSuccessListener {
+            // Reset numberOfRatings
+            usersRef.child(userId).child("numberOfRatings").setValue(0).addOnSuccessListener {
+                Toast.makeText(context, "Ratings reset successfully!", Toast.LENGTH_SHORT).show()
+                onResetComplete() // Notify the UI
+            }.addOnFailureListener {
+                Toast.makeText(context, "Failed to reset numberOfRatings.", Toast.LENGTH_SHORT).show()
+            }
+        }.addOnFailureListener {
+            Toast.makeText(context, "Failed to reset averageRating.", Toast.LENGTH_SHORT).show()
+        }
+    }.addOnFailureListener {
+        Toast.makeText(context, "Failed to reset ratings.", Toast.LENGTH_SHORT).show()
     }
 }
 

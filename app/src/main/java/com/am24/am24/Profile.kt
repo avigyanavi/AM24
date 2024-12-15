@@ -147,7 +147,8 @@ data class Message(
     val timestamp: Long = System.currentTimeMillis(),
     val read: Boolean = false,
     val mediaType: String? = null,
-    val mediaUrl: String? = null
+    val mediaUrl: String? = null,
+    val isOnline: Boolean = false,
 )
 
 data class Lifestyle(

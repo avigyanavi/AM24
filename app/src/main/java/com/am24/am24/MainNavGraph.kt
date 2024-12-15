@@ -82,18 +82,6 @@ fun MainNavGraph(
                 profileViewModel = profileViewModel // Pass profileViewModel here
             )
         }
-//        composable("profile/{otherUserId}") { backStackEntry ->
-//            val otherUserId = backStackEntry.arguments?.getString("otherUserId")
-//            if (otherUserId != null && currentUserId != null) {
-//                OtherUserProfileScreen(
-//                    navController = navController,
-//                    otherUserId = otherUserId,
-//                    currentUserId = currentUserId,
-//                    currentUserName = currentUserName,
-//                    geoFire = geoFire // Pass the geoFire instance here
-//                )
-//            }
-//        }
         composable("dating_screen?initialQuery={initialQuery}") { backStackEntry ->
             val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
             DatingScreen(
@@ -105,6 +93,13 @@ fun MainNavGraph(
         composable("dating") {
             // Navigate to DatingScreen without startUserId
             DatingScreen(navController = navController, geoFire = geoFire)
+        }
+        composable("kupidxhub") {
+            KupidxHubScreen(navController = navController)
+        }
+        composable("ephemeral_chat/{userId}") { backStackEntry ->
+            val otherUserId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            EphemeralChatScreen(navController, otherUserId)
         }
         composable("leaderboard") {
             LeaderboardScreen(navController = navController)

@@ -23,8 +23,10 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -33,8 +35,8 @@ import androidx.compose.ui.unit.sp
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem("Profile", Icons.Default.PersonOutline, "profile"),
-        BottomNavItem("Leaderboard", Icons.Default.Leaderboard, "leaderboard"),
-        BottomNavItem("Dating", Icons.Default.FavoriteBorder, "dating"),
+        BottomNavItem("Compare", Icons.Default.Leaderboard, "leaderboard"),
+        BottomNavItem("Match", Icons.Default.FavoriteBorder, "dating"),
         BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
         BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
     )
@@ -87,21 +89,11 @@ fun TopNavBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val isNotificationsSelected = currentDestination?.route == "notifications"
-    val isPeopleWhoLikeMeSelected = currentDestination?.route == "peopleWhoLikedMe"
-    val isProfileScreen = currentDestination?.route == "profile"
+    val currentRoute = currentDestination?.route
 
-    val title = when (currentDestination?.route) {
-        "dms" -> "Chat"
-        "home" -> "KupidX"
-        "profile" -> "Profile"
-        "dating" -> "Dating"
-        "leaderboard" -> "Rankings"
-        "peopleWhoLikedMe" -> "People Who Like Me"
-        "notifications" -> "Notifications"
-        "filters?initialTab={initialTab}" -> "Filters"
-        else -> ""
-    }
+    val isNotificationsSelected = currentRoute == "notifications"
+    val isUserSettings = currentRoute == "settings"
+    val isProfileScreen = currentRoute == "profile"
 
     val unreadCount = remember { mutableStateOf(0) }
 
@@ -130,24 +122,24 @@ fun TopNavBar(
     }
 
     TopAppBar(
-        title = { Text(text = title, color = Color(0xFFFF4500), fontSize = 18.sp) }, // Title in light orange
+        title = {
+            // No textual title
+        },
         navigationIcon = {
-            IconButton(onClick = {
-                if (isPeopleWhoLikeMeSelected) {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("peopleWhoLikedMe")
-                }
-            }) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "People Who Like Me",
-                    tint = if (isPeopleWhoLikeMeSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
-                    modifier = Modifier.size(18.dp)
+            IconButton(
+                onClick = { navController.navigate("kupidxhub") },
+                modifier = Modifier.size(64.dp) // Increase size of the IconButton
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.kupidx_logo),
+                    contentDescription = "KupidX Logo",
+                    modifier = Modifier.size(56.dp) // Increase the image size
                 )
             }
-        },
+        }
+        ,
         actions = {
+            // Notifications Icon
             IconButton(onClick = {
                 if (isNotificationsSelected) {
                     navController.popBackStack()
@@ -175,52 +167,57 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications",
-                        tint = if (isNotificationsSelected) Color(0xFFFF4500) else Color.Gray, // Button in dark orange
-                        modifier = Modifier.size(18.dp)
+                        tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.Gray,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
+
+            // User Settings Icon (only on Profile screen)
             if (isProfileScreen) {
                 IconButton(onClick = {
-                    navController.navigate("settings")
+                    navController.navigate("settings") // New route for user settings
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = Color(0xFFFFA500),
-                        modifier = Modifier.size(18.dp)
+                        imageVector = Icons.Default.ManageAccounts, // Represents user account/settings
+                        contentDescription = "User Settings",
+                        tint = if (isUserSettings) Color(0xFFFF6F00) else Color.Gray,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             } else {
-                IconButton(onClick = {
-                    val currentRoute = navController.currentBackStackEntry?.destination?.route
-                    val initialTab = if (currentRoute == "home") 1 else 0 // 1 for Feed, 0 for Dating
-                    if (currentDestination?.route?.startsWith("filters") == true) {
-                        navController.popBackStack() // Return to previous screen
-                    } else {
-                        navController.navigate("filters?initialTab=$initialTab") // Navigate to FiltersScreen
+                // Show Filters Icon on Home, Dating and Filters screens
+                val onFiltersScreen = currentRoute?.startsWith("filters") == true
+                val showFiltersIcon = (currentRoute == "home") || (currentRoute == "dating") || onFiltersScreen
+
+                if (showFiltersIcon) {
+                    IconButton(onClick = {
+                        val initialTab = if (currentRoute == "home") 1 else 0
+                        if (onFiltersScreen) {
+                            // If already on filters, go back
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate("filters?initialTab=$initialTab")
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = "Filters",
+                            tint = if (onFiltersScreen) Color(0xFFFFBF00) else Color(0xFFFF6F00),
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Tornado,
-                        contentDescription = "Filters",
-                        tint = if (currentDestination?.route?.startsWith("filters") == true) Color(0xFFFF4500) else Color(0xFFFFA500), // Preserve tint color on selection
-                        modifier = Modifier.size(18.dp)
-                    )
                 }
             }
-            IconButton(onClick = onLogout) {
-                Icon(
-                    imageVector = Icons.Default.ExitToApp,
-                    contentDescription = "Logout",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+
+            // Removed the logout button from top nav bar
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
 }
+
+
+
 
 data class BottomNavItem(val label: String, val icon: ImageVector, val route: String)
 
@@ -246,21 +243,21 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
-                        tint = if (selected) Color(0xFFFF4500) else Color.Gray,
+                        tint = if (selected) Color(0xFFFF6F00) else Color.Gray,
                         modifier = Modifier.size(18.dp)
                     )
                 },
                 label = {
                     Text(
                         text = item.label,
-                        color = if (selected) Color(0xFFFF4500) else Color.Gray,
+                        color = if (selected) Color(0xFFFF6F00) else Color.Gray,
                         fontSize = 11.sp
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFFFF4500),
+                    selectedIconColor = Color(0xFFFF6F00),
                     unselectedIconColor = Color.Gray,
-                    selectedTextColor = Color(0xFFFF4500),
+                    selectedTextColor = Color(0xFFFF6F00),
                     unselectedTextColor = Color.Gray,
                     indicatorColor = Color.DarkGray
                 )

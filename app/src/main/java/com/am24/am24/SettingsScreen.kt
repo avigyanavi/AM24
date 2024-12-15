@@ -2,7 +2,9 @@
 
 package com.am24.am24
 
+import android.content.Intent
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +30,8 @@ fun SettingsScreen(navController: NavController) {
     // Firebase references
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val database = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+    val ratingsRef = FirebaseDatabase.getInstance().getReference("ratings")
+    val usersRef = FirebaseDatabase.getInstance().getReference("users")
 
     // State variables
     var isPremiumUser by remember { mutableStateOf(false) }
@@ -50,6 +54,12 @@ fun SettingsScreen(navController: NavController) {
         }
         Toast.makeText(context, "Account deleted successfully.", Toast.LENGTH_SHORT).show()
     }
+
+    fun resetRatings() {
+        resetUserRatings(ratingsRef, usersRef, currentUserId, context) {
+        }
+    }
+
 
     Scaffold(
         content = { paddingValues ->
@@ -146,14 +156,45 @@ fun SettingsScreen(navController: NavController) {
                         // Logout Button
                         Button(
                             onClick = {
+                                // Sign out the user
                                 FirebaseAuth.getInstance().signOut()
-                                navController.navigate("login") {
-                                    popUpTo("settings") { inclusive = true }
-                                }
+
+                                // Redirect to LandingActivity
+                                val intent = Intent(context, LandingActivity::class.java)
+                                context.startActivity(intent)
+
+                                // Finish the current activity (to clear the stack)
+                                (context as? ComponentActivity)?.finish()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                         ) {
                             Text(text = "Logout", color = Color.White)
+                        }
+
+                    }
+                }
+
+                // Admin Control Panel
+                item {
+                    Text(
+                        text = "Admin Control Panel",
+                        color = Color.Yellow,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Black, shape = RoundedCornerShape(8.dp))
+                            .padding(16.dp)
+                    ) {
+                        Button(
+                            onClick = { resetRatings() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = "Reset Ratings", color = Color.White)
                         }
                     }
                 }

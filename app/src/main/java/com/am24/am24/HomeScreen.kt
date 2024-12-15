@@ -138,7 +138,7 @@ fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modif
     } else {
         // Show a loading indicator or placeholder
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFFFFA500))
+            CircularProgressIndicator(color = Color(0xFFFFBF00))
         }
     }
 }
@@ -200,7 +200,7 @@ fun HomeScreenContent(
             // Create Post Button
             Button(
                 onClick = { navController.navigate("create_post") },
-                border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                border = BorderStroke(1.dp, Color(0xFFFF6F00)),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .weight(0.9f)
@@ -208,7 +208,7 @@ fun HomeScreenContent(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Create Post",
-                    tint = Color(0xFFFFA500),
+                    tint = Color.White,
                     modifier = Modifier.size(18.dp) // Adjust icon size for better fit
                 )
             }
@@ -220,12 +220,12 @@ fun HomeScreenContent(
                     isVoiceOnly = !isVoiceOnly
                     postViewModel.setIsVoiceOnly(isVoiceOnly)
                 },
-                border = BorderStroke(1.dp, Color(0xFFFF4500)),
-                colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceOnly) Color(0xFFFFA500) else Color.Black),
+                border = BorderStroke(1.dp, Color(0xFFFF6F00)),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceOnly) Color(0xFFFFBF00) else Color.Black),
             ) {
                 Text(
                     text = if (isVoiceOnly) "Voice Only" else "All Posts",
-                    color = if (isVoiceOnly) Color.Black else Color(0xFFFFA500),
+                    color = if (isVoiceOnly) Color.Black else Color.White,
                     fontSize = 12.sp
                 )
             }
@@ -236,18 +236,18 @@ fun HomeScreenContent(
             Box {
                 Button(
                     onClick = { showFilterMenu = !showFilterMenu },
-                    border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                    border = BorderStroke(1.dp, Color(0xFFFF6F00)),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                 ) {
                     Text(
                         text = filterOption.replaceFirstChar { it.uppercaseChar() },
-                        color = Color(0xFFFFA500),
+                        color = Color.White,
                         fontSize = 12.sp
                     )
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
                         contentDescription = "Filter options",
-                        tint = Color(0xFFFF4500)
+                        tint = Color(0xFFFF6F00)
                     )
                 }
 
@@ -262,7 +262,7 @@ fun HomeScreenContent(
                             text = {
                                 Text(
                                     text = option.replaceFirstChar { it.uppercaseChar() },
-                                    color = if (option == filterOption) Color(0xFFFFA500) else Color(0xFFFF4500)
+                                    color = if (option == filterOption) Color(0xFFFFBF00) else Color.White
                                 )
                             },
                             onClick = {
@@ -274,7 +274,7 @@ fun HomeScreenContent(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = Color(0xFFFFA500)
+                                        tint = Color(0xFFFFBF00)
                                     )
                                 }
                             }
@@ -291,7 +291,7 @@ fun HomeScreenContent(
                     Icon(
                         imageVector = Icons.Default.Sort,
                         contentDescription = "Sort options",
-                        tint = Color(0xFFFFA500)
+                        tint = Color(0xFFFF6F00)
                     )
                 }
 
@@ -306,7 +306,7 @@ fun HomeScreenContent(
                             text = {
                                 Text(
                                     text = option,
-                                    color = if (option == sortOption) Color(0xFFFFA500) else Color(0xFFFF4500),
+                                    color = if (option == sortOption) Color(0xFFFFBF00) else Color.White,
                                     fontSize = 14.sp
                                 )
                             },
@@ -319,7 +319,7 @@ fun HomeScreenContent(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = Color(0xFFFFA500)
+                                        tint = Color(0xFFFFBF00)
                                     )
                                 }
                             }
@@ -406,7 +406,7 @@ fun FeedSection(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Color(0xFFFF4500))
+                        CircularProgressIndicator(color = Color(0xFFFF6F00))
                     }
                 }
             }
@@ -693,38 +693,74 @@ fun FeedItem(
                     Row {
                         Text(
                             text = userProfile?.username.toString(),
-                            color = Color(0xFFFFA500),
+                            color = Color.White,
                             fontWeight = FontWeight.Light,
                             fontSize = dynamicFontSize
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    RatingBar(rating = userProfile?.averageRating ?: 0.0)
+                    RatingBar(
+                        rating = userProfile?.averageRating ?: 0.0,
+                        ratingCount = userProfile?.numberOfRatings ?: 0 // Pass the number of ratings
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Show Delete or Report button
+                var moreOptionsExpanded by remember { mutableStateOf(false) }
                 Box(modifier = Modifier.width(IntrinsicSize.Max)) {
-                    if (post.userId == currentUserId) {
-                        IconButton(onClick = { onDelete(post) }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Post",
-                                tint = Color(0xFFFF4500)
+                    IconButton(onClick = { moreOptionsExpanded = !moreOptionsExpanded }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More Options",
+                            tint = Color.White
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = moreOptionsExpanded,
+                        onDismissRequest = { moreOptionsExpanded = false }
+                    ) {
+                        if (post.userId == currentUserId) {
+                            // The user's own post
+                            DropdownMenuItem(
+                                text = { Text("Edit Post", color = Color.White) },
+                                onClick = {
+                                    moreOptionsExpanded = false
+                                    // Implement edit logic or navigate to an edit screen
+                                    // For example:
+                                    // navController.navigate("edit_post/${post.postId}")
+                                }
                             )
-                        }
-                    } else {
-                        IconButton(onClick = { onReport(post) }) {
-                            Icon(
-                                imageVector = Icons.Default.Report,
-                                contentDescription = "Report Post",
-                                tint = Color(0xFFFFA500)
+                            DropdownMenuItem(
+                                text = { Text("Delete Post", color = Color.White) },
+                                onClick = {
+                                    moreOptionsExpanded = false
+                                    onDelete(post)
+                                }
+                            )
+                        } else {
+                            // Another user's post
+                            DropdownMenuItem(
+                                text = { Text("Report Post", color = Color.White) },
+                                onClick = {
+                                    moreOptionsExpanded = false
+                                    onReport(post)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Hide from feed", color = Color.White) },
+                                onClick = {
+                                    moreOptionsExpanded = false
+                                    // Implement hide from feed logic here
+                                    // Possibly call a function in postViewModel to update user's feed preferences
+                                }
                             )
                         }
                     }
                 }
+
             }
 
 
@@ -753,18 +789,18 @@ fun FeedItem(
                     lineHeight = 20.sp,
                     overflow = TextOverflow.Clip,
                     textAlign = TextAlign.Justify,
-                    modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
                 )
 
                 // "See more" Text
                 if (isTextOverflowing && !isExpanded) {
                     Text(
                         text = "See more",
-                        color = Color(0xFFFFA500),
-                        fontSize = 20.sp,
+                        color = Color.LightGray,
+                        fontSize = 18.sp,
                         modifier = Modifier
                             .clickable { isExpanded = true }
-                            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                            .padding(start = 8.dp, bottom = 4.dp)
                     )
                 }
             }
@@ -813,7 +849,7 @@ fun FeedItem(
                                         Icon(
                                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                             contentDescription = "Play/Pause",
-                                            tint = Color(0xFFFFA500),
+                                            tint = Color(0xFFFFBF00),
                                             modifier = Modifier.size(70.dp)
                                         )
                                     }
@@ -824,7 +860,7 @@ fun FeedItem(
                                         modifier = Modifier
                                             .weight(1f)
                                             .padding(horizontal = 16.dp),
-                                        color = Color(0xFFFFA500),
+                                        color = Color(0xFFFFBF00),
                                         trackColor = Color.White
                                     )
 
@@ -844,7 +880,29 @@ fun FeedItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Hashtags Below Main Content
+// Place time/distance first
+            Spacer(modifier = Modifier.width(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.padding(horizontal = 8.dp) // Add horizontal padding
+            ) {
+                Text(
+                    text = formatRelativeTime(post.getTimestampLong()),
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.weight(1f)) // Pushes distance to the right
+                userDistance?.let {
+                    Text(
+                        text = "${it.roundToInt()} km",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
+// Now place tags below time/distance
             if (post.userTags.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier
@@ -860,7 +918,7 @@ fun FeedItem(
                                     RoundedCornerShape(4.dp)
                                 )
                                 .border(
-                                    BorderStroke(1.dp, Color(0xFFFF4500)),
+                                    BorderStroke(1.dp, Color(0xFFFF6F00)),
                                     RoundedCornerShape(4.dp)
                                 )
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -876,26 +934,6 @@ fun FeedItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(4.dp))
-            Row(
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.padding(horizontal = 8.dp) // Add horizontal padding
-            ) {
-                Text(
-                    text = formatRelativeTime(post.getTimestampLong()),
-                    color = Color(0xFFFFA500),
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.weight(1f)) // Flexible space to push the distance text to the right
-                userDistance?.let {
-                    Text(
-                        text = "${it.roundToInt()} km",
-                        color = Color(0xFFFFA500),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
 
             // Sharing, Upvote/Downvote, and Comment Section
             Row(
@@ -908,7 +946,7 @@ fun FeedItem(
                         Icon(
                             Icons.Default.Share,
                             contentDescription = "Share",
-                            tint = Color(0xFFFFA500)
+                            tint = Color.White
                         )
                     }
                     // Add Save Icon
@@ -916,7 +954,7 @@ fun FeedItem(
                         Icon(
                             Icons.Default.BookmarkBorder,  // Bookmark or save icon
                             contentDescription = "Save Post",
-                            tint = Color(0xFFFFA500)
+                            tint = Color.White
                         )
                     }
                 }
@@ -931,12 +969,12 @@ fun FeedItem(
                             Icon(
                                 Icons.Default.ThumbUpOffAlt,
                                 contentDescription = "Upvote",
-                                tint = Color(0xFFFFA500)
+                                tint = Color(0xFFFFBF00)
                             )
                         }
                         Text(
                             text = "${post.upvotes}",
-                            color = Color(0xFFFFA500),
+                            color = Color(0xFFFFBF00),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -946,12 +984,12 @@ fun FeedItem(
                             Icon(
                                 Icons.Default.ThumbDownOffAlt,
                                 contentDescription = "Downvote",
-                                tint = Color(0xFFFF4500)
+                                tint = Color(0xFFFF6F00)
                             )
                         }
                         Text(
                             text = "${post.downvotes}",
-                            color = Color(0xFFFF4500),
+                            color = Color(0xFFFF6F00),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -961,7 +999,7 @@ fun FeedItem(
                         Icon(
                             imageVector = Icons.Default.Comment,
                             contentDescription = "Show Comments",
-                            tint = Color(0xFFFFA500)
+                            tint = Color.White
                         )
                     }
                 }
@@ -970,7 +1008,7 @@ fun FeedItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "View Comments (${post.comments.size})",
-                    color = Color(0xFFFF4500),
+                    color = Color.White,
                     modifier = Modifier
                         .clickable {
                         showCommentsDialog = true
@@ -1056,7 +1094,7 @@ fun FeedItem(
             Icon(
                 imageVector = Icons.Default.ThumbUpOffAlt,
                 contentDescription = null,
-                tint = Color(0xFFFFA500),
+                tint = Color(0xFFFFBF00),
                 modifier = Modifier.size(100.dp)
             )
         }
@@ -1065,7 +1103,7 @@ fun FeedItem(
             Icon(
                 imageVector = Icons.Default.ThumbDownOffAlt,
                 contentDescription = null,
-                tint = Color(0xFFFF4500),
+                tint = Color(0xFFFF6F00),
                 modifier = Modifier.size(100.dp)
             )
         }
@@ -1135,14 +1173,14 @@ fun CommentCard(
             ) {
                 Text(
                     text = comment.username,
-                    color = Color(0xFFFFA500),
+                    color = Color(0xFFFFBF00),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
                     text = formatRelativeTime(comment.getCommentTimestamp()),
-                    color = Color(0xFFFFA500),
+                    color = Color(0xFFFFBF00),
                     fontSize = 12.sp
                 )
             }
@@ -1195,7 +1233,7 @@ fun CommentCard(
                     Icon(
                         imageVector = Icons.Default.ArrowUpward,
                         contentDescription = "Upvote Comment",
-                        tint = Color(0xFFFFA500)
+                        tint = Color(0xFFFFBF00)
                     )
                 }
                 Text(text = "${comment.upvotes}", color = Color.White)
@@ -1203,7 +1241,7 @@ fun CommentCard(
                     Icon(
                         imageVector = Icons.Default.ArrowDownward,
                         contentDescription = "Downvote Comment",
-                        tint = Color(0xFFFF4500)
+                        tint = Color(0xFFFF6F00)
                     )
                 }
                 Text(text = "${comment.downvotes}", color = Color.White)
@@ -1436,7 +1474,7 @@ fun CommentsDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = sortOption,
-                            color = Color(0xFFFFA500),
+                            color = Color(0xFFFFBF00),
                             modifier = Modifier.clickable { showSortMenu = !showSortMenu }
                         )
                         IconButton(
@@ -1445,7 +1483,7 @@ fun CommentsDialog(
                             Icon(
                                 imageVector = Icons.Default.Sort,
                                 contentDescription = "Sort options",
-                                tint = Color(0xFFFF4500)
+                                tint = Color(0xFFFF6F00)
                             )
                         }
                         DropdownMenu(
@@ -1458,7 +1496,7 @@ fun CommentsDialog(
                                     text = {
                                         Text(
                                             text = option,
-                                            color = if (option == sortOption) Color(0xFFFFA500) else Color(0xFFFF4500)
+                                            color = if (option == sortOption) Color(0xFFFFBF00) else Color(0xFFFF6F00)
                                         )
                                     },
                                     onClick = {
@@ -1470,7 +1508,7 @@ fun CommentsDialog(
                                             Icon(
                                                 imageVector = Icons.Default.Check,
                                                 contentDescription = null,
-                                                tint = Color(0xFFFFA500)
+                                                tint = Color(0xFFFFBF00)
                                             )
                                         }
                                     }
@@ -1485,7 +1523,7 @@ fun CommentsDialog(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
-                                tint = Color(0xFFFF4500)
+                                tint = Color(0xFFFF6F00)
                             )
                         }
                     }
@@ -1569,7 +1607,7 @@ fun CommentsDialog(
                                 recordedVoiceUri = null
                                 recordFile = null
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFBF00))
                         ) {
                             Text("Submit Voice Comment", color = Color.White)
                         }
@@ -1612,7 +1650,7 @@ fun CommentsDialog(
                         Icon(
                             imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
                             contentDescription = "Record",
-                            tint = Color(0xFFFFA500)
+                            tint = Color(0xFFFFBF00)
                         )
                     }
 
@@ -1627,9 +1665,9 @@ fun CommentsDialog(
                             .weight(1f)
                             .padding(vertical = 8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFFF4500),
+                            focusedBorderColor = Color(0xFFFF6F00),
                             unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFFFF4500)
+                            cursorColor = Color(0xFFFF6F00)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     )
@@ -1641,7 +1679,7 @@ fun CommentsDialog(
                                 commentText = TextFieldValue("")
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                     ) {
                         Text("Submit", color = Color.White)
                     }
@@ -1670,7 +1708,7 @@ fun VoiceCommentPlayer(
             Icon(
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = "Play/Pause",
-                tint = Color(0xFFFF4500)
+                tint = Color(0xFFFF6F00)
             )
         }
         LinearProgressIndicator(
@@ -1678,7 +1716,7 @@ fun VoiceCommentPlayer(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp),
-            color = Color(0xFFFFA500),
+            color = Color(0xFFFFBF00),
             trackColor = Color.Gray
         )
 
@@ -1876,12 +1914,12 @@ fun CustomSearchBar(
         placeholder = { Text("Search by name or tags", color = Color.Gray, fontSize = 12.sp) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 10.dp),
         textStyle = LocalTextStyle.current.copy(color = Color.White),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color(0xFFFFA500),
+            focusedBorderColor = Color(0xFFFFBF00),
             unfocusedBorderColor = Color.Gray,
-            cursorColor = Color(0xFFFF4500)
+            cursorColor = Color(0xFFFF6F00)
         )
     )
 }
