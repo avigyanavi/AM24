@@ -126,18 +126,17 @@ fun TopNavBar(
             // No textual title
         },
         navigationIcon = {
-            IconButton(
-                onClick = { navController.navigate("kupidxhub") },
-                modifier = Modifier.size(64.dp) // Increase size of the IconButton
+            // Logo is now in a Box (not clickable)
+            Box(
+                modifier = Modifier.size(64.dp) // Adjust as needed
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.kupidx_logo),
                     contentDescription = "KupidX Logo",
-                    modifier = Modifier.size(56.dp) // Increase the image size
+                    modifier = Modifier.size(56.dp)
                 )
             }
-        }
-        ,
+        },
         actions = {
             // Notifications Icon
             IconButton(onClick = {
@@ -179,7 +178,7 @@ fun TopNavBar(
                     navController.navigate("settings") // New route for user settings
                 }) {
                     Icon(
-                        imageVector = Icons.Default.ManageAccounts, // Represents user account/settings
+                        imageVector = Icons.Default.ManageAccounts,
                         contentDescription = "User Settings",
                         tint = if (isUserSettings) Color(0xFFFF6F00) else Color.Gray,
                         modifier = Modifier.size(24.dp)
@@ -201,20 +200,19 @@ fun TopNavBar(
                         }
                     }) {
                         Icon(
-                            imageVector = Icons.Filled.Settings,
+                            imageVector = Icons.Filled.Tune,
                             contentDescription = "Filters",
-                            tint = if (onFiltersScreen) Color(0xFFFFBF00) else Color(0xFFFF6F00),
+                            tint = if (onFiltersScreen) Color(0xFFFF6F00) else Color.Gray,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 }
             }
-
-            // Removed the logout button from top nav bar
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
 }
+
 
 
 

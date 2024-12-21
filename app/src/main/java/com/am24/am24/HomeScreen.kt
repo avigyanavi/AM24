@@ -52,7 +52,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelStoreOwner
-import com.firebase.geofire.GeoFire
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.storage.FirebaseStorage
@@ -86,11 +85,6 @@ fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modif
 
         var userProfile by remember { mutableStateOf<Profile?>(null) }
 
-
-        // GeoFire reference
-        val geoFireRef = FirebaseDatabase.getInstance().getReference("geoFireLocations")
-        val geoFire =
-            remember { GeoFire(geoFireRef) } // Initialize GeoFire with the correct Firebase reference
 
         // Fetch user's profile
         LaunchedEffect(userId) {
@@ -132,8 +126,7 @@ fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modif
             sortOption = filterSettings.sortOption,
             onSortOptionChanged = { newSortOption ->
                 postViewModel.setSortOption(newSortOption)
-            },
-            geoFire = geoFire,
+            }
         )
     } else {
         // Show a loading indicator or placeholder
@@ -158,8 +151,7 @@ fun HomeScreenContent(
     userId: String?,
     userProfile: Profile?,
     sortOption: String,
-    onSortOptionChanged: (String) -> Unit,
-    geoFire: GeoFire
+    onSortOptionChanged: (String) -> Unit
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
@@ -342,8 +334,7 @@ fun HomeScreenContent(
             userProfiles = userProfiles,
             onTagClick = { tag ->
                 onSearchQueryChanged(tag)
-            },
-            geoFire = geoFire,
+            }
         )
     }
 }
@@ -359,8 +350,7 @@ fun FeedSection(
     isPosting: Boolean,
     postViewModel: PostViewModel,
     userProfiles: Map<String, Profile>,
-    onTagClick: (String) -> Unit,
-    geoFire: GeoFire // Pass GeoFire here
+    onTagClick: (String) -> Unit
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
@@ -523,7 +513,6 @@ fun FeedSection(
                         )
                     },
                     postViewModel = postViewModel,
-                    geoFire = geoFire // Pass GeoFire here
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -563,13 +552,11 @@ fun FeedItem(
     currentUserId: String,
     onDelete: (Post) -> Unit,
     onReport: (Post) -> Unit,
-    geoFire: GeoFire // Add this to calculate distance
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     var mediaDuration by remember { mutableStateOf(0L) }
 
-    var userDistance by remember { mutableStateOf<Float?>(null) }
     val hapticFeedback = LocalHapticFeedback.current
 
     // Animation states
@@ -577,15 +564,6 @@ fun FeedItem(
     var showDownvoteAnimation by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
 
-
-    LaunchedEffect(userProfile) {
-        userProfile?.let {
-            if (currentUserId.isNotEmpty() && it.userId.isNotEmpty()) {
-                val distance = calculateDistance(currentUserId, it.userId, geoFire)
-                userDistance = distance
-            }
-        }
-    }
 
     // Gesture detector for double-tap and long-press
     val gestureDetector = Modifier.pointerInput(Unit) {
@@ -892,13 +870,6 @@ fun FeedItem(
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.weight(1f)) // Pushes distance to the right
-                userDistance?.let {
-                    Text(
-                        text = "${it.roundToInt()} km",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
-                }
             }
             Spacer(modifier = Modifier.height(4.dp))
 

@@ -97,6 +97,7 @@ data class Profile(
     val feedAgeEnd: Int = 30,
     val datingDistancePreference: Int = 10,
     val feedDistancePreference: Int = 10,
+    val height: Int = 169,
 
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),

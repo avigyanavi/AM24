@@ -32,6 +32,7 @@ import java.util.Locale
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
 
+    private var isFeedPaused = false
     // Firebase Realtime Database reference to "posts"
     private val postsRef = FirebaseDatabase.getInstance().getReference("posts")
 
@@ -157,11 +158,26 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         postsRef.addValueEventListener(postsListener!!)
     }
 
+    // Pause observing posts
+    fun pauseFeed() {
+        isFeedPaused = true
+        postsListener?.let {
+            FirebaseDatabase.getInstance().getReference("posts").removeEventListener(it)
+        }
+    }
+
+    // Resume observing posts
+    fun resumeFeed() {
+        if (!isFeedPaused) return
+        isFeedPaused = false
+        observePosts()
+    }
 
     override fun onCleared() {
         super.onCleared()
         // Remove the listener to prevent memory leaks
         postsListener?.let { postsRef.removeEventListener(it) }
+        pauseFeed() // Cleanup listeners to prevent memory leaks
     }
 
 

@@ -4,123 +4,375 @@ import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.floor
 
 @Composable
 fun ProfileScreen(
     navController: NavController,
     profileViewModel: ProfileViewModel,
-    modifier: Modifier = Modifier,
+    postViewModel: PostViewModel,
+    modifier: Modifier = Modifier
 ) {
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    var userProfile by remember { mutableStateOf<Profile?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var isDetailedView by remember { mutableStateOf(false) }
+    // 1) Wait for filters (and thus posts) to be loaded
+    val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
 
-    // Fetch user profile from Firebase
-    LaunchedEffect(currentUserId) {
-        profileViewModel.fetchUserProfile(currentUserId,
-            onSuccess = { profile ->
-                userProfile = profile
-                isLoading = false
-            },
-            onFailure = {
-                Log.e("ProfileScreen", "Failed to load profile: $it")
-                isLoading = false
-            }
-        )
-    }
-
-    if (isLoading) {
+    if (!filtersLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Color(0xFFFF6F00))
         }
-    } else if (userProfile == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "Failed to load profile.",
-                color = Color.White,
-                fontSize = 18.sp
+        return
+    }
+
+    // 2) Grab all filtered posts + userProfiles
+    val allPosts by postViewModel.filteredPosts.collectAsState()
+    val userProfiles by postViewModel.userProfiles.collectAsState()
+
+    // 3) Identify the current user
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+    // 4) Attempt to get user’s profile from userProfiles or by fetching from Firebase
+    var userProfile by remember { mutableStateOf<Profile?>(null) }
+    LaunchedEffect(currentUserId) {
+        val potentialProfile = userProfiles[currentUserId]
+        if (potentialProfile != null) {
+            userProfile = potentialProfile
+        } else {
+            profileViewModel.fetchUserProfile(
+                userId = currentUserId,
+                onSuccess = { fetchedProfile -> userProfile = fetchedProfile },
+                onFailure = { error ->
+                    Log.e("ProfileScreen", "Failed to load profile: $error")
+                }
             )
         }
+    }
+
+    // 5) Filter user’s posts -> sort by upvotes desc -> top 5 are “featured”
+    val myPosts = allPosts.filter { it.userId == currentUserId }
+    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
+    val featuredPosts = sortedByUpvotes.take(5)
+    val remainingPosts = sortedByUpvotes.drop(5)
+
+    // 6) Render once we have the profile
+    if (userProfile == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Loading your profile...", color = Color.White)
+        }
     } else {
-        if (isDetailedView) {
-            ProfileDetailsTabs(
-                profile = userProfile!!,
-                onCloseClick = { isDetailedView = false }
+        ProfileLazyScreen(
+            navController = navController,
+            profile = userProfile!!,
+            featuredPosts = featuredPosts,
+            remainingPosts = remainingPosts,
+            onEditProfileClick = { navController.navigate("editProfile") }
+        )
+    }
+}
+
+/**
+ * Main LazyColumn structure:
+ *  1) Photo carousel (no vibe score displayed here)
+ *  2) Always-expanded sections for Basic Info, Preferences, Lifestyle, Interests
+ *  3) **Featured Posts** above Metrics
+ *  4) **Metrics** (collapsed by default)
+ *  5) “More Posts” button if leftover posts exist
+ */
+@Composable
+fun ProfileLazyScreen(
+    navController: NavController,
+    profile: Profile,
+    featuredPosts: List<Post>,
+    remainingPosts: List<Post>,
+    onEditProfileClick: () -> Unit
+) {
+    val listState = rememberLazyListState()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        state = listState
+    ) {
+        // 1) Photo Carousel
+        item {
+            PhotoCarouselWithOverlay(
+                profile = profile,
+                onEditProfileClick = onEditProfileClick
             )
-        } else {
-            ProfileContent(
-                profile = userProfile!!,
-                onEditProfileClick = { navController.navigate("editProfile") },
-                onInfoClick = { isDetailedView = true }
-            )
+        }
+
+        // 2) Collapsible sections (Basic, Preferences, Lifestyle, Interests)
+        item {
+            ProfileCollapsibleSections(profile)
+        }
+
+        // 3) Featured posts (above Metrics)
+        if (featuredPosts.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Featured Posts",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+            items(featuredPosts) { post ->
+                PostItemInProfile(post)
+            }
+        }
+
+        // 4) Metrics collapsed
+        item {
+            CollapsedMetricsSection(profile = profile)
+        }
+
+        // 5) More posts button
+        if (remainingPosts.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Button(
+                        onClick = {
+                            // Possibly navigate to a full "MyPostsScreen"
+                            Log.d("Profile", "View More Posts clicked!")
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+                    ) {
+                        Text(text = "View More Posts", color = Color.White)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 }
 
 @Composable
-fun ProfileContent(
-    profile: Profile,
-    onEditProfileClick: () -> Unit,
-    onInfoClick: () -> Unit
-) {
-    var currentPhotoIndex by remember(profile) { mutableStateOf(0) }
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+fun ProfileCollapsibleSections(profile: Profile) {
+    // local booleans for each section
+    var showBasic by rememberSaveable { mutableStateOf(true) }
+    var showPreferences by rememberSaveable { mutableStateOf(true) }
+    var showLifestyle by rememberSaveable { mutableStateOf(true) }
+    var showInterests by rememberSaveable { mutableStateOf(true) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        AsyncImage(
-            model = photoUrls[currentPhotoIndex],
-            contentDescription = "Profile Photo",
-            placeholder = painterResource(R.drawable.local_placeholder),
-            error = painterResource(R.drawable.local_placeholder),
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(7 / 10f)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { offset ->
-                            val tapX = offset.x
-                            val photoCount = photoUrls.size
-                            if (photoCount > 1) {
-                                currentPhotoIndex = if (tapX > size.width / 2) {
-                                    (currentPhotoIndex + 1) % photoCount
-                                } else {
-                                    (currentPhotoIndex - 1 + photoCount) % photoCount
-                                }
-                            }
-                        }
-                    )
-                },
-            contentScale = ContentScale.Crop
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(16.dp)
+    ) {
+        // Basic Info
+        CollapsibleSection(
+            title = "Basic Information",
+            icon = Icons.Default.Person,
+            isExpanded = showBasic,
+            onToggle = { showBasic = !showBasic }
+        ) {
+            BasicInfoSection(profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Preferences
+        CollapsibleSection(
+            title = "Preferences",
+            icon = Icons.Default.Favorite,
+            isExpanded = showPreferences,
+            onToggle = { showPreferences = !showPreferences }
+        ) {
+            PreferencesSection(profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Lifestyle
+        CollapsibleSection(
+            title = "Lifestyle Attributes",
+            icon = Icons.Default.Nature,
+            isExpanded = showLifestyle,
+            onToggle = { showLifestyle = !showLifestyle }
+        ) {
+            LifestyleSection(profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Interests
+        CollapsibleSection(
+            title = "Interests",
+            icon = Icons.Default.Star,
+            isExpanded = showInterests,
+            onToggle = { showInterests = !showInterests }
+        ) {
+            InterestsSectionInProfile(profile)
+        }
+    }
+}
+
+/** A generic collapsible section composable. */
+@Composable
+fun CollapsibleSection(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    // Section header with toggle
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(width = 1.dp, color = Color.White, shape = CircleShape)
+            .background(Color.Black)
+            .clickable { onToggle() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = Color(0xFFFF6F00),
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = title,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = Modifier.weight(1f)
         )
 
-        // Edit and Info Icons
+        // A small expand/collapse icon at the end
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+            contentDescription = if (isExpanded) "Collapse" else "Expand",
+            tint = Color.White
+        )
+    }
+
+    // Show content if expanded
+    if (isExpanded) {
+        Spacer(modifier = Modifier.height(8.dp))
+        content()
+    }
+}
+/** Photo carousel at the top (same as before) */
+@Composable
+fun PhotoCarouselWithOverlay(
+    profile: Profile,
+    onEditProfileClick: () -> Unit
+) {
+    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    var currentPhotoIndex by remember { mutableStateOf(0) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(7f / 10f)
+            .background(Color.Black)
+            .pointerInput(photoUrls) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        if (photoUrls.size > 1) {
+                            if (offset.x > size.width / 2) {
+                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
+                            } else {
+                                currentPhotoIndex =
+                                    (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                            }
+                        }
+                    }
+                )
+            }
+    ) {
+        if (photoUrls.isNotEmpty()) {
+            AsyncImage(
+                model = photoUrls[currentPhotoIndex],
+                contentDescription = "Profile Photo",
+                placeholder = painterResource(R.drawable.local_placeholder),
+                error = painterResource(R.drawable.local_placeholder),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            // Tinder-like bars
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                photoUrls.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
+                            .height(4.dp)
+                            .padding(horizontal = 2.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
+                    )
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No Images", color = Color.White)
+            }
+        }
+
+        // Name, Age, Hometown, Rating (no vibe score)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .background(Color.Black.copy(alpha = 1f))
+                .padding(16.dp)
+        ) {
+            Column {
+                val age = calculateAge(profile.dob)
+                Text(
+                    text = if (age > 0) "${profile.name}, $age" else profile.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp,
+                    color = Color.White
+                )
+                if (profile.hometown.isNotBlank()) {
+                    Text("From ${profile.hometown}", fontSize = 16.sp, color = Color.White)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+            }
+        }
+
+        // Edit Profile icon top-right
         IconButton(
             onClick = onEditProfileClick,
             modifier = Modifier
@@ -131,177 +383,70 @@ fun ProfileContent(
             Icon(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Edit Profile",
-                tint = Color(0xFFFFFFFF) // Set the Edit Profile icon color to #FFFFFFFF
+                tint = Color.White
             )
         }
+    }
+}
+/** #2. Always-expanded “Basic Info, Preferences, Lifestyle, Interests”
+ *  We do NOT show metrics here, since that is collapsed separately.
+ */
 
-        IconButton(
-            onClick = onInfoClick,
+/** Collapsed metrics section by default. */
+@Composable
+fun CollapsedMetricsSection(profile: Profile) {
+    var showMetrics by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(16.dp)
+    ) {
+        // Header row for metrics
+        Row(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .size(32.dp)
+                .fillMaxWidth()
+                .border(width = 1.dp, color = Color.White, shape = CircleShape)
+                .background(Color.Black)
+                .clickable { showMetrics = !showMetrics }
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "View More Info",
+                imageVector = Icons.Default.Assessment,
+                contentDescription = "Metrics",
+                tint = Color(0xFFFF6F00),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Metrics",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (showMetrics) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (showMetrics) "Collapse" else "Expand",
                 tint = Color.White
             )
         }
 
-        // Profile Details Overlay
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(16.dp)
-        ) {
-            Column {
-                Text(
-                    text = "${profile.name}, ${calculateAge(profile.dob)}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    color = Color.White
-                )
-                if (profile.hometown.isNotEmpty()) {
-                    Text(
-                        text = "From ${profile.hometown}",
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                RatingBar(rating = profile.averageRating,ratingCount = profile.numberOfRatings)
-                Text(
-                    text = "Vibe Score: ${profile.vibepoints}",
-                    fontSize = 14.sp,
-                    color = Color.White
-                )
-            }
-        }
-
-        // Dots Indicator for Photos
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            photoUrls.forEachIndexed { index, _ ->
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .padding(horizontal = 2.dp)
-                        .clip(CircleShape)
-                        .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
-                )
-            }
+        if (showMetrics) {
+            Spacer(modifier = Modifier.height(8.dp))
+            MetricsSection(profile)
         }
     }
 }
-
+/** Simple “header” style with no toggle/click. */
 @Composable
-fun ProfileDetailsTabs(profile: Profile, onCloseClick: () -> Unit) {
-    val tabTitles = listOf("Profile", "Posts", "Saved")
-    var selectedTabIndex by remember { mutableStateOf(0) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Tab Row with Close Button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                modifier = Modifier.weight(1f)
-            ) {
-                tabTitles.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
-                        text = { Text(title, color = Color.White) }
-                    )
-                }
-            }
-
-            // Close Button
-            IconButton(
-                onClick = { onCloseClick() }, // Calls the back action
-                modifier = Modifier
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = Color(0xFFFF6F00)
-                )
-            }
-        }
-
-        // Tab Content
-        when (selectedTabIndex) {
-            0 -> ProfileDetails(profile)
-            1 -> ProfilePosts(profile)
-            2 -> ProfileSavedPosts(profile)
-        }
-    }
-}
-
-@Composable
-fun ProfileDetails(profile: Profile) {
-    val sections = listOf(
-        "Basic Information" to Icons.Default.Person,
-        "Preferences" to Icons.Default.Favorite,
-        "Metrics" to Icons.Default.Assessment,
-        "Lifestyle Attributes" to Icons.Default.Nature,
-        "Interests" to Icons.Default.Star
-    )
-    var expandedSection by remember { mutableStateOf<String?>(null) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .background(Color.Black)
-            .padding(16.dp)
-    ) {
-        sections.forEach { (title, icon) ->
-            SectionHeader(title = title, icon = icon) {
-                expandedSection = if (expandedSection == title) null else title
-            }
-            if (expandedSection == title) {
-                Spacer(modifier = Modifier.height(8.dp))
-                when (title) {
-                    "Basic Information" -> BasicInfoSection(profile)
-                    "Preferences" -> PreferencesSection(profile)
-                    "Metrics" -> MetricsSection(profile)
-                    "Lifestyle Attributes" -> LifestyleSection(profile)
-                    "Interests" -> InterestsSection(profile)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SectionHeader(title: String, icon: ImageVector, onClick: () -> Unit) {
+fun SectionHeaderNoClick(title: String, icon: ImageVector) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black)
             .border(width = 1.dp, color = Color.White, shape = CircleShape)
-            .clickable(onClick = onClick)
+            .background(Color.Black)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -321,20 +466,278 @@ fun SectionHeader(title: String, icon: ImageVector, onClick: () -> Unit) {
     }
 }
 
+/** Basic Info (Name, Bio, Gender, Hometown, etc.) */
 @Composable
 fun BasicInfoSection(profile: Profile) {
-        ProfileDetailRow("Name", profile.name, Icons.Default.Person)
-        ProfileDetailRow("Bio", profile.bio, Icons.Default.Edit)
-        ProfileDetailRow("Gender", profile.gender, Icons.Default.Transgender)
-        ProfileDetailRow("Hometown", profile.hometown, Icons.Default.LocationCity)
-        ProfileDetailRow("High School", profile.highSchool, Icons.Default.School)
-        ProfileDetailRow("College", profile.college, Icons.Default.AccountBalance)
-        ProfileDetailRow("Post-Graduation", profile.postGraduation, Icons.Default.EmojiObjects)
-        ProfileDetailRow("City", profile.city, Icons.Default.Place)
-        ProfileDetailRow("Community", profile.community, Icons.Default.Groups)
-        ProfileDetailRow("Religion", profile.religion, Icons.Default.Church)
+    ProfileDetailRow("Name", profile.name, Icons.Default.Person)
+    ProfileDetailRow("Bio", profile.bio, Icons.Default.Info)
+    ProfileDetailRow("Gender", profile.gender, Icons.Default.Transgender)
+    ProfileDetailRow("Hometown", profile.hometown, Icons.Default.LocationCity)
+    ProfileDetailRow("High School", profile.highSchool, Icons.Default.School)
+    ProfileDetailRow("College", profile.college, Icons.Default.AccountBalance)
+    ProfileDetailRow("Post-Graduation", profile.postGraduation, Icons.Default.EmojiObjects)
+    ProfileDetailRow("City", profile.city, Icons.Default.Place)
+    ProfileDetailRow("Community", profile.community, Icons.Default.Groups)
+    ProfileDetailRow("Religion", profile.religion, Icons.Default.Church)
 }
 
+/** Preferences (LookingFor, ClaimedIncome, etc.) */
+@Composable
+fun PreferencesSection(profile: Profile) {
+    ProfileDetailRow("Looking For", profile.lookingFor, Icons.Default.Favorite)
+    ProfileDetailRow("Wealth", profile.claimedIncomeLevel, Icons.Default.AttachMoney)
+}
+
+/** Metrics (Ranking, Up/Down votes, match counts, etc.) */
+@Composable
+fun MetricsSection(profile: Profile) {
+    Column {
+        ProfileDetailRow("World Ranking", profile.am24Ranking.toString(), Icons.Filled.Language)
+        ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
+        ProfileDetailRow("High School Ranking", profile.am24RankingHighSchool.toString(), Icons.Default.School)
+        ProfileDetailRow("College Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
+        ProfileDetailRow("Gender Ranking", profile.am24RankingGender.toString(),
+            if (profile.gender == "Male") Icons.Default.Male else if (profile.gender == "Female") Icons.Default.Female else Icons.Default.Transgender
+        )
+        ProfileDetailRow("Hometown Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
+        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
+        ProfileDetailRow(
+            "Match Count per Swipe Right",
+            String.format("%.2f", profile.getCalculatedMatchCountPerSwipeRight()),
+            Icons.Default.Swipe
+        )
+        ProfileDetailRow("Cumulative Upvotes", profile.cumulativeUpvotes.toString(), Icons.Default.ThumbUp)
+        ProfileDetailRow("Cumulative Downvotes", profile.cumulativeDownvotes.toString(), Icons.Default.ThumbDown)
+        ProfileDetailRow(
+            "Average Upvotes per Post",
+            String.format("%.2f", profile.averageUpvoteCount),
+            Icons.Default.KeyboardDoubleArrowUp
+        )
+        ProfileDetailRow(
+            "Average Downvotes per Post",
+            String.format("%.2f", profile.averageDownvoteCount),
+            Icons.Default.KeyboardDoubleArrowDown
+        )
+        ProfileDetailRow("Date Joined", formatDate(profile.dateOfJoin), Icons.Default.DateRange)
+    }
+}
+
+/** Lifestyle sliders. */
+@Composable
+fun LifestyleSection(profile: Profile) {
+    Column {
+        profile.lifestyle?.let {
+            LifestyleSlider("Smoking Level", it.smoking, Icons.Default.SmokingRooms)
+            LifestyleSlider("Drinking Level", it.drinking, Icons.Default.LocalDrink)
+            LifestyleDropdown("Diet", it.diet)
+            LifestyleSlider("Indoorsy to Outdoorsy", it.indoorsyToOutdoorsy, Icons.Default.DirectionsWalk)
+            LifestyleSlider("Social Butterfly", it.socialButterfly, Icons.Default.Groups2)
+            LifestyleSlider("Work-Life Balance", it.workLifeBalance, Icons.Default.WorkOff)
+            LifestyleSlider("Exercise Frequency", it.exerciseFrequency, Icons.Default.SportsGymnastics)
+            LifestyleSlider("Family-Oriented", it.familyOriented, Icons.Default.FamilyRestroom)
+        }
+    }
+}
+
+/** Interests as a list of small “tags.” */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun InterestsSectionInProfile(profile: Profile) {
+    if (profile.interests.isEmpty()) {
+        Text("No interests specified.", color = Color.Gray, fontSize = 16.sp)
+    } else {
+        FlowRow {
+            profile.interests.forEach { interest ->
+                InterestTag(
+                    label = buildString {
+                        if (!interest.emoji.isNullOrEmpty()) append("${interest.emoji} ")
+                        append(interest.name)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LifestyleDropdown(label: String, value: String) {
+    Text(
+        text = "$label: $value",
+        color = Color.White,
+        fontSize = 16.sp
+    )
+}
+
+
+/** A custom “tag” composable that’s shaped like a pill with an orange background. */
+@Composable
+fun InterestTag(label: String) {
+    Box(
+        modifier = Modifier
+            .padding(4.dp)
+            .background(Color(0xFFFF6F00), shape = CircleShape)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 14.sp
+        )
+    }
+}
+
+/** Single post in profile feed (text, photo, voice, video). */
+@Composable
+fun PostItemInProfile(post: Post) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            // If post has text
+            if (!post.contentText.isNullOrBlank()) {
+                Text(post.contentText, color = Color.White, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+            // Media (photo/voice/video)
+            when (post.mediaType) {
+                "photo" -> {
+                    AsyncImage(
+                        model = post.mediaUrl,
+                        contentDescription = "Photo Post",
+                        placeholder = painterResource(R.drawable.local_placeholder),
+                        error = painterResource(R.drawable.local_placeholder),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 150.dp, max = 300.dp)
+                    )
+                }
+                "voice" -> {
+                    // Placeholder for voice
+                    VoicePostPlaceholder()
+                }
+                "video" -> {
+                    Text("Video Post (placeholder UI)", color = Color.White, fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row {
+                Text("Upvotes: ${post.upvotes}", color = Color(0xFFFFBF00), fontSize = 12.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Downvotes: ${post.downvotes}", color = Color(0xFFFF6F00), fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+/** Simple placeholder for voice posts. */
+@Composable
+fun VoicePostPlaceholder() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .background(Color(0xFF333333)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.AudioFile,
+            contentDescription = "Voice Post",
+            tint = Color(0xFFFFBF00),
+            modifier = Modifier.padding(8.dp)
+        )
+        Text("Voice Post (Tap to Play/Pause)", color = Color.White, fontSize = 12.sp)
+    }
+}
+
+/** RatingBar (no vibe score) */
+@Composable
+fun RatingBar(rating: Double, ratingCount: Int) {
+    val starSize = 25.dp
+    val fullStars = kotlin.math.floor(rating).toInt()
+    val fraction = rating - fullStars // fractional part (0..1)
+    val orange = Color(0xFFFFBF00)
+    val backgroundColor = Color.Black
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // Full stars
+        repeat(fullStars) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = orange,
+                modifier = Modifier.size(starSize)
+            )
+        }
+        // Partial star if needed
+        if (fraction > 0) {
+            Box(modifier = Modifier.size(starSize)) {
+                // Border
+                Icon(
+                    imageVector = Icons.Default.StarBorder,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Full star
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Mask fraction
+                val fractionUnfilled = 1 - fraction
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(starSize * fractionUnfilled.toFloat())
+                        .align(Alignment.CenterEnd)
+                        .background(backgroundColor)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = String.format("%.2f (%d)", rating, ratingCount),
+            color = orange,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+    }
+}
+
+/** Helpers */
+fun formatDate(timestamp: Long): String {
+    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}
+
+fun calculateAge(dob: String?): Int {
+    if (dob.isNullOrBlank()) return 0
+    val formats = listOf(
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+        SimpleDateFormat("dd/M/yyyy", Locale.getDefault())
+    )
+    for (format in formats) {
+        try {
+            val birthDate = format.parse(dob)
+            if (birthDate != null) {
+                val today = Calendar.getInstance()
+                val birthDay = Calendar.getInstance().apply { time = birthDate }
+                var age = today.get(Calendar.YEAR) - birthDay.get(Calendar.YEAR)
+                if (today.get(Calendar.DAY_OF_YEAR) < birthDay.get(Calendar.DAY_OF_YEAR)) {
+                    age--
+                }
+                return age
+            }
+        } catch (_: ParseException) { }
+    }
+    return 0
+}
 @Composable
 fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
     if (!value.isNullOrBlank()) {
@@ -363,84 +766,6 @@ fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
         }
     }
 }
-
-
-@Composable
-fun PreferencesSection(profile: Profile) {
-    ProfileDetailRow("Looking For", profile.lookingFor, Icons.Default.Favorite)
-    ProfileDetailRow("Claimed Income Level", profile.claimedIncomeLevel, Icons.Default.AttachMoney)
-}
-
-
-@Composable
-fun MetricsSection(profile: Profile) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        ProfileDetailRow("Vibe Score", value = profile.am24RankingCompositeScore.toString(), Icons.Default.StackedLineChart)
-        ProfileDetailRow(label = "Age Ranking", value = profile.am24RankingAge.toString(), Icons.Default.Cake)
-        ProfileDetailRow(label = "High School Ranking", value = profile.am24RankingHighSchool.toString(), Icons.Default.School)
-        ProfileDetailRow(label = "College Ranking", value = profile.am24RankingCollege.toString(), Icons.Default.Book)
-        ProfileDetailRow(label = "Gender Ranking", value = profile.am24RankingGender.toString(), if( profile.gender == "Male") { Icons.Default.Male} else if( profile.gender == "Female") { Icons.Default.Female} else { Icons.Default.Transgender})
-        ProfileDetailRow(label = "Hometown Ranking", value = profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
-        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
-        ProfileDetailRow(
-            "Match Count per Swipe Right",
-            String.format("%.2f", profile.getCalculatedMatchCountPerSwipeRight()),
-            Icons.Default.Swipe
-        )
-        ProfileDetailRow("Cumulative Upvotes", profile.cumulativeUpvotes.toString(), Icons.Default.ThumbUp)
-        ProfileDetailRow("Cumulative Downvotes", profile.cumulativeDownvotes.toString(), Icons.Default.ThumbDown)
-        ProfileDetailRow(
-            label = "Average Upvotes per Post",
-            value = String.format("%.2f", profile.averageUpvoteCount),
-            Icons.Default.KeyboardDoubleArrowUp
-        )
-        ProfileDetailRow(
-            label = "Average Downvotes per Post",
-            value = String.format("%.2f", profile.averageDownvoteCount),
-            Icons.Default.KeyboardDoubleArrowDown
-        )
-        ProfileDetailRow(label = "Date Joined", value = formatDate(profile.dateOfJoin), Icons.Default.DateRange)
-    }
-}
-
-@Composable
-fun LifestyleSection(profile: Profile) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        profile.lifestyle?.let { LifestyleSlider(label = "Smoking Level", value = it.smoking, Icons.Default.SmokingRooms) }
-        profile.lifestyle?.let { LifestyleSlider(label = "Drinking Level", value = it.drinking, Icons.Default.LocalDrink) }
-        profile.lifestyle?.let { LifestyleDropdown(label = "Diet", value = it.diet) }
-        profile.lifestyle?.let { LifestyleSlider(label = "Indoorsy to Outdoorsy", value = it.indoorsyToOutdoorsy, Icons.Default.DirectionsWalk) }
-        profile.lifestyle?.let { LifestyleSlider(label = "Social Butterfly", value = it.socialButterfly, Icons.Default.Groups2) }
-        profile.lifestyle?.let { LifestyleSlider(label = "Work-Life Balance", value = it.workLifeBalance, Icons.Default.WorkOff) }
-        profile.lifestyle?.let { LifestyleSlider(label = "Exercise Frequency", value = it.exerciseFrequency, Icons.Default.SportsGymnastics) }
-        profile.lifestyle?.let { LifestyleSlider(label = "Family-Oriented", value = it.familyOriented, Icons.Default.FamilyRestroom) }
-        // Add other lifestyle sliders similarly
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun InterestsSection(profile: Profile) {
-    if (profile.interests.isEmpty()) {
-        Text(
-            text = "No interests specified.",
-            color = Color.Gray,
-            fontSize = 16.sp
-        )
-    } else {
-        FlowRow(
-        ) {
-            profile.interests.forEach { interest ->
-                Chip(
-                    text = "${interest.emoji} ${interest.name}",
-                    color = Color(0xFFFF6F00),
-                    textColor = Color.White
-                )
-            }
-        }
-    }
-}
-
 @Composable
 fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
     Row(
@@ -465,153 +790,4 @@ fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
             )
         }
     }
-}
-
-@Composable
-fun LifestyleDropdown(label: String, value: String) {
-    Text(
-        text = "$label: $value",
-        color = Color.White,
-        fontSize = 16.sp
-    )
-}
-
-
-@Composable
-fun ProfileSavedPosts(profile: Profile) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Saved Posts by ${profile.name}",
-            color = Color.White,
-            fontSize = 16.sp
-        )
-        // Dynamically fetch and display user's saved posts
-    }
-}
-
-@Composable
-fun Chip(text: String, color: Color, textColor: Color) {
-    Box(
-        modifier = Modifier
-            .background(color, shape = CircleShape)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Text(text = text, color = textColor, fontSize = 14.sp)
-    }
-}
-
-@Composable
-fun RatingBar(rating: Double, ratingCount: Int) {
-    val maxStars = 5
-    val starSize = 20.dp
-    val fullStars = kotlin.math.floor(rating).toInt()
-    val fraction = rating - fullStars // fractional part (0.0 to <1.0)
-    val orange = Color(0xFFFF6F00)
-    val backgroundColor = Color.Black // match your background color
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        // Draw full stars
-        repeat(fullStars) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = orange,
-                modifier = Modifier.size(starSize)
-            )
-        }
-
-        // Draw partially filled star if fraction > 0
-        if (fraction > 0) {
-            Box(modifier = Modifier.size(starSize)) {
-                // Draw star border
-                Icon(
-                    imageVector = Icons.Default.StarBorder,
-                    contentDescription = null,
-                    tint = orange,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                // Draw full star
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = orange,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                // Mask unfilled portion
-                val fractionUnfilled = 1 - fraction
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(starSize * fractionUnfilled.toFloat())
-                        .align(Alignment.CenterEnd)
-                        .background(backgroundColor)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(4.dp))
-
-        // Display rating with two decimal places and the count in brackets
-        Text(
-            text = String.format("%.2f (%d)", rating, ratingCount), // Add count
-            color = orange,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
-    }
-}
-
-
-
-
-fun getLevelBorderColor(rating: Double): Color {
-    return when {
-        rating in 0.0..1.0 -> Color(0xFF444444)    // 0 to 1 Rating
-        rating in 1.1..2.1 -> Color(0xFF555555)    // 1.1 to 2.0 Rating
-        rating in 2.1..3.6 -> Color(0xFF886633)    // 2.1 to 3.0 Rating
-        rating in 3.6..4.7 -> Color(0xFFAA6633)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
-        rating in 4.7..5.0 -> Color(0xFFFF6F00)    // 4.1 to 5.0 Rating
-        else -> Color.Gray                         // Default color if rating is out of range
-    }
-}
-
-
-fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
-
-fun calculateAge(dob: String?): Int {
-    if (dob.isNullOrBlank()) {
-        return 0 // Handle missing DOB gracefully
-    }
-    val formats = listOf(
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
-        SimpleDateFormat("dd/M/yyyy", Locale.getDefault())
-    )
-
-    for (format in formats) {
-        try {
-            val birthDate = format.parse(dob)
-            if (birthDate != null) {
-                val today = Calendar.getInstance()
-                val birthDay = Calendar.getInstance().apply { time = birthDate }
-                var age = today.get(Calendar.YEAR) - birthDay.get(Calendar.YEAR)
-                if (today.get(Calendar.DAY_OF_YEAR) < birthDay.get(Calendar.DAY_OF_YEAR)) {
-                    age--
-                }
-                return age
-            }
-        } catch (e: ParseException) {
-            // Ignore and try the next format
-        }
-    }
-
-    return 0 // Return 0 if none of the formats work
 }

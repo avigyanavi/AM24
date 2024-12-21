@@ -79,7 +79,8 @@ fun MainNavGraph(
         composable("profile") {
             ProfileScreen(
                 navController = navController,
-                profileViewModel = profileViewModel // Pass profileViewModel here
+                profileViewModel = profileViewModel, // Pass profileViewModel here
+                postViewModel = postViewModel
             )
         }
         composable("dating_screen?initialQuery={initialQuery}") { backStackEntry ->
@@ -126,6 +127,15 @@ fun MainNavGraph(
             if (otherUserId != null) {
                 ChatScreen(navController, otherUserId)
             }
+        }
+        // New composable for MatchedUserProfile
+        composable("matchedUserProfile/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            MatchedUserProfile(
+                navController = navController,
+                userId = userId,
+                profileViewModel = profileViewModel
+            )
         }
     }
 }

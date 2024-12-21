@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -124,135 +125,20 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
         fetchAverageRating(ratingsRef, otherUserId) { avg ->
             averageRating = avg
         }
-
-        // Load showRating preference
-        chatPrefsRef.child("showRating").get().addOnSuccessListener { snap ->
-            if (snap.exists()) {
-                showRating = snap.getValue(Boolean::class.java) ?: true
-            } else {
-                showRating = true // default if not set
-            }
-        }
-    }
-
-    // Listen for messages
-    LaunchedEffect(chatId) {
-        messagesRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val newMessages = mutableListOf<Message>()
-                for (msgSnap in snapshot.children) {
-                    val message = msgSnap.getValue(Message::class.java)
-                    if (message != null) newMessages.add(message)
-                }
-                newMessages.sortBy { it.timestamp }
-                messages.clear()
-                messages.addAll(newMessages)
-                markMessagesAsRead(messagesRef, messages, currentUserId)
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
-    }
-
-    // Handle recording logic
-    LaunchedEffect(isRecording) {
-        if (isRecording) {
-            if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                try {
-                    withContext(Dispatchers.IO) {
-                        recorder?.release()
-                        recorder = null
-                        recordFile = File(context.cacheDir, "voice_message_${System.currentTimeMillis()}.aac")
-                        recorder = MediaRecorder().apply {
-                            setAudioSource(MediaRecorder.AudioSource.MIC)
-                            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                            setOutputFile(recordFile?.absolutePath)
-                            setMaxDuration(maxDurationMs)
-                            prepare()
-                            start()
-                        }
-                    }
-
-                    withContext(Dispatchers.Main) { recordingTimeLeft = maxDurationMs }
-
-                    while (isRecording && recordingTimeLeft > 0) {
-                        delay(1000)
-                        withContext(Dispatchers.Main) {
-                            recordingTimeLeft -= 1000
-                        }
-                    }
-
-                    if (isRecording && recordingTimeLeft <= 0) {
-                        withContext(Dispatchers.Main) {
-                            isRecording = false
-                        }
-                    }
-
-                } catch (e: Exception) {
-                    Log.e("VoiceMsg", "Recording error: ${e.message}")
-                    withContext(Dispatchers.Main) {
-                        isRecording = false
-                        Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                    withContext(Dispatchers.IO) {
-                        recorder?.release()
-                        recorder = null
-                    }
-                }
-            } else {
-                isRecording = false
-                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        } else {
-            // Stopped recording
-            try {
-                withContext(Dispatchers.IO) {
-                    recorder?.apply {
-                        stop()
-                        release()
-                    }
-                    recorder = null
-                }
-                val fileUri = recordFile?.let { Uri.fromFile(it) }
-                withContext(Dispatchers.Main) {
-                    if (fileUri != null) recordedVoiceUri = fileUri
-                    recordingTimeLeft = maxDurationMs
-                }
-            } catch (e: Exception) {
-                Log.e("VoiceMsg", "Stop recording error: ${e.message}")
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-                withContext(Dispatchers.IO) {
-                    recorder?.release()
-                    recorder = null
-                }
-            }
-        }
-    }
-
-    // Handle voice playback progress
-    LaunchedEffect(isVoicePlaying) {
-        if (isVoicePlaying && voicePlayer != null) {
-            while (isVoicePlaying && voicePlayer?.isPlaying == true) {
-                delay(500L)
-                val current = voicePlayer?.currentPosition ?: 0
-                val duration = voicePlayer?.duration ?: 1
-                voiceProgress = current.toFloat() / duration.toFloat()
-            }
-        } else {
-            voiceProgress = 0f
-        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.clickable {
+                            otherUserProfile?.let {
+                                navController.navigate("matchedUserProfile/${otherUserId}")
+                            }
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
                             AsyncImage(
                                 model = otherUserProfile!!.profilepicUrl,
@@ -264,76 +150,28 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = otherUserProfile!!.name,
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                        }
+                        Text(
+                            text = otherUserProfile?.name ?: "Chat",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(onClick = {
+                            showRating = !showRating
+                        }) {
+                            Icon(
+                                imageVector = if (showRating) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = "Hide/Show Rating",
+                                tint = Color.Gray
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            // Hide rating icon next to the username (just toggles showRating)
-                            IconButton(onClick = {
-                                showRating = !showRating
-                                // Save preference
-                                chatPrefsRef.child("showRating").setValue(showRating)
-                            }) {
-                                Icon(
-                                    imageVector = if (showRating) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = "Hide/Show Rating",
-                                    tint = Color.Gray
-                                )
-                            }
-                        } else {
-                            Text("Chat", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { moreOptionsMenuExpanded = !moreOptionsMenuExpanded }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
-                    }
-                    DropdownMenu(
-                        expanded = moreOptionsMenuExpanded,
-                        onDismissRequest = { moreOptionsMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Report", color = Color.White) },
-                            onClick = {
-                                moreOptionsMenuExpanded = false
-                                val targetId = otherUserId
-                                profileViewModel.reportProfile(
-                                    profileId = targetId,
-                                    reporterId = currentUserId,
-                                    onSuccess = { Toast.makeText(context, "Reported!", Toast.LENGTH_SHORT).show() },
-                                    onFailure = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Block/Unblock", color = Color.White) },
-                            onClick = {
-                                moreOptionsMenuExpanded = false
-                                val targetId = otherUserId
-                                profileViewModel.blockProfile(
-                                    currentUserId = currentUserId,
-                                    targetUserId = targetId,
-                                    onSuccess = { Toast.makeText(context, "Done!", Toast.LENGTH_SHORT).show() },
-                                    onFailure = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Unmatch", color = Color.White) },
-                            onClick = {
-                                moreOptionsMenuExpanded = false
-                                unmatchUser(otherUserId, context)
-                            }
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -347,16 +185,14 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                 .background(Color.Black)
         ) {
             if (otherUserProfile != null && showRating) {
-                // Show rating info and slider
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    Text(
-                        text = "Avg Rating: ${String.format("%.1f", averageRating)}",
-                        color = Color.Gray,
-                        fontSize = 14.sp
+                    RatingBar(
+                        rating = averageRating,
+                        ratingCount = otherUserProfile!!.numberOfRatings
                     )
                     Text(
                         text = "Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}",

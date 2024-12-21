@@ -4,22 +4,33 @@ package com.am24.am24
 
 import DatingViewModel
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Nature
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
@@ -58,6 +69,7 @@ fun DatingScreen(
 ) {
     val datingViewModel: DatingViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
+    val postViewModel: PostViewModel = viewModel() // <-- get PostViewModel here
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val filtersLoaded by datingViewModel.filtersLoaded.collectAsState()
@@ -76,8 +88,8 @@ fun DatingScreen(
     val displayedProfiles = remember(filteredProfiles, searchQuery, excludedUserIds) {
         filteredProfiles.filter { profile ->
             (profile.name.contains(searchQuery, ignoreCase = true) ||
-                    profile.username.contains(searchQuery, ignoreCase = true)) &&
-                    profile.userId !in excludedUserIds
+                    profile.username.contains(searchQuery, ignoreCase = true))
+//                    && profile.userId !in excludedUserIds
         }
     }
 
@@ -129,7 +141,8 @@ fun DatingScreen(
                     profileViewModel = profileViewModel,
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
-                    profiles = displayedProfiles
+                    profiles = displayedProfiles,
+                    postViewModel = postViewModel,  // pass it
                 )
             }
         }
@@ -171,6 +184,7 @@ fun DatingScreenContent(
     navController: NavController,
     geoFire: GeoFire,
     profileViewModel: ProfileViewModel,
+    postViewModel: PostViewModel, // <--
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     profiles: List<Profile>,
@@ -178,42 +192,40 @@ fun DatingScreenContent(
 ) {
     var currentProfileIndex by remember { mutableStateOf(0) }
 
-    Column(modifier = modifier.fillMaxSize().background(Color.Black).padding(5.dp)) {
-        if (profiles.isEmpty()) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Text(text = "No more profiles available.", color = Color.White, fontSize = 18.sp)
-            }
-        } else {
-            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-            val currentProfile = profiles[currentProfileIndex]
+    if (profiles.isEmpty()) {
+        // ...
+    } else {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val currentProfile = profiles[currentProfileIndex]
 
-            var userDistance by remember { mutableStateOf<Float?>(null) }
-            LaunchedEffect(currentProfile) {
-                userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-            }
+        var userDistance by remember { mutableStateOf<Float?>(null) }
+        LaunchedEffect(currentProfile) {
+            userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
+        }
 
-            userDistance?.let { distance ->
-                DatingProfileCard(
-                    profile = currentProfile,
-                    onSwipeRight = {
-                        handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
-                        if (currentProfileIndex + 1 < profiles.size) {
-                            currentProfileIndex++
-                        }
-                    },
-                    onSwipeLeft = {
-                        handleSwipeLeft(currentUserId, currentProfile.userId)
-                        if (currentProfileIndex + 1 < profiles.size) {
-                            currentProfileIndex++
-                        }
-                    },
-                    navController = navController,
-                    userDistance = distance
-                )
-            }
+        userDistance?.let { distance ->
+            DatingProfileCard(
+                profile = currentProfile,
+                onSwipeRight = {
+                    handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
+                    if (currentProfileIndex + 1 < profiles.size) {
+                        currentProfileIndex++
+                    }
+                },
+                onSwipeLeft = {
+                    handleSwipeLeft(currentUserId, currentProfile.userId)
+                    if (currentProfileIndex + 1 < profiles.size) {
+                        currentProfileIndex++
+                    }
+                },
+                navController = navController,
+                userDistance = distance,
+                postViewModel = postViewModel  // pass it here
+            )
         }
     }
 }
+
 
 @Composable
 fun DatingProfileCard(
@@ -221,23 +233,11 @@ fun DatingProfileCard(
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
     userDistance: Float,
-    navController: NavController
+    navController: NavController,
+    postViewModel: PostViewModel
 ) {
-    var currentPhotoIndex by remember(profile) { mutableStateOf(0) }
-    var isDetailedView by remember { mutableStateOf(false) }
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
-
-    LaunchedEffect(profile) {
-        currentPhotoIndex = 0
-    }
-
     val swipeableState = rememberSwipeableState(initialValue = 0)
-    val anchors = mapOf(
-        -300f to -1,
-        0f to 0,
-        300f to 1
-    )
-
+    val anchors = mapOf(-300f to -1, 0f to 0, 300f to 1)
     val swipeOffset = swipeableState.offset.value
 
     LaunchedEffect(swipeableState.currentValue) {
@@ -250,159 +250,485 @@ fun DatingProfileCard(
         }
     }
 
+    // Gather user’s posts -> featured vs leftover
+    val allPosts by postViewModel.filteredPosts.collectAsState()
+    val myPosts = allPosts.filter { it.userId == profile.userId }
+    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
+    val featuredPosts = sortedByUpvotes.take(5)
+    val remainingPosts = sortedByUpvotes.drop(5)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .swipeable(
+                state = swipeableState,
+                anchors = anchors,
+                thresholds = { _, _ -> FractionalThreshold(0.3f) },
+                orientation = Orientation.Horizontal
+            )
+            .offset { IntOffset(swipeOffset.roundToInt(), 0) }
     ) {
-        if (isDetailedView) {
-            ProfileDetailsTabs(profile = profile, onCloseClick = { isDetailedView = false })
+        LazyColumn(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+            // 1) Photo with top and bottom overlays
+            item {
+                PhotoWithTwoOverlays(profile = profile, userDistance = userDistance)
+            }
+
+            // 2) Collapsible sections
+            item {
+                ProfileCollapsibleSectionsAll(profile)
+            }
+
+            // 3) Featured Posts
+            if (featuredPosts.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Featured Posts",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                items(featuredPosts) { post ->
+                    PostItemInProfile(post)
+                }
+            }
+
+            // 4) Collapsed metrics
+            item {
+                CollapsedMetricsSection(profile)
+            }
+
+            // 5) View More
+            if (remainingPosts.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Button(
+                            onClick = { /* e.g. open all posts screen */ },
+                            colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
+                        ) {
+                            Text(text = "View More Posts", color = Color.White)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PhotoWithTwoOverlays(
+    profile: Profile,
+    userDistance: Float
+) {
+    // Photos
+    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    var currentPhotoIndex by remember { mutableStateOf(0) }
+
+    // Vibe Score
+    val vibeScorePercent = (profile.vibepoints * 100).roundToInt().coerceAtLeast(0)
+    val age = calculateAge(profile.dob)
+    // Let’s assume we have height in profile.heightCm
+    val heightCm = profile.height
+
+    // Work fallback
+    val displayWork = when {
+        profile.work.isNotBlank() -> profile.work
+        !profile.postGraduation.isNullOrBlank() -> profile.postGraduation
+        profile.college.isNotBlank() -> profile.college
+        else -> profile.highSchool
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .pointerInput(photoUrls) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        if (photoUrls.size > 1) {
+                            if (offset.x > size.width / 2) {
+                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
+                            } else {
+                                currentPhotoIndex = (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                            }
+                        }
+                    }
+                )
+            }
+    ) {
+        // Main photo
+        if (photoUrls.isNotEmpty()) {
+            AsyncImage(
+                model = photoUrls[currentPhotoIndex],
+                contentDescription = "Profile Photo",
+                placeholder = painterResource(R.drawable.local_placeholder),
+                error = painterResource(R.drawable.local_placeholder),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 400.dp)
+            )
+
+            // Photo indicator bars
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                photoUrls.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
+                            .height(4.dp)
+                            .padding(horizontal = 2.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
+                    )
+                }
+            }
         } else {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .swipeable(
-                        state = swipeableState,
-                        anchors = anchors,
-                        thresholds = { _, _ -> FractionalThreshold(0.3f) },
-                        orientation = Orientation.Horizontal
-                    )
-                    .offset { IntOffset(swipeOffset.roundToInt(), 0) }
+                    .fillMaxWidth()
+                    .heightIn(min = 400.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(7 / 10f)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { offset ->
-                                    val tapX = offset.x
-                                    val photoCount = photoUrls.size
-                                    if (photoCount > 1) {
-                                        val width = size.width
-                                        if (tapX > width / 2) {
-                                            currentPhotoIndex = (currentPhotoIndex + 1) % photoCount
-                                        } else {
-                                            currentPhotoIndex = (currentPhotoIndex - 1 + photoCount) % photoCount
-                                        }
-                                    }
-                                }
-                            )
-                        }
+                Text("No Images", color = Color.White)
+            }
+        }
+
+        // ---------- TOP OVERLAY: rating + vibe ----------
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .background(Color.Black.copy(alpha = 0.25f))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Rating bar on the left
+                RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                Spacer(modifier = Modifier.width(12.dp))
+                // Flashy vibe on the right
+                FlashyVibeScore(scorePercent = vibeScorePercent)
+            }
+        }
+
+        // ---------- BOTTOM OVERLAY -----------
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                .background(Color.Black.copy(alpha = 0.60f))
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Column {
+                // Name, Age, Distance + height
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    AsyncImage(
-                        model = photoUrls[currentPhotoIndex],
-                        contentDescription = "Profile Photo",
-                        placeholder = painterResource(R.drawable.local_placeholder),
-                        error = painterResource(R.drawable.local_placeholder),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-
-                    if (swipeableState.offset.value < -100) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(150.dp)
-                                .align(Alignment.CenterStart)
-                                .background(Color.Red.copy(alpha = 0.5f))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Dislike",
-                                tint = Color.White,
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
-                    } else if (swipeableState.offset.value > 100) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(150.dp)
-                                .align(Alignment.CenterEnd)
-                                .background(Color.Green.copy(alpha = 0.5f))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Like",
-                                tint = Color.White,
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
+                    Column {
+                        Text(
+                            text = "${profile.name}, $age",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "${userDistance.roundToInt()} km away",
+                            fontSize = 14.sp,
+                            color = Color.White
+                        )
                     }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "${profile.name}, ${calculateAge(profile.dob)}",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "${userDistance.roundToInt()} km away",
-                                fontSize = 16.sp,
-                                color = Color.White
-                            )
-                            if (profile.hometown.isNotEmpty()) {
-                                if(profile.locality != "") {
-                                    Text(
-                                        text = "${profile.locality}, ${profile.city}",
-                                        fontSize = 16.sp,
-                                        color = Color.White
-                                    )
-                                } else {
-                                    Text(
-                                        text = profile.city,
-                                        fontSize = 16.sp,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            RatingBar(rating = profile.averageRating,ratingCount = profile.numberOfRatings)
-                            Text(
-                                text = "Vibe Score: ${profile.vibepoints}",
-                                fontSize = 14.sp,
-                                color = Color.White
-                            )
-                        }
-                        IconButton(
-                            onClick = { isDetailedView = true },
-                            modifier = Modifier.align(Alignment.TopEnd)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "View More Info",
-                                tint = Color.White
-                            )
-                        }
+                    // Height if available
+                    if (heightCm > 0) {
+                        Text(
+                            text = "📏${heightCm} cm",
+                            fontSize = 14.sp,
+                            color = Color(0xFFFFBF00),
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
+                }
 
+                // Row 1 for “lookingFor + interests” on the left
+                if (profile.lookingFor.isNotBlank() || profile.interests.isNotEmpty()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.Center
+                            .padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.Start
                     ) {
-                        photoUrls.forEachIndexed { index, _ ->
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .padding(horizontal = 2.dp)
-                                    .clip(CircleShape)
-                                    .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
-                            )
+                        // Show “💖lookingFor” as a Tag
+                        if (profile.lookingFor.isNotBlank()) {
+                            TagtwoBox("💖${profile.lookingFor}")
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        // Now show interests as tags
+                        if (profile.interests.isNotEmpty()) {
+                            // You can do a FlowRow if you prefer:
+                            Row {
+                                profile.interests.forEach { interest ->
+                                    TagtwoBox("${interest.name}")
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                }
+                            }
                         }
                     }
                 }
+
+                // Row 2 for community, locality, religion, fallbackWork on the right
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    // community
+                    if (profile.community.isNotBlank()) {
+                        TagBox("${profile.community}")
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    // city or locality
+                    val locText = when {
+                        profile.locality.isNotBlank() -> "${profile.locality}"
+                        profile.city.isNotBlank() -> "${profile.city}"
+                        else -> ""
+                    }
+                    if (locText.isNotBlank()) {
+                        TagBox(locText)
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    // religion
+                    if (profile.religion.isNotBlank()) {
+                        TagBox("${profile.religion}")
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    // fallback “work”
+                    if (!displayWork.isNullOrBlank()) {
+                        TagBox("$displayWork")
+                    }
+                }
             }
+        }
+    }
+}
+
+/**
+ * TagBox that replicates your #tag style from posts,
+ * adapted for overlay usage.
+ */
+@Composable
+fun TagBox(text: String) {
+    if (text.isNotBlank()) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 1.dp)
+                .background(
+                    Color.Black,
+                    RoundedCornerShape(4.dp)
+                )
+                .border(
+                    BorderStroke(1.dp, Color(0xFFFF6F00)),
+                    RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+@Composable
+fun TagtwoBox(text: String) {
+    if (text.isNotBlank()) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 1.dp)
+                .background(
+                    Color.Black,
+                    RoundedCornerShape(4.dp)
+                )
+                .border(
+                    BorderStroke(1.dp, Color(0xFFFFBF00)),
+                    RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
+/**
+ * Displays the photo carousel + two overlays:
+ *  - Top overlay: rating bar + vibe (small bar)
+ *  - Bottom overlay: name, age, distance, community, city, religion, etc.
+ *    with a rounded top border.
+ * All of this is within a fixed or auto-sized Box so when scrolled,
+ * the overlays move away with the photo.
+ */
+
+
+@Composable
+fun FlashyVibeScore(scorePercent: Int) {
+    // Let's clamp it between 0% and 100%
+    val displayPercent = scorePercent.coerceIn(0, 100)
+
+    // Example of a big bold text with a gradient behind it
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color(0xFFFF6F00), Color(0xFFFFFF00))
+                )
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = "$displayPercent%",
+            color = Color.Black, // text color stands out on the gradient
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 16.sp
+        )
+    }
+}
+
+
+@Composable
+fun PhotoCarousel(profile: Profile) {
+    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    var currentPhotoIndex by remember { mutableStateOf(0) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(7 / 10f)
+            .background(Color.Black)
+            .pointerInput(photoUrls) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        // if multiple photos
+                        if (photoUrls.size > 1) {
+                            if (offset.x > size.width / 2) {
+                                // next
+                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
+                            } else {
+                                // prev
+                                currentPhotoIndex =
+                                    (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                            }
+                        }
+                    }
+                )
+            }
+    ) {
+        if (photoUrls.isNotEmpty()) {
+            AsyncImage(
+                model = photoUrls[currentPhotoIndex],
+                contentDescription = "Profile Photo",
+                placeholder = painterResource(R.drawable.local_placeholder),
+                error = painterResource(R.drawable.local_placeholder),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // dots at top, tinder style
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                photoUrls.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
+                            .height(4.dp)
+                            .padding(horizontal = 2.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
+                    )
+                }
+            }
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No Images", color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileCollapsibleSectionsAll(profile: Profile) {
+    var showBasic by rememberSaveable { mutableStateOf(true) }
+    var showPreferences by rememberSaveable { mutableStateOf(true) }
+    var showLifestyle by rememberSaveable { mutableStateOf(true) }
+    var showInterests by rememberSaveable { mutableStateOf(true) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(16.dp)
+    ) {
+        CollapsibleSection(
+            title = "Basic Information",
+            icon = Icons.Default.Person,
+            isExpanded = showBasic,
+            onToggle = { showBasic = !showBasic }
+        ) {
+            BasicInfoSection(profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        CollapsibleSection(
+            title = "Preferences",
+            icon = Icons.Default.Favorite,
+            isExpanded = showPreferences,
+            onToggle = { showPreferences = !showPreferences }
+        ) {
+            PreferencesSection(profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        CollapsibleSection(
+            title = "Lifestyle Attributes",
+            icon = Icons.Default.Nature,
+            isExpanded = showLifestyle,
+            onToggle = { showLifestyle = !showLifestyle }
+        ) {
+            LifestyleSection(profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        CollapsibleSection(
+            title = "Interests",
+            icon = Icons.Default.Star,
+            isExpanded = showInterests,
+            onToggle = { showInterests = !showInterests }
+        ) {
+            InterestsSectionInProfile(profile)
         }
     }
 }
