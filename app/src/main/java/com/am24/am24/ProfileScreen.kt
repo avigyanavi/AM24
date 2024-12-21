@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.am24.am24.ui.theme.White
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -659,7 +660,7 @@ fun RatingBar(rating: Double, ratingCount: Int) {
     val starSize = 25.dp
     val fullStars = kotlin.math.floor(rating).toInt()
     val fraction = rating - fullStars // fractional part (0..1)
-    val orange = Color(0xFFFFBF00)
+    val orange = Color(0xFFFF6F00)
     val backgroundColor = Color.Black
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -703,7 +704,7 @@ fun RatingBar(rating: Double, ratingCount: Int) {
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = String.format("%.2f (%d)", rating, ratingCount),
-            color = orange,
+            color = White,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
         )

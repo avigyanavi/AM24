@@ -87,11 +87,10 @@ fun DatingScreen(
     // Apply search query and exclusions to filteredProfiles
     val displayedProfiles = remember(filteredProfiles, searchQuery, excludedUserIds) {
         filteredProfiles.filter { profile ->
-            (profile.name.contains(searchQuery, ignoreCase = true) ||
-                    profile.username.contains(searchQuery, ignoreCase = true))
-//                    && profile.userId !in excludedUserIds
+            profile.username.contains(searchQuery, ignoreCase = true) // Updated filtering logic
         }
     }
+
 
     // Real-time updates for profiles and filters
     LaunchedEffect(Unit) {
@@ -332,16 +331,7 @@ fun PhotoWithTwoOverlays(
     // Vibe Score
     val vibeScorePercent = (profile.vibepoints * 100).roundToInt().coerceAtLeast(0)
     val age = calculateAge(profile.dob)
-    // Let’s assume we have height in profile.heightCm
     val heightCm = profile.height
-
-    // Work fallback
-    val displayWork = when {
-        profile.work.isNotBlank() -> profile.work
-        !profile.postGraduation.isNullOrBlank() -> profile.postGraduation
-        profile.college.isNotBlank() -> profile.college
-        else -> profile.highSchool
-    }
 
     Box(
         modifier = Modifier
@@ -372,158 +362,88 @@ fun PhotoWithTwoOverlays(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 400.dp)
             )
 
-            // Photo indicator bars
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                photoUrls.forEachIndexed { index, _ ->
-                    Box(
-                        modifier = Modifier
-                            .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
-                            .height(4.dp)
-                            .padding(horizontal = 2.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
-                    )
-                }
-            }
-        } else {
+            // Top overlay
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 400.dp),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.TopCenter)
+                    .background(Color.Black.copy(alpha = 0.25f))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Text("No Images", color = Color.White)
-            }
-        }
-
-        // ---------- TOP OVERLAY: rating + vibe ----------
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .background(Color.Black.copy(alpha = 0.25f))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Rating bar on the left
-                RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
-                Spacer(modifier = Modifier.width(12.dp))
-                // Flashy vibe on the right
-                FlashyVibeScore(scorePercent = vibeScorePercent)
-            }
-        }
-
-        // ---------- BOTTOM OVERLAY -----------
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                .background(Color.Black.copy(alpha = 0.60f))
-                .padding(horizontal = 14.dp, vertical = 10.dp)
-        ) {
-            Column {
-                // Name, Age, Distance + height
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column {
-                        Text(
-                            text = "${profile.name}, $age",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "${userDistance.roundToInt()} km away",
-                            fontSize = 14.sp,
-                            color = Color.White
-                        )
-                    }
-                    // Height if available
-                    if (heightCm > 0) {
-                        Text(
-                            text = "📏${heightCm} cm",
-                            fontSize = 14.sp,
-                            color = Color(0xFFFFBF00),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    FlashyVibeScore(scorePercent = vibeScorePercent)
                 }
+            }
 
-                // Row 1 for “lookingFor + interests” on the left
-                if (profile.lookingFor.isNotBlank() || profile.interests.isNotEmpty()) {
+            // Bottom overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                    .background(Color.Black.copy(alpha = 0.60f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Column {
+                    // Name, Age, Distance + height
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column {
+                            Text(
+                                text = "${profile.username}, $age", // Updated to username
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "${userDistance.roundToInt()} km away",
+                                fontSize = 14.sp,
+                                color = Color.White
+                            )
+                        }
+                        if (heightCm > 0) {
+                            Text(
+                                text = "📏${heightCm} cm",
+                                fontSize = 14.sp,
+                                color = Color(0xFFFFBF00),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // Community, locality, religion
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 6.dp),
-                        horizontalArrangement = Arrangement.Start
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        // Show “💖lookingFor” as a Tag
-                        if (profile.lookingFor.isNotBlank()) {
-                            TagtwoBox("💖${profile.lookingFor}")
-                            Spacer(modifier = Modifier.width(6.dp))
+                        if (profile.community.isNotBlank()) {
+                            TagBox(profile.community)
+                            Spacer(modifier = Modifier.width(4.dp))
                         }
-                        // Now show interests as tags
-                        if (profile.interests.isNotEmpty()) {
-                            // You can do a FlowRow if you prefer:
-                            Row {
-                                profile.interests.forEach { interest ->
-                                    TagtwoBox("${interest.name}")
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                }
-                            }
+                        if (profile.city.isNotBlank()) {
+                            TagBox(profile.city)
+                            Spacer(modifier = Modifier.width(4.dp))
                         }
-                    }
-                }
-
-                // Row 2 for community, locality, religion, fallbackWork on the right
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    // community
-                    if (profile.community.isNotBlank()) {
-                        TagBox("${profile.community}")
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    // city or locality
-                    val locText = when {
-                        profile.locality.isNotBlank() -> "${profile.locality}"
-                        profile.city.isNotBlank() -> "${profile.city}"
-                        else -> ""
-                    }
-                    if (locText.isNotBlank()) {
-                        TagBox(locText)
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    // religion
-                    if (profile.religion.isNotBlank()) {
-                        TagBox("${profile.religion}")
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    // fallback “work”
-                    if (!displayWork.isNullOrBlank()) {
-                        TagBox("$displayWork")
+                        if (profile.religion.isNotBlank()) {
+                            TagBox(profile.religion)
+                        }
                     }
                 }
             }
         }
     }
 }
+
 
 /**
  * TagBox that replicates your #tag style from posts,
@@ -599,14 +519,14 @@ fun FlashyVibeScore(scorePercent: Int) {
             .clip(RoundedCornerShape(6.dp))
             .background(
                 brush = Brush.horizontalGradient(
-                    colors = listOf(Color(0xFFFF6F00), Color(0xFFFFFF00))
+                    colors = listOf(Color(0xFFFF4500), Color(0xFFFF6F00))
                 )
             )
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
-            text = "$displayPercent%",
-            color = Color.Black, // text color stands out on the gradient
+            text = "Mutual Vibe is at $displayPercent%",
+            color = Color.White, // text color stands out on the gradient
             fontWeight = FontWeight.ExtraBold,
             fontSize = 16.sp
         )
