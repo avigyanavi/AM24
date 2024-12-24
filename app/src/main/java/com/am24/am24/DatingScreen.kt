@@ -12,27 +12,20 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -65,85 +58,262 @@ fun DatingScreen(
     navController: NavController,
     geoFire: GeoFire,
     modifier: Modifier = Modifier,
-    initialQuery: String = "",
+    initialQuery: String = ""
 ) {
     val datingViewModel: DatingViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
-    val postViewModel: PostViewModel = viewModel() // <-- get PostViewModel here
+    val postViewModel: PostViewModel = viewModel()
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val filtersLoaded by datingViewModel.filtersLoaded.collectAsState()
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
+    val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
 
-    // State for search query
     var searchQuery by remember { mutableStateOf(initialQuery) }
     var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
 
-    // Fetch excluded users (matches and recent likes)
     LaunchedEffect(currentUserId) {
         excludedUserIds = fetchExcludedUsers(currentUserId)
     }
 
-    // Apply search query and exclusions to filteredProfiles
     val displayedProfiles = remember(filteredProfiles, searchQuery, excludedUserIds) {
+        if (ActiveScreenState.currentScreen == "DatingScreen") {
         filteredProfiles.filter { profile ->
-            profile.username.contains(searchQuery, ignoreCase = true) // Updated filtering logic
-        }
-    }
-
-
-    // Real-time updates for profiles and filters
-    LaunchedEffect(Unit) {
-        datingViewModel.startRealTimeProfileUpdates(currentUserId)
-        datingViewModel.startRealTimeFilterUpdates(currentUserId)
-    }
-
-    if (!filtersLoaded) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFFFFA500))
+            profile.userId !in excludedUserIds &&
+                    profile.username.contains(searchQuery, ignoreCase = true)
         }
     } else {
-        // Show the search bar always at the top
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // Search Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 0.dp, bottom = 10.dp, start = 10.dp, end = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Search", color = Color.Gray) },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF4500),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color(0xFFFF4500),
-                        focusedLabelColor = Color.Gray,
-                        textColor = Color.White
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            emptyList()
+        }
+    }
 
-            if (displayedProfiles.isEmpty()) {
-                // Show "No profiles found" below the search bar if no profiles match
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No profiles match your search or filters.", color = Color.White, fontSize = 18.sp)
-                }
-            } else {
-                // If profiles are available, show content
-                DatingScreenContent(
-                    navController = navController,
-                    geoFire = geoFire,
-                    profileViewModel = profileViewModel,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    profiles = displayedProfiles,
-                    postViewModel = postViewModel,  // pass it
-                )
+
+// Manage listeners and ActiveScreenState
+    DisposableEffect(Unit) {
+        ActiveScreenState.updateActiveScreen("DatingScreen")
+
+        // Start listeners for profiles and filters
+        datingViewModel.startRealTimeProfileUpdates(currentUserId)
+        datingViewModel.startRealTimeFilterUpdates(currentUserId)
+
+        onDispose {
+            // Stop listeners when leaving the screen
+            datingViewModel.pauseProfileUpdates()
+            datingViewModel.pauseFilterUpdates(currentUserId)
+
+            // Clear any match pop-up state
+            profileViewModel.clearMatchPopUp()
+
+            // Reset ActiveScreenState
+            ActiveScreenState.updateActiveScreen("")
+        }
+    }
+
+    // Use a Box to handle layering
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Main content
+        if (!filtersLoaded) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFFFFA500))
             }
+        } else {
+            Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+                // Search Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("Search", color = Color.Gray) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF4500),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFFFF4500),
+                            focusedLabelColor = Color.Gray,
+                            textColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (displayedProfiles.isEmpty()) {
+                    NoMoreProfilesScreen(datingViewModel = datingViewModel)
+                } else {
+                    DatingScreenContent(
+                        navController = navController,
+                        geoFire = geoFire,
+                        profileViewModel = profileViewModel,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it },
+                        profiles = displayedProfiles,
+                        postViewModel = postViewModel
+                    )
+                }
+            }
+        }
+
+        // Pop-up for a match, shown above the stack
+        matchPopUpState?.let { (currentUserProfile, matchedUserProfile) ->
+            MatchPopUp(
+                currentUserProfilePic = currentUserProfile.profilepicUrl ?: "",
+                otherUserProfilePic = matchedUserProfile.profilepicUrl ?: "",
+                onChatClick = {
+                    navController.navigate("chat/${matchedUserProfile.userId}")
+                    profileViewModel.clearMatchPopUp()
+                },
+                onClose = {
+                    profileViewModel.clearMatchPopUp()
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f))
+                    .align(Alignment.Center)
+                    .zIndex(1f) // Ensure it's on top
+            )
+        }
+    }
+}
+
+
+@Composable
+fun NoMoreProfilesScreen(datingViewModel: DatingViewModel) {
+    val filters by datingViewModel.datingFilters.collectAsState()
+
+    var ageRange by remember { mutableStateOf(filters.ageStart..filters.ageEnd) }
+    var maxDistance by remember { mutableStateOf(filters.distance) }
+    var selectedGenders by remember { mutableStateOf(filters.gender.split(",").filter { it.isNotBlank() }.toSet()) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("No more profiles available.", color = Color.White, fontSize = 18.sp, modifier = Modifier.padding(bottom = 16.dp))
+        Text("Adjust your filters:", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(bottom = 8.dp))
+
+        // Age Range Slider
+        Text("Age Range: ${ageRange.start} - ${ageRange.endInclusive}", color = Color.White)
+        RangeSlider(
+            value = ageRange.start.toFloat()..ageRange.endInclusive.toFloat(),
+            onValueChange = { range ->
+                ageRange = range.start.roundToInt()..range.endInclusive.roundToInt()
+                datingViewModel.updateDatingFilters(
+                    filters.copy(ageStart = ageRange.start, ageEnd = ageRange.endInclusive)
+                )
+            },
+            valueRange = 18f..100f,
+            steps = 82,
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFFFF6F00),
+                activeTrackColor = Color(0xFFFF6F00),
+                inactiveTrackColor = Color.White
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Distance Slider
+        val displayedDistanceText = if (maxDistance == 100) "Global" else "$maxDistance km"
+        Text("Max Distance: $displayedDistanceText", color = Color.White)
+        Slider(
+            value = maxDistance.toFloat(),
+            onValueChange = { distance ->
+                maxDistance = distance.roundToInt()
+                datingViewModel.updateDatingFilters(filters.copy(distance = maxDistance))
+            },
+            valueRange = 0f..100f,
+            steps = 10,
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFFFF6F00),
+                activeTrackColor = Color(0xFFFF6F00),
+                inactiveTrackColor = Color.White
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Gender Selection Buttons (Toggleable)
+        Text("Gender Preference:", color = Color.White)
+        Row(modifier = Modifier.padding(vertical = 8.dp)) {
+            listOf("Male", "Female", "Other").forEach { gender ->
+                Button(
+                    onClick = {
+                        selectedGenders = if (selectedGenders.contains(gender)) {
+                            selectedGenders - gender
+                        } else {
+                            selectedGenders + gender
+                        }
+                        datingViewModel.updateDatingFilters(
+                            filters.copy(gender = selectedGenders.joinToString(","))
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = if (selectedGenders.contains(gender)) Color(0xFFFF6F00) else Color.White
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text(gender, color = Color.Black)
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun DatingScreenContent(
+    navController: NavController,
+    geoFire: GeoFire,
+    profileViewModel: ProfileViewModel,
+    postViewModel: PostViewModel,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    profiles: List<Profile>,
+    modifier: Modifier = Modifier,
+) {
+    var currentProfileIndex by remember { mutableStateOf(0) }
+
+    if (profiles.isEmpty() || currentProfileIndex >= profiles.size) {
+        NoMoreProfilesScreen(datingViewModel = viewModel())
+    } else {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val currentProfile = profiles[currentProfileIndex]
+
+        var userDistance by remember { mutableStateOf<Float?>(null) }
+        LaunchedEffect(currentProfile) {
+            userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
+        }
+
+        userDistance?.let { distance ->
+            DatingProfileCard(
+                profile = currentProfile,
+                onSwipeRight = {
+                    handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
+                    if (currentProfileIndex + 1 < profiles.size) {
+                        currentProfileIndex++
+                    } else {
+                        currentProfileIndex = profiles.size // Trigger "No more profiles"
+                    }
+                },
+                onSwipeLeft = {
+                    handleSwipeLeft(currentUserId, currentProfile.userId)
+                    if (currentProfileIndex + 1 < profiles.size) {
+                        currentProfileIndex++
+                    } else {
+                        currentProfileIndex = profiles.size // Trigger "No more profiles"
+                    }
+                },
+                navController = navController,
+                userDistance = distance,
+                postViewModel = postViewModel
+            )
         }
     }
 }
@@ -176,55 +346,6 @@ suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
         excludedIds
     }
 }
-
-
-@Composable
-fun DatingScreenContent(
-    navController: NavController,
-    geoFire: GeoFire,
-    profileViewModel: ProfileViewModel,
-    postViewModel: PostViewModel, // <--
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    profiles: List<Profile>,
-    modifier: Modifier = Modifier,
-) {
-    var currentProfileIndex by remember { mutableStateOf(0) }
-
-    if (profiles.isEmpty()) {
-        // ...
-    } else {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val currentProfile = profiles[currentProfileIndex]
-
-        var userDistance by remember { mutableStateOf<Float?>(null) }
-        LaunchedEffect(currentProfile) {
-            userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-        }
-
-        userDistance?.let { distance ->
-            DatingProfileCard(
-                profile = currentProfile,
-                onSwipeRight = {
-                    handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
-                    if (currentProfileIndex + 1 < profiles.size) {
-                        currentProfileIndex++
-                    }
-                },
-                onSwipeLeft = {
-                    handleSwipeLeft(currentUserId, currentProfile.userId)
-                    if (currentProfileIndex + 1 < profiles.size) {
-                        currentProfileIndex++
-                    }
-                },
-                navController = navController,
-                userDistance = distance,
-                postViewModel = postViewModel  // pass it here
-            )
-        }
-    }
-}
-
 
 @Composable
 fun DatingProfileCard(
@@ -535,71 +656,6 @@ fun FlashyVibeScore(scorePercent: Int) {
 
 
 @Composable
-fun PhotoCarousel(profile: Profile) {
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
-    var currentPhotoIndex by remember { mutableStateOf(0) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(7 / 10f)
-            .background(Color.Black)
-            .pointerInput(photoUrls) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        // if multiple photos
-                        if (photoUrls.size > 1) {
-                            if (offset.x > size.width / 2) {
-                                // next
-                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
-                            } else {
-                                // prev
-                                currentPhotoIndex =
-                                    (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
-                            }
-                        }
-                    }
-                )
-            }
-    ) {
-        if (photoUrls.isNotEmpty()) {
-            AsyncImage(
-                model = photoUrls[currentPhotoIndex],
-                contentDescription = "Profile Photo",
-                placeholder = painterResource(R.drawable.local_placeholder),
-                error = painterResource(R.drawable.local_placeholder),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // dots at top, tinder style
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                photoUrls.forEachIndexed { index, _ ->
-                    Box(
-                        modifier = Modifier
-                            .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
-                            .height(4.dp)
-                            .padding(horizontal = 2.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
-                    )
-                }
-            }
-        } else {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No Images", color = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
 fun ProfileCollapsibleSectionsAll(profile: Profile) {
     var showBasic by rememberSaveable { mutableStateOf(true) }
     var showPreferences by rememberSaveable { mutableStateOf(true) }
@@ -682,6 +738,7 @@ fun handleSwipeRight(
             currentUserMatchesRef.setValue(timestamp)
             otherUserMatchesRef.setValue(timestamp)
 
+            // Send match notification
             profileViewModel.sendMatchNotification(
                 senderId = currentUserId,
                 receiverId = otherUserId,
@@ -692,6 +749,7 @@ fun handleSwipeRight(
                     Log.e("MatchNotification", "Failed to send match notification: $error")
                 }
             )
+
             profileViewModel.sendMatchNotification(
                 senderId = otherUserId,
                 receiverId = currentUserId,
@@ -702,7 +760,11 @@ fun handleSwipeRight(
                     Log.e("MatchNotification", "Failed to send match notification: $error")
                 }
             )
+
+            // Trigger match pop-up
+            profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
         } else {
+            // Send like notification
             profileViewModel.sendLikeNotification(
                 senderId = currentUserId,
                 receiverId = otherUserId,
@@ -718,6 +780,7 @@ fun handleSwipeRight(
         Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
     }
 }
+
 
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val database = FirebaseDatabase.getInstance()
@@ -764,11 +827,78 @@ fun ProfilePosts(profile: Profile) {
 }
 
 @Composable
-fun ProfileScore(profile: Profile) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = "Rating: ${profile.averageRating} (${profile.numberOfRatings})", color = Color.White, fontSize = 16.sp)
+fun MatchPopUp(
+    currentUserProfilePic: String,
+    otherUserProfilePic: String,
+    onChatClick: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(0.9f)
+                .clip(RoundedCornerShape(16.dp)),
+            elevation = 8.dp
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .background(Color.White)
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "It's a Match!",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Profile Pictures
+                Row(horizontalArrangement = Arrangement.Center) {
+                    AsyncImage(
+                        model = currentUserProfilePic,
+                        contentDescription = "Your Profile Picture",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color(0xFFFF6F00), CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    AsyncImage(
+                        model = otherUserProfilePic,
+                        contentDescription = "Matched Profile Picture",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color(0xFFFF6F00), CircleShape)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Actions
+                Button(
+                    onClick = onChatClick,
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+                ) {
+                    Text("Chat Now", color = Color.White)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = onClose) {
+                    Text("Close", color = Color.Gray)
+                }
+            }
+        }
     }
 }
+
+
 
 suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? = suspendCancellableCoroutine { continuation ->
     geoFire.getLocation(userId, object : LocationCallback {

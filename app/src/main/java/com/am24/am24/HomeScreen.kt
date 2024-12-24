@@ -65,13 +65,25 @@ import kotlin.math.roundToInt
 @Composable
 fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modifier: Modifier = Modifier) {
 
+    DisposableEffect(Unit) {
+        // Set active screen to "HomeScreen" when entered
+        postViewModel.updateActiveScreen("HomeScreen")
+        ActiveScreenState.updateActiveScreen("HomeScreen")
+
+        onDispose {
+            // Clear active screen and stop updates when leaving
+            postViewModel.updateActiveScreen("")
+            ActiveScreenState.updateActiveScreen("")
+        }
+    }
+
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
 
     // Check if filters are loaded
     if (filtersLoaded) {
         // Collect filteredPosts instead of posts
         val posts by postViewModel.filteredPosts.collectAsState()
-        Log.d("HomeScreen", "Filtered Posts Count in Homescreen: ${posts.size}")
+        Log.d("HomeScreen", "Filtered Posts Count in HomeScreen: ${posts.size}")
 
         val userProfiles by postViewModel.userProfiles.collectAsState()
         val filterSettings by postViewModel.filterSettings.collectAsState()
@@ -364,10 +376,7 @@ fun FeedSection(
             val currentUser = userId
             if (currentUser != null) {
                 // Re-load feed filters from Firebase
-                postViewModel.loadFiltersFromFirebase(currentUser)
-
-                // Re-fetch user profiles (a new function you'll write)
-                postViewModel.refreshUserProfiles()
+                postViewModel.refreshPosts()
             }
 
             delay(500)

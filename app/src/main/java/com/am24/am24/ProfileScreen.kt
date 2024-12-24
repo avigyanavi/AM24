@@ -486,21 +486,20 @@ fun BasicInfoSection(profile: Profile) {
 @Composable
 fun PreferencesSection(profile: Profile) {
     ProfileDetailRow("Looking For", profile.lookingFor, Icons.Default.Favorite)
-    ProfileDetailRow("Wealth", profile.claimedIncomeLevel, Icons.Default.AttachMoney)
 }
 
 /** Metrics (Ranking, Up/Down votes, match counts, etc.) */
 @Composable
 fun MetricsSection(profile: Profile) {
     Column {
-        ProfileDetailRow("World Ranking", profile.am24Ranking.toString(), Icons.Filled.Language)
+        ProfileDetailRow("Kolkata Ranking", profile.am24Ranking.toString(), Icons.Filled.Language)
         ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
         ProfileDetailRow("High School Ranking", profile.am24RankingHighSchool.toString(), Icons.Default.School)
         ProfileDetailRow("College Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
         ProfileDetailRow("Gender Ranking", profile.am24RankingGender.toString(),
             if (profile.gender == "Male") Icons.Default.Male else if (profile.gender == "Female") Icons.Default.Female else Icons.Default.Transgender
         )
-        ProfileDetailRow("Hometown Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
+        ProfileDetailRow("${(profile.hometown)} Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
         ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
         ProfileDetailRow(
             "Match Count per Swipe Right",
@@ -532,7 +531,7 @@ fun LifestyleSection(profile: Profile) {
             LifestyleSlider("Drinking Level", it.drinking, Icons.Default.LocalDrink)
             LifestyleDropdown("Diet", it.diet)
             LifestyleSlider("Indoorsy to Outdoorsy", it.indoorsyToOutdoorsy, Icons.Default.DirectionsWalk)
-            LifestyleSlider("Social Butterfly", it.socialButterfly, Icons.Default.Groups2)
+            LifestyleSlider("Social Butterfly", it.socialMedia, Icons.Default.Groups2)
             LifestyleSlider("Work-Life Balance", it.workLifeBalance, Icons.Default.WorkOff)
             LifestyleSlider("Exercise Frequency", it.exerciseFrequency, Icons.Default.SportsGymnastics)
             LifestyleSlider("Family-Oriented", it.familyOriented, Icons.Default.FamilyRestroom)

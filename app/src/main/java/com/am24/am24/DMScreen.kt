@@ -251,10 +251,10 @@ fun DMUserCard(
                 // Calculate age
                 val age = profile.dob?.let { calculateAge(it) }
                 // Location info
-                val locality = profile.locality
+                val locality = profile.hometown
                 val city = profile.city
 
-                if(profile.locality != "") {
+                if(profile.hometown != "") {
                     Text(
                         text = "${locality}, ${profile.city}, Age: ${age ?: ""}",
                         fontSize = 16.sp,

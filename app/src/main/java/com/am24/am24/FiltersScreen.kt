@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 
 package com.am24.am24
 
@@ -40,9 +40,6 @@ fun FiltersScreen(
     // City selection
     val cities = listOf("All", "Kolkata", "Mumbai", "Delhi")
     var selectedCity by remember { mutableStateOf("All") }
-
-    // Observe dating filters from the DatingViewModel
-    val datingFilters by datingViewModel.datingFilters.collectAsState()
 
     // City-based data mappings
     val cityLocalitiesMap = mapOf(
@@ -192,55 +189,67 @@ fun FiltersScreen(
 
     DisposableEffect(Unit) {
         onDispose {
+            val datingFilterSettings = DatingFilterSettings(
+                localities = datingLocalities.toList(),
+                city = datingCity,
+                highSchool = datingHighSchool,
+                college = datingCollege,
+                postGrad = datingPostGrad,
+                work = datingWork,
+                ageStart = datingAgeRange.start,
+                ageEnd = datingAgeRange.endInclusive,
+                distance = datingDistance,
+                gender = datingGender,
+                rating = datingRating
+            )
+
+            val feedFilterSettings = FeedFilterSettings(
+                localities = feedLocalities.toList(),
+                city = feedCity,
+                highSchool = feedHighSchool,
+                college = feedCollege,
+                postGrad = feedPostGrad,
+                work = feedWork,
+                ageStart = feedAgeRange.start,
+                ageEnd = feedAgeRange.endInclusive,
+                gender = feedGender,
+                rating = feedRating
+            )
+
+            // Save both filters for persistence
             val filterSettings = FilterSettings(
                 filterOption = "everyone",
-                datingFilters = DatingFilterSettings(
-                    localities = datingLocalities.toList(),
-                    city = datingCity,
-                    highSchool = datingHighSchool,
-                    college = datingCollege,
-                    postGrad = datingPostGrad,
-                    work = datingWork,
-                    ageStart = datingAgeRange.start,
-                    ageEnd = datingAgeRange.endInclusive,
-                    distance = datingDistance,
-                    gender = datingGender,
-                    rating = datingRating
-                ),
-                feedFilters = FeedFilterSettings(
-                    localities = feedLocalities.toList(),
-                    city = feedCity,
-                    highSchool = feedHighSchool,
-                    college = feedCollege,
-                    postGrad = feedPostGrad,
-                    work = feedWork,
-                    ageStart = feedAgeRange.start,
-                    ageEnd = feedAgeRange.endInclusive,
-                    gender = feedGender,
-                    rating = feedRating
-                ),
+                datingFilters = datingFilterSettings,
+                feedFilters = feedFilterSettings,
                 sortOption = "No Sort",
                 searchQuery = ""
             )
 
-            // Save to Firebase
+            // Save filters to Firebase for persistence
             saveFilters(filterSettings, context)
 
-            // Update ViewModel
-            saveFeedFiltersToViewModel(
-                postViewModel = postViewModel,
-                feedLocalities = feedLocalities,
-                feedHighSchool = feedHighSchool,
-                feedCollege = feedCollege,
-                feedPostGrad = feedPostGrad,
-                feedWork = feedWork,
-                feedRating = feedRating,
-                feedAgeRange = feedAgeRange,
-                feedGender = feedGender,
-                feedCity = feedCity
-            )
+            // Update only the relevant ViewModel based on the selected tab
+            if (selectedTab == 0) {
+                // Update Dating Filters in DatingViewModel
+                datingViewModel.updateDatingFilters(datingFilterSettings)
+            } else if (selectedTab == 1) {
+                // Update Feed Filters in PostViewModel
+                saveFeedFiltersToViewModel(
+                    postViewModel = postViewModel,
+                    feedLocalities = feedLocalities,
+                    feedHighSchool = feedHighSchool,
+                    feedCollege = feedCollege,
+                    feedPostGrad = feedPostGrad,
+                    feedWork = feedWork,
+                    feedRating = feedRating,
+                    feedAgeRange = feedAgeRange,
+                    feedGender = feedGender,
+                    feedCity = feedCity
+                )
+            }
         }
     }
+
 
     Column(
         modifier = Modifier

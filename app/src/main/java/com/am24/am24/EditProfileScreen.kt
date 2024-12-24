@@ -149,7 +149,6 @@ fun EditProfileScreen(navController: NavController? = null) {
                 religion = profile.religion
                 city = profile.city
                 lookingFor = profile.lookingFor
-                claimedIncomeLevel = profile.claimedIncomeLevel ?: ""
                 lifestyle = profile.lifestyle ?: Lifestyle()
             }
 
@@ -745,10 +744,10 @@ if (showEditInterestsScreen) {
                     Spacer(modifier = Modifier.height(8.dp))
 
 // Social Butterfly Slider
-                    Text("Social Butterfly", color = Color.White)
+                    Text("Social Media", color = Color.White)
                     Slider(
-                        value = lifestyle.socialButterfly.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(socialButterfly = it.toInt()) },
+                        value = lifestyle.socialMedia.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(socialMedia = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -757,7 +756,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.socialButterfly) {
+                        text = when (lifestyle.socialMedia) {
                             in 0..2 -> "Introverted"
                             in 3..6 -> "Ambivert"
                             else -> "Extroverted"
@@ -930,10 +929,10 @@ if (showEditInterestsScreen) {
                     Spacer(modifier = Modifier.height(8.dp))
 
 // Health/Fitness Enthusiast Slider
-                    Text("Health/Fitness Enthusiast", color = Color.White)
+                    Text("Health/Fitness Level", color = Color.White)
                     Slider(
-                        value = lifestyle.healthFitnessEnthusiast.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(healthFitnessEnthusiast = it.toInt()) },
+                        value = lifestyle.fitnessLevel.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(fitnessLevel = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -942,7 +941,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.healthFitnessEnthusiast) {
+                        text = when (lifestyle.fitnessLevel) {
                             in 0..2 -> "Occasional"
                             in 3..6 -> "Moderate"
                             else -> "Dedicated"
@@ -1044,29 +1043,6 @@ if (showEditInterestsScreen) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-// Cultural Heritage-Oriented Slider
-                    Text("Cultural Heritage-Oriented", color = Color.White)
-                    Slider(
-                        value = lifestyle.culturalHeritageOriented.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(culturalHeritageOriented = it.toInt()) },
-                        valueRange = 0f..10f,
-                        steps = 9,
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF00bf63),
-                            activeTrackColor = Color(0xFF00bf63)
-                        )
-                    )
-                    Text(
-                        text = when (lifestyle.culturalHeritageOriented) {
-                            in 0..2 -> "Open-Minded"
-                            in 3..6 -> "Balanced"
-                            else -> "Culturally Rooted"
-                        },
-                        color = Color.White
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
 // Foodie/Culinary Enthusiast Slider
                     Text("Foodie/Culinary Enthusiast", color = Color.White)
                     Slider(
@@ -1084,29 +1060,6 @@ if (showEditInterestsScreen) {
                             in 0..2 -> "Basic"
                             in 3..6 -> "Moderate"
                             else -> "Food Enthusiast"
-                        },
-                        color = Color.White
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-// Urban Wanderer Slider
-                    Text("Urban Wanderer", color = Color.White)
-                    Slider(
-                        value = lifestyle.urbanWanderer.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(urbanWanderer = it.toInt()) },
-                        valueRange = 0f..10f,
-                        steps = 9,
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF00bf63),
-                            activeTrackColor = Color(0xFF00bf63)
-                        )
-                    )
-                    Text(
-                        text = when (lifestyle.urbanWanderer) {
-                            in 0..2 -> "Homebody"
-                            in 3..6 -> "Balanced"
-                            else -> "City Explorer"
                         },
                         color = Color.White
                     )

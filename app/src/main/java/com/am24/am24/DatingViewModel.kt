@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
 
 class DatingViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "DatingViewModel"
@@ -42,57 +44,155 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _filtersLoaded = MutableStateFlow(false)
     val filtersLoaded: StateFlow<Boolean> get() = _filtersLoaded
 
-    private val _refreshTrigger = MutableStateFlow(false)
-    val refreshTrigger: StateFlow<Boolean> get() = _refreshTrigger
-
     // Combine profiles and datingFilters to produce filteredProfiles
     val filteredProfiles: StateFlow<List<Profile>> = combine(_profiles, _datingFilters) { profiles, filters ->
-        applyDatingFilters(profiles, filters)
+            applyDatingFilters(profiles, filters)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    // Listener references
+    private var profilesListener: ValueEventListener? = null
+    private var filtersListener: ValueEventListener? = null
+
+    // State to track if listeners are paused
+    private var isProfilesPaused = false
+    private var isFiltersPaused = false
+
     fun startRealTimeProfileUpdates(currentUserId: String) {
-        usersRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val allProfiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
-                val filteredOutSelf = allProfiles.filter { it.userId != currentUserId }
-                viewModelScope.launch {
-                    _allProfiles.value = filteredOutSelf // Update allProfiles
-                    _profiles.value = filteredOutSelf // Update profiles
+        if (profilesListener == null) { // Avoid re-adding listener
+            profilesListener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val allProfiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
+                    val filteredOutSelf = allProfiles.filter { it.userId != currentUserId }
+                    viewModelScope.launch {
+                        _allProfiles.value = filteredOutSelf // Update allProfiles
+                        _profiles.value = filteredOutSelf // Update profiles
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e(TAG, "Failed to listen for profile updates: ${error.message}")
                 }
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("DatingViewModel", "Failed to listen for profile updates: ${error.message}")
-            }
-        })
+            usersRef.addValueEventListener(profilesListener!!)
+        }
     }
-
 
     fun startRealTimeFilterUpdates(userId: String) {
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("datingFilters")
-        userRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val datingFilters = snapshot.getValue(DatingFilterSettings::class.java)
-                viewModelScope.launch {
-                    if (datingFilters != null) {
-                        _datingFilters.value = datingFilters
-                    } else {
-                        _datingFilters.value = DatingFilterSettings() // Set default filters
+        if (filtersListener == null) { // Avoid re-adding listener
+            filtersListener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val datingFilters = snapshot.getValue(DatingFilterSettings::class.java)
+                    viewModelScope.launch {
+                        if (datingFilters != null) {
+                            _datingFilters.value = datingFilters
+                        } else {
+                            _datingFilters.value = DatingFilterSettings() // Set default filters
+                        }
+                        // Set filtersLoaded to true after initial load
+                        _filtersLoaded.value = true
                     }
-                    // Set filtersLoaded to true after initial load
-                    _filtersLoaded.value = true
                 }
-            }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Failed to listen for filter updates: ${error.message}")
-                // Even on failure, set filtersLoaded to true to avoid infinite loading
-                viewModelScope.launch {
-                    _filtersLoaded.value = true
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e(TAG, "Failed to listen for filter updates: ${error.message}")
+                    // Even on failure, set filtersLoaded to true to avoid infinite loading
+                    viewModelScope.launch {
+                        _filtersLoaded.value = true
+                    }
                 }
             }
-        })
+            database.getReference("users").child(userId).child("datingFilters")
+                .addValueEventListener(filtersListener!!)
+        }
     }
+
+    fun pauseProfileUpdates() {
+        isProfilesPaused = true
+        profilesListener?.let {
+            usersRef.removeEventListener(it)
+        }
+    }
+
+    fun resumeProfileUpdates(currentUserId: String) {
+        if (isProfilesPaused) {
+            isProfilesPaused = false
+            startRealTimeProfileUpdates(currentUserId)
+        }
+    }
+
+    fun pauseFilterUpdates(userId: String) {
+        isFiltersPaused = true
+        filtersListener?.let {
+            database.getReference("users").child(userId).child("datingFilters")
+                .removeEventListener(it)
+        }
+    }
+
+    fun resumeFilterUpdates(userId: String) {
+        if (isFiltersPaused) {
+            isFiltersPaused = false
+            startRealTimeFilterUpdates(userId)
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Clean up listeners to prevent memory leaks
+        pauseProfileUpdates()
+        pauseFilterUpdates(FirebaseAuth.getInstance().currentUser?.uid ?: "")
+    }
+//    fun startRealTimeProfileUpdates(currentUserId: String) {
+//        usersRef.addValueEventListener(object : ValueEventListener {
+//            override fun onDataChange(snapshot: DataSnapshot) {
+//                val allProfiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
+//                val filteredOutSelf = allProfiles.filter { it.userId != currentUserId }
+//                viewModelScope.launch {
+//                    _allProfiles.value = filteredOutSelf // Update allProfiles
+//                    _profiles.value = filteredOutSelf // Update profiles
+//                }
+//            }
+//
+//            override fun onCancelled(error: DatabaseError) {
+//                Log.e("DatingViewModel", "Failed to listen for profile updates: ${error.message}")
+//            }
+//        })
+//    }
+
+    fun updateDatingFilters(updatedFilters: DatingFilterSettings) {
+        viewModelScope.launch {
+            _datingFilters.value = updatedFilters
+            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            val userRef = database.getReference("users").child(userId).child("datingFilters")
+            userRef.setValue(updatedFilters)
+        }
+    }
+
+
+//    fun startRealTimeFilterUpdates(userId: String) {
+//        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("datingFilters")
+//        userRef.addValueEventListener(object : ValueEventListener {
+//            override fun onDataChange(snapshot: DataSnapshot) {
+//                val datingFilters = snapshot.getValue(DatingFilterSettings::class.java)
+//                viewModelScope.launch {
+//                    if (datingFilters != null) {
+//                        _datingFilters.value = datingFilters
+//                    } else {
+//                        _datingFilters.value = DatingFilterSettings() // Set default filters
+//                    }
+//                    // Set filtersLoaded to true after initial load
+//                    _filtersLoaded.value = true
+//                }
+//            }
+//
+//            override fun onCancelled(error: DatabaseError) {
+//                Log.e(TAG, "Failed to listen for filter updates: ${error.message}")
+//                // Even on failure, set filtersLoaded to true to avoid infinite loading
+//                viewModelScope.launch {
+//                    _filtersLoaded.value = true
+//                }
+//            }
+//        })
+//    }
 
     // Apply dating filters to profiles
 // Apply dating filters to profiles
@@ -107,7 +207,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         // Apply localities filter
         if (filters.localities.isNotEmpty()) {
             result = result.filter { profile ->
-                filters.localities.contains(profile.locality)
+                filters.localities.contains(profile.hometown)
             }
         }
 

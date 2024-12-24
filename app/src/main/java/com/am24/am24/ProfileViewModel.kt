@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -17,6 +19,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val database = FirebaseDatabase.getInstance()
     private val notificationsRef = database.getReference("notifications")
     private val chatRef = database.getReference("chats") // New chat reference for DM creation
+
+    // Match Pop-Up State
+    private val _matchPopUpState = MutableStateFlow<Pair<Profile, Profile>?>(null)
+    val matchPopUpState: StateFlow<Pair<Profile, Profile>?> get() = _matchPopUpState
 
     fun fetchUsernameById(userId: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
@@ -29,6 +35,40 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
         }.addOnFailureListener {
             onFailure(it.message ?: "Failed to fetch username")
+        }
+    }
+
+    // Function to trigger the match pop-up
+    fun triggerMatchPopUp(currentUserId: String, matchedUserId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val currentUserProfile = getProfileById(currentUserId)
+                val matchedUserProfile = getProfileById(matchedUserId)
+
+                if (currentUserProfile != null && matchedUserProfile != null) {
+                    _matchPopUpState.value = currentUserProfile to matchedUserProfile
+                } else {
+                    Log.e(TAG, "Failed to retrieve profiles for match pop-up.")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error triggering match pop-up: ${e.message}")
+            }
+        }
+    }
+
+    // Function to clear the match pop-up state
+    fun clearMatchPopUp() {
+        _matchPopUpState.value = null
+    }
+
+    // Helper function to fetch a profile by user ID
+    private suspend fun getProfileById(userId: String): Profile? {
+        return try {
+            val snapshot = usersRef.child(userId).get().await()
+            snapshot.getValue(Profile::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch profile for userId $userId: ${e.message}")
+            null
         }
     }
 

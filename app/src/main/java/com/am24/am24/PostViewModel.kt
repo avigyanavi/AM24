@@ -23,11 +23,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.util.Locale
 
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
@@ -90,12 +85,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     // Update filteredPosts to combine both filters
     val filteredPosts: StateFlow<List<Post>> = combine(
-        _posts,
-        _userProfiles,
+        _posts.filter { it.isNotEmpty() },
+        _userProfiles.filter { it.isNotEmpty() },
         _filterSettings,
         _feedFilters,
         currentUserIdFlow
     ) { posts, profiles, homeFilters, feedFilters, currentUserId ->
+        if (ActiveScreenState.currentScreen != "HomeScreen") {
+            // Return an empty list if the current screen is not HomeScreen
+            emptyList()
+        } else {
         Log.d(TAG, "Combining filters with ${posts.size} posts and ${profiles.size} profiles")
         val homeFilteredPosts = applyFiltersAndSort(
             posts,
@@ -104,7 +103,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             homeFilters.searchQuery,
             homeFilters.sortOption,
             currentUserId,
-            isVoiceOnly = homeFilters.isVoiceOnly // Pass isVoiceOnly here
+            isVoiceOnly = homeFilters.isVoiceOnly
         )
         val finalFilteredPosts = applyFiltersAndSort(
             homeFilteredPosts,
@@ -116,16 +115,21 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             feedFilters.feedFilters,
         )
         finalFilteredPosts
-    }.onEach {
-        Log.d(TAG, "filteredPosts StateFlow emitted ${it.size} posts")
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
 
 
 
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
     init {
-        observePosts()
+        updateActiveScreen(ActiveScreenState.currentScreen)
+    }
+
+    fun refreshPosts() {
+        Log.d(TAG, "Refreshing posts...")
+        observePosts() // Re-attach listener
     }
 
     /**
@@ -133,30 +137,51 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      */
 
     private fun observePosts() {
-        postsListener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
-                    val userIds = sortedPosts.map { it.userId }.toSet()
-                    val profiles = fetchUserProfiles(userIds)
+        if (postsListener == null) { // Avoid re-adding listener if already active
+            postsListener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                        val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
+                        val userIds = sortedPosts.map { it.userId }.toSet()
+                        val profiles = fetchUserProfiles(userIds)
 
-                    Log.d(TAG, "Fetched ${sortedPosts.size} posts and ${profiles.size} profiles")
+                        Log.d(TAG, "Fetched ${sortedPosts.size} posts and ${profiles.size} profiles")
 
-                    _userProfiles.value = profiles
-                    _posts.value = sortedPosts
+                        _userProfiles.value = profiles
+                        _posts.value = sortedPosts
 
-                    // Add a log to confirm StateFlow update
-                    Log.d(TAG, "Updated _posts with ${_posts.value.size} posts")
+                        // Confirm StateFlow update
+                        Log.d(TAG, "Updated _posts with ${_posts.value.size} posts")
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e(TAG, "Failed to observe posts: ${error.message}")
                 }
             }
+            postsRef.addValueEventListener(postsListener!!)
+        }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Failed to observe posts: ${error.message}")
+        // Trigger a one-time fetch for immediate data availability
+        viewModelScope.launch {
+            try {
+                val snapshot = postsRef.get().await()
+                val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
+                val userIds = sortedPosts.map { it.userId }.toSet()
+                val profiles = fetchUserProfiles(userIds)
+
+                Log.d(TAG, "One-time fetch: ${sortedPosts.size} posts and ${profiles.size} profiles")
+
+                _userProfiles.value = profiles
+                _posts.value = sortedPosts
+            } catch (e: Exception) {
+                Log.e(TAG, "One-time fetch failed: ${e.message}")
             }
         }
-        postsRef.addValueEventListener(postsListener!!)
     }
+
 
     // Pause observing posts
     fun pauseFeed() {
@@ -248,8 +273,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         onFailure: (String) -> Unit
     ) {
         // Enforce text character limit
-        if (contentText.length > 75000) {
-            onFailure("Text exceeds the maximum allowed length of 75,000 characters.")
+        if (contentText.length > 10000) {
+            onFailure("Text exceeds the maximum allowed length of 10,000 characters.")
             return
         }
 
@@ -965,7 +990,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             // Localities filter
             if (filters.localities.isNotEmpty()) {
                 filteredList = filteredList.filter { post ->
-                    val profileLocality = profiles[post.userId]?.locality ?: ""
+                    val profileLocality = profiles[post.userId]?.hometown ?: ""
                     filters.localities.contains(profileLocality)
                 }
             }
@@ -1098,15 +1123,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         profiles
     }
 
-    fun refreshUserProfiles() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val currentProfiles = _posts.value
-            val userIds = currentProfiles.map { it.userId }.toSet()
-            val refreshedProfiles = fetchUserProfiles(userIds) // same method used internally
-            _userProfiles.value = refreshedProfiles
-        }
-    }
-
 
     private suspend fun getMatches(userId: String): List<String> {
         val matches = mutableListOf<String>()
@@ -1120,6 +1136,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
         return matches
     }
+
+    fun updateActiveScreen(screen: String) {
+        if (ActiveScreenState.currentScreen != screen) {
+            ActiveScreenState.updateActiveScreen(screen)
+            Log.d(TAG, "Active screen updated to: $screen")
+
+            if (screen == "HomeScreen") {
+                observePosts() // Observe posts when returning to Homescreen
+            } else {
+                pauseFeed() // Pause observation when leaving Homescreen
+            }
+        }
+    }
+
 
 
     fun deletePost(

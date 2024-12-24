@@ -1,11 +1,16 @@
 package com.am24.am24
 
+import android.net.Uri
 import com.google.firebase.database.Exclude
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
 data class Profile(
+
+    val email: String = "",
+    val password: String = "",
+    val interestedIn: List<String> = emptyList(),
     val userId: String = "",
     val username: String = "",  // Unique username (e.g., MS1)
     val name: String = "",
@@ -21,8 +26,6 @@ data class Profile(
     val matches: List<String> = emptyList(),  // List of matched user IDs
     val religion: String = "",
     val community: String = "",
-    val politics: String = "",  // Political preferences (e.g., liberal, conservative)
-    val fitnessLevel: String = "",  // Fitness level (e.g., active, moderate)
     val city: String = "",     // Current city
     val hometown: String = "",  // User's hometown
     val customCity: String? = null, // Custom value for city
@@ -37,14 +40,13 @@ data class Profile(
     val postGraduation: String? = "",
     val customPostGraduation: String? = null,
     val postGraduationYear: String = "", // New field
-    val claimedIncomeLevel: String? = null, // Optional income level per annum
     val lifestyle: Lifestyle? = null, // Lifestyle Section
+    val politics: String = "",  // Political preferences (e.g., liberal, conservative)
     val jobRole: String = "",
     val customJobRole: String? = null,
     val work: String = "",
     val customWork: String? = null,
     val socialCauses: List<String> = emptyList(),
-    val politicalViews: String = "",  // Conservative, Liberal, Centrist, etc.
     val lookingFor: String = "",      // What the user is looking for (e.g., Friendship, Dating)
     val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
     val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
@@ -75,12 +77,9 @@ data class Profile(
     val dateOfJoin: Long = System.currentTimeMillis(),
     val am24RankingCompositeScore: Double = 0.0,
     var vibepoints: Double = 0.0,
-    val locality: String = "", // Current locality (NEW FIELD)
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     var averageRating: Double = 0.0,
-    val privateAccount: Boolean = false, // Whether the account is private
-    var relationship: String? = null, // Add this to hold "friend", "match", etc.
     val datingLocalities: List<String> = emptyList(),
     val feedLocalities: List<String> = emptyList(),
     val datingRating: String = "",
@@ -96,8 +95,10 @@ data class Profile(
     val feedAgeStart: Int = 18,
     val feedAgeEnd: Int = 30,
     val datingDistancePreference: Int = 10,
-    val feedDistancePreference: Int = 10,
     val height: Int = 169,
+    val height2: List<Int> = emptyList(),
+    var caste: String = "",
+    var relationship: String? = null, // Add this to hold "friend", "match", etc.
 
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
@@ -112,7 +113,7 @@ data class Profile(
             val fields = listOf(
                 name, username, dob, bio, gender, profilepicUrl, religion, community,
                 city, hometown, educationLevel, highSchool, college, postGraduation,
-                claimedIncomeLevel, jobRole, work, lookingFor
+                jobRole, work, lookingFor
             )
             val filledFieldsCount = fields.count { !it.isNullOrEmpty() }
             val lifestyleCompleted = lifestyle != null && lifestyle.isComplete()
@@ -153,135 +154,56 @@ data class Message(
 )
 
 data class Lifestyle(
-    // Habits & Preferences
-    val smoking: Int = 0, // Min: 0 (Non-Smoker), Max: 10 (Heavy Smoker)
-    // Example Mappings: 0–2: "Non-Smoker", 3–6: "Social Smoker", 7–10: "Regular Smoker"
-
-    val drinking: Int = 0, // Min: 0 (Non-Drinker), Max: 10 (Heavy Drinker)
-    // Example Mappings: 0–2: "Non-Drinker", 3–6: "Occasional Drinker", 7–10: "Heavy Drinker"
-
-    val alcoholType: String = "", // Preferred alcohol type (Beer, Wine, Vodka, etc.)
-
-    val cannabisFriendly: Boolean = false, // True if cannabis-friendly
-
-    // Personality & Social Style
-    val indoorsyToOutdoorsy: Int = 5, // Min: 0 (Homebody), Max: 10 (Outdoorsy)
-    // Example Mappings: 0–2: "Homebody", 3–6: "Balanced", 7–10: "Outdoorsy"
-
-    val socialButterfly: Int = 5, // Min: 0 (Introverted), Max: 10 (Extroverted)
-    // Example Mappings: 0–2: "Introverted", 3–6: "Ambivert", 7–10: "Extroverted"
-
-    val diet: String = "", // Dietary preference (Vegan, Vegetarian, etc.)
-
-    val sleepCycle: Int = 5, // Min: 0 (Early Riser), Max: 10 (Night Owl)
-    // Example Mappings: 0–2: "Early Riser", 3–6: "Balanced", 7–10: "Night Owl"
-
-    val workLifeBalance: Int = 5, // Min: 0 (Workaholic), Max: 10 (Relaxed)
-    // Example Mappings: 0–2: "Workaholic", 3–6: "Balanced", 7–10: "Relaxed"
-
-    val exerciseFrequency: Int = 0, // Min: 0 (Never Exercises), Max: 10 (Daily)
-    // Example Mappings: 0–2: "Never Exercises", 3–6: "Occasionally Exercises", 7–10: "Exercises Daily"
-
-    // Adventure & Activity
-    val adventurous: Int = 5, // Min: 0 (Cautious), Max: 10 (Adventurous)
-    // Example Mappings: 0–2: "Cautious", 3–6: "Moderate", 7–10: "Adventurous"
-
-    val petFriendly: Boolean = false, // True if pet-friendly
-
-    // Family & Community Orientation
-    val familyOriented: Int = 5, // Min: 0 (Independent), Max: 10 (Family-Oriented)
-    // Example Mappings: 0–2: "Independent", 3–6: "Balanced", 7–10: "Family-Oriented"
-
-    // Intellectual, Creativity & Health
-    val intellectual: Int = 5, // Min: 0 (Casual), Max: 10 (Intellectual)
-    // Example Mappings: 0–2: "Casual", 3–6: "Inquisitive", 7–10: "Intellectual"
-
-    val creativeArtistic: Int = 5, // Min: 0 (Practical), Max: 10 (Artistic)
-    // Example Mappings: 0–2: "Practical", 3–6: "Occasionally Creative", 7–10: "Artistic"
-
-    val healthFitnessEnthusiast: Int = 5, // Min: 0 (Occasional), Max: 10 (Dedicated)
-    // Example Mappings: 0–2: "Occasional", 3–6: "Moderate", 7–10: "Dedicated"
-
-    // Spirituality, Humor & Ambition
-    val spiritualMindful: Int = 5, // Min: 0 (Non-Spiritual), Max: 10 (Mindful)
-    // Example Mappings: 0–2: "Non-Spiritual", 3–6: "Occasionally Mindful", 7–10: "Deeply Mindful"
-
-    val humorousEasyGoing: Int = 5, // Min: 0 (Serious), Max: 10 (Humorous)
-    // Example Mappings: 0–2: "Serious", 3–6: "Balanced", 7–10: "Humorous"
-
-    val professionalAmbitious: Int = 5, // Min: 0 (Relaxed), Max: 10 (Ambitious)
-    // Example Mappings: 0–2: "Relaxed", 3–6: "Balanced", 7–10: "Ambitious"
-
-    // Environmental & Cultural Orientation
-    val environmentallyConscious: Int = 5, // Min: 0 (Casual), Max: 10 (Eco-Conscious)
-    // Example Mappings: 0–2: "Not Conscious", 3–6: "Occasionally Conscious", 7–10: "Eco-Conscious"
-
-    val culturalHeritageOriented: Int = 5, // Min: 0 (Open-Minded), Max: 10 (Culturally Rooted)
-    // Example Mappings: 0–2: "Open-Minded", 3–6: "Balanced", 7–10: "Culturally Rooted"
-
-    // Interests & Passions
-    val foodieCulinaryEnthusiast: Int = 5, // Min: 0 (Basic), Max: 10 (Food Enthusiast)
-    // Example Mappings: 0–2: "Basic", 3–6: "Moderate", 7–10: "Food Enthusiast"
-
-    val singleParent: Boolean = false, // True if single parent
-
-    // New Attributes for City-Specific Lifestyles
-    val culturalConnoisseur: Int = 5, // Min: 0 (Not Interested), Max: 10 (Cultural Enthusiast)
-    // Example Mappings: 0–2: "Not Interested", 3–6: "Occasionally Interested", 7–10: "Cultural Enthusiast"
-
-    val streetFoodExplorer: Int = 5, // Min: 0 (Basic), Max: 10 (Food Explorer)
-    // Example Mappings: 0–2: "Basic", 3–6: "Interested", 7–10: "Food Explorer"
-
-    val traditionallyRooted: Int = 5, // Min: 0 (Modern), Max: 10 (Traditionally Rooted)
-    // Example Mappings: 0–2: "Modern", 3–6: "Balanced", 7–10: "Traditionally Rooted"
-
-    val entrepreneurialSpirit: Int = 5, // Min: 0 (Casual), Max: 10 (Entrepreneurial)
-    // Example Mappings: 0–2: "Casual", 3–6: "Moderate", 7–10: "Entrepreneurial"
-
-    val academicallyAspirational: Int = 5, // Min: 0 (Casual), Max: 10 (Aspirational)
-    // Example Mappings: 0–2: "Casual", 3–6: "Focused", 7–10: "Aspirational"
-
-    val natureLover: Int = 5, // Min: 0 (City Lover), Max: 10 (Nature Lover)
-    // Example Mappings: 0–2: "City Lover", 3–6: "Balanced", 7–10: "Nature Lover"
-
-    val beachLover: Int = 5, // Min: 0 (Mountain Lover), Max: 10 (Beach Enthusiast)
-    // Example Mappings: 0–2: "Mountain Lover", 3–6: "Neutral", 7–10: "Beach Enthusiast"
-
-    val festivalEnthusiast: Int = 5, // Min: 0 (Not Festive), Max: 10 (Festival Enthusiast)
-    // Example Mappings: 0–2: "Not Festive", 3–6: "Occasionally Festive", 7–10: "Festival Enthusiast"
-
-    val urbanWanderer: Int = 5, // Min: 0 (Homebody), Max: 10 (City Explorer)
-    // Example Mappings: 0–2: "Homebody", 3–6: "Balanced", 7–10: "City Explorer"
-
-    val politicallyAware: Int = 5, // Min: 0 (Not Interested), Max: 10 (Engaged)
-    // Example Mappings: 0–2: "Not Interested", 3–6: "Aware", 7–10: "Engaged"
-
-    val nightlifeLover: Int = 5, // Min: 0 (Homebody), Max: 10 (Nightlife Enthusiast)
-    // Example Mappings: 0–2: "Homebody", 3–6: "Occasional", 7–10: "Nightlife Enthusiast"
-
-    val pilgrimageFocused: Int = 5, // Min: 0 (Non-Spiritual), Max: 10 (Pilgrimage Lover)
-    // Example Mappings: 0–2: "Non-Spiritual", 3–6: "Balanced", 7–10: "Pilgrimage Lover"
-
-    val languageHeritageLover: Int = 5, // Min: 0 (Casual), Max: 10 (Language Enthusiast)
-    // Example Mappings: 0–2: "Casual", 3–6: "Moderate", 7–10: "Language Enthusiast"
-
-    val communityOriented: Int = 5 // Min: 0 (Individualist), Max: 10 (Community-Oriented)
-    // Example Mappings: 0–2: "Individualist", 3–6: "Balanced", 7–10: "Community-Oriented"
+    var smoking: Int = 0,
+    var drinking: Int = 0,
+    var cannabisFriendly: Boolean = false,
+    var indoorsyToOutdoorsy: Int = 3,
+    var socialMedia: Int = 3,
+    var diet: String = "",
+    var sleepCycle: Int = 3,
+    var workLifeBalance: Int = 3,
+    var exerciseFrequency: Int = 0,
+    var adventurous: Int = 3,
+    val petFriendly: Boolean = false,
+    var familyOriented: Int = 3,
+    val intellectual: Int = 3,
+    var creativeArtistic: Int = 3,
+    val fitnessLevel: Int = 3,
+    val spiritualMindful: Int = 3,
+    val humorousEasyGoing: Int = 3,
+    var professionalAmbitious: Int = 3,
+    var environmentallyConscious: Int = 3,
+    val foodieCulinaryEnthusiast: Int = 3,
+    val politicallyAware: Int = 3,
+    val communityOriented: Int = 3,
+    var sportsEnthusiast: Int = 3,
+    var sal: Int = 3,
+    var IE: Int = 3,
+    var alcoholType: String = "",
+    var caste: String = "",
 ) {
     fun isComplete(): Boolean {
         val fields = listOf(
-            smoking, drinking, indoorsyToOutdoorsy, socialButterfly, diet,
+            smoking, drinking, indoorsyToOutdoorsy, socialMedia, diet, sportsEnthusiast, sal, IE,
             sleepCycle, workLifeBalance, exerciseFrequency, adventurous, familyOriented,
-            intellectual, creativeArtistic, healthFitnessEnthusiast, spiritualMindful,
+            intellectual, creativeArtistic, fitnessLevel, spiritualMindful,
             humorousEasyGoing, professionalAmbitious, environmentallyConscious,
-            culturalHeritageOriented, foodieCulinaryEnthusiast, culturalConnoisseur,
-            streetFoodExplorer, traditionallyRooted, entrepreneurialSpirit, academicallyAspirational,
-            natureLover, beachLover, festivalEnthusiast, urbanWanderer, politicallyAware,
-            nightlifeLover, pilgrimageFocused, languageHeritageLover, communityOriented
+            foodieCulinaryEnthusiast, politicallyAware, communityOriented, alcoholType
         )
-        return fields.any { it != 0 }
+        return fields.all {
+            when (it) {
+                is String -> it.isNotBlank()
+                is Int -> it != 0
+                is Boolean -> true // Booleans are always valid
+                else -> false
+            }
+        }
     }
 }
+
+
+
+
 
 fun deriveZodiac(dob: String?): String {
     if (dob.isNullOrBlank()) return "Unknown"
