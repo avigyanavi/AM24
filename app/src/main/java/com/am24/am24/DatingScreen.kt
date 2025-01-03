@@ -76,38 +76,31 @@ fun DatingScreen(
         excludedUserIds = fetchExcludedUsers(currentUserId)
     }
 
+    LaunchedEffect(currentUserId) {
+        // Start real-time listeners when you enter the DatingScreen
+        datingViewModel.startRealTimeProfileUpdates(currentUserId)
+        datingViewModel.startRealTimeFilterUpdates(currentUserId)
+    }
+
+    DisposableEffect(Unit) {
+        // When DatingScreen is disposed (navigated away), stop the real-time updates
+        onDispose {
+            datingViewModel.pauseProfileUpdates()
+            datingViewModel.pauseFilterUpdates(currentUserId)
+
+            // Clear match pop-up if you want
+            profileViewModel.clearMatchPopUp()
+        }
+    }
+
+
     val displayedProfiles = remember(filteredProfiles, searchQuery, excludedUserIds) {
-        if (ActiveScreenState.currentScreen == "DatingScreen") {
         filteredProfiles.filter { profile ->
             profile.userId !in excludedUserIds &&
                     profile.username.contains(searchQuery, ignoreCase = true)
         }
-    } else {
-            emptyList()
-        }
     }
 
-
-// Manage listeners and ActiveScreenState
-    DisposableEffect(Unit) {
-        ActiveScreenState.updateActiveScreen("DatingScreen")
-
-        // Start listeners for profiles and filters
-        datingViewModel.startRealTimeProfileUpdates(currentUserId)
-        datingViewModel.startRealTimeFilterUpdates(currentUserId)
-
-        onDispose {
-            // Stop listeners when leaving the screen
-            datingViewModel.pauseProfileUpdates()
-            datingViewModel.pauseFilterUpdates(currentUserId)
-
-            // Clear any match pop-up state
-            profileViewModel.clearMatchPopUp()
-
-            // Reset ActiveScreenState
-            ActiveScreenState.updateActiveScreen("")
-        }
-    }
 
     // Use a Box to handle layering
     Box(modifier = Modifier.fillMaxSize()) {
@@ -534,7 +527,7 @@ fun PhotoWithTwoOverlays(
                             Text(
                                 text = "📏${heightCm} cm",
                                 fontSize = 14.sp,
-                                color = Color(0xFFFFBF00),
+                                color = Color(0xFFFFDB00),
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -605,7 +598,7 @@ fun TagtwoBox(text: String) {
                     RoundedCornerShape(4.dp)
                 )
                 .border(
-                    BorderStroke(1.dp, Color(0xFFFFBF00)),
+                    BorderStroke(1.dp, Color(0xFFFFDB00)),
                     RoundedCornerShape(4.dp)
                 )
                 .padding(horizontal = 6.dp, vertical = 2.dp)

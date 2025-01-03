@@ -67,7 +67,7 @@ fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
             // Welcome Text
             Text(
                 text = "Welcome to Kupidx",
-                color = Color(0xFF00bf63),
+                color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -81,7 +81,7 @@ fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
                 shape = CircleShape,
                 elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
             ) {

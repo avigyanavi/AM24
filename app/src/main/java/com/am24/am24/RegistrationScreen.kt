@@ -1,20 +1,18 @@
+
 // RegistrationActivity.kt
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3Api::class
-)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.am24.am24
 
-import android.Manifest
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
 import android.util.Log
+import androidx.lifecycle.ViewModel
+import com.google.firebase.auth.FirebaseAuth
+import android.content.Intent
+import android.media.MediaPlayer
+import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -50,13 +48,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.ActivityCompat
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.AppTheme
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -67,30 +63,63 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-import java.net.URLEncoder
 import java.util.Calendar
-
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
+
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
 
         setContent {
             AppTheme {
                 RegistrationScreen(onRegistrationComplete = {
-                    // After registration, navigate to LoginActivity
+                    // Navigate to LoginActivity after successful registration
                     startActivity(Intent(this, LoginActivity::class.java))
                     finish()
                 })
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        deleteIncompleteRegistration()
+    }
+
+    private fun deleteIncompleteRegistration() {
+        val currentUser = auth.currentUser
+
+        // Check if the user exists and has not completed the registration
+        if (currentUser != null) {
+            val userId = currentUser.uid
+            FirebaseDatabase.getInstance().reference
+                .child("users")
+                .child(userId)
+                .child("username")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    if (!snapshot.exists()) {
+                        // If username does not exist, delete the unverified account
+                        currentUser.delete()
+                            .addOnSuccessListener {
+                                Log.d("RegistrationActivity", "Unverified user account deleted successfully.")
+                            }
+                            .addOnFailureListener { exception ->
+                                Log.e("RegistrationActivity", "Failed to delete unverified user: ${exception.message}")
+                            }
+                    }
+                }
+        }
+    }
 }
 
 class RegistrationViewModel : ViewModel() {
+
     // Voice Recording
     var voiceNoteUri by mutableStateOf<Uri?>(null) // To hold the voice recording URI
     var voiceNoteFilePath by mutableStateOf<String?>(null) // To hold the file path
@@ -109,13 +138,13 @@ class RegistrationViewModel : ViewModel() {
     var voiceNoteUrl by mutableStateOf<String?>(null)
     var optionalPhotoUrls = mutableStateListOf<String>()
 
-    var height by mutableStateOf(169) // Height in centimeters
-    var height2 by mutableStateOf(listOf(5, 7)) // Height in feet + inches (default example: 5'7")
-    var isHeightInFeet by mutableStateOf(false) // Toggle for height unit preference (cm or feet+inches)
-    var caste by mutableStateOf("") // User's caste
+    var height by mutableStateOf(169)            // Height in centimeters
+    var height2 by mutableStateOf(listOf(5, 7))  // Height in feet + inches (default example: 5'7")
+    var isHeightInFeet by mutableStateOf(false)  // Toggle for height unit preference (cm or feet+inches)
+    var caste by mutableStateOf("")              // User's caste
 
     // Hometown and Education
-    var hometown by mutableStateOf("") // Treated as Locality
+    var hometown by mutableStateOf("")     // Treated as Locality
     var bio by mutableStateOf("")
     var gender by mutableStateOf("")
     var customHometown by mutableStateOf("")
@@ -141,18 +170,20 @@ class RegistrationViewModel : ViewModel() {
     var customWork by mutableStateOf("")
 
     // Lifestyle and Preferences
-    var lifestyle by mutableStateOf(Lifestyle())   // Lifestyle information (smoking, drinking, etc.)
-    var lookingFor by mutableStateOf("")           // What the user is looking for (Friendship, Relationship, etc.)
-    var politics by mutableStateOf("")             // User's political views
-    var socialCauses = mutableStateListOf<String>() // List of user's selected social causes
+    var lifestyle by mutableStateOf(Lifestyle())     // Lifestyle info (smoking, drinking, etc.)
+    var lookingFor by mutableStateOf("")             // What the user is looking for (Friendship, Relationship, etc.)
+    var politics by mutableStateOf("")               // User's political views
+    var socialCauses = mutableStateListOf<String>()  // List of user's selected social causes
 
     // New fields for dating preferences
-    var datingAgeStart by mutableStateOf(18)        // Starting age for preference
-    var datingAgeEnd by mutableStateOf(30)          // Ending age for preference
-    var datingDistancePreference by mutableStateOf(10) // Distance preference in kilometers
-    var interestedIn = mutableStateListOf<String>() // List for "Men," "Women," "Other"
+    var datingAgeStart by mutableStateOf(18)         // Starting age for preference
+    var datingAgeEnd by mutableStateOf(30)           // Ending age for preference
+    var datingDistancePreference by mutableStateOf(10)   // Distance preference in kilometers
+    var interestedIn = mutableStateListOf<String>()      // List for "Men," "Women," "Other"
 
+    // ---------------------------------------------------
     // Voice Recording Methods
+    // ---------------------------------------------------
     fun startVoiceRecording(context: Context, filePath: String) {
         try {
             voiceRecorder = MediaRecorder().apply {
@@ -216,7 +247,7 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))
                     .padding(innerPadding)
             ) {
                 // Progress Bar
@@ -225,7 +256,7 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp),
-                    color = Color(0xFFFFA500),
+                    color = Color(0xFFFF6000),
                     trackColor = Color.Gray
                 )
 
@@ -234,13 +265,13 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
                 // Content based on the current step
                 when (currentStep) {
                     1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
-                    2 -> EnterNameScreen(registrationViewModel, onNext, onBack)
+                    2 -> EnterNameScreen(registrationViewModel, onNext)
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
                     5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
-                    6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext, onBack)
-                    7 -> EnterLifestyleScreen(registrationViewModel, onNext, onBack)  // New step
-                    8 -> EnterProfileHeadlineScreen(registrationViewModel, onNext, onBack)
+                    6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
+                    7 -> EnterLifestyleScreen(registrationViewModel, onNext)  // New step
+                    8 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
                     9 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
@@ -248,44 +279,27 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
     )
 }
 
-
-private fun deleteIncompleteRegistration() {
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    if (currentUser != null && !currentUser.isEmailVerified) {
-        currentUser.delete()
-            .addOnSuccessListener {
-                Log.d("RegistrationActivity", "Unverified user account deleted successfully.")
-            }
-            .addOnFailureListener { exception ->
-                Log.e("RegistrationActivity", "Failed to delete unverified user: ${exception.message}")
-            }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterLifestyleScreen(
     registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit,
-    onBack: () -> Unit
+    onNext: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                // Change top bar color to 0xFF1A1A1A
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF1A1A1A)
+                )
             )
         },
         content = { innerPadding ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))  // Overall background
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -306,7 +320,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.smoking,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(smoking = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(smoking = it)
+                        },
                         nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker")
                     )
                 }
@@ -318,30 +335,38 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.drinking,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(drinking = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(drinking = it)
+                        },
                         nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker")
                     )
                 }
-
 
                 // Cannabis Friendly Checkbox
                 item {
                     CheckboxInput(
                         label = "Cannabis Friendly",
                         isChecked = registrationViewModel.lifestyle.cannabisFriendly,
-                        onCheckedChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(cannabisFriendly = it) }
+                        onCheckedChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(cannabisFriendly = it)
+                        }
                     )
                 }
 
                 // Indoorsy to Outdoorsy Slider
                 item {
                     LifestyleSlider(
-                        label = "Indoorsy to Outdoorsy",
+                        label = "Indoor<->Outdoor",
                         value = registrationViewModel.lifestyle.indoorsyToOutdoorsy,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(indoorsyToOutdoorsy = it) },
-                        nouns = listOf("Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Outdoorsy")
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(indoorsyToOutdoorsy = it)
+                        },
+                        nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy")
                     )
                 }
 
@@ -352,7 +377,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.socialMedia,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(socialMedia = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(socialMedia = it)
+                        },
                         nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer")
                     )
                 }
@@ -361,9 +389,15 @@ fun EnterLifestyleScreen(
                 item {
                     DropdownWithStaticOptions(
                         label = "Diet",
-                        options = listOf("Vegetarian", "Non-Veg", "Vegan", "Keto", "Eggetarian", "Paleo", "Fruitarian", "Carnivore"),
+                        options = listOf(
+                            "Vegetarian", "Non-Veg", "Vegan", "Keto",
+                            "Eggetarian", "Paleo", "Fruitarian", "Carnivore"
+                        ),
                         selectedOption = registrationViewModel.lifestyle.diet,
-                        onOptionSelected = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(diet = it) }
+                        onOptionSelected = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(diet = it)
+                        }
                     )
                 }
 
@@ -374,7 +408,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.sleepCycle,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(sleepCycle = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(sleepCycle = it)
+                        },
                         nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast")
                     )
                 }
@@ -386,7 +423,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.workLifeBalance,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(workLifeBalance = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(workLifeBalance = it)
+                        },
                         nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed")
                     )
                 }
@@ -398,7 +438,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.exerciseFrequency,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(exerciseFrequency = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(exerciseFrequency = it)
+                        },
                         nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active")
                     )
                 }
@@ -410,7 +453,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.familyOriented,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(familyOriented = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(familyOriented = it)
+                        },
                         nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented")
                     )
                 }
@@ -422,7 +468,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.adventurous,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(adventurous = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(adventurous = it)
+                        },
                         nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker")
                     )
                 }
@@ -434,7 +483,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.intellectual,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(intellectual = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(intellectual = it)
+                        },
                         nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher")
                     )
                 }
@@ -446,7 +498,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.creativeArtistic,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(creativeArtistic = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(creativeArtistic = it)
+                        },
                         nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius")
                     )
                 }
@@ -458,7 +513,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.fitnessLevel,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(fitnessLevel = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(fitnessLevel = it)
+                        },
                         nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness")
                     )
                 }
@@ -470,7 +528,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.spiritualMindful,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(spiritualMindful = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(spiritualMindful = it)
+                        },
                         nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful")
                     )
                 }
@@ -482,7 +543,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.humorousEasyGoing,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(humorousEasyGoing = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(humorousEasyGoing = it)
+                        },
                         nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party")
                     )
                 }
@@ -494,7 +558,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.professionalAmbitious,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(professionalAmbitious = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(professionalAmbitious = it)
+                        },
                         nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious")
                     )
                 }
@@ -506,7 +573,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.environmentallyConscious,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(environmentallyConscious = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(environmentallyConscious = it)
+                        },
                         nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion")
                     )
                 }
@@ -518,34 +588,44 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.foodieCulinaryEnthusiast,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(foodieCulinaryEnthusiast = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(foodieCulinaryEnthusiast = it)
+                        },
                         nouns = listOf("Basic", "Occasional Foodie", "Balanced", "Food Enthusiast", "Culinary Expert")
                     )
                 }
 
-                // Sports Enthusiast Slider (New Field)
+                // Sports Enthusiast Slider
                 item {
                     LifestyleSlider(
                         label = "Sports Enthusiast",
                         value = registrationViewModel.lifestyle.sportsEnthusiast,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(sportsEnthusiast = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(sportsEnthusiast = it)
+                        },
                         nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic")
                     )
                 }
 
-                // Sexually Active Slider (New Field)
+                // Sexual Activity Level Slider
                 item {
                     LifestyleSlider(
                         label = "Sexual Activity Level",
                         value = registrationViewModel.lifestyle.sal,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(sal = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(sal = it)
+                        },
                         nouns = listOf("Abstinent", "Rarely Active", "Moderately Active", "Active", "Highly Active")
                     )
                 }
+
                 // Politically Aware Slider
                 item {
                     LifestyleSlider(
@@ -553,7 +633,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.politicallyAware,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(politicallyAware = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(politicallyAware = it)
+                        },
                         nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged")
                     )
                 }
@@ -562,14 +645,16 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Introvert to Extrovert",
-                        value = registrationViewModel.lifestyle.IE, // Assuming this is the field for introversion/extroversion
+                        value = registrationViewModel.lifestyle.IE,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(IE = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(IE = it)
+                        },
                         nouns = listOf("Highly Introverted", "Somewhat Introverted", "Ambivert", "Somewhat Extroverted", "Highly Extroverted")
                     )
                 }
-
 
                 // Community-Oriented Slider
                 item {
@@ -578,7 +663,10 @@ fun EnterLifestyleScreen(
                         value = registrationViewModel.lifestyle.communityOriented,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
-                        onValueChange = { registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(communityOriented = it) },
+                        onValueChange = {
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(communityOriented = it)
+                        },
                         nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader")
                     )
                 }
@@ -588,7 +676,7 @@ fun EnterLifestyleScreen(
                     Button(
                         onClick = { onNext() },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00))
                     ) {
                         Text(text = "Next", color = Color.White)
                     }
@@ -597,6 +685,7 @@ fun EnterLifestyleScreen(
         }
     )
 }
+
 
 
 @Composable
@@ -626,8 +715,8 @@ fun LifestyleSlider(
             valueRange = valueRangeStart.toFloat()..valueRangeEnd.toFloat(),
             steps = (valueRangeEnd - valueRangeStart - 1), // Correct number of steps for the slider
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFFA500),
-                activeTrackColor = Color(0xFFFFA500)
+                thumbColor = Color(0xFFFFDB00),
+                activeTrackColor = Color(0xFFFFDB00)
             )
         )
         // Display the corresponding noun safely
@@ -656,10 +745,10 @@ fun DropdownWithStaticOptions(
         OutlinedButton(
             onClick = { expanded = !expanded },
             modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, Color(0xFFFFA500)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500))
+            border = BorderStroke(1.dp, Color(0xFFFFDB00)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFDB00))
         ) {
-            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFFA500))
+            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFFDB00))
         }
 
         DropdownMenu(
@@ -700,13 +789,12 @@ fun CheckboxInput(
             onCheckedChange = onCheckedChange,
             colors = CheckboxDefaults.colors(
                 checkmarkColor = Color.Black,
-                checkedColor = Color(0xFFFFA500),
+                checkedColor = Color(0xFFFFDB00),
                 uncheckedColor = Color.Gray
             )
         )
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -721,19 +809,14 @@ fun EnterLocationAndSchoolScreen(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))
                     .padding(innerPadding)
             ) {
                 LazyColumn(
@@ -744,7 +827,12 @@ fun EnterLocationAndSchoolScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     item {
-                        Text("Education Level", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Education Level",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                         DropdownWithSearch(
                             title = "Select Education Level",
                             options = educationLevels,
@@ -753,10 +841,18 @@ fun EnterLocationAndSchoolScreen(
                         )
                     }
 
-                    if (registrationViewModel.educationLevel in listOf("High School", "College", "Post-Graduation")) {
+                    // High School
+                    if (
+                        registrationViewModel.educationLevel in listOf("High School", "College", "Post-Graduation")
+                    ) {
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("High School", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "High School",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                             SearchableDropdownWithCustomOption(
                                 title = "Select or type your high school",
                                 options = listOf("St. Xavier's", "La Martiniere", "Other"),
@@ -767,16 +863,24 @@ fun EnterLocationAndSchoolScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             GraduationYearDropdown(
-                                    year = registrationViewModel.highSchoolGraduationYear,
-                            onYearSelected = { registrationViewModel.highSchoolGraduationYear = it }
+                                year = registrationViewModel.highSchoolGraduationYear,
+                                onYearSelected = { registrationViewModel.highSchoolGraduationYear = it }
                             )
                         }
                     }
 
-                    if (registrationViewModel.educationLevel in listOf("College", "Post-Graduation")) {
+                    // College
+                    if (
+                        registrationViewModel.educationLevel in listOf("College", "Post-Graduation")
+                    ) {
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("College", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "College",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                             SearchableDropdownWithCustomOption(
                                 title = "Select or type your college",
                                 options = listOf("IIT Kharagpur", "Jadavpur University", "Other"),
@@ -793,16 +897,22 @@ fun EnterLocationAndSchoolScreen(
                         }
                     }
 
+                    // Post-Graduation
                     if (registrationViewModel.educationLevel == "Post-Graduation") {
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("Post Graduation", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "Post Graduation",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                             SearchableDropdownWithCustomOption(
                                 title = "Select or type your post-graduation institute",
                                 options = listOf("IIM Calcutta", "ISB Hyderabad", "Other"),
-                                selectedOption = registrationViewModel.postGraduation,
+                                selectedOption = registrationViewModel.postGraduation ?: "",
                                 onOptionSelected = { registrationViewModel.postGraduation = it },
-                                customInput = registrationViewModel.customPostGraduation,
+                                customInput = registrationViewModel.customPostGraduation ?: "",
                                 onCustomInputChange = { registrationViewModel.customPostGraduation = it }
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -818,12 +928,13 @@ fun EnterLocationAndSchoolScreen(
                         Button(
                             onClick = {
                                 if (registrationViewModel.educationLevel.isEmpty()) {
+                                    // possibly show an error toast
                                 } else {
                                     onNext()
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00))
                         ) {
                             Text(text = "Next", color = Color.White)
                         }
@@ -833,6 +944,8 @@ fun EnterLocationAndSchoolScreen(
         }
     )
 }
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -846,12 +959,12 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
         OutlinedButton(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFDB00)),
             border = BorderStroke(1.dp, Color(0xFFFF4500))
         ) {
             Text(
                 text = year.ifEmpty { "Select Graduation Year" },
-                color = Color(0xFFFFA500)
+                color = Color(0xFFFFDB00)
             )
         }
 
@@ -866,12 +979,12 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
             TextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search Year", color = Color(0xFFFFA500)) },
+                label = { Text("Search Year", color = Color(0xFFFFDB00)) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedLabelColor = Color(0xFFFFA500),
-                    cursorColor = Color(0xFFFFA500),
+                    focusedLabelColor = Color(0xFFFFDB00),
+                    cursorColor = Color(0xFFFFDB00),
                     unfocusedTextColor = Color.White,
-                    focusedTextColor = Color(0xFFFFBF00)
+                    focusedTextColor = Color(0xFFFFDB00)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -904,18 +1017,21 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
 @Composable
 fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(5.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label, color = Color(0xFFFF4500)) },
+            label = { Text(label, color = Color.White) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedLabelColor = Color(0xFFFF4500),
-                cursorColor = Color(0xFFFF4500),
-                focusedTextColor = Color.White
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                cursorColor = Color.White,
+                focusedBorderColor = Color(0xFFFF6000),
+                unfocusedBorderColor = Color.White,
+                focusedLabelColor = Color(0xFFFF6000),
+                unfocusedLabelColor = Color.White
             )
         )
     }
@@ -945,11 +1061,11 @@ fun SearchableDropdownWithCustomOption(
             },
             modifier = Modifier.fillMaxWidth(),
             border = BorderStroke(1.dp, Color(0xFFFF4500)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA500))
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFDB00))
         ) {
             Text(
                 text = if (showCustomInput) customInput else selectedOption.ifEmpty { "Select or type" },
-                color = Color(0xFFFFA500)
+                color = Color(0xFFFFDB00)
             )
         }
 
@@ -966,7 +1082,7 @@ fun SearchableDropdownWithCustomOption(
                     searchText = input
                     showCustomInput = false
                 },
-                label = { Text("Search", color = Color(0xFFFFA500)) },
+                label = { Text("Search", color = Color(0xFFFFDB00)) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
@@ -997,7 +1113,7 @@ fun SearchableDropdownWithCustomOption(
                     onCustomInputChange(it)
                     onOptionSelected("Other")
                 },
-                label = { Text("Enter custom value", color = Color(0xFFFFA500)) },
+                label = { Text("Enter custom value", color = Color(0xFFFFDB00)) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
@@ -1017,31 +1133,89 @@ fun EnterEmailAndPasswordScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     var email by remember { mutableStateOf(TextFieldValue(registrationViewModel.email)) }
     var password by remember { mutableStateOf(TextFieldValue(registrationViewModel.password)) }
     var confirmPassword by remember { mutableStateOf(TextFieldValue("")) }
-    val context = LocalContext.current
 
     var isCreatingAccount by remember { mutableStateOf(false) }
     var passwordError by remember { mutableStateOf(false) }
+
+    /**
+     * Suspend function to check for incomplete accounts and delete them if necessary.
+     */
+    suspend fun checkAndDeleteIncompleteIfNeeded(email: String) {
+        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
+        val userId = currentUser.uid
+
+        try {
+            val snapshot = FirebaseDatabase.getInstance()
+                .getReference("users")
+                .child(userId)
+                .child("username")
+                .get()
+                .await()
+
+            if (!snapshot.exists()) {
+                // Incomplete -> delete user, sign out
+                currentUser.delete().await()
+                FirebaseAuth.getInstance().signOut()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Removed incomplete account for this email",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        } catch (e: Exception) {
+        }
+    }
+
+    /**
+     * Create a new user account with typedEmail & typedPassword, and send verification email.
+     */
+    fun createUserAccount(typedEmail: String, typedPassword: String) {
+        (context as? ComponentActivity)?.lifecycleScope?.launch {
+            try {
+                // Call the suspend function before creating the account
+                checkAndDeleteIncompleteIfNeeded(typedEmail)
+
+                // Proceed to create the user account
+                val authResult = FirebaseAuth.getInstance()
+                    .createUserWithEmailAndPassword(typedEmail, typedPassword)
+                    .await()
+
+                val user = authResult.user
+                user?.sendEmailVerification()?.await()
+
+                withContext(Dispatchers.Main) {
+                    isCreatingAccount = false
+                    onNext()
+                }
+            } catch (ex: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error: ${ex.message}", Toast.LENGTH_LONG).show()
+                    isCreatingAccount = false
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
@@ -1052,7 +1226,7 @@ fun EnterEmailAndPasswordScreen(
                             .background(Color(0xAA000000)),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Color(0xFFFF4500))
+                        CircularProgressIndicator(color = Color(0xFFFF6000))
                     }
                 }
 
@@ -1078,7 +1252,7 @@ fun EnterEmailAndPasswordScreen(
                             email = it
                             registrationViewModel.email = it.text
                         },
-                        label = { Text("Email", color = Color(0xFFFF4500)) },
+                        label = { Text("Email", color = Color.White) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1086,11 +1260,11 @@ fun EnterEmailAndPasswordScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF4500),
-                            focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFFA500),
-                            focusedLabelColor = Color(0xFFFF4500),
-                            unfocusedLabelColor = Color(0xFFFFA500)
+                            cursorColor = Color.White,
+                            focusedBorderColor = Color(0xFFFF6000),
+                            unfocusedBorderColor = Color.White,
+                            focusedLabelColor = Color(0xFFFF6000),
+                            unfocusedLabelColor = Color.White
                         )
                     )
 
@@ -1101,20 +1275,19 @@ fun EnterEmailAndPasswordScreen(
                             password = it
                             registrationViewModel.password = it.text
                         },
-                        label = { Text("Password", color = Color(0xFFFF4500)) },
+                        label = { Text("Password", color = Color.White) },
                         singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF4500),
-                            focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFFA500),
-                            focusedLabelColor = Color(0xFFFF4500),
-                            unfocusedLabelColor = Color(0xFFFFA500)
+                            cursorColor = Color.White,
+                            focusedBorderColor = Color(0xFFFF6000),
+                            unfocusedBorderColor = Color.White,
+                            focusedLabelColor = Color(0xFFFF6000),
+                            unfocusedLabelColor = Color.White
                         )
                     )
 
@@ -1122,7 +1295,7 @@ fun EnterEmailAndPasswordScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text("Confirm Password", color = Color(0xFFFF4500)) },
+                        label = { Text("Confirm Password", color = Color.White) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         isError = passwordError,
@@ -1132,11 +1305,11 @@ fun EnterEmailAndPasswordScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF4500),
-                            focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFFA500),
-                            focusedLabelColor = Color(0xFFFF4500),
-                            unfocusedLabelColor = Color(0xFFFFA500)
+                            cursorColor = Color.White,
+                            focusedBorderColor = Color(0xFFFF6000),
+                            unfocusedBorderColor = Color.White,
+                            focusedLabelColor = Color(0xFFFF6000),
+                            unfocusedLabelColor = Color.White
                         )
                     )
 
@@ -1146,36 +1319,17 @@ fun EnterEmailAndPasswordScreen(
 
                     Button(
                         onClick = {
-                            if (email.text.isNotEmpty() && password.text.isNotEmpty()) {
-                                if (password.text == confirmPassword.text) {
+                            val typedEmail = email.text.trim()
+                            val typedPassword = password.text.trim()
+                            val typedConfirm = confirmPassword.text.trim()
+
+                            if (typedEmail.isNotEmpty() && typedPassword.isNotEmpty()) {
+                                if (typedPassword == typedConfirm) {
                                     isCreatingAccount = true
                                     passwordError = false
-                                    (context as? ComponentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
-                                        try {
-                                            val authResult = FirebaseAuth.getInstance()
-                                                .createUserWithEmailAndPassword(
-                                                    email.text.trim(),
-                                                    password.text.trim()
-                                                )
-                                                .await()
 
-                                            val user = authResult.user
-                                            user?.sendEmailVerification()?.await()
-
-                                            withContext(Dispatchers.Main) {
-                                                registrationViewModel.email = email.text.trim()
-                                                registrationViewModel.password = password.text.trim()
-                                                Toast.makeText(context, "Account created. Verification email sent.", Toast.LENGTH_LONG).show()
-                                                isCreatingAccount = false
-                                                onNext()
-                                            }
-                                        } catch (e: Exception) {
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                                                isCreatingAccount = false
-                                            }
-                                        }
-                                    }
+                                    // Simply create the user account in Firebase
+                                    createUserAccount(typedEmail, typedPassword)
                                 } else {
                                     passwordError = true
                                 }
@@ -1185,7 +1339,7 @@ fun EnterEmailAndPasswordScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         enabled = !isCreatingAccount,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -1202,15 +1356,15 @@ fun EnterEmailAndPasswordScreen(
     )
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterGenderCommunityReligionScreen(
     registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit,
-    onBack: () -> Unit
+    onNext: () -> Unit
 ) {
     // Sample predefined lists
-    val genderOptions = listOf("Male", "Female", "Non Binary")
+    val genderOptions = listOf("Male", "Female")
     val communityOptions = listOf("Marwari", "Bengali", "Punjabi", "Tamil")
     val religionOptions = listOf("Hindu", "Muslim", "Christian", "Other")
 
@@ -1218,23 +1372,14 @@ fun EnterGenderCommunityReligionScreen(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A)) // Updated background color
                     .padding(innerPadding),
                 contentAlignment = Alignment.TopCenter
             ) {
@@ -1281,7 +1426,7 @@ fun EnterGenderCommunityReligionScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
@@ -1297,6 +1442,7 @@ fun EnterGenderCommunityReligionScreen(
         }
     )
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1321,7 +1467,7 @@ fun DropdownWithSearch(
             border = BorderStroke(1.dp, Color(0xFFFF4500)),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF4500))
         ) {
-            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFFA500))
+            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFFDB00))
         }
 
         DropdownMenu(
@@ -1334,7 +1480,7 @@ fun DropdownWithSearch(
             TextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search", color = Color(0xFFFFA500)) },
+                label = { Text("Search", color = Color(0xFFFFDB00)) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
@@ -1358,7 +1504,6 @@ fun DropdownWithSearch(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterUsernameScreen(
@@ -1366,32 +1511,28 @@ fun EnterUsernameScreen(
     onRegistrationComplete: () -> Unit,
     onBack: () -> Unit
 ) {
-    var username by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
-    var datingAgeStart by remember { mutableStateOf(registrationViewModel.datingAgeStart) }
-    var datingAgeEnd by remember { mutableStateOf(registrationViewModel.datingAgeEnd) }
-    var datingDistancePreference by remember { mutableStateOf(registrationViewModel.datingDistancePreference) }
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
     val database = FirebaseDatabase.getInstance().reference
+
+    val scope = rememberCoroutineScope()
+
+    var username by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
     var isUsernameValid by remember { mutableStateOf(true) }
     var usernameErrorMessage by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
@@ -1402,7 +1543,7 @@ fun EnterUsernameScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Username Input
+                    // Username TextField
                     OutlinedTextField(
                         value = username,
                         onValueChange = {
@@ -1415,7 +1556,10 @@ fun EnterUsernameScreen(
                         isError = !isUsernameValid,
                         supportingText = {
                             if (!isUsernameValid) {
-                                Text(text = usernameErrorMessage, color = MaterialTheme.colorScheme.error)
+                                Text(
+                                    text = usernameErrorMessage,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         modifier = Modifier
@@ -1426,123 +1570,44 @@ fun EnterUsernameScreen(
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFFFF4500),
                             focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFFA500)
-                        )
-                    )
-
-                    // Dating Age Preferences
-                    Text("Preferred Age Range", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(bottom = 8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = datingAgeStart.toString(),
-                            onValueChange = {
-                                datingAgeStart = it.toIntOrNull() ?: datingAgeStart
-                                registrationViewModel.datingAgeStart = datingAgeStart
-                            },
-                            label = { Text("Start Age", color = Color(0xFFFF4500)) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).padding(end = 8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = Color(0xFFFF4500),
-                                focusedBorderColor = Color(0xFFFF4500),
-                                unfocusedBorderColor = Color(0xFFFFA500)
-                            )
-                        )
-
-                        OutlinedTextField(
-                            value = datingAgeEnd.toString(),
-                            onValueChange = {
-                                datingAgeEnd = it.toIntOrNull() ?: datingAgeEnd
-                                registrationViewModel.datingAgeEnd = datingAgeEnd
-                            },
-                            label = { Text("End Age", color = Color(0xFFFF4500)) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = Color(0xFFFF4500),
-                                focusedBorderColor = Color(0xFFFF4500),
-                                unfocusedBorderColor = Color(0xFFFFA500)
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Dating Distance Preference
-                    OutlinedTextField(
-                        value = datingDistancePreference.toString(),
-                        onValueChange = {
-                            datingDistancePreference = it.toIntOrNull() ?: datingDistancePreference
-                            registrationViewModel.datingDistancePreference = datingDistancePreference
-                        },
-                        label = { Text("Distance Preference (km)", color = Color(0xFFFF4500)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF4500),
-                            focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFFA500)
+                            unfocusedBorderColor = Color(0xFFFFDB00)
                         )
                     )
 
                     // Finish Button
                     Button(
                         onClick = {
-                            scope.launch {
-                                val trimmedUsername = username.text.trim()
-                                val invalidChars = listOf('.', '#', '$', '[', ']')
+                            val trimmedUsername = username.text.trim()
+                            if (trimmedUsername.isEmpty()) {
+                                isUsernameValid = false
+                                usernameErrorMessage = "Username cannot be empty"
+                                return@Button
+                            }
 
-                                if (trimmedUsername.isEmpty()) {
-                                    isUsernameValid = false
-                                    usernameErrorMessage = "Username cannot be empty"
-                                    return@launch
-                                }
-                                if (invalidChars.any { trimmedUsername.contains(it) }) {
-                                    isUsernameValid = false
-                                    usernameErrorMessage = "Username contains invalid characters (., #, $, [, ])"
-                                    return@launch
-                                }
+                            val currentUser = auth.currentUser
+                            if (currentUser != null) {
+                                val userId = currentUser.uid
+                                // 1) Store username
+                                database.child("users").child(userId).child("username")
+                                    .setValue(trimmedUsername)
+                                    .addOnSuccessListener {
+                                        registrationViewModel.username = trimmedUsername
 
-                                isUsernameValid = true
-
-                                val encodedUsername = URLEncoder.encode(trimmedUsername, "UTF-8")
-                                database.child("usernames").child(encodedUsername)
-                                    .addListenerForSingleValueEvent(object : ValueEventListener {
-                                        override fun onDataChange(snapshot: DataSnapshot) {
-                                            if (snapshot.exists()) {
-                                                isUsernameValid = false
-                                                usernameErrorMessage = "Username already taken"
-                                            } else {
-                                                // Save the username and preferences to Firebase
-                                                scope.launch {
-                                                    try {
-                                                        // Save to global usernames node for future validation
-                                                        database.child("usernames").child(encodedUsername).setValue(true)
-                                                        registrationViewModel.username = trimmedUsername
-
-                                                        // Save the profile to Firebase
-                                                        saveProfileToFirebase(registrationViewModel, onRegistrationComplete)
-                                                    } catch (e: Exception) {
-                                                        Log.e("EnterUsernameScreen", "Error saving username: ${e.message}")
-                                                    }
+                                        // 2) Save full profile in background
+                                        scope.launch {
+                                            try {
+                                                saveProfileToFirebase(registrationViewModel) {
+                                                    // 3) Done => onRegistrationComplete
+                                                    onRegistrationComplete()
                                                 }
+                                            } catch (e: Exception) {
+                                                Log.e("EnterUsernameScreen", "Error saving profile: ${e.message}")
                                             }
                                         }
-
-                                        override fun onCancelled(error: DatabaseError) {
-                                            isUsernameValid = false
-                                            usernameErrorMessage = "Error: ${error.message}"
-                                        }
-                                    })
+                                    }
+                                    .addOnFailureListener { exception ->
+                                        Log.e("EnterUsernameScreen", "Error saving username: ${exception.message}")
+                                    }
                             }
                         },
                         modifier = Modifier
@@ -1564,6 +1629,7 @@ fun EnterUsernameScreen(
         }
     )
 }
+
 
 suspend fun saveProfileToFirebase(
     registrationViewModel: RegistrationViewModel,
@@ -1657,32 +1723,24 @@ fun uploadVoiceToFirebase(
 @Composable
 fun EnterNameScreen(
     registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit,
-    onBack: () -> Unit
+    onNext: () -> Unit
 ) {
-    val interestedOptions = listOf("Male", "Female", "Beyond Binary")
+    val interestedOptions = listOf("Male", "Female")
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF1A1A1A)
+                )
             )
         },
         content = { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))
                     .padding(innerPadding),
                 contentAlignment = Alignment.TopCenter
             ) {
@@ -1709,17 +1767,23 @@ fun EnterNameScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(vertical = 8.dp)
                         ) {
-                            Text("Units: ", color = Color.White)
                             Switch(
                                 checked = registrationViewModel.isHeightInFeet,
-                                onCheckedChange = { registrationViewModel.isHeightInFeet = it },
+                                onCheckedChange = {
+                                    registrationViewModel.isHeightInFeet = it
+                                },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color(0xFFFFA500),
-                                    uncheckedThumbColor = Color.Gray
+                                    checkedThumbColor = Color(0xFFFFDB00),
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedBorderColor = Color.White,
+                                    checkedBorderColor = Color(0xFFFFDB00)
                                 )
                             )
                             Text(
-                                text = if (registrationViewModel.isHeightInFeet) "Feet + Inches" else "Centimeters",
+                                text = if (registrationViewModel.isHeightInFeet)
+                                    "Feet + Inches"
+                                else
+                                    "Centimeters",
                                 color = Color.White
                             )
                         }
@@ -1735,11 +1799,13 @@ fun EnterNameScreen(
                                 Box(modifier = Modifier.weight(1f)) {
                                     TextFieldWithLabel(
                                         label = "Feet",
-                                        value = registrationViewModel.height2.getOrNull(0)?.toString() ?: "",
+                                        value = registrationViewModel.height2
+                                            .getOrNull(0)?.toString() ?: "",
                                         onValueChange = { newFeet ->
                                             registrationViewModel.height2 = listOf(
                                                 newFeet.toIntOrNull() ?: 0,
-                                                registrationViewModel.height2.getOrNull(1) ?: 0
+                                                registrationViewModel.height2
+                                                    .getOrNull(1) ?: 0
                                             )
                                         }
                                     )
@@ -1749,10 +1815,12 @@ fun EnterNameScreen(
                                 Box(modifier = Modifier.weight(1f)) {
                                     TextFieldWithLabel(
                                         label = "Inches",
-                                        value = registrationViewModel.height2.getOrNull(1)?.toString() ?: "",
+                                        value = registrationViewModel.height2
+                                            .getOrNull(1)?.toString() ?: "",
                                         onValueChange = { newInches ->
                                             registrationViewModel.height2 = listOf(
-                                                registrationViewModel.height2.getOrNull(0) ?: 0,
+                                                registrationViewModel.height2
+                                                    .getOrNull(0) ?: 0,
                                                 newInches.toIntOrNull() ?: 0
                                             )
                                         }
@@ -1765,14 +1833,11 @@ fun EnterNameScreen(
                                 label = "Height (cm)",
                                 value = registrationViewModel.height.toString(),
                                 onValueChange = { newHeight ->
-                                    registrationViewModel.height = newHeight.toIntOrNull() ?: 0
+                                    registrationViewModel.height =
+                                        newHeight.toIntOrNull() ?: 0
                                 }
                             )
                         }
-
-
-
-
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -1794,23 +1859,45 @@ fun EnterNameScreen(
                                 .padding(top = 8.dp)
                         ) {
                             interestedOptions.forEach { option ->
-                                val isSelected = registrationViewModel.interestedIn.contains(option)
-                                Button(
-                                    onClick = {
-                                        if (isSelected) {
-                                            registrationViewModel.interestedIn.remove(option)
-                                        } else {
-                                            registrationViewModel.interestedIn.add(option)
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isSelected) Color(0xFFFFA500) else Color.Gray
-                                    ),
+                                val isSelected = option in registrationViewModel.interestedIn
+
+                                Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .padding(horizontal = 4.dp)
+                                        .clip(CircleShape)
+                                        // If selected -> 0xFFFF6000, else black
+                                        .background(
+                                            if (isSelected)
+                                                Color(0xFFFF6000)
+                                            else
+                                                Color.Black
+                                        )
+                                        .border(1.dp, Color(0xFFFFDB00), CircleShape)
                                 ) {
-                                    Text(text = option, color = Color.White)
+                                    Button(
+                                        onClick = {
+                                            if (isSelected) {
+                                                registrationViewModel
+                                                    .interestedIn.remove(option)
+                                            } else {
+                                                registrationViewModel
+                                                    .interestedIn.add(option)
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            // Keep it transparent so the Box color is visible
+                                            containerColor = Color.Transparent
+                                        ),
+                                        contentPadding = PaddingValues(0.dp),
+                                        shape = CircleShape,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = option,
+                                            color = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1820,7 +1907,9 @@ fun EnterNameScreen(
                         Button(
                             onClick = onNext,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF6000)
+                            )
                         ) {
                             Text("Next", color = Color.White)
                         }
@@ -1831,6 +1920,7 @@ fun EnterNameScreen(
     )
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterBirthDateAndInterestsScreen(
@@ -1839,574 +1929,569 @@ fun EnterBirthDateAndInterestsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedDate by remember { mutableStateOf(registrationViewModel.dob) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var customInterest by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Interest categories and subcategories
-    val interestCategories = listOf(
-        InterestCategory(
-            category = "Food & Culinary Arts",
-            emoji = "🍽️",
-            subcategories = listOf(
-                InterestSubcategory("Phuchka", "🥟"),
-                InterestSubcategory("Kathi Rolls", "🌯"),
-                InterestSubcategory("Momos", "🥟"),
-                InterestSubcategory("Roshogolla", "🍰"),
-                InterestSubcategory("Mishti Doi", "🍮"),
-                InterestSubcategory("Club Kachori", "🍘"),
-                InterestSubcategory("Kochuri", "🥠"),
-                InterestSubcategory("Paratha", "🥙"),
-                InterestSubcategory("Petai Porota", "🥞"),
-                InterestSubcategory("Jhalmuri", "🍿"),
-                InterestSubcategory("Chai", "☕"),
-                InterestSubcategory("Fish Curry", "🐟"),
-                InterestSubcategory("Biriyani", "🍛"),
-                InterestSubcategory("Sandesh", "🍥"),
-                InterestSubcategory("Luchi-Alur Dom", "🥔"),
-                InterestSubcategory("Chomchom", "🍮"),
-                InterestSubcategory("Telebhaja", "🍤"),
-                InterestSubcategory("Ghugni", "🥣")
-            )
+    // ---------------------------------------------------------
+    // 1) Birth Date Spinners
+    // ---------------------------------------------------------
+    val dayRange = (1..31).toList()
+    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+    val yearRange = (1950..currentYear).toList().reversed()
+    val monthNames = listOf(
+        "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+    )
+
+    // We'll store the currently selected day, month index, and year in states:
+    var selectedDay by remember { mutableStateOf(dayRange[0]) }
+    var selectedMonthIndex by remember { mutableStateOf(0) }
+    var selectedYear by remember { mutableStateOf(yearRange[0]) }
+
+    // A helper to update the ViewModel's dob in "DD/MM/YYYY" format whenever spinners change
+    fun updateDobInViewModel() {
+        val monthNumber = selectedMonthIndex + 1  // 0-based index -> actual month [1..12]
+        registrationViewModel.dob = "$selectedDay/$monthNumber/$selectedYear"
+    }
+
+    // If the user previously set a DOB, parse it when this composable first appears
+    LaunchedEffect(Unit) {
+        val storedDob = registrationViewModel.dob
+        if (storedDob.isNotBlank()) {
+            val parts = storedDob.split("/")
+            if (parts.size == 3) {
+                val parsedDay = parts[0].toIntOrNull()
+                val parsedMonth = parts[1].toIntOrNull()
+                val parsedYear = parts[2].toIntOrNull()
+
+                if (parsedDay != null && parsedDay in dayRange) {
+                    selectedDay = parsedDay
+                }
+                if (parsedMonth != null && parsedMonth in 1..12) {
+                    selectedMonthIndex = parsedMonth - 1
+                }
+                if (parsedYear != null && parsedYear in yearRange) {
+                    selectedYear = parsedYear
+                }
+            }
+        }
+        // Ensure that any read date is written back to the ViewModel
+        updateDobInViewModel()
+    }
+
+    // State to control the dropdown expansions for day, month, year
+    var expandedDay by remember { mutableStateOf(false) }
+    var expandedMonth by remember { mutableStateOf(false) }
+    var expandedYear by remember { mutableStateOf(false) }
+
+    // We'll say the user has "selected a date" if registrationViewModel.dob is not empty
+    val isDateSelected = registrationViewModel.dob.isNotBlank()
+
+    // ---------------------------------------------------------
+    // 2) City & Locality
+    // ---------------------------------------------------------
+    val cities = listOf("Kolkata", "Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad")
+
+    // Provide localities for each city
+    val cityLocalitiesMap = mapOf(
+        "Kolkata" to listOf("Salt Lake", "New Town", "Dum Dum", "Behala", "Park Street"),
+        "Mumbai" to listOf("Andheri", "Bandra", "Juhu", "Dadar"),
+        "Delhi" to listOf("Dwarka", "Preet Vihar", "Connaught Place", "Saket"),
+        "Bangalore" to listOf("Whitefield", "MG Road", "Koramangala", "Jayanagar"),
+        "Chennai" to listOf("Adyar", "T. Nagar", "Besant Nagar", "Nungambakkam"),
+        "Hyderabad" to listOf("Charminar", "Hitec City", "Banjara Hills", "Secunderabad")
+    )
+
+    var selectedCity by remember { mutableStateOf(registrationViewModel.city) }
+    var selectedLocality by remember { mutableStateOf(registrationViewModel.hometown) }
+
+    // The set of localities for the chosen city
+    val localities = cityLocalitiesMap[selectedCity] ?: emptyList()
+
+    // Keep the ViewModel in sync whenever city or locality changes
+    LaunchedEffect(selectedCity, selectedLocality) {
+        registrationViewModel.city = selectedCity
+        registrationViewModel.hometown = selectedLocality
+    }
+
+    var cityDropdownExpanded by remember { mutableStateOf(false) }
+    var localityDropdownExpanded by remember { mutableStateOf(false) }
+
+    // ---------------------------------------------------------
+    // 3) Interests
+    // ---------------------------------------------------------
+    // Global Interests
+    val globalInterests = listOf(
+        Interest("Music", "🎵"),
+        Interest("Movies", "🎥"),
+        Interest("Sports", "⚽"),
+        Interest("Books", "📚"),
+        Interest("Travel", "✈️"),
+        Interest("Fitness", "💪")
+    )
+
+    // City-specific Interests
+    val citySpecificInterests = mapOf(
+        "Kolkata" to listOf(
+            Interest("Durga Puja", "🙏"),
+            Interest("Roshogolla", "🍰"),
+            Interest("Jhalmuri", "🍿"),
+            Interest("Victoria Memorial", "🏛️")
         ),
-        InterestCategory(
-            category = "Festivals & Culture",
-            emoji = "🎉",
-            subcategories = listOf(
-                InterestSubcategory("Durga Puja", "🙏"),
-                InterestSubcategory("Pandal Hopping", "🏮"),
-                InterestSubcategory("Saraswati Puja", "📚"),
-                InterestSubcategory("Poila Boishakh", "🎊"),
-                InterestSubcategory("Rabindra Jayanti", "🎼"),
-                InterestSubcategory("Book Fair", "📚"),
-                InterestSubcategory("Kolkata Film Festival", "🎬"),
-                InterestSubcategory("Mela Visits", "🎠"),
-                InterestSubcategory("Jagaddhatri Puja", "🕉️"),
-                InterestSubcategory("Christmas Park Street", "🎄"),
-                InterestSubcategory("Eid Celebrations", "🌙")
-            )
+        "Mumbai" to listOf(
+            Interest("Ganesh Chaturthi", "🎉"),
+            Interest("Marine Drive", "🌊"),
+            Interest("Bollywood", "🎬"),
+            Interest("Vada Pav", "🌮")
         ),
-        InterestCategory(
-            category = "Music",
-            emoji = "🎵",
-            subcategories = listOf(
-                InterestSubcategory("Rabindra Sangeet", "🎼"),
-                InterestSubcategory("Nazrul Geeti", "🎶"),
-                InterestSubcategory("Bengali Folk Music", "🪕"),
-                InterestSubcategory("Baul Songs", "🎤"),
-                InterestSubcategory("Adhunik Bangla Gaan", "🎧"),
-                InterestSubcategory("Band Music", "🎸"),
-                InterestSubcategory("Classical Indian Music", "🎻"),
-                InterestSubcategory("Modern Bollywood", "🎬"),
-                InterestSubcategory("Western Classical", "🎹"),
-                InterestSubcategory("Rock", "🎸"),
-                InterestSubcategory("Jazz", "🎷"),
-                InterestSubcategory("K-Pop", "🎤")
-            )
+        "Delhi" to listOf(
+            Interest("Chandni Chowk", "🛍️"),
+            Interest("Qutub Minar", "🏰"),
+            Interest("Street Food", "🍔"),
+            Interest("Red Fort", "🏯")
         ),
-        InterestCategory(
-            category = "Sports",
-            emoji = "🏅",
-            subcategories = listOf(
-                InterestSubcategory("Football", "⚽"),
-                InterestSubcategory("East Bengal Club", "🔴"),
-                InterestSubcategory("Mohun Bagan", "🟢"),
-                InterestSubcategory("Mohammedan Sporting", "⚫"),
-                InterestSubcategory("Cricket", "🏏"),
-                InterestSubcategory("Table Tennis", "🏓"),
-                InterestSubcategory("Badminton", "🏸"),
-                InterestSubcategory("Chess", "♟️"),
-                InterestSubcategory("Rowing", "🚣"),
-                InterestSubcategory("Running", "🏃"),
-                InterestSubcategory("Cycling", "🚴"),
-                InterestSubcategory("Esports", "🎮")
-            )
+        "Bangalore" to listOf(
+            Interest("Tech Events", "💻"),
+            Interest("Coffee Culture", "☕"),
+            Interest("Cubbon Park", "🌳"),
+            Interest("Startup Meetups", "🚀")
         ),
-        InterestCategory(
-            category = "Movies & Theatre",
-            emoji = "🎭",
-            subcategories = listOf(
-                InterestSubcategory("Bengali Cinema", "🎥"),
-                InterestSubcategory("Satyajit Ray Films", "🎬"),
-                InterestSubcategory("Tollywood", "🎞️"),
-                InterestSubcategory("Theatre", "🎭"),
-                InterestSubcategory("Jatra", "🎪"),
-                InterestSubcategory("Indian Art Films", "🎬"),
-                InterestSubcategory("Documentaries", "📽️"),
-                InterestSubcategory("International Cinema", "🌐"),
-                InterestSubcategory("Film Festivals", "🎟️"),
-                InterestSubcategory("Drama", "🎭"),
-                InterestSubcategory("Netflix Binging", "📺")
-            )
+        "Chennai" to listOf(
+            Interest("Carnatic Music", "🎼"),
+            Interest("Marina Beach", "🏖️"),
+            Interest("Filter Coffee", "☕"),
+            Interest("Pongal Festival", "🎊")
         ),
-        InterestCategory(
-            category = "Literature & Art",
-            emoji = "📚",
-            subcategories = listOf(
-                InterestSubcategory("Rabindranath Tagore", "📖"),
-                InterestSubcategory("Sarat Chandra Chattopadhyay", "📘"),
-                InterestSubcategory("Bankim Chandra Chatterjee", "📙"),
-                InterestSubcategory("Bengali Poetry", "📝"),
-                InterestSubcategory("Contemporary Bengali Writers", "📚"),
-                InterestSubcategory("Bengali Comics (Narayan Debnath)", "📖"),
-                InterestSubcategory("Art Galleries", "🖼️"),
-                InterestSubcategory("Painting", "🎨"),
-                InterestSubcategory("Sculpture", "🗿"),
-                InterestSubcategory("Photography", "📷"),
-                InterestSubcategory("Graphic Novels", "📓")
-            )
-        ),
-        InterestCategory(
-            category = "Outdoor Activities",
-            emoji = "🌳",
-            subcategories = listOf(
-                InterestSubcategory("Walks in Victoria Memorial", "🏛️"),
-                InterestSubcategory("Walks in Rabindra Sarobar (Lake)", "🚶‍♂️"),
-                InterestSubcategory("Boating in Ganges", "🚣"),
-                InterestSubcategory("Eco Park Visits", "🌲"),
-                InterestSubcategory("Prinsep Ghat Hangout", "🌉"),
-                InterestSubcategory("Botanical Garden Visits", "🌿"),
-                InterestSubcategory("Zoo Visits", "🦁"),
-                InterestSubcategory("Park Street Strolls", "🌆"),
-                InterestSubcategory("Heritage Walks", "🏘️"),
-                InterestSubcategory("Street Photography", "📷")
-            )
-        ),
-        InterestCategory(
-            category = "Socializing & Lifestyle",
-            emoji = "☕",
-            subcategories = listOf(
-                InterestSubcategory("Adda over Chai", "☕"),
-                InterestSubcategory("Coffee House Chats", "🍵"),
-                InterestSubcategory("Street Food Tours", "🌮"),
-                InterestSubcategory("Bookstore Hangouts", "📚"),
-                InterestSubcategory("Lazing Around", "😴"),
-                InterestSubcategory("Daydreaming", "💭"),
-                InterestSubcategory("Café Hopping", "🍰"),
-                InterestSubcategory("Shopping in New Market", "🛍️"),
-                InterestSubcategory("Nightlife in Kolkata", "🌃"),
-                InterestSubcategory("Fusion Cuisine Tasting", "🍱")
-            )
-        ),
-        InterestCategory(
-            category = "Technology & Innovation",
-            emoji = "💻",
-            subcategories = listOf(
-                InterestSubcategory("Programming", "💻"),
-                InterestSubcategory("Startup Culture", "🚀"),
-                InterestSubcategory("Hackathons", "👨‍💻"),
-                InterestSubcategory("Robotics", "🤖"),
-                InterestSubcategory("AI & Machine Learning", "🧠"),
-                InterestSubcategory("Gaming", "🎮"),
-                InterestSubcategory("Electronics", "🔌"),
-                InterestSubcategory("Blockchain", "⛓️"),
-                InterestSubcategory("Virtual Reality", "🎧")
-            )
-        ),
-        InterestCategory(
-            category = "Education & Learning",
-            emoji = "🎓",
-            subcategories = listOf(
-                InterestSubcategory("Debating", "🗣️"),
-                InterestSubcategory("Elocution", "🎤"),
-                InterestSubcategory("Quizzing", "❓"),
-                InterestSubcategory("Competitive Exams", "📚"),
-                InterestSubcategory("Workshops", "🛠️"),
-                InterestSubcategory("Language Learning", "🈵"),
-                InterestSubcategory("Book Clubs", "📖"),
-                InterestSubcategory("Science Exhibitions", "🔬")
-            )
-        ),
-        InterestCategory(
-            category = "Travel & Exploration",
-            emoji = "✈️",
-            subcategories = listOf(
-                InterestSubcategory("Darjeeling Trips", "⛰️"),
-                InterestSubcategory("Sundarbans Exploration", "🌳"),
-                InterestSubcategory("Digha Beach Visits", "🏖️"),
-                InterestSubcategory("Heritage Site Visits", "🏰"),
-                InterestSubcategory("Weekend Getaways", "🚗"),
-                InterestSubcategory("Adventure Sports", "🏄"),
-                InterestSubcategory("Cultural Tours", "🏛️"),
-                InterestSubcategory("International Travel", "🌍")
-            )
-        ),
-        InterestCategory(
-            category = "Fitness & Wellness",
-            emoji = "💪",
-            subcategories = listOf(
-                InterestSubcategory("Yoga", "🧘"),
-                InterestSubcategory("Gym", "🏋️"),
-                InterestSubcategory("Morning Walks", "🚶‍♂️"),
-                InterestSubcategory("Cycling", "🚴"),
-                InterestSubcategory("Meditation", "🧘‍♂️"),
-                InterestSubcategory("Cricket Matches", "🏏"),
-                InterestSubcategory("Swimming", "🏊"),
-                InterestSubcategory("Marathon Running", "🏃‍♂️")
-            )
-        ),
-        InterestCategory(
-            category = "Dance",
-            emoji = "💃",
-            subcategories = listOf(
-                InterestSubcategory("Rabindra Nritya", "🩰"),
-                InterestSubcategory("Kathak", "👣"),
-                InterestSubcategory("Bharatanatyam", "🙏"),
-                InterestSubcategory("Folk Dance", "💃"),
-                InterestSubcategory("Contemporary Dance", "🕺"),
-                InterestSubcategory("Bollywood Dance", "🎬"),
-                InterestSubcategory("Salsa", "💃"),
-                InterestSubcategory("Hip Hop", "🕺")
-            )
-        ),
-        InterestCategory(
-            category = "Art & Craft",
-            emoji = "🎨",
-            subcategories = listOf(
-                InterestSubcategory("Patachitra", "🖼️"),
-                InterestSubcategory("Terracotta Art", "🏺"),
-                InterestSubcategory("Pottery", "⚱️"),
-                InterestSubcategory("Handicrafts", "🧵"),
-                InterestSubcategory("Embroidery", "🧶"),
-                InterestSubcategory("Origami", "📄"),
-                InterestSubcategory("Graffiti Art", "🎨")
-            )
-        ),
-        InterestCategory(
-            category = "Pets & Animals",
-            emoji = "🐾",
-            subcategories = listOf(
-                InterestSubcategory("Dog Lover", "🐶"),
-                InterestSubcategory("Cat Lover", "🐱"),
-                InterestSubcategory("Bird Watching", "🐦"),
-                InterestSubcategory("Aquarium Fish", "🐠"),
-                InterestSubcategory("Horse Riding", "🐴"),
-                InterestSubcategory("Pet Adoption", "🏠")
-            )
-        ),
-        InterestCategory(
-            category = "Social Causes",
-            emoji = "🤝",
-            subcategories = listOf(
-                InterestSubcategory("Community Service", "🏘️"),
-                InterestSubcategory("Environmental Conservation", "🌿"),
-                InterestSubcategory("Education Initiatives", "🎓"),
-                InterestSubcategory("Healthcare Volunteering", "🏥"),
-                InterestSubcategory("Animal Welfare", "🐾"),
-                InterestSubcategory("Rural Development", "🌾"),
-                InterestSubcategory("Heritage Preservation", "🏛️"),
-                InterestSubcategory("Women's Rights", "👩")
-            )
-        ),
-        InterestCategory(
-            category = "Fashion & Lifestyle",
-            emoji = "👗",
-            subcategories = listOf(
-                InterestSubcategory("Traditional Bengali Attire", "👘"),
-                InterestSubcategory("Sustainable Fashion", "🌱"),
-                InterestSubcategory("Jewelry Design", "💍"),
-                InterestSubcategory("Styling", "💇‍♀️"),
-                InterestSubcategory("Modeling", "💃"),
-                InterestSubcategory("Blogging", "✍️"),
-                InterestSubcategory("Streetwear", "👕")
-            )
-        ),
-        InterestCategory(
-            category = "Photography",
-            emoji = "📷",
-            subcategories = listOf(
-                InterestSubcategory("Street Photography", "🚶"),
-                InterestSubcategory("Landscape", "🏞️"),
-                InterestSubcategory("Portrait", "🖼️"),
-                InterestSubcategory("Wildlife", "🦁"),
-                InterestSubcategory("Astrophotography", "🌌"),
-                InterestSubcategory("Wedding Photography", "💒"),
-                InterestSubcategory("Macro Photography", "🔍")
-            )
-        ),
-        InterestCategory(
-            category = "Environmental Activities",
-            emoji = "🌍",
-            subcategories = listOf(
-                InterestSubcategory("Tree Plantation", "🌳"),
-                InterestSubcategory("Beach Clean-ups", "🏖️"),
-                InterestSubcategory("Sustainable Living", "♻️"),
-                InterestSubcategory("Wildlife Conservation", "🐾"),
-                InterestSubcategory("Cycling Initiatives", "🚴")
-            )
-        ),
-        InterestCategory(
-            category = "Science & Technology",
-            emoji = "🔬",
-            subcategories = listOf(
-                InterestSubcategory("Astronomy", "🌌"),
-                InterestSubcategory("Physics", "🧪"),
-                InterestSubcategory("Chemistry", "⚗️"),
-                InterestSubcategory("Biology", "🧬"),
-                InterestSubcategory("Robotics", "🤖"),
-                InterestSubcategory("Gadgets", "📱"),
-                InterestSubcategory("Space Exploration", "🚀")
-            )
-        ),
-        InterestCategory(
-            category = "Language & Literature",
-            emoji = "🈵",
-            subcategories = listOf(
-                InterestSubcategory("Bengali Language", "🕌"),
-                InterestSubcategory("English Literature", "📖"),
-                InterestSubcategory("French Language", "🇫🇷"),
-                InterestSubcategory("Japanese Anime & Manga", "🇯🇵"),
-                InterestSubcategory("Hindi Poetry", "📜"),
-                InterestSubcategory("Regional Dialects", "🗣️")
-            )
-        ),
-        InterestCategory(
-            category = "Entertainment",
-            emoji = "🎭",
-            subcategories = listOf(
-                InterestSubcategory("Stand-up Comedy", "🎙️"),
-                InterestSubcategory("Theater Performances", "🎭"),
-                InterestSubcategory("TV Series", "📺"),
-                InterestSubcategory("Web Series", "💻"),
-                InterestSubcategory("Reality Shows", "🎤"),
-                InterestSubcategory("Acting Workshops", "🎬"),
-                InterestSubcategory("Playwriting", "✍️")
-            )
+        "Hyderabad" to listOf(
+            Interest("Charminar", "🕌"),
+            Interest("Biryani", "🍛"),
+            Interest("Ramoji Film City", "🎬"),
+            Interest("Pearl Shopping", "💎")
         )
     )
 
-    // DatePicker logic
-    val calendar = Calendar.getInstance()
-    if (showDatePicker) {
-        android.app.DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val selectedCalendar = Calendar.getInstance().apply {
-                    set(year, month, dayOfMonth)
-                }
+    // Locality-specific Interests
+    val cityLocalitiesInterestsMap = mapOf(
+        "Kolkata" to mapOf(
+            "Salt Lake" to listOf(
+                Interest("CC Block Market", "🛒"),
+                Interest("Sector V IT Hub", "💻")
+            ),
+            "New Town" to listOf(
+                Interest("Eco Park", "🌳"),
+                Interest("City Centre 2", "🛍️")
+            ),
+            "Dum Dum" to listOf(
+                Interest("Dum Dum Park", "🌲"),
+                Interest("Airport Vicinity", "✈️")
+            ),
+            "Behala" to listOf(
+                Interest("Behala Chowrasta", "🏬"),
+                Interest("Manton Market", "🛒")
+            ),
+            "Park Street" to listOf(
+                Interest("Park Street Cafes", "☕"),
+                Interest("Nightlife", "🌃")
+            )
+        ),
+        "Mumbai" to mapOf(
+            "Andheri" to listOf(Interest("Versova Beach", "🏖️"), Interest("Nightclubs", "🎶")),
+            "Bandra" to listOf(Interest("Bandstand", "🌊"), Interest("Carter Road", "🌅")),
+            "Juhu" to listOf(Interest("Juhu Beach", "🏖️"), Interest("Street Food", "🌯")),
+            "Dadar" to listOf(Interest("Dadar Market", "🛒"), Interest("Local Temples", "🕌"))
+        ),
+        "Delhi" to mapOf(
+            "Dwarka" to listOf(Interest("Sector 13 Market", "🛍️"), Interest("Dwarka Mor", "🚇")),
+            "Preet Vihar" to listOf(Interest("Local Eateries", "🌮"), Interest("V3S Mall", "🛍️")),
+            "Connaught Place" to listOf(Interest("CP Cafes", "☕"), Interest("British Era Buildings", "🏛️")),
+            "Saket" to listOf(Interest("Select Citywalk", "🛍️"), Interest("Night Spots", "🌃"))
+        ),
+        "Bangalore" to mapOf(
+            "Whitefield" to listOf(Interest("IT Parks", "💻"), Interest("Phoenix Marketcity", "🛍️")),
+            "MG Road" to listOf(Interest("Pub Culture", "🍻"), Interest("Boulevards", "🌳")),
+            "Koramangala" to listOf(Interest("Startup Offices", "🚀"), Interest("Cafes", "☕")),
+            "Jayanagar" to listOf(Interest("Shopping Complex", "🛍️"), Interest("Food Streets", "🌮"))
+        ),
+        "Chennai" to mapOf(
+            "Adyar" to listOf(Interest("Theosophical Society", "🌳"), Interest("Adyar Estuary", "🦆")),
+            "T. Nagar" to listOf(Interest("Pondy Bazaar", "🛍️"), Interest("Silk Sarees", "👗")),
+            "Besant Nagar" to listOf(Interest("Elliot's Beach", "🏖️"), Interest("Cafes & Eateries", "🍟")),
+            "Nungambakkam" to listOf(Interest("Shopping Malls", "🛍️"), Interest("High-End Boutiques", "👛"))
+        ),
+        "Hyderabad" to mapOf(
+            "Charminar" to listOf(Interest("Old City Heritage", "🕌"), Interest("Lac Bangles", "🎨")),
+            "Hitec City" to listOf(Interest("IT Corridor", "💻"), Interest("Upscale Eateries", "🍽️")),
+            "Banjara Hills" to listOf(Interest("High-End Restaurants", "🍲"), Interest("Nightlife", "🌃")),
+            "Secunderabad" to listOf(Interest("Railway Heritage", "🚂"), Interest("Old Cantonment", "🏰"))
+        )
+    )
 
-                // Prevent selecting a date in the future
-                if (selectedCalendar.timeInMillis <= calendar.timeInMillis) {
-                    selectedDate = "$dayOfMonth/${month + 1}/$year"
-                    registrationViewModel.dob = selectedDate
-                } else {
-                    Toast.makeText(context, "Birth date cannot be in the future.", Toast.LENGTH_SHORT).show()
-                }
-                showDatePicker = false
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).apply {
-            // Set the maximum date to today
-            datePicker.maxDate = calendar.timeInMillis
-        }.show()
-    }
-
-
+    // ---------------------------------------------------------
+    // UI Composable Layout
+    // ---------------------------------------------------------
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))
+                    .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
+                    .padding(horizontal = 32.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Title
-                    Text(
-                        text = "Enter Birth Date and Interests",
-                        color = Color.White,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
+                // Section Title
+                Text(
+                    text = "Enter Birth Date and Interests",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
 
-                    // Birth Date Picker Button
+                // -----------------------------------------------------
+                // A) Birth Date (spinner-style)
+                // -----------------------------------------------------
+                Text("Select Birth Date", color = Color.White, fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // We'll place day, month, and year spinners in a Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Day Spinner
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { expandedDay = true },
+                            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Black,
+                                contentColor = Color(0xFFFFDB00)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("$selectedDay", color = Color(0xFFFFDB00))
+                        }
+                        DropdownMenu(
+                            expanded = expandedDay,
+                            onDismissRequest = { expandedDay = false },
+                            modifier = Modifier
+                                .background(Color(0xFF1A1A1A))
+                        ) {
+                            dayRange.forEach { day ->
+                                DropdownMenuItem(
+                                    text = { Text(text = "$day", color = Color.White) },
+                                    onClick = {
+                                        selectedDay = day
+                                        expandedDay = false
+                                        updateDobInViewModel()
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Month Spinner
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { expandedMonth = true },
+                            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Black,
+                                contentColor = Color(0xFFFFDB00)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(monthNames[selectedMonthIndex], color = Color(0xFFFFDB00))
+                        }
+                        DropdownMenu(
+                            expanded = expandedMonth,
+                            onDismissRequest = { expandedMonth = false },
+                            modifier = Modifier
+                                .background(Color(0xFF1A1A1A))
+                        ) {
+                            monthNames.forEachIndexed { index, monthName ->
+                                DropdownMenuItem(
+                                    text = { Text(monthName, color = Color.White) },
+                                    onClick = {
+                                        selectedMonthIndex = index
+                                        expandedMonth = false
+                                        updateDobInViewModel()
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Year Spinner
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { expandedYear = true },
+                            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Black,
+                                contentColor = Color(0xFFFFDB00)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("$selectedYear", color = Color(0xFFFFDB00))
+                        }
+                        DropdownMenu(
+                            expanded = expandedYear,
+                            onDismissRequest = { expandedYear = false },
+                            modifier = Modifier
+                                .background(Color(0xFF1A1A1A))
+                        ) {
+                            yearRange.forEach { yr ->
+                                DropdownMenuItem(
+                                    text = { Text("$yr", color = Color.White) },
+                                    onClick = {
+                                        selectedYear = yr
+                                        expandedYear = false
+                                        updateDobInViewModel()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // -----------------------------------------------------
+                // B) City
+                // -----------------------------------------------------
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Select Your City", color = Color.White, fontSize = 18.sp)
+                Box {
                     OutlinedButton(
-                        onClick = { showDatePicker = true },
+                        onClick = { cityDropdownExpanded = true },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                            .padding(vertical = 8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color.Black,
-                            contentColor = Color(0xFFFFA500)
+                            contentColor = Color(0xFFFFDB00)
                         ),
                         border = BorderStroke(1.dp, Color(0xFFFF4500))
                     ) {
                         Text(
-                            text = if (selectedDate.isNotEmpty()) selectedDate else "Select Birth Date",
-                            color = Color(0xFFFFA500)
+                            text = if (selectedCity.isNotEmpty()) selectedCity else "Select City",
+                            color = Color(0xFFFFDB00)
                         )
                     }
-
-                    // Interests Selection
-                    Text(
-                        text = "Select Interests",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-
-                    // Interests with Dropdowns
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        interestCategories.forEach { category ->
-                            var expanded by remember { mutableStateOf(false) }
-                            OutlinedButton(
-                                onClick = { expanded = !expanded },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.Black,
-                                    contentColor = Color(0xFFFFA500)
-                                ),
-                                border = BorderStroke(1.dp, Color(0xFFFF4500))
-                            ) {
-                                Text(text = "${category.emoji} ${category.category}")
-                            }
-
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color.Black)
-                            ) {
-                                category.subcategories.forEach { subcategory ->
-                                    val isSelected = registrationViewModel.interests.any { it.name == subcategory.name }
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = "${subcategory.emoji} ${subcategory.name}",
-                                                color = if (isSelected) Color(0xFFFF4500) else Color.White
-                                            )
-                                        },
-                                        onClick = {
-                                            if (isSelected) {
-                                                registrationViewModel.interests.removeIf { it.name == subcategory.name }
-                                            } else {
-                                                registrationViewModel.interests.add(
-                                                    Interest(name = subcategory.name, emoji = subcategory.emoji)
-                                                )
-                                            }
-                                        }
-                                    )
+                    DropdownMenu(
+                        expanded = cityDropdownExpanded,
+                        onDismissRequest = { cityDropdownExpanded = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF1A1A1A))
+                    ) {
+                        cities.forEach { city ->
+                            DropdownMenuItem(
+                                text = { Text(city, color = Color.White) },
+                                onClick = {
+                                    selectedCity = city
+                                    cityDropdownExpanded = false
+                                    // Reset the selected locality each time city changes
+                                    selectedLocality = ""
                                 }
-                            }
+                            )
                         }
+                    }
+                }
 
-                        // Custom Interest Input
-                        Spacer(modifier = Modifier.height(16.dp))
-                        TextField(
-                            value = customInterest,
-                            onValueChange = { customInterest = it },
-                            label = { Text("Add Custom Interest", color = Color(0xFFFF4500)) },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedLabelColor = Color(0xFFFF4500),
-                                focusedBorderColor = Color(0xFFFFA500),
-                                cursorColor = Color(0xFFFF4500),
-                                focusedTextColor = Color.White
-                            ),
+                // -----------------------------------------------------
+                // C) Locality
+                // -----------------------------------------------------
+                if (selectedCity.isNotEmpty()) {
+                    Text("Select Your Locality", color = Color.White, fontSize = 18.sp)
+                    Box {
+                        OutlinedButton(
+                            onClick = { localityDropdownExpanded = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        )
-                        Button(
-                            onClick = {
-                                if (customInterest.text.isNotBlank()) {
-                                    registrationViewModel.interests.add(Interest(name = customInterest.text))
-                                    customInterest = TextFieldValue("") // Clear input after adding
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                                .padding(vertical = 8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Black,
+                                contentColor = Color(0xFFFFDB00)
+                            ),
+                            border = BorderStroke(1.dp, Color(0xFFFF4500))
                         ) {
-                            Text(text = "Add Interest", color = Color.White)
+                            Text(
+                                text = if (selectedLocality.isNotEmpty()) selectedLocality else "Select Locality",
+                                color = Color(0xFFFFDB00)
+                            )
                         }
-                    }
-
-                    // Display Added Interests
-                    Text("Your Interests", color = Color.White, fontSize = 18.sp)
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        items(registrationViewModel.interests) { interest ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .background(Color.Black, shape = CircleShape)
-                                    .clickable {
-                                        registrationViewModel.interests.remove(interest)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(text = interest.name, color = Color.White)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Remove Interest",
-                                        tint = Color.Red,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                        DropdownMenu(
+                            expanded = localityDropdownExpanded,
+                            onDismissRequest = { localityDropdownExpanded = false },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF1A1A1A))
+                        ) {
+                            val localitiesList = cityLocalitiesMap[selectedCity] ?: emptyList()
+                            localitiesList.forEach { loc ->
+                                DropdownMenuItem(
+                                    text = { Text(loc, color = Color.White) },
+                                    onClick = {
+                                        selectedLocality = loc
+                                        localityDropdownExpanded = false
+                                    }
+                                )
                             }
                         }
                     }
+                }
 
-
-                    // Check if the birth date is selected to enable "Next" button
-                    val isNextEnabled = selectedDate.isNotEmpty()
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Next Button
-                    Button(
-                        onClick = { onNext() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        enabled = isNextEnabled,
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isNextEnabled) Color(0xFFFFA500) else Color.Gray),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = "Next",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                // -----------------------------------------------------
+                // D) Global Interests
+                // -----------------------------------------------------
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Global Interests", color = Color(0xFFFFDB00), fontSize = 16.sp)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    globalInterests.forEach { interest ->
+                        val isSelected = registrationViewModel.interests.contains(interest)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    if (isSelected) {
+                                        registrationViewModel.interests.remove(interest)
+                                    } else {
+                                        registrationViewModel.interests.add(interest)
+                                    }
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = null,
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Color(0xFFFF4500),
+                                    uncheckedColor = Color.White
+                                )
+                            )
+                            Text(
+                                text = "${interest.emoji} ${interest.name}",
+                                color = if (isSelected) Color(0xFFFF4500) else Color.White
+                            )
+                        }
                     }
+                }
+
+                // -----------------------------------------------------
+                // E) City-Specific Interests
+                // -----------------------------------------------------
+                if (selectedCity.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Interests in $selectedCity", color = Color(0xFFFFDB00), fontSize = 16.sp)
+                    citySpecificInterests[selectedCity]?.forEach { interest ->
+                        val isSelected = registrationViewModel.interests.contains(interest)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    if (isSelected) {
+                                        registrationViewModel.interests.remove(interest)
+                                    } else {
+                                        registrationViewModel.interests.add(interest)
+                                    }
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = null,
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Color(0xFFFF4500),
+                                    uncheckedColor = Color.White
+                                )
+                            )
+                            Text(
+                                text = "${interest.emoji} ${interest.name}",
+                                color = if (isSelected) Color(0xFFFF4500) else Color.White
+                            )
+                        }
+                    }
+                }
+
+                // -----------------------------------------------------
+                // F) Locality-Specific Interests
+                // -----------------------------------------------------
+                if (selectedCity.isNotEmpty() && selectedLocality.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Interests in $selectedLocality", color = Color(0xFFFFDB00), fontSize = 16.sp)
+                    val cityMap = cityLocalitiesInterestsMap[selectedCity]
+                    val localityInterests = cityMap?.get(selectedLocality) ?: emptyList()
+                    localityInterests.forEach { interest ->
+                        val isSelected = registrationViewModel.interests.contains(interest)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    if (isSelected) {
+                                        registrationViewModel.interests.remove(interest)
+                                    } else {
+                                        registrationViewModel.interests.add(interest)
+                                    }
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = null,
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Color(0xFFFF4500),
+                                    uncheckedColor = Color.White
+                                )
+                            )
+                            Text(
+                                text = "${interest.emoji} ${interest.name}",
+                                color = if (isSelected) Color(0xFFFF4500) else Color.White
+                            )
+                        }
+                    }
+                }
+
+                // -----------------------------------------------------
+                // G) Next Button
+                // -----------------------------------------------------
+                Spacer(modifier = Modifier.height(24.dp))
+
+                val isNextEnabled = isDateSelected
+                        && selectedCity.isNotEmpty()
+                        && selectedLocality.isNotEmpty()
+
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = isNextEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isNextEnabled) Color(0xFFFFDB00) else Color.Gray
+                    ),
+                    shape = CircleShape,
+                    elevation = ButtonDefaults.buttonElevation(8.dp)
+                ) {
+                    Text(
+                        text = "Next",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -2455,17 +2540,6 @@ fun UploadMediaComposable(
             }
         }
     )
-
-    // Request Permissions
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ActivityCompat.requestPermissions(
-                context as Activity,
-                arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                1
-            )
-        }
-    }
 
     // Function to validate voice bio duration
     fun validateVoiceBio() {
@@ -2516,7 +2590,9 @@ fun UploadMediaComposable(
         } else {
             try {
                 mediaPlayer.reset()
-                mediaPlayer.setDataSource(voiceFilePath)
+                mediaPlayer.setDataSource(
+                    registrationViewModel.voiceNoteUri?.path ?: voiceFilePath
+                ) // Use the uploaded file URI or local file
                 mediaPlayer.prepare()
                 mediaPlayer.start()
                 isPlaying = true
@@ -2549,120 +2625,146 @@ fun UploadMediaComposable(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Upload Media", color = Color(0xFFFFBF00)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFFFFBF00))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                title = { Text("Upload Media", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp)
-                    .background(Color.Black),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .background(Color(0xFF1A1A1A))
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // Profile Picture Section
-                Text("Profile Picture", color = Color(0xFFFFBF00), fontSize = 18.sp)
-                Box(
-                    contentAlignment = Alignment.Center,
+                LazyColumn(
                     modifier = Modifier
-                        .size(110.dp)
-                        .border(2.dp, Color(0xFFFFBF00), CircleShape)
-                        .clickable {
-                            profilePicPickerLauncher.launch("image/*")
-                        }
+                        .fillMaxSize()
+                        .padding(horizontal = 32.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    AsyncImage(
-                        model = registrationViewModel.profilePictureUri,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.size(100.dp).clip(CircleShape)
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Optional Photos Section
-                Text("Optional Photos", color = Color(0xFFFFBF00), fontSize = 18.sp)
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(registrationViewModel.optionalPhotoUris) { uri ->
-                        Box(modifier = Modifier.size(100.dp)) {
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .clip(CircleShape)
-                            )
-                            IconButton(
-                                onClick = { registrationViewModel.optionalPhotoUris.remove(uri) },
-                                modifier = Modifier.align(Alignment.TopEnd)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
+                    item {
+                        // Profile Picture Section
+                        Text("Profile Picture", color = Color.White, fontSize = 18.sp)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(110.dp)
+                                .border(2.dp, Color(0xFFFF6000), CircleShape)
+                                .clickable {
+                                    profilePicPickerLauncher.launch("image/*")
+                                }
+                        ) {
+                            if (registrationViewModel.profilePictureUri != null) {
+                                AsyncImage(
+                                    model = registrationViewModel.profilePictureUri,
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier.size(100.dp).clip(CircleShape)
+                                )
+                            } else {
+                                Text("Tap", color = Color.White, fontSize = 14.sp)
                             }
                         }
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
 
-                // Voice Bio Section
-                Text("Voice Bio [Tap icon to record/re-record]", color = Color(0xFFFFBF00), fontSize = 18.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-                IconButton(onClick = toggleRecording) {
-                    Icon(
-                        imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
-                        contentDescription = null,
-                        tint = if (isRecording) Color.Red else Color(0xFFFFBF00)
-                    )
-                }
-                if (!isVoiceBioValid) {
-                    Text(
-                        text = "Voice Bio exceeds 60 seconds. Please record a shorter one.",
-                        color = Color.Red,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                registrationViewModel.voiceNoteUri?.let {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = togglePlayback) {
+                        // Optional Photos Section
+                        Text("Optional Photos", color = Color.White, fontSize = 18.sp)
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(registrationViewModel.optionalPhotoUris) { uri ->
+                                Box(modifier = Modifier.size(100.dp)) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clip(CircleShape)
+                                    )
+                                    IconButton(
+                                        onClick = { registrationViewModel.optionalPhotoUris.remove(uri) },
+                                        modifier = Modifier.align(Alignment.TopEnd)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
+                                    }
+                                }
+                            }
+                        }
+                        Button(
+                            onClick = { optionalPhotoPickerLauncher.launch("image/*") },
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+                        ) {
+                            Text("Add Photos", color = Color.White)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Voice Bio Section
+                        Text("Voice Bio [Tap icon to record/re-record]", color = Color.White, fontSize = 18.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        IconButton(onClick = toggleRecording) {
                             Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
                                 contentDescription = null,
-                                tint = Color(0xFFFFBF00)
+                                tint = if (isRecording) Color.Red else Color.White
                             )
                         }
-                        Slider(
-                            value = voiceProgress,
-                            onValueChange = {},
-                            valueRange = 0f..1f,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = onNext,
-                    enabled = isVoiceBioValid,
-                    colors = ButtonDefaults.buttonColors(Color(0xFFFFBF00))
-                ) {
-                    Text("Next", color = Color.Black)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (!isVoiceBioValid) {
+                            Text(
+                                text = "Voice Bio exceeds 60 seconds. Please record a shorter one.",
+                                color = Color.Red,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        registrationViewModel.voiceNoteUri?.let {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = togglePlayback) {
+                                    Icon(
+                                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                }
+                                Slider(
+                                    value = voiceProgress,
+                                    onValueChange = {},
+                                    valueRange = 0f..1f,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Next Button
+                        Button(
+                            onClick = onNext,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
+                            shape = CircleShape
+                        ) {
+                            Text("Next", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
     )
 }
+
+
 
 fun uploadOptionalPhoto(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
     val userId = "testUser" // Replace with actual user ID
@@ -2680,8 +2782,7 @@ fun uploadOptionalPhoto(storageRef: StorageReference, uri: Uri, registrationView
 @Composable
 fun EnterProfileHeadlineScreen(
     registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit, // Triggered after the user proceeds to the next screen
-    onBack: () -> Unit  // Triggered when the user wants to go back
+    onNext: () -> Unit
 ) {
     var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
 
@@ -2689,19 +2790,14 @@ fun EnterProfileHeadlineScreen(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color(0xFF1A1A1A))
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
@@ -2712,14 +2808,14 @@ fun EnterProfileHeadlineScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Headline Input (Bio)
+                    // Headline/Bio TextField
                     OutlinedTextField(
                         value = headline,
                         onValueChange = {
                             headline = it
                             registrationViewModel.bio = it.text
                         },
-                        label = { Text("One-liner Bio (optional)", color = Color(0xFFFFA500)) },
+                        label = { Text("One-liner Bio (optional)", color = Color(0xFFFFDB00)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2729,22 +2825,20 @@ fun EnterProfileHeadlineScreen(
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFFFF4500),
                             focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFFA500)
+                            unfocusedBorderColor = Color(0xFFFFDB00)
                         )
                     )
 
-                    // Button to move to the next step
+                    // Next Button
                     Button(
                         onClick = {
-                            // Save the bio to the ViewModel
                             registrationViewModel.bio = headline.text
-                            // Proceed to the next screen
                             onNext()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {

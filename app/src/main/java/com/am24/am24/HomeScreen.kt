@@ -62,43 +62,58 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modifier: Modifier = Modifier) {
+fun HomeScreen(
+    navController: NavController,
+    postViewModel: PostViewModel,
+    modifier: Modifier = Modifier
+) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
 
+    // 1) Kick off filter loading & posts refresh when userId changes or screen first shown
+    LaunchedEffect(userId) {
+        // If you want to load filters from Firebase:
+        if (userId != null) {
+            postViewModel.loadFiltersFromFirebase(userId)
+        }
+        // Start or re-attach real-time listener to "posts"
+        postViewModel.refreshPosts()
+    }
+
+    // 2) Pause the feed if the user navigates away from HomeScreen
     DisposableEffect(Unit) {
-        // Set active screen to "HomeScreen" when entered
-        postViewModel.updateActiveScreen("HomeScreen")
-        ActiveScreenState.updateActiveScreen("HomeScreen")
-
         onDispose {
-            // Clear active screen and stop updates when leaving
-            postViewModel.updateActiveScreen("")
-            ActiveScreenState.updateActiveScreen("")
+            postViewModel.pauseFeed()
         }
     }
 
+    // 3) Wait for filter settings to load
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
 
-    // Check if filters are loaded
-    if (filtersLoaded) {
-        // Collect filteredPosts instead of posts
+    if (!filtersLoaded) {
+        // Still loading filters: show a placeholder
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFFFF6F00))
+        }
+    } else {
+        // 4) Once filters are loaded, collect the actual posts
         val posts by postViewModel.filteredPosts.collectAsState()
         Log.d("HomeScreen", "Filtered Posts Count in HomeScreen: ${posts.size}")
 
+        // Collect user profiles (if needed)
         val userProfiles by postViewModel.userProfiles.collectAsState()
+
+        // Collect filter settings (for toggles, search bar, etc.)
         val filterSettings by postViewModel.filterSettings.collectAsState()
 
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
-
-        // Set current user ID in ViewModel
-        LaunchedEffect(userId) {
-            postViewModel.setCurrentUserId(userId)
-        }
-
+        // 5) If needed, store the user's own Profile from DB
         var userProfile by remember { mutableStateOf<Profile?>(null) }
 
-
-        // Fetch user's profile
+        // 6) Fetch the user's own Profile once, in IO thread
         LaunchedEffect(userId) {
             if (userId != null) {
                 withContext(Dispatchers.IO) {
@@ -109,23 +124,23 @@ fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modif
                                 userProfile = fetchedProfile
                             }
                         }
-
                         override fun onCancelled(error: DatabaseError) {
-                            // Handle error
+                            // Handle any error if needed
                         }
                     })
                 }
             }
         }
 
+        // 7) Finally, show the actual HomeScreen content
         HomeScreenContent(
             navController = navController,
             modifier = modifier,
-            posts = posts, // Use filteredPosts here
+            posts = posts,
             postViewModel = postViewModel,
             userProfiles = userProfiles,
             filterOption = filterSettings.filterOption,
-            filterValue = "",
+            filterValue = "",  // If you need extra param
             searchQuery = filterSettings.searchQuery,
             onFilterOptionChanged = { newOption ->
                 postViewModel.setFilterOption(newOption)
@@ -140,13 +155,9 @@ fun HomeScreen(navController: NavController, postViewModel: PostViewModel, modif
                 postViewModel.setSortOption(newSortOption)
             }
         )
-    } else {
-        // Show a loading indicator or placeholder
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFFFFBF00))
-        }
     }
 }
+
 
 @Composable
 fun HomeScreenContent(
@@ -225,7 +236,7 @@ fun HomeScreenContent(
                     postViewModel.setIsVoiceOnly(isVoiceOnly)
                 },
                 border = BorderStroke(1.dp, Color(0xFFFF6F00)),
-                colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceOnly) Color(0xFFFFBF00) else Color.Black),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceOnly) Color(0xFFFFDB00) else Color.Black),
             ) {
                 Text(
                     text = if (isVoiceOnly) "Voice Only" else "All Posts",
@@ -266,7 +277,7 @@ fun HomeScreenContent(
                             text = {
                                 Text(
                                     text = option.replaceFirstChar { it.uppercaseChar() },
-                                    color = if (option == filterOption) Color(0xFFFFBF00) else Color.White
+                                    color = if (option == filterOption) Color(0xFFFFDB00) else Color.White
                                 )
                             },
                             onClick = {
@@ -278,7 +289,7 @@ fun HomeScreenContent(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = Color(0xFFFFBF00)
+                                        tint = Color(0xFFFFDB00)
                                     )
                                 }
                             }
@@ -310,7 +321,7 @@ fun HomeScreenContent(
                             text = {
                                 Text(
                                     text = option,
-                                    color = if (option == sortOption) Color(0xFFFFBF00) else Color.White,
+                                    color = if (option == sortOption) Color(0xFFFFDB00) else Color.White,
                                     fontSize = 14.sp
                                 )
                             },
@@ -323,7 +334,7 @@ fun HomeScreenContent(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = Color(0xFFFFBF00)
+                                        tint = Color(0xFFFFDB00)
                                     )
                                 }
                             }
@@ -836,7 +847,7 @@ fun FeedItem(
                                         Icon(
                                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                             contentDescription = "Play/Pause",
-                                            tint = Color(0xFFFFBF00),
+                                            tint = Color(0xFFFFDB00),
                                             modifier = Modifier.size(70.dp)
                                         )
                                     }
@@ -847,7 +858,7 @@ fun FeedItem(
                                         modifier = Modifier
                                             .weight(1f)
                                             .padding(horizontal = 16.dp),
-                                        color = Color(0xFFFFBF00),
+                                        color = Color(0xFFFFDB00),
                                         trackColor = Color.White
                                     )
 
@@ -949,12 +960,12 @@ fun FeedItem(
                             Icon(
                                 Icons.Default.ThumbUpOffAlt,
                                 contentDescription = "Upvote",
-                                tint = Color(0xFFFFBF00)
+                                tint = Color(0xFFFFDB00)
                             )
                         }
                         Text(
                             text = "${post.upvotes}",
-                            color = Color(0xFFFFBF00),
+                            color = Color(0xFFFFDB00),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1074,7 +1085,7 @@ fun FeedItem(
             Icon(
                 imageVector = Icons.Default.ThumbUpOffAlt,
                 contentDescription = null,
-                tint = Color(0xFFFFBF00),
+                tint = Color(0xFFFFDB00),
                 modifier = Modifier.size(100.dp)
             )
         }
@@ -1153,14 +1164,14 @@ fun CommentCard(
             ) {
                 Text(
                     text = comment.username,
-                    color = Color(0xFFFFBF00),
+                    color = Color(0xFFFFDB00),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
                     text = formatRelativeTime(comment.getCommentTimestamp()),
-                    color = Color(0xFFFFBF00),
+                    color = Color(0xFFFFDB00),
                     fontSize = 12.sp
                 )
             }
@@ -1213,7 +1224,7 @@ fun CommentCard(
                     Icon(
                         imageVector = Icons.Default.ArrowUpward,
                         contentDescription = "Upvote Comment",
-                        tint = Color(0xFFFFBF00)
+                        tint = Color(0xFFFFDB00)
                     )
                 }
                 Text(text = "${comment.upvotes}", color = Color.White)
@@ -1454,7 +1465,7 @@ fun CommentsDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = sortOption,
-                            color = Color(0xFFFFBF00),
+                            color = Color(0xFFFFDB00),
                             modifier = Modifier.clickable { showSortMenu = !showSortMenu }
                         )
                         IconButton(
@@ -1476,7 +1487,7 @@ fun CommentsDialog(
                                     text = {
                                         Text(
                                             text = option,
-                                            color = if (option == sortOption) Color(0xFFFFBF00) else Color(0xFFFF6F00)
+                                            color = if (option == sortOption) Color(0xFFFFDB00) else Color(0xFFFF6F00)
                                         )
                                     },
                                     onClick = {
@@ -1488,7 +1499,7 @@ fun CommentsDialog(
                                             Icon(
                                                 imageVector = Icons.Default.Check,
                                                 contentDescription = null,
-                                                tint = Color(0xFFFFBF00)
+                                                tint = Color(0xFFFFDB00)
                                             )
                                         }
                                     }
@@ -1587,7 +1598,7 @@ fun CommentsDialog(
                                 recordedVoiceUri = null
                                 recordFile = null
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFBF00))
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00))
                         ) {
                             Text("Submit Voice Comment", color = Color.White)
                         }
@@ -1630,7 +1641,7 @@ fun CommentsDialog(
                         Icon(
                             imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
                             contentDescription = "Record",
-                            tint = Color(0xFFFFBF00)
+                            tint = Color(0xFFFFDB00)
                         )
                     }
 
@@ -1696,7 +1707,7 @@ fun VoiceCommentPlayer(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp),
-            color = Color(0xFFFFBF00),
+            color = Color(0xFFFFDB00),
             trackColor = Color.Gray
         )
 
@@ -1897,7 +1908,7 @@ fun CustomSearchBar(
             .padding(horizontal = 10.dp),
         textStyle = LocalTextStyle.current.copy(color = Color.White),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color(0xFFFFBF00),
+            focusedBorderColor = Color(0xFFFFDB00),
             unfocusedBorderColor = Color.Gray,
             cursorColor = Color(0xFFFF6F00)
         )

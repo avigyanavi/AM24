@@ -91,10 +91,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _feedFilters,
         currentUserIdFlow
     ) { posts, profiles, homeFilters, feedFilters, currentUserId ->
-        if (ActiveScreenState.currentScreen != "HomeScreen") {
-            // Return an empty list if the current screen is not HomeScreen
-            emptyList()
-        } else {
         Log.d(TAG, "Combining filters with ${posts.size} posts and ${profiles.size} profiles")
         val homeFilteredPosts = applyFiltersAndSort(
             posts,
@@ -115,7 +111,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             feedFilters.feedFilters,
         )
         finalFilteredPosts
-    }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
 
@@ -123,9 +118,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
-    init {
-        updateActiveScreen(ActiveScreenState.currentScreen)
-    }
 
     fun refreshPosts() {
         Log.d(TAG, "Refreshing posts...")
@@ -1135,19 +1127,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             Log.e(TAG, "Failed to fetch matches: ${e.message}")
         }
         return matches
-    }
-
-    fun updateActiveScreen(screen: String) {
-        if (ActiveScreenState.currentScreen != screen) {
-            ActiveScreenState.updateActiveScreen(screen)
-            Log.d(TAG, "Active screen updated to: $screen")
-
-            if (screen == "HomeScreen") {
-                observePosts() // Observe posts when returning to Homescreen
-            } else {
-                pauseFeed() // Pause observation when leaving Homescreen
-            }
-        }
     }
 
 
