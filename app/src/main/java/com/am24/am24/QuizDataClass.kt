@@ -10,13 +10,10 @@ data class Quiz(
     val level: String = "",
     val locality: String? = null,
     val city: String? = null,
+    val pollGrouping: String = "",  // for accordion grouping
 
-    // Additional fields for logic
-    val popularityScore: Int = 0,
-    val creationTime: Long = 0,
-
-    // NEW field for sub-categorization:
-    val pollGrouping: String = ""  // e.g. "Culture", "Food", "Heritage", etc.
+    // We no longer store "popularityScore" or "creationTime" in the quiz object
+    // if we’re computing popularity dynamically from the user responses.
 )
 
 data class UserResponse(
@@ -25,5 +22,8 @@ data class UserResponse(
     val timestamp: Long = 0L,
     val userId: String = "",
     val city: String = "",
-    val locality: String? = null
+    val locality: String? = null,
+
+    // The Firebase key of this response record (for editing)
+    val responseKey: String = ""   // add this
 )
