@@ -2,18 +2,30 @@
 package com.am24.am24
 
 import DatingViewModel
+import EditPicAndVoiceBioScreen
 import android.app.Application
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.firebase.geofire.GeoFire
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
@@ -47,11 +59,6 @@ fun MainNavGraph(
             LocalContext.current.applicationContext as Application
         )
     )
-
-    // Get the current user's ID and username
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val currentUserId = currentUser?.uid
-    val currentUserName = currentUser?.displayName ?: "defaultName" // Replace with actual username retrieval logic if needed
 
     NavHost(
         navController = navController,
@@ -102,14 +109,22 @@ fun MainNavGraph(
             val otherUserId = backStackEntry.arguments?.getString("userId") ?: return@composable
             EphemeralChatScreen(navController, otherUserId)
         }
-        composable("leaderboard") {
-            LeaderboardScreen(navController = navController)
+        // In your NavGraph or wherever
+        composable("editPicAndVoiceBio") {
+            EditPicAndVoiceBioScreen(navController, profileViewModel)
         }
         composable("settings") {
             SettingsScreen(navController = navController)
         }
         composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(navController = navController)
+        }
+        // -------- QUIZ ROUTE: fetch userProfile, pass city/locality to QuizScreen -----------
+        composable("quiz") {
+                // 3) Once loaded, pass city & hometown to QuizScreen
+            PollsScreen(
+                )
+
         }
         composable("notifications") {
             NotificationsScreen(navController = navController)

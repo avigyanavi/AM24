@@ -56,6 +56,33 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun saveProfileUpdated(
+        updatedProfile: Profile,
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val userId = updatedProfile.userId
+                    ?: FirebaseAuth.getInstance().currentUser?.uid
+                    ?: throw Exception("No userId found for updatedProfile")
+
+                // Convert updatedProfile to a map
+                val updates = mapOf(
+                    "profilepicUrl" to updatedProfile.profilepicUrl,
+                    "optionalPhotoUrls" to updatedProfile.optionalPhotoUrls,
+                    "voiceNoteUrl" to updatedProfile.voiceNoteUrl
+                    // plus other fields you want to update
+                )
+                usersRef.child(userId).updateChildren(updates).await()
+                onSuccess()
+            } catch (e: Exception) {
+                onFailure(e.message ?: "Failed to save updated profile")
+            }
+        }
+    }
+
+
     // Function to clear the match pop-up state
     fun clearMatchPopUp() {
         _matchPopUpState.value = null

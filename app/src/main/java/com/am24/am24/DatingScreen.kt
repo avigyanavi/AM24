@@ -702,6 +702,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile) {
     }
 }
 
+
 fun handleSwipeRight(
     currentUserId: String,
     otherUserId: String,

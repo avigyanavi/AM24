@@ -35,10 +35,10 @@ import androidx.compose.ui.unit.sp
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem("Profile", Icons.Default.PersonOutline, "profile"),
-        BottomNavItem("Compare", Icons.Default.Leaderboard, "leaderboard"),
-        BottomNavItem("Match", Icons.Default.FavoriteBorder, "dating"),
+        BottomNavItem("Polls", Icons.Default.InsertEmoticon, "quiz"),
+        BottomNavItem("Date", Icons.Default.FavoriteBorder, "dating"),
         BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
-        BottomNavItem("DMs", Icons.Default.MailOutline, "dms"),
+        BottomNavItem("Chat", Icons.Default.MailOutline, "dms"),
     )
 
     // Obtain the current user ID
@@ -128,7 +128,7 @@ fun TopNavBar(
         navigationIcon = {
             // Logo is now in a Box (not clickable)
             Box(
-                modifier = Modifier.size(64.dp) // Adjust as needed
+                modifier = Modifier.size(40.dp) // Adjust as needed
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.kupidx_logo),
@@ -138,40 +138,6 @@ fun TopNavBar(
             }
         },
         actions = {
-            // Notifications Icon
-            IconButton(onClick = {
-                if (isNotificationsSelected) {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("notifications")
-                }
-            }) {
-                BadgedBox(
-                    badge = {
-                        if (unreadCount.value > 0) {
-                            Badge(
-                                containerColor = Color.Red,
-                                modifier = Modifier.size(15.dp)
-                            ) {
-                                Text(
-                                    text = unreadCount.value.toString(),
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
-                            }
-                        }
-                    },
-                    modifier = Modifier.size(20.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
             // User Settings Icon (only on Profile screen)
             if (isProfileScreen) {
                 IconButton(onClick = {
@@ -206,6 +172,39 @@ fun TopNavBar(
                             modifier = Modifier.size(24.dp)
                         )
                     }
+                }
+            }
+            // Notifications Icon
+            IconButton(onClick = {
+                if (isNotificationsSelected) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("notifications")
+                }
+            }) {
+                BadgedBox(
+                    badge = {
+                        if (unreadCount.value > 0) {
+                            Badge(
+                                containerColor = Color.Red,
+                                modifier = Modifier.size(15.dp)
+                            ) {
+                                Text(
+                                    text = unreadCount.value.toString(),
+                                    color = Color.White,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         },

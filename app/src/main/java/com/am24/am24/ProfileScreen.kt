@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.am24.am24
 
 import android.util.Log
@@ -27,8 +29,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.White
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -90,29 +92,60 @@ fun ProfileScreen(
             navController = navController,
             profile = userProfile!!,
             featuredPosts = featuredPosts,
-            remainingPosts = remainingPosts,
-            onEditProfileClick = { navController.navigate("editProfile") }
+            remainingPosts = remainingPosts
         )
     }
 }
 
 /**
  * Main LazyColumn structure:
- *  1) Photo carousel (no vibe score displayed here)
- *  2) Always-expanded sections for Basic Info, Preferences, Lifestyle, Interests
+ *  1) Photo carousel (no vibe score displayed)
+ *  2) Collapsible sections (Basic Info, Preferences, Lifestyle, Interests)
  *  3) **Featured Posts** above Metrics
- *  4) **Metrics** (collapsed by default)
- *  5) “More Posts” button if leftover posts exist
+ *  4) Metrics (collapsed)
+ *  5) “More Posts” if leftover
  */
 @Composable
 fun ProfileLazyScreen(
     navController: NavController,
     profile: Profile,
     featuredPosts: List<Post>,
-    remainingPosts: List<Post>,
-    onEditProfileClick: () -> Unit
+    remainingPosts: List<Post>
 ) {
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    // Helper to update profile in Firebase
+    suspend fun updateProfileInFirebase(updatedProfile: Profile) {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+
+        val updates = mapOf(
+            "name" to updatedProfile.name,
+            "bio" to updatedProfile.bio,
+            "gender" to updatedProfile.gender,
+            "hometown" to updatedProfile.hometown,
+            "highSchool" to updatedProfile.highSchool,
+            "college" to updatedProfile.college,
+            "postGraduation" to updatedProfile.postGraduation,
+            "city" to updatedProfile.city,
+            "community" to updatedProfile.community,
+            "religion" to updatedProfile.religion,
+            "lookingFor" to updatedProfile.lookingFor,
+            "interests" to updatedProfile.interests.map {
+                mapOf("name" to it.name, "emoji" to it.emoji)
+            },
+            "lifestyle" to updatedProfile.lifestyle
+        )
+
+        userRef.updateChildren(updates).addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.e("ProfileScreen", "Failed to update profile: ${task.exception}")
+            } else {
+                Log.d("ProfileScreen", "Profile updated successfully!")
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -124,16 +157,43 @@ fun ProfileLazyScreen(
         item {
             PhotoCarouselWithOverlay(
                 profile = profile,
-                onEditProfileClick = onEditProfileClick
+                onEditProfileClick = {
+                    // Instead of toggling an in-line edit mode, navigate to a new screen:
+                    navController.navigate("editPicAndVoiceBio")
+                }
             )
         }
 
-        // 2) Collapsible sections (Basic, Preferences, Lifestyle, Interests)
+// Right below the carousel, show the user’s voice note if it exists:
         item {
-            ProfileCollapsibleSections(profile)
+            if (!profile.voiceNoteUrl.isNullOrEmpty()) {
+                // Some heading maybe:
+                Text(
+                    text = "Voice Bio",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+                // e.g., a small placeholder or an actual audio player
+                VoicePostPlaceholder() // or VoicePlayer(url = profile.voiceNoteUrl)
+            }
         }
 
-        // 3) Featured posts (above Metrics)
+
+        // 2) Collapsible sections
+        item {
+            ProfileCollapsibleSections(
+                profile = profile,
+                onProfileUpdated = { updated ->
+                    scope.launch {
+                        updateProfileInFirebase(updated)
+                    }
+                }
+            )
+        }
+
+        // 3) Featured Posts ABOVE Metrics
         if (featuredPosts.isNotEmpty()) {
             item {
                 Text(
@@ -149,12 +209,12 @@ fun ProfileLazyScreen(
             }
         }
 
-        // 4) Metrics collapsed
+        // 4) Metrics (collapsed)
         item {
             CollapsedMetricsSection(profile = profile)
         }
 
-        // 5) More posts button
+        // 5) “More Posts” button
         if (remainingPosts.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -175,14 +235,26 @@ fun ProfileLazyScreen(
     }
 }
 
+/** Collapsible sections with inline editing. */
 @Composable
-fun ProfileCollapsibleSections(profile: Profile) {
-    // local booleans for each section
+fun ProfileCollapsibleSections(
+    profile: Profile,
+    onProfileUpdated: (Profile) -> Unit
+) {
+    // Collapsible states
     var showBasic by rememberSaveable { mutableStateOf(true) }
     var showPreferences by rememberSaveable { mutableStateOf(true) }
     var showLifestyle by rememberSaveable { mutableStateOf(true) }
     var showInterests by rememberSaveable { mutableStateOf(true) }
 
+    // Edit states
+    var editBasic by rememberSaveable { mutableStateOf(false) }
+    var editPreferences by rememberSaveable { mutableStateOf(false) }
+    var editLifestyle by rememberSaveable { mutableStateOf(false) }
+    var editInterests by rememberSaveable { mutableStateOf(false) }
+
+    // Local copy of profile for editing
+    var tempProfile by remember { mutableStateOf(profile) }
 
     Column(
         modifier = Modifier
@@ -195,9 +267,26 @@ fun ProfileCollapsibleSections(profile: Profile) {
             title = "Basic Information",
             icon = Icons.Default.Person,
             isExpanded = showBasic,
-            onToggle = { showBasic = !showBasic }
+            onToggle = { showBasic = !showBasic },
+            editMode = editBasic,
+            onEditToggle = { editBasic = !editBasic }
         ) {
-            BasicInfoSection(profile)
+            if (editBasic) {
+                BasicInfoEditSection(
+                    tempProfile = tempProfile,
+                    onSave = { updated ->
+                        tempProfile = updated
+                        onProfileUpdated(tempProfile)
+                        editBasic = false
+                    },
+                    onCancel = {
+                        tempProfile = profile
+                        editBasic = false
+                    }
+                )
+            } else {
+                BasicInfoSection(tempProfile)
+            }
         }
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -206,9 +295,26 @@ fun ProfileCollapsibleSections(profile: Profile) {
             title = "Preferences",
             icon = Icons.Default.Favorite,
             isExpanded = showPreferences,
-            onToggle = { showPreferences = !showPreferences }
+            onToggle = { showPreferences = !showPreferences },
+            editMode = editPreferences,
+            onEditToggle = { editPreferences = !editPreferences }
         ) {
-            PreferencesSection(profile)
+            if (editPreferences) {
+                PreferencesEditSection(
+                    tempProfile = tempProfile,
+                    onSave = { updated ->
+                        tempProfile = updated
+                        onProfileUpdated(tempProfile)
+                        editPreferences = false
+                    },
+                    onCancel = {
+                        tempProfile = profile
+                        editPreferences = false
+                    }
+                )
+            } else {
+                PreferencesSection(tempProfile)
+            }
         }
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -217,9 +323,26 @@ fun ProfileCollapsibleSections(profile: Profile) {
             title = "Lifestyle Attributes",
             icon = Icons.Default.Nature,
             isExpanded = showLifestyle,
-            onToggle = { showLifestyle = !showLifestyle }
+            onToggle = { showLifestyle = !showLifestyle },
+            editMode = editLifestyle,
+            onEditToggle = { editLifestyle = !editLifestyle }
         ) {
-            LifestyleSection(profile)
+            if (editLifestyle) {
+                LifestyleEditSection(
+                    tempProfile = tempProfile,
+                    onSave = { updated ->
+                        tempProfile = updated
+                        onProfileUpdated(tempProfile)
+                        editLifestyle = false
+                    },
+                    onCancel = {
+                        tempProfile = profile
+                        editLifestyle = false
+                    }
+                )
+            } else {
+                LifestyleSection(tempProfile)
+            }
         }
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -228,30 +351,52 @@ fun ProfileCollapsibleSections(profile: Profile) {
             title = "Interests",
             icon = Icons.Default.Star,
             isExpanded = showInterests,
-            onToggle = { showInterests = !showInterests }
+            onToggle = { showInterests = !showInterests },
+            editMode = editInterests,
+            onEditToggle = { editInterests = !editInterests }
         ) {
-            InterestsSectionInProfile(profile)
+            if (editInterests) {
+                InterestsEditSection(
+                    tempProfile = tempProfile,
+                    onSave = { updated ->
+                        tempProfile = updated
+                        onProfileUpdated(tempProfile)
+                        editInterests = false
+                    },
+                    onCancel = {
+                        tempProfile = profile
+                        editInterests = false
+                    }
+                )
+            } else {
+                InterestsSectionInProfile(tempProfile)
+            }
         }
     }
 }
 
-/** A generic collapsible section composable. */
+/**
+ * A CollapsibleSection with an optional EDIT icon in the header.
+ *
+ *  - editMode: whether currently editing
+ *  - onEditToggle: function to toggle edit mode
+ */
 @Composable
 fun CollapsibleSection(
     title: String,
     icon: ImageVector,
     isExpanded: Boolean,
     onToggle: () -> Unit,
+    editMode: Boolean = false,
+    onEditToggle: () -> Unit = {},
     content: @Composable () -> Unit
 ) {
-    // Section header with toggle
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .border(width = 1.dp, color = Color.White, shape = CircleShape)
             .background(Color.Black)
-            .clickable { onToggle() }
-            .padding(12.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -261,6 +406,8 @@ fun CollapsibleSection(
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
+
+        // Title
         Text(
             text = title,
             color = Color.White,
@@ -269,21 +416,32 @@ fun CollapsibleSection(
             modifier = Modifier.weight(1f)
         )
 
-        // A small expand/collapse icon at the end
-        Icon(
-            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-            contentDescription = if (isExpanded) "Collapse" else "Expand",
-            tint = Color.White
-        )
+        // Always show an icon button, toggling pencil vs. close
+        IconButton(onClick = onEditToggle) {
+            Icon(
+                imageVector = if (editMode) Icons.Default.Close else Icons.Default.Edit,
+                contentDescription = if (editMode) "Cancel Edit" else "Edit",
+                tint = if (editMode) Color.Red else Color.White
+            )
+        }
+
+        // Expand/Collapse icon
+        IconButton(onClick = onToggle) {
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = Color.White
+            )
+        }
     }
 
-    // Show content if expanded
     if (isExpanded) {
         Spacer(modifier = Modifier.height(8.dp))
         content()
     }
 }
-/** Photo carousel at the top (same as before) */
+
+/** Photo carousel with top-right Edit icon */
 @Composable
 fun PhotoCarouselWithOverlay(
     profile: Profile,
@@ -321,7 +479,7 @@ fun PhotoCarouselWithOverlay(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            // Tinder-like bars
+            // Multi-photo "dots" at the top
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -349,7 +507,7 @@ fun PhotoCarouselWithOverlay(
             }
         }
 
-        // Name, Age, Hometown, Rating (no vibe score)
+        // A bottom overlay for name, age, hometown, rating, etc.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -373,9 +531,9 @@ fun PhotoCarouselWithOverlay(
             }
         }
 
-        // Edit Profile icon top-right
+        // Top-right edit icon => navigates to another screen
         IconButton(
-            onClick = onEditProfileClick,
+            onClick = onEditProfileClick, // we’ll define it to navigate away
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
@@ -383,17 +541,15 @@ fun PhotoCarouselWithOverlay(
         ) {
             Icon(
                 imageVector = Icons.Default.Edit,
-                contentDescription = "Edit Profile",
+                contentDescription = "Edit Profile / Photos",
                 tint = Color.White
             )
         }
     }
 }
-/** #2. Always-expanded “Basic Info, Preferences, Lifestyle, Interests”
- *  We do NOT show metrics here, since that is collapsed separately.
- */
 
-/** Collapsed metrics section by default. */
+
+/** Metrics collapsible */
 @Composable
 fun CollapsedMetricsSection(profile: Profile) {
     var showMetrics by remember { mutableStateOf(false) }
@@ -403,7 +559,6 @@ fun CollapsedMetricsSection(profile: Profile) {
             .background(Color.Black)
             .padding(16.dp)
     ) {
-        // Header row for metrics
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -433,41 +588,14 @@ fun CollapsedMetricsSection(profile: Profile) {
                 tint = Color.White
             )
         }
-
         if (showMetrics) {
             Spacer(modifier = Modifier.height(8.dp))
             MetricsSection(profile)
         }
     }
 }
-/** Simple “header” style with no toggle/click. */
-@Composable
-fun SectionHeaderNoClick(title: String, icon: ImageVector) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(width = 1.dp, color = Color.White, shape = CircleShape)
-            .background(Color.Black)
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = Color(0xFFFF6F00),
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = title,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp
-        )
-    }
-}
 
-/** Basic Info (Name, Bio, Gender, Hometown, etc.) */
+/** Basic Info (View-Only) */
 @Composable
 fun BasicInfoSection(profile: Profile) {
     ProfileDetailRow("Name", profile.name, Icons.Default.Person)
@@ -482,13 +610,50 @@ fun BasicInfoSection(profile: Profile) {
     ProfileDetailRow("Religion", profile.religion, Icons.Default.Church)
 }
 
-/** Preferences (LookingFor, ClaimedIncome, etc.) */
+/** Preferences (View-Only) */
 @Composable
 fun PreferencesSection(profile: Profile) {
     ProfileDetailRow("Looking For", profile.lookingFor, Icons.Default.Favorite)
 }
 
-/** Metrics (Ranking, Up/Down votes, match counts, etc.) */
+/** Lifestyle (View-Only) */
+@Composable
+fun LifestyleSection(profile: Profile) {
+    Column {
+        profile.lifestyle?.let {
+            LifestyleSlider("Smoking Level", it.smoking, Icons.Default.SmokingRooms)
+            LifestyleSlider("Drinking Level", it.drinking, Icons.Default.LocalDrink)
+            LifestyleDropdown("Diet", it.diet)
+            LifestyleSlider("Indoorsy to Outdoorsy", it.indoorsyToOutdoorsy, Icons.Default.DirectionsWalk)
+            LifestyleSlider("Social Butterfly", it.socialMedia, Icons.Default.Groups2)
+            LifestyleSlider("Work-Life Balance", it.workLifeBalance, Icons.Default.WorkOff)
+            LifestyleSlider("Exercise Frequency", it.exerciseFrequency, Icons.Default.SportsGymnastics)
+            LifestyleSlider("Family-Oriented", it.familyOriented, Icons.Default.FamilyRestroom)
+        }
+    }
+}
+
+/** Interests (View-Only) */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun InterestsSectionInProfile(profile: Profile) {
+    if (profile.interests.isEmpty()) {
+        Text("No interests specified.", color = Color.Gray, fontSize = 16.sp)
+    } else {
+        FlowRow {
+            profile.interests.forEach { interest ->
+                InterestTag(
+                    label = buildString {
+                        if (!interest.emoji.isNullOrEmpty()) append("${interest.emoji} ")
+                        append(interest.name)
+                    }
+                )
+            }
+        }
+    }
+}
+
+/** Metrics (View-Only) */
 @Composable
 fun MetricsSection(profile: Profile) {
     Column {
@@ -496,10 +661,12 @@ fun MetricsSection(profile: Profile) {
         ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
         ProfileDetailRow("High School Ranking", profile.am24RankingHighSchool.toString(), Icons.Default.School)
         ProfileDetailRow("College Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
-        ProfileDetailRow("Gender Ranking", profile.am24RankingGender.toString(),
+        ProfileDetailRow(
+            "Gender Ranking",
+            profile.am24RankingGender.toString(),
             if (profile.gender == "Male") Icons.Default.Male else if (profile.gender == "Female") Icons.Default.Female else Icons.Default.Transgender
         )
-        ProfileDetailRow("${(profile.hometown)} Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
+        ProfileDetailRow("${profile.hometown} Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
         ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
         ProfileDetailRow(
             "Match Count per Swipe Right",
@@ -522,54 +689,410 @@ fun MetricsSection(profile: Profile) {
     }
 }
 
-/** Lifestyle sliders. */
+/** --- Edit Composables --- */
+
+/** Basic Info Edit */
 @Composable
-fun LifestyleSection(profile: Profile) {
+fun BasicInfoEditSection(
+    tempProfile: Profile,
+    onSave: (Profile) -> Unit,
+    onCancel: () -> Unit
+) {
+    var name by remember { mutableStateOf(tempProfile.name) }
+    var bio by remember { mutableStateOf(tempProfile.bio) }
+    var gender by remember { mutableStateOf(tempProfile.gender) }
+    var hometown by remember { mutableStateOf(tempProfile.hometown) }
+    var highSchool by remember { mutableStateOf(tempProfile.highSchool) }
+    var college by remember { mutableStateOf(tempProfile.college) }
+    var postGrad by remember { mutableStateOf(tempProfile.postGraduation) }
+    var city by remember { mutableStateOf(tempProfile.city) }
+    var community by remember { mutableStateOf(tempProfile.community) }
+    var religion by remember { mutableStateOf(tempProfile.religion) }
+
     Column {
-        profile.lifestyle?.let {
-            LifestyleSlider("Smoking Level", it.smoking, Icons.Default.SmokingRooms)
-            LifestyleSlider("Drinking Level", it.drinking, Icons.Default.LocalDrink)
-            LifestyleDropdown("Diet", it.diet)
-            LifestyleSlider("Indoorsy to Outdoorsy", it.indoorsyToOutdoorsy, Icons.Default.DirectionsWalk)
-            LifestyleSlider("Social Butterfly", it.socialMedia, Icons.Default.Groups2)
-            LifestyleSlider("Work-Life Balance", it.workLifeBalance, Icons.Default.WorkOff)
-            LifestyleSlider("Exercise Frequency", it.exerciseFrequency, Icons.Default.SportsGymnastics)
-            LifestyleSlider("Family-Oriented", it.familyOriented, Icons.Default.FamilyRestroom)
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = bio,
+            onValueChange = { bio = it },
+            label = { Text("Bio", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = gender,
+            onValueChange = { gender = it },
+            label = { Text("Gender", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = hometown,
+            onValueChange = { hometown = it },
+            label = { Text("Hometown", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = highSchool,
+            onValueChange = { highSchool = it },
+            label = { Text("High School", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = college,
+            onValueChange = { college = it },
+            label = { Text("College", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        postGrad?.let {
+            OutlinedTextField(
+                value = it,
+                onValueChange = { postGrad = it },
+                label = { Text("Post-Graduation", color = Color(0xFFFF6F00)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    cursorColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color.White
+                )
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = city,
+            onValueChange = { city = it },
+            label = { Text("City", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = community,
+            onValueChange = { community = it },
+            label = { Text("Community", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = religion,
+            onValueChange = { religion = it },
+            label = { Text("Religion", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Row {
+            Button(
+                onClick = {
+                    onSave(
+                        tempProfile.copy(
+                            name = name,
+                            bio = bio,
+                            gender = gender,
+                            hometown = hometown,
+                            highSchool = highSchool,
+                            college = college,
+                            postGraduation = postGrad,
+                            city = city,
+                            community = community,
+                            religion = religion
+                        )
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+            ) {
+                Text("Save", color = Color.White)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("Cancel", color = Color.White)
+            }
         }
     }
 }
 
-/** Interests as a list of small “tags.” */
+/** Preferences Edit */
+@Composable
+fun PreferencesEditSection(
+    tempProfile: Profile,
+    onSave: (Profile) -> Unit,
+    onCancel: () -> Unit
+) {
+    var lookingFor by remember { mutableStateOf(tempProfile.lookingFor) }
+
+    Column {
+        OutlinedTextField(
+            value = lookingFor,
+            onValueChange = { lookingFor = it },
+            label = { Text("Looking For", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row {
+            Button(
+                onClick = {
+                    onSave(tempProfile.copy(lookingFor = lookingFor))
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+            ) {
+                Text("Save", color = Color.White)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("Cancel", color = Color.White)
+            }
+        }
+    }
+}
+
+/** Lifestyle Edit */
+@Composable
+fun LifestyleEditSection(
+    tempProfile: Profile,
+    onSave: (Profile) -> Unit,
+    onCancel: () -> Unit
+) {
+    var localLifestyle by remember { mutableStateOf(tempProfile.lifestyle ?: Lifestyle()) }
+
+    Column {
+        // Smoking
+        Text("Smoking Level", color = Color.White)
+        Slider(
+            value = localLifestyle.smoking.toFloat(),
+            onValueChange = { localLifestyle = localLifestyle.copy(smoking = it.toInt()) },
+            valueRange = 0f..10f,
+            steps = 9,
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFF00bf63),
+                activeTrackColor = Color(0xFF00bf63)
+            )
+        )
+        Text("Current: ${localLifestyle.smoking}", color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Drinking
+        Text("Drinking Level", color = Color.White)
+        Slider(
+            value = localLifestyle.drinking.toFloat(),
+            onValueChange = { localLifestyle = localLifestyle.copy(drinking = it.toInt()) },
+            valueRange = 0f..10f,
+            steps = 9,
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFF00bf63),
+                activeTrackColor = Color(0xFF00bf63)
+            )
+        )
+        Text("Current: ${localLifestyle.drinking}", color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // ... repeat for other attributes if needed
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Row {
+            Button(
+                onClick = {
+                    onSave(tempProfile.copy(lifestyle = localLifestyle))
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+            ) {
+                Text("Save", color = Color.White)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("Cancel", color = Color.White)
+            }
+        }
+    }
+}
+
+/** Interests Edit */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun InterestsSectionInProfile(profile: Profile) {
-    if (profile.interests.isEmpty()) {
-        Text("No interests specified.", color = Color.Gray, fontSize = 16.sp)
-    } else {
+fun InterestsEditSection(
+    tempProfile: Profile,
+    onSave: (Profile) -> Unit,
+    onCancel: () -> Unit
+) {
+    val localInterests = remember {
+        mutableStateListOf<Interest>().apply { addAll(tempProfile.interests) }
+    }
+    var newInterest by remember { mutableStateOf("") }
+
+    Column {
+        // Existing interests
         FlowRow {
-            profile.interests.forEach { interest ->
-                InterestTag(
-                    label = buildString {
-                        if (!interest.emoji.isNullOrEmpty()) append("${interest.emoji} ")
-                        append(interest.name)
-                    }
+            localInterests.forEach { interest ->
+                Box(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .background(Color(0xFFFF6F00), shape = CircleShape)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable { localInterests.remove(interest) },
+                ) {
+                    Text(text = "${interest.emoji} ${interest.name}", color = Color.White)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Add new interest
+        OutlinedTextField(
+            value = newInterest,
+            onValueChange = { newInterest = it },
+            label = { Text("Add new interest", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                val splitted = newInterest.trim().split(" ", limit = 2)
+                val emojiPart = if (splitted.size > 1) splitted[0] else ""
+                val namePart = if (splitted.size > 1) splitted[1] else splitted[0]
+
+                if (namePart.isNotBlank()) {
+                    localInterests.add(
+                        Interest(name = namePart, emoji = emojiPart)
+                    )
+                }
+                newInterest = ""
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+        ) {
+            Text("Add Interest", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Row {
+            Button(
+                onClick = {
+                    onSave(tempProfile.copy(interests = localInterests.toList()))
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+            ) {
+                Text("Save", color = Color.White)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("Cancel", color = Color.White)
+            }
+        }
+    }
+}
+
+/** Reusable building blocks */
+@Composable
+fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
+    if (!value.isNullOrBlank()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color(0xFFFF6F00),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = value,
+                    color = Color(0xFFFF6F00),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal
                 )
             }
         }
     }
 }
 
-@Composable
-fun LifestyleDropdown(label: String, value: String) {
-    Text(
-        text = "$label: $value",
-        color = Color.White,
-        fontSize = 16.sp
-    )
-}
-
-
-/** A custom “tag” composable that’s shaped like a pill with an orange background. */
 @Composable
 fun InterestTag(label: String) {
     Box(
@@ -578,62 +1101,10 @@ fun InterestTag(label: String) {
             .background(Color(0xFFFF6F00), shape = CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Text(
-            text = label,
-            color = Color.White,
-            fontSize = 14.sp
-        )
+        Text(text = label, color = Color.White, fontSize = 14.sp)
     }
 }
 
-/** Single post in profile feed (text, photo, voice, video). */
-@Composable
-fun PostItemInProfile(post: Post) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
-    ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            // If post has text
-            if (!post.contentText.isNullOrBlank()) {
-                Text(post.contentText, color = Color.White, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-            }
-            // Media (photo/voice/video)
-            when (post.mediaType) {
-                "photo" -> {
-                    AsyncImage(
-                        model = post.mediaUrl,
-                        contentDescription = "Photo Post",
-                        placeholder = painterResource(R.drawable.local_placeholder),
-                        error = painterResource(R.drawable.local_placeholder),
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 150.dp, max = 300.dp)
-                    )
-                }
-                "voice" -> {
-                    // Placeholder for voice
-                    VoicePostPlaceholder()
-                }
-                "video" -> {
-                    Text("Video Post (placeholder UI)", color = Color.White, fontSize = 12.sp)
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row {
-                Text("Upvotes: ${post.upvotes}", color = Color(0xFFFFBF00), fontSize = 12.sp)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Downvotes: ${post.downvotes}", color = Color(0xFFFF6F00), fontSize = 12.sp)
-            }
-        }
-    }
-}
-
-/** Simple placeholder for voice posts. */
 @Composable
 fun VoicePostPlaceholder() {
     Row(
@@ -653,17 +1124,94 @@ fun VoicePostPlaceholder() {
     }
 }
 
+@Composable
+fun PostItemInProfile(post: Post) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            if (!post.contentText.isNullOrBlank()) {
+                Text(post.contentText, color = Color.White, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+            when (post.mediaType) {
+                "photo" -> {
+                    AsyncImage(
+                        model = post.mediaUrl,
+                        contentDescription = "Photo Post",
+                        placeholder = painterResource(R.drawable.local_placeholder),
+                        error = painterResource(R.drawable.local_placeholder),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 150.dp, max = 300.dp)
+                    )
+                }
+                "voice" -> {
+                    VoicePostPlaceholder()
+                }
+                "video" -> {
+                    Text("Video Post (placeholder UI)", color = Color.White, fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row {
+                Text("Upvotes: ${post.upvotes}", color = Color(0xFFFFBF00), fontSize = 12.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Downvotes: ${post.downvotes}", color = Color(0xFFFF6F00), fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun LifestyleDropdown(label: String, value: String) {
+    Text(
+        text = "$label: $value",
+        color = Color.White,
+        fontSize = 16.sp
+    )
+}
+
+@Composable
+fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(imageVector = icon, contentDescription = label, tint = Color(0xFFFF6F00))
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Slider(
+                value = value.toFloat(),
+                onValueChange = {}, // read-only
+                valueRange = 0f..10f,
+                steps = 9,
+                colors = SliderDefaults.colors(
+                    thumbColor = Color(0xFFFF6F00),
+                    activeTrackColor = Color(0xFFFF6F00)
+                )
+            )
+        }
+    }
+}
+
 /** RatingBar (no vibe score) */
 @Composable
 fun RatingBar(rating: Double, ratingCount: Int) {
     val starSize = 25.dp
     val fullStars = kotlin.math.floor(rating).toInt()
-    val fraction = rating - fullStars // fractional part (0..1)
+    val fraction = rating - fullStars
     val orange = Color(0xFFFF6F00)
     val backgroundColor = Color.Black
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Full stars
         repeat(fullStars) {
             Icon(
                 imageVector = Icons.Default.Star,
@@ -672,24 +1220,20 @@ fun RatingBar(rating: Double, ratingCount: Int) {
                 modifier = Modifier.size(starSize)
             )
         }
-        // Partial star if needed
         if (fraction > 0) {
             Box(modifier = Modifier.size(starSize)) {
-                // Border
                 Icon(
                     imageVector = Icons.Default.StarBorder,
                     contentDescription = null,
                     tint = orange,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Full star
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
                     tint = orange,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Mask fraction
                 val fractionUnfilled = 1 - fraction
                 Box(
                     modifier = Modifier
@@ -734,60 +1278,8 @@ fun calculateAge(dob: String?): Int {
                 }
                 return age
             }
-        } catch (_: ParseException) { }
+        } catch (_: ParseException) {
+        }
     }
     return 0
-}
-@Composable
-fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
-    if (!value.isNullOrBlank()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = Color(0xFFFF6F00),
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    text = value,
-                    color = Color(0xFFFF6F00),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-        }
-    }
-}
-@Composable
-fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(imageVector = icon, contentDescription = label, tint = Color(0xFFFF6F00))
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Slider(
-                value = value.toFloat(),
-                onValueChange = {},
-                valueRange = 0f..10f,
-                steps = 9,
-                colors = SliderDefaults.colors(
-                    thumbColor = Color(0xFFFF6F00),
-                    activeTrackColor = Color(0xFFFF6F00)
-                )
-            )
-        }
-    }
 }

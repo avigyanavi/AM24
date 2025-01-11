@@ -240,7 +240,7 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
         content = { innerPadding ->
@@ -756,7 +756,7 @@ fun DropdownWithStaticOptions(
             onDismissRequest = { expanded = false },
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(Color(0xFF1A1A1A))
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -788,7 +788,7 @@ fun CheckboxInput(
             checked = isChecked,
             onCheckedChange = onCheckedChange,
             colors = CheckboxDefaults.colors(
-                checkmarkColor = Color.Black,
+                checkmarkColor = Color(0xFF1A1A1A),
                 checkedColor = Color(0xFFFFDB00),
                 uncheckedColor = Color.Gray
             )
@@ -973,7 +973,7 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
             onDismissRequest = { expanded = false },
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(Color(0xFF1A1A1A))
         ) {
             // Search Box
             TextField(
@@ -1074,7 +1074,7 @@ fun SearchableDropdownWithCustomOption(
             onDismissRequest = { expanded = false },
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(Color(0xFF1A1A1A))
         ) {
             TextField(
                 value = searchText,
@@ -1475,7 +1475,7 @@ fun DropdownWithSearch(
             onDismissRequest = { expanded = false },
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(Color(0xFF1A1A1A))
         ) {
             TextField(
                 value = searchText,
@@ -1706,7 +1706,7 @@ fun uploadVoiceToFirebase(
     registrationViewModel: RegistrationViewModel
 ) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val voiceNoteRef = storageRef.child("users/$userId/voice_note.3gp") // Adjust file extension if necessary
+    val voiceNoteRef = storageRef.child("users/$userId/voice_note.mp3") // Adjust file extension if necessary
     voiceNoteRef.putFile(uri)
         .addOnSuccessListener {
             voiceNoteRef.downloadUrl.addOnSuccessListener { downloadUri ->
@@ -1871,7 +1871,7 @@ fun EnterNameScreen(
                                             if (isSelected)
                                                 Color(0xFFFF6000)
                                             else
-                                                Color.Black
+                                                Color(0xFF1A1A1A)
                                         )
                                         .border(1.dp, Color(0xFFFFDB00), CircleShape)
                                 ) {
@@ -2171,7 +2171,7 @@ fun EnterBirthDateAndInterestsScreen(
                             onClick = { expandedDay = true },
                             border = BorderStroke(1.dp, Color(0xFFFF4500)),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Black,
+                                containerColor = Color(0xFF1A1A1A),
                                 contentColor = Color(0xFFFFDB00)
                             ),
                             modifier = Modifier.fillMaxWidth()
@@ -2205,7 +2205,7 @@ fun EnterBirthDateAndInterestsScreen(
                             onClick = { expandedMonth = true },
                             border = BorderStroke(1.dp, Color(0xFFFF4500)),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Black,
+                                containerColor = Color(0xFF1A1A1A),
                                 contentColor = Color(0xFFFFDB00)
                             ),
                             modifier = Modifier.fillMaxWidth()
@@ -2239,7 +2239,7 @@ fun EnterBirthDateAndInterestsScreen(
                             onClick = { expandedYear = true },
                             border = BorderStroke(1.dp, Color(0xFFFF4500)),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Black,
+                                containerColor = Color(0xFF1A1A1A),
                                 contentColor = Color(0xFFFFDB00)
                             ),
                             modifier = Modifier.fillMaxWidth()
@@ -2278,7 +2278,7 @@ fun EnterBirthDateAndInterestsScreen(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Black,
+                            containerColor = Color(0xFF1A1A1A),
                             contentColor = Color(0xFFFFDB00)
                         ),
                         border = BorderStroke(1.dp, Color(0xFFFF4500))
@@ -2321,7 +2321,7 @@ fun EnterBirthDateAndInterestsScreen(
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Black,
+                                containerColor = Color(0xFF1A1A1A),
                                 contentColor = Color(0xFFFFDB00)
                             ),
                             border = BorderStroke(1.dp, Color(0xFFFF4500))
