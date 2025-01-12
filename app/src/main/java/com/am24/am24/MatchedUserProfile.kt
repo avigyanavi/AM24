@@ -252,7 +252,7 @@ fun MatchedUserDetailsTabs(profile: Profile, onCloseClick: () -> Unit) {
         // Tab Content
         when (selectedTabIndex) {
 //            0 -> ProfileDetails(profile)
-            1 -> ProfilePosts(profile)
+//            1 -> ProfilePosts(profile)
             2 -> ComparisonSection(profile)
         }
     }

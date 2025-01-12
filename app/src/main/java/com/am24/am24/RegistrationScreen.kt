@@ -1873,7 +1873,7 @@ fun EnterNameScreen(
                                             else
                                                 Color(0xFF1A1A1A)
                                         )
-                                        .border(1.dp, Color(0xFFFFDB00), CircleShape)
+                                        .border(1.dp, Color(0xFFFF6000), CircleShape)
                                 ) {
                                     Button(
                                         onClick = {

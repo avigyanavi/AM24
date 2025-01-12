@@ -7,17 +7,22 @@ import java.util.Calendar
 import java.util.Locale
 
 data class Profile(
-
     val email: String = "",
     val password: String = "",
+
+    // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),
+
     val userId: String = "",
     val username: String = "",  // Unique username (e.g., MS1)
     val name: String = "",
     val dob: String = "",  // Date of birth for age calculation
     val bio: String = "",  // One-liner bio
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
+
+    // The user's own gender (Male/Female/Other)
     val gender: String = "",
+
     val lastActive: Long = System.currentTimeMillis(),
     val badges: List<String> = emptyList(),
     val profilepicUrl: String? = null,
@@ -40,7 +45,8 @@ data class Profile(
     val postGraduation: String? = "",
     val customPostGraduation: String? = null,
     val postGraduationYear: String = "", // New field
-    val lifestyle: Lifestyle? = null, // Lifestyle Section
+
+    val lifestyle: Lifestyle? = null,  // Lifestyle Section
     val politics: String = "",  // Political preferences (e.g., liberal, conservative)
     val jobRole: String = "",
     val customJobRole: String? = null,
@@ -51,6 +57,7 @@ data class Profile(
     val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
     val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
     val isBoosted: Boolean = false,
+
     val am24RankingAge: Int = 0,
     val am24RankingHighSchool: Int = 0,
     val am24RankingCollege: Int = 0,
@@ -58,6 +65,7 @@ data class Profile(
     val am24RankingHometown: Int = 0,
     val am24Ranking: Int = 0,
     val am24RankingCity: Int = 0,
+
     val numberOfRatings: Int = 0,
     val numberOfSwipeRights: Int = 0,
     val matchCount: Int = 0,
@@ -66,10 +74,12 @@ data class Profile(
     val cumulativeDownvotes: Int = 0,
     val averageUpvoteCount: Double = 0.0,
     val averageDownvoteCount: Double = 0.0,
+
     val profileUpvotes: MutableMap<String, Boolean> = mutableMapOf(), // Users who upvoted
     val profileDownvotes: MutableMap<String, Boolean> = mutableMapOf(), // Users who downvoted
     val reportUsers: MutableMap<String, Boolean> = mutableMapOf(), // Users who reported this profile
     val blockedUsers: MutableMap<String, Boolean> = mutableMapOf(), // Users who blocked this profile
+
     var upvoteCount: Int = 0,
     var downvoteCount: Int = 0,
     val userTags: List<String> = emptyList(),
@@ -80,21 +90,12 @@ data class Profile(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     var averageRating: Double = 0.0,
-    val datingLocalities: List<String> = emptyList(),
-    val feedLocalities: List<String> = emptyList(),
-    val datingRating: String = "",
-    val feedRating: String = "",
-    val datingGender: String = "",
-    val feedGender: String = "",
-    val datingHighSchool: String = "",
-    val feedHighSchool: String = "",
-    val datingCollege: String = "",
-    val feedCollege: String = "",
+
+    // Keep these three for the user's personal dating prefs from registration
     val datingAgeStart: Int = 18,
     val datingAgeEnd: Int = 30,
-    val feedAgeStart: Int = 18,
-    val feedAgeEnd: Int = 30,
     val datingDistancePreference: Int = 10,
+
     val height: Int = 169,
     val height2: List<Int> = emptyList(),
     var caste: String = "",
@@ -123,14 +124,12 @@ data class Profile(
             return ((completedFields.toDouble() / totalFields) * 100).toInt()
         }
 
-
     @Exclude
     fun getCalculatedMatchCountPerSwipeRight(): Double {
         return if (numberOfSwipeRights > 0) {
             matchCount.toDouble() / numberOfSwipeRights
         } else 0.0
     }
-
 }
 
 data class Interest(
@@ -194,17 +193,14 @@ data class Lifestyle(
             when (it) {
                 is String -> it.isNotBlank()
                 is Int -> it != 0
-                is Boolean -> true // Booleans are always valid
+                is Boolean -> true // Booleans are "valid" as true/false
                 else -> false
             }
         }
     }
 }
 
-
-
-
-
+/** Utility to derive zodiac from dob if needed. */
 fun deriveZodiac(dob: String?): String {
     if (dob.isNullOrBlank()) return "Unknown"
     val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
