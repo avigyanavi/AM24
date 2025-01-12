@@ -129,6 +129,12 @@ fun DatingScreen(
         showFilters = false // Close the overlay
     }
 
+    // Automatically save filters when entering the screen
+    LaunchedEffect(Unit) {
+        saveFilters()
+    }
+
+
     // Modal Bottom Sheet State
     val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
     val coroutineScope = rememberCoroutineScope()
