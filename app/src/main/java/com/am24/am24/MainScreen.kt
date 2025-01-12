@@ -150,29 +150,6 @@ fun TopNavBar(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-            } else {
-                // Show Filters Icon on Home, Dating and Filters screens
-                val onFiltersScreen = currentRoute?.startsWith("filters") == true
-                val showFiltersIcon = (currentRoute == "home") || (currentRoute == "dating") || onFiltersScreen
-
-                if (showFiltersIcon) {
-                    IconButton(onClick = {
-                        val initialTab = if (currentRoute == "home") 1 else 0
-                        if (onFiltersScreen) {
-                            // If already on filters, go back
-                            navController.popBackStack()
-                        } else {
-                            navController.navigate("filters?initialTab=$initialTab")
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Tune,
-                            contentDescription = "Filters",
-                            tint = if (onFiltersScreen) Color(0xFFFF6F00) else Color.Gray,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
             }
             // Notifications Icon
             IconButton(onClick = {

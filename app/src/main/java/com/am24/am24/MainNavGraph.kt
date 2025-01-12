@@ -121,21 +121,13 @@ fun MainNavGraph(
         }
         // -------- QUIZ ROUTE: fetch userProfile, pass city/locality to QuizScreen -----------
         composable("quiz") {
-                // 3) Once loaded, pass city & hometown to QuizScreen
+            // 3) Once loaded, pass city & hometown to QuizScreen
             PollsScreen(
-                )
+            )
 
         }
         composable("notifications") {
             NotificationsScreen(navController = navController)
-        }
-        composable("filters?initialTab={initialTab}") { backStackEntry ->
-            val initialTab = backStackEntry.arguments?.getString("initialTab")?.toIntOrNull() ?: 0 // Default to 0 (Dating Tab)
-            FiltersScreen(
-                postViewModel = postViewModel,
-                datingViewModel = datingViewModel, // Pass datingViewModel here
-                initialTab = initialTab
-            )
         }
         composable("chat/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")

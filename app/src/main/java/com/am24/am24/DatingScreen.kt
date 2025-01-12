@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
@@ -30,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -41,6 +43,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
@@ -63,6 +66,7 @@ data class SwipeData(
  *   - listing profiles via a “skip filters if search is non-empty” logic
  *   - match popups
  */
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DatingScreen(
     navController: NavController,
@@ -74,154 +78,401 @@ fun DatingScreen(
     val profileViewModel: ProfileViewModel = viewModel()
     val postViewModel: PostViewModel = viewModel()
 
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val filtersLoaded by datingViewModel.filtersLoaded.collectAsState()
+    val filters by datingViewModel.datingFilters.collectAsState()
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
-    val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
-
-    val localCoroutineScope = rememberCoroutineScope()
+    val isLoading by datingViewModel.isLoading.collectAsState()
 
     var searchQuery by remember { mutableStateOf(initialQuery) }
-    var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
+    var showFilters by remember { mutableStateOf(false) } // Control filter overlay visibility
 
-    // Fetch set of excluded user IDs (e.g. matched recently)
-    LaunchedEffect(currentUserId) {
-        excludedUserIds = fetchExcludedUsers(currentUserId)
+    // State for filter values (backed by ViewModel)
+    var ageRange by remember { mutableStateOf(filters.ageStart..filters.ageEnd) }
+    var maxDistance by remember { mutableStateOf(filters.distance) }
+    var selectedGenders by remember { mutableStateOf(filters.gender.split(",").filter { it.isNotBlank() }.toSet()) }
+    var selectedCommunity by remember { mutableStateOf(filters.community) }
+    var selectedReligion by remember { mutableStateOf(filters.religion) }
+    var selectedCaste by remember { mutableStateOf(filters.caste) }
+    var selectedHighSchool by remember { mutableStateOf(filters.highSchool) }
+    var selectedCollege by remember { mutableStateOf(filters.college) }
+    var selectedPostGrad by remember { mutableStateOf(filters.postGrad) }
+
+    // Update local state when filters are updated in ViewModel
+    LaunchedEffect(filters) {
+        ageRange = filters.ageStart..filters.ageEnd
+        maxDistance = filters.distance
+        selectedGenders = filters.gender.split(",").filter { it.isNotBlank() }.toSet()
+        selectedCommunity = filters.community
+        selectedReligion = filters.religion
+        selectedCaste = filters.caste
+        selectedHighSchool = filters.highSchool
+        selectedCollege = filters.college
+        selectedPostGrad = filters.postGrad
     }
 
-    // Start watchers
-    LaunchedEffect(currentUserId) {
-        datingViewModel.startRealTimeProfileUpdates(currentUserId)
-        datingViewModel.startRealTimeFilterUpdates(currentUserId)
+    // Save Filters Functionality
+    val saveFilters = {
+        datingViewModel.updateDatingFilters(
+            filters.copy(
+                ageStart = ageRange.start,
+                ageEnd = ageRange.endInclusive,
+                distance = maxDistance,
+                gender = selectedGenders.joinToString(","),
+                community = selectedCommunity,
+                religion = selectedReligion,
+                caste = selectedCaste,
+                highSchool = selectedHighSchool,
+                college = selectedCollege,
+                postGrad = selectedPostGrad
+            )
+        )
+        datingViewModel.refreshFilteredProfiles()
+        showFilters = false // Close the overlay
     }
 
-    // On dispose => pause watchers
-    DisposableEffect(Unit) {
-        onDispose {
-            datingViewModel.pauseProfileUpdates()
-            datingViewModel.pauseFilterUpdates(currentUserId)
-            profileViewModel.clearMatchPopUp()
+    // Modal Bottom Sheet State
+    val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
+    val coroutineScope = rememberCoroutineScope()
+
+    ModalBottomSheetLayout(
+        sheetState = bottomSheetState,
+        sheetContent = {
+            FiltersOverlay(
+                ageRange = ageRange,
+                onAgeRangeChange = { ageRange = it },
+                maxDistance = maxDistance,
+                onDistanceChange = { maxDistance = it },
+                selectedGenders = selectedGenders,
+                onGenderChange = { selectedGenders = it },
+                selectedCommunity = selectedCommunity,
+                onCommunityChange = { selectedCommunity = it },
+                selectedReligion = selectedReligion,
+                onReligionChange = { selectedReligion = it },
+                selectedCaste = selectedCaste,
+                onCasteChange = { selectedCaste = it },
+                selectedHighSchool = selectedHighSchool,
+                onHighSchoolChange = { selectedHighSchool = it },
+                selectedCollege = selectedCollege,
+                onCollegeChange = { selectedCollege = it },
+                selectedPostGrad = selectedPostGrad,
+                onPostGradChange = { selectedPostGrad = it },
+                onSaveFilters = saveFilters,
+                onCancel = { coroutineScope.launch { bottomSheetState.hide() } }
+            )
         }
-    }
-
-    // If user typed => skip filters
-    val allProfiles by datingViewModel.allProfiles.collectAsState()
-    val displayedProfiles = remember(allProfiles, filteredProfiles, searchQuery, excludedUserIds) {
-        if (searchQuery.isNotBlank()) {
-            allProfiles.filter { p ->
-                p.userId !in excludedUserIds &&
-                        p.username.contains(searchQuery, ignoreCase = true)
-            }
-        } else {
-            filteredProfiles.filter { p -> p.userId !in excludedUserIds }
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (!filtersLoaded) {
-            // Loading
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = Color(0xFFFFA500))
-            }
-        } else {
-            Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-                // Row => Search + Refresh
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = { Text("Search", color = Color.Gray) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color(0xFFFF4500),
-                            focusedLabelColor = Color.Gray,
-                            textColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
+                    CircularProgressIndicator(color = Color(0xFFFFA500))
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                ) {
+                    // Filters Button
                     Button(
-                        onClick = {
-                            // forcibly refresh
-                            localCoroutineScope.launch {
-                                // if you have a “forceRefreshProfiles” function in your VM
-                                // else do the partial approach => pause, re-fetch, resume
-                                datingViewModel.pauseProfileUpdates()
-                                datingViewModel.pauseFilterUpdates(currentUserId)
-
-                                // re-fetch excluded
-                                excludedUserIds = fetchExcludedUsers(currentUserId)
-
-                                datingViewModel.resumeProfileUpdates(currentUserId)
-                                datingViewModel.resumeFilterUpdates(currentUserId)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF4500))
+                        onClick = { coroutineScope.launch { bottomSheetState.show() } },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                        modifier = Modifier.padding(8.dp)
                     ) {
-                        Text("Refresh", color = Color.White)
+                        Text("Filters", color = Color.White)
+                    }
+
+                    // Profile Listing
+                    if (filteredProfiles.isEmpty()) {
+                        NoMoreProfilesScreen()
+                    } else {
+                        DatingScreenContent(
+                            navController = navController,
+                            geoFire = geoFire,
+                            profileViewModel = profileViewModel,
+                            postViewModel = postViewModel,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
+                            profiles = filteredProfiles
+                        )
                     }
                 }
-
-                // If none => show NoMoreProfiles
-                if (displayedProfiles.isEmpty()) {
-                    NoMoreProfilesScreen(datingViewModel = datingViewModel)
-                } else {
-                    DatingScreenContent(
-                        navController = navController,
-                        geoFire = geoFire,
-                        profileViewModel = profileViewModel,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { searchQuery = it },
-                        profiles = displayedProfiles,
-                        postViewModel = postViewModel
-                    )
-                }
             }
-        }
-
-        matchPopUpState?.let { (currentUserProfile, matchedUserProfile) ->
-            MatchPopUp(
-                currentUserProfilePic = currentUserProfile.profilepicUrl.orEmpty(),
-                otherUserProfilePic = matchedUserProfile.profilepicUrl.orEmpty(),
-                onChatClick = {
-                    navController.navigate("chat/${matchedUserProfile.userId}")
-                    profileViewModel.clearMatchPopUp()
-                },
-                onClose = {
-                    profileViewModel.clearMatchPopUp()
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
-                    .align(Alignment.Center)
-                    .zIndex(1f)
-            )
         }
     }
 }
 
-/**
- * If no more profiles => show filters
- */
+
 @Composable
-fun NoMoreProfilesScreen(datingViewModel: DatingViewModel) {
-    val filters by datingViewModel.datingFilters.collectAsState()
+fun FiltersOverlay(
+    ageRange: IntRange,
+    onAgeRangeChange: (IntRange) -> Unit,
+    maxDistance: Int,
+    onDistanceChange: (Int) -> Unit,
+    selectedGenders: Set<String>,
+    onGenderChange: (Set<String>) -> Unit,
+    selectedCommunity: String,
+    onCommunityChange: (String) -> Unit,
+    selectedReligion: String,
+    onReligionChange: (String) -> Unit,
+    selectedCaste: String,
+    onCasteChange: (String) -> Unit,
+    selectedHighSchool: String,
+    onHighSchoolChange: (String) -> Unit,
+    selectedCollege: String,
+    onCollegeChange: (String) -> Unit,
+    selectedPostGrad: String,
+    onPostGradChange: (String) -> Unit,
+    onSaveFilters: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1A1A1A))
+            .padding(16.dp)
+    ) {
+        // Save Button at the top
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Filters",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Button(
+                onClick = {
+                    onSaveFilters() // Persist changes to ViewModel
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.height(48.dp)
+            ) {
+                Text("Save", color = Color.Black)
+            }
+        }
 
-    var ageRange by remember { mutableStateOf(filters.ageStart..filters.ageEnd) }
-    var maxDistance by remember { mutableStateOf(filters.distance) }
-    var selectedGenders by remember { mutableStateOf(filters.gender.split(",").filter { it.isNotBlank() }.toSet()) }
+        LazyColumn {
+            // Basic Filters Section
+            item {
+                FilterSectionTitle(title = "Basic Filters")
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // Gender Selection
+                Text("Gender Preference:", color = Color.White)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    listOf("Male", "Female").forEach { gender ->
+                        Button(
+                            onClick = {
+                                val updatedGenders = if (selectedGenders.contains(gender)) {
+                                    selectedGenders - gender
+                                } else {
+                                    selectedGenders + gender
+                                }
+                                onGenderChange(updatedGenders)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = if (selectedGenders.contains(gender)) Color(0xFFFF6000) else Color(0xFF1A1A1A)
+                            ),
+                            border = BorderStroke(2.dp, if (selectedGenders.contains(gender)) Color(0xFFFF6000) else Color.Gray),
+                            shape = RoundedCornerShape(50),
+                            modifier = Modifier.padding(vertical = 4.dp).height(48.dp)
+                        ) {
+                            Text(gender, color = Color.White)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Age Range Slider
+                Text("Age Range: ${ageRange.start} - ${ageRange.endInclusive}", color = Color.White)
+                RangeSlider(
+                    value = ageRange.start.toFloat()..ageRange.endInclusive.toFloat(),
+                    onValueChange = { range ->
+                        onAgeRangeChange(range.start.roundToInt()..range.endInclusive.roundToInt())
+                    },
+                    valueRange = 18f..100f,
+                    steps = 82,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFFF6000),
+                        activeTrackColor = Color(0xFFFF6000),
+                        inactiveTrackColor = Color.Gray
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Max Distance Slider
+                Text("Max Distance: ${maxDistance}km", color = Color.White)
+                Slider(
+                    value = maxDistance.toFloat(),
+                    onValueChange = { onDistanceChange(it.roundToInt()) },
+                    valueRange = 0f..100f,
+                    steps = 10,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFFF6000),
+                        activeTrackColor = Color(0xFFFF6000),
+                        inactiveTrackColor = Color.Gray
+                    )
+                )
+            }
+
+            // Section: Education
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                FilterSectionTitle(title = "Education")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // High School
+                DropdownFilter(
+                    label = "High School",
+                    options = listOf("School A", "School B", "School C"),
+                    selectedOption = selectedHighSchool,
+                    onOptionChange = onHighSchoolChange
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // College
+                DropdownFilter(
+                    label = "College",
+                    options = listOf("College A", "College B", "College C"),
+                    selectedOption = selectedCollege,
+                    onOptionChange = onCollegeChange
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Post Grad
+                DropdownFilter(
+                    label = "Post Grad",
+                    options = listOf("PostGrad A", "PostGrad B", "PostGrad C"),
+                    selectedOption = selectedPostGrad,
+                    onOptionChange = onPostGradChange
+                )
+            }
+
+            // Section: Preferences
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                FilterSectionTitle(title = "Preferences")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Community, Religion
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    DropdownFilter(
+                        label = "Community",
+                        options = listOf("Community A", "Community B", "Community C"),
+                        selectedOption = selectedCommunity,
+                        onOptionChange = onCommunityChange
+                    )
+
+                    DropdownFilter(
+                        label = "Religion",
+                        options = listOf("Hindu", "Muslim", "Christian", "Other"),
+                        selectedOption = selectedReligion,
+                        onOptionChange = onReligionChange
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Caste
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    DropdownFilter(
+                        label = "Caste",
+                        options = listOf("Caste 1", "Caste 2", "Caste 3"),
+                        selectedOption = selectedCaste,
+                        onOptionChange = onCasteChange
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun FilterSectionTitle(title: String) {
+    Text(
+        text = title,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFFFF6F00)
+    )
+}
+
+@Composable
+fun DropdownFilter(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val allOptions = listOf("Clear Selection") + options // Add "Clear Selection" option
+
+    Column {
+        Text(label, color = Color.White, fontSize = 14.sp)
+        Box {
+            Button(
+                onClick = { expanded = !expanded },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = if (selectedOption.isNotBlank()) Color(0xFFFF6000) else Color(0xFF1A1A1A)
+                ),
+                border = BorderStroke(2.dp, Color(0xFFFF6000)),
+                shape = RoundedCornerShape(50), // Rounded button
+                modifier = Modifier.padding(vertical = 4.dp).height(48.dp)
+            ) {
+                Text(
+                    text = selectedOption.ifBlank { "Select $label" },
+                    color = Color.White
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(Color.Black)
+            ) {
+                allOptions.forEach { option ->
+                    DropdownMenuItem(
+                        onClick = {
+                            if (option == "Clear Selection") {
+                                onOptionChange("")
+                            } else {
+                                onOptionChange(option)
+                            }
+                            expanded = false
+                        }
+                    ) {
+                        Text(option, color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+@Composable
+fun NoMoreProfilesScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -230,74 +481,19 @@ fun NoMoreProfilesScreen(datingViewModel: DatingViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("No more profiles available.", color = Color.White, fontSize = 18.sp, modifier = Modifier.padding(bottom = 16.dp))
-        Text("Adjust your filters:", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(bottom = 8.dp))
-
-        // Age
-        Text("Age Range: ${ageRange.start} - ${ageRange.endInclusive}", color = Color.White)
-        RangeSlider(
-            value = ageRange.start.toFloat()..ageRange.endInclusive.toFloat(),
-            onValueChange = { range ->
-                ageRange = range.start.roundToInt()..range.endInclusive.roundToInt()
-                datingViewModel.updateDatingFilters(
-                    filters.copy(ageStart = ageRange.start, ageEnd = ageRange.endInclusive)
-                )
-            },
-            valueRange = 18f..100f,
-            steps = 82,
-            colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFF6F00),
-                activeTrackColor = Color(0xFFFF6F00),
-                inactiveTrackColor = Color.White
-            )
+        Text(
+            text = "No more profiles available.",
+            color = Color.White,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Distance
-        val distTxt = if (maxDistance == 100) "Global" else "$maxDistance km"
-        Text("Max Distance: $distTxt", color = Color.White)
-        Slider(
-            value = maxDistance.toFloat(),
-            onValueChange = { dist ->
-                maxDistance = dist.roundToInt()
-                datingViewModel.updateDatingFilters(filters.copy(distance = maxDistance))
-            },
-            valueRange = 0f..100f,
-            steps = 10,
-            colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFF6F00),
-                activeTrackColor = Color(0xFFFF6F00),
-                inactiveTrackColor = Color.White
-            )
+        Text(
+            text = "Please adjust your filters using the 'Filters' button above.",
+            color = Color.White,
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Gender
-        Text("Gender Preference:", color = Color.White)
-        Row(modifier = Modifier.padding(vertical = 8.dp)) {
-            listOf("Male", "Female", "Other").forEach { gender ->
-                Button(
-                    onClick = {
-                        selectedGenders = if (selectedGenders.contains(gender)) {
-                            selectedGenders - gender
-                        } else {
-                            selectedGenders + gender
-                        }
-                        datingViewModel.updateDatingFilters(
-                            filters.copy(gender = selectedGenders.joinToString(","))
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = if (selectedGenders.contains(gender)) Color(0xFFFF6F00) else Color.White
-                    ),
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                ) {
-                    Text(gender, color = Color.Black)
-                }
-            }
-        }
     }
 }
 
@@ -318,7 +514,7 @@ fun DatingScreenContent(
     var currentProfileIndex by remember { mutableStateOf(0) }
 
     if (profiles.isEmpty() || currentProfileIndex >= profiles.size) {
-        NoMoreProfilesScreen(datingViewModel = viewModel())
+        NoMoreProfilesScreen()
     } else {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val currentProfile = profiles[currentProfileIndex]
@@ -726,7 +922,6 @@ fun CollapsibleSection(
     }
 }
 
-/** Additional “handleSwipeRight/Left” remain unchanged. */
 fun handleSwipeRight(
     currentUserId: String,
     otherUserId: String,
@@ -755,29 +950,8 @@ fun handleSwipeRight(
             currentUserMatchesRef.setValue(timestamp)
             otherUserMatchesRef.setValue(timestamp)
 
-            // match notifications
-            profileViewModel.sendMatchNotification(
-                senderId = currentUserId,
-                receiverId = otherUserId,
-                onSuccess = { Log.d("MatchNotification", "Sent match to $otherUserId") },
-                onFailure = { error -> Log.e("MatchNotification", "Error: $error") }
-            )
-            profileViewModel.sendMatchNotification(
-                senderId = otherUserId,
-                receiverId = currentUserId,
-                onSuccess = { Log.d("MatchNotification", "Sent match to $currentUserId") },
-                onFailure = { error -> Log.e("MatchNotification", "Error: $error") }
-            )
-            // pop-up
+            // Trigger Match Pop-Up
             profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
-        } else {
-            // “like” only
-            profileViewModel.sendLikeNotification(
-                senderId = currentUserId,
-                receiverId = otherUserId,
-                onSuccess = { Log.d("LikeNotification", "Like sent!") },
-                onFailure = { error -> Log.e("LikeNotification", "Error: $error") }
-            )
         }
     }.addOnFailureListener { exception ->
         Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")

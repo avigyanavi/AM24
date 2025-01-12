@@ -34,7 +34,7 @@ data class FilterSettings(
 
 data class DatingFilterSettings(
     val localities: List<String> = emptyList(),
-    val city: String = "All",       // Changed from capitalRegion to city
+    val city: String = "All", // Changed from capitalRegion to city
     val highSchool: String = "",
     val college: String = "",
     val postGrad: String = "",
@@ -43,12 +43,15 @@ data class DatingFilterSettings(
     val ageEnd: Int = 100,
     val distance: Int = 10,
     val gender: String = "",
-    val rating: String = ""
+    val rating: String = "",
+    val community: String = "",
+    val religion: String = "",
+    val caste: String = ""
 )
 
 data class FeedFilterSettings(
     val localities: List<String> = emptyList(),
-    val city: String = "All",       // Changed from capitalRegion to city
+    val city: String = "All", // Changed from capitalRegion to city
     val highSchool: String = "",
     val college: String = "",
     val postGrad: String = "",
@@ -57,5 +60,5 @@ data class FeedFilterSettings(
     val ageEnd: Int = 100,
     val gender: String = "",
     val rating: String = ""
-    // Removed distance field
 )
+
