@@ -1773,17 +1773,17 @@ fun EnterNameScreen(
                                     registrationViewModel.isHeightInFeet = it
                                 },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color(0xFFFFDB00),
+                                    checkedThumbColor = Color(0xFFFF6000),
                                     uncheckedThumbColor = Color.White,
                                     uncheckedBorderColor = Color.White,
-                                    checkedBorderColor = Color(0xFFFFDB00)
+                                    checkedBorderColor = Color(0xFFFF6000)
                                 )
                             )
                             Text(
                                 text = if (registrationViewModel.isHeightInFeet)
-                                    "Feet + Inches"
+                                    " Feet + Inches"
                                 else
-                                    "Centimeters",
+                                    " Centimeters",
                                 color = Color.White
                             )
                         }
@@ -1841,11 +1841,20 @@ fun EnterNameScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Caste Input
-                        TextFieldWithLabel(
-                            label = "Caste",
-                            value = registrationViewModel.caste,
-                            onValueChange = { registrationViewModel.caste = it }
+                        // Caste Input using SearchableDropdownWithCustomOption
+                        SearchableDropdownWithCustomOption(
+                            title = "Caste",
+                            options = listOf("Brahmin", "Kshatriya", "Vaishya", "Shudra"), // Add predefined options
+                            selectedOption = registrationViewModel.caste,
+                            onOptionSelected = { selectedOption ->
+                                if (selectedOption != "Other") {
+                                    registrationViewModel.caste = selectedOption
+                                }
+                            },
+                            customInput = registrationViewModel.caste,
+                            onCustomInputChange = { customInput ->
+                                registrationViewModel.caste = customInput
+                            }
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))

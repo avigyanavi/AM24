@@ -1,4 +1,6 @@
-@file:OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialApi::class)
+@file:OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialApi::class,
+    ExperimentalLayoutApi::class
+)
 
 package com.am24.am24
 
@@ -475,8 +477,6 @@ fun DropdownFilter(
 }
 
 
-
-
 @Composable
 fun NoMoreProfilesScreen() {
     Column(
@@ -606,7 +606,7 @@ fun DatingProfileCard(
         ) {
             // 1) Photo + Overlays
             item {
-                PhotoWithTwoOverlays(profile = profile, userDistance = userDistance)
+                PhotoWithDynamicOverlays(profile = profile, userDistance = userDistance)
             }
 
             // 2) Collapsible
@@ -657,9 +657,6 @@ fun DatingProfileCard(
     }
 }
 
-/**
- * You had “PhotoWithTwoOverlays” => top overlay for rating + vibe, bottom overlay for name/distance, etc.
- */
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
@@ -681,17 +678,17 @@ fun PhotoWithTwoOverlays(
                     onTap = { offset ->
                         if (photoUrls.size > 1) {
                             if (offset.x > size.width / 2) {
-                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
+                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size // Next photo
                             } else {
-                                currentPhotoIndex = (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                                currentPhotoIndex = (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size // Previous photo
                             }
                         }
                     }
                 )
             }
     ) {
+        // Display the current photo
         if (photoUrls.isNotEmpty()) {
-            // The main photo
             AsyncImage(
                 model = photoUrls[currentPhotoIndex],
                 contentDescription = "Profile Photo",
@@ -700,90 +697,166 @@ fun PhotoWithTwoOverlays(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 400.dp)
             )
+        }
 
-            // Top overlay => rating + vibe
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.25f))
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    RatingBar(
-                        rating = profile.averageRating,
-                        ratingCount = profile.numberOfRatings
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    FlashyVibeScore(scorePercent = vibeScorePercent)
-                }
-            }
-
-            // Bottom overlay => name, distance, height, city, etc.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                    .background(Color.Black.copy(alpha = 0.60f))
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-            ) {
-                Column {
+        // Top overlay (always dynamic based on the photo index)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.25f))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .align(Alignment.TopCenter)
+        ) {
+            when (currentPhotoIndex) {
+                0 -> {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column {
-                            Text(
-                                text = "${profile.username}, $age",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "${userDistance.roundToInt()} km away",
-                                fontSize = 14.sp,
-                                color = Color.White
-                            )
+                        RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                        FlashyVibeScore(scorePercent = vibeScorePercent)
+                    }
+                }
+                1 -> {
+                    Text(
+                        text = "Bio",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+                2 -> {
+                    Text(
+                        text = "Interests",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+                3 -> {
+                    Text(
+                        text = "Statistics",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        // Bottom overlay (always dynamic based on the photo index)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .align(Alignment.BottomCenter)
+        ) {
+            when (currentPhotoIndex) {
+                0 -> {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "${profile.username}, $age",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "${userDistance.roundToInt()} km away",
+                                    fontSize = 14.sp,
+                                    color = Color.White
+                                )
+                            }
+                            if (heightCm > 0) {
+                                Text(
+                                    text = "📏${heightCm} cm",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFFFFDB00),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
-                        if (heightCm > 0) {
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            profile.community.takeIf { it.isNotBlank() }?.let {
+                                TagBox(it)
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            profile.city.takeIf { it.isNotBlank() }?.let {
+                                TagBox(it)
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            profile.religion.takeIf { it.isNotBlank() }?.let { TagBox(it) }
+                        }
+                    }
+                }
+                1 -> {
+                    Text(
+                        text = profile.bio ?: "No bio available",
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        fontSize = 16.sp
+                    )
+                }
+                2 -> {
+                    Column {
+                        if (profile.interests.isNotEmpty()) {
+                            FlowRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                profile.interests.forEach { TagBox("${it.emoji} ${it.name}") }
+                            }
+                        }
+                        profile.hometown?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "📏${heightCm} cm",
+                                text = "Locality: $it",
+                                color = Color.White,
                                 fontSize = 14.sp,
-                                color = Color(0xFFFFDB00),
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
-
-                    // community, city, religion
+                }
+                3 -> {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (profile.community.isNotBlank()) {
-                            TagBox(profile.community)
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                        if (profile.city.isNotBlank()) {
-                            TagBox(profile.city)
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                        if (profile.religion.isNotBlank()) {
-                            TagBox(profile.religion)
-                        }
+                        Text(
+                            text = "SPS: ${profile.sps ?: "N/A"}",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Kolkata Ranking: ${profile.am24RankingHometown ?: "N/A"}",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
         }
     }
 }
+
+
 
 /** TagBox is unchanged (for your #tags). */
 @Composable
@@ -1094,4 +1167,15 @@ fun MatchPopUp(
             }
         }
     }
+}
+
+@Composable
+fun PhotoWithDynamicOverlays(
+    profile: Profile,
+    userDistance: Float
+) {
+    PhotoWithTwoOverlays(
+        profile = profile,
+        userDistance = userDistance
+    )
 }

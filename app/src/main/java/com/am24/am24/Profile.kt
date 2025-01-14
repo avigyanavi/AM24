@@ -68,6 +68,7 @@ data class Profile(
 
     val numberOfRatings: Int = 0,
     val numberOfSwipeRights: Int = 0,
+    val sps: Double = 0.0,
     val matchCount: Int = 0,
     val matchCountPerSwipeRight: Double = 0.0,
     val cumulativeUpvotes: Int = 0,
@@ -75,8 +76,6 @@ data class Profile(
     val averageUpvoteCount: Double = 0.0,
     val averageDownvoteCount: Double = 0.0,
 
-    val profileUpvotes: MutableMap<String, Boolean> = mutableMapOf(), // Users who upvoted
-    val profileDownvotes: MutableMap<String, Boolean> = mutableMapOf(), // Users who downvoted
     val reportUsers: MutableMap<String, Boolean> = mutableMapOf(), // Users who reported this profile
     val blockedUsers: MutableMap<String, Boolean> = mutableMapOf(), // Users who blocked this profile
 
