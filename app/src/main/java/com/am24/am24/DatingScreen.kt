@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Nature
@@ -68,6 +69,9 @@ data class SwipeData(
  *   - listing profiles via a “skip filters if search is non-empty” logic
  *   - match popups
  */
+/**
+ * Main DatingScreen with swipe counter and info overlay beside the Filters button.
+ */
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DatingScreen(
@@ -84,125 +88,112 @@ fun DatingScreen(
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
     val isLoading by datingViewModel.isLoading.collectAsState()
 
-    var searchQuery by remember { mutableStateOf(initialQuery) }
-    var showFilters by remember { mutableStateOf(false) } // Control filter overlay visibility
-
-    // State for filter values (backed by ViewModel)
-    var ageRange by remember { mutableStateOf(filters.ageStart..filters.ageEnd) }
-    var maxDistance by remember { mutableStateOf(filters.distance) }
-    var selectedGenders by remember { mutableStateOf(filters.gender.split(",").filter { it.isNotBlank() }.toSet()) }
-    var selectedCommunity by remember { mutableStateOf(filters.community) }
-    var selectedReligion by remember { mutableStateOf(filters.religion) }
-    var selectedCaste by remember { mutableStateOf(filters.caste) }
-    var selectedHighSchool by remember { mutableStateOf(filters.highSchool) }
-    var selectedCollege by remember { mutableStateOf(filters.college) }
-    var selectedPostGrad by remember { mutableStateOf(filters.postGrad) }
-
-    // Update local state when filters are updated in ViewModel
-    LaunchedEffect(filters) {
-        ageRange = filters.ageStart..filters.ageEnd
-        maxDistance = filters.distance
-        selectedGenders = filters.gender.split(",").filter { it.isNotBlank() }.toSet()
-        selectedCommunity = filters.community
-        selectedReligion = filters.religion
-        selectedCaste = filters.caste
-        selectedHighSchool = filters.highSchool
-        selectedCollege = filters.college
-        selectedPostGrad = filters.postGrad
-    }
+    val remainingSwipes = remember { mutableStateOf(50) } // Swipe counter
+    val coroutineScope = rememberCoroutineScope()
+    val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
 
     // Save Filters Functionality
     val saveFilters = {
-        datingViewModel.updateDatingFilters(
-            filters.copy(
-                ageStart = ageRange.start,
-                ageEnd = ageRange.endInclusive,
-                distance = maxDistance,
-                gender = selectedGenders.joinToString(","),
-                community = selectedCommunity,
-                religion = selectedReligion,
-                caste = selectedCaste,
-                highSchool = selectedHighSchool,
-                college = selectedCollege,
-                postGrad = selectedPostGrad
-            )
-        )
+        datingViewModel.updateDatingFilters(filters)
         datingViewModel.refreshFilteredProfiles()
-        showFilters = false // Close the overlay
     }
-
-    // Automatically save filters when entering the screen
-    LaunchedEffect(Unit) {
-        saveFilters()
-    }
-
-
-    // Modal Bottom Sheet State
-    val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
-    val coroutineScope = rememberCoroutineScope()
 
     ModalBottomSheetLayout(
         sheetState = bottomSheetState,
         sheetContent = {
             FiltersOverlay(
-                ageRange = ageRange,
-                onAgeRangeChange = { ageRange = it },
-                maxDistance = maxDistance,
-                onDistanceChange = { maxDistance = it },
-                selectedGenders = selectedGenders,
-                onGenderChange = { selectedGenders = it },
-                selectedCommunity = selectedCommunity,
-                onCommunityChange = { selectedCommunity = it },
-                selectedReligion = selectedReligion,
-                onReligionChange = { selectedReligion = it },
-                selectedCaste = selectedCaste,
-                onCasteChange = { selectedCaste = it },
-                selectedHighSchool = selectedHighSchool,
-                onHighSchoolChange = { selectedHighSchool = it },
-                selectedCollege = selectedCollege,
-                onCollegeChange = { selectedCollege = it },
-                selectedPostGrad = selectedPostGrad,
-                onPostGradChange = { selectedPostGrad = it },
+                ageRange = filters.ageStart..filters.ageEnd,
+                onAgeRangeChange = { range ->
+                    datingViewModel.updateDatingFilters(filters.copy(ageStart = range.start, ageEnd = range.endInclusive))
+                },
+                maxDistance = filters.distance,
+                onDistanceChange = { distance ->
+                    datingViewModel.updateDatingFilters(filters.copy(distance = distance))
+                },
+                selectedGenders = filters.gender.split(",").toSet(),
+                onGenderChange = { genders ->
+                    datingViewModel.updateDatingFilters(filters.copy(gender = genders.joinToString(",")))
+                },
+                selectedCommunity = filters.community,
+                onCommunityChange = { community ->
+                    datingViewModel.updateDatingFilters(filters.copy(community = community))
+                },
+                selectedReligion = filters.religion,
+                onReligionChange = { religion ->
+                    datingViewModel.updateDatingFilters(filters.copy(religion = religion))
+                },
+                selectedCaste = filters.caste,
+                onCasteChange = { caste ->
+                    datingViewModel.updateDatingFilters(filters.copy(caste = caste))
+                },
+                selectedHighSchool = filters.highSchool,
+                onHighSchoolChange = { highSchool ->
+                    datingViewModel.updateDatingFilters(filters.copy(highSchool = highSchool))
+                },
+                selectedCollege = filters.college,
+                onCollegeChange = { college ->
+                    datingViewModel.updateDatingFilters(filters.copy(college = college))
+                },
+                selectedPostGrad = filters.postGrad,
+                onPostGradChange = { postGrad ->
+                    datingViewModel.updateDatingFilters(filters.copy(postGrad = postGrad))
+                },
                 onSaveFilters = saveFilters,
                 onCancel = { coroutineScope.launch { bottomSheetState.hide() } }
             )
         }
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = { coroutineScope.launch { bottomSheetState.show() } },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                    modifier = Modifier.padding(end = 8.dp)
                 ) {
-                    CircularProgressIndicator(color = Color(0xFFFFA500))
+                    Text("Filters", color = Color.White)
                 }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                ) {
-                    // Filters Button
-                    Button(
-                        onClick = { coroutineScope.launch { bottomSheetState.show() } },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Text("Filters", color = Color.White)
-                    }
 
-                    // Profile Listing
+                // Info Overlay
+                InfoOverlay()
+
+                // Swipe Counter
+                SwipeCounter(remainingSwipes.value)
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFFFF6F00))
+                    }
+                } else {
                     if (filteredProfiles.isEmpty()) {
                         NoMoreProfilesScreen()
                     } else {
                         DatingScreenContent(
                             navController = navController,
                             geoFire = geoFire,
-                            profileViewModel = profileViewModel,
-                            postViewModel = postViewModel,
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = { searchQuery = it },
-                            profiles = filteredProfiles
+                            profiles = filteredProfiles,
+                            profileViewModel = profileViewModel,  // Passing profileViewModel
+                            postViewModel = postViewModel,        // Passing postViewModel
+                            onSwipeRight = {
+                                if (remainingSwipes.value > 0) remainingSwipes.value -= 1
+                            },
+                            onSwipeLeft = {
+                                if (remainingSwipes.value > 0) remainingSwipes.value -= 1
+                            }
                         )
                     }
                 }
@@ -504,7 +495,7 @@ fun NoMoreProfilesScreen() {
 }
 
 /**
- * The core “swipeable” content for showing the next profile
+ * The core “swipeable” content for showing the next profile.
  */
 @Composable
 fun DatingScreenContent(
@@ -512,10 +503,9 @@ fun DatingScreenContent(
     geoFire: GeoFire,
     profileViewModel: ProfileViewModel,
     postViewModel: PostViewModel,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
     profiles: List<Profile>,
-    modifier: Modifier = Modifier,
+    onSwipeRight: () -> Unit,
+    onSwipeLeft: () -> Unit
 ) {
     var currentProfileIndex by remember { mutableStateOf(0) }
 
@@ -526,14 +516,18 @@ fun DatingScreenContent(
         val currentProfile = profiles[currentProfileIndex]
 
         var userDistance by remember { mutableStateOf<Float?>(null) }
+
+        // Calculate distance between current user and the profile being viewed.
         LaunchedEffect(currentProfile) {
             userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
         }
 
+        // If distance is available, display the profile card.
         userDistance?.let { distance ->
             DatingProfileCard(
                 profile = currentProfile,
                 onSwipeRight = {
+                    onSwipeRight()
                     handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
                     if (currentProfileIndex + 1 < profiles.size) {
                         currentProfileIndex++
@@ -542,6 +536,7 @@ fun DatingScreenContent(
                     }
                 },
                 onSwipeLeft = {
+                    onSwipeLeft()
                     handleSwipeLeft(currentUserId, currentProfile.userId)
                     if (currentProfileIndex + 1 < profiles.size) {
                         currentProfileIndex++
@@ -556,6 +551,7 @@ fun DatingScreenContent(
         }
     }
 }
+
 
 /**
  * A single “card” for the user: the photo with overlays, collapsible, etc.
@@ -656,6 +652,76 @@ fun DatingProfileCard(
         }
     }
 }
+
+/**
+ * Info Overlay Component.
+ */
+@Composable
+fun InfoOverlay() {
+    var showInfo by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { showInfo = true }) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Info",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        if (showInfo) {
+            AlertDialog(
+                onDismissRequest = { showInfo = false },
+                title = {
+                    Text(
+                        text = "Dating Screen Features",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column {
+                        Text("- Swipe Right to Like")
+                        Text("- Swipe Left to Skip")
+                        Text("- Scroll Down for Profile Details")
+                        Text("- Metrics: SPS, Rating, etc.")
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showInfo = false }) {
+                        Text("Got it")
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Swipe Counter Component.
+ */
+@Composable
+fun SwipeCounter(remainingSwipes: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "Remaining Swipes: $remainingSwipes",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = remainingSwipes / 50f,
+            color = Color(0xFFFF6F00),
+            backgroundColor = Color.Gray,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+        )
+    }
+}
+
 
 @Composable
 fun PhotoWithTwoOverlays(
