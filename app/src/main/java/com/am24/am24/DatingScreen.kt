@@ -93,10 +93,12 @@ fun DatingScreen(
     val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
 
     // Save Filters Functionality
-    val saveFilters = {
+    val saveFilters: () -> Unit = {
         datingViewModel.updateDatingFilters(filters)
         datingViewModel.refreshFilteredProfiles()
+        coroutineScope.launch { bottomSheetState.hide() } // Close the bottom sheet
     }
+
 
     ModalBottomSheetLayout(
         sheetState = bottomSheetState,
