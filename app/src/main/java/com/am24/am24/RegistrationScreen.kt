@@ -1,4 +1,3 @@
-
 // RegistrationActivity.kt
 @file:OptIn(ExperimentalMaterial3Api::class)
 
@@ -28,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -188,9 +188,9 @@ class RegistrationViewModel : ViewModel() {
         try {
             voiceRecorder = MediaRecorder().apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
                 setOutputFile(filePath)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
                 prepare()
                 start()
             }
@@ -204,6 +204,7 @@ class RegistrationViewModel : ViewModel() {
         try {
             voiceRecorder?.apply {
                 stop()
+                reset()
                 release()
             }
             voiceRecorder = null
@@ -279,22 +280,12 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterLifestyleScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                // Change top bar color to 0xFF1A1A1A
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1A1A1A)
-                )
-            )
-        },
         content = { innerPadding ->
             LazyColumn(
                 modifier = Modifier
@@ -676,7 +667,7 @@ fun EnterLifestyleScreen(
                     Button(
                         onClick = { onNext() },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
                     ) {
                         Text(text = "Next", color = Color.White)
                     }
@@ -685,8 +676,6 @@ fun EnterLifestyleScreen(
         }
     )
 }
-
-
 
 @Composable
 fun LifestyleSlider(
@@ -697,7 +686,8 @@ fun LifestyleSlider(
     onValueChange: (Int) -> Unit,
     nouns: List<String>
 ) {
-    val clampedValue = value.coerceIn(valueRangeStart, valueRangeEnd) // Clamp value to avoid out-of-bounds errors
+    val adjustedValue = if (value == -1) -1 else value.coerceIn(valueRangeStart, valueRangeEnd) // Adjust value to include "Not Selected"
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -708,28 +698,26 @@ fun LifestyleSlider(
             modifier = Modifier.padding(vertical = 8.dp)
         )
         Slider(
-            value = clampedValue.toFloat(),
+            value = if (adjustedValue == -1) 0f else adjustedValue.toFloat(), // Default position for "Not Selected"
             onValueChange = { newValue ->
                 onValueChange(newValue.toInt().coerceIn(valueRangeStart, valueRangeEnd))
             },
             valueRange = valueRangeStart.toFloat()..valueRangeEnd.toFloat(),
             steps = (valueRangeEnd - valueRangeStart - 1), // Correct number of steps for the slider
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFFDB00),
-                activeTrackColor = Color(0xFFFFDB00)
+                thumbColor = Color(0xFFFF6000),
+                activeTrackColor = Color(0xFFFF6000)
             )
         )
-        // Display the corresponding noun safely
+        // Display the corresponding noun or "Not Selected"
         Text(
-            text = nouns.getOrElse(clampedValue) { "Unknown" }, // Fallback to "Unknown" if out-of-bounds
+            text = if (adjustedValue == -1) "Not Selected" else nouns.getOrElse(adjustedValue) { "Unknown" },
             color = Color.Gray,
             fontSize = 14.sp,
             modifier = Modifier.padding(bottom = 8.dp)
         )
     }
 }
-
-
 
 @Composable
 fun DropdownWithStaticOptions(
@@ -745,10 +733,10 @@ fun DropdownWithStaticOptions(
         OutlinedButton(
             onClick = { expanded = !expanded },
             modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, Color(0xFFFFDB00)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFDB00))
+            border = BorderStroke(1.dp, Color(0xFFFF6000)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
         ) {
-            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFFDB00))
+            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFF6000))
         }
 
         DropdownMenu(
@@ -789,7 +777,7 @@ fun CheckboxInput(
             onCheckedChange = onCheckedChange,
             colors = CheckboxDefaults.colors(
                 checkmarkColor = Color(0xFF1A1A1A),
-                checkedColor = Color(0xFFFFDB00),
+                checkedColor = Color(0xFFFF6000),
                 uncheckedColor = Color.Gray
             )
         )
@@ -804,6 +792,11 @@ fun EnterLocationAndSchoolScreen(
     onBack: () -> Unit
 ) {
     val educationLevels = listOf("High School", "College", "Post-Graduation")
+    val highSchoolOptions = listOf("St. Xavier's", "La Martiniere", "Other")
+    val collegeOptions = listOf("IIT Kharagpur", "Jadavpur University", "Other")
+    val postGraduationOptions = listOf("IIM Calcutta", "ISB Hyderabad", "Other")
+
+    val isNextEnabled = registrationViewModel.educationLevel.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -813,138 +806,135 @@ fun EnterLocationAndSchoolScreen(
             )
         },
         content = { innerPadding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xFF1A1A1A))
                     .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 32.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                LazyColumn(
+                // Section Title
+                Text(
+                    text = "Enter Education and Location",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                // Education Level Dropdown
+                Text(
+                    text = "Education Level",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                DropdownWithSearch(
+                    title = "Select Education Level",
+                    options = educationLevels,
+                    selectedOption = registrationViewModel.educationLevel,
+                    onOptionSelected = { registrationViewModel.educationLevel = it }
+                )
+
+                // High School Section
+                if (registrationViewModel.educationLevel in listOf("High School", "College", "Post-Graduation")) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "High School",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    SearchableDropdownWithCustomOption(
+                        title = "Select or type your high school",
+                        options = highSchoolOptions,
+                        selectedOption = registrationViewModel.highSchool,
+                        onOptionSelected = { registrationViewModel.highSchool = it },
+                        customInput = registrationViewModel.customHighSchool,
+                        onCustomInputChange = { registrationViewModel.customHighSchool = it }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    GraduationYearDropdown(
+                        year = registrationViewModel.highSchoolGraduationYear,
+                        onYearSelected = { registrationViewModel.highSchoolGraduationYear = it }
+                    )
+                }
+
+                // College Section
+                if (registrationViewModel.educationLevel in listOf("College", "Post-Graduation")) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "College",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    SearchableDropdownWithCustomOption(
+                        title = "Select or type your college",
+                        options = collegeOptions,
+                        selectedOption = registrationViewModel.college,
+                        onOptionSelected = { registrationViewModel.college = it },
+                        customInput = registrationViewModel.customCollege,
+                        onCustomInputChange = { registrationViewModel.customCollege = it }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    GraduationYearDropdown(
+                        year = registrationViewModel.collegeGraduationYear,
+                        onYearSelected = { registrationViewModel.collegeGraduationYear = it }
+                    )
+                }
+
+                // Post-Graduation Section
+                if (registrationViewModel.educationLevel == "Post-Graduation") {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Post-Graduation",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    SearchableDropdownWithCustomOption(
+                        title = "Select or type your post-graduation institute",
+                        options = postGraduationOptions,
+                        selectedOption = registrationViewModel.postGraduation ?: "",
+                        onOptionSelected = { registrationViewModel.postGraduation = it },
+                        customInput = registrationViewModel.customPostGraduation ?: "",
+                        onCustomInputChange = { registrationViewModel.customPostGraduation = it }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    GraduationYearDropdown(
+                        year = registrationViewModel.postGraduationYear,
+                        onYearSelected = { registrationViewModel.postGraduationYear = it }
+                    )
+                }
+
+                // Next Button
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = { if (isNextEnabled) onNext() },
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 32.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = isNextEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.Gray
+                    ),
+                    shape = CircleShape
                 ) {
-                    item {
-                        Text(
-                            text = "Education Level",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        DropdownWithSearch(
-                            title = "Select Education Level",
-                            options = educationLevels,
-                            selectedOption = registrationViewModel.educationLevel,
-                            onOptionSelected = { registrationViewModel.educationLevel = it }
-                        )
-                    }
-
-                    // High School
-                    if (
-                        registrationViewModel.educationLevel in listOf("High School", "College", "Post-Graduation")
-                    ) {
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "High School",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            SearchableDropdownWithCustomOption(
-                                title = "Select or type your high school",
-                                options = listOf("St. Xavier's", "La Martiniere", "Other"),
-                                selectedOption = registrationViewModel.highSchool,
-                                onOptionSelected = { registrationViewModel.highSchool = it },
-                                customInput = registrationViewModel.customHighSchool,
-                                onCustomInputChange = { registrationViewModel.customHighSchool = it }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            GraduationYearDropdown(
-                                year = registrationViewModel.highSchoolGraduationYear,
-                                onYearSelected = { registrationViewModel.highSchoolGraduationYear = it }
-                            )
-                        }
-                    }
-
-                    // College
-                    if (
-                        registrationViewModel.educationLevel in listOf("College", "Post-Graduation")
-                    ) {
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "College",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            SearchableDropdownWithCustomOption(
-                                title = "Select or type your college",
-                                options = listOf("IIT Kharagpur", "Jadavpur University", "Other"),
-                                selectedOption = registrationViewModel.college,
-                                onOptionSelected = { registrationViewModel.college = it },
-                                customInput = registrationViewModel.customCollege,
-                                onCustomInputChange = { registrationViewModel.customCollege = it }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            GraduationYearDropdown(
-                                year = registrationViewModel.collegeGraduationYear,
-                                onYearSelected = { registrationViewModel.collegeGraduationYear = it }
-                            )
-                        }
-                    }
-
-                    // Post-Graduation
-                    if (registrationViewModel.educationLevel == "Post-Graduation") {
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Post Graduation",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            SearchableDropdownWithCustomOption(
-                                title = "Select or type your post-graduation institute",
-                                options = listOf("IIM Calcutta", "ISB Hyderabad", "Other"),
-                                selectedOption = registrationViewModel.postGraduation ?: "",
-                                onOptionSelected = { registrationViewModel.postGraduation = it },
-                                customInput = registrationViewModel.customPostGraduation ?: "",
-                                onCustomInputChange = { registrationViewModel.customPostGraduation = it }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            GraduationYearDropdown(
-                                year = registrationViewModel.postGraduationYear,
-                                onYearSelected = { registrationViewModel.postGraduationYear = it }
-                            )
-                        }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Button(
-                            onClick = {
-                                if (registrationViewModel.educationLevel.isEmpty()) {
-                                    // possibly show an error toast
-                                } else {
-                                    onNext()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00))
-                        ) {
-                            Text(text = "Next", color = Color.White)
-                        }
-                    }
+                    Text(
+                        text = "Next",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
     )
 }
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -959,12 +949,12 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
         OutlinedButton(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFDB00)),
-            border = BorderStroke(1.dp, Color(0xFFFF4500))
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000)),
+            border = BorderStroke(1.dp, Color(0xFFFF6000))
         ) {
             Text(
                 text = year.ifEmpty { "Select Graduation Year" },
-                color = Color(0xFFFFDB00)
+                color = Color(0xFFFF6000)
             )
         }
 
@@ -979,12 +969,12 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
             TextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search Year", color = Color(0xFFFFDB00)) },
+                label = { Text("Search Year", color = Color(0xFFFF6000)) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedLabelColor = Color(0xFFFFDB00),
-                    cursorColor = Color(0xFFFFDB00),
+                    focusedLabelColor = Color(0xFFFF6000),
+                    cursorColor = Color(0xFFFF6000),
                     unfocusedTextColor = Color.White,
-                    focusedTextColor = Color(0xFFFFDB00)
+                    focusedTextColor = Color(0xFFFF6000)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1060,12 +1050,12 @@ fun SearchableDropdownWithCustomOption(
                 searchText = ""
             },
             modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, Color(0xFFFF4500)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFDB00))
+            border = BorderStroke(1.dp, Color(0xFFFF6000)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
         ) {
             Text(
                 text = if (showCustomInput) customInput else selectedOption.ifEmpty { "Select or type" },
-                color = Color(0xFFFFDB00)
+                color = Color.White
             )
         }
 
@@ -1082,7 +1072,7 @@ fun SearchableDropdownWithCustomOption(
                     searchText = input
                     showCustomInput = false
                 },
-                label = { Text("Search", color = Color(0xFFFFDB00)) },
+                label = { Text("Search", color = Color.White) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
@@ -1113,7 +1103,7 @@ fun SearchableDropdownWithCustomOption(
                     onCustomInputChange(it)
                     onOptionSelected("Other")
                 },
-                label = { Text("Enter custom value", color = Color(0xFFFFDB00)) },
+                label = { Text("Enter custom value", color = Color.White) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
@@ -1356,17 +1346,21 @@ fun EnterEmailAndPasswordScreen(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterGenderCommunityReligionScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
-    // Sample predefined lists
-    val genderOptions = listOf("Male", "Female")
-    val communityOptions = listOf("Marwari", "Bengali", "Punjabi", "Tamil")
-    val religionOptions = listOf("Hindu", "Muslim", "Christian", "Other")
+    // Predefined lists for dropdown options
+    val genderOptions = listOf("Male", "Female", "Non-Binary", "Other")
+    val communityOptions = listOf("Marwari", "Bengali", "Punjabi", "Tamil", "Other")
+    val religionOptions = listOf("Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Other")
+
+    // Validation for enabling the "Next" button
+    val isNextEnabled = registrationViewModel.gender.isNotEmpty() &&
+            registrationViewModel.community.isNotEmpty() &&
+            registrationViewModel.religion.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -1376,72 +1370,96 @@ fun EnterGenderCommunityReligionScreen(
             )
         },
         content = { innerPadding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF1A1A1A)) // Updated background color
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
+                    .background(Color(0xFF1A1A1A))
+                    .padding(innerPadding)
+                    .padding(horizontal = 32.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
+                // Title
+                Text(
+                    text = "Enter Your Gender, Community, and Religion",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                // Gender Dropdown
+                Text(
+                    text = "Gender",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                DropdownWithSearch(
+                    title = "Select Gender",
+                    options = genderOptions,
+                    selectedOption = registrationViewModel.gender,
+                    onOptionSelected = { registrationViewModel.gender = it }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Community Dropdown
+                Text(
+                    text = "Community",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                DropdownWithSearch(
+                    title = "Select Community",
+                    options = communityOptions,
+                    selectedOption = registrationViewModel.community,
+                    onOptionSelected = { registrationViewModel.community = it }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Religion Dropdown
+                Text(
+                    text = "Religion",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                DropdownWithSearch(
+                    title = "Select Religion",
+                    options = religionOptions,
+                    selectedOption = registrationViewModel.religion,
+                    onOptionSelected = { registrationViewModel.religion = it }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Next Button
+                Button(
+                    onClick = { if (isNextEnabled) onNext() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 32.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .height(56.dp),
+                    enabled = isNextEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.Gray
+                    ),
+                    shape = CircleShape
                 ) {
-                    // Gender Dropdown
-                    DropdownWithSearch(
-                        title = "Select Gender",
-                        options = genderOptions,
-                        selectedOption = registrationViewModel.gender,
-                        onOptionSelected = { registrationViewModel.gender = it }
+                    Text(
+                        text = "Next",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Community Dropdown
-                    DropdownWithSearch(
-                        title = "Select Community",
-                        options = communityOptions,
-                        selectedOption = registrationViewModel.community,
-                        onOptionSelected = { registrationViewModel.community = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Religion Dropdown
-                    DropdownWithSearch(
-                        title = "Select Religion",
-                        options = religionOptions,
-                        selectedOption = registrationViewModel.religion,
-                        onOptionSelected = { registrationViewModel.religion = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Next Button
-                    Button(
-                        onClick = onNext,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = "Next",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
             }
         }
     )
 }
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1467,7 +1485,7 @@ fun DropdownWithSearch(
             border = BorderStroke(1.dp, Color(0xFFFF4500)),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF4500))
         ) {
-            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFFDB00))
+            Text(text = selectedOption.ifEmpty { "Select" }, color = Color.White)
         }
 
         DropdownMenu(
@@ -1480,7 +1498,7 @@ fun DropdownWithSearch(
             TextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search", color = Color(0xFFFFDB00)) },
+                label = { Text("Search", color = Color.White) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
@@ -1551,7 +1569,7 @@ fun EnterUsernameScreen(
                             isUsernameValid = true
                             usernameErrorMessage = ""
                         },
-                        label = { Text("Username", color = Color(0xFFFF4500)) },
+                        label = { Text("Username", color = Color.White) },
                         singleLine = true,
                         isError = !isUsernameValid,
                         supportingText = {
@@ -1568,8 +1586,8 @@ fun EnterUsernameScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF4500),
-                            focusedBorderColor = Color(0xFFFF4500),
+                            cursorColor = Color(0xFFFF6000),
+                            focusedBorderColor = Color(0xFFFF6000),
                             unfocusedBorderColor = Color(0xFFFFDB00)
                         )
                     )
@@ -1727,6 +1745,12 @@ fun EnterNameScreen(
 ) {
     val interestedOptions = listOf("Male", "Female")
 
+    // State to determine if the "Next" button can be enabled
+    val canProceed = registrationViewModel.name.isNotEmpty() &&
+            registrationViewModel.height > 0 &&
+            registrationViewModel.caste.isNotEmpty() &&
+            registrationViewModel.interestedIn.isNotEmpty()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -1789,46 +1813,47 @@ fun EnterNameScreen(
                         }
 
                         if (registrationViewModel.isHeightInFeet) {
-                            // Height in Feet + Inches
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 // Feet Input
-                                Box(modifier = Modifier.weight(1f)) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                ) {
                                     TextFieldWithLabel(
                                         label = "Feet",
-                                        value = registrationViewModel.height2
-                                            .getOrNull(0)?.toString() ?: "",
+                                        value = registrationViewModel.height2.getOrNull(0)?.toString() ?: "",
                                         onValueChange = { newFeet ->
                                             registrationViewModel.height2 = listOf(
                                                 newFeet.toIntOrNull() ?: 0,
-                                                registrationViewModel.height2
-                                                    .getOrNull(1) ?: 0
+                                                registrationViewModel.height2.getOrNull(1) ?: 0
                                             )
                                         }
                                     )
                                 }
 
                                 // Inches Input
-                                Box(modifier = Modifier.weight(1f)) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                ) {
                                     TextFieldWithLabel(
                                         label = "Inches",
-                                        value = registrationViewModel.height2
-                                            .getOrNull(1)?.toString() ?: "",
+                                        value = registrationViewModel.height2.getOrNull(1)?.toString() ?: "",
                                         onValueChange = { newInches ->
                                             registrationViewModel.height2 = listOf(
-                                                registrationViewModel.height2
-                                                    .getOrNull(0) ?: 0,
+                                                registrationViewModel.height2.getOrNull(0) ?: 0,
                                                 newInches.toIntOrNull() ?: 0
                                             )
                                         }
                                     )
                                 }
                             }
-                        } else {
-                            // Height in Centimeters
+                        }
+                         else {
                             TextFieldWithLabel(
                                 label = "Height (cm)",
                                 value = registrationViewModel.height.toString(),
@@ -1844,7 +1869,7 @@ fun EnterNameScreen(
                         // Caste Input using SearchableDropdownWithCustomOption
                         SearchableDropdownWithCustomOption(
                             title = "Caste",
-                            options = listOf("Brahmin", "Kshatriya", "Vaishya", "Shudra"), // Add predefined options
+                            options = listOf("Brahmin", "Kshatriya", "Vaishya", "Shudra"),
                             selectedOption = registrationViewModel.caste,
                             onOptionSelected = { selectedOption ->
                                 if (selectedOption != "Other") {
@@ -1875,7 +1900,6 @@ fun EnterNameScreen(
                                         .weight(1f)
                                         .padding(horizontal = 4.dp)
                                         .clip(CircleShape)
-                                        // If selected -> 0xFFFF6000, else black
                                         .background(
                                             if (isSelected)
                                                 Color(0xFFFF6000)
@@ -1895,7 +1919,6 @@ fun EnterNameScreen(
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(
-                                            // Keep it transparent so the Box color is visible
                                             containerColor = Color.Transparent
                                         ),
                                         contentPadding = PaddingValues(0.dp),
@@ -1913,12 +1936,17 @@ fun EnterNameScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
+                        // Next Button
                         Button(
-                            onClick = onNext,
+                            onClick = { if (canProceed) onNext() },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFF6000)
-                            )
+                                containerColor = if (canProceed)
+                                    Color(0xFFFF6000)
+                                else
+                                    Color.DarkGray
+                            ),
+                            enabled = canProceed
                         ) {
                             Text("Next", color = Color.White)
                         }
@@ -1929,7 +1957,6 @@ fun EnterNameScreen(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterBirthDateAndInterestsScreen(
@@ -1937,31 +1964,23 @@ fun EnterBirthDateAndInterestsScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
-
-    // ---------------------------------------------------------
-    // 1) Birth Date Spinners
-    // ---------------------------------------------------------
     val dayRange = (1..31).toList()
     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
     val yearRange = (1950..currentYear).toList().reversed()
     val monthNames = listOf(
-        "January","February","March","April","May","June",
-        "July","August","September","October","November","December"
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     )
 
-    // We'll store the currently selected day, month index, and year in states:
     var selectedDay by remember { mutableStateOf(dayRange[0]) }
     var selectedMonthIndex by remember { mutableStateOf(0) }
     var selectedYear by remember { mutableStateOf(yearRange[0]) }
 
-    // A helper to update the ViewModel's dob in "DD/MM/YYYY" format whenever spinners change
     fun updateDobInViewModel() {
-        val monthNumber = selectedMonthIndex + 1  // 0-based index -> actual month [1..12]
+        val monthNumber = selectedMonthIndex + 1
         registrationViewModel.dob = "$selectedDay/$monthNumber/$selectedYear"
     }
 
-    // If the user previously set a DOB, parse it when this composable first appears
     LaunchedEffect(Unit) {
         val storedDob = registrationViewModel.dob
         if (storedDob.isNotBlank()) {
@@ -1971,35 +1990,20 @@ fun EnterBirthDateAndInterestsScreen(
                 val parsedMonth = parts[1].toIntOrNull()
                 val parsedYear = parts[2].toIntOrNull()
 
-                if (parsedDay != null && parsedDay in dayRange) {
-                    selectedDay = parsedDay
-                }
-                if (parsedMonth != null && parsedMonth in 1..12) {
-                    selectedMonthIndex = parsedMonth - 1
-                }
-                if (parsedYear != null && parsedYear in yearRange) {
-                    selectedYear = parsedYear
-                }
+                if (parsedDay != null && parsedDay in dayRange) selectedDay = parsedDay
+                if (parsedMonth != null && parsedMonth in 1..12) selectedMonthIndex = parsedMonth - 1
+                if (parsedYear != null && parsedYear in yearRange) selectedYear = parsedYear
             }
         }
-        // Ensure that any read date is written back to the ViewModel
         updateDobInViewModel()
     }
 
-    // State to control the dropdown expansions for day, month, year
     var expandedDay by remember { mutableStateOf(false) }
     var expandedMonth by remember { mutableStateOf(false) }
     var expandedYear by remember { mutableStateOf(false) }
-
-    // We'll say the user has "selected a date" if registrationViewModel.dob is not empty
     val isDateSelected = registrationViewModel.dob.isNotBlank()
 
-    // ---------------------------------------------------------
-    // 2) City & Locality
-    // ---------------------------------------------------------
     val cities = listOf("Kolkata", "Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad")
-
-    // Provide localities for each city
     val cityLocalitiesMap = mapOf(
         "Kolkata" to listOf("Salt Lake", "New Town", "Dum Dum", "Behala", "Park Street"),
         "Mumbai" to listOf("Andheri", "Bandra", "Juhu", "Dadar"),
@@ -2011,11 +2015,8 @@ fun EnterBirthDateAndInterestsScreen(
 
     var selectedCity by remember { mutableStateOf(registrationViewModel.city) }
     var selectedLocality by remember { mutableStateOf(registrationViewModel.hometown) }
-
-    // The set of localities for the chosen city
     val localities = cityLocalitiesMap[selectedCity] ?: emptyList()
 
-    // Keep the ViewModel in sync whenever city or locality changes
     LaunchedEffect(selectedCity, selectedLocality) {
         registrationViewModel.city = selectedCity
         registrationViewModel.hometown = selectedLocality
@@ -2024,9 +2025,6 @@ fun EnterBirthDateAndInterestsScreen(
     var cityDropdownExpanded by remember { mutableStateOf(false) }
     var localityDropdownExpanded by remember { mutableStateOf(false) }
 
-    // ---------------------------------------------------------
-    // 3) Interests
-    // ---------------------------------------------------------
     // Global Interests
     val globalInterests = listOf(
         Interest("Music", "🎵"),
@@ -2034,14 +2032,16 @@ fun EnterBirthDateAndInterestsScreen(
         Interest("Sports", "⚽"),
         Interest("Books", "📚"),
         Interest("Travel", "✈️"),
-        Interest("Fitness", "💪")
+        Interest("Fitness", "💪"),
+        Interest("Art", "🎨"),
+        Interest("Gaming", "🎮")
     )
 
-    // City-specific Interests
+    // City-Specific Interests
     val citySpecificInterests = mapOf(
         "Kolkata" to listOf(
             Interest("Durga Puja", "🙏"),
-            Interest("Roshogolla", "🍰"),
+            Interest("Roshogolla", "⚪"),
             Interest("Jhalmuri", "🍿"),
             Interest("Victoria Memorial", "🏛️")
         ),
@@ -2077,7 +2077,7 @@ fun EnterBirthDateAndInterestsScreen(
         )
     )
 
-    // Locality-specific Interests
+    // Locality-Specific Interests
     val cityLocalitiesInterestsMap = mapOf(
         "Kolkata" to mapOf(
             "Salt Lake" to listOf(
@@ -2088,54 +2088,87 @@ fun EnterBirthDateAndInterestsScreen(
                 Interest("Eco Park", "🌳"),
                 Interest("City Centre 2", "🛍️")
             ),
-            "Dum Dum" to listOf(
-                Interest("Dum Dum Park", "🌲"),
-                Interest("Airport Vicinity", "✈️")
-            ),
-            "Behala" to listOf(
-                Interest("Behala Chowrasta", "🏬"),
-                Interest("Manton Market", "🛒")
-            ),
             "Park Street" to listOf(
-                Interest("Park Street Cafes", "☕"),
-                Interest("Nightlife", "🌃")
+                Interest("Nightlife", "🌃"),
+                Interest("Park Street Cafes", "☕")
             )
         ),
         "Mumbai" to mapOf(
-            "Andheri" to listOf(Interest("Versova Beach", "🏖️"), Interest("Nightclubs", "🎶")),
-            "Bandra" to listOf(Interest("Bandstand", "🌊"), Interest("Carter Road", "🌅")),
-            "Juhu" to listOf(Interest("Juhu Beach", "🏖️"), Interest("Street Food", "🌯")),
-            "Dadar" to listOf(Interest("Dadar Market", "🛒"), Interest("Local Temples", "🕌"))
+            "Andheri" to listOf(
+                Interest("Versova Beach", "🏖️"),
+                Interest("Nightclubs", "🎶")
+            ),
+            "Bandra" to listOf(
+                Interest("Bandstand", "🌊"),
+                Interest("Carter Road Cafes", "☕")
+            ),
+            "Dadar" to listOf(
+                Interest("Local Markets", "🛍️"),
+                Interest("Traditional Temples", "🏯")
+            )
         ),
         "Delhi" to mapOf(
-            "Dwarka" to listOf(Interest("Sector 13 Market", "🛍️"), Interest("Dwarka Mor", "🚇")),
-            "Preet Vihar" to listOf(Interest("Local Eateries", "🌮"), Interest("V3S Mall", "🛍️")),
-            "Connaught Place" to listOf(Interest("CP Cafes", "☕"), Interest("British Era Buildings", "🏛️")),
-            "Saket" to listOf(Interest("Select Citywalk", "🛍️"), Interest("Night Spots", "🌃"))
+            "Dwarka" to listOf(
+                Interest("Metro Connectivity", "🚇"),
+                Interest("Shopping Hubs", "🛒")
+            ),
+            "Preet Vihar" to listOf(
+                Interest("Street Food", "🌮"),
+                Interest("Malls", "🏬")
+            ),
+            "Connaught Place" to listOf(
+                Interest("Nightlife", "🌆"),
+                Interest("Colonial Era Buildings", "🏛️")
+            )
         ),
         "Bangalore" to mapOf(
-            "Whitefield" to listOf(Interest("IT Parks", "💻"), Interest("Phoenix Marketcity", "🛍️")),
-            "MG Road" to listOf(Interest("Pub Culture", "🍻"), Interest("Boulevards", "🌳")),
-            "Koramangala" to listOf(Interest("Startup Offices", "🚀"), Interest("Cafes", "☕")),
-            "Jayanagar" to listOf(Interest("Shopping Complex", "🛍️"), Interest("Food Streets", "🌮"))
+            "Whitefield" to listOf(
+                Interest("Phoenix Marketcity", "🏬"),
+                Interest("IT Parks", "💻")
+            ),
+            "Koramangala" to listOf(
+                Interest("Startup Ecosystem", "🚀"),
+                Interest("Cafes & Lounges", "☕")
+            ),
+            "MG Road" to listOf(
+                Interest("Pub Culture", "🍻"),
+                Interest("Shopping Streets", "🛍️")
+            )
         ),
         "Chennai" to mapOf(
-            "Adyar" to listOf(Interest("Theosophical Society", "🌳"), Interest("Adyar Estuary", "🦆")),
-            "T. Nagar" to listOf(Interest("Pondy Bazaar", "🛍️"), Interest("Silk Sarees", "👗")),
-            "Besant Nagar" to listOf(Interest("Elliot's Beach", "🏖️"), Interest("Cafes & Eateries", "🍟")),
-            "Nungambakkam" to listOf(Interest("Shopping Malls", "🛍️"), Interest("High-End Boutiques", "👛"))
+            "Adyar" to listOf(
+                Interest("Theosophical Society", "🌳"),
+                Interest("Adyar Estuary", "🌊")
+            ),
+            "T. Nagar" to listOf(
+                Interest("Pondy Bazaar", "🛍️"),
+                Interest("Silk Sarees Shopping", "👗")
+            ),
+            "Besant Nagar" to listOf(
+                Interest("Elliot's Beach", "🏖️"),
+                Interest("Cafes & Eateries", "🍟")
+            )
         ),
         "Hyderabad" to mapOf(
-            "Charminar" to listOf(Interest("Old City Heritage", "🕌"), Interest("Lac Bangles", "🎨")),
-            "Hitec City" to listOf(Interest("IT Corridor", "💻"), Interest("Upscale Eateries", "🍽️")),
-            "Banjara Hills" to listOf(Interest("High-End Restaurants", "🍲"), Interest("Nightlife", "🌃")),
-            "Secunderabad" to listOf(Interest("Railway Heritage", "🚂"), Interest("Old Cantonment", "🏰"))
+            "Charminar" to listOf(
+                Interest("Old City Shopping", "🕌"),
+                Interest("Lac Bangles", "🎨")
+            ),
+            "Hitec City" to listOf(
+                Interest("IT Corridors", "💻"),
+                Interest("High-End Cafes", "☕")
+            ),
+            "Banjara Hills" to listOf(
+                Interest("Upscale Restaurants", "🍴"),
+                Interest("Luxury Shopping", "👜")
+            )
         )
     )
 
-    // ---------------------------------------------------------
-    // UI Composable Layout
-    // ---------------------------------------------------------
+    val isNextEnabled = isDateSelected &&
+            selectedCity.isNotEmpty() &&
+            selectedLocality.isNotEmpty()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -2154,7 +2187,6 @@ fun EnterBirthDateAndInterestsScreen(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Section Title
                 Text(
                     text = "Enter Birth Date and Interests",
                     color = Color.White,
@@ -2163,69 +2195,64 @@ fun EnterBirthDateAndInterestsScreen(
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                // -----------------------------------------------------
-                // A) Birth Date (spinner-style)
-                // -----------------------------------------------------
+                // Birth Date Section
                 Text("Select Birth Date", color = Color.White, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // We'll place day, month, and year spinners in a Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Day Spinner
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { expandedDay = true },
-                            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color(0xFFFFDB00)
+                                contentColor = Color.White
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("$selectedDay", color = Color(0xFFFFDB00))
+                            Text("$selectedDay", color = Color.White)
                         }
                         DropdownMenu(
                             expanded = expandedDay,
                             onDismissRequest = { expandedDay = false },
-                            modifier = Modifier
-                                .background(Color(0xFF1A1A1A))
+                            modifier = Modifier.background(Color(0xFF1A1A1A))
                         ) {
-                            dayRange.forEach { day ->
+                            dayRange.forEachIndexed { index, day ->
                                 DropdownMenuItem(
-                                    text = { Text(text = "$day", color = Color.White) },
+                                    text = { Text("$day", color = Color.White) },
                                     onClick = {
                                         selectedDay = day
                                         expandedDay = false
                                         updateDobInViewModel()
                                     }
                                 )
+                                if (index != dayRange.lastIndex) {
+                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp) // Add divider between items
+                                }
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Month Spinner
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { expandedMonth = true },
-                            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color(0xFFFFDB00)
+                                contentColor = Color.White
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(monthNames[selectedMonthIndex], color = Color(0xFFFFDB00))
+                            Text(monthNames[selectedMonthIndex], color = Color.White)
                         }
                         DropdownMenu(
                             expanded = expandedMonth,
                             onDismissRequest = { expandedMonth = false },
-                            modifier = Modifier
-                                .background(Color(0xFF1A1A1A))
+                            modifier = Modifier.background(Color(0xFF1A1A1A))
                         ) {
                             monthNames.forEachIndexed { index, monthName ->
                                 DropdownMenuItem(
@@ -2236,32 +2263,33 @@ fun EnterBirthDateAndInterestsScreen(
                                         updateDobInViewModel()
                                     }
                                 )
+                                if (index != monthNames.lastIndex) {
+                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
+                                }
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Year Spinner
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { expandedYear = true },
-                            border = BorderStroke(1.dp, Color(0xFFFF4500)),
+                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color(0xFFFFDB00)
+                                contentColor = Color.White
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("$selectedYear", color = Color(0xFFFFDB00))
+                            Text("$selectedYear", color = Color.White)
                         }
                         DropdownMenu(
                             expanded = expandedYear,
                             onDismissRequest = { expandedYear = false },
-                            modifier = Modifier
-                                .background(Color(0xFF1A1A1A))
+                            modifier = Modifier.background(Color(0xFF1A1A1A))
                         ) {
-                            yearRange.forEach { yr ->
+                            yearRange.forEachIndexed { index, yr ->
                                 DropdownMenuItem(
                                     text = { Text("$yr", color = Color.White) },
                                     onClick = {
@@ -2270,102 +2298,97 @@ fun EnterBirthDateAndInterestsScreen(
                                         updateDobInViewModel()
                                     }
                                 )
+                                if (index != yearRange.lastIndex) {
+                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
+                                }
                             }
                         }
                     }
                 }
 
-                // -----------------------------------------------------
-                // B) City
-                // -----------------------------------------------------
                 Spacer(modifier = Modifier.height(24.dp))
+
+                // City Section
                 Text("Select Your City", color = Color.White, fontSize = 18.sp)
                 Box {
                     OutlinedButton(
                         onClick = { cityDropdownExpanded = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFF6000)),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color(0xFF1A1A1A),
-                            contentColor = Color(0xFFFFDB00)
+                            contentColor = Color.White
                         ),
-                        border = BorderStroke(1.dp, Color(0xFFFF4500))
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = if (selectedCity.isNotEmpty()) selectedCity else "Select City",
-                            color = Color(0xFFFFDB00)
+                            color = Color.White
                         )
                     }
                     DropdownMenu(
                         expanded = cityDropdownExpanded,
                         onDismissRequest = { cityDropdownExpanded = false },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF1A1A1A))
+                        modifier = Modifier.background(Color(0xFF1A1A1A))
                     ) {
-                        cities.forEach { city ->
+                        cities.forEachIndexed { index, city ->
                             DropdownMenuItem(
                                 text = { Text(city, color = Color.White) },
                                 onClick = {
                                     selectedCity = city
                                     cityDropdownExpanded = false
-                                    // Reset the selected locality each time city changes
                                     selectedLocality = ""
                                 }
                             )
-                        }
-                    }
-                }
-
-                // -----------------------------------------------------
-                // C) Locality
-                // -----------------------------------------------------
-                if (selectedCity.isNotEmpty()) {
-                    Text("Select Your Locality", color = Color.White, fontSize = 18.sp)
-                    Box {
-                        OutlinedButton(
-                            onClick = { localityDropdownExpanded = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color(0xFFFFDB00)
-                            ),
-                            border = BorderStroke(1.dp, Color(0xFFFF4500))
-                        ) {
-                            Text(
-                                text = if (selectedLocality.isNotEmpty()) selectedLocality else "Select Locality",
-                                color = Color(0xFFFFDB00)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = localityDropdownExpanded,
-                            onDismissRequest = { localityDropdownExpanded = false },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF1A1A1A))
-                        ) {
-                            val localitiesList = cityLocalitiesMap[selectedCity] ?: emptyList()
-                            localitiesList.forEach { loc ->
-                                DropdownMenuItem(
-                                    text = { Text(loc, color = Color.White) },
-                                    onClick = {
-                                        selectedLocality = loc
-                                        localityDropdownExpanded = false
-                                    }
-                                )
+                            if (index != cities.lastIndex) {
+                                Divider(color = Color(0xFFFF6000), thickness = 1.dp)
                             }
                         }
                     }
                 }
 
-                // -----------------------------------------------------
-                // D) Global Interests
-                // -----------------------------------------------------
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Global Interests", color = Color(0xFFFFDB00), fontSize = 16.sp)
+                if (selectedCity.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Select Your Locality", color = Color.White, fontSize = 18.sp)
+                    Box {
+                        OutlinedButton(
+                            onClick = { localityDropdownExpanded = true },
+                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color(0xFF1A1A1A),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (selectedLocality.isNotEmpty()) selectedLocality else "Select Locality",
+                                color = Color.White
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = localityDropdownExpanded,
+                            onDismissRequest = { localityDropdownExpanded = false },
+                            modifier = Modifier.background(Color(0xFF1A1A1A))
+                        ) {
+                            localities.forEachIndexed { index, locality ->
+                                DropdownMenuItem(
+                                    text = { Text(locality, color = Color.White) },
+                                    onClick = {
+                                        selectedLocality = locality
+                                        localityDropdownExpanded = false
+                                    }
+                                )
+                                if (index != localities.lastIndex) {
+                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Global Interests Section
+                Text("Global Interests", color = Color.White, fontSize = 18.sp)
                 Column(modifier = Modifier.fillMaxWidth()) {
                     globalInterests.forEach { interest ->
                         val isSelected = registrationViewModel.interests.contains(interest)
@@ -2386,121 +2409,106 @@ fun EnterBirthDateAndInterestsScreen(
                                 checked = isSelected,
                                 onCheckedChange = null,
                                 colors = CheckboxDefaults.colors(
-                                    checkedColor = Color(0xFFFF4500),
+                                    checkedColor = Color(0xFFFF6000),
                                     uncheckedColor = Color.White
                                 )
                             )
                             Text(
                                 text = "${interest.emoji} ${interest.name}",
-                                color = if (isSelected) Color(0xFFFF4500) else Color.White
+                                color = if (isSelected) Color(0xFFFF6000) else Color.White
                             )
                         }
                     }
                 }
 
-                // -----------------------------------------------------
-                // E) City-Specific Interests
-                // -----------------------------------------------------
+                // City-Specific Interests Section
                 if (selectedCity.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Interests in $selectedCity", color = Color(0xFFFFDB00), fontSize = 16.sp)
-                    citySpecificInterests[selectedCity]?.forEach { interest ->
-                        val isSelected = registrationViewModel.interests.contains(interest)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clickable {
-                                    if (isSelected) {
-                                        registrationViewModel.interests.remove(interest)
-                                    } else {
-                                        registrationViewModel.interests.add(interest)
-                                    }
-                                },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null,
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = Color(0xFFFF4500),
-                                    uncheckedColor = Color.White
+                    Text("Interests in $selectedCity", color = Color.White, fontSize = 18.sp)
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        citySpecificInterests[selectedCity]?.forEach { interest ->
+                            val isSelected = registrationViewModel.interests.contains(interest)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clickable {
+                                        if (isSelected) {
+                                            registrationViewModel.interests.remove(interest)
+                                        } else {
+                                            registrationViewModel.interests.add(interest)
+                                        }
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = null,
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = Color(0xFFFF6000),
+                                        uncheckedColor = Color.White
+                                    )
                                 )
-                            )
-                            Text(
-                                text = "${interest.emoji} ${interest.name}",
-                                color = if (isSelected) Color(0xFFFF4500) else Color.White
-                            )
+                                Text(
+                                    text = "${interest.emoji} ${interest.name}",
+                                    color = if (isSelected) Color(0xFFFF6000) else Color.White
+                                )
+                            }
                         }
                     }
                 }
 
-                // -----------------------------------------------------
-                // F) Locality-Specific Interests
-                // -----------------------------------------------------
+                // Locality-Specific Interests Section
                 if (selectedCity.isNotEmpty() && selectedLocality.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Interests in $selectedLocality", color = Color(0xFFFFDB00), fontSize = 16.sp)
-                    val cityMap = cityLocalitiesInterestsMap[selectedCity]
-                    val localityInterests = cityMap?.get(selectedLocality) ?: emptyList()
-                    localityInterests.forEach { interest ->
-                        val isSelected = registrationViewModel.interests.contains(interest)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clickable {
-                                    if (isSelected) {
-                                        registrationViewModel.interests.remove(interest)
-                                    } else {
-                                        registrationViewModel.interests.add(interest)
-                                    }
-                                },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null,
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = Color(0xFFFF4500),
-                                    uncheckedColor = Color.White
+                    Text("Interests in $selectedLocality", color = Color.White, fontSize = 18.sp)
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        cityLocalitiesInterestsMap[selectedCity]?.get(selectedLocality)?.forEach { interest ->
+                            val isSelected = registrationViewModel.interests.contains(interest)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clickable {
+                                        if (isSelected) {
+                                            registrationViewModel.interests.remove(interest)
+                                        } else {
+                                            registrationViewModel.interests.add(interest)
+                                        }
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = null,
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = Color(0xFFFF6000),
+                                        uncheckedColor = Color.White
+                                    )
                                 )
-                            )
-                            Text(
-                                text = "${interest.emoji} ${interest.name}",
-                                color = if (isSelected) Color(0xFFFF4500) else Color.White
-                            )
+                                Text(
+                                    text = "${interest.emoji} ${interest.name}",
+                                    color = if (isSelected) Color(0xFFFF6000) else Color.White
+                                )
+                            }
                         }
                     }
                 }
 
-                // -----------------------------------------------------
-                // G) Next Button
-                // -----------------------------------------------------
                 Spacer(modifier = Modifier.height(24.dp))
 
-                val isNextEnabled = isDateSelected
-                        && selectedCity.isNotEmpty()
-                        && selectedLocality.isNotEmpty()
-
                 Button(
-                    onClick = onNext,
+                    onClick = { if (isNextEnabled) onNext() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     enabled = isNextEnabled,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isNextEnabled) Color(0xFFFFDB00) else Color.Gray
+                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.DarkGray
                     ),
-                    shape = CircleShape,
-                    elevation = ButtonDefaults.buttonElevation(8.dp)
+                    shape = CircleShape
                 ) {
-                    Text(
-                        text = "Next",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Next", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2521,12 +2529,16 @@ fun UploadMediaComposable(
 
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
-    var isVoiceBioValid by remember { mutableStateOf(true) } // Validates if the voice bio is under 60 seconds
+    var isVoiceBioValid by remember { mutableStateOf(true) }
     var voiceFilePath by remember { mutableStateOf(File(context.filesDir, "voice_note.mp3").absolutePath) }
     var voiceProgress by remember { mutableStateOf(0f) }
-    var voiceDuration by remember { mutableStateOf(0L) } // Length of the voice recording in milliseconds
+    var voiceDuration by remember { mutableStateOf(0L) }
 
     val mediaPlayer = remember { MediaPlayer() }
+
+    val canProceed = registrationViewModel.profilePictureUri != null &&
+            isVoiceBioValid &&
+            registrationViewModel.voiceNoteUri != null
 
     // Profile Picture Picker
     val profilePicPickerLauncher = rememberLauncherForActivityResult(
@@ -2550,48 +2562,52 @@ fun UploadMediaComposable(
         }
     )
 
-    // Function to validate voice bio duration
     fun validateVoiceBio() {
         try {
             val tempPlayer = MediaPlayer()
             tempPlayer.setDataSource(voiceFilePath)
             tempPlayer.prepare()
-            voiceDuration = tempPlayer.duration.toLong() // Duration in milliseconds
+            voiceDuration = tempPlayer.duration.toLong()
             tempPlayer.release()
-            isVoiceBioValid = voiceDuration <= 60000 // Check if under 60 seconds
+            isVoiceBioValid = voiceDuration <= 60000
         } catch (e: Exception) {
             Log.e("VoiceValidation", "Error validating voice duration: ${e.message}")
             isVoiceBioValid = false
         }
     }
 
-    // Toggle recording state
-    val toggleRecording: () -> Unit = {
-        if (isRecording) {
-            // Stop recording
-            try {
-                isRecording = false
-                registrationViewModel.stopVoiceRecording()
-                registrationViewModel.voiceNoteUri = Uri.fromFile(File(voiceFilePath))
-                validateVoiceBio() // Validate the length of the recording
-                if (isVoiceBioValid) {
-                    uploadVoiceToFirebase(storageRef, registrationViewModel.voiceNoteUri!!, registrationViewModel)
-                }
-            } catch (e: Exception) {
-                Log.e("Recording", "Failed to stop recording: ${e.message}")
-            }
+    val permissions = arrayOf(
+        android.Manifest.permission.RECORD_AUDIO,
+        android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        android.Manifest.permission.READ_EXTERNAL_STORAGE
+    )
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissionsResult ->
+        val granted = permissionsResult.values.all { it }
+        if (!granted) {
+            Toast.makeText(context, "Permissions are required for recording audio", Toast.LENGTH_SHORT).show()
         } else {
-            // Start recording
-            try {
-                isRecording = true
-                registrationViewModel.startVoiceRecording(context, voiceFilePath)
-            } catch (e: Exception) {
-                Log.e("Recording", "Failed to start recording: ${e.message}")
-            }
+            isRecording = true
+            registrationViewModel.startVoiceRecording(context, voiceFilePath)
         }
     }
 
-    // Toggle playback state
+    val toggleRecording: () -> Unit = {
+        if (isRecording) {
+            isRecording = false
+            registrationViewModel.stopVoiceRecording()
+            registrationViewModel.voiceNoteUri = Uri.fromFile(File(voiceFilePath))
+            validateVoiceBio()
+            if (isVoiceBioValid) {
+                uploadVoiceToFirebase(storageRef, registrationViewModel.voiceNoteUri!!, registrationViewModel)
+            }
+        } else {
+            permissionLauncher.launch(permissions) // Request permissions before recording
+        }
+    }
+
+
     val togglePlayback: () -> Unit = {
         if (isPlaying) {
             mediaPlayer.pause()
@@ -2601,18 +2617,17 @@ fun UploadMediaComposable(
                 mediaPlayer.reset()
                 mediaPlayer.setDataSource(
                     registrationViewModel.voiceNoteUri?.path ?: voiceFilePath
-                ) // Use the uploaded file URI or local file
+                )
                 mediaPlayer.prepare()
                 mediaPlayer.start()
                 isPlaying = true
-                voiceDuration = mediaPlayer.duration.toLong().coerceAtLeast(1L) // Ensure duration is valid
+                voiceDuration = mediaPlayer.duration.toLong().coerceAtLeast(1L)
             } catch (e: IOException) {
                 Log.e("MediaPlayer", "Playback Error: ${e.message}")
             }
         }
     }
 
-    // Slider progress update
     LaunchedEffect(isPlaying) {
         while (isPlaying && mediaPlayer.isPlaying) {
             voiceProgress = (mediaPlayer.currentPosition / voiceDuration.toFloat()).coerceIn(0f, 1f)
@@ -2624,7 +2639,6 @@ fun UploadMediaComposable(
         }
     }
 
-    // Dispose media player resources
     DisposableEffect(Unit) {
         onDispose {
             mediaPlayer.release()
@@ -2661,15 +2675,15 @@ fun UploadMediaComposable(
                             modifier = Modifier
                                 .size(110.dp)
                                 .border(2.dp, Color(0xFFFF6000), CircleShape)
-                                .clickable {
-                                    profilePicPickerLauncher.launch("image/*")
-                                }
+                                .clickable { profilePicPickerLauncher.launch("image/*") }
                         ) {
                             if (registrationViewModel.profilePictureUri != null) {
                                 AsyncImage(
                                     model = registrationViewModel.profilePictureUri,
                                     contentDescription = "Profile Picture",
-                                    modifier = Modifier.size(100.dp).clip(CircleShape)
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(CircleShape)
                                 )
                             } else {
                                 Text("Tap", color = Color.White, fontSize = 14.sp)
@@ -2681,9 +2695,7 @@ fun UploadMediaComposable(
                         // Optional Photos Section
                         Text("Optional Photos", color = Color.White, fontSize = 18.sp)
                         LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(registrationViewModel.optionalPhotoUris) { uri ->
@@ -2757,12 +2769,14 @@ fun UploadMediaComposable(
 
                         // Next Button
                         Button(
-                            onClick = onNext,
+                            onClick = { if (canProceed) onNext() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
-                            shape = CircleShape
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
+                            ),
+                            enabled = canProceed
                         ) {
                             Text("Next", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
@@ -2772,7 +2786,6 @@ fun UploadMediaComposable(
         }
     )
 }
-
 
 
 fun uploadOptionalPhoto(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
@@ -2824,7 +2837,7 @@ fun EnterProfileHeadlineScreen(
                             headline = it
                             registrationViewModel.bio = it.text
                         },
-                        label = { Text("One-liner Bio (optional)", color = Color(0xFFFFDB00)) },
+                        label = { Text("Bio (optional)", color = Color(0xFFFF6000)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2834,7 +2847,7 @@ fun EnterProfileHeadlineScreen(
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFFFF4500),
                             focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFFDB00)
+                            unfocusedBorderColor = Color(0xFFFF6000)
                         )
                     )
 
@@ -2847,7 +2860,7 @@ fun EnterProfileHeadlineScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
                         shape = CircleShape,
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {

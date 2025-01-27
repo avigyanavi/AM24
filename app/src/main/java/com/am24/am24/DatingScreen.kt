@@ -87,10 +87,21 @@ fun DatingScreen(
     val filters by datingViewModel.datingFilters.collectAsState()
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
     val isLoading by datingViewModel.isLoading.collectAsState()
+    val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
 
     val remainingSwipes = remember { mutableStateOf(50) } // Swipe counter
     val coroutineScope = rememberCoroutineScope()
     val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
+
+    var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
+
+    // Fetch excluded users (matched or liked recently)
+    LaunchedEffect(Unit) {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        if (currentUserId != null) {
+            excludedUserIds = fetchExcludedUsers(currentUserId)
+        }
+    }
 
     // Save Filters Functionality
     val saveFilters: () -> Unit = {
@@ -98,7 +109,6 @@ fun DatingScreen(
         datingViewModel.refreshFilteredProfiles()
         coroutineScope.launch { bottomSheetState.hide() } // Close the bottom sheet
     }
-
 
     ModalBottomSheetLayout(
         sheetState = bottomSheetState,
@@ -181,15 +191,16 @@ fun DatingScreen(
                         CircularProgressIndicator(color = Color(0xFFFF6F00))
                     }
                 } else {
-                    if (filteredProfiles.isEmpty()) {
+                    val displayedProfiles = filteredProfiles.filter { it.userId !in excludedUserIds }
+                    if (displayedProfiles.isEmpty()) {
                         NoMoreProfilesScreen()
                     } else {
                         DatingScreenContent(
                             navController = navController,
                             geoFire = geoFire,
-                            profiles = filteredProfiles,
-                            profileViewModel = profileViewModel,  // Passing profileViewModel
-                            postViewModel = postViewModel,        // Passing postViewModel
+                            profiles = displayedProfiles,
+                            profileViewModel = profileViewModel,
+                            postViewModel = postViewModel,
                             onSwipeRight = {
                                 if (remainingSwipes.value > 0) remainingSwipes.value -= 1
                             },
@@ -201,6 +212,22 @@ fun DatingScreen(
                 }
             }
         }
+    }
+
+    // Match Pop-Up
+    matchPopUpState?.let { (currentUserProfile, matchedUserProfile) ->
+        MatchPopUp(
+            currentUserProfilePic = currentUserProfile.profilepicUrl.orEmpty(),
+            otherUserProfilePic = matchedUserProfile.profilepicUrl.orEmpty(),
+            onChatClick = {
+                navController.navigate("chat/${matchedUserProfile.userId}")
+                profileViewModel.clearMatchPopUp()
+            },
+            onClose = { profileViewModel.clearMatchPopUp() },
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.8f))
+        )
     }
 }
 

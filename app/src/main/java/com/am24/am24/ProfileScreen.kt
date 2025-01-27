@@ -1,7 +1,8 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 
 package com.am24.am24
 
+import android.media.MediaPlayer
 import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -30,6 +31,7 @@ import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.White
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -167,7 +169,6 @@ fun ProfileLazyScreen(
 // Right below the carousel, show the user’s voice note if it exists:
         item {
             if (!profile.voiceNoteUrl.isNullOrEmpty()) {
-                // Some heading maybe:
                 Text(
                     text = "Voice Bio",
                     color = Color.White,
@@ -175,11 +176,9 @@ fun ProfileLazyScreen(
                     fontSize = 16.sp,
                     modifier = Modifier.padding(16.dp)
                 )
-                // e.g., a small placeholder or an actual audio player
-                VoicePostPlaceholder() // or VoicePlayer(url = profile.voiceNoteUrl)
+                VoicePlayer(url = profile.voiceNoteUrl)
             }
         }
-
 
         // 2) Collapsible sections
         item {
@@ -610,10 +609,11 @@ fun BasicInfoSection(profile: Profile) {
     ProfileDetailRow("Religion", profile.religion, Icons.Default.Church)
 }
 
-/** Preferences (View-Only) */
 @Composable
 fun PreferencesSection(profile: Profile) {
-    ProfileDetailRow("Looking For", profile.lookingFor, Icons.Default.Favorite)
+    val lookingForText = profile.lookingFor?.takeIf { it.isNotBlank() }
+        ?: "Looking For is not selected by this user"
+    ProfileDetailRow("Looking For", lookingForText, Icons.Default.Favorite)
 }
 
 /** Lifestyle (View-Only) */
@@ -621,17 +621,107 @@ fun PreferencesSection(profile: Profile) {
 fun LifestyleSection(profile: Profile) {
     Column {
         profile.lifestyle?.let {
-            LifestyleSlider("Smoking Level", it.smoking, Icons.Default.SmokingRooms)
-            LifestyleSlider("Drinking Level", it.drinking, Icons.Default.LocalDrink)
-            LifestyleDropdown("Diet", it.diet)
-            LifestyleSlider("Indoorsy to Outdoorsy", it.indoorsyToOutdoorsy, Icons.Default.DirectionsWalk)
-            LifestyleSlider("Social Butterfly", it.socialMedia, Icons.Default.Groups2)
-            LifestyleSlider("Work-Life Balance", it.workLifeBalance, Icons.Default.WorkOff)
-            LifestyleSlider("Exercise Frequency", it.exerciseFrequency, Icons.Default.SportsGymnastics)
-            LifestyleSlider("Family-Oriented", it.familyOriented, Icons.Default.FamilyRestroom)
+            if (it.smoking != -1) LifestyleSlider("Smoking", it.smoking, Icons.Default.SmokingRooms)
+            if (it.drinking != -1) LifestyleSlider("Drinking", it.drinking, Icons.Default.LocalDrink)
+            if (it.indoorsyToOutdoorsy != -1) LifestyleSlider("Going out", it.indoorsyToOutdoorsy, Icons.Default.DirectionsWalk)
+            if (it.socialMedia != -1) LifestyleSlider("Extraversion/Introversion", it.socialMedia, Icons.Default.Groups2)
+            if (it.workLifeBalance != -1) LifestyleSlider("Work-Life Balance", it.workLifeBalance, Icons.Default.WorkOff)
+            if (it.exerciseFrequency != -1) LifestyleSlider("Exercise Frequency", it.exerciseFrequency, Icons.Default.SportsGymnastics)
+            if (it.familyOriented != -1) LifestyleSlider("Family-Oriented", it.familyOriented, Icons.Default.FamilyRestroom)
+            if (it.diet.isNotBlank()) LifestyleDropdown("Diet", it.diet, Icons.Default.Restaurant)
         }
     }
 }
+
+
+
+@Composable
+fun VoicePlayer(url: String) {
+    var isPlaying by remember { mutableStateOf(false) }
+    var elapsedTime by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    val mediaPlayer = remember { MediaPlayer() }
+    val durationInSeconds = remember { mutableStateOf(0) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(url) {
+        try {
+            mediaPlayer.setDataSource(url)
+            mediaPlayer.prepareAsync()
+            mediaPlayer.setOnPreparedListener {
+                durationInSeconds.value = it.duration / 1000
+            }
+            mediaPlayer.setOnCompletionListener {
+                isPlaying = false
+                elapsedTime = 0
+            }
+        } catch (e: Exception) {
+            Log.e("VoicePlayer", "Error loading audio: ${e.message}")
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.stop()
+            }
+            mediaPlayer.release()
+        }
+    }
+
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            coroutineScope.launch {
+                while (isPlaying && elapsedTime < durationInSeconds.value) {
+                    delay(1000)
+                    elapsedTime++
+                }
+            }
+        } else {
+            elapsedTime = 0
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(Color(0xFF1A1A1A), shape = RoundedCornerShape(8.dp))
+            .clickable {
+                isPlaying = if (mediaPlayer.isPlaying) {
+                    mediaPlayer.pause()
+                    false
+                } else {
+                    mediaPlayer.start()
+                    true
+                }
+            },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+            contentDescription = if (isPlaying) "Pause Audio" else "Play Audio",
+            tint = Color(0xFFFFBF00),
+            modifier = Modifier.padding(8.dp)
+        )
+        Text(
+            text = if (isPlaying) "Playing: $elapsedTime s" else "Tap to Play Voice Bio",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        if (durationInSeconds.value > 0) {
+            Text(
+                text = "${elapsedTime}s / ${durationInSeconds.value}s",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+        }
+    }
+}
+
 
 /** Interests (View-Only) */
 @OptIn(ExperimentalLayoutApi::class)
@@ -1076,15 +1166,15 @@ fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color(0xFFFF6F00),
+                tint = Color.White,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(text = label, color = Color(0xFFFF6F00), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Text(
                     text = value,
-                    color = Color(0xFFFF6F00),
+                    color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Normal
                 )
@@ -1098,7 +1188,8 @@ fun InterestTag(label: String) {
     Box(
         modifier = Modifier
             .padding(4.dp)
-            .background(Color(0xFFFF6F00), shape = CircleShape)
+            .background(Color.Black, shape = CircleShape)
+            .border(2.dp, Color(0xFFFF6F00), CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(text = label, color = Color.White, fontSize = 14.sp)
@@ -1111,7 +1202,7 @@ fun VoicePostPlaceholder() {
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .background(Color(0xFF333333)),
+            .background(Color(0xFF1A1A1A)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -1168,13 +1259,37 @@ fun PostItemInProfile(post: Post) {
 }
 
 @Composable
-fun LifestyleDropdown(label: String, value: String) {
-    Text(
-        text = "$label: $value",
-        color = Color.White,
-        fontSize = 16.sp
-    )
+fun LifestyleDropdown(label: String, value: String?, icon: ImageVector) {
+    val displayValue = value?.takeIf { it.isNotBlank() } ?: "No $label selected"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = "$label Icon",
+            tint = Color.White,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = displayValue,
+                color = Color.White,
+                fontSize = 16.sp
+            )
+        }
+    }
 }
+
 
 @Composable
 fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
@@ -1184,7 +1299,7 @@ fun LifestyleSlider(label: String, value: Int, icon: ImageVector) {
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = label, tint = Color(0xFFFF6F00))
+        Icon(imageVector = icon, contentDescription = label, tint = Color.White)
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
