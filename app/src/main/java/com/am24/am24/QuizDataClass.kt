@@ -1,5 +1,3 @@
-package com.am24.am24
-
 data class CityChallenge(
     val id: String = "", // Unique identifier for the challenge
     val title: String = "", // Title of the challenge
@@ -16,13 +14,16 @@ data class Step(
 )
 
 data class Choice(
+    val id: String = "", // Unique identifier for the choice
     val text: String = "", // The choice text shown to the user
     val nextStepId: String? = null, // The ID of the next step, if applicable
-    val endingId: String? = null // The ID of the ending, if this choice leads to an ending
+    val endingId: String? = null, // The ID of the ending, if this choice leads to an ending
+    val selectionCount: Int = 0 // Total number of times this choice was selected
 )
 
 data class Ending(
     val id: String = "", // Unique identifier for the ending
     val title: String = "", // Title or summary of the ending
-    val description: String = "" // Detailed explanation or resolution for the ending
+    val description: String = "", // Detailed explanation or resolution for the ending
+    val selectionCount: Int = 0 // Total number of times this ending was reached
 )

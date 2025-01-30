@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import CityChallenge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -146,34 +147,47 @@ fun CityChallengesScreen() {
                         completionCounts = completionCounts,
                         onChallengeSelected = { challenge ->
                             selectedChallenge = challenge
-                            currentStepId = null // Read challenges won't replay the steps
+                            currentStepId = null
                         }
                     )
                 }
             }
 
             selectedChallenge?.let { challenge ->
-                ShowChallengeDetail(
-                    challenge = challenge,
-                    currentStepId = currentStepId,
-                    userResponsesRef = userResponsesRef,
-                    currentUserId = currentUserId,
-                    onStepChanged = { stepId -> currentStepId = stepId },
-                    onEndingReached = { endingId ->
-                        scope.launch {
-                            saveUserChallengeResponse(userResponsesRef, challenge.id, endingId, currentUserId)
-                            userResponses = userResponses.toMutableMap().apply {
-                                put(challenge.id, endingId)
+                if (selectedTabIndex == 0) {
+                    // Unread: Show Challenge Detail
+                    ShowChallengeDetail(
+                        challenge = challenge,
+                        currentStepId = currentStepId,
+                        userResponsesRef = userResponsesRef,
+                        currentUserId = currentUserId,
+                        onStepChanged = { stepId -> currentStepId = stepId },
+                        onEndingReached = { endingId ->
+                            scope.launch {
+                                saveUserChallengeResponse(userResponsesRef, challenge.id, endingId, currentUserId)
+                                userResponses = userResponses.toMutableMap().apply {
+                                    put(challenge.id, endingId)
+                                }
+                                selectedChallenge = null
+                                currentStepId = null
                             }
+                        },
+                        onClose = {
                             selectedChallenge = null
                             currentStepId = null
                         }
-                    },
-                    onClose = {
-                        selectedChallenge = null
-                        currentStepId = null
-                    }
-                )
+                    )
+                } else {
+                    // Read: Show Challenge Detail For Read
+                    ShowChallengeDetailForRead(
+                        challenge = challenge,
+                        userResponsesRef = userResponsesRef,
+                        currentUserId = currentUserId,
+                        onClose = {
+                            selectedChallenge = null
+                        }
+                    )
+                }
             }
         }
     }
@@ -340,6 +354,152 @@ fun ShowChallengeDetail(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
                 ) {
                     Text(text = choice.text, color = Color.White)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onClose,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+            ) {
+                Text("Close", color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun ShowChallengeDetailForRead(
+    challenge: CityChallenge,
+    userResponsesRef: DatabaseReference,
+    currentUserId: String,
+    onClose: () -> Unit
+) {
+    var percentages by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var endingPercentages by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+
+    LaunchedEffect(Unit) {
+        // Calculate percentages for choices and endings
+        val responseSnap = userResponsesRef.get().await()
+        val choiceCounts = mutableMapOf<String, Int>()
+        val endingCounts = mutableMapOf<String, Int>()
+        var totalResponses = 0
+
+        responseSnap.children.forEach { snap ->
+            val choiceId = snap.child("choiceId").getValue(String::class.java)
+            val endingId = snap.child("endingId").getValue(String::class.java)
+
+            if (choiceId != null) {
+                choiceCounts[choiceId] = choiceCounts.getOrDefault(choiceId, 0) + 1
+            }
+            if (endingId != null) {
+                endingCounts[endingId] = endingCounts.getOrDefault(endingId, 0) + 1
+            }
+            totalResponses++
+        }
+
+        percentages = choiceCounts.mapValues { (key, value) -> (value * 100) / totalResponses }
+        endingPercentages = endingCounts.mapValues { (key, value) -> (value * 100) / totalResponses }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Challenge Details", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = onClose) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color.Black)
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .background(Color(0xFF1A1A1A))
+        ) {
+            Text(
+                text = challenge.title,
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Display all steps with user's choices and percentages
+            challenge.steps.forEach { step ->
+                Text(
+                    text = step.text,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                step.choices.forEach { choice ->
+                    val percentage = percentages[choice.id] ?: 0
+                    val isSelected = userResponsesRef.child("choiceId").toString() == choice.id
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = choice.text,
+                            color = if (isSelected) Color(0xFFFFDB00) else Color.White,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "$percentage%",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Display endings with percentages
+            Text(
+                text = "Endings",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            challenge.endings.forEach { ending ->
+                val percentage = endingPercentages[ending.id] ?: 0
+                val isUserEnding = userResponsesRef.child("endingId").toString() == ending.id
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = ending.title,
+                        color = if (isUserEnding) Color(0xFFFFDB00) else Color.White,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = "$percentage%",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
                 }
             }
 
