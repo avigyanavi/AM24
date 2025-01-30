@@ -1,4 +1,6 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3Api::class
+)
 
 package com.am24.am24
 
@@ -415,7 +417,7 @@ fun CollapsibleSection(
             modifier = Modifier.weight(1f)
         )
 
-        // Always show an icon button, toggling pencil vs. close
+        // Pencil icon or close icon
         IconButton(onClick = onEditToggle) {
             Icon(
                 imageVector = if (editMode) Icons.Default.Close else Icons.Default.Edit,
@@ -434,11 +436,29 @@ fun CollapsibleSection(
         }
     }
 
+    // -- This block changes when the section is expanded --
     if (isExpanded) {
-        Spacer(modifier = Modifier.height(8.dp))
-        content()
+        Spacer(Modifier.height(8.dp))
+
+        // Wrap your content in a dark card
+        Card(
+            // "Depressed" background color
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
+            shape = RoundedCornerShape(8.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)  // Indent from screen edges
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                content()
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
     }
 }
+
 
 /** Photo carousel with top-right Edit icon */
 @Composable
@@ -751,11 +771,6 @@ fun MetricsSection(profile: Profile) {
         ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
         ProfileDetailRow("High School Ranking", profile.am24RankingHighSchool.toString(), Icons.Default.School)
         ProfileDetailRow("College Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
-        ProfileDetailRow(
-            "Gender Ranking",
-            profile.am24RankingGender.toString(),
-            if (profile.gender == "Male") Icons.Default.Male else if (profile.gender == "Female") Icons.Default.Female else Icons.Default.Transgender
-        )
         ProfileDetailRow("${profile.hometown} Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
         ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
         ProfileDetailRow(

@@ -16,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -214,6 +215,7 @@ class RegistrationViewModel : ViewModel() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
     val registrationViewModel: RegistrationViewModel = viewModel()
@@ -1004,6 +1006,7 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
 }
 
 // Helper Composable for TextField with Label
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -2581,12 +2584,18 @@ fun UploadMediaComposable(
         android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
         android.Manifest.permission.READ_EXTERNAL_STORAGE
     )
-    val permissionLauncher = rememberLauncherForActivityResult(
+    // 1) Declare a lateinit variable (no initializer yet)
+    lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+
+// 2) Assign it with rememberLauncherForActivityResult
+    permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissionsResult ->
-        val granted = permissionsResult.values.all { it }
-        if (!granted) {
-            Toast.makeText(context, "Permissions are required for recording audio", Toast.LENGTH_SHORT).show()
+        val allGranted = permissionsResult.values.all { it }
+
+        if (!allGranted) {
+            // Re‐request
+            permissionLauncher.launch(permissions)
         } else {
             isRecording = true
             registrationViewModel.startVoiceRecording(context, voiceFilePath)

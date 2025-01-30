@@ -24,6 +24,31 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _matchPopUpState = MutableStateFlow<Pair<Profile, Profile>?>(null)
     val matchPopUpState: StateFlow<Pair<Profile, Profile>?> get() = _matchPopUpState
 
+    // Add this MutableStateFlow at the top of ProfileViewModel
+    private val _currentUserProfile = MutableStateFlow<Profile?>(null)
+    val currentUserProfile: StateFlow<Profile?> get() = _currentUserProfile
+
+    // Add this function to fetch and store the current user's profile
+    fun fetchCurrentUserProfile() {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        if (currentUserId.isNullOrEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val snapshot = usersRef.child(currentUserId).get().await()
+                val profile = snapshot.getValue(Profile::class.java)
+                if (profile != null) {
+                    _currentUserProfile.value = profile
+                } else {
+                    Log.e(TAG, "Failed to fetch current user's profile.")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching current user profile: ${e.message}")
+            }
+        }
+    }
+
+
     fun fetchUsernameById(userId: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
         userRef.child("username").get().addOnSuccessListener { snapshot ->

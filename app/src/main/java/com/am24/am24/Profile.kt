@@ -55,20 +55,18 @@ data class Profile(
     val socialCauses: List<String> = emptyList(),
     val lookingFor: String = "",      // What the user is looking for (e.g., Friendship, Dating)
     val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
+    val numberOfUsersWhoSwiped: Double = 0.0,
     val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
     val isBoosted: Boolean = false,
 
     val am24RankingAge: Int = 0,
     val am24RankingHighSchool: Int = 0,
     val am24RankingCollege: Int = 0,
-    val am24RankingGender: Int = 0,
     val am24RankingHometown: Int = 0,
     val am24Ranking: Int = 0,
-    val am24RankingCity: Int = 0,
 
     val numberOfRatings: Int = 0,
     val numberOfSwipeRights: Int = 0,
-    val sps: Double = 0.0,
     val matchCount: Int = 0,
     val matchCountPerSwipeRight: Double = 0.0,
     val cumulativeUpvotes: Int = 0,
@@ -100,12 +98,65 @@ data class Profile(
     var caste: String = "",
     var relationship: String? = null, // Add this to hold "friend", "match", etc.
 
+    var averageSwipeRightsOnUser: Double = 0.0,
+
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
 
     @Exclude
     var ratingsReceived: Map<String, Float> = emptyMap()
 ) {
+    /** Calculate compatibility score between two profiles. */
+    @Exclude
+    fun calculateCompatibility(otherProfile: Profile): Double {
+        var score = 0.0
+
+        // 1. Shared interests
+        val sharedInterests = interests.map { it.name }.intersect(otherProfile.interests.map { it.name })
+        score += sharedInterests.size * 10 // Each shared interest adds 10 points
+
+        // 2. Zodiac compatibility
+        val thisZodiac = deriveZodiac(this.dob)
+        val otherZodiac = deriveZodiac(otherProfile.dob)
+        if (thisZodiac != "Unknown" && otherZodiac != "Unknown") {
+            if (isZodiacCompatible(thisZodiac, otherZodiac)) {
+                score += 10
+            }
+        }
+
+        // 3. Lifestyle compatibility
+        if (this.lifestyle != null && otherProfile.lifestyle != null) {
+            score += this.lifestyle.compareCompatibility(otherProfile.lifestyle) * 20 // Lifestyle compatibility
+        }
+
+        // 4. Locality match
+        if (this.hometown == otherProfile.hometown) {
+            score += 20 // Same locality adds points
+        }
+
+        // 5. Education match
+        score += calculateEducationCompatibility(otherProfile)
+
+        // Normalize the score to a percentage
+        return (score / 100.0) * 100.0
+    }
+
+    /** Education compatibility logic. */
+    private fun calculateEducationCompatibility(otherProfile: Profile): Double {
+        var educationScore = 0.0
+
+        if (this.highSchool == otherProfile.highSchool || this.customHighSchool == otherProfile.customHighSchool) {
+            educationScore += 10 // Same high school adds points
+        }
+        if (this.college == otherProfile.college || this.customCollege == otherProfile.customCollege) {
+            educationScore += 10 // Same college adds points
+        }
+        if (this.postGraduation == otherProfile.postGraduation || this.customPostGraduation == otherProfile.customPostGraduation) {
+            educationScore += 10 // Same post-graduation adds points
+        }
+
+        return educationScore
+    }
 
     @get:Exclude
     val profileCompletionPercentage: Int
@@ -130,6 +181,41 @@ data class Profile(
         } else 0.0
     }
 }
+
+/** Zodiac compatibility logic. */
+fun isZodiacCompatible(zodiac1: String, zodiac2: String): Boolean {
+    val compatiblePairs = mapOf(
+        "Aries" to listOf("Leo", "Sagittarius", "Gemini", "Aquarius"),
+        "Taurus" to listOf("Virgo", "Capricorn", "Cancer", "Pisces"),
+        "Gemini" to listOf("Libra", "Aquarius", "Aries", "Leo"),
+        "Cancer" to listOf("Scorpio", "Pisces", "Taurus", "Virgo"),
+        "Leo" to listOf("Aries", "Sagittarius", "Gemini", "Libra"),
+        "Virgo" to listOf("Taurus", "Capricorn", "Cancer", "Scorpio"),
+        "Libra" to listOf("Gemini", "Aquarius", "Leo", "Sagittarius"),
+        "Scorpio" to listOf("Cancer", "Pisces", "Virgo", "Capricorn"),
+        "Sagittarius" to listOf("Aries", "Leo", "Libra", "Aquarius"),
+        "Capricorn" to listOf("Taurus", "Virgo", "Scorpio", "Pisces"),
+        "Aquarius" to listOf("Gemini", "Libra", "Aries", "Sagittarius"),
+        "Pisces" to listOf("Cancer", "Scorpio", "Taurus", "Capricorn")
+    )
+    return compatiblePairs[zodiac1]?.contains(zodiac2) == true
+}
+
+/** Compare lifestyle attributes for compatibility. */
+fun Lifestyle.compareCompatibility(other: Lifestyle): Double {
+    var compatibilityScore = 0.0
+    val fields = listOf(
+        this.smoking to other.smoking,
+        this.drinking to other.drinking,
+        this.exerciseFrequency to other.exerciseFrequency,
+        this.familyOriented to other.familyOriented
+    )
+    fields.forEach { (field1, field2) ->
+        if (field1 == field2) compatibilityScore += 1
+    }
+    return compatibilityScore / fields.size
+}
+
 
 data class Interest(
     var name: String = "",
@@ -198,6 +284,7 @@ data class Lifestyle(
         }
     }
 }
+
 
 /** Utility to derive zodiac from dob if needed. */
 fun deriveZodiac(dob: String?): String {

@@ -122,9 +122,7 @@ fun MainNavGraph(
         // -------- QUIZ ROUTE: fetch userProfile, pass city/locality to QuizScreen -----------
         composable("quiz") {
             // 3) Once loaded, pass city & hometown to QuizScreen
-            PollsScreen(
-            )
-
+            CityChallengesScreen()
         }
         composable("notifications") {
             NotificationsScreen(navController = navController)

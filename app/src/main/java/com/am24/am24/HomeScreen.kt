@@ -457,7 +457,8 @@ fun FeedSection(
                         } else {
                             // Navigate to DatingScreen with the other user's ID
                             val username = userProfiles[post.userId]?.name ?: "Unknown"
-                            navController.navigate("dating_screen?initialQuery=$username")
+                            // NEW: pass the userId instead
+                            navController.navigate("dating_screen?initialQuery=${post.userId}")
                         }
                     },
                     onTagClick = { tag ->
@@ -657,7 +658,7 @@ fun FeedItem(
             .fillMaxWidth(0.95f)
             .shadow(4.dp, RoundedCornerShape(2.dp))
             .then(gestureDetector),
-        colors = CardDefaults.cardColors(containerColor = Color.Black),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
         border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.averageRating ?: 0.0)) // Dynamic border color
     ) {
         Column(modifier = Modifier.padding(dynamicPadding)) {

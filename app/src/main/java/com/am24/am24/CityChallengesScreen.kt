@@ -1,9 +1,13 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.am24.am24
 
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -16,92 +20,83 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlin.math.roundToInt
 
+@RequiresApi(35)
 @Composable
-fun PollsScreen() {
+fun CityChallengesScreen() {
     val city = "Kolkata"
 
-    // DB references
-    val quizDb = FirebaseDatabase.getInstance("https://am-twentyfour.firebaseio.com/")
-    val quizRef = quizDb.getReference("quizzes")
-    val userResponsesRef = quizDb.getReference("user_responses")
+    // Firebase references
+    val challengesDb = FirebaseDatabase.getInstance("https://am-twentyfour.firebaseio.com/")
+    val challengesRef = challengesDb.getReference("challenges")
+    val userResponsesRef = challengesDb.getReference("user_challenge_responses")
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
     val scope = rememberCoroutineScope()
 
     var loading by remember { mutableStateOf(true) }
 
-    // We'll store all quizzes
-    var quizzes by remember { mutableStateOf<List<Quiz>>(emptyList()) }
-    // We'll store all responses for city
-    var allResponses by remember { mutableStateOf<List<UserResponse>>(emptyList()) }
-
-    // Map: quizId -> UserResponse (with possible responseKey)
-    var userResponsesMap by remember { mutableStateOf<Map<String, UserResponse>>(emptyMap()) }
+    // All challenges for the city
+    var challenges by remember { mutableStateOf<List<CityChallenge>>(emptyList()) }
+    // User's responses
+    var userResponses by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    // Completion counts
+    var completionCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     // Tabs
-    val tabCategories = listOf("Popular", "New", "Completed")
+    val tabCategories = listOf("Unread", "Read")
     var selectedTabIndex by remember { mutableStateOf(0) }
-    // If user taps for detail
-    var selectedQuiz by remember { mutableStateOf<Quiz?>(null) }
+    // For showing a specific challenge
+    var selectedChallenge by remember { mutableStateOf<CityChallenge?>(null) }
+    var currentStepId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         loading = true
         try {
-            // 1) fetch quizzes for city
-            val quizSnap = quizRef.get().await()
-            val tmpQuizzes = mutableListOf<Quiz>()
-            quizSnap.children.forEach { snap ->
-                val q = snap.getValue(Quiz::class.java)
-                if (q != null && q.city == city) {
-                    tmpQuizzes.add(q)
+            // Fetch challenges
+            val challengeSnap = challengesRef.get().await()
+            val tmpChallenges = mutableListOf<CityChallenge>()
+            challengeSnap.children.forEach { snap ->
+                val challenge = snap.getValue(CityChallenge::class.java)
+                if (challenge != null && challenge.city == city) {
+                    tmpChallenges.add(challenge)
                 }
             }
 
-            // 2) fetch user responses for city
-            val respSnap = userResponsesRef.get().await()
-            val tmpAllResponses = mutableListOf<UserResponse>()
-            val tmpUserMap = mutableMapOf<String, UserResponse>()
+            // Fetch user responses
+            val responseSnap = userResponsesRef.get().await()
+            val tmpResponses = mutableMapOf<String, String>()
+            val tmpCompletionCounts = mutableMapOf<String, Int>()
 
-            respSnap.children.forEach { snap ->
-                val response = snap.getValue(UserResponse::class.java)?.copy(
-                    responseKey = snap.key ?: ""
-                ) ?: return@forEach
-                if (response.city == city) {
-                    tmpAllResponses.add(response)
-                    // If currentUser's response:
-                    if (response.userId == currentUserId) {
-                        tmpUserMap[response.quizId] = response
-                    }
+            responseSnap.children.forEach { snap ->
+                val challengeId = snap.child("challengeId").getValue(String::class.java)
+                val userId = snap.child("userId").getValue(String::class.java)
+                val endingId = snap.child("endingId").getValue(String::class.java)
+
+                if (challengeId != null && endingId != null) {
+                    tmpCompletionCounts[challengeId] = tmpCompletionCounts.getOrDefault(challengeId, 0) + 1
+                }
+
+                if (userId == currentUserId && challengeId != null && endingId != null) {
+                    tmpResponses[challengeId] = endingId
                 }
             }
 
-            quizzes = tmpQuizzes
-            allResponses = tmpAllResponses
-            userResponsesMap = tmpUserMap
+            challenges = tmpChallenges
+            userResponses = tmpResponses
+            completionCounts = tmpCompletionCounts
         } finally {
             loading = false
         }
     }
 
-    // Compute "popularity" = total unique user count for that quiz
-    val quizPopularityMap = remember(quizzes, allResponses) {
-        val map = mutableMapOf<String, Int>()
-        for (quiz in quizzes) {
-            val userIds = allResponses.filter { it.quizId == quiz.id }.map { it.userId }.toSet()
-            map[quiz.id] = userIds.size
-        }
-        map
-    }
-
-    // Sort quizzes by popularity desc, top 30% => "popular"
-    val sortedByPopularity = quizzes.sortedByDescending { quizPopularityMap[it.id] ?: 0 }
-    val cutoffIndex = (sortedByPopularity.size * 0.3).roundToInt()
-    val popularQuizIds = sortedByPopularity.take(cutoffIndex).map { it.id }.toSet()
+    val unreadChallenges = challenges.filter { it.id !in userResponses.keys }
+    val readChallenges = challenges.filter { it.id in userResponses.keys }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A1A))
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF1A1A1A))
     ) {
         if (loading) {
             CircularProgressIndicator(
@@ -110,7 +105,7 @@ fun PollsScreen() {
             )
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                // The tab row
+                // Tab Row
                 TabRow(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = Color.Black,
@@ -121,7 +116,8 @@ fun PollsScreen() {
                             selected = (selectedTabIndex == i),
                             onClick = {
                                 selectedTabIndex = i
-                                selectedQuiz = null
+                                selectedChallenge = null
+                                currentStepId = null
                             },
                             text = {
                                 Text(
@@ -134,535 +130,242 @@ fun PollsScreen() {
                 }
 
                 when (tabCategories[selectedTabIndex]) {
-                    "Popular" -> ShowPopularAccordions(
-                        quizzes = quizzes,
-                        quizPopularityMap = quizPopularityMap,
-                        popularQuizIds = popularQuizIds,
-                        allResponses = allResponses,
-                        userResponsesMap = userResponsesMap,
-                        selectedQuiz = selectedQuiz,
-                        onQuizSelected = { q -> selectedQuiz = q },
-                        onQuizClosed = { selectedQuiz = null },
-                        onSaveResponse = { chosenOpts ->
-                            scope.launch {
-                                selectedQuiz?.let { quiz ->
-                                    handleUserResponseEditOrCreate(
-                                        userResponsesRef,
-                                        quiz,
-                                        chosenOpts,
-                                        currentUserId,
-                                        city,
-                                        userResponsesMap
-                                    )
-                                    // Update local data
-                                    userResponsesMap = userResponsesMap.toMutableMap().apply {
-                                        put(
-                                            quiz.id,
-                                            this[quiz.id]?.copy(selectedOptions = chosenOpts)
-                                                ?: UserResponse(
-                                                    quizId = quiz.id,
-                                                    selectedOptions = chosenOpts,
-                                                    userId = currentUserId,
-                                                    city = city
-                                                )
-                                        )
-                                    }
-                                }
-                                selectedQuiz = null
-                            }
+                    "Unread" -> ShowChallengesList(
+                        challenges = unreadChallenges,
+                        userResponses = userResponses,
+                        completionCounts = completionCounts,
+                        onChallengeSelected = { challenge ->
+                            selectedChallenge = challenge
+                            currentStepId = challenge.steps.firstOrNull()?.id
                         }
                     )
 
-                    "New" -> ShowNewAccordions(
-                        quizzes = quizzes,
-                        quizPopularityMap = quizPopularityMap,
-                        popularQuizIds = popularQuizIds,
-                        allResponses = allResponses,
-                        userResponsesMap = userResponsesMap,
-                        selectedQuiz = selectedQuiz,
-                        onQuizSelected = { q -> selectedQuiz = q },
-                        onQuizClosed = { selectedQuiz = null },
-                        onSaveResponse = { chosenOpts ->
-                            scope.launch {
-                                selectedQuiz?.let { quiz ->
-                                    handleUserResponseEditOrCreate(
-                                        userResponsesRef,
-                                        quiz,
-                                        chosenOpts,
-                                        currentUserId,
-                                        city,
-                                        userResponsesMap
-                                    )
-                                    userResponsesMap = userResponsesMap.toMutableMap().apply {
-                                        put(
-                                            quiz.id,
-                                            this[quiz.id]?.copy(selectedOptions = chosenOpts)
-                                                ?: UserResponse(
-                                                    quizId = quiz.id,
-                                                    selectedOptions = chosenOpts,
-                                                    userId = currentUserId,
-                                                    city = city
-                                                )
-                                        )
-                                    }
-                                }
-                                selectedQuiz = null
-                            }
-                        }
-                    )
-
-                    "Completed" -> ShowCompletedAccordions(
-                        quizzes = quizzes,
-                        allResponses = allResponses,
-                        userResponsesMap = userResponsesMap,
-                        selectedQuiz = selectedQuiz,
-                        onQuizSelected = { q -> selectedQuiz = q },
-                        onQuizClosed = { selectedQuiz = null },
-                        onSaveEdit = { chosenOpts ->
-                            scope.launch {
-                                selectedQuiz?.let { quiz ->
-                                    // user is editing => do not increment popularity again
-                                    // just update the existing record
-                                    handleUserResponseEditOrCreate(
-                                        userResponsesRef,
-                                        quiz,
-                                        chosenOpts,
-                                        currentUserId,
-                                        city,
-                                        userResponsesMap,
-                                        isEdit = true
-                                    )
-                                    userResponsesMap = userResponsesMap.toMutableMap().apply {
-                                        put(
-                                            quiz.id,
-                                            this[quiz.id]?.copy(selectedOptions = chosenOpts)
-                                                ?: UserResponse(
-                                                    quizId = quiz.id,
-                                                    selectedOptions = chosenOpts,
-                                                    userId = currentUserId,
-                                                    city = city
-                                                )
-                                        )
-                                    }
-                                }
-                                selectedQuiz = null
-                            }
+                    "Read" -> ShowChallengesList(
+                        challenges = readChallenges,
+                        userResponses = userResponses,
+                        completionCounts = completionCounts,
+                        onChallengeSelected = { challenge ->
+                            selectedChallenge = challenge
+                            currentStepId = null // Read challenges won't replay the steps
                         }
                     )
                 }
             }
-        }
-    }
-}
 
-/**
- * Creates or edits a user response.
- * If there's an existing record in `userResponsesMap`, we update that record in DB.
- * Otherwise we create a new one (which implicitly increments the quiz popularity).
- */
-suspend fun handleUserResponseEditOrCreate(
-    userResponsesRef: DatabaseReference,
-    quiz: Quiz,
-    chosenOpts: List<String>,
-    currentUserId: String,
-    city: String,
-    userResponsesMap: Map<String, UserResponse>,
-    isEdit: Boolean = false
-) {
-    val existingResp = userResponsesMap[quiz.id]
-    if (existingResp != null) {
-        // we are editing an existing response
-        val responseKey = existingResp.responseKey
-        if (responseKey.isBlank()) return
-        val updated = existingResp.copy(
-            selectedOptions = chosenOpts,
-            timestamp = System.currentTimeMillis()
-        )
-        userResponsesRef.child(responseKey).setValue(updated).await()
-    } else {
-        // brand new record => only increment popularity if !isEdit
-        val ref = userResponsesRef.push()
-        val newResp = UserResponse(
-            quizId = quiz.id,
-            selectedOptions = chosenOpts,
-            timestamp = System.currentTimeMillis(),
-            userId = currentUserId,
-            city = city,
-            responseKey = ref.key ?: ""
-        )
-        ref.setValue(newResp).await()
-    }
-}
-
-// -----------------------------------------------------------------
-// ACCORDIONS: "Popular", "New", "Completed"
-// -----------------------------------------------------------------
-
-@Composable
-fun ShowPopularAccordions(
-    quizzes: List<Quiz>,
-    quizPopularityMap: Map<String, Int>,
-    popularQuizIds: Set<String>,  // top 30%
-    allResponses: List<UserResponse>,
-    userResponsesMap: Map<String, UserResponse>,
-    selectedQuiz: Quiz?,
-    onQuizSelected: (Quiz) -> Unit,
-    onQuizClosed: () -> Unit,
-    onSaveResponse: (List<String>) -> Unit
-) {
-    if (selectedQuiz != null) {
-        ShowQuizDetail(
-            quiz = selectedQuiz,
-            allResponses = allResponses,
-            existingResponses = userResponsesMap.mapValues { it.value.selectedOptions },
-            onBack = onQuizClosed,
-            // user can pick
-            allowSelection = true,
-            onSubmit = onSaveResponse
-        )
-        return
-    }
-
-    val uncompleted = quizzes.filter { it.id !in userResponsesMap.keys && it.id in popularQuizIds }
-    val grouped = uncompleted.groupBy { it.pollGrouping.ifBlank { "Misc" } }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        if (grouped.isEmpty()) {
-            Text("No popular polls found (or all completed).", color = Color.White)
-        } else {
-            for ((groupName, quizGroup) in grouped) {
-                var expanded by remember { mutableStateOf(false) }
-
-                // Accordion header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded }
-                        .border(1.dp, Color(0xFFFF6F00), RoundedCornerShape(6.dp))
-                        .padding(12.dp)
-                ) {
-                    Text(groupName, color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                }
-
-                if (expanded) {
-                    quizGroup.forEach { q ->
-                        Spacer(Modifier.height(4.dp))
-                        Button(
-                            onClick = { onQuizSelected(q) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, Color(0xFFFF6F00), RoundedCornerShape(6.dp)),
-                            shape = RoundedCornerShape(6.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
-                        ) {
-                            Text(q.question, color = Color.White)
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                }
-
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun ShowNewAccordions(
-    quizzes: List<Quiz>,
-    quizPopularityMap: Map<String, Int>,
-    popularQuizIds: Set<String>,
-    allResponses: List<UserResponse>,
-    userResponsesMap: Map<String, UserResponse>,
-    selectedQuiz: Quiz?,
-    onQuizSelected: (Quiz) -> Unit,
-    onQuizClosed: () -> Unit,
-    onSaveResponse: (List<String>) -> Unit
-) {
-    if (selectedQuiz != null) {
-        ShowQuizDetail(
-            quiz = selectedQuiz,
-            allResponses = allResponses,
-            existingResponses = userResponsesMap.mapValues { it.value.selectedOptions },
-            onBack = onQuizClosed,
-            allowSelection = true,
-            onSubmit = onSaveResponse
-        )
-        return
-    }
-
-    // "New" => not completed, and not in popular
-    val uncompleted = quizzes.filter { it.id !in userResponsesMap.keys }
-    val newList = uncompleted.filter { it.id !in popularQuizIds }
-
-    val grouped = newList.groupBy { it.pollGrouping.ifBlank { "Misc" } }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        if (grouped.isEmpty()) {
-            Text("No new polls or all completed.", color = Color.White)
-        } else {
-            for ((groupName, quizGroup) in grouped) {
-                var expanded by remember { mutableStateOf(false) }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded }
-                        .border(1.dp, Color(0xFFFF6F00), RoundedCornerShape(6.dp))
-                        .padding(12.dp)
-                ) {
-                    Text(groupName, color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                }
-
-                if (expanded) {
-                    quizGroup.forEach { q ->
-                        Spacer(Modifier.height(4.dp))
-                        Button(
-                            onClick = { onQuizSelected(q) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, Color(0xFFFF6F00), RoundedCornerShape(6.dp)),
-                            shape = RoundedCornerShape(6.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
-                        ) {
-                            Text(q.question, color = Color.White)
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                }
-
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun ShowCompletedAccordions(
-    quizzes: List<Quiz>,
-    allResponses: List<UserResponse>,
-    userResponsesMap: Map<String, UserResponse>,
-    selectedQuiz: Quiz?,
-    onQuizSelected: (Quiz) -> Unit,
-    onQuizClosed: () -> Unit,
-    onSaveEdit: (List<String>) -> Unit
-) {
-    if (selectedQuiz != null) {
-        // In completed => let's allow editing but still show distribution
-        ShowQuizDetail(
-            quiz = selectedQuiz,
-            allResponses = allResponses,
-            existingResponses = userResponsesMap.mapValues { it.value.selectedOptions },
-            onBack = onQuizClosed,
-            allowSelection = true,  // user can re-edit
-            onSubmit = onSaveEdit
-        )
-        return
-    }
-
-    val completedIds = userResponsesMap.keys
-    val completedQuizzes = quizzes.filter { it.id in completedIds }
-
-    val grouped = completedQuizzes.groupBy { it.pollGrouping.ifBlank { "Misc" } }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        if (grouped.isEmpty()) {
-            Text("No completed polls yet.", color = Color.White)
-        } else {
-            for ((groupName, quizGroup) in grouped) {
-                var expanded by remember { mutableStateOf(false) }
-
-                // Accordion header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded }
-                        .border(1.dp, Color(0xFFFF6F00), RoundedCornerShape(6.dp))
-                        .padding(12.dp)
-                ) {
-                    Text(groupName, color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                }
-
-                if (expanded) {
-                    quizGroup.forEach { quiz ->
-                        val userResp = userResponsesMap[quiz.id]
-                        val userSelected = userResp?.selectedOptions.orEmpty()
-
-                        Spacer(Modifier.height(4.dp))
-                        OutlinedButton(
-                            onClick = {
-                                // show detail with distribution + re-edit
-                                onQuizSelected(quiz)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(6.dp),
-                            border = BorderStroke(1.dp, Color(0xFFFF6F00)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Column {
-                                Text(
-                                    quiz.question,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "Your Pick: $userSelected",
-                                    color = Color(0xFFFF6F00)
-                                )
+            selectedChallenge?.let { challenge ->
+                ShowChallengeDetail(
+                    challenge = challenge,
+                    currentStepId = currentStepId,
+                    userResponsesRef = userResponsesRef,
+                    currentUserId = currentUserId,
+                    onStepChanged = { stepId -> currentStepId = stepId },
+                    onEndingReached = { endingId ->
+                        scope.launch {
+                            saveUserChallengeResponse(userResponsesRef, challenge.id, endingId, currentUserId)
+                            userResponses = userResponses.toMutableMap().apply {
+                                put(challenge.id, endingId)
                             }
+                            selectedChallenge = null
+                            currentStepId = null
                         }
+                    },
+                    onClose = {
+                        selectedChallenge = null
+                        currentStepId = null
                     }
-                    Spacer(Modifier.height(12.dp))
-                }
-
-                Spacer(Modifier.height(8.dp))
+                )
             }
         }
     }
 }
 
-/**
- * A detail screen that **always** shows the distribution for each option (with %),
- * but if `allowSelection=true`, user can pick/unpick as well.
- */
 @Composable
-fun ShowQuizDetail(
-    quiz: Quiz,
-    allResponses: List<UserResponse>,
-    existingResponses: Map<String, List<String>>,
-    onBack: () -> Unit,
-    allowSelection: Boolean,
-    onSubmit: (List<String>) -> Unit = {}
+fun ShowChallengesList(
+    challenges: List<CityChallenge>,
+    userResponses: Map<String, String>,
+    completionCounts: Map<String, Int>,
+    onChallengeSelected: (CityChallenge) -> Unit
 ) {
-    val userAlready = existingResponses[quiz.id].orEmpty()
-    var localPicks by remember { mutableStateOf<List<String>>(emptyList()) }
-
-    // If read-only => show user picks
-    LaunchedEffect(quiz.id) {
-        if (!allowSelection) {
-            localPicks = userAlready
-        } else {
-            // If you want the user to see their existing picks as a starting point (for editing)
-            localPicks = userAlready
-        }
-    }
-
-    // Build distribution
-    val distMap = remember(quiz.id, allResponses) {
-        val relevant = allResponses.filter { it.quizId == quiz.id }
-        val counts = quiz.options.associateWith { 0 }.toMutableMap()
-        var total = 0
-        for (resp in relevant) {
-            resp.selectedOptions.forEach { opt ->
-                if (counts.containsKey(opt)) {
-                    counts[opt] = counts[opt]!! + 1
-                    total++
-                }
-            }
-        }
-        if (total == 0) {
-            counts.mapValues { 0f }
-        } else {
-            counts.mapValues { (_, n) -> n.toFloat() / total.toFloat() * 100f }
-        }
-    }
+    val sortedChallenges = challenges.sortedByDescending { completionCounts[it.id] ?: 0 }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1A1A1A))
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Text(quiz.question, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-        Spacer(Modifier.height(16.dp))
-
-        // For each option, always show distribution & highlight user picks
-        quiz.options.forEach { opt ->
-            val isPicked = localPicks.contains(opt)
-            val distPct = distMap[opt] ?: 0f
-            val displayPct = String.format("%.1f%%", distPct)
-
-            // We'll unify the UI: we always show the % and color the user’s pick in orange
-            // If allowSelection => tapping toggles
-            val txtColor = if (isPicked) Color(0xFFFF6F00) else Color.White
-            val bgColor = if (isPicked) Color.Black else Color(0xFF1A1A1A)
-
-            if (allowSelection) {
-                // The user can still pick/unpick, but we'll also show distribution in the button text
-                Button(
-                    onClick = {
-                        localPicks = if (isPicked) localPicks - opt else localPicks + opt
-                    },
+        if (sortedChallenges.isEmpty()) {
+            Text(
+                text = "No challenges available.",
+                color = Color.White,
+                fontSize = 16.sp
+            )
+        } else {
+            sortedChallenges.forEach { challenge ->
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .border(1.dp, Color(0xFFFF6F00), RoundedCornerShape(6.dp)),
-                    shape = RoundedCornerShape(6.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = bgColor)
+                        .padding(vertical = 8.dp)
+                        .clickable { onChallengeSelected(challenge) },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // e.g. "Pantua (33.3%)"
-                    Text("$opt  ($displayPct)", color = txtColor)
-                }
-            } else {
-                // read-only
-                OutlinedButton(
-                    onClick = {},
-                    enabled = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(1.dp, Color(0xFFFF6F00)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color(0xFF1A1A1A),
-                        contentColor = txtColor
-                    )
-                ) {
-                    Text("$opt  ($displayPct)", color = txtColor)
-                }
-            }
-        }
+                    // Completion count column
+                    Box(
+                        modifier = Modifier
+                            .width(50.dp)
+                            .height(50.dp)
+                            .background(Color(0xFF1A1A1A), shape = RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (completionCounts[challenge.id] ?: 0).toString(),
+                            color = Color(0xFFFF6F00),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-        Spacer(Modifier.height(16.dp))
-        // Buttons row
-        Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = onBack,
-                shape = RoundedCornerShape(6.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
-            ) {
-                Text("Back", color = Color.White)
-            }
+                    Spacer(modifier = Modifier.width(16.dp))
 
-            if (allowSelection) {
-                Button(
-                    onClick = { onSubmit(localPicks) },
-                    shape = RoundedCornerShape(6.dp),
-                    enabled = localPicks.isNotEmpty(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-                ) {
-                    Text("Submit", color = Color.White)
+                    // Challenge details
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = challenge.title,
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = challenge.description,
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        userResponses[challenge.id]?.let { endingId ->
+                            Text(
+                                text = "Ending: $endingId",
+                                color = Color(0xFFFF6F00),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+
+@RequiresApi(35)
+@Composable
+fun ShowChallengeDetail(
+    challenge: CityChallenge,
+    currentStepId: String?,
+    userResponsesRef: DatabaseReference,
+    currentUserId: String,
+    onStepChanged: (String) -> Unit,
+    onEndingReached: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    // Stack to keep track of navigation history for steps
+    val navigationStack = remember { mutableStateListOf<String>() }
+
+    // Push the current step ID onto the stack if it's not already there
+    if (currentStepId != null && (navigationStack.isEmpty() || navigationStack.last() != currentStepId)) {
+        navigationStack.add(currentStepId)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Challenge Details", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (navigationStack.size > 1) {
+                            // Pop the current step and navigate to the previous one
+                            navigationStack.removeLast()
+                            onStepChanged(navigationStack.last())
+                        } else {
+                            // If no more steps in the stack, close the detail screen
+                            onClose()
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color.Black)
+            )
+        }
+    ) { innerPadding ->
+        val currentStep = challenge.steps.find { it.id == currentStepId }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .background(Color(0xFF1A1A1A))
+        ) {
+            Text(
+                text = challenge.title,
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = currentStep?.text.orEmpty(),
+                color = Color.White,
+                fontSize = 18.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            currentStep?.choices?.forEach { choice ->
+                Button(
+                    onClick = {
+                        if (choice.nextStepId != null) {
+                            onStepChanged(choice.nextStepId)
+                        } else if (choice.endingId != null) {
+                            onEndingReached(choice.endingId)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
+                ) {
+                    Text(text = choice.text, color = Color.White)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onClose,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+            ) {
+                Text("Close", color = Color.White)
+            }
+        }
+    }
+}
+
+
+suspend fun saveUserChallengeResponse(
+    userResponsesRef: DatabaseReference,
+    challengeId: String,
+    endingId: String,
+    currentUserId: String
+) {
+    val newResponse = mapOf(
+        "userId" to currentUserId,
+        "challengeId" to challengeId,
+        "endingId" to endingId
+    )
+    userResponsesRef.push().setValue(newResponse).await()
 }

@@ -78,45 +78,92 @@ fun DatingScreen(
     navController: NavController,
     geoFire: GeoFire,
     modifier: Modifier = Modifier,
-    initialQuery: String = ""
+    initialQuery: String = ""  // The UID passed from HomeScreen
 ) {
     val datingViewModel: DatingViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
     val postViewModel: PostViewModel = viewModel()
 
+    // -- Existing states from your code --
     val filters by datingViewModel.datingFilters.collectAsState()
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
     val isLoading by datingViewModel.isLoading.collectAsState()
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
 
-    val remainingSwipes = remember { mutableStateOf(50) } // Swipe counter
+    // The local states
+    var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
+    val remainingSwipes = remember { mutableStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
+
+    // This will store the "forced" profile if initialQuery is not blank
+    var forcedProfile by remember { mutableStateOf<Profile?>(null) }
+
+    // Create a bottomSheetState for filters
     val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
 
-    var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
-
-    // Fetch excluded users (matched or liked recently)
+    // On first load => fetch excluded + userProfile + load swipes
     LaunchedEffect(Unit) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         if (currentUserId != null) {
             excludedUserIds = fetchExcludedUsers(currentUserId)
+            profileViewModel.fetchCurrentUserProfile()
+
+            // Load & refill if needed
+            val loadedSwipes = loadAndRefillSwipesIfNeeded(currentUserId)
+            remainingSwipes.value = loadedSwipes
+
+            // Call refresh here so it loads right away
+            datingViewModel.refreshFilteredProfiles()
         }
     }
 
-    // Save Filters Functionality
-    val saveFilters: () -> Unit = {
-        datingViewModel.updateDatingFilters(filters)
-        datingViewModel.refreshFilteredProfiles()
-        coroutineScope.launch { bottomSheetState.hide() } // Close the bottom sheet
+    // ONE-OFF database fetch if initialQuery is not blank
+    LaunchedEffect(initialQuery) {
+        if (initialQuery.isNotBlank()) {
+            val snapshot = FirebaseDatabase.getInstance()
+                .getReference("users")
+                .child(initialQuery)
+                .get()
+                .await()
+
+            forcedProfile = snapshot.getValue(Profile::class.java)
+        }
     }
 
+    // Decide displayedProfiles
+    val displayedProfiles = if (initialQuery.isNotBlank()) {
+        // If forcedProfile was loaded, show it; else empty
+        forcedProfile?.let { listOf(it) } ?: emptyList()
+    } else {
+        // Normal path: use your filteredProfiles, excluding IDs
+        filteredProfiles.filter { it.userId !in excludedUserIds }
+    }
+
+    // Save filter function
+    val saveFilters: () -> Unit = {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        datingViewModel.updateDatingFilters(filters)
+        datingViewModel.refreshFilteredProfiles()
+
+        if (currentUserId != null) {
+            coroutineScope.launch {
+                excludedUserIds = fetchExcludedUsers(currentUserId)
+            }
+        }
+        coroutineScope.launch { bottomSheetState.hide() }
+    }
+
+    // Bottom sheet for filters
     ModalBottomSheetLayout(
         sheetState = bottomSheetState,
         sheetContent = {
+            // The existing FiltersOverlay code
             FiltersOverlay(
                 ageRange = filters.ageStart..filters.ageEnd,
                 onAgeRangeChange = { range ->
-                    datingViewModel.updateDatingFilters(filters.copy(ageStart = range.start, ageEnd = range.endInclusive))
+                    datingViewModel.updateDatingFilters(
+                        filters.copy(ageStart = range.start, ageEnd = range.endInclusive)
+                    )
                 },
                 maxDistance = filters.distance,
                 onDistanceChange = { distance ->
@@ -139,49 +186,69 @@ fun DatingScreen(
                     datingViewModel.updateDatingFilters(filters.copy(caste = caste))
                 },
                 selectedHighSchool = filters.highSchool,
-                onHighSchoolChange = { highSchool ->
-                    datingViewModel.updateDatingFilters(filters.copy(highSchool = highSchool))
+                onHighSchoolChange = { hs ->
+                    datingViewModel.updateDatingFilters(filters.copy(highSchool = hs))
                 },
                 selectedCollege = filters.college,
                 onCollegeChange = { college ->
                     datingViewModel.updateDatingFilters(filters.copy(college = college))
                 },
                 selectedPostGrad = filters.postGrad,
-                onPostGradChange = { postGrad ->
-                    datingViewModel.updateDatingFilters(filters.copy(postGrad = postGrad))
+                onPostGradChange = { pg ->
+                    datingViewModel.updateDatingFilters(filters.copy(postGrad = pg))
                 },
                 onSaveFilters = saveFilters,
                 onCancel = { coroutineScope.launch { bottomSheetState.hide() } }
             )
         }
     ) {
+        // The main screen layout
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
+            // Top row: Stats, Filters, Info, SwipeCounter
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(
-                    onClick = { coroutineScope.launch { bottomSheetState.show() } },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                    modifier = Modifier.padding(end = 8.dp)
+                Row {
+                    // Stats Button
+                    Button(
+                        onClick = { /* TODO: Stats placeholder */ },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Gray),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Stats", color = Color.White)
+                    }
+
+                    // Filters Button
+                    Button(
+                        onClick = { coroutineScope.launch { bottomSheetState.show() } },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Filters", color = Color.White)
+                    }
+                }
+
+                // Big orange bar with swipe counter
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
                 ) {
-                    Text("Filters", color = Color.White)
+                    SwipeCounter(remainingSwipes.value)
                 }
 
                 // Info Overlay
                 InfoOverlay()
-
-                // Swipe Counter
-                SwipeCounter(remainingSwipes.value)
             }
 
+            // The main body
             Box(modifier = Modifier.fillMaxSize()) {
                 if (isLoading) {
                     Box(
@@ -191,10 +258,10 @@ fun DatingScreen(
                         CircularProgressIndicator(color = Color(0xFFFF6F00))
                     }
                 } else {
-                    val displayedProfiles = filteredProfiles.filter { it.userId !in excludedUserIds }
                     if (displayedProfiles.isEmpty()) {
                         NoMoreProfilesScreen()
                     } else {
+                        // Show actual dating profiles
                         DatingScreenContent(
                             navController = navController,
                             geoFire = geoFire,
@@ -202,10 +269,17 @@ fun DatingScreen(
                             profileViewModel = profileViewModel,
                             postViewModel = postViewModel,
                             onSwipeRight = {
-                                if (remainingSwipes.value > 0) remainingSwipes.value -= 1
+                                // Decrement swipes + update in Firebase
+                                if (remainingSwipes.value > 0) {
+                                    remainingSwipes.value--
+                                    updateSwipesInFirebase(remainingSwipes.value)
+                                }
                             },
                             onSwipeLeft = {
-                                if (remainingSwipes.value > 0) remainingSwipes.value -= 1
+                                if (remainingSwipes.value > 0) {
+                                    remainingSwipes.value--
+                                    updateSwipesInFirebase(remainingSwipes.value)
+                                }
                             }
                         )
                     }
@@ -214,7 +288,7 @@ fun DatingScreen(
         }
     }
 
-    // Match Pop-Up
+    // Display match pop-up if any
     matchPopUpState?.let { (currentUserProfile, matchedUserProfile) ->
         MatchPopUp(
             currentUserProfilePic = currentUserProfile.profilepicUrl.orEmpty(),
@@ -231,7 +305,42 @@ fun DatingScreen(
     }
 }
 
+suspend fun loadAndRefillSwipesIfNeeded(userId: String): Int {
+    val swipesRef = FirebaseDatabase.getInstance().getReference("users/$userId/swipesInfo")
+    val snapshot = swipesRef.get().await()
 
+    // default values if not present
+    var remainingSwipes = 50
+    var lastRefillTimestamp = 0L
+
+    snapshot.child("remainingSwipes").getValue(Int::class.java)?.let {
+        remainingSwipes = it
+    }
+    snapshot.child("lastRefillTimestamp").getValue(Long::class.java)?.let {
+        lastRefillTimestamp = it
+    }
+
+    // refill if 7 days have passed
+    val now = System.currentTimeMillis()
+    val oneWeekMillis = 7 * 24 * 60 * 60 * 1000L
+    if (now - lastRefillTimestamp >= oneWeekMillis) {
+        remainingSwipes += 50
+        lastRefillTimestamp = now
+    }
+
+    // write updated swipes + timestamp
+    swipesRef.child("remainingSwipes").setValue(remainingSwipes)
+    swipesRef.child("lastRefillTimestamp").setValue(lastRefillTimestamp)
+
+    return remainingSwipes
+}
+
+/** Updates the user's remainingSwipes in Firebase. */
+fun updateSwipesInFirebase(newSwipesCount: Int) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val swipesRef = FirebaseDatabase.getInstance().getReference("users/$userId/swipesInfo")
+    swipesRef.child("remainingSwipes").setValue(newSwipesCount)
+}
 @Composable
 fun FiltersOverlay(
     ageRange: IntRange,
@@ -269,7 +378,7 @@ fun FiltersOverlay(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Filters",
+                text = "Filters {scroll}",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -542,19 +651,24 @@ fun DatingScreenContent(
         NoMoreProfilesScreen()
     } else {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
         val currentProfile = profiles[currentProfileIndex]
 
         var userDistance by remember { mutableStateOf<Float?>(null) }
+        var compatibilityScore by remember { mutableStateOf<Double?>(null) }
 
-        // Calculate distance between current user and the profile being viewed.
+        // Calculate distance + compatibility
         LaunchedEffect(currentProfile) {
             userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
+            currentUserProfile?.let { userProfile ->
+                compatibilityScore = userProfile.calculateCompatibility(currentProfile)
+            }
         }
 
-        // If distance is available, display the profile card.
         userDistance?.let { distance ->
             DatingProfileCard(
                 profile = currentProfile,
+                compatibilityScore = compatibilityScore,
                 onSwipeRight = {
                     onSwipeRight()
                     handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
@@ -582,18 +696,29 @@ fun DatingScreenContent(
 }
 
 
+
 /**
  * A single “card” for the user: the photo with overlays, collapsible, etc.
  */
 @Composable
 fun DatingProfileCard(
     profile: Profile,
+    compatibilityScore: Double?,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
     userDistance: Float,
     navController: NavController,
     postViewModel: PostViewModel
 ) {
+    // 1) Compute the average each time this composable recomposes with updated profile data
+    val computedAvg = if (profile.numberOfUsersWhoSwiped > 0) {
+        profile.numberOfSwipeRights.toDouble() / profile.numberOfUsersWhoSwiped
+    } else 0.0
+
+    // 2) Assign it to the profile’s mutable field
+    profile.averageSwipeRightsOnUser = computedAvg
+
+    // (The rest of your swipeable logic remains the same)
     val swipeableState = rememberSwipeableState(initialValue = 0)
     val anchors = mapOf(-300f to -1, 0f to 0, 300f to 1)
     val swipeOffset = swipeableState.offset.value
@@ -614,6 +739,7 @@ fun DatingProfileCard(
     val featuredPosts = sortedByUpvotes.take(5)
     val remainingPosts = sortedByUpvotes.drop(5)
 
+    // The UI layout stays the same; it just references "profile.averageSwipeRightsOnUser"
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -627,11 +753,17 @@ fun DatingProfileCard(
             .offset { IntOffset(swipeOffset.roundToInt(), 0) }
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().background(Color.Black)
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
         ) {
             // 1) Photo + Overlays
             item {
-                PhotoWithDynamicOverlays(profile = profile, userDistance = userDistance)
+                PhotoWithDynamicOverlays(
+                    profile = profile,
+                    userDistance = userDistance,
+                    compatibilityScore = compatibilityScore
+                )
             }
 
             // 2) Collapsible
@@ -655,7 +787,7 @@ fun DatingProfileCard(
                 }
             }
 
-            // 4) Collapsed metrics
+            // 4) Collapsed metrics, etc.
             item {
                 CollapsedMetricsSection(profile)
             }
@@ -681,6 +813,7 @@ fun DatingProfileCard(
         }
     }
 }
+
 
 /**
  * Info Overlay Component.
@@ -755,7 +888,8 @@ fun SwipeCounter(remainingSwipes: Int) {
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
-    userDistance: Float
+    userDistance: Float,
+    compatibilityScore: Double?
 ) {
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
@@ -808,33 +942,14 @@ fun PhotoWithTwoOverlays(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
-                        FlashyVibeScore(scorePercent = vibeScorePercent)
+                        Text(
+                            text = "Popularity Score: ${profile.averageSwipeRightsOnUser * 100} %",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                        FlashyVibeScore(compatibilityScore)
                     }
-                }
-                1 -> {
-                    Text(
-                        text = "Bio",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-                2 -> {
-                    Text(
-                        text = "Interests",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-                3 -> {
-                    Text(
-                        text = "Statistics",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
                 }
             }
         }
@@ -858,11 +973,18 @@ fun PhotoWithTwoOverlays(
                         ) {
                             Column {
                                 Text(
-                                    text = "${profile.username}, $age",
+                                    text = "${profile.name}, $age",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
                                     color = Color.White
                                 )
+                                Text(
+                                    text = "@${profile.username}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = Color.White
+                                )
+                                RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
                                 Text(
                                     text = "${userDistance.roundToInt()} km away",
                                     fontSize = 14.sp,
@@ -889,11 +1011,18 @@ fun PhotoWithTwoOverlays(
                                 TagBox(it)
                                 Spacer(modifier = Modifier.width(4.dp))
                             }
-                            profile.city.takeIf { it.isNotBlank() }?.let {
+                            profile.religion.takeIf { it.isNotBlank() }?.let {
                                 TagBox(it)
                                 Spacer(modifier = Modifier.width(4.dp))
                             }
-                            profile.religion.takeIf { it.isNotBlank() }?.let { TagBox(it) }
+                            profile.hometown.takeIf { it.isNotBlank() }?.let {
+                                TagBox(it)
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            profile.caste.takeIf { it.isNotBlank() }?.let {
+                                TagBox(it)
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
                         }
                     }
                 }
@@ -916,15 +1045,6 @@ fun PhotoWithTwoOverlays(
                                 profile.interests.forEach { TagBox("${it.emoji} ${it.name}") }
                             }
                         }
-                        profile.hometown?.let {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Locality: $it",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
                 }
                 3 -> {
@@ -933,13 +1053,33 @@ fun PhotoWithTwoOverlays(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "SPS: ${profile.sps ?: "N/A"}",
+                            text = "${profile.hometown} Ranking: ${profile.am24RankingHometown ?: "N/A"}",
                             color = Color.White,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+                }
+                4 -> {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
-                            text = "Kolkata Ranking: ${profile.am24RankingHometown ?: "N/A"}",
+                            text = "High School Ranking: ${profile.am24RankingHighSchool ?: "N/A"}",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                5 -> {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Kolkata Ranking: ${profile.am24RankingCollege ?: "N/A"}",
                             color = Color.White,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
@@ -974,8 +1114,12 @@ fun TagBox(text: String) {
 
 /** The “flashy vibe” gradient text. Unchanged. */
 @Composable
-fun FlashyVibeScore(scorePercent: Int) {
-    val displayPercent = scorePercent.coerceIn(0, 100)
+fun FlashyVibeScore(compatibilityScore: Double?) {
+    var showCompatibilityDialog by remember { mutableStateOf(false) }
+
+    val displayPercent = compatibilityScore?.roundToInt()?.coerceIn(0, 100) ?: 0
+
+    // Container for the gradient box
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
@@ -985,15 +1129,43 @@ fun FlashyVibeScore(scorePercent: Int) {
                 )
             )
             .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clickable {
+                showCompatibilityDialog = true
+            }
     ) {
         Text(
-            text = "Mutual Vibe is at $displayPercent%",
+            text = "Compatibility: $displayPercent%",
             color = Color.White,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 16.sp
         )
     }
+
+    if (showCompatibilityDialog) {
+        AlertDialog(
+            onDismissRequest = { showCompatibilityDialog = false },
+            title = { Text("Compatibility Breakdown") },
+            text = {
+                // This is just a sample of how you might show a breakdown
+                // In a real app, you'd compute or display the actual fields used.
+                Column {
+                    Text("Shared Interests: +20%")
+                    Text("Zodiac Match: +10%")
+                    Text("Lifestyle Overlap: +15%")
+                    Text("Locality Bonus: +10%")
+                    // etc...
+                    Text("\nTotal: $displayPercent%")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCompatibilityDialog = false }) {
+                    Text("Close", color = Color(0xFFFF6F00))
+                }
+            }
+        )
+    }
 }
+
 
 /**
  * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests
@@ -1092,7 +1264,23 @@ fun CollapsibleSection(
 
     if (isExpanded) {
         Spacer(Modifier.height(8.dp))
-        content()
+
+        // NEW: Wrap your content in a card with background color #1A1A1A
+        Card(
+            backgroundColor = Color(0xFF1A1A1A),
+            elevation = 4.dp,                    // Choose an elevation if you like
+            shape = RoundedCornerShape(8.dp),    // Slight rounding for "depressed" look
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)      // Indent from screen edges
+        ) {
+            // Add some padding so it looks “depressed” inside
+            Column(modifier = Modifier.padding(12.dp)) {
+                content()
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -1110,34 +1298,64 @@ fun handleSwipeRight(
     val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
     val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
 
+    // Write swipe data for the current user
     val swipeData = SwipeData(liked = true, timestamp = timestamp)
     currentUserSwipesRef.setValue(swipeData)
     currentUserLikesGivenRef.setValue(timestamp)
     otherUserLikesReceivedRef.setValue(timestamp)
 
+    // ✅ 1) Record that the other user was swiped on (for total "swipes received")
+    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
+    otherUserTotalSwipesRef.setValue(true)
+
+    // ✅ 2) Increment the other user’s total "numberOfUsersWhoSwiped"
+    val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
+    otherUserProfileRef.get().addOnSuccessListener { snapshot ->
+        val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
+        otherUserProfileRef.setValue(currentCount + 1)
+    }
+
+    // ✅ 3) Increment the other user’s "numberOfSwipeRights" ONLY on a right-swipe
+    val otherUserSwipeRightsRef = database.getReference("users/$otherUserId/numberOfSwipeRights")
+    otherUserSwipeRightsRef.get().addOnSuccessListener { snapshot ->
+        val currentSwipeRights = snapshot.getValue(Int::class.java) ?: 0
+        otherUserSwipeRightsRef.setValue(currentSwipeRights + 1)
+    }
+
+    // Check if it’s a match
     otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
         val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
         if (otherUserSwipeData?.liked == true) {
-            // It's a match
             val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
             val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
             currentUserMatchesRef.setValue(timestamp)
             otherUserMatchesRef.setValue(timestamp)
 
-            // Trigger Match Pop-Up
             profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
         }
-    }.addOnFailureListener { exception ->
-        Log.e("FirebaseError", "Failed to fetch swipes: ${exception.message}")
     }
 }
+
 
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val database = FirebaseDatabase.getInstance()
     val timestamp = System.currentTimeMillis()
+
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
+
+    // ✅ Increment total swipes received for other user
+    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
+    otherUserTotalSwipesRef.setValue(true)  // Just track presence
+
+    // ✅ Increment count for `numberOfUsersWhoSwiped`
+    val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
+    otherUserProfileRef.get().addOnSuccessListener { snapshot ->
+        val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
+        otherUserProfileRef.setValue(currentCount + 1)
+    }
 }
+
 
 /**
  * fetchExcludedUsers => matched or liked recently
@@ -1267,10 +1485,12 @@ fun MatchPopUp(
 @Composable
 fun PhotoWithDynamicOverlays(
     profile: Profile,
-    userDistance: Float
+    userDistance: Float,
+    compatibilityScore: Double?
 ) {
     PhotoWithTwoOverlays(
         profile = profile,
-        userDistance = userDistance
+        userDistance = userDistance,
+        compatibilityScore = compatibilityScore,
     )
 }

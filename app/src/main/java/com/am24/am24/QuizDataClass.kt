@@ -1,29 +1,28 @@
-// QuizDataClass.kt
 package com.am24.am24
 
-data class Quiz(
-    val id: String = "",
-    val category: String = "",
-    val question: String = "",
-    val options: List<String> = emptyList(),
-    val type: String = "",
-    val level: String = "",
-    val locality: String? = null,
-    val city: String? = null,
-    val pollGrouping: String = "",  // for accordion grouping
-
-    // We no longer store "popularityScore" or "creationTime" in the quiz object
-    // if we’re computing popularity dynamically from the user responses.
+data class CityChallenge(
+    val id: String = "", // Unique identifier for the challenge
+    val title: String = "", // Title of the challenge
+    val description: String = "", // A short introduction to the challenge
+    val city: String = "", // The city where the challenge is relevant
+    val steps: List<Step> = emptyList(), // The sequence of steps for the challenge
+    val endings: List<Ending> = emptyList() // Possible endings for the challenge
 )
 
-data class UserResponse(
-    val quizId: String = "",
-    val selectedOptions: List<String> = emptyList(),
-    val timestamp: Long = 0L,
-    val userId: String = "",
-    val city: String = "",
-    val locality: String? = null,
+data class Step(
+    val id: String = "", // Unique identifier for the step
+    val text: String = "", // The content of this step
+    val choices: List<Choice> = emptyList() // The choices available at this step
+)
 
-    // The Firebase key of this response record (for editing)
-    val responseKey: String = ""   // add this
+data class Choice(
+    val text: String = "", // The choice text shown to the user
+    val nextStepId: String? = null, // The ID of the next step, if applicable
+    val endingId: String? = null // The ID of the ending, if this choice leads to an ending
+)
+
+data class Ending(
+    val id: String = "", // Unique identifier for the ending
+    val title: String = "", // Title or summary of the ending
+    val description: String = "" // Detailed explanation or resolution for the ending
 )
