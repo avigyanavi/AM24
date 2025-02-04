@@ -213,15 +213,16 @@ fun ProfileCollapsibleSections(
             onEditToggle = { editBio = !editBio }
         ) {
             if (editBio) {
-                BasicInfoEditSection(
-                    tempProfile = tempProfile,
-                    onSave = { updated ->
-                        tempProfile = updated
+                BioEditSection(
+                    currentBio = tempProfile.bio,
+                    onSave = { updatedBio ->
+                        // Only update the bio field
+                        tempProfile = tempProfile.copy(bio = updatedBio)
                         onProfileUpdated(tempProfile)
                         editBio = false
                     },
                     onCancel = {
-                        tempProfile = profile
+                        // Reset any temporary changes if needed
                         editBio = false
                     }
                 )
@@ -761,7 +762,6 @@ fun BasicInfoSection(profile: Profile) {
         value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
         icon = Icons.Default.Star
     )
-    ProfileDetailRow("Bio", profile.bio, Icons.Default.Info)
     ProfileDetailRow("Gender", profile.gender, genderIcon)
     ProfileDetailRow("Locality", profile.hometown, Icons.Default.LocationCity)
     ProfileDetailRow("High School", profile.highSchool, Icons.Default.School)
@@ -805,7 +805,7 @@ fun LifestyleSection(profile: Profile) {
                 )
             if (lifestyle.socialMedia != -1)
                 LifestyleSlider(
-                    label = "Extraversion/Introversion",
+                    label = "Social Media",
                     value = lifestyle.socialMedia,
                     nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
                     icon = Icons.Default.Groups2
@@ -941,10 +941,26 @@ fun LifestyleSection(profile: Profile) {
                     nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High"),
                     icon = Icons.Default.Favorite
                 )
+            LifestyleBooleanField(label = "Pet Friendly", value = lifestyle.petFriendly)
+            LifestyleBooleanField(label = "Cannabis Friendly", value = lifestyle.cannabisFriendly)
+// For alcohol type, use a dropdown or a simple text row:
+            LifestyleDropdown(label = "Alcohol Type", value = lifestyle.alcoholType, icon = Icons.Default.LocalDrink)
         }
     }
 }
 
+@Composable
+fun LifestyleBooleanField(label: String, value: Boolean) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = Icons.Default.Check, contentDescription = label, tint = Color.White)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "$label: ${if (value) "Yes" else "No"}",
+            color = Color.White,
+            fontSize = 16.sp
+        )
+    }
+}
 
 /** Interests (View-Only) */
 @OptIn(ExperimentalLayoutApi::class)
@@ -1041,6 +1057,45 @@ fun MetricsSection(profile: Profile) {
     }
 }
 
+@Composable
+fun BioEditSection(
+    currentBio: String?,
+    onSave: (String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var bio by remember { mutableStateOf(currentBio ?: "") }
+    Column {
+        OutlinedTextField(
+            value = bio,
+            onValueChange = { bio = it },
+            label = { Text("Bio", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row {
+            Button(
+                onClick = { onSave(bio) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+            ) {
+                Text("Save", color = Color.White)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("Cancel", color = Color.White)
+            }
+        }
+    }
+}
+
+
 /** Basic Info Edit (includes email) */
 @Composable
 fun BasicInfoEditSection(
@@ -1048,9 +1103,7 @@ fun BasicInfoEditSection(
     onSave: (Profile) -> Unit,
     onCancel: () -> Unit
 ) {
-    var email by remember { mutableStateOf(tempProfile.email) }
     var name by remember { mutableStateOf(tempProfile.name) }
-    var bio by remember { mutableStateOf(tempProfile.bio) }
     var gender by remember { mutableStateOf(tempProfile.gender) }
     var hometown by remember { mutableStateOf(tempProfile.hometown) }
     var highSchool by remember { mutableStateOf(tempProfile.highSchool) }
@@ -1064,35 +1117,9 @@ fun BasicInfoEditSection(
 
     Column {
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email", color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                cursorColor = Color(0xFFFF6F00),
-                focusedTextColor = Color.White
-            )
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
             value = name,
             onValueChange = { name = it },
             label = { Text("Name", color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                cursorColor = Color(0xFFFF6F00),
-                focusedTextColor = Color.White
-            )
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = bio,
-            onValueChange = { bio = it },
-            label = { Text("Bio", color = Color(0xFFFF6F00)) },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = Color(0xFFFF6F00),
@@ -1245,9 +1272,7 @@ fun BasicInfoEditSection(
                 onClick = {
                     onSave(
                         tempProfile.copy(
-                            email = email,
                             name = name,
-                            bio = bio,
                             gender = gender,
                             hometown = hometown,
                             highSchool = highSchool,
@@ -1443,6 +1468,24 @@ fun LifestyleEditSection(
             value = localLifestyle.sal,
             nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High")
         ) { localLifestyle = localLifestyle.copy(sal = it) }
+        // For pet friendly
+        LifestyleCheckboxEdit(
+            label = "Pet Friendly",
+            checked = localLifestyle.petFriendly,
+            onCheckedChange = { localLifestyle = localLifestyle.copy(petFriendly = it) }
+        )
+// For cannabis friendly
+        LifestyleCheckboxEdit(
+            label = "Cannabis Friendly",
+            checked = localLifestyle.cannabisFriendly,
+            onCheckedChange = { localLifestyle = localLifestyle.copy(cannabisFriendly = it) }
+        )
+// For alcohol type
+        LifestyleDropdownEdit(
+            label = "Alcohol Type",
+            value = localLifestyle.alcoholType,
+            onValueChange = { localLifestyle = localLifestyle.copy(alcoholType = it) }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
         ButtonRow(

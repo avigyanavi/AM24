@@ -1598,37 +1598,40 @@ fun EnterUsernameScreen(
                     // Finish Button
                     Button(
                         onClick = {
+                            // Inside the Finish Button onClick in EnterUsernameScreen:
                             val trimmedUsername = username.text.trim()
                             if (trimmedUsername.isEmpty()) {
                                 isUsernameValid = false
                                 usernameErrorMessage = "Username cannot be empty"
                                 return@Button
                             }
-
                             val currentUser = auth.currentUser
                             if (currentUser != null) {
                                 val userId = currentUser.uid
-                                // 1) Store username
-                                database.child("users").child(userId).child("username")
-                                    .setValue(trimmedUsername)
-                                    .addOnSuccessListener {
-                                        registrationViewModel.username = trimmedUsername
-
-                                        // 2) Save full profile in background
-                                        scope.launch {
-                                            try {
-                                                saveProfileToFirebase(registrationViewModel) {
-                                                    // 3) Done => onRegistrationComplete
-                                                    onRegistrationComplete()
+                                // 1) Store username in both the user's node and in the "usernames" node.
+                                checkAndStoreUsernameForRegistration(trimmedUsername, userId, onSuccess = {
+                                    // If successful, update the user's profile node:
+                                    database.child("users").child(userId).child("username")
+                                        .setValue(trimmedUsername)
+                                        .addOnSuccessListener {
+                                            registrationViewModel.username = trimmedUsername
+                                            // 2) Save the full profile in background.
+                                            scope.launch {
+                                                try {
+                                                    saveProfileToFirebase(registrationViewModel) {
+                                                        onRegistrationComplete()
+                                                    }
+                                                } catch (e: Exception) {
+                                                    Log.e("EnterUsernameScreen", "Error saving profile: ${e.message}")
                                                 }
-                                            } catch (e: Exception) {
-                                                Log.e("EnterUsernameScreen", "Error saving profile: ${e.message}")
                                             }
                                         }
-                                    }
-                                    .addOnFailureListener { exception ->
-                                        Log.e("EnterUsernameScreen", "Error saving username: ${exception.message}")
-                                    }
+                                        .addOnFailureListener { exception ->
+                                            Log.e("EnterUsernameScreen", "Error saving username in profile: ${exception.message}")
+                                        }
+                                }, onFailure = { errorMsg ->
+                                    Log.e("EnterUsernameScreen", errorMsg)
+                                })
                             }
                         },
                         modifier = Modifier
@@ -1665,6 +1668,7 @@ suspend fun saveProfileToFirebase(
             username = registrationViewModel.username,
             name = registrationViewModel.name,
             dob = registrationViewModel.dob,
+            email = registrationViewModel.email,
             bio = registrationViewModel.bio,
             gender = registrationViewModel.gender,
             interests = registrationViewModel.interests.toList(),
@@ -2658,6 +2662,35 @@ fun uploadOptionalPhoto(storageRef: StorageReference, uri: Uri, registrationView
         }
     }.addOnFailureListener {
         Log.e("UploadMedia", "Failed to upload: ${it.message}")
+    }
+}
+
+fun checkAndStoreUsernameForRegistration(
+    newUsername: String,
+    userId: String,
+    onSuccess: () -> Unit,
+    onFailure: (String) -> Unit
+) {
+    if(newUsername.isBlank()){
+        onFailure("Username cannot be empty.")
+        return
+    }
+    val db = FirebaseDatabase.getInstance().reference
+    val usernamesRef = db.child("usernames")
+    // Check if the username already exists.
+    usernamesRef.child(newUsername).get().addOnSuccessListener { snapshot ->
+        if (snapshot.exists()) {
+            onFailure("Username already taken. Please choose another.")
+        } else {
+            // Set the new mapping: username -> userId.
+            usernamesRef.child(newUsername).setValue(userId)
+                .addOnSuccessListener { onSuccess() }
+                .addOnFailureListener { e ->
+                    onFailure("Failed to store username mapping: ${e.message}")
+                }
+        }
+    }.addOnFailureListener { error ->
+        onFailure("Error checking username uniqueness: ${error.message}")
     }
 }
 

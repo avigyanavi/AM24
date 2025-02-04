@@ -139,12 +139,12 @@ fun TopNavBar(
         },
         actions = {
             // User Settings Icon (only on Profile screen)
-            if (isProfileScreen) {
+            if (isProfileScreen || isUserSettings) {
                 IconButton(onClick = {
                     navController.navigate("settings") // New route for user settings
                 }) {
                     Icon(
-                        imageVector = Icons.Default.ManageAccounts,
+                        imageVector = Icons.Default.Settings,
                         contentDescription = "User Settings",
                         tint = if (isUserSettings) Color(0xFFFF6F00) else Color.Gray,
                         modifier = Modifier.size(24.dp)

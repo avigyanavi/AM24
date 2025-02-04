@@ -929,7 +929,7 @@ fun PhotoWithTwoOverlays(
             )
         }
 
-        // Top overlay (always dynamic based on the photo index)
+        // Top overlay (unchanged, using compatibilityScore)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -937,75 +937,79 @@ fun PhotoWithTwoOverlays(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
                 .align(Alignment.TopCenter)
         ) {
-            when (currentPhotoIndex) {
-                0 -> {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Popularity Score: ${profile.averageSwipeRightsOnUser * 100} %",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = Color.White
-                        )
-                        FlashyVibeScore(compatibilityScore)
-                    }
+            if (currentPhotoIndex == 0) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Popularity Score: ${profile.averageSwipeRightsOnUser * 100} %",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                    FlashyVibeScore(compatibilityScore)
                 }
             }
         }
 
-        // Bottom overlay (always dynamic based on the photo index)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.6f))
-                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                .padding(horizontal = 14.dp, vertical = 10.dp)
-                .align(Alignment.BottomCenter)
-        ) {
-            when (currentPhotoIndex) {
-                0 -> {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "${profile.name}, $age",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "@${profile.username}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    color = Color.White
-                                )
-                                RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
-                                Text(
-                                    text = "${userDistance.roundToInt()} km away",
-                                    fontSize = 14.sp,
-                                    color = Color.White
-                                )
-                            }
-                            if (heightCm > 0) {
-                                Text(
-                                    text = "📏${heightCm} cm",
-                                    fontSize = 14.sp,
-                                    color = Color(0xFFFFDB00),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+        // Bottom overlay
+        if (currentPhotoIndex == 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .align(Alignment.BottomCenter)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "${profile.name}, $age",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "@${profile.username}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = Color.White
+                            )
+                            RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
                         }
+                        if (heightCm > 0) {
+                            Text(
+                                text = "📏${heightCm} cm",
+                                fontSize = 14.sp,
+                                color = Color(0xFFFFDB00),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
 
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Distance
+                        Text(
+                            text = "${userDistance.roundToInt()} km away",
+                            fontSize = 14.sp,
+                            color = Color.White
+                        )
+
+                        // Tags
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
                             horizontalArrangement = Arrangement.End
                         ) {
                             profile.community.takeIf { it.isNotBlank() }?.let {
@@ -1022,76 +1026,14 @@ fun PhotoWithTwoOverlays(
                             }
                             profile.caste.takeIf { it.isNotBlank() }?.let {
                                 TagBox(it)
-                                Spacer(modifier = Modifier.width(4.dp))
                             }
                         }
-                    }
-                }
-                1 -> {
-                    Text(
-                        text = profile.bio ?: "No bio available",
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        fontSize = 16.sp
-                    )
-                }
-                2 -> {
-                    Column {
-                        if (profile.interests.isNotEmpty()) {
-                            FlowRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp)
-                            ) {
-                                profile.interests.forEach { TagBox("${it.emoji} ${it.name}") }
-                            }
-                        }
-                    }
-                }
-                3 -> {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "${profile.hometown} Ranking: ${profile.am24RankingHometown ?: "N/A"}",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                4 -> {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "High School Ranking: ${profile.am24RankingHighSchool ?: "N/A"}",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                5 -> {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Kolkata Ranking: ${profile.am24RankingCollege ?: "N/A"}",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
             }
         }
     }
 }
-
 
 
 /** TagBox is unchanged (for your #tags). */

@@ -56,7 +56,9 @@ data class Profile(
     val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
     val numberOfUsersWhoSwiped: Double = 0.0,
     val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
-    val isBoosted: Boolean = false,
+    var isBoosted: Boolean = false,
+    var isPremium: Boolean = false,
+    var isPrivate: Boolean = false,
 
     val am24RankingAge: Int = 0,
     val am24RankingHighSchool: Int = 0,
