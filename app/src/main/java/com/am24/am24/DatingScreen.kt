@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
@@ -1174,6 +1175,8 @@ fun FlashyVibeScore(compatibilityScore: Double?) {
  */
 @Composable
 fun ProfileCollapsibleSectionsAll(profile: Profile) {
+    // Declare state variables for each collapsible section
+    var showVoiceBio by rememberSaveable { mutableStateOf(true) }
     var showBasic by rememberSaveable { mutableStateOf(true) }
     var showPreferences by rememberSaveable { mutableStateOf(true) }
     var showLifestyle by rememberSaveable { mutableStateOf(true) }
@@ -1185,6 +1188,17 @@ fun ProfileCollapsibleSectionsAll(profile: Profile) {
             .background(Color.Black)
             .padding(16.dp)
     ) {
+        // Voice & Bio accordion using the ShowVoiceBio composable
+        CollapsibleSection(
+            title = "Voice & Bio",
+            icon = Icons.Default.Mic,  // Choose a microphone icon
+            isExpanded = showVoiceBio,
+            onToggle = { showVoiceBio = !showVoiceBio }
+        ) {
+            showVoiceBio(profile = profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
         CollapsibleSection(
             title = "Basic Information",
             icon = Icons.Default.Person,
@@ -1225,6 +1239,23 @@ fun ProfileCollapsibleSectionsAll(profile: Profile) {
         }
     }
 }
+
+
+@Composable
+fun showVoiceBio(profile: Profile) {
+    Column {
+        if (!profile.voiceNoteUrl.isNullOrEmpty()) {
+            VoicePlayer(url = profile.voiceNoteUrl)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        Text(
+            text = profile.bio ?: "No bio available",
+            color = Color.White,
+            fontSize = 16.sp
+        )
+    }
+}
+
 
 /** CollapsibleSection that does NOT show edit icon here in the DatingScreen. */
 @Composable

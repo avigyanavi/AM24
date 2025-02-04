@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import android.content.Context
+import android.media.MediaRecorder
+import android.net.Uri
+import com.google.firebase.storage.StorageReference
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -27,6 +31,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     // Add this MutableStateFlow at the top of ProfileViewModel
     private val _currentUserProfile = MutableStateFlow<Profile?>(null)
     val currentUserProfile: StateFlow<Profile?> get() = _currentUserProfile
+
+    // NEW: Voice recording properties
+    private var voiceRecorder: MediaRecorder? = null
+    var voiceNoteUrl: String? = null
+    var voiceNoteFilePath: String? = null
 
     // Add this function to fetch and store the current user's profile
     fun fetchCurrentUserProfile() {
@@ -124,6 +133,53 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // ================= New Functions for Voice Recording =================
+
+    fun startVoiceRecording(context: Context, filePath: String) {
+        try {
+            voiceRecorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(128000) // 128 kbps for better quality
+                setAudioSamplingRate(44100) // 44.1 kHz sampling rate
+                setOutputFile(filePath)
+                prepare()
+                start()
+            }
+            voiceNoteFilePath = filePath
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting voice recording: ${e.message}")
+        }
+    }
+
+    fun stopVoiceRecording() {
+        try {
+            voiceRecorder?.apply {
+                stop()
+                reset()
+                release()
+            }
+            voiceRecorder = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping voice recording: ${e.message}")
+        }
+    }
+
+    fun uploadVoiceToRealtime(storageRef: StorageReference, uri: Uri) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val voiceNoteRef = storageRef.child("users/$userId/voice_note.mp3") // Adjust file extension if needed
+        voiceNoteRef.putFile(uri)
+            .addOnSuccessListener {
+                voiceNoteRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    voiceNoteUrl = downloadUri.toString()
+                    Log.d(TAG, "Voice note uploaded successfully: $downloadUri")
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e(TAG, "Failed to upload voice note: ${exception.message}")
+            }
+    }
 
     // Mark a notification as read (String-based)
     fun markNotificationAsRead(

@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -39,6 +38,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -151,8 +151,6 @@ class RegistrationViewModel : ViewModel() {
     var customHometown by mutableStateOf("")
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
-    var city by mutableStateOf("")            // Current city
-    var customCity by mutableStateOf("")      // For custom city input if not in dropdown
     var educationLevel by mutableStateOf("")  // For user's highest education level
 
     var highSchool by mutableStateOf("")
@@ -191,6 +189,8 @@ class RegistrationViewModel : ViewModel() {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(128000) // e.g., 128 kbps for better quality
+                setAudioSamplingRate(44100) // e.g., 44.1 kHz standard sampling rate
                 setOutputFile(filePath)
                 prepare()
                 start()
@@ -1677,7 +1677,6 @@ suspend fun saveProfileToFirebase(
             optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
             religion = registrationViewModel.religion,
             community = registrationViewModel.community,
-            city = registrationViewModel.city.ifEmpty { registrationViewModel.customCity },
             educationLevel = registrationViewModel.educationLevel,
             lifestyle = registrationViewModel.lifestyle,
             lookingFor = registrationViewModel.lookingFor,
@@ -1967,6 +1966,7 @@ fun EnterBirthDateAndInterestsScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
+    // 1) Birth Date Setup
     val dayRange = (1..31).toList()
     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
     val yearRange = (1950..currentYear).toList().reversed()
@@ -1984,6 +1984,7 @@ fun EnterBirthDateAndInterestsScreen(
         registrationViewModel.dob = "$selectedDay/$monthNumber/$selectedYear"
     }
 
+    // Restore existing DOB if previously set
     LaunchedEffect(Unit) {
         val storedDob = registrationViewModel.dob
         if (storedDob.isNotBlank()) {
@@ -2001,34 +2002,27 @@ fun EnterBirthDateAndInterestsScreen(
         updateDobInViewModel()
     }
 
+    // Expand states
     var expandedDay by remember { mutableStateOf(false) }
     var expandedMonth by remember { mutableStateOf(false) }
     var expandedYear by remember { mutableStateOf(false) }
     val isDateSelected = registrationViewModel.dob.isNotBlank()
 
-    val cities = listOf("Kolkata", "Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad")
-    val cityLocalitiesMap = mapOf(
-        "Kolkata" to listOf("Salt Lake", "New Town", "Dum Dum", "Behala", "Park Street"),
-        "Mumbai" to listOf("Andheri", "Bandra", "Juhu", "Dadar"),
-        "Delhi" to listOf("Dwarka", "Preet Vihar", "Connaught Place", "Saket"),
-        "Bangalore" to listOf("Whitefield", "MG Road", "Koramangala", "Jayanagar"),
-        "Chennai" to listOf("Adyar", "T. Nagar", "Besant Nagar", "Nungambakkam"),
-        "Hyderabad" to listOf("Charminar", "Hitec City", "Banjara Hills", "Secunderabad")
-    )
+    // 2) Kolkata Localities Only
+    val kolkataLocalities = listOf("Salt Lake", "New Town", "Dum Dum", "Behala", "Park Street")
 
-    var selectedCity by remember { mutableStateOf(registrationViewModel.city) }
-    var selectedLocality by remember { mutableStateOf(registrationViewModel.hometown) }
-    val localities = cityLocalitiesMap[selectedCity] ?: emptyList()
+    // We store the user’s selected locality in "hometown."
+    var selectedLocality by rememberSaveable { mutableStateOf(registrationViewModel.hometown) }
 
-    LaunchedEffect(selectedCity, selectedLocality) {
-        registrationViewModel.city = selectedCity
+    // Update registrationViewModel.hometown when locality changes
+    LaunchedEffect(selectedLocality) {
         registrationViewModel.hometown = selectedLocality
     }
 
-    var cityDropdownExpanded by remember { mutableStateOf(false) }
+    // For the dropdown
     var localityDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Global Interests
+    // 3) Interests
     val globalInterests = listOf(
         Interest("Music", "🎵"),
         Interest("Movies", "🎥"),
@@ -2040,137 +2034,40 @@ fun EnterBirthDateAndInterestsScreen(
         Interest("Gaming", "🎮")
     )
 
-    // City-Specific Interests
-    val citySpecificInterests = mapOf(
-        "Kolkata" to listOf(
-            Interest("Durga Puja", "🙏"),
-            Interest("Roshogolla", "⚪"),
-            Interest("Jhalmuri", "🍿"),
-            Interest("Victoria Memorial", "🏛️")
+    // Locality-Specific Interests (Only for Kolkata)
+    val kolkataLocalitiesInterests = mapOf(
+        "Salt Lake" to listOf(
+            Interest("CC Block Market", "🛒"),
+            Interest("Sector V IT Hub", "💻")
         ),
-        "Mumbai" to listOf(
-            Interest("Ganesh Chaturthi", "🎉"),
-            Interest("Marine Drive", "🌊"),
-            Interest("Bollywood", "🎬"),
-            Interest("Vada Pav", "🌮")
+        "New Town" to listOf(
+            Interest("Eco Park", "🌳"),
+            Interest("City Centre 2", "🛍️")
         ),
-        "Delhi" to listOf(
-            Interest("Chandni Chowk", "🛍️"),
-            Interest("Qutub Minar", "🏰"),
-            Interest("Street Food", "🍔"),
-            Interest("Red Fort", "🏯")
+        "Dum Dum" to listOf(
+            Interest("Airport Area", "✈️"),
+            Interest("Local Market", "🛍️")
         ),
-        "Bangalore" to listOf(
-            Interest("Tech Events", "💻"),
-            Interest("Coffee Culture", "☕"),
-            Interest("Cubbon Park", "🌳"),
-            Interest("Startup Meetups", "🚀")
+        "Behala" to listOf(
+            Interest("Old Market", "🏪"),
+            Interest("Local Eateries", "🍴")
         ),
-        "Chennai" to listOf(
-            Interest("Carnatic Music", "🎼"),
-            Interest("Marina Beach", "🏖️"),
-            Interest("Filter Coffee", "☕"),
-            Interest("Pongal Festival", "🎊")
-        ),
-        "Hyderabad" to listOf(
-            Interest("Charminar", "🕌"),
-            Interest("Biryani", "🍛"),
-            Interest("Ramoji Film City", "🎬"),
-            Interest("Pearl Shopping", "💎")
+        "Park Street" to listOf(
+            Interest("Nightlife", "🌃"),
+            Interest("Park Street Cafes", "☕")
         )
     )
 
-    // Locality-Specific Interests
-    val cityLocalitiesInterestsMap = mapOf(
-        "Kolkata" to mapOf(
-            "Salt Lake" to listOf(
-                Interest("CC Block Market", "🛒"),
-                Interest("Sector V IT Hub", "💻")
-            ),
-            "New Town" to listOf(
-                Interest("Eco Park", "🌳"),
-                Interest("City Centre 2", "🛍️")
-            ),
-            "Park Street" to listOf(
-                Interest("Nightlife", "🌃"),
-                Interest("Park Street Cafes", "☕")
-            )
-        ),
-        "Mumbai" to mapOf(
-            "Andheri" to listOf(
-                Interest("Versova Beach", "🏖️"),
-                Interest("Nightclubs", "🎶")
-            ),
-            "Bandra" to listOf(
-                Interest("Bandstand", "🌊"),
-                Interest("Carter Road Cafes", "☕")
-            ),
-            "Dadar" to listOf(
-                Interest("Local Markets", "🛍️"),
-                Interest("Traditional Temples", "🏯")
-            )
-        ),
-        "Delhi" to mapOf(
-            "Dwarka" to listOf(
-                Interest("Metro Connectivity", "🚇"),
-                Interest("Shopping Hubs", "🛒")
-            ),
-            "Preet Vihar" to listOf(
-                Interest("Street Food", "🌮"),
-                Interest("Malls", "🏬")
-            ),
-            "Connaught Place" to listOf(
-                Interest("Nightlife", "🌆"),
-                Interest("Colonial Era Buildings", "🏛️")
-            )
-        ),
-        "Bangalore" to mapOf(
-            "Whitefield" to listOf(
-                Interest("Phoenix Marketcity", "🏬"),
-                Interest("IT Parks", "💻")
-            ),
-            "Koramangala" to listOf(
-                Interest("Startup Ecosystem", "🚀"),
-                Interest("Cafes & Lounges", "☕")
-            ),
-            "MG Road" to listOf(
-                Interest("Pub Culture", "🍻"),
-                Interest("Shopping Streets", "🛍️")
-            )
-        ),
-        "Chennai" to mapOf(
-            "Adyar" to listOf(
-                Interest("Theosophical Society", "🌳"),
-                Interest("Adyar Estuary", "🌊")
-            ),
-            "T. Nagar" to listOf(
-                Interest("Pondy Bazaar", "🛍️"),
-                Interest("Silk Sarees Shopping", "👗")
-            ),
-            "Besant Nagar" to listOf(
-                Interest("Elliot's Beach", "🏖️"),
-                Interest("Cafes & Eateries", "🍟")
-            )
-        ),
-        "Hyderabad" to mapOf(
-            "Charminar" to listOf(
-                Interest("Old City Shopping", "🕌"),
-                Interest("Lac Bangles", "🎨")
-            ),
-            "Hitec City" to listOf(
-                Interest("IT Corridors", "💻"),
-                Interest("High-End Cafes", "☕")
-            ),
-            "Banjara Hills" to listOf(
-                Interest("Upscale Restaurants", "🍴"),
-                Interest("Luxury Shopping", "👜")
-            )
-        )
+    // Additional Interests for entire Kolkata
+    val kolkataCityInterests = listOf(
+        Interest("Durga Puja", "🙏"),
+        Interest("Roshogolla", "⚪"),
+        Interest("Jhalmuri", "🍿"),
+        Interest("Victoria Memorial", "🏛️")
     )
 
-    val isNextEnabled = isDateSelected &&
-            selectedCity.isNotEmpty() &&
-            selectedLocality.isNotEmpty()
+    // 4) "Next" Enabled only if DOB + Locality chosen
+    val isNextEnabled = isDateSelected && selectedLocality.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -2205,6 +2102,7 @@ fun EnterBirthDateAndInterestsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // Day
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { expandedDay = true },
@@ -2232,7 +2130,7 @@ fun EnterBirthDateAndInterestsScreen(
                                     }
                                 )
                                 if (index != dayRange.lastIndex) {
-                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp) // Add divider between items
+                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
                                 }
                             }
                         }
@@ -2240,6 +2138,7 @@ fun EnterBirthDateAndInterestsScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    // Month
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { expandedMonth = true },
@@ -2275,6 +2174,7 @@ fun EnterBirthDateAndInterestsScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    // Year
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { expandedYear = true },
@@ -2311,11 +2211,13 @@ fun EnterBirthDateAndInterestsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // City Section
-                Text("Select Your City", color = Color.White, fontSize = 18.sp)
+                // Kolkata Locality
+                Text("Select Your Locality in Kolkata", color = Color.White, fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Box {
                     OutlinedButton(
-                        onClick = { cityDropdownExpanded = true },
+                        onClick = { localityDropdownExpanded = true },
                         border = BorderStroke(1.dp, Color(0xFFFF6000)),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color(0xFF1A1A1A),
@@ -2324,65 +2226,25 @@ fun EnterBirthDateAndInterestsScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = if (selectedCity.isNotEmpty()) selectedCity else "Select City",
+                            text = if (selectedLocality.isNotEmpty()) selectedLocality else "Select Locality",
                             color = Color.White
                         )
                     }
                     DropdownMenu(
-                        expanded = cityDropdownExpanded,
-                        onDismissRequest = { cityDropdownExpanded = false },
+                        expanded = localityDropdownExpanded,
+                        onDismissRequest = { localityDropdownExpanded = false },
                         modifier = Modifier.background(Color(0xFF1A1A1A))
                     ) {
-                        cities.forEachIndexed { index, city ->
+                        kolkataLocalities.forEachIndexed { index, locality ->
                             DropdownMenuItem(
-                                text = { Text(city, color = Color.White) },
+                                text = { Text(locality, color = Color.White) },
                                 onClick = {
-                                    selectedCity = city
-                                    cityDropdownExpanded = false
-                                    selectedLocality = ""
+                                    selectedLocality = locality
+                                    localityDropdownExpanded = false
                                 }
                             )
-                            if (index != cities.lastIndex) {
+                            if (index != kolkataLocalities.lastIndex) {
                                 Divider(color = Color(0xFFFF6000), thickness = 1.dp)
-                            }
-                        }
-                    }
-                }
-
-                if (selectedCity.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Select Your Locality", color = Color.White, fontSize = 18.sp)
-                    Box {
-                        OutlinedButton(
-                            onClick = { localityDropdownExpanded = true },
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = if (selectedLocality.isNotEmpty()) selectedLocality else "Select Locality",
-                                color = Color.White
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = localityDropdownExpanded,
-                            onDismissRequest = { localityDropdownExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            localities.forEachIndexed { index, locality ->
-                                DropdownMenuItem(
-                                    text = { Text(locality, color = Color.White) },
-                                    onClick = {
-                                        selectedLocality = locality
-                                        localityDropdownExpanded = false
-                                    }
-                                )
-                                if (index != localities.lastIndex) {
-                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
-                                }
                             }
                         }
                     }
@@ -2390,7 +2252,7 @@ fun EnterBirthDateAndInterestsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Global Interests Section
+                // Global Interests
                 Text("Global Interests", color = Color.White, fontSize = 18.sp)
                 Column(modifier = Modifier.fillMaxWidth()) {
                     globalInterests.forEach { interest ->
@@ -2424,49 +2286,38 @@ fun EnterBirthDateAndInterestsScreen(
                     }
                 }
 
-                // City-Specific Interests Section
-                if (selectedCity.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Interests in $selectedCity", color = Color.White, fontSize = 18.sp)
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        citySpecificInterests[selectedCity]?.forEach { interest ->
-                            val isSelected = registrationViewModel.interests.contains(interest)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .clickable {
-                                        if (isSelected) {
-                                            registrationViewModel.interests.remove(interest)
-                                        } else {
-                                            registrationViewModel.interests.add(interest)
-                                        }
-                                    },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = isSelected,
-                                    onCheckedChange = null,
-                                    colors = CheckboxDefaults.colors(
-                                        checkedColor = Color(0xFFFF6000),
-                                        uncheckedColor = Color.White
-                                    )
-                                )
-                                Text(
-                                    text = "${interest.emoji} ${interest.name}",
-                                    color = if (isSelected) Color(0xFFFF6000) else Color.White
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Locality-Specific Interests Section
-                if (selectedCity.isNotEmpty() && selectedLocality.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                // Locality-Specific Interests (Within Kolkata)
+                Spacer(modifier = Modifier.height(16.dp))
+                if (selectedLocality.isNotBlank()) {
                     Text("Interests in $selectedLocality", color = Color.White, fontSize = 18.sp)
+                    // Hardcode a map of localities to interests if you want more detail:
+                    val kolkataLocalitiesInterestsMap = mapOf(
+                        "Salt Lake" to listOf(
+                            Interest("CC Block Market", "🛒"),
+                            Interest("Sector V IT Hub", "💻")
+                        ),
+                        "New Town" to listOf(
+                            Interest("Eco Park", "🌳"),
+                            Interest("City Centre 2", "🛍️")
+                        ),
+                        "Dum Dum" to listOf(
+                            Interest("Airport Area", "✈️"),
+                            Interest("Local Market", "🛍️")
+                        ),
+                        "Behala" to listOf(
+                            Interest("Old Market", "🏪"),
+                            Interest("Local Eateries", "🍴")
+                        ),
+                        "Park Street" to listOf(
+                            Interest("Nightlife", "🌃"),
+                            Interest("Park Street Cafes", "☕")
+                        )
+                    )
+
+                    val localInterests = kolkataLocalitiesInterestsMap[selectedLocality] ?: emptyList()
+
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        cityLocalitiesInterestsMap[selectedCity]?.get(selectedLocality)?.forEach { interest ->
+                        localInterests.forEach { interest ->
                             val isSelected = registrationViewModel.interests.contains(interest)
                             Row(
                                 modifier = Modifier
@@ -2500,6 +2351,7 @@ fun EnterBirthDateAndInterestsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Next Button
                 Button(
                     onClick = { if (isNextEnabled) onNext() },
                     modifier = Modifier

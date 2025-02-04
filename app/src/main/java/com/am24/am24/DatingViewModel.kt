@@ -120,13 +120,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private suspend fun applyDatingFilters(profiles: List<Profile>, filters: DatingFilterSettings): List<Profile> = coroutineScope {
         var result = profiles
 
-        // Apply city filter
-        if (filters.city.isNotEmpty() && filters.city != "All") {
-            result = result.filter { profile ->
-                profile.city?.equals(filters.city, ignoreCase = true) == true
-            }
-        }
-
         // Apply localities filter
         if (filters.localities.isNotEmpty()) {
             result = result.filter { profile ->

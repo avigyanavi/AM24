@@ -123,7 +123,6 @@ fun EditProfileScreen(navController: NavController? = null) {
                 hometownText = profile.hometown
                 highSchoolText = profile.highSchool
                 collegeText = profile.college
-                cityText = profile.city
                 postGraduationCollegeText = profile.postGraduation.toString()
 
                 // Deserialize interests correctly with name and emoji
@@ -147,7 +146,6 @@ fun EditProfileScreen(navController: NavController? = null) {
                 gender = profile.gender
                 community = profile.community
                 religion = profile.religion
-                city = profile.city
                 lookingFor = profile.lookingFor
                 lifestyle = profile.lifestyle ?: Lifestyle()
             }

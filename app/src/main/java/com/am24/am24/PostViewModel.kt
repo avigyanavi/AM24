@@ -971,13 +971,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            // City filter
-            if (filters.city.isNotBlank() && filters.city != "All") {
-                filteredList = filteredList.filter { post ->
-                    val profileCity = profiles[post.userId]?.city ?: ""
-                    profileCity.equals(filters.city, ignoreCase = true)
-                }
-            }
 
             // Localities filter
             if (filters.localities.isNotEmpty()) {

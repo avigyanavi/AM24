@@ -27,13 +27,12 @@ data class Profile(
     val badges: List<String> = emptyList(),
     val profilepicUrl: String? = null,
     val voiceNoteUrl: String? = null,
+    var loveLanguage: String = "",  // e.g. "Touch", "Words of Affirmation", etc.
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos
     val matches: List<String> = emptyList(),  // List of matched user IDs
     val religion: String = "",
     val community: String = "",
-    val city: String = "",     // Current city
     val hometown: String = "",  // User's hometown
-    val customCity: String? = null, // Custom value for city
     val customHometown: String? = null,  // Custom value for hometown
     val educationLevel: String = "",  // (New) High School, Bachelors, Masters, PhD, etc.
     val highSchool: String = "",
@@ -162,8 +161,7 @@ data class Profile(
     val profileCompletionPercentage: Int
         get() {
             val fields = listOf(
-                name, username, dob, bio, gender, profilepicUrl, religion, community,
-                city, hometown, educationLevel, highSchool, college, postGraduation,
+                name, username, dob, bio, gender, profilepicUrl, religion, community, hometown, educationLevel, highSchool, college, postGraduation,
                 jobRole, work, lookingFor
             )
             val filledFieldsCount = fields.count { !it.isNullOrEmpty() }
@@ -242,6 +240,8 @@ data class Lifestyle(
     var drinking: Int = -1,
     var cannabisFriendly: Boolean = false,
     var indoorsyToOutdoorsy: Int = -1,
+    var sal: Int = -1,
+    var IE: Int = -1,
     var socialMedia: Int = -1,
     var diet: String = "",
     var sleepCycle: Int = -1,
@@ -261,16 +261,13 @@ data class Lifestyle(
     val politicallyAware: Int = -1,
     val communityOriented: Int = -1,
     var sportsEnthusiast: Int = -1,
-    var sal: Int = -1,
-    var IE: Int = -1,
     var alcoholType: String = "",
-    var caste: String = "",
 ) {
     fun isComplete(): Boolean {
         val fields = listOf(
-            smoking, drinking, indoorsyToOutdoorsy, socialMedia, diet, sportsEnthusiast, sal, IE,
+            smoking, drinking, indoorsyToOutdoorsy, socialMedia, diet, sportsEnthusiast,
             sleepCycle, workLifeBalance, exerciseFrequency, adventurous, familyOriented,
-            intellectual, creativeArtistic, fitnessLevel, spiritualMindful,
+            intellectual, creativeArtistic, fitnessLevel, spiritualMindful, sal, IE,
             humorousEasyGoing, professionalAmbitious, environmentallyConscious,
             foodieCulinaryEnthusiast, politicallyAware, communityOriented, alcoholType
         )

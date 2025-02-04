@@ -1,3 +1,5 @@
+package com.am24.am24
+
 data class CityChallenge(
     val id: String = "", // Unique identifier for the challenge
     val title: String = "", // Title of the challenge
