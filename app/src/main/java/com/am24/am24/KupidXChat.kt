@@ -29,7 +29,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import com.am24.am24.BuildConfig
+
 
 enum class AI {
     RHEA, REVAAN
