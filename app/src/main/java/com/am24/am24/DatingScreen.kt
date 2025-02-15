@@ -5,7 +5,6 @@
 package com.am24.am24
 
 import DatingViewModel
-import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -25,7 +24,6 @@ import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
@@ -47,17 +45,14 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.Calendar
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.math.atan2
-import kotlin.math.sqrt
+import kotlin.math.*
 
 data class SwipeData(
     val liked: Boolean = false,
@@ -79,46 +74,35 @@ fun DatingScreen(
     navController: NavController,
     geoFire: GeoFire,
     modifier: Modifier = Modifier,
-    initialQuery: String = ""  // The UID passed from HomeScreen
+    initialQuery: String = ""
 ) {
     val datingViewModel: DatingViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
     val postViewModel: PostViewModel = viewModel()
 
-    // -- Existing states from your code --
     val filters by datingViewModel.datingFilters.collectAsState()
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
     val isLoading by datingViewModel.isLoading.collectAsState()
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
 
-    // The local states
     var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
     val remainingSwipes = remember { mutableStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
-
-    // This will store the "forced" profile if initialQuery is not blank
     var forcedProfile by remember { mutableStateOf<Profile?>(null) }
 
-    // Create a bottomSheetState for filters
     val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
 
-    // On first load => fetch excluded + userProfile + load swipes
     LaunchedEffect(Unit) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         if (currentUserId != null) {
             excludedUserIds = fetchExcludedUsers(currentUserId)
             profileViewModel.fetchCurrentUserProfile()
-
-            // Load & refill if needed
-            val loadedSwipes = loadAndRefillSwipesIfNeeded(currentUserId)
+            val loadedSwipes = loadAndResetSwipesDaily(currentUserId)
             remainingSwipes.value = loadedSwipes
-
-            // Call refresh here so it loads right away
             datingViewModel.refreshFilteredProfiles()
         }
     }
 
-    // ONE-OFF database fetch if initialQuery is not blank
     LaunchedEffect(initialQuery) {
         if (initialQuery.isNotBlank()) {
             val snapshot = FirebaseDatabase.getInstance()
@@ -126,26 +110,20 @@ fun DatingScreen(
                 .child(initialQuery)
                 .get()
                 .await()
-
             forcedProfile = snapshot.getValue(Profile::class.java)
         }
     }
 
-    // Decide displayedProfiles
     val displayedProfiles = if (initialQuery.isNotBlank()) {
-        // If forcedProfile was loaded, show it; else empty
         forcedProfile?.let { listOf(it) } ?: emptyList()
     } else {
-        // Normal path: use your filteredProfiles, excluding IDs
         filteredProfiles.filter { it.userId !in excludedUserIds }
     }
 
-    // Save filter function
     val saveFilters: () -> Unit = {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         datingViewModel.updateDatingFilters(filters)
         datingViewModel.refreshFilteredProfiles()
-
         if (currentUserId != null) {
             coroutineScope.launch {
                 excludedUserIds = fetchExcludedUsers(currentUserId)
@@ -154,11 +132,9 @@ fun DatingScreen(
         coroutineScope.launch { bottomSheetState.hide() }
     }
 
-    // Bottom sheet for filters
     ModalBottomSheetLayout(
         sheetState = bottomSheetState,
         sheetContent = {
-            // The existing FiltersOverlay code
             FiltersOverlay(
                 ageRange = filters.ageStart..filters.ageEnd,
                 onAgeRangeChange = { range ->
@@ -203,40 +179,24 @@ fun DatingScreen(
             )
         }
     ) {
-        // The main screen layout
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            // Top row: Stats, Filters, Info, SwipeCounter
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row {
-                    // Stats Button
-                    Button(
-                        onClick = { /* TODO: Stats placeholder */ },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Gray),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("Stats", color = Color.White)
-                    }
-
-                    // Filters Button
-                    Button(
-                        onClick = { coroutineScope.launch { bottomSheetState.show() } },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("Filters", color = Color.White)
-                    }
+                Button(
+                    onClick = { coroutineScope.launch { bottomSheetState.show() } },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text("Filters", color = Color.White, fontSize = 12.sp)
                 }
-
-                // Big orange bar with swipe counter
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -244,12 +204,8 @@ fun DatingScreen(
                 ) {
                     SwipeCounter(remainingSwipes.value)
                 }
-
-                // Info Overlay
                 InfoOverlay()
             }
-
-            // The main body
             Box(modifier = Modifier.fillMaxSize()) {
                 if (isLoading) {
                     Box(
@@ -262,7 +218,6 @@ fun DatingScreen(
                     if (displayedProfiles.isEmpty()) {
                         NoMoreProfilesScreen()
                     } else {
-                        // Show actual dating profiles
                         DatingScreenContent(
                             navController = navController,
                             geoFire = geoFire,
@@ -270,7 +225,6 @@ fun DatingScreen(
                             profileViewModel = profileViewModel,
                             postViewModel = postViewModel,
                             onSwipeRight = {
-                                // Decrement swipes + update in Firebase
                                 if (remainingSwipes.value > 0) {
                                     remainingSwipes.value--
                                     updateSwipesInFirebase(remainingSwipes.value)
@@ -289,7 +243,6 @@ fun DatingScreen(
         }
     }
 
-    // Display match pop-up if any
     matchPopUpState?.let { (currentUserProfile, matchedUserProfile) ->
         MatchPopUp(
             currentUserProfilePic = currentUserProfile.profilepicUrl.orEmpty(),
@@ -306,33 +259,28 @@ fun DatingScreen(
     }
 }
 
-suspend fun loadAndRefillSwipesIfNeeded(userId: String): Int {
+/**
+ * Load swipes from Firebase and reset them to 25 if a new day has started.
+ */
+suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val swipesRef = FirebaseDatabase.getInstance().getReference("users/$userId/swipesInfo")
     val snapshot = swipesRef.get().await()
-
-    // default values if not present
-    var remainingSwipes = 50
-    var lastRefillTimestamp = 0L
-
+    var remainingSwipes = 25
+    var lastResetDayOfYear = -1
     snapshot.child("remainingSwipes").getValue(Int::class.java)?.let {
         remainingSwipes = it
     }
-    snapshot.child("lastRefillTimestamp").getValue(Long::class.java)?.let {
-        lastRefillTimestamp = it
+    snapshot.child("lastResetDayOfYear").getValue(Int::class.java)?.let {
+        lastResetDayOfYear = it
     }
-
-    // refill if 7 days have passed
-    val now = System.currentTimeMillis()
-    val oneWeekMillis = 7 * 24 * 60 * 60 * 1000L
-    if (now - lastRefillTimestamp >= oneWeekMillis) {
-        remainingSwipes += 50
-        lastRefillTimestamp = now
+    val calendar = Calendar.getInstance()
+    val todayDayOfYear = calendar.get(Calendar.DAY_OF_YEAR)
+    if (todayDayOfYear != lastResetDayOfYear) {
+        remainingSwipes = 25
+        lastResetDayOfYear = todayDayOfYear
     }
-
-    // write updated swipes + timestamp
     swipesRef.child("remainingSwipes").setValue(remainingSwipes)
-    swipesRef.child("lastRefillTimestamp").setValue(lastRefillTimestamp)
-
+    swipesRef.child("lastResetDayOfYear").setValue(lastResetDayOfYear)
     return remainingSwipes
 }
 
@@ -342,6 +290,7 @@ fun updateSwipesInFirebase(newSwipesCount: Int) {
     val swipesRef = FirebaseDatabase.getInstance().getReference("users/$userId/swipesInfo")
     swipesRef.child("remainingSwipes").setValue(newSwipesCount)
 }
+
 @Composable
 fun FiltersOverlay(
     ageRange: IntRange,
@@ -423,7 +372,9 @@ fun FiltersOverlay(
                             ),
                             border = BorderStroke(2.dp, if (selectedGenders.contains(gender)) Color(0xFFFF6000) else Color.Gray),
                             shape = RoundedCornerShape(50),
-                            modifier = Modifier.padding(vertical = 4.dp).height(48.dp)
+                            modifier = Modifier
+                                .padding(vertical = 4.dp)
+                                .height(48.dp)
                         ) {
                             Text(gender, color = Color.White)
                         }
@@ -575,7 +526,9 @@ fun DropdownFilter(
                 ),
                 border = BorderStroke(2.dp, Color(0xFFFF6000)),
                 shape = RoundedCornerShape(50), // Rounded button
-                modifier = Modifier.padding(vertical = 4.dp).height(48.dp)
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .height(48.dp)
             ) {
                 Text(
                     text = selectedOption.ifBlank { "Select $label" },
@@ -875,7 +828,8 @@ fun SwipeCounter(remainingSwipes: Int) {
         )
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(
-            progress = remainingSwipes / 50f,
+            // Divide by 25 now instead of 50
+            progress = remainingSwipes / 25f,
             color = Color(0xFFFF6F00),
             backgroundColor = Color.Gray,
             modifier = Modifier
@@ -885,7 +839,6 @@ fun SwipeCounter(remainingSwipes: Int) {
     }
 }
 
-
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
@@ -894,8 +847,6 @@ fun PhotoWithTwoOverlays(
 ) {
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
-
-    val vibeScorePercent = (profile.vibepoints * 100).roundToInt().coerceAtLeast(0)
     val age = calculateAge(profile.dob)
     val heightCm = profile.height
 
@@ -908,16 +859,15 @@ fun PhotoWithTwoOverlays(
                     onTap = { offset ->
                         if (photoUrls.size > 1) {
                             if (offset.x > size.width / 2) {
-                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size // Next photo
+                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
                             } else {
-                                currentPhotoIndex = (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size // Previous photo
+                                currentPhotoIndex = (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
                             }
                         }
                     }
                 )
             }
     ) {
-        // Display the current photo
         if (photoUrls.isNotEmpty()) {
             AsyncImage(
                 model = photoUrls[currentPhotoIndex],
@@ -925,35 +875,34 @@ fun PhotoWithTwoOverlays(
                 placeholder = painterResource(R.drawable.local_placeholder),
                 error = painterResource(R.drawable.local_placeholder),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 400.dp)
+                modifier = Modifier.fillMaxWidth().heightIn(min = 300.dp)
             )
         }
-
-        // Top overlay (unchanged, using compatibilityScore)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.25f))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .align(Alignment.TopCenter)
-        ) {
-            if (currentPhotoIndex == 0) {
+        if (currentPhotoIndex == 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.25f))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .align(Alignment.TopCenter)
+            ) {
+                val popScore = (profile.averageSwipeRightsOnUser * 100).let {
+                    String.format("%.2f", it)
+                }
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Popularity Score: ${profile.averageSwipeRightsOnUser * 100} %",
+                        text = "Popularity Score: $popScore %",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                        fontSize = 14.sp,
                         color = Color.White
                     )
                     FlashyVibeScore(compatibilityScore)
                 }
             }
         }
-
-        // Bottom overlay
         if (currentPhotoIndex == 0) {
             Box(
                 modifier = Modifier
@@ -973,16 +922,19 @@ fun PhotoWithTwoOverlays(
                             Text(
                                 text = "${profile.name}, $age",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
+                                fontSize = 14.sp,
                                 color = Color.White
                             )
                             Text(
                                 text = "@${profile.username}",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
+                                fontSize = 14.sp,
                                 color = Color.White
                             )
-                            RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                            RatingBar(
+                                rating = profile.averageRating,
+                                ratingCount = profile.numberOfRatings
+                            )
                         }
                         if (heightCm > 0) {
                             Text(
@@ -993,25 +945,18 @@ fun PhotoWithTwoOverlays(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Distance
                         Text(
                             text = "${userDistance.roundToInt()} km away",
                             fontSize = 14.sp,
                             color = Color.White
                         )
-
-                        // Tags
-                        Row(
-                            horizontalArrangement = Arrangement.End
-                        ) {
+                        Row(horizontalArrangement = Arrangement.End) {
                             profile.community.takeIf { it.isNotBlank() }?.let {
                                 TagBox(it)
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -1034,7 +979,6 @@ fun PhotoWithTwoOverlays(
         }
     }
 }
-
 
 /** TagBox is unchanged (for your #tags). */
 @Composable
@@ -1059,10 +1003,7 @@ fun TagBox(text: String) {
 @Composable
 fun FlashyVibeScore(compatibilityScore: Double?) {
     var showCompatibilityDialog by remember { mutableStateOf(false) }
-
     val displayPercent = compatibilityScore?.roundToInt()?.coerceIn(0, 100) ?: 0
-
-    // Container for the gradient box
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
@@ -1071,49 +1012,41 @@ fun FlashyVibeScore(compatibilityScore: Double?) {
                     colors = listOf(Color(0xFFFF4500), Color(0xFFFF6F00))
                 )
             )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clickable {
-                showCompatibilityDialog = true
-            }
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clickable { showCompatibilityDialog = true }
     ) {
         Text(
             text = "Compatibility: $displayPercent%",
             color = Color.White,
             fontWeight = FontWeight.ExtraBold,
-            fontSize = 16.sp
+            fontSize = 14.sp
         )
     }
-
     if (showCompatibilityDialog) {
         AlertDialog(
             onDismissRequest = { showCompatibilityDialog = false },
-            title = { Text("Compatibility Breakdown") },
+            title = { Text("Compatibility Breakdown", fontSize = 14.sp, fontWeight = FontWeight.Bold) },
             text = {
-                // This is just a sample of how you might show a breakdown
-                // In a real app, you'd compute or display the actual fields used.
                 Column {
-                    Text("Shared Interests: +20%")
-                    Text("Zodiac Match: +10%")
-                    Text("Lifestyle Overlap: +15%")
-                    Text("Locality Bonus: +10%")
-                    // etc...
-                    Text("\nTotal: $displayPercent%")
+                    Text("Shared Interests: +20%", fontSize = 12.sp)
+                    Text("Zodiac Match: +10%", fontSize = 12.sp)
+                    Text("Lifestyle Overlap: +15%", fontSize = 12.sp)
+                    Text("Locality Bonus: +10%", fontSize = 12.sp)
+                    Text("\nTotal: $displayPercent%", fontSize = 12.sp)
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showCompatibilityDialog = false }) {
-                    Text("Close", color = Color(0xFFFF6F00))
+                    Text("Close", color = Color(0xFFFF6F00), fontSize = 12.sp)
                 }
             }
         )
     }
 }
 
-
 /**
  * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests
  * without edit icons for the DatingScreen usage.
- * We assume you do not want the “edit” logic from ProfileScreen here.
  */
 @Composable
 fun ProfileCollapsibleSectionsAll(profile: Profile) {
@@ -1130,7 +1063,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile) {
             .background(Color.Black)
             .padding(16.dp)
     ) {
-        // Voice & Bio accordion using the ShowVoiceBio composable
+        // Voice & Bio accordion
         CollapsibleSection(
             title = "Voice & Bio",
             icon = Icons.Default.Mic,  // Choose a microphone icon
@@ -1238,11 +1171,11 @@ fun CollapsibleSection(
     if (isExpanded) {
         Spacer(Modifier.height(8.dp))
 
-        // NEW: Wrap your content in a card with background color #1A1A1A
+        // Wrap your content in a card with background color #1A1A1A
         Card(
             backgroundColor = Color(0xFF1A1A1A),
             elevation = 4.dp,                    // Choose an elevation if you like
-            shape = RoundedCornerShape(8.dp),    // Slight rounding for "depressed" look
+            shape = RoundedCornerShape(8.dp),    // Slight rounding
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)      // Indent from screen edges
@@ -1309,7 +1242,6 @@ fun handleSwipeRight(
     }
 }
 
-
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val database = FirebaseDatabase.getInstance()
     val timestamp = System.currentTimeMillis()
@@ -1321,7 +1253,7 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
     otherUserTotalSwipesRef.setValue(true)  // Just track presence
 
-    // ✅ Increment count for `numberOfUsersWhoSwiped`
+    // ✅ Increment count for numberOfUsersWhoSwiped
     val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
     otherUserProfileRef.get().addOnSuccessListener { snapshot ->
         val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
@@ -1362,7 +1294,7 @@ fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     val dLat = Math.toRadians(lat2 - lat1)
     val dLon = Math.toRadians(lon2 - lon1)
     val a = sin(dLat / 2) * sin(dLat / 2) +
-            kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
+            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
             sin(dLon / 2) * sin(dLon / 2)
     val c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return (earthRadius * c).toFloat()
@@ -1388,7 +1320,7 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? =
         })
     }
 
-/** Standard “MatchPopUp” remains unchanged from your code. */
+/** Standard “MatchPopUp” remains unchanged. */
 @Composable
 fun MatchPopUp(
     currentUserProfilePic: String,

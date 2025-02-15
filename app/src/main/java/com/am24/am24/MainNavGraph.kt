@@ -1,35 +1,32 @@
-// MainNavGraph.kt
+// ----------------------------------
+//  MainNavGraph.kt
+// ----------------------------------
 package com.am24.am24
 
 import DatingViewModel
 import EditPicAndVoiceBioScreen
 import android.app.Application
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import com.firebase.geofire.GeoFire
-import com.google.android.material.progressindicator.CircularProgressIndicator
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
-// Initialize GeoFire instance globally in your MainNavGraph
+// Initialize GeoFire instance globally
 val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -39,7 +36,7 @@ fun MainNavGraph(
     modifier: Modifier = Modifier,
     postViewModel: PostViewModel
 ) {
-    // Initialize `postViewModel`
+    // Re-initialize postViewModel
     val postViewModel: PostViewModel = viewModel(
         factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
             LocalContext.current.applicationContext as Application
@@ -63,7 +60,7 @@ fun MainNavGraph(
     NavHost(
         navController = navController,
         startDestination = "dating",
-        modifier = modifier // The padding is already applied via the modifier
+        modifier = modifier
     ) {
         composable("dms") {
             DMScreen(navController = navController)
@@ -86,7 +83,7 @@ fun MainNavGraph(
         composable("profile") {
             ProfileScreen(
                 navController = navController,
-                profileViewModel = profileViewModel, // Pass profileViewModel here
+                profileViewModel = profileViewModel,
                 postViewModel = postViewModel
             )
         }
@@ -95,21 +92,12 @@ fun MainNavGraph(
             DatingScreen(
                 navController = navController,
                 geoFire = geoFire,
-                initialQuery = initialQuery // Pass initialQuery to DatingScreen
+                initialQuery = initialQuery
             )
         }
         composable("dating") {
-            // Navigate to DatingScreen without startUserId
             DatingScreen(navController = navController, geoFire = geoFire)
         }
-        composable("kupidxhub") {
-            KupidxHubScreen(navController = navController)
-        }
-        composable("ephemeral_chat/{userId}") { backStackEntry ->
-            val otherUserId = backStackEntry.arguments?.getString("userId") ?: return@composable
-            EphemeralChatScreen(navController, otherUserId)
-        }
-        // In your NavGraph or wherever
         composable("editPicAndVoiceBio") {
             EditPicAndVoiceBioScreen(navController, profileViewModel)
         }
@@ -119,11 +107,12 @@ fun MainNavGraph(
         composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(navController = navController)
         }
-        // -------- QUIZ ROUTE: fetch userProfile, pass city/locality to QuizScreen -----------
-        composable("quiz") {
-            // 3) Once loaded, pass city & hometown to QuizScreen
-            CityChallengesScreen()
+
+        // ----- The AI route for KupidXChatScreen -----
+        composable("ai") {
+                KupidXChatScreen()
         }
+
         composable("notifications") {
             NotificationsScreen(navController = navController)
         }
@@ -133,7 +122,6 @@ fun MainNavGraph(
                 ChatScreen(navController, otherUserId)
             }
         }
-        // New composable for MatchedUserProfile
         composable("matchedUserProfile/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
             MatchedUserProfile(

@@ -41,9 +41,11 @@ data class Profile(
     val college: String = "",
     val customCollege: String? = null,
     val collegeGraduationYear: String = "", // New field
+    val collegeDegree: String? = null,      // <--- NEW FIELD for college degree (e.g. B.Sc, B.A, etc.)
     val postGraduation: String? = "",
     val customPostGraduation: String? = null,
     val postGraduationYear: String = "", // New field
+    val postGraduationDegree: String? = null, // <--- NEW FIELD for PG degree (e.g. M.Sc, MBA, etc.)
 
     val lifestyle: Lifestyle? = null,  // Lifestyle Section
     val politics: String = "",  // Political preferences (e.g., liberal, conservative)
@@ -88,6 +90,23 @@ data class Profile(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     var averageRating: Double = 0.0,
+    var isMatrimonyMode: Boolean = false, // Toggle button for Matrimony Mode
+
+    // Marriage-related fields (visible only if isMatrimonyMode is true)
+    var marriageTimeline: String? = null,  // "Within 6 months", "1 year", "2-3 years", "No rush"
+    var relocationPreference: String? = null,  // "Yes", "No", "Maybe"
+    var postMarriageCareerPlan: String? = null,  // "Continue working", "Open to discussion", "Prefer homemaking"
+    var traditionalVsLiberal: String? = null,  // "Traditional", "Moderate", "Liberal"
+
+    // Family details (optional)
+    var fatherOccupation: String? = null,
+    var motherOccupation: String? = null,
+    var numberOfSiblings: Int? = null,
+    var elderSiblings: Int? = null,
+    var youngerSiblings: Int? = null,
+
+    // Matrimony Verification
+    var isConsultantVerified: Boolean = false,  // You will verify the profile manually
 
     // Keep these three for the user's personal dating prefs from registration
     val datingAgeStart: Int = 18,
@@ -100,6 +119,7 @@ data class Profile(
     var relationship: String? = null, // Add this to hold "friend", "match", etc.
 
     var averageSwipeRightsOnUser: Double = 0.0,
+
 
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),

@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
@@ -204,6 +205,62 @@ fun ProfileCollapsibleSections(
             .background(Color.Black)
             .padding(16.dp)
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Matrimony Mode",
+                color = Color(0xFFFF6F00),
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Switch(
+                checked = tempProfile.isMatrimonyMode,
+                onCheckedChange = { isChecked ->
+                    tempProfile = tempProfile.copy(isMatrimonyMode = isChecked)
+                    onProfileUpdated(tempProfile)
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFFFF6F00)
+                )
+            )
+        }
+        if (tempProfile.isMatrimonyMode) {
+            // Add a collapsible block for these new fields
+            var showMatrimony by rememberSaveable { mutableStateOf(true) }
+            var editMatrimony by rememberSaveable { mutableStateOf(false) }
+
+            CollapsibleSection(
+                title = "Matrimony Info",
+                icon = Icons.Default.Cake,  // Or any suitable icon
+                isExpanded = showMatrimony,
+                onToggle = { showMatrimony = !showMatrimony },
+                editMode = editMatrimony,
+                onEditToggle = { editMatrimony = !editMatrimony }
+            ) {
+                if (editMatrimony) {
+                    MatrimonyInfoEditSection(
+                        tempProfile = tempProfile,
+                        onSave = { updatedProfile ->
+                            onProfileUpdated(updatedProfile)
+                            editMatrimony = false
+                        },
+                        onCancel = {
+                            // revert
+                            editMatrimony = false
+                        }
+                    )
+                } else {
+                    MatrimonyInfoSection(profile = tempProfile)
+                }
+            }
+        }
+
         CollapsibleSection(
             title = "Bio",
             icon = Icons.Default.Info,
@@ -366,7 +423,6 @@ fun ProfileCollapsibleSections(
         }
     }
 }
-
 
 /**
  * A CollapsibleSection with an optional EDIT icon in the header.
@@ -749,24 +805,59 @@ fun CollapsedMetricsSection(profile: Profile) {
 /** Basic Info (View-Only) */
 @Composable
 fun BasicInfoSection(profile: Profile) {
-    ProfileDetailRow("Email", profile.email, Icons.Default.Email)
-
     val genderIcon = when (profile.gender.lowercase()) {
         "male" -> Icons.Default.Male
         "female" -> Icons.Default.Female
         else -> Icons.Default.Transgender
     }
+
     ProfileDetailRow("Name", profile.name, Icons.Default.Person)
+
     ProfileDetailRow(
         label = "Popularity Score",
         value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
         icon = Icons.Default.Star
     )
+
     ProfileDetailRow("Gender", profile.gender, genderIcon)
     ProfileDetailRow("Locality", profile.hometown, Icons.Default.LocationCity)
+    ProfileDetailRow("Love Language", profile.loveLanguage, Icons.Default.Favorite)
+    ProfileDetailRow("Politics", profile.politics, Icons.Default.HowToVote)
+
+    // Show jobRole vs. customJobRole
+    val displayJobRole = if (!profile.customJobRole.isNullOrBlank()) {
+        profile.customJobRole
+    } else {
+        profile.jobRole
+    }
+    ProfileDetailRow("Job Role", displayJobRole, Icons.Default.Work)
+
+    // Show work vs. customWork
+    val displayWork = if (!profile.customWork.isNullOrBlank()) {
+        profile.customWork
+    } else {
+        profile.work
+    }
+    ProfileDetailRow("Work", displayWork, Icons.Default.Business)
+
+    // High School
     ProfileDetailRow("High School", profile.highSchool, Icons.Default.School)
+
+    // College
     ProfileDetailRow("College", profile.college, Icons.Default.AccountBalance)
+    // Only show "College Degree" if it exists
+    if (!profile.collegeDegree.isNullOrBlank()) {
+        ProfileDetailRow("College Degree", profile.collegeDegree, Icons.Default.Book)
+    }
+
+    // Post-Graduation
     ProfileDetailRow("Post-Graduation", profile.postGraduation, Icons.Default.EmojiObjects)
+    // Only show "Post-Grad Degree" if it exists
+    if (!profile.postGraduationDegree.isNullOrBlank()) {
+        ProfileDetailRow("Post-Grad Degree", profile.postGraduationDegree, Icons.Default.School)
+    }
+
+    // Community & Religion
     ProfileDetailRow("Community", profile.community, Icons.Default.Groups)
     ProfileDetailRow("Religion", profile.religion, Icons.Default.Church)
 }
@@ -780,171 +871,178 @@ fun PreferencesSection(profile: Profile) {
 
 @Composable
 fun LifestyleSection(profile: Profile) {
-    Column {
-        profile.lifestyle?.let { lifestyle ->
-            if (lifestyle.smoking != -1)
-                LifestyleSlider(
-                    label = "Smoking",
-                    value = lifestyle.smoking,
-                    nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker"),
-                    icon = Icons.Default.SmokingRooms
-                )
-            if (lifestyle.drinking != -1)
-                LifestyleSlider(
-                    label = "Drinking",
-                    value = lifestyle.drinking,
-                    nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker"),
-                    icon = Icons.Default.LocalDrink
-                )
-            if (lifestyle.indoorsyToOutdoorsy != -1)
-                LifestyleSlider(
-                    label = "Going out",
-                    value = lifestyle.indoorsyToOutdoorsy,
-                    nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy"),
-                    icon = Icons.Default.DirectionsWalk
-                )
-            if (lifestyle.socialMedia != -1)
-                LifestyleSlider(
-                    label = "Social Media",
-                    value = lifestyle.socialMedia,
-                    nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
-                    icon = Icons.Default.Groups2
-                )
-            if (lifestyle.workLifeBalance != -1)
-                LifestyleSlider(
-                    label = "Work-Life Balance",
-                    value = lifestyle.workLifeBalance,
-                    nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed"),
-                    icon = Icons.Default.WorkOff
-                )
-            if (lifestyle.exerciseFrequency != -1)
-                LifestyleSlider(
-                    label = "Exercise Frequency",
-                    value = lifestyle.exerciseFrequency,
-                    nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active"),
-                    icon = Icons.Default.SportsGymnastics
-                )
-            if (lifestyle.familyOriented != -1)
-                LifestyleSlider(
-                    label = "Family-Oriented",
-                    value = lifestyle.familyOriented,
-                    nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented"),
-                    icon = Icons.Default.FamilyRestroom
-                )
-            if (lifestyle.diet.isNotBlank())
-                LifestyleDropdown("Diet", lifestyle.diet, Icons.Default.Restaurant)
-            if (lifestyle.sleepCycle != -1)
-                LifestyleSlider(
-                    label = "Sleep Cycle",
-                    value = lifestyle.sleepCycle,
-                    nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast"),
-                    icon = Icons.Default.Bedtime
-                )
-            if (lifestyle.adventurous != -1)
-                LifestyleSlider(
-                    label = "Adventurous",
-                    value = lifestyle.adventurous,
-                    nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker"),
-                    icon = Icons.Default.Hiking
-                )
-            if (lifestyle.petFriendly)
-                LifestyleDropdown("Pet Friendly", "Yes", Icons.Default.Pets)
-            if (lifestyle.intellectual != -1)
-                LifestyleSlider(
-                    label = "Intellectual",
-                    value = lifestyle.intellectual,
-                    nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher"),
-                    icon = Icons.Default.School
-                )
-            if (lifestyle.creativeArtistic != -1)
-                LifestyleSlider(
-                    label = "Creative/Artistic",
-                    value = lifestyle.creativeArtistic,
-                    nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius"),
-                    icon = Icons.Default.Palette
-                )
-            if (lifestyle.fitnessLevel != -1)
-                LifestyleSlider(
-                    label = "Fitness Level",
-                    value = lifestyle.fitnessLevel,
-                    nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness"),
-                    icon = Icons.Default.FitnessCenter
-                )
-            if (lifestyle.spiritualMindful != -1)
-                LifestyleSlider(
-                    label = "Spiritual/Mindful",
-                    value = lifestyle.spiritualMindful,
-                    nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful"),
-                    icon = Icons.Default.SelfImprovement
-                )
-            if (lifestyle.humorousEasyGoing != -1)
-                LifestyleSlider(
-                    label = "Humorous/Easy-Going",
-                    value = lifestyle.humorousEasyGoing,
-                    nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party"),
-                    icon = Icons.Default.SentimentVerySatisfied
-                )
-            if (lifestyle.professionalAmbitious != -1)
-                LifestyleSlider(
-                    label = "Professional/Ambitious",
-                    value = lifestyle.professionalAmbitious,
-                    nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious"),
-                    icon = Icons.Default.Work
-                )
-            if (lifestyle.environmentallyConscious != -1)
-                LifestyleSlider(
-                    label = "Environmentally Conscious",
-                    value = lifestyle.environmentallyConscious,
-                    nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion"),
-                    icon = Icons.Default.Eco
-                )
-            if (lifestyle.foodieCulinaryEnthusiast != -1)
-                LifestyleSlider(
-                    label = "Foodie/Culinary Enthusiast",
-                    value = lifestyle.foodieCulinaryEnthusiast,
-                    nouns = listOf("Not a Foodie", "Occasionally Foodie", "Foodie", "Passionate Foodie", "Gourmet"),
-                    icon = Icons.Default.LocalDining
-                )
-            if (lifestyle.politicallyAware != -1)
-                LifestyleSlider(
-                    label = "Politically Aware",
-                    value = lifestyle.politicallyAware,
-                    nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged"),
-                    icon = Icons.Default.Gavel
-                )
-            if (lifestyle.communityOriented != -1)
-                LifestyleSlider(
-                    label = "Community Oriented",
-                    value = lifestyle.communityOriented,
-                    nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader"),
-                    icon = Icons.Default.Groups
-                )
-            if (lifestyle.sportsEnthusiast != -1)
-                LifestyleSlider(
-                    label = "Sports Enthusiast",
-                    value = lifestyle.sportsEnthusiast,
-                    nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic"),
-                    icon = Icons.Default.SportsSoccer
-                )
-            // NEW SLIDERS ADDED:
-            if (lifestyle.IE != -1)
-                LifestyleSlider(
-                    label = "Introvert Level",
-                    value = lifestyle.IE,
-                    nouns = listOf("Not Introverted", "Slightly Introverted", "Moderately Introverted", "Very Introverted", "Extremely Introverted"),
-                    icon = Icons.Default.Person
-                )
-            if (lifestyle.sal != -1)
-                LifestyleSlider(
-                    label = "Sexual Activity Level",
-                    value = lifestyle.sal,
-                    nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High"),
-                    icon = Icons.Default.Favorite
-                )
-            LifestyleBooleanField(label = "Pet Friendly", value = lifestyle.petFriendly)
-            LifestyleBooleanField(label = "Cannabis Friendly", value = lifestyle.cannabisFriendly)
-// For alcohol type, use a dropdown or a simple text row:
-            LifestyleDropdown(label = "Alcohol Type", value = lifestyle.alcoholType, icon = Icons.Default.LocalDrink)
+    CompositionLocalProvider(LocalTextStyle provides TextStyle(fontSize = 12.sp)) {
+        Column {
+            profile.lifestyle?.let { lifestyle ->
+                if (lifestyle.smoking != -1)
+                    LifestyleSlider(
+                        label = "Smoking",
+                        value = lifestyle.smoking,
+                        nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker"),
+                        icon = Icons.Default.SmokingRooms
+                    )
+                if (lifestyle.drinking != -1)
+                    LifestyleSlider(
+                        label = "Drinking",
+                        value = lifestyle.drinking,
+                        nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker"),
+                        icon = Icons.Default.LocalDrink
+                    )
+                if (lifestyle.indoorsyToOutdoorsy != -1)
+                    LifestyleSlider(
+                        label = "Going out",
+                        value = lifestyle.indoorsyToOutdoorsy,
+                        nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy"),
+                        icon = Icons.Default.DirectionsWalk
+                    )
+                if (lifestyle.socialMedia != -1)
+                    LifestyleSlider(
+                        label = "Social Media",
+                        value = lifestyle.socialMedia,
+                        nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
+                        icon = Icons.Default.Groups2
+                    )
+                if (lifestyle.workLifeBalance != -1)
+                    LifestyleSlider(
+                        label = "Work-Life Balance",
+                        value = lifestyle.workLifeBalance,
+                        nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed"),
+                        icon = Icons.Default.WorkOff
+                    )
+                if (lifestyle.exerciseFrequency != -1)
+                    LifestyleSlider(
+                        label = "Exercise Frequency",
+                        value = lifestyle.exerciseFrequency,
+                        nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active"),
+                        icon = Icons.Default.SportsGymnastics
+                    )
+                if (lifestyle.familyOriented != -1)
+                    LifestyleSlider(
+                        label = "Family-Oriented",
+                        value = lifestyle.familyOriented,
+                        nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented"),
+                        icon = Icons.Default.FamilyRestroom
+                    )
+                if (lifestyle.diet.isNotBlank())
+                    LifestyleDropdown("Diet", lifestyle.diet, Icons.Default.Restaurant)
+                if (lifestyle.sleepCycle != -1)
+                    LifestyleSlider(
+                        label = "Sleep Cycle",
+                        value = lifestyle.sleepCycle,
+                        nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast"),
+                        icon = Icons.Default.Bedtime
+                    )
+                if (lifestyle.adventurous != -1)
+                    LifestyleSlider(
+                        label = "Adventurous",
+                        value = lifestyle.adventurous,
+                        nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker"),
+                        icon = Icons.Default.Hiking
+                    )
+                if (lifestyle.socialMedia != -1)
+                    LifestyleSlider(
+                        label = "Social Media",
+                        value = lifestyle.socialMedia,
+                        nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
+                        icon = Icons.Default.Groups2
+                    )
+                if (lifestyle.petFriendly)
+                    LifestyleDropdown("Pet Friendly", "Yes", Icons.Default.Pets)
+                if (lifestyle.intellectual != -1)
+                    LifestyleSlider(
+                        label = "Intellectual",
+                        value = lifestyle.intellectual,
+                        nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher"),
+                        icon = Icons.Default.School
+                    )
+                if (lifestyle.creativeArtistic != -1)
+                    LifestyleSlider(
+                        label = "Creative/Artistic",
+                        value = lifestyle.creativeArtistic,
+                        nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius"),
+                        icon = Icons.Default.Palette
+                    )
+                if (lifestyle.fitnessLevel != -1)
+                    LifestyleSlider(
+                        label = "Fitness Level",
+                        value = lifestyle.fitnessLevel,
+                        nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness"),
+                        icon = Icons.Default.FitnessCenter
+                    )
+                if (lifestyle.spiritualMindful != -1)
+                    LifestyleSlider(
+                        label = "Spiritual/Mindful",
+                        value = lifestyle.spiritualMindful,
+                        nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful"),
+                        icon = Icons.Default.SelfImprovement
+                    )
+                if (lifestyle.humorousEasyGoing != -1)
+                    LifestyleSlider(
+                        label = "Humorous/Easy-Going",
+                        value = lifestyle.humorousEasyGoing,
+                        nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party"),
+                        icon = Icons.Default.SentimentVerySatisfied
+                    )
+                if (lifestyle.professionalAmbitious != -1)
+                    LifestyleSlider(
+                        label = "Professional/Ambitious",
+                        value = lifestyle.professionalAmbitious,
+                        nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious"),
+                        icon = Icons.Default.Work
+                    )
+                if (lifestyle.environmentallyConscious != -1)
+                    LifestyleSlider(
+                        label = "Environmentally Conscious",
+                        value = lifestyle.environmentallyConscious,
+                        nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion"),
+                        icon = Icons.Default.Eco
+                    )
+                if (lifestyle.foodieCulinaryEnthusiast != -1)
+                    LifestyleSlider(
+                        label = "Foodie/Culinary Enthusiast",
+                        value = lifestyle.foodieCulinaryEnthusiast,
+                        nouns = listOf("Not a Foodie", "Occasionally Foodie", "Foodie", "Passionate Foodie", "Gourmet"),
+                        icon = Icons.Default.LocalDining
+                    )
+                if (lifestyle.politicallyAware != -1)
+                    LifestyleSlider(
+                        label = "Politically Aware",
+                        value = lifestyle.politicallyAware,
+                        nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged"),
+                        icon = Icons.Default.Gavel
+                    )
+                if (lifestyle.communityOriented != -1)
+                    LifestyleSlider(
+                        label = "Community Oriented",
+                        value = lifestyle.communityOriented,
+                        nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader"),
+                        icon = Icons.Default.Groups
+                    )
+                if (lifestyle.sportsEnthusiast != -1)
+                    LifestyleSlider(
+                        label = "Sports Enthusiast",
+                        value = lifestyle.sportsEnthusiast,
+                        nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic"),
+                        icon = Icons.Default.SportsSoccer
+                    )
+                if (lifestyle.IE != -1)
+                    LifestyleSlider(
+                        label = "Introvert Level",
+                        value = lifestyle.IE,
+                        nouns = listOf("Not Introverted", "Slightly Introverted", "Moderately Introverted", "Very Introverted", "Extremely Introverted"),
+                        icon = Icons.Default.Person
+                    )
+                if (lifestyle.sal != -1)
+                    LifestyleSlider(
+                        label = "Sexual Activity Level",
+                        value = lifestyle.sal,
+                        nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High"),
+                        icon = Icons.Default.Favorite
+                    )
+                LifestyleBooleanField(label = "Pet Friendly", value = lifestyle.petFriendly)
+                LifestyleBooleanField(label = "Cannabis Friendly", value = lifestyle.cannabisFriendly)
+                LifestyleDropdown(label = "Alcohol Type", value = lifestyle.alcoholType, icon = Icons.Default.LocalDrink)
+            }
         }
     }
 }
@@ -952,15 +1050,21 @@ fun LifestyleSection(profile: Profile) {
 @Composable
 fun LifestyleBooleanField(label: String, value: Boolean) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Icon(imageVector = Icons.Default.Check, contentDescription = label, tint = Color.White)
-        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = label,
+            tint = Color.White,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = "$label: ${if (value) "Yes" else "No"}",
             color = Color.White,
-            fontSize = 16.sp
+            fontSize = 12.sp
         )
     }
 }
+
 
 /** Interests (View-Only) */
 @OptIn(ExperimentalLayoutApi::class)
@@ -1095,8 +1199,6 @@ fun BioEditSection(
     }
 }
 
-
-/** Basic Info Edit (includes email) */
 @Composable
 fun BasicInfoEditSection(
     tempProfile: Profile,
@@ -1106,16 +1208,69 @@ fun BasicInfoEditSection(
     var name by remember { mutableStateOf(tempProfile.name) }
     var gender by remember { mutableStateOf(tempProfile.gender) }
     var hometown by remember { mutableStateOf(tempProfile.hometown) }
+
+    // --- Love Language dropdown logic ---
+    val loveLanguageOptions = listOf(
+        "Not Selected",
+        "Words of Affirmation",
+        "Quality Time",
+        "Receiving Gifts",
+        "Acts of Service",
+        "Physical Touch",
+        "Other"
+    )
+    // If the stored value is one of the options, use it; otherwise default to the first option.
+    var selectedLoveLanguage by remember {
+        mutableStateOf(if (loveLanguageOptions.contains(tempProfile.loveLanguage)) tempProfile.loveLanguage else loveLanguageOptions.first())
+    }
+    var customLoveLanguage by remember { mutableStateOf(if (selectedLoveLanguage == "Other") tempProfile.loveLanguage else "") }
+    val showCustomLoveLanguageField = remember { mutableStateOf(selectedLoveLanguage == "Other") }
+    var loveLanguageDropdownExpanded by remember { mutableStateOf(false) }
+
+    // --- Politics dropdown logic ---
+    val politicsOptions = listOf("Not Selected", "Liberal", "Conservative", "Moderate", "Right Wing Economics", "Left Wing Economics", "Nationalist", "Communist")
+    var selectedPolitics by remember {
+        mutableStateOf(if (politicsOptions.contains(tempProfile.politics)) tempProfile.politics else politicsOptions.first())
+    }
+    var customPolitics by remember { mutableStateOf(if (selectedPolitics == "Other") tempProfile.politics else "") }
+    val showCustomPoliticsField = remember { mutableStateOf(selectedPolitics == "Other") }
+    var politicsDropdownExpanded by remember { mutableStateOf(false) }
+
+    // Job Role dropdown logic (unchanged)
+    val jobRoleOptions = listOf("Not Selected", "Engineer", "Doctor", "Lawyer", "Teacher", "Other")
+    var selectedJobRole by remember { mutableStateOf(tempProfile.jobRole.ifBlank { "Engineer" }) }
+    var customJobRole by remember { mutableStateOf(tempProfile.customJobRole ?: "") }
+    val showCustomJobRoleField = remember {
+        mutableStateOf(selectedJobRole == "Other" || tempProfile.customJobRole?.isNotBlank() == true)
+    }
+
+    // Work dropdown logic (unchanged)
+    val workOptions = listOf("Not Selected", "Private Sector", "Government", "Freelance", "Business", "Other")
+    var selectedWork by remember { mutableStateOf(tempProfile.work.ifBlank { "Private Sector" }) }
+    var customWork by remember { mutableStateOf(tempProfile.customWork ?: "") }
+    val showCustomWorkField = remember {
+        mutableStateOf(selectedWork == "Other" || tempProfile.customWork?.isNotBlank() == true)
+    }
+
+    // High School
     var highSchool by remember { mutableStateOf(tempProfile.highSchool) }
     var highSchoolGradYear by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
+
+    // College + Degree
     var college by remember { mutableStateOf(tempProfile.college) }
     var collegeGradYear by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
-    var postGrad by remember { mutableStateOf(tempProfile.postGraduation) }
-    var postGradYear by remember { mutableStateOf(tempProfile.postGraduationYear ?: "") }
+    var collegeDegree by remember { mutableStateOf(tempProfile.collegeDegree ?: "") }
+
+    // Post-Grad + Degree
+    var postGrad by remember { mutableStateOf(tempProfile.postGraduation ?: "") }
+    var postGradYear by remember { mutableStateOf(tempProfile.postGraduationYear) }
+    var postGraduationDegree by remember { mutableStateOf(tempProfile.postGraduationDegree ?: "") }
+
     var community by remember { mutableStateOf(tempProfile.community) }
     var religion by remember { mutableStateOf(tempProfile.religion) }
 
     Column {
+        // 1) Name
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
@@ -1129,6 +1284,7 @@ fun BasicInfoEditSection(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
+        // 2) Gender
         OutlinedTextField(
             value = gender,
             onValueChange = { gender = it },
@@ -1142,6 +1298,7 @@ fun BasicInfoEditSection(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
+        // 3) Hometown
         OutlinedTextField(
             value = hometown,
             onValueChange = { hometown = it },
@@ -1155,7 +1312,182 @@ fun BasicInfoEditSection(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        // High School + Grad Year
+        // 4) Love Language Dropdown
+        Text("Love Language", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Button(
+            onClick = { loveLanguageDropdownExpanded = true },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text(
+                text = if (selectedLoveLanguage.isBlank()) "Select Love Language" else selectedLoveLanguage,
+                color = Color.White
+            )
+        }
+        DropdownMenu(
+            expanded = loveLanguageDropdownExpanded,
+            onDismissRequest = { loveLanguageDropdownExpanded = false }
+        ) {
+            loveLanguageOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        selectedLoveLanguage = option
+                        loveLanguageDropdownExpanded = false
+                        showCustomLoveLanguageField.value = (option == "Other")
+                    }
+                )
+            }
+        }
+        if (showCustomLoveLanguageField.value) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = customLoveLanguage,
+                onValueChange = { customLoveLanguage = it },
+                label = { Text("Custom Love Language", color = Color(0xFFFF6F00)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    cursorColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color.White
+                )
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 5) Politics Dropdown
+        Text("Politics", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Button(
+            onClick = { politicsDropdownExpanded = true },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text(
+                text = if (selectedPolitics.isBlank()) "Select Politics" else selectedPolitics,
+                color = Color.White
+            )
+        }
+        DropdownMenu(
+            expanded = politicsDropdownExpanded,
+            onDismissRequest = { politicsDropdownExpanded = false }
+        ) {
+            politicsOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        selectedPolitics = option
+                        politicsDropdownExpanded = false
+                        showCustomPoliticsField.value = (option == "Other")
+                    }
+                )
+            }
+        }
+        if (showCustomPoliticsField.value) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = customPolitics,
+                onValueChange = { customPolitics = it },
+                label = { Text("Custom Politics", color = Color(0xFFFF6F00)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    cursorColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color.White
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 6) Job Role Dropdown (unchanged)
+        Text("Job Role", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        var jobDropdownExpanded by remember { mutableStateOf(false) }
+        Button(
+            onClick = { jobDropdownExpanded = true },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text(
+                text = if (selectedJobRole.isBlank()) "Select Job Role" else selectedJobRole,
+                color = Color.White
+            )
+        }
+        DropdownMenu(
+            expanded = jobDropdownExpanded,
+            onDismissRequest = { jobDropdownExpanded = false }
+        ) {
+            jobRoleOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        selectedJobRole = option
+                        jobDropdownExpanded = false
+                        showCustomJobRoleField.value = (option == "Other")
+                    }
+                )
+            }
+        }
+        if (showCustomJobRoleField.value) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = customJobRole,
+                onValueChange = { customJobRole = it },
+                label = { Text("Custom Job Role", color = Color(0xFFFF6F00)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    cursorColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color.White
+                )
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 7) Work Dropdown (unchanged)
+        Text("Work Type", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        var workDropdownExpanded by remember { mutableStateOf(false) }
+        Button(
+            onClick = { workDropdownExpanded = true },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text(
+                text = if (selectedWork.isBlank()) "Select Work" else selectedWork,
+                color = Color.White
+            )
+        }
+        DropdownMenu(
+            expanded = workDropdownExpanded,
+            onDismissRequest = { workDropdownExpanded = false }
+        ) {
+            workOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        selectedWork = option
+                        workDropdownExpanded = false
+                        showCustomWorkField.value = (option == "Other")
+                    }
+                )
+            }
+        }
+        if (showCustomWorkField.value) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = customWork,
+                onValueChange = { customWork = it },
+                label = { Text("Custom Work", color = Color(0xFFFF6F00)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    cursorColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color.White
+                )
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 8) High School + Graduation Year
         OutlinedTextField(
             value = highSchool,
             onValueChange = { highSchool = it },
@@ -1183,7 +1515,7 @@ fun BasicInfoEditSection(
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // College + Grad Year
+        // 9) College + Graduation Year + Degree
         OutlinedTextField(
             value = college,
             onValueChange = { college = it },
@@ -1208,15 +1540,11 @@ fun BasicInfoEditSection(
                     focusedTextColor = Color.White
                 )
             )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Post Grad + Year
-        postGrad?.let {
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = it,
-                onValueChange = { postGrad = it },
-                label = { Text("Post-Graduation", color = Color(0xFFFF6F00)) },
+                value = collegeDegree,
+                onValueChange = { collegeDegree = it },
+                label = { Text("College Degree (e.g. B.Sc)", color = Color(0xFFFF6F00)) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Color(0xFFFF6F00),
@@ -1224,23 +1552,50 @@ fun BasicInfoEditSection(
                     focusedTextColor = Color.White
                 )
             )
-            if (postGrad!!.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = postGradYear,
-                    onValueChange = { postGradYear = it },
-                    label = { Text("Post-Grad Year", color = Color(0xFFFF6F00)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF6F00),
-                        cursorColor = Color(0xFFFF6F00),
-                        focusedTextColor = Color.White
-                    )
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
         }
+        Spacer(modifier = Modifier.height(8.dp))
 
+        // 10) Post-Graduation + Year + Degree
+        OutlinedTextField(
+            value = postGrad,
+            onValueChange = { postGrad = it },
+            label = { Text("Post-Graduation", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        if (postGrad.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = postGradYear ?: "",
+                onValueChange = { postGradYear = it },
+                label = { Text("Post-Grad Year", color = Color(0xFFFF6F00)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    cursorColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color.White
+                )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = postGraduationDegree,
+                onValueChange = { postGraduationDegree = it },
+                label = { Text("Post-Grad Degree (e.g. M.Sc)", color = Color(0xFFFF6F00)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    cursorColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color.White
+                )
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 11) Community + Religion
         OutlinedTextField(
             value = community,
             onValueChange = { community = it },
@@ -1253,7 +1608,6 @@ fun BasicInfoEditSection(
             )
         )
         Spacer(modifier = Modifier.height(8.dp))
-
         OutlinedTextField(
             value = religion,
             onValueChange = { religion = it },
@@ -1265,24 +1619,47 @@ fun BasicInfoEditSection(
                 focusedTextColor = Color.White
             )
         )
-
         Spacer(modifier = Modifier.height(16.dp))
+
+        // 12) Save / Cancel Buttons
         Row {
             Button(
                 onClick = {
+                    // Clear custom fields if not applicable.
+                    val finalCustomJobRole = if (selectedJobRole == "Other") customJobRole else ""
+                    val finalCustomWork = if (selectedWork == "Other") customWork else ""
+                    // For love language and politics, use custom value if "Other" was selected.
+                    val finalLoveLanguage = if (selectedLoveLanguage == "Other") customLoveLanguage else selectedLoveLanguage
+                    val finalPolitics = if (selectedPolitics == "Other") customPolitics else selectedPolitics
+
                     onSave(
                         tempProfile.copy(
                             name = name,
                             gender = gender,
                             hometown = hometown,
+                            // Job
+                            jobRole = if (selectedJobRole == "Other") "" else selectedJobRole,
+                            customJobRole = finalCustomJobRole,
+                            // Work
+                            work = if (selectedWork == "Other") "" else selectedWork,
+                            customWork = finalCustomWork,
+                            // High School
                             highSchool = highSchool,
                             highSchoolGraduationYear = highSchoolGradYear,
+                            // College
                             college = college,
                             collegeGraduationYear = collegeGradYear,
-                            postGraduation = postGrad,
-                            postGraduationYear = postGradYear,
+                            collegeDegree = collegeDegree.ifBlank { null },
+                            // Post Grad
+                            postGraduation = postGrad.ifBlank { null },
+                            postGraduationYear = postGradYear ?: "",
+                            postGraduationDegree = postGraduationDegree.ifBlank { null },
+                            // Community & Religion
                             community = community,
-                            religion = religion
+                            religion = religion,
+                            // New fields:
+                            loveLanguage = finalLoveLanguage,
+                            politics = finalPolitics
                         )
                     )
                 },
@@ -1300,6 +1677,8 @@ fun BasicInfoEditSection(
         }
     }
 }
+
+
 
 /** Preferences Edit */
 @Composable
@@ -1884,7 +2263,7 @@ fun VoicePlayer(url: String) {
             modifier = Modifier.padding(8.dp)
         )
         Text(
-            text = if (isPlaying) "Playing: $elapsedTime s" else "Tap to Play Voice Bio",
+            text = if (isPlaying) "Playing: $elapsedTime s" else "Tap to Play",
             color = Color.White,
             fontSize = 16.sp,
             modifier = Modifier.padding(start = 8.dp)
@@ -2007,15 +2386,42 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "highSchoolGraduationYear" to updatedProfile.highSchoolGraduationYear,
         "college" to updatedProfile.college,
         "collegeGraduationYear" to updatedProfile.collegeGraduationYear,
+
+        // NEW: For the college degree
+        "collegeDegree" to updatedProfile.collegeDegree,
+
         "postGraduation" to updatedProfile.postGraduation,
         "postGraduationYear" to updatedProfile.postGraduationYear,
+
+        // NEW: For the post-grad degree
+        "postGraduationDegree" to updatedProfile.postGraduationDegree,
+
         "community" to updatedProfile.community,
         "religion" to updatedProfile.religion,
         "lookingFor" to updatedProfile.lookingFor,
         "interests" to updatedProfile.interests.map {
             mapOf("name" to it.name, "emoji" to it.emoji)
         },
-        "lifestyle" to updatedProfile.lifestyle
+        "lifestyle" to updatedProfile.lifestyle,
+
+        // Job & Work
+        "jobRole" to updatedProfile.jobRole,
+        "customJobRole" to updatedProfile.customJobRole,
+        "work" to updatedProfile.work,
+        "customWork" to updatedProfile.customWork,
+
+        // Matrimony toggle + details
+        "isMatrimonyMode" to updatedProfile.isMatrimonyMode,
+        "marriageTimeline" to updatedProfile.marriageTimeline,
+        "relocationPreference" to updatedProfile.relocationPreference,
+        "postMarriageCareerPlan" to updatedProfile.postMarriageCareerPlan,
+        "traditionalVsLiberal" to updatedProfile.traditionalVsLiberal,
+        "fatherOccupation" to updatedProfile.fatherOccupation,
+        "motherOccupation" to updatedProfile.motherOccupation,
+        "numberOfSiblings" to updatedProfile.numberOfSiblings,
+        "elderSiblings" to updatedProfile.elderSiblings,
+        "youngerSiblings" to updatedProfile.youngerSiblings,
+        "isConsultantVerified" to updatedProfile.isConsultantVerified
     )
 
     userRef.updateChildren(updates).addOnCompleteListener { task ->
@@ -2023,6 +2429,240 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
             Log.e("ProfileScreen", "Failed to update profile: ${task.exception}")
         } else {
             Log.d("ProfileScreen", "Profile updated successfully!")
+        }
+    }
+}
+
+
+@Composable
+fun MatrimonyInfoSection(profile: Profile) {
+    // Show these fields only if they have values
+    ProfileDetailRow(
+        label = "Marriage Timeline",
+        value = profile.marriageTimeline,
+        icon = Icons.Default.Schedule
+    )
+    ProfileDetailRow(
+        label = "Relocation Preference",
+        value = profile.relocationPreference,
+        icon = Icons.Default.Map
+    )
+    ProfileDetailRow(
+        label = "Post-Marriage Career Plan",
+        value = profile.postMarriageCareerPlan,
+        icon = Icons.Default.Work
+    )
+    ProfileDetailRow(
+        label = "Traditional vs. Liberal",
+        value = profile.traditionalVsLiberal,
+        icon = Icons.Default.HowToVote // or some suitable icon
+    )
+    ProfileDetailRow(
+        label = "Father's Occupation",
+        value = profile.fatherOccupation,
+        icon = Icons.Default.Person
+    )
+    ProfileDetailRow(
+        label = "Mother's Occupation",
+        value = profile.motherOccupation,
+        icon = Icons.Default.Person
+    )
+    if (profile.numberOfSiblings != null) {
+        ProfileDetailRow(
+            label = "Number of Siblings",
+            value = profile.numberOfSiblings.toString(),
+            icon = Icons.Default.People
+        )
+    }
+    if (profile.elderSiblings != null) {
+        ProfileDetailRow(
+            label = "Elder Siblings",
+            value = profile.elderSiblings.toString(),
+            icon = Icons.Default.People
+        )
+    }
+    if (profile.youngerSiblings != null) {
+        ProfileDetailRow(
+            label = "Younger Siblings",
+            value = profile.youngerSiblings.toString(),
+            icon = Icons.Default.People
+        )
+    }
+    ProfileDetailRow(
+        label = "Consultant Verified?",
+        value = if (profile.isConsultantVerified) "Yes" else "No",
+        icon = Icons.Default.VerifiedUser
+    )
+}
+
+
+@Composable
+fun MatrimonyInfoEditSection(
+    tempProfile: Profile,
+    onSave: (Profile) -> Unit,
+    onCancel: () -> Unit
+) {
+    var marriageTimeline by remember { mutableStateOf(tempProfile.marriageTimeline ?: "") }
+    var relocationPref by remember { mutableStateOf(tempProfile.relocationPreference ?: "") }
+    var postMarriagePlan by remember { mutableStateOf(tempProfile.postMarriageCareerPlan ?: "") }
+    var traditionalVsLiberal by remember { mutableStateOf(tempProfile.traditionalVsLiberal ?: "") }
+    var fatherOccupation by remember { mutableStateOf(tempProfile.fatherOccupation ?: "") }
+    var motherOccupation by remember { mutableStateOf(tempProfile.motherOccupation ?: "") }
+    var numberOfSiblings by remember { mutableStateOf(tempProfile.numberOfSiblings?.toString() ?: "") }
+    var elderSiblings by remember { mutableStateOf(tempProfile.elderSiblings?.toString() ?: "") }
+    var youngerSiblings by remember { mutableStateOf(tempProfile.youngerSiblings?.toString() ?: "") }
+
+    // No direct edit for isConsultantVerified here; you (the consultant) set it manually elsewhere.
+
+    Column {
+        OutlinedTextField(
+            value = marriageTimeline,
+            onValueChange = { marriageTimeline = it },
+            label = { Text("Marriage Timeline", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = relocationPref,
+            onValueChange = { relocationPref = it },
+            label = { Text("Relocation Preference", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = postMarriagePlan,
+            onValueChange = { postMarriagePlan = it },
+            label = { Text("Post-Marriage Career Plan", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = traditionalVsLiberal,
+            onValueChange = { traditionalVsLiberal = it },
+            label = { Text("Traditional vs. Liberal", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Family Information", color = Color.White, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = fatherOccupation,
+            onValueChange = { fatherOccupation = it },
+            label = { Text("Father's Occupation", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = motherOccupation,
+            onValueChange = { motherOccupation = it },
+            label = { Text("Mother's Occupation", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = numberOfSiblings,
+            onValueChange = { numberOfSiblings = it },
+            label = { Text("Number of Siblings", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = elderSiblings,
+            onValueChange = { elderSiblings = it },
+            label = { Text("Elder Siblings", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = youngerSiblings,
+            onValueChange = { youngerSiblings = it },
+            label = { Text("Younger Siblings", color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                cursorColor = Color(0xFFFF6F00),
+                focusedTextColor = Color.White
+            )
+        )
+
+        // 5) Save/Cancel Buttons
+        Spacer(modifier = Modifier.height(16.dp))
+        Row {
+            Button(
+                onClick = {
+                    val updated = tempProfile.copy(
+                        marriageTimeline = marriageTimeline.ifBlank { null },
+                        relocationPreference = relocationPref.ifBlank { null },
+                        postMarriageCareerPlan = postMarriagePlan.ifBlank { null },
+                        traditionalVsLiberal = traditionalVsLiberal.ifBlank { null },
+                        fatherOccupation = fatherOccupation.ifBlank { null },
+                        motherOccupation = motherOccupation.ifBlank { null },
+                        numberOfSiblings = numberOfSiblings.toIntOrNull(),
+                        elderSiblings = elderSiblings.toIntOrNull(),
+                        youngerSiblings = youngerSiblings.toIntOrNull(),
+                    )
+                    onSave(updated)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+            ) {
+                Text("Save", color = Color.White)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("Cancel", color = Color.White)
+            }
         }
     }
 }

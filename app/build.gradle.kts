@@ -93,7 +93,10 @@ dependencies {
     implementation(libs.firebase.database.ktx.v2022)
     implementation(libs.coil.compose.v200)
     implementation(libs.material.v150)
-
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.okhttp) // Or your preferred OkHttp version
+    implementation(libs.gson)
+    implementation(libs.okhttp.v4100)
 
     // Core Android Libraries
     implementation(libs.androidx.core.ktx.v180)
