@@ -15,20 +15,33 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.BlurOn
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
+import androidx.compose.material.icons.filled.Note
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Swipe
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -698,6 +711,11 @@ fun DatingProfileCard(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .border(
+                width = 3.dp,
+                color = getLevelBorderColor(profile.averageRating),
+                shape = RoundedCornerShape(8.dp)
+            )
             .swipeable(
                 state = swipeableState,
                 anchors = anchors,
@@ -720,9 +738,17 @@ fun DatingProfileCard(
                 )
             }
 
+            // 2) Dating header (name, age, hometown, rating)
+            item {
+                DatingProfileHeader(
+                    profile = profile,
+                    userDistance = userDistance
+                )
+            }
+
             // 2) Collapsible
             item {
-                ProfileCollapsibleSectionsAll(profile)
+                ProfileCollapsibleSectionsAll(profile, compatibilityScore)
             }
 
             // 3) Featured
@@ -768,6 +794,61 @@ fun DatingProfileCard(
     }
 }
 
+@Composable
+fun DatingProfileHeader(
+    profile: Profile,
+    userDistance: Float
+) {
+    val age = calculateAge(profile.dob)
+    // We'll gather these tag-like items:
+    val community = profile.community
+    val religion = profile.religion
+    val caste = profile.caste
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        // Top Row: distance on the left, community/religion/caste on the right
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left side => distance
+            TagBox(text = "${userDistance.roundToInt()} km away")
+
+            // Right side => row of community, religion, caste
+            Row {
+                // Show each only if not blank
+                if (community.isNotBlank()) {
+                    TagBox(text = community)
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                if (religion.isNotBlank()) {
+                    TagBox(text = religion)
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                if (caste.isNotBlank()) {
+                    TagBox(text = caste)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Second Row: name + age
+        Text(
+            text = if (age > 0) "${profile.name}, $age" else profile.name,
+            fontWeight = FontWeight.Bold,
+            fontSize = 24.sp,
+            color = Color.White
+        )
+    }
+}
+
 
 /**
  * Info Overlay Component.
@@ -801,7 +882,7 @@ fun InfoOverlay() {
                         Text("- Swipe Right to Like")
                         Text("- Swipe Left to Skip")
                         Text("- Scroll Down for Profile Details")
-                        Text("- Metrics: SPS, Rating, etc.")
+                        Text("- Metrics: SPR, Rating, etc.")
                     }
                 },
                 confirmButton = {
@@ -853,15 +934,16 @@ fun PhotoWithTwoOverlays(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .aspectRatio(0.75f) // Set the desired aspect ratio
             .background(Color.Black)
             .pointerInput(photoUrls) {
                 detectTapGestures(
                     onTap = { offset ->
                         if (photoUrls.size > 1) {
-                            if (offset.x > size.width / 2) {
-                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
+                            currentPhotoIndex = if (offset.x > size.width / 2) {
+                                (currentPhotoIndex + 1) % photoUrls.size
                             } else {
-                                currentPhotoIndex = (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                                (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
                             }
                         }
                     }
@@ -875,110 +957,80 @@ fun PhotoWithTwoOverlays(
                 placeholder = painterResource(R.drawable.local_placeholder),
                 error = painterResource(R.drawable.local_placeholder),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 300.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 300.dp)
             )
         }
-        if (currentPhotoIndex == 0) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.25f))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .align(Alignment.TopCenter)
-            ) {
-                val popScore = (profile.averageSwipeRightsOnUser * 100).let {
-                    String.format("%.2f", it)
-                }
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Popularity Score: $popScore %",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color.White
-                    )
-                    FlashyVibeScore(compatibilityScore)
-                }
+        // Add the horizontal dot row at the top exactly as in your ProfileScreen:
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            photoUrls.forEachIndexed { index, _ ->
+                Box(
+                    modifier = Modifier
+                        .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
+                        .height(4.dp)
+                        .padding(horizontal = 2.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
+                )
             }
         }
-        if (currentPhotoIndex == 0) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-                    .align(Alignment.BottomCenter)
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "${profile.name}, $age",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "@${profile.username}",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color.White
-                            )
-                            RatingBar(
-                                rating = profile.averageRating,
-                                ratingCount = profile.numberOfRatings
-                            )
-                        }
-                        if (heightCm > 0) {
-                            Text(
-                                text = "📏${heightCm} cm",
-                                fontSize = 14.sp,
-                                color = Color(0xFFFFDB00),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${userDistance.roundToInt()} km away",
-                            fontSize = 14.sp,
-                            color = Color.White
-                        )
-                        Row(horizontalArrangement = Arrangement.End) {
-                            profile.community.takeIf { it.isNotBlank() }?.let {
-                                TagBox(it)
-                                Spacer(modifier = Modifier.width(4.dp))
-                            }
-                            profile.religion.takeIf { it.isNotBlank() }?.let {
-                                TagBox(it)
-                                Spacer(modifier = Modifier.width(4.dp))
-                            }
-                            profile.hometown.takeIf { it.isNotBlank() }?.let {
-                                TagBox(it)
-                                Spacer(modifier = Modifier.width(4.dp))
-                            }
-                            profile.caste.takeIf { it.isNotBlank() }?.let {
-                                TagBox(it)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//        if (currentPhotoIndex == 0) {
+//            // Bottom overlay: Fully transparent, with all details in TagBoxes preserving the original layout
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .background(Color.Transparent)
+//                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+//                    .padding(horizontal = 14.dp, vertical = 10.dp)
+//                    .align(Alignment.BottomCenter)
+//            ) {
+//                Column {
+//                    // First row: left = name & rating (in a Column), right = height (if available)
+//                    Row(
+//                        modifier = Modifier.fillMaxWidth(),
+//                        horizontalArrangement = Arrangement.SpaceBetween,
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Column {
+//                            TagBox2(text = "${profile.name}, $age")
+//                            Spacer(modifier = Modifier.height(2.dp))
+//                        }
+//                    }
+//                    Spacer(modifier = Modifier.height(4.dp))
+//                    // Second row: left = distance, right = row of community, religion, and hometown tags
+//                    Row(
+//                        modifier = Modifier.fillMaxWidth(),
+//                        horizontalArrangement = Arrangement.SpaceBetween,
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        TagBox(text = "${userDistance.roundToInt()} km away")
+//                        Row {
+//                            profile.community.takeIf { it.isNotBlank() }?.let {
+//                                TagBox(text = it)
+//                                Spacer(modifier = Modifier.width(4.dp))
+//                            }
+//                            profile.religion.takeIf { it.isNotBlank() }?.let {
+//                                TagBox(text = it)
+//                                Spacer(modifier = Modifier.width(4.dp))
+//                            }
+//                            profile.hometown.takeIf { it.isNotBlank() }?.let {
+//                                TagBox(text = it)
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 }
+
 
 /** TagBox is unchanged (for your #tags). */
 @Composable
@@ -987,14 +1039,26 @@ fun TagBox(text: String) {
         Box(
             modifier = Modifier
                 .padding(horizontal = 1.dp)
-                .background(Color.Black, RoundedCornerShape(4.dp))
-                .border(
-                    BorderStroke(1.dp, Color(0xFFFF6F00)),
-                    RoundedCornerShape(4.dp)
-                )
+                .background(Color.Black, shape = RoundedCornerShape(4.dp))
+                .border(BorderStroke(1.dp, Color(0xFFFF6F00)), shape = RoundedCornerShape(4.dp))
+                .padding(horizontal = 6.dp, vertical = 4.dp)
+        ) {
+            Text(text = text, color = Color.White, fontSize = 15.sp)
+        }
+    }
+}
+
+@Composable
+fun TagBox2(text: String) {
+    if (text.isNotBlank()) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 1.dp)
+                .background(Color.Black, shape = RoundedCornerShape(4.dp))
+                .border(BorderStroke(1.dp, Color(0xFFFF6F00)), shape = RoundedCornerShape(4.dp))
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
-            Text(text = text, color = Color.White, fontSize = 13.sp)
+            Text(text = text, color = Color.White, fontSize = 28.sp)
         }
     }
 }
@@ -1044,28 +1108,89 @@ fun FlashyVibeScore(compatibilityScore: Double?) {
     }
 }
 
+@Composable
+fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double?) {
+    var showPerformance by rememberSaveable { mutableStateOf(false) }
+    CollapsibleSection(
+        title = "Performance Metrics",
+        icon = Icons.Default.Assessment,
+        isExpanded = showPerformance,
+        onToggle = { showPerformance = !showPerformance }
+    ) {
+        ProfileDetailRow(
+            label = "Swipe Right Probability",
+            value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
+            icon = Icons.Default.Swipe
+        )
+        // For Compatibility, if you have a computed value, use it; else, show placeholder.
+        ProfileDetailRow(
+            label = "Compatibility",
+            value = "${compatibilityScore?.roundToInt() ?: 0}%",
+            icon = Icons.Default.HowToVote
+        )
+        ProfileDetailRow("Kolkata Ranking", profile.am24Ranking.toString(), Icons.Filled.Language)
+        ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
+
+        if (profile.highSchool.isNotBlank()) {
+            ProfileDetailRow(
+                "${profile.highSchool} Ranking",
+                profile.am24RankingHighSchool.toString(),
+                Icons.Default.School
+            )
+            if (!profile.highSchoolGraduationYear.isNullOrBlank()) {
+                ProfileDetailRow(
+                    "Graduation Year from ${profile.highSchool}",
+                    profile.highSchoolGraduationYear,
+                    Icons.Default.School
+                )
+            }
+        }
+
+        if (profile.college.isNotBlank()) {
+            ProfileDetailRow("College Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
+            if (!profile.collegeGraduationYear.isNullOrBlank()) {
+                ProfileDetailRow(
+                    "Graduation Year from ${profile.college}",
+                    profile.collegeGraduationYear,
+                    Icons.Default.Book
+                )
+            }
+        }
+
+        if (profile.hometown.isNotBlank()) {
+            ProfileDetailRow("${profile.hometown} Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
+        }
+
+        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
+        ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
+        RatingBar(profile.averageRating, profile.numberOfRatings)
+    }
+}
+
 /**
  * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests
  * without edit icons for the DatingScreen usage.
  */
 @Composable
-fun ProfileCollapsibleSectionsAll(profile: Profile) {
+fun ProfileCollapsibleSectionsAll(profile: Profile, compatibilityScore: Double?) {
     // Declare state variables for each collapsible section
-    var showVoiceBio by rememberSaveable { mutableStateOf(true) }
-    var showBasic by rememberSaveable { mutableStateOf(true) }
-    var showPreferences by rememberSaveable { mutableStateOf(true) }
-    var showLifestyle by rememberSaveable { mutableStateOf(true) }
-    var showInterests by rememberSaveable { mutableStateOf(true) }
+    var showVoiceBio by rememberSaveable { mutableStateOf(false) }
+    var showBasic by rememberSaveable { mutableStateOf(false) }
+    var showPreferences by rememberSaveable { mutableStateOf(false) }
+    var showLifestyle by rememberSaveable { mutableStateOf(false) }
+    var showInterests by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Black)
-            .padding(16.dp)
+            .padding(8.dp)
     ) {
+        PerformanceMetricsSectionDating(profile, compatibilityScore)
+        Spacer(modifier = Modifier.height(12.dp))
         // Voice & Bio accordion
         CollapsibleSection(
-            title = "Voice & Bio",
+            title = "Bio",
             icon = Icons.Default.Mic,  // Choose a microphone icon
             isExpanded = showVoiceBio,
             onToggle = { showVoiceBio = !showVoiceBio }
@@ -1123,10 +1248,10 @@ fun showVoiceBio(profile: Profile) {
             VoicePlayer(url = profile.voiceNoteUrl)
             Spacer(modifier = Modifier.height(8.dp))
         }
-        Text(
-            text = profile.bio ?: "No bio available",
-            color = Color.White,
-            fontSize = 16.sp
+        ProfileDetailRow(
+            label = "Bio",
+            value = profile.bio ?: "No bio available",
+            icon = Icons.Default.BlurOn
         )
     }
 }
@@ -1145,6 +1270,7 @@ fun CollapsibleSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onToggle() }
             .border(width = 1.dp, color = Color.White, shape = CircleShape)
             .background(Color.Black)
             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1173,7 +1299,8 @@ fun CollapsibleSection(
 
         // Wrap your content in a card with background color #1A1A1A
         Card(
-            backgroundColor = Color(0xFF1A1A1A),
+//            backgroundColor = Color(0xFF1A1A1A),
+            backgroundColor = Color.Black,
             elevation = 4.dp,                    // Choose an elevation if you like
             shape = RoundedCornerShape(8.dp),    // Slight rounding
             modifier = Modifier

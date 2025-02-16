@@ -794,7 +794,7 @@ fun EnterLocationAndSchoolScreen(
     onBack: () -> Unit
 ) {
     val educationLevels = listOf("High School", "College", "Post-Graduation")
-    val highSchoolOptions = listOf("St. Xavier's", "La Martiniere", "Other")
+    val highSchoolOptions = listOf("St. Xavier's", "La Martinière", "Other")
     val collegeOptions = listOf("IIT Kharagpur", "Jadavpur University", "Other")
     val postGraduationOptions = listOf("IIM Calcutta", "ISB Hyderabad", "Other")
 

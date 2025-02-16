@@ -4,9 +4,6 @@ plugins {
     alias(libs.plugins.google.gms.google.services)
 }
 
-// Read the API key from local.properties (make sure you have OPENAI_API_KEY=your_key in local.properties)
-val openaiApiKey: String = project.findProperty("OPENAI_API_KEY") as? String ?: ""
-
 android {
     namespace = "com.am24.am24"
     compileSdk = 35
@@ -22,8 +19,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        buildConfigField("String", "OPENAI_API_KEY", "\"$openaiApiKey\"")
     }
 
     buildTypes {
@@ -44,7 +39,6 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"

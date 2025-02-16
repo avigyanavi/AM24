@@ -49,9 +49,7 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import java.io.File
 
 @Composable
@@ -78,21 +76,18 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
 
+    // Voice recording states
     var showRating by remember { mutableStateOf(true) }
     var moreOptionsMenuExpanded by remember { mutableStateOf(false) }
-
-    // Voice recording states
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
     var recordFile: File? by remember { mutableStateOf(null) }
     val maxDurationMs = 60 * 1000
     var recordingTimeLeft by remember { mutableStateOf(maxDurationMs) }
-
     var recordedVoiceUri by remember { mutableStateOf<Uri?>(null) }
     var isVoicePlaying by remember { mutableStateOf(false) }
     var voiceProgress by remember { mutableStateOf(0f) }
     var voicePlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-
     val chatPrefsRef = usersRef.child(currentUserId).child("chatPreferences").child(otherUserId)
 
     // Permission for RECORD_AUDIO
@@ -126,6 +121,29 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
             averageRating = avg
         }
     }
+
+    // <-- Added Firebase listener to update the messages list -->
+    DisposableEffect(messagesRef) {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                messages.clear()
+                for (child in snapshot.children) {
+                    val message = child.getValue(Message::class.java)
+                    if (message != null) {
+                        messages.add(message)
+                    }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ChatScreen", "Error reading messages: ${error.message}")
+            }
+        }
+        messagesRef.addValueEventListener(listener)
+        onDispose {
+            messagesRef.removeEventListener(listener)
+        }
+    }
+    // <-- End of Firebase listener addition -->
 
     Scaffold(
         topBar = {
@@ -361,7 +379,6 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
         }
     }
 }
-
 
 fun getChatId(userId1: String, userId2: String): String {
     return if (userId1 < userId2) "${userId1}_$userId2" else "${userId2}_$userId1"
@@ -615,7 +632,6 @@ fun fetchUserRating(
         }
 }
 
-
 fun updateUserRating(
     ratingsRef: DatabaseReference,
     usersRef: DatabaseReference,
@@ -714,4 +730,3 @@ fun resetUserRatings(
         Toast.makeText(context, "Failed to reset ratings.", Toast.LENGTH_SHORT).show()
     }
 }
-
