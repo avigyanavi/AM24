@@ -16,6 +16,7 @@ import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
+import com.am24.am24.workers.ScheduledCheckInWorker
 
 class KupidXAppActivity : ComponentActivity() {
 
@@ -66,6 +67,9 @@ class KupidXAppActivity : ComponentActivity() {
 
         // **Call loadFiltersFromFirebase here**
         postViewModel.loadFiltersFromFirebase(currentUser.uid)
+
+        // Initialize the WorkManager job scheduling
+        ScheduledCheckInWorker.schedulePeriodicCheckIns(this)
 
         setContent {
             AppTheme {
