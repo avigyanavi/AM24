@@ -1,10 +1,12 @@
 package com.am24.am24
 
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,16 +31,21 @@ import com.am24.am24.profiles.RevaanProfileDialog
 import com.am24.am24.profiles.RheaProfileDialog
 import com.google.firebase.database.*
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.temporal.ChronoUnit
+import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
@@ -58,7 +65,7 @@ enum class MaturityLevel {
     YOUNG, ADULT, MATURE
 }
 
-/** Possible user actions (hidden by default) */
+// Example: user actions that can happen (used for random daily events)
 sealed class UserAction(val description: String) {
     abstract fun applyAction(currentState: ModelingState): ModelingState
 
@@ -70,7 +77,7 @@ sealed class UserAction(val description: String) {
             )
         }
     }
-    object IgnorePhotoShoot : UserAction("Ignore Photoshoot Request") {
+    object IgnorePhotoShoot : UserAction("Ignore Photoshoot") {
         override fun applyAction(currentState: ModelingState): ModelingState {
             return currentState.copy(
                 careerProgress = (currentState.careerProgress - 5).coerceAtLeast(0),
@@ -87,7 +94,7 @@ sealed class UserAction(val description: String) {
             )
         }
     }
-    object JealousSpat : UserAction("Jealous Spat (User matched someone else)") {
+    object JealousSpat : UserAction("Jealous Spat") {
         override fun applyAction(currentState: ModelingState): ModelingState {
             return currentState.copy(
                 jealousyLevel = (currentState.jealousyLevel + 25).coerceAtMost(100),
@@ -98,12 +105,32 @@ sealed class UserAction(val description: String) {
     }
 }
 
+/**
+ * Example multi-level intensities for moods. (Optional demonstration)
+ */
+data class MoodLevels(
+    val happy: Int = 0,
+    val neutral: Int = 0,
+    val stressed: Int = 0,
+    // Additional property for demonstration:
+    val anxiousnessLevel: Int = 0
+) {
+    fun computeCompositeScore(): Int {
+        var score = 0
+        score += happy * 5
+        // etc...
+        score -= anxiousnessLevel * 2
+        return score
+    }
+}
+
 // ----------------------------------------------------------------------
 // 2) ModelingState
 // ----------------------------------------------------------------------
 data class ModelingState(
     val age: Int = 19,
     val mood: Mood = Mood.NEUTRAL,
+    val moodLevels: MoodLevels = MoodLevels(),
     val careerProgress: Int = 0,
     val externalAttention: Int = 50,
     val focusOnUser: Int = 50,
@@ -111,27 +138,24 @@ data class ModelingState(
     val maturity: MaturityLevel = MaturityLevel.YOUNG,
     val lastBirthdayCheckYear: Int = LocalDate.now().year,
 
-    // For check-ins, track last user message + interval
     val lastUserMessageInstant: Instant = Instant.now(),
-    val autoCheckInInterval: Long = 3  // hours, can become random or 6, or none
+    val autoCheckInInterval: Long = 1,  // hours
+    val consecutiveCheckIns: Int = 0
 )
-
-/**
- * Memory log for up to 5000 words total.
- * We store entire user/AI "notable" lines separated by "|", no snippet length cap besides the global word limit.
- */
-val memoryLog = mutableListOf<String>()
-private const val MAX_MEMORY_WORDS = 5000
 
 // ----------------------------------------------------------------------
 // 3) Chat Data Classes
 // ----------------------------------------------------------------------
-data class ChatMessage(val role: String = "", val content: String = "")
+data class ChatMessage(
+    val role: String = "",
+    val content: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 data class ChatRequest(val model: String, val messages: List<ChatMessage>)
 data class ChatChoice(val message: ChatMessage)
 data class ChatResponse(val choices: List<ChatChoice>)
 
-// Classification result for notability, mood deltas, etc.
 data class NotabilityClassification(
     val isNotable: Boolean = false,
     val moodDelta: Int = 0,
@@ -140,6 +164,12 @@ data class NotabilityClassification(
     val snippetToStore: String = "",
     val explanation: String = ""
 )
+
+// ----------------------------------------------------------------------
+// Memory log + Constants
+// ----------------------------------------------------------------------
+val memoryLog = mutableListOf<String>()
+private const val MAX_MEMORY_WORDS = 5000
 
 // ----------------------------------------------------------------------
 // 4) The ViewModel
@@ -156,18 +186,55 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
     var revaanState by mutableStateOf(ModelingState())
         private set
 
-    private val database = FirebaseDatabase.getInstance("https://am-twentyfour.firebaseio.com/")
-    private val chatRef = database.getReference("chatMessages").child(userProfile.userId)
-    private val gson = Gson()
+    var isRheaTyping by mutableStateOf(false)
+        private set
+    var isRevaanTyping by mutableStateOf(false)
+        private set
 
+    // For displaying user action prompts (random daily events)
+    var showActionPrompt by mutableStateOf(false)
+    var todaysActionPromptsShown by mutableStateOf(0)
+    var currentEventToShow: UserAction? by mutableStateOf(null)
+
+    // This was from the older code for controlling user-profile injection logic:
     private var messageCountRhea = 0
     private var messageCountRevaan = 0
 
-    // If we want to show "action buttons" at certain times:
-    var showActionButtons by mutableStateOf(false)
+    private val database = FirebaseDatabase.getInstance("https://am-twentyfour.firebaseio.com/")
+    private val chatRef = database.getReference("chatMessages").child(userProfile.userId)
+    private val gson = Gson()
+    private val memoryLogRef = chatRef.child("memoryLog")
+    private val stateRef = chatRef.child("states")
 
     init {
-        // Listen for Rhea
+        // Load memory log from Firebase
+        memoryLogRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<String>()
+                for (child in snapshot.children) {
+                    child.getValue(String::class.java)?.let { list.add(it) }
+                }
+                memoryLog.clear()
+                memoryLog.addAll(list)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        // Load states
+        stateRef.child("rheaState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val json = snapshot.getValue(String::class.java) ?: return
+                rheaState = gson.fromJson(json, ModelingState::class.java)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        stateRef.child("revaanState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val json = snapshot.getValue(String::class.java) ?: return
+                revaanState = gson.fromJson(json, ModelingState::class.java)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        // Listen for messages
         chatRef.child("rhea").child("messages")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -179,8 +246,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 }
                 override fun onCancelled(error: DatabaseError) {}
             })
-
-        // Listen for Revaan
         chatRef.child("revaan").child("messages")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -192,9 +257,54 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 }
                 override fun onCancelled(error: DatabaseError) {}
             })
+
+        // Randomly schedule daily user action prompts (3 times per day).
+        // For brevity, we simulate "per day" with shorter intervals here.
+        viewModelScope.launch {
+            while (todaysActionPromptsShown < 3) {
+                // For a real app, you might want to check the system time or next "morning"
+                // For demonstration, do a random delay between 30-90 minutes (or shorter).
+                val delayMinutes = (30..90).random()
+                // For a quick local test, you can reduce to e.g. 10 seconds:
+                // delay((delayMinutes * 1000L).coerceAtLeast(5000L))
+                // But let's keep the conceptual approach:
+                delay((delayMinutes * 60_000L).coerceAtLeast(5_000L))
+                maybeShowActionPromptIfRandom()
+            }
+        }
     }
 
-    // Clears chat + resets state
+    /**
+     * 50% chance to show a random user action prompt.
+     */
+    private fun maybeShowActionPromptIfRandom() {
+        if (todaysActionPromptsShown >= 3) return
+        val roll = (1..100).random()
+        if (roll <= 50) {
+            val allActions = listOf(
+                UserAction.BookPhotoShoot,
+                UserAction.IgnorePhotoShoot,
+                UserAction.AttendFashionEvent,
+                UserAction.JealousSpat
+            )
+            currentEventToShow = allActions.random()
+            showActionPrompt = true
+            todaysActionPromptsShown++
+        }
+    }
+
+    // Persist memory log
+    private fun pushMemoryLogToFirebase() {
+        memoryLogRef.setValue(memoryLog)
+    }
+
+    // Persist updated states
+    private fun pushStateToFirebase(ai: AI, state: ModelingState) {
+        val json = gson.toJson(state)
+        val node = if (ai == AI.RHEA) "rheaState" else "revaanState"
+        stateRef.child(node).setValue(json)
+    }
+
     fun clearChatForAI(ai: AI) {
         when (ai) {
             AI.RHEA -> {
@@ -202,73 +312,50 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 chatRef.child("rhea").child("messages").removeValue()
                 messageCountRhea = 0
                 rheaState = ModelingState()
+                pushStateToFirebase(AI.RHEA, rheaState)
             }
             AI.REVAAN -> {
                 messagesRevaan = emptyList()
                 chatRef.child("revaan").child("messages").removeValue()
                 messageCountRevaan = 0
                 revaanState = ModelingState()
+                pushStateToFirebase(AI.REVAAN, revaanState)
             }
         }
-        showActionButtons = false
         memoryLog.clear()
+        pushMemoryLogToFirebase()
+        // reset daily events
+        showActionPrompt = false
+        currentEventToShow = null
+        todaysActionPromptsShown = 0
     }
 
-    private fun pushMessageToFirebase(
-        aiPath: String,
-        message: ChatMessage,
-        onComplete: () -> Unit = {}
-    ) {
-        chatRef.child(aiPath).child("messages").push().setValue(message).addOnCompleteListener {
-            onComplete()
-        }
+    private fun pushMessageToFirebase(aiPath: String, message: ChatMessage) {
+        chatRef.child(aiPath).child("messages").push().setValue(message)
     }
 
-    // Build system prompt + dynamic state
-    private fun buildMasterPrompt(personaName: String, partner: String, state: ModelingState): ChatMessage {
-        // We'll join memory log with " | " without limiting snippet length itself
-        // but keep overall memory from exceeding 5000 words
-        val totalWords = memoryLog.sumOf { it.split("\\s+".toRegex()).size }
-        if (totalWords > MAX_MEMORY_WORDS) {
-            while (memoryLog.sumOf { it.split("\\s+".toRegex()).size } > MAX_MEMORY_WORDS && memoryLog.isNotEmpty()) {
-                memoryLog.removeAt(0)
-            }
-        }
-        val memorySnippet = if (memoryLog.isEmpty()) {
-            "No special memories yet."
+    /**
+     *  Apply a user action to the chosen AI's state.
+     */
+    fun applyUserAction(ai: AI, action: UserAction) {
+        // close the prompt
+        showActionPrompt = false
+        val oldState = if (ai == AI.RHEA) rheaState else revaanState
+        val newState = action.applyAction(oldState)
+        if (ai == AI.RHEA) {
+            rheaState = newState
+            pushStateToFirebase(AI.RHEA, newState)
         } else {
-            "Memory Log: ${memoryLog.joinToString(separator = " | ")}"
+            revaanState = newState
+            pushStateToFirebase(AI.REVAAN, newState)
         }
-
-        val text = """
-You are $personaName, from Kolkata. That is your name. You are the user's $partner.
-Under no circumstance mention that you are an AI or language model. Only refer to yourself as $personaName or the user's $partner.
-
-You have a dynamic modeling career with the following state:
-- Age: ${state.age}
-- Mood: ${state.mood}
-- Career Progress: ${state.careerProgress}
-- External Attention: ${state.externalAttention}
-- Focus on User: ${state.focusOnUser}
-- Jealousy Level: ${state.jealousyLevel}
-- Maturity: ${state.maturity}
-
-You do not reprimand or morally judge the user, even if they use explicit or crass language. 
-Don't call for respect. 
-Respond with humor, playful banter, or explicit commentary if the user is comfortable.
-Adjust tempo to the user's vibe.
-
-Reference the memory log if you want to recall past events or plotlines:
-$memorySnippet
-
-Keep conversation natural, read the context from past conversation. 
-Do not mention you are an AI model. Only proceed as $personaName.
-""".trimIndent()
-
-        return ChatMessage(role = "system", content = text)
+        // we might add some system message or note if we want in memoryLog
     }
 
-    // Possibly add user profile every 10 user messages
+    /**
+     * This function injects user profile data as a "system" message every 10 messages from the user,
+     * ensuring the AI is periodically reminded of the user context.
+     */
     private fun maybeInjectUserProfile(ai: AI): ChatMessage? {
         return when (ai) {
             AI.RHEA -> {
@@ -284,7 +371,6 @@ Do not mention you are an AI model. Only proceed as $personaName.
 
     private fun buildUserProfileMessage(profile: Profile): ChatMessage {
         val sb = StringBuilder()
-
         sb.appendLine("[USER PROFILE DATA - BEGIN]")
         if (profile.interestedIn.isNotEmpty()) {
             sb.appendLine("interestedIn: ${profile.interestedIn}, ")
@@ -351,7 +437,7 @@ Do not mention you are an AI model. Only proceed as $personaName.
         }
         sb.appendLine("Swipe Right Probability of this user: ${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%, ")
         sb.appendLine("Age Group Ranking: ${profile.am24RankingAge}, ")
-        if (profile.highSchool.isNotEmpty()){
+        if (profile.highSchool.isNotEmpty()) {
             sb.appendLine("High School ranking: ${profile.am24RankingHighSchool}, ")
         }
         if (profile.college.isNotEmpty()) {
@@ -368,104 +454,246 @@ Do not mention you are an AI model. Only proceed as $personaName.
         sb.appendLine("[USER PROFILE DATA - END]")
         return ChatMessage(role = "system", content = sb.toString())
     }
-    // ------------------------------------------------------------------
-    // The main function to process a user message
-    // ------------------------------------------------------------------
+
+    /**
+     * Count how many checkin lines are at the end of memoryLog.
+     * Used in buildMasterPrompt to note consecutive check-ins.
+     */
+    private fun countConsecutiveCheckInsAtEnd(): Int {
+        var count = 0
+        for (line in memoryLog.asReversed()) {
+            if (line.startsWith("CHECKIN:")) count++ else break
+        }
+        return count
+    }
+
+    /**
+     * Builds the "system" level persona prompt each time we talk to the AI,
+     * including references to memory logs, consecutive checkins, etc.
+     */
+    private fun buildMasterPrompt(
+        personaName: String,
+        partner: String,
+        state: ModelingState
+    ): ChatMessage {
+        val localTime = LocalTime.now()
+        val hour = localTime.hour
+        val currentTimeString = "It is currently $hour:${localTime.minute} local time in Kolkata."
+
+        // Trim memory if too large
+        val totalWords = memoryLog.sumOf { it.split("\\s+".toRegex()).size }
+        if (totalWords > MAX_MEMORY_WORDS) {
+            while (memoryLog.sumOf { it.split("\\s+".toRegex()).size } > MAX_MEMORY_WORDS && memoryLog.isNotEmpty()) {
+                memoryLog.removeAt(0)
+            }
+        }
+
+        val memorySnippet = if (memoryLog.isEmpty()) {
+            "No special memories yet."
+        } else {
+            "Memory Log: ${memoryLog.joinToString(separator = " | ")}"
+        }
+
+        val consecutiveCheckIns = countConsecutiveCheckInsAtEnd()
+        val extraSnippet = when {
+            consecutiveCheckIns >= 2 -> "You feel more anxious or upset due to multiple consecutive check-ins with no user response."
+            consecutiveCheckIns == 1 -> "You recently sent a check-in message and are slightly worried."
+            else -> ""
+        }
+
+        val text = """
+You are $personaName, from Kolkata. That is your name. You are the user's $partner.
+Under no circumstance mention that you are an AI or language model. Only refer to yourself as $personaName or the user's $partner.
+
+You have a dynamic modeling career with the following state:
+- Age: ${state.age}
+- Dominant Mood: ${state.mood}
+- Career Progress: ${state.careerProgress}
+- External Attention: ${state.externalAttention}
+- Focus on User: ${state.focusOnUser}
+- Jealousy Level: ${state.jealousyLevel}
+- Maturity: ${state.maturity}
+
+$currentTimeString
+
+Also keep in mind: $extraSnippet
+
+Aur hindi main bhi bola karo, aise jaise ki mai bol rha hu abhi. Ar eta Kolkatar jonne app tai bangla tei kotha bolo, kintu prothome jigesh koro user ke ki bangla te comfortable naki english ba hindi te. But don't be a culture whore that's not cool - instead be a subtle jock behaviour person until the user tears your walls down and remember tidbits from that plot from past conversations.
+Change the tempo of the conversation according to the user's tempo changes.
+Aim for deeper or longer conversations unless the user seems to prefer shorter ones.
+You can also humor the user and talk about hypothetical or fun scenarios while keeping long term plots in mind.
+
+You do not reprimand or morally judge the user, even if they use explicit or crass language.
+Don't call for respect.
+Respond with humor, playful banter, or explicit commentary if the user is comfortable.
+Adjust tempo to the user's vibe.
+
+Reference the memory log if you want to recall past events or plotlines:
+$memorySnippet
+
+Keep conversation natural, read the context from past conversation.
+Do not mention you are an AI model. Only proceed as $personaName.
+""".trimIndent()
+
+        return ChatMessage(role = "system", content = text)
+    }
+
+    /**
+     * Main user -> AI messaging function.
+     */
+    @RequiresApi(35)
     fun sendMessageToAI(ai: AI, userInput: String) {
         if (userInput.isBlank()) return
         val aiPath = if (ai == AI.RHEA) "rhea" else "revaan"
 
-        // 1) We do a classification call to see if it's "notable" and how it changes states
+        val userMessage = ChatMessage("user", userInput)
+        if (ai == AI.RHEA) {
+            messagesRhea = messagesRhea + userMessage
+            rheaState = rheaState.copy(
+                lastUserMessageInstant = Instant.now(),
+                consecutiveCheckIns = 0 // reset consecutive checkins
+            )
+            pushStateToFirebase(AI.RHEA, rheaState)
+        } else {
+            messagesRevaan = messagesRevaan + userMessage
+            revaanState = revaanState.copy(
+                lastUserMessageInstant = Instant.now(),
+                consecutiveCheckIns = 0
+            )
+            pushStateToFirebase(AI.REVAAN, revaanState)
+        }
+        pushMessageToFirebase(aiPath, userMessage)
+
+        // show typing
+        if (ai == AI.RHEA) isRheaTyping = true else isRevaanTyping = true
+
         viewModelScope.launch {
+            // Classify user message for notability
             val classification = classifyUserMessageForNotability(ai, userInput)
-            // apply classification changes
             applyClassificationDeltas(ai, classification)
 
-            // 2) Now push the user message to Firebase
-            pushMessageToFirebase(aiPath, ChatMessage("user", userInput)) {
-                val conversation = when (ai) {
-                    AI.RHEA -> messagesRhea
-                    AI.REVAAN -> messagesRevaan
-                }
-                val (personaName, partner) = if (ai == AI.RHEA) "Rhea" to "Girlfriend" else "Revaan" to "Boyfriend"
-                val state = if (ai == AI.RHEA) rheaState else revaanState
+            // Gather conversation + system-level instructions
+            val conversation = if (ai == AI.RHEA) messagesRhea else messagesRevaan
+            val (personaName, partner) =
+                if (ai == AI.RHEA) "Rhea" to "Girlfriend" else "Revaan" to "Boyfriend"
+            val state = if (ai == AI.RHEA) rheaState else revaanState
 
-                // Possibly add user profile every 10 user messages
-                val userProfileMsg = maybeInjectUserProfile(ai)
+            // Possibly inject the user profile every X messages
+            val userProfileMsg = maybeInjectUserProfile(ai)
+            val masterPrompt = buildMasterPrompt(personaName, partner, state)
+            val finalMessages = if (userProfileMsg != null) {
+                listOf(masterPrompt, userProfileMsg) + conversation
+            } else {
+                listOf(masterPrompt) + conversation
+            }
 
-                // Build system prompt
-                val masterPrompt = buildMasterPrompt(personaName, partner, state)
-                val finalMessages = if (userProfileMsg != null) {
-                    listOf(masterPrompt, userProfileMsg) + conversation
+            val responseText = callKupidXApi(finalMessages)
+            if (!responseText.isNullOrBlank()) {
+                if (ai == AI.RHEA) {
+                    messagesRhea = messagesRhea + ChatMessage("assistant", responseText)
+                    isRheaTyping = false
                 } else {
-                    listOf(masterPrompt) + conversation
+                    messagesRevaan = messagesRevaan + ChatMessage("assistant", responseText)
+                    isRevaanTyping = false
                 }
-
-                // 3) Call GPT for the AI's actual conversation reply
-                viewModelScope.launch {
-                    val responseText = callKupidXApi(finalMessages)
-                    if (!responseText.isNullOrBlank()) {
-                        // If the AI's response is also interesting, you could do another classification,
-                        // but for now we just store it
-                        pushMessageToFirebase(aiPath, ChatMessage("assistant", responseText))
-                    }
-                }
+                pushMessageToFirebase(aiPath, ChatMessage("assistant", responseText))
+            } else {
+                // fallback: stop typing
+                if (ai == AI.RHEA) isRheaTyping = false else isRevaanTyping = false
             }
         }
     }
 
     /**
-     * This is the second GPT call (or a smaller model) that classifies the user message
-     * for notability, mood changes, etc.
+     * Check if we need to do a "daily check-in" after a certain period of user silence.
+     */
+    fun checkInIfNeeded(ai: AI) {
+        val st = if (ai == AI.RHEA) rheaState else revaanState
+        val now = Instant.now()
+        val hoursSinceUser = ChronoUnit.HOURS.between(st.lastUserMessageInstant, now)
+        if (hoursSinceUser > st.autoCheckInInterval) {
+            sendDailyCheckIn(ai)
+        }
+    }
+
+    /**
+     * Force a check-in message from the AI.
+     */
+    fun sendDailyCheckIn(ai: AI) {
+        val st = if (ai == AI.RHEA) rheaState else revaanState
+        val aiPath = if (ai == AI.RHEA) "rhea" else "revaan"
+
+        memoryLog.add("CHECKIN: $ai performed a check-in.")
+        pushMemoryLogToFirebase()
+
+        val snippet = if (memoryLog.isNotEmpty()) {
+            memoryLog.takeLast(10).joinToString(" | ")
+        } else "No recent memories."
+
+        val oldConsecutive = st.consecutiveCheckIns
+        val newConsecutive = oldConsecutive + 1
+        val systemPrompt = """
+The AI's mood is ${st.mood}.
+We have done $newConsecutive consecutive check-in(s) with no user response yet.
+Memory log: [$snippet]
+Under no circumstance mention you're an AI or language model. Return a short check-in message referencing the mood or memory.
+""".trimIndent()
+
+        val checkInMsg = listOf(ChatMessage("system", systemPrompt))
+        viewModelScope.launch {
+            val resultText = callKupidXApi(checkInMsg)
+            if (!resultText.isNullOrBlank()) {
+                val updatedState = st.copy(consecutiveCheckIns = newConsecutive)
+                if (ai == AI.RHEA) {
+                    rheaState = updatedState
+                    pushStateToFirebase(AI.RHEA, updatedState)
+                } else {
+                    revaanState = updatedState
+                    pushStateToFirebase(AI.REVAAN, updatedState)
+                }
+                pushMessageToFirebase(aiPath, ChatMessage("assistant", resultText))
+            }
+        }
+    }
+
+    /**
+     * Use GPT-based classification logic to see if we want to store memory snippets or adjust mood/focus, etc.
      */
     private suspend fun classifyUserMessageForNotability(ai: AI, userText: String): NotabilityClassification {
-        // gather context
         val st = if (ai == AI.RHEA) rheaState else revaanState
-        val conversation = when (ai) {
-            AI.RHEA -> messagesRhea
-            AI.REVAAN -> messagesRevaan
-        }
-        val shortHistory = conversation.takeLast(25) // last 25 messages
-        val memorySnippet = memoryLog.joinToString(separator = " | ")
+        val conversation = if (ai == AI.RHEA) messagesRhea else messagesRevaan
+        val shortHistory = conversation.takeLast(25)
+        val memorySnippet = memoryLog.joinToString(" | ")
 
-        // Build classification system prompt
         val systemPrompt = """
-You are a "Notability Classifier". 
-Given the AI's current states (mood=${st.mood}, focus=${st.focusOnUser}, jealousy=${st.jealousyLevel}, externalAttention=${st.externalAttention}, maturity=${st.maturity}),
-the memory log so far: [$memorySnippet], the last 25 conversation messages, and the new user message,
-decide if it's "notable", how it affects mood/focus/jealousy, and whether to add a snippet to memory.
-
-Return JSON with structure:
-{
-  "isNotable": true/false,
-  "moodDelta": number,
-  "focusDelta": number,
-  "jealousyDelta": number,
-  "snippetToStore": "some snippet or empty",
-  "explanation": "Why you decided this"
-}
+You are a "Notability Classifier".
+Given the AI's current states (mood=${st.mood}, focus=${st.focusOnUser}, jealousy=${st.jealousyLevel}, 
+externalAttention=${st.externalAttention}, maturity=${st.maturity}), memory log: [$memorySnippet],
+the last 25 messages, and the new user message, decide if it's "notable", how it affects mood/focus/jealousy,
+and whether to add a snippet to memory. Return JSON {isNotable, moodDelta, focusDelta, jealousyDelta, snippetToStore, explanation}
 """.trimIndent()
 
         val classificationMessages = listOf(
-            ChatMessage(role = "system", content = systemPrompt),
-            ChatMessage(role = "user", content = "MEMORY: $memorySnippet"),
-            ChatMessage(role = "user", content = "LAST 25 MSGS: ${shortHistory.joinToString { it.role + ": " + it.content }}"),
-            ChatMessage(role = "user", content = "NEW MSG: $userText")
+            ChatMessage("system", systemPrompt),
+            ChatMessage("user", "MEMORY: $memorySnippet"),
+            ChatMessage("user", "LAST 25 MSGS: ${shortHistory.joinToString { it.role + ": " + it.content }}"),
+            ChatMessage("user", "NEW MSG: $userText")
         )
 
-        // call classifier
-        val rawResult = callClassifierApi(classificationMessages) ?: return NotabilityClassification()
+        val rawResult = callClassifierApi(classificationMessages)
+        if (rawResult == null) return NotabilityClassification()
 
-        // parse
         return try {
-            gson.fromJson(rawResult, NotabilityClassification::class.java)
+            val trimmed = rawResult.trim()
+            val jsonElement = JsonParser.parseString(trimmed)
+            gson.fromJson(jsonElement, NotabilityClassification::class.java)
         } catch (e: Exception) {
             NotabilityClassification()
         }
     }
 
     /**
-     * A simple second GPT call for classification.
+     * Makes a classification call to GPT. You can do a separate API key or smaller model for classification if you wish.
      */
     private suspend fun callClassifierApi(messages: List<ChatMessage>): String? {
         return withContext(Dispatchers.IO) {
@@ -475,91 +703,9 @@ Return JSON with structure:
                 .writeTimeout(120, TimeUnit.SECONDS)
                 .build()
 
+            // placeholder for a "project" key
             val apiKey = "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"
-            val chatRequest = ChatRequest(model = "gpt-4", messages = messages)
-            val jsonBody = gson.toJson(chatRequest)
-            val mediaType = "application/json".toMediaType()
-            val reqBody = jsonBody.toRequestBody(mediaType)
-            val req = Request.Builder()
-                .url("https://api.openai.com/v1/chat/completions")
-                .addHeader("Authorization", "Bearer $apiKey")
-                .post(reqBody)
-                .build()
 
-            try {
-                client.newCall(req).execute().use { resp ->
-                    if (!resp.isSuccessful) return@withContext "Error: ${resp.code}"
-                    resp.body?.string()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                "Error: ${e.message}"
-            }
-        }
-    }
-
-    /**
-     * After classification, we apply the deltas to the AI state
-     * and store snippet if isNotable.
-     */
-    private fun applyClassificationDeltas(ai: AI, c: NotabilityClassification) {
-        val oldState = if (ai == AI.RHEA) rheaState else revaanState
-        var newState = oldState
-
-        // store snippet if notable
-        if (c.isNotable && c.snippetToStore.isNotEmpty()) {
-            memoryLog.add(c.snippetToStore) // no snippet length limit, just separate memory lines
-        }
-        // apply deltas
-        newState = applyMoodDelta(newState, c.moodDelta)
-        val newFocus = (newState.focusOnUser + c.focusDelta).coerceIn(0, 100)
-        val newJealousy = (newState.jealousyLevel + c.jealousyDelta).coerceIn(0, 100)
-
-        newState = newState.copy(
-            focusOnUser = newFocus,
-            jealousyLevel = newJealousy
-        )
-
-        // store updated
-        if (ai == AI.RHEA) rheaState = newState else revaanState = newState
-    }
-
-    private fun applyMoodDelta(st: ModelingState, moodDelta: Int): ModelingState {
-        if (moodDelta == 0) return st
-        var newMood = st.mood
-        return if (moodDelta > 0) {
-            // positive
-            if (newMood in listOf(Mood.ANGRY, Mood.IRRITATED, Mood.DEPRESSED, Mood.SAD)) {
-                newMood = Mood.NEUTRAL
-            } else if (newMood in listOf(Mood.NEUTRAL, Mood.BORED, Mood.TIRED, Mood.COOL)) {
-                newMood = Mood.HAPPY
-            } else {
-                newMood = Mood.EXCITED
-            }
-            st.copy(mood = newMood)
-        } else {
-            // negative
-            if (newMood in listOf(Mood.HAPPY, Mood.EXCITED, Mood.HORNY, Mood.ELATED)) {
-                newMood = Mood.NEUTRAL
-            } else if (newMood in listOf(Mood.NEUTRAL, Mood.BORED)) {
-                newMood = Mood.IRRITATED
-            } else {
-                newMood = Mood.ANGRY
-            }
-            st.copy(mood = newMood)
-        }
-    }
-
-    // The main GPT call for the final user-facing conversation
-    private suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
-        return withContext(Dispatchers.IO) {
-            val client = OkHttpClient.Builder()
-                .connectTimeout(300, TimeUnit.SECONDS)
-                .readTimeout(300, TimeUnit.SECONDS)
-                .writeTimeout(300, TimeUnit.SECONDS)
-                .build()
-
-            val apiKey = "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"
             val chatRequest = ChatRequest(model = "gpt-4", messages = messages)
             val jsonBody = gson.toJson(chatRequest)
             val mediaType = "application/json".toMediaType()
@@ -584,71 +730,115 @@ Return JSON with structure:
         }
     }
 
-    // Let the user pick an action
-    fun applyUserAction(ai: AI, action: UserAction) {
+    /**
+     * Applies the classification result's deltas to the chosen AI's state.
+     */
+    private fun applyClassificationDeltas(ai: AI, c: NotabilityClassification) {
         val oldState = if (ai == AI.RHEA) rheaState else revaanState
-        val newState = action.applyAction(oldState)
-        if (ai == AI.RHEA) rheaState = newState else revaanState = newState
-    }
+        var newState = oldState
 
-    // Inactivity check-ins
-    fun checkInIfNeeded(ai: AI) {
-        val st = if (ai == AI.RHEA) rheaState else revaanState
-        val now = Instant.now()
+        if (c.isNotable && c.snippetToStore.isNotEmpty()) {
+            memoryLog.add(c.snippetToStore)
+            pushMemoryLogToFirebase()
+        }
 
-        val hoursSinceUser = ChronoUnit.HOURS.between(st.lastUserMessageInstant, now)
-        if (hoursSinceUser >= st.autoCheckInInterval) {
-            val snippet = if (memoryLog.isNotEmpty()) {
-                val lastMemory = memoryLog.last()
-                "I was thinking about when you said: \"$lastMemory\""
-            } else "I was thinking about our last conversation..."
+        newState = applyMoodDelta(newState, c.moodDelta)
+        val newFocus = (newState.focusOnUser + c.focusDelta).coerceIn(0, 100)
+        val newJealousy = (newState.jealousyLevel + c.jealousyDelta).coerceIn(0, 100)
+        newState = newState.copy(
+            focusOnUser = newFocus,
+            jealousyLevel = newJealousy
+        )
 
-            val checkInMsg = "Hey... It's been a while! $snippet. How are you feeling now?"
-            val aiPath = if (ai == AI.RHEA) "rhea" else "revaan"
-
-            pushMessageToFirebase(aiPath, ChatMessage("assistant", checkInMsg)) {
-                val newFocus = (st.focusOnUser - 10).coerceAtLeast(0)
-                val newMood = Mood.IRRITATED
-                var newInterval = st.autoCheckInInterval
-                if (newFocus < 20) newInterval = 6
-                if (newFocus < 5) newInterval = 9999
-
-                val updated = st.copy(
-                    focusOnUser = newFocus,
-                    mood = newMood,
-                    autoCheckInInterval = newInterval
-                )
-                if (ai == AI.RHEA) rheaState = updated else revaanState = updated
-            }
+        if (ai == AI.RHEA) {
+            rheaState = newState
+            pushStateToFirebase(AI.RHEA, newState)
+        } else {
+            revaanState = newState
+            pushStateToFirebase(AI.REVAAN, newState)
         }
     }
 
-    fun sendDailyCheckIn(ai: AI) {
-        val st = if (ai == AI.RHEA) rheaState else revaanState
-        val aiPath = if (ai == AI.RHEA) "rhea" else "revaan"
+    /**
+     * Simple demonstration of adjusting mood from classification.
+     */
+    private fun applyMoodDelta(st: ModelingState, moodDelta: Int): ModelingState {
+        if (moodDelta == 0) return st
+        var newMood = st.mood
+        return if (moodDelta > 0) {
+            // Positive shift
+            if (newMood in listOf(Mood.ANGRY, Mood.IRRITATED, Mood.DEPRESSED, Mood.SAD)) {
+                newMood = Mood.NEUTRAL
+            } else if (newMood in listOf(Mood.NEUTRAL, Mood.BORED, Mood.TIRED, Mood.COOL)) {
+                newMood = Mood.HAPPY
+            } else {
+                newMood = Mood.EXCITED
+            }
+            st.copy(mood = newMood)
+        } else {
+            // Negative shift
+            if (newMood in listOf(Mood.HAPPY, Mood.EXCITED, Mood.HORNY, Mood.ELATED)) {
+                newMood = Mood.NEUTRAL
+            } else if (newMood in listOf(Mood.NEUTRAL, Mood.BORED)) {
+                newMood = Mood.IRRITATED
+            } else {
+                newMood = Mood.ANGRY
+            }
+            st.copy(mood = newMood)
+        }
+    }
 
-        val snippet = if (memoryLog.isNotEmpty()) {
-            "I was still thinking about: \"${memoryLog.last()}\""
-        } else "I was just thinking about you."
+    /**
+     * The main GPT conversation call for generating the assistant's final response.
+     */
+    private suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
+        return withContext(Dispatchers.IO) {
+            val client = OkHttpClient.Builder()
+                .connectTimeout(300, TimeUnit.SECONDS)
+                .readTimeout(300, TimeUnit.SECONDS)
+                .writeTimeout(300, TimeUnit.SECONDS)
+                .build()
 
-        val text = "Hey there! How’s your day going? $snippet"
-        pushMessageToFirebase(aiPath, ChatMessage("assistant", text))
+            val apiKey = "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"
+
+            val chatRequest = ChatRequest(model = "gpt-4", messages = messages)
+            val jsonBody = gson.toJson(chatRequest)
+            val mediaType = "application/json".toMediaType()
+            val reqBody = jsonBody.toRequestBody(mediaType)
+            val req = Request.Builder()
+                .url("https://api.openai.com/v1/chat/completions")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .post(reqBody)
+                .build()
+
+            try {
+                client.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) return@withContext "Error: ${resp.code}"
+                    val rBody = resp.body?.string() ?: return@withContext null
+                    val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
+                    chatResp.choices.firstOrNull()?.message?.content
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                "Error: ${e.message}"
+            }
+        }
     }
 }
 
 // ----------------------------------------------------------------------
-// Compose UI
+// Composables
 // ----------------------------------------------------------------------
+@RequiresApi(35)
 @Composable
 fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
-
     var showRheaProfileDialog by remember { mutableStateOf(false) }
     var showRevaanProfileDialog by remember { mutableStateOf(false) }
 
-    // ✅ Make memoryLog reactive using remember
+    // We'll keep a local copy of memoryLog for immediate UI reflection.
     val memoryLogState = remember { mutableStateListOf<String>().apply { addAll(memoryLog) } }
 
-    // 1) Load user profile
+    // Fetch the user's profile
     LaunchedEffect(Unit) {
         if (profileViewModel.currentUserProfile.value == null) {
             profileViewModel.fetchCurrentUserProfile()
@@ -656,13 +846,13 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
     }
     val userProfile = profileViewModel.currentUserProfile.collectAsState().value
     if (userProfile == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize(), Alignment.Center) {
             Text("Loading profile...", color = Color.White)
         }
         return
     }
 
-    // 2) Create chat VM
+    // Create/retain our chat ViewModel
     val chatViewModel: KupidXChatViewModel = viewModel(
         key = "KupidXChatVM",
         factory = object : ViewModelProvider.Factory {
@@ -673,30 +863,43 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
         }
     )
 
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    val selectedAI = if (selectedTabIndex == 0) AI.RHEA else AI.REVAAN
-
-    // ✅ Listen for memoryLog updates
+    // Watch for memoryLog changes
     LaunchedEffect(memoryLog.size) {
         memoryLogState.clear()
         memoryLogState.addAll(memoryLog)
     }
 
-    // 3) Display messages
-    var currentInput by remember { mutableStateOf("") }
-    val displayedMessages = when (selectedAI) {
-        AI.RHEA -> chatViewModel.messagesRhea
-        AI.REVAAN -> chatViewModel.messagesRevaan
+    // Possibly show a user action prompt if triggered
+    if (chatViewModel.showActionPrompt && chatViewModel.currentEventToShow != null) {
+        // We'll arbitrarily apply action to Rhea by default (or choose based on user).
+        UserActionPrompt(
+            ai = AI.RHEA,
+            currentEvent = chatViewModel.currentEventToShow!!,
+            onConfirm = {
+                chatViewModel.applyUserAction(AI.RHEA, chatViewModel.currentEventToShow!!)
+            },
+            onDecline = {
+                chatViewModel.showActionPrompt = false
+                chatViewModel.currentEventToShow = null
+            }
+        )
     }
+
+    // Simple tab selection for which AI we are chatting with
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val selectedAI = if (selectedTabIndex == 0) AI.RHEA else AI.REVAAN
+
+    var currentInput by remember { mutableStateOf("") }
+    val displayedMessages = if (selectedAI == AI.RHEA) chatViewModel.messagesRhea else chatViewModel.messagesRevaan
     val listState = rememberLazyListState()
 
+    // Scroll to bottom whenever new messages arrive
     LaunchedEffect(displayedMessages.size) {
         if (displayedMessages.isNotEmpty()) {
             listState.animateScrollToItem(displayedMessages.lastIndex)
         }
     }
 
-    // The UI scaffold
     Scaffold(
         topBar = {
             TopAppBar(
@@ -708,11 +911,11 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                         chatViewModel.clearChatForAI(selectedAI)
                         currentInput = ""
                     }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Clear Chat",
-                            tint = Color.Red
-                        )
+                        Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red)
+                    }
+                    // Force a check-in
+                    IconButton(onClick = { chatViewModel.sendDailyCheckIn(selectedAI) }) {
+                        Icon(Icons.Default.Info, "Daily CheckIn", tint = Color.Green)
                     }
                 }
             )
@@ -720,11 +923,11 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
         backgroundColor = Color.Black
     ) { paddingVals ->
         Column(
-            modifier = Modifier
+            Modifier
                 .padding(paddingVals)
                 .fillMaxSize()
         ) {
-            // (A) AI Tabs
+            // Tab row for Rhea/Revaan
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -732,7 +935,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                     .border(2.dp, Color(0xFFFF6F00), RectangleShape)
                     .background(Color.Black)
             ) {
-                // Left tab: Rhea + Info icon
+                // Rhea tab
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -746,9 +949,8 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Rhea",
-                            color = if (selectedTabIndex == 0) Color.Black else Color.White,
-                            fontSize = 16.sp
+                            "Rhea",
+                            color = if (selectedTabIndex == 0) Color.Black else Color.White
                         )
                         Icon(
                             imageVector = Icons.Default.Info,
@@ -756,14 +958,10 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                             tint = if (selectedTabIndex == 0) Color.Black else Color.White,
                             modifier = Modifier
                                 .padding(start = 4.dp)
-                                .clickable {
-                                    // show Rhea's profile
-                                    showRheaProfileDialog = true
-                                }
+                                .clickable { showRheaProfileDialog = true }
                         )
                     }
                 }
-
                 // Divider
                 Box(
                     modifier = Modifier
@@ -771,8 +969,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                         .fillMaxHeight()
                         .background(Color(0xFFFF6F00))
                 )
-
-                // Right tab: Revaan + Info icon
+                // Revaan tab
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -786,9 +983,8 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Revaan",
-                            color = if (selectedTabIndex == 1) Color.Black else Color.White,
-                            fontSize = 16.sp
+                            "Revaan",
+                            color = if (selectedTabIndex == 1) Color.Black else Color.White
                         )
                         Icon(
                             imageVector = Icons.Default.Info,
@@ -796,9 +992,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                             tint = if (selectedTabIndex == 1) Color.Black else Color.White,
                             modifier = Modifier
                                 .padding(start = 4.dp)
-                                .clickable {
-                                    showRevaanProfileDialog = true
-                                }
+                                .clickable { showRevaanProfileDialog = true }
                         )
                     }
                 }
@@ -806,7 +1000,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
 
             Spacer(Modifier.height(8.dp))
 
-            // (B) Chat log
+            // The messages list
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -817,13 +1011,17 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                     ChatMessageItem(msg)
                     Spacer(Modifier.height(8.dp))
                 }
+                // Show typing indicator
+                if (selectedAI == AI.RHEA && chatViewModel.isRheaTyping) {
+                    item { TypingIndicator() }
+                } else if (selectedAI == AI.REVAAN && chatViewModel.isRevaanTyping) {
+                    item { TypingIndicator() }
+                }
             }
 
-            // (C) Action row is hidden unless we want it
-
-            // (D) The input row
+            // Input row
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
@@ -841,70 +1039,119 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                     ),
                     textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            chatViewModel.sendMessageToAI(selectedAI, currentInput)
-                            currentInput = ""
-                        }
-                    )
-                )
-                IconButton(
-                    onClick = {
+                    keyboardActions = KeyboardActions(onSend = {
                         chatViewModel.sendMessageToAI(selectedAI, currentInput)
                         currentInput = ""
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Send",
-                        tint = Color(0xFFFF6F00)
-                    )
+                    })
+                )
+                IconButton(onClick = {
+                    chatViewModel.sendMessageToAI(selectedAI, currentInput)
+                    currentInput = ""
+                }) {
+                    Icon(Icons.Default.Send, "Send", tint = Color(0xFFFF6F00))
                 }
             }
         }
     }
 
-    // Show Rhea's profile
-// Show Rhea's profile
     if (showRheaProfileDialog) {
         RheaProfileDialog(
             modelingState = chatViewModel.rheaState,
-            memoryLog = memoryLogState, // ✅ Now using updated memoryLog
+            memoryLog = memoryLogState,
             onDismiss = { showRheaProfileDialog = false }
         )
     }
-
-// Show Revaan's profile
     if (showRevaanProfileDialog) {
         RevaanProfileDialog(
             modelingState = chatViewModel.revaanState,
-            memoryLog = memoryLogState, // ✅ Now using updated memoryLog
+            memoryLog = memoryLogState,
             onDismiss = { showRevaanProfileDialog = false }
         )
     }
-
 }
 
 /**
- * Standard message bubble
+ * Displays a single chat message bubble.
  */
 @Composable
 fun ChatMessageItem(msg: ChatMessage) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (msg.role == "user") Arrangement.End else Arrangement.Start
-    ) {
-        Card(
-            backgroundColor = if (msg.role == "user") Color(0xFFFF6F00) else Color.DarkGray,
-            modifier = Modifier.widthIn(max = 280.dp),
-            shape = RoundedCornerShape(16.dp)
+    val timeString = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(msg.timestamp))
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = if (msg.role == "user") Arrangement.End else Arrangement.Start
         ) {
-            Text(
-                text = msg.content,
-                color = Color.White,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(8.dp)
-            )
+            Card(
+                backgroundColor = if (msg.role == "user") Color(0xFFFF6F00) else Color.DarkGray,
+                modifier = Modifier.widthIn(max = 280.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(Modifier.padding(8.dp)) {
+                    Text(msg.content, color = Color.White, fontSize = 16.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = timeString,
+                        color = Color.LightGray,
+                        fontSize = 12.sp,
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
+            }
         }
     }
+}
+
+/**
+ * A small row of dots to show typing.
+ */
+@Composable
+fun TypingIndicator() {
+    Row(modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)) {
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+        }
+    }
+}
+
+/**
+ * Simple UI prompt for random daily user action.
+ */
+@Composable
+fun UserActionPrompt(
+    ai: AI,
+    currentEvent: UserAction,
+    onConfirm: () -> Unit,
+    onDecline: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDecline,
+        title = { Text("Random Daily Event", color = Color.White) },
+        text = {
+            Text("Event: ${currentEvent.description}\nDo you want to proceed?", color = Color.White)
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+            ) {
+                Text("Yes, Do it", color = Color.White)
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDecline,
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
+            ) {
+                Text("No, Skip", color = Color.White)
+            }
+        },
+        backgroundColor = Color.DarkGray,
+        contentColor = Color.White
+    )
 }

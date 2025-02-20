@@ -67,6 +67,7 @@ composeMaterial = "1.4.0"
 media3CommonKtx = "1.4.1"
 constraintlayoutComposeAndroid = "1.1.0-beta01"
 workRuntimeKtx = "2.10.0"
+playServicesCastTv = "21.1.1"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -146,6 +147,7 @@ androidx-media3-common-ktx = { group = "androidx.media3", name = "media3-common-
 ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 androidx-constraintlayout-compose-android = { group = "androidx.constraintlayout", name = "constraintlayout-compose-android", version.ref = "constraintlayoutComposeAndroid" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
+play-services-cast-tv = { group = "com.google.android.gms", name = "play-services-cast-tv", version.ref = "playServicesCastTv" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
