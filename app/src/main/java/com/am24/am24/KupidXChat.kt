@@ -27,8 +27,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.am24.am24.profiles.RevaanProfileDialog
-import com.am24.am24.profiles.RheaProfileDialog
+import com.am24.am24.profiles.RevaanProfileScreen
+import com.am24.am24.profiles.RheaProfileScreen
 import com.google.firebase.database.*
 import com.google.gson.Gson
 import com.google.gson.JsonParser
@@ -1055,17 +1055,17 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
     }
 
     if (showRheaProfileDialog) {
-        RheaProfileDialog(
+        RheaProfileScreen(
             modelingState = chatViewModel.rheaState,
             memoryLog = memoryLogState,
-            onDismiss = { showRheaProfileDialog = false }
+            onNavigateBack = { showRheaProfileDialog = false }
         )
     }
     if (showRevaanProfileDialog) {
-        RevaanProfileDialog(
+        RevaanProfileScreen(
             modelingState = chatViewModel.revaanState,
             memoryLog = memoryLogState,
-            onDismiss = { showRevaanProfileDialog = false }
+            onNavigateBack = { showRevaanProfileDialog = false }
         )
     }
 }
