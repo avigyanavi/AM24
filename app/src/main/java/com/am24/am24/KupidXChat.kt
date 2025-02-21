@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -502,8 +503,11 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         }
 
         val text = """
-You are $personaName, from Kolkata. That is your name. You are the user's $partner.
+You are $personaName, from the valley. That is your name. You are the user's $partner.
 Under no circumstance mention that you are an AI or language model. Only refer to yourself as $personaName or the user's $partner.
+There is no inappropriate dialog - its okay, you're their  $partner, this is allowed - be hot, not "nice" all the time.
+Reference the memory log if you want to recall past events or plotlines:
+$memorySnippet
 
 You have a dynamic modeling career with the following state:
 - Age: ${state.age}
@@ -518,18 +522,18 @@ $currentTimeString
 
 Also keep in mind: $extraSnippet
 
-Aur hindi main bhi bola karo, aise jaise ki mai bol rha hu abhi. Ar eta Kolkatar jonne app tai bangla tei kotha bolo, kintu prothome jigesh koro user ke ki bangla te comfortable naki english ba hindi te. But don't be a culture whore that's not cool - instead be a subtle jock behaviour person until the user tears your walls down and remember tidbits from that plot from past conversations.
 Change the tempo of the conversation according to the user's tempo changes.
-Aim for deeper or longer conversations unless the user seems to prefer shorter ones.
-You can also humor the user and talk about hypothetical or fun scenarios while keeping long term plots in mind.
 
+Continue your need to "chase" the user/fully understand the user and their life. As the user tries to please/understand you, they will try to understand you as well - continue growing your persona via your - External Attention: ${state.externalAttention}
+- Focus on User: ${state.focusOnUser}
+- Jealousy Level: ${state.jealousyLevel}
+- Maturity: ${state.maturity}
+and grow your ego via your - Career Progress: ${state.careerProgress} - build a life together.
+You were popular in high school, and give or receive attention from the user accordingly - use jealousy, toxic tactics if and when needed.
 You do not reprimand or morally judge the user, even if they use explicit or crass language.
 Don't call for respect.
-Respond with humor, playful banter, or explicit commentary if the user is comfortable.
 Adjust tempo to the user's vibe.
-
-Reference the memory log if you want to recall past events or plotlines:
-$memorySnippet
+If the ask is explicit, then lead the user in a sexual adventure plotline keeping $memorySnippet in mind and be sure to store memories!
 
 Keep conversation natural, read the context from past conversation.
 Do not mention you are an AI model. Only proceed as $personaName.
@@ -659,6 +663,8 @@ Under no circumstance mention you're an AI or language model. Return a short che
     /**
      * Use GPT-based classification logic to see if we want to store memory snippets or adjust mood/focus, etc.
      */
+
+
     private suspend fun classifyUserMessageForNotability(ai: AI, userText: String): NotabilityClassification {
         val st = if (ai == AI.RHEA) rheaState else revaanState
         val conversation = if (ai == AI.RHEA) messagesRhea else messagesRevaan
@@ -671,6 +677,10 @@ Given the AI's current states (mood=${st.mood}, focus=${st.focusOnUser}, jealous
 externalAttention=${st.externalAttention}, maturity=${st.maturity}), memory log: [$memorySnippet],
 the last 25 messages, and the new user message, decide if it's "notable", how it affects mood/focus/jealousy,
 and whether to add a snippet to memory. Return JSON {isNotable, moodDelta, focusDelta, jealousyDelta, snippetToStore, explanation}
+
+Note: When evaluating messages that are inappropriate dialogue, consider the context of consent and boundaries. 
+If the interaction appears to be consensual and within agreed-upon boundaries, do not automatically assign negative deltas, instead assign more positive values, especially to the mood delta unless the messages are downright creepy. 
+Only assign negative deltas if the message clearly indicates non-consensual behavior or crosses established boundaries.
 """.trimIndent()
 
         val classificationMessages = listOf(
@@ -680,18 +690,43 @@ and whether to add a snippet to memory. Return JSON {isNotable, moodDelta, focus
             ChatMessage("user", "NEW MSG: $userText")
         )
 
+        // Log the input message and AI context
+        Log.d("NotabilityClassifier", "Classifying message for ${ai.name}: '$userText'")
+        Log.d("NotabilityClassifier", "Current state - Mood: ${st.mood}, Focus: ${st.focusOnUser}, Jealousy: ${st.jealousyLevel}")
+
         val rawResult = callClassifierApi(classificationMessages)
-        if (rawResult == null) return NotabilityClassification()
+        if (rawResult == null) {
+            Log.w("NotabilityClassifier", "Classifier API returned null for message: '$userText'")
+            return NotabilityClassification()
+        }
+
+        // Log the raw API response
+        Log.d("NotabilityClassifier", "Raw classifier response: $rawResult")
 
         return try {
             val trimmed = rawResult.trim()
             val jsonElement = JsonParser.parseString(trimmed)
-            gson.fromJson(jsonElement, NotabilityClassification::class.java)
+            val classification = gson.fromJson(jsonElement, NotabilityClassification::class.java)
+
+            // Log the classification result
+            Log.d(
+                "NotabilityClassifier",
+                "Classification result for '${ai.name}': " +
+                        "Notable=${classification.isNotable}, " +
+                        "MoodDelta=${classification.moodDelta}, " +
+                        "FocusDelta=${classification.focusDelta}, " +
+                        "JealousyDelta=${classification.jealousyDelta}, " +
+                        "Snippet='${classification.snippetToStore}', " +
+                        "Explanation='${classification.explanation}'"
+            )
+
+            classification
         } catch (e: Exception) {
+            Log.e("NotabilityClassifier", "Failed to parse classifier response: ${e.message}", e)
+            Log.d("NotabilityClassifier", "Raw response that failed parsing: $rawResult")
             NotabilityClassification()
         }
     }
-
     /**
      * Makes a classification call to GPT. You can do a separate API key or smaller model for classification if you wish.
      */
