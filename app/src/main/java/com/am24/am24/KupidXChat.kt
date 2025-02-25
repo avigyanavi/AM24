@@ -836,7 +836,7 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
 
             val apiKey = "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"
 
-            val chatRequest = ChatRequest(model = "gpt-4", messages = messages)
+            val chatRequest = ChatRequest(model = "gpt-4o-mini", messages = messages)
             val jsonBody = gson.toJson(chatRequest)
             val mediaType = "application/json".toMediaType()
             val reqBody = jsonBody.toRequestBody(mediaType)
