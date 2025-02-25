@@ -5,6 +5,7 @@
 package com.am24.am24
 
 import DatingViewModel
+import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -57,12 +58,19 @@ import com.firebase.geofire.LocationCallback
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.*
@@ -304,6 +312,7 @@ fun updateSwipesInFirebase(newSwipesCount: Int) {
     swipesRef.child("remainingSwipes").setValue(newSwipesCount)
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun FiltersOverlay(
     ageRange: IntRange,
@@ -599,9 +608,6 @@ fun NoMoreProfilesScreen() {
     }
 }
 
-/**
- * The core “swipeable” content for showing the next profile.
- */
 @Composable
 fun DatingScreenContent(
     navController: NavController,
@@ -624,7 +630,6 @@ fun DatingScreenContent(
         var userDistance by remember { mutableStateOf<Float?>(null) }
         var compatibilityScore by remember { mutableStateOf<Double?>(null) }
 
-        // Calculate distance + compatibility
         LaunchedEffect(currentProfile) {
             userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
             currentUserProfile?.let { userProfile ->
@@ -656,17 +661,13 @@ fun DatingScreenContent(
                 },
                 navController = navController,
                 userDistance = distance,
-                postViewModel = postViewModel
+                postViewModel = postViewModel,
+                currentProfile = currentUserProfile // Pass current user's profile
             )
         }
     }
 }
 
-
-
-/**
- * A single “card” for the user: the photo with overlays, collapsible, etc.
- */
 @Composable
 fun DatingProfileCard(
     profile: Profile,
@@ -675,17 +676,14 @@ fun DatingProfileCard(
     onSwipeLeft: () -> Unit,
     userDistance: Float,
     navController: NavController,
-    postViewModel: PostViewModel
+    postViewModel: PostViewModel,
+    currentProfile: Profile? // Add current user's profile parameter
 ) {
-    // 1) Compute the average each time this composable recomposes with updated profile data
     val computedAvg = if (profile.numberOfUsersWhoSwiped > 0) {
         profile.numberOfSwipeRights.toDouble() / profile.numberOfUsersWhoSwiped
     } else 0.0
-
-    // 2) Assign it to the profile’s mutable field
     profile.averageSwipeRightsOnUser = computedAvg
 
-    // (The rest of your swipeable logic remains the same)
     val swipeableState = rememberSwipeableState(initialValue = 0)
     val anchors = mapOf(-300f to -1, 0f to 0, 300f to 1)
     val swipeOffset = swipeableState.offset.value
@@ -706,7 +704,6 @@ fun DatingProfileCard(
     val featuredPosts = sortedByUpvotes.take(5)
     val remainingPosts = sortedByUpvotes.drop(5)
 
-    // The UI layout stays the same; it just references "profile.averageSwipeRightsOnUser"
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -729,29 +726,20 @@ fun DatingProfileCard(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            // 1) Photo + Overlays
             item {
-                PhotoWithDynamicOverlays(
+                PhotoWithTwoOverlays(
                     profile = profile,
                     userDistance = userDistance,
-                    compatibilityScore = compatibilityScore
+                    compatibilityScore = compatibilityScore,
+                    currentProfile = currentProfile // Pass currentProfile
                 )
             }
-
-            // 2) Dating header (name, age, hometown, rating)
             item {
-                DatingProfileHeader(
-                    profile = profile,
-                    userDistance = userDistance
-                )
+                DatingProfileHeader(profile, userDistance)
             }
-
-            // 2) Collapsible
             item {
-                ProfileCollapsibleSectionsAll(profile, compatibilityScore)
+                ProfileCollapsibleSectionsAll(profile, currentUserProfile = currentProfile, compatibilityScore)
             }
-
-            // 3) Featured
             if (featuredPosts.isNotEmpty()) {
                 item {
                     Text(
@@ -766,13 +754,9 @@ fun DatingProfileCard(
                     PostItemInProfile(post)
                 }
             }
-
-            // 4) Collapsed metrics, etc.
             item {
                 CollapsedMetricsSection(profile)
             }
-
-            // 5) View more
             if (remainingPosts.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -817,9 +801,6 @@ fun DatingProfileHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side => distance
-            TagBox(text = "${userDistance.roundToInt()} km away")
-
             // Right side => row of community, religion, caste
             Row {
                 // Show each only if not blank
@@ -924,7 +905,8 @@ fun SwipeCounter(remainingSwipes: Int) {
 fun PhotoWithTwoOverlays(
     profile: Profile,
     userDistance: Float,
-    compatibilityScore: Double?
+    compatibilityScore: Double?,
+    currentProfile: Profile? = null // Add current user's profile as an optional parameter
 ) {
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
@@ -962,7 +944,8 @@ fun PhotoWithTwoOverlays(
                     .heightIn(min = 300.dp)
             )
         }
-        // Add the horizontal dot row at the top exactly as in your ProfileScreen:
+
+        // Dot row at the top
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -981,63 +964,45 @@ fun PhotoWithTwoOverlays(
                 )
             }
         }
-//        if (currentPhotoIndex == 0) {
-//            // Bottom overlay: Fully transparent, with all details in TagBoxes preserving the original layout
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .background(Color.Transparent)
-//                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-//                    .padding(horizontal = 14.dp, vertical = 10.dp)
-//                    .align(Alignment.BottomCenter)
-//            ) {
-//                Column {
-//                    // First row: left = name & rating (in a Column), right = height (if available)
-//                    Row(
-//                        modifier = Modifier.fillMaxWidth(),
-//                        horizontalArrangement = Arrangement.SpaceBetween,
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        Column {
-//                            TagBox2(text = "${profile.name}, $age")
-//                            Spacer(modifier = Modifier.height(2.dp))
-//                        }
-//                    }
-//                    Spacer(modifier = Modifier.height(4.dp))
-//                    // Second row: left = distance, right = row of community, religion, and hometown tags
-//                    Row(
-//                        modifier = Modifier.fillMaxWidth(),
-//                        horizontalArrangement = Arrangement.SpaceBetween,
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        TagBox(text = "${userDistance.roundToInt()} km away")
-//                        Row {
-//                            profile.community.takeIf { it.isNotBlank() }?.let {
-//                                TagBox(text = it)
-//                                Spacer(modifier = Modifier.width(4.dp))
-//                            }
-//                            profile.religion.takeIf { it.isNotBlank() }?.let {
-//                                TagBox(text = it)
-//                                Spacer(modifier = Modifier.width(4.dp))
-//                            }
-//                            profile.hometown.takeIf { it.isNotBlank() }?.let {
-//                                TagBox(text = it)
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
+
+        // Overlays on picture 0 only
+        if (currentPhotoIndex == 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                // Distance overlay (bottom-left)
+                TagBox(
+                    text = "${userDistance.roundToInt()} km away",
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                )
+
+                // FlashyVibeScore overlay (bottom-right)
+                if (currentProfile != null) { // Ensure currentProfile is provided
+                    FlashyVibeScore(
+                        compatibilityScore = compatibilityScore,
+                        currentProfile = currentProfile,
+                        otherProfile = profile,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                    )
+                }
+            }
+        }
     }
 }
 
-
-/** TagBox is unchanged (for your #tags). */
 @Composable
-fun TagBox(text: String) {
+fun TagBox(
+    text: String,
+    modifier: Modifier = Modifier // Add modifier parameter with default
+) {
     if (text.isNotBlank()) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .padding(horizontal = 1.dp)
                 .background(Color.Black, shape = RoundedCornerShape(4.dp))
                 .border(BorderStroke(1.dp, Color(0xFFFF6F00)), shape = RoundedCornerShape(4.dp))
@@ -1063,50 +1028,98 @@ fun TagBox2(text: String) {
     }
 }
 
-/** The “flashy vibe” gradient text. Unchanged. */
+/** Updated FlashyVibeScore with modifier parameter for overlay positioning */
 @Composable
-fun FlashyVibeScore(compatibilityScore: Double?) {
+fun FlashyVibeScore(
+    compatibilityScore: Double?,
+    currentProfile: Profile,
+    otherProfile: Profile,
+    modifier: Modifier = Modifier
+) {
     var showCompatibilityDialog by remember { mutableStateOf(false) }
     val displayPercent = compatibilityScore?.roundToInt()?.coerceIn(0, 100) ?: 0
+
+    // Overlay button
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(Color(0xFFFF4500), Color(0xFFFF6F00))
-                )
-            )
+            .background(Brush.horizontalGradient(colors = listOf(Color(0xFFFF4500), Color(0xFFFF6F00))))
             .padding(horizontal = 6.dp, vertical = 2.dp)
             .clickable { showCompatibilityDialog = true }
     ) {
         Text(
-            text = "Compatibility: $displayPercent%",
+            text = "$displayPercent%",
             color = Color.White,
             fontWeight = FontWeight.ExtraBold,
-            fontSize = 14.sp
+            fontSize = 16.sp
         )
     }
+
+    // Dialog for detailed breakdown
     if (showCompatibilityDialog) {
+        val sharedInterestsCount = currentProfile.interests.map { it.name }
+            .intersect(otherProfile.interests.map { it.name }.toSet())
+            .size.coerceAtMost(7)
+        val interestsScore = sharedInterestsCount * 5
+
+        val thisZodiac = deriveZodiac(currentProfile.dob)
+        val otherZodiac = deriveZodiac(otherProfile.dob)
+        val zodiacScore = if (thisZodiac != "Unknown" && otherZodiac != "Unknown" &&
+            isZodiacCompatible(thisZodiac, otherZodiac)) 5 else 0
+
+        val lifestyleScore = if (currentProfile.lifestyle != null && otherProfile.lifestyle != null) {
+            (currentProfile.lifestyle.compareCompatibility(otherProfile.lifestyle) * 25).toInt()
+        } else 0
+
+        val localityScore = if (currentProfile.hometown == otherProfile.hometown) 10 else 0
+
+        val educationWorkScore = calculateEducationWorkBreakdown(currentProfile, otherProfile)
+
         AlertDialog(
             onDismissRequest = { showCompatibilityDialog = false },
-            title = { Text("Compatibility Breakdown", fontSize = 14.sp, fontWeight = FontWeight.Bold) },
+            title = {
+                Text("Compatibility Breakdown", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            },
             text = {
                 Column {
-                    Text("Shared Interests: +20%", fontSize = 12.sp)
-                    Text("Zodiac Match: +10%", fontSize = 12.sp)
-                    Text("Lifestyle Overlap: +15%", fontSize = 12.sp)
-                    Text("Locality Bonus: +10%", fontSize = 12.sp)
-                    Text("\nTotal: $displayPercent%", fontSize = 12.sp)
+                    Text("Shared Interests: +$interestsScore% ($sharedInterestsCount matches)", fontSize = 12.sp)
+                    Text("Zodiac Match: +$zodiacScore%", fontSize = 12.sp)
+                    Text("Lifestyle Overlap: +$lifestyleScore%", fontSize = 12.sp)
+                    Text("Locality Bonus: +$localityScore%", fontSize = 12.sp)
+                    Text("Education & Work:", fontSize = 12.sp)
+                    Text(" - High School: +${if (educationWorkScore.first) 5 else 0}%", fontSize = 12.sp)
+                    Text(" - College: +${if (educationWorkScore.second) 5 else 0}%", fontSize = 12.sp)
+                    Text(" - Post-Graduation: +${if (educationWorkScore.third) 5 else 0}%", fontSize = 12.sp)
+                    Text(" - Work: +${if (educationWorkScore.fourth) 10 else 0}%", fontSize = 12.sp)
+                    Text("\nTotal: $displayPercent%", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showCompatibilityDialog = false }) {
                     Text("Close", color = Color(0xFFFF6F00), fontSize = 12.sp)
                 }
-            }
+            },
+            backgroundColor = Color.White,
+            contentColor = Color.Black
         )
     }
 }
+
+/** Helper function for education + work breakdown */
+private fun calculateEducationWorkBreakdown(currentProfile: Profile, otherProfile: Profile): Quadruple<Boolean, Boolean, Boolean, Boolean> {
+    val highSchoolMatch = currentProfile.highSchool == otherProfile.highSchool ||
+            currentProfile.customHighSchool == otherProfile.customHighSchool
+    val collegeMatch = currentProfile.college == otherProfile.college ||
+            currentProfile.customCollege == otherProfile.customCollege
+    val postGradMatch = currentProfile.postGraduation == otherProfile.postGraduation ||
+            currentProfile.customPostGraduation == otherProfile.customPostGraduation
+    val workMatch = currentProfile.work == otherProfile.work ||
+            currentProfile.customWork == otherProfile.customWork
+    return Quadruple(highSchoolMatch, collegeMatch, postGradMatch, workMatch)
+}
+
+/** Data class for quadruple return type */
+data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
 fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double?) {
@@ -1117,6 +1130,8 @@ fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double
         isExpanded = showPerformance,
         onToggle = { showPerformance = !showPerformance }
     ) {
+        ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
+        RatingBar(profile.averageRating, profile.numberOfRatings)
         ProfileDetailRow(
             label = "Swipe Right Probability",
             value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
@@ -1162,8 +1177,6 @@ fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double
         }
 
         ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
-        ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
-        RatingBar(profile.averageRating, profile.numberOfRatings)
     }
 }
 
@@ -1172,7 +1185,7 @@ fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double
  * without edit icons for the DatingScreen usage.
  */
 @Composable
-fun ProfileCollapsibleSectionsAll(profile: Profile, compatibilityScore: Double?) {
+fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, compatibilityScore: Double?) {
     // Declare state variables for each collapsible section
     var showVoiceBio by rememberSaveable { mutableStateOf(false) }
     var showBasic by rememberSaveable { mutableStateOf(false) }
@@ -1180,14 +1193,88 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, compatibilityScore: Double?)
     var showLifestyle by rememberSaveable { mutableStateOf(false) }
     var showInterests by rememberSaveable { mutableStateOf(false) }
 
+    // We’ll add a new state: whether the AI section is expanded, and the AI results
+    var showAiSection by rememberSaveable { mutableStateOf(false) }
+    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+
+    // We'll store the current user ID so we can read from `aiMatchCheckRef`
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // Compose effect: load existing AI match data from Firebase if it exists
+    LaunchedEffect(profile.userId) {
+        if (currentUserId != null) {
+            val ref = FirebaseDatabase.getInstance()
+                .getReference("aiMatchCheck/$currentUserId/${profile.userId}")
+            val snap = ref.get().await()
+            val existing = snap.getValue(AiMatchCheckResult::class.java)
+            if (existing != null) {
+                aiMatchResult = existing
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Black)
             .padding(8.dp)
     ) {
+        CollapsibleSection(
+            title = "AI Match Analysis",
+            icon = Icons.Default.Info,  // or some icon
+            isExpanded = showAiSection,
+            onToggle = { showAiSection = !showAiSection }
+        ) {
+            // If we have a stored match analysis, display it
+            if (aiMatchResult != null) {
+                ShowAiMatchAnalysis(aiMatchResult!!)
+            } else {
+                Text(
+                    "No AI analysis stored yet. Tap the button below to generate.",
+                    color = Color.White
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Button to run or rerun the AI match check
+            Button(
+                onClick = {
+                    if (currentUserId != null) {
+                        runAiMatchCheck(
+                            coroutineScope = coroutineScope,
+                            currentUserId = currentUserId,
+                            currentUserProfile = currentUserProfile!!,
+                            otherProfile = profile,
+                            compatibilityScore = compatibilityScore ?: 0.0
+                        ) { newResult ->
+                            aiMatchResult = newResult
+                        }
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+            ) {
+                Text("Run AI Match Check", color = Color.White)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
         PerformanceMetricsSectionDating(profile, compatibilityScore)
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Basic Information
+        CollapsibleSection(
+            title = "Basic Information",
+            icon = Icons.Default.Person,
+            isExpanded = showBasic,
+            onToggle = { showBasic = !showBasic }
+        ) {
+            BasicInfoSection(profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
         // Voice & Bio accordion
         CollapsibleSection(
             title = "Bio",
@@ -1196,16 +1283,6 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, compatibilityScore: Double?)
             onToggle = { showVoiceBio = !showVoiceBio }
         ) {
             showVoiceBio(profile = profile)
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-
-        CollapsibleSection(
-            title = "Basic Information",
-            icon = Icons.Default.Person,
-            isExpanded = showBasic,
-            onToggle = { showBasic = !showBasic }
-        ) {
-            BasicInfoSection(profile)
         }
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -1240,6 +1317,40 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, compatibilityScore: Double?)
     }
 }
 
+@Composable
+fun ShowAiMatchAnalysis(aiResult: AiMatchCheckResult) {
+    // Display the green flags, red flags, summary
+    Text("Green Flags:", color = Color(0xFF00FF00), fontWeight = FontWeight.Bold)
+    aiResult.greenFlags.forEach { flag ->
+        Text("- $flag", color = Color.White)
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+    Text("Red Flags:", color = Color.Red, fontWeight = FontWeight.Bold)
+    aiResult.redFlags.forEach { flag ->
+        Text("- $flag", color = Color.White)
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+    Text("Summary:", color = Color.White, fontWeight = FontWeight.Bold)
+    Text(aiResult.summary, color = Color.White)
+
+    Spacer(Modifier.height(8.dp))
+    Text(
+        text = "Analyzed on: ${formatTime(aiResult.timestamp)}",
+        color = Color.Gray,
+        fontSize = 12.sp
+    )
+}
+
+fun formatTime(timestamp: Long): String {
+    val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
+    return sdf.format(java.util.Date(timestamp))
+}
+
+
 
 @Composable
 fun showVoiceBio(profile: Profile) {
@@ -1253,6 +1364,215 @@ fun showVoiceBio(profile: Profile) {
             value = profile.bio ?: "No bio available",
             icon = Icons.Default.BlurOn
         )
+    }
+}
+
+fun runAiMatchCheck(
+    coroutineScope: CoroutineScope,
+    currentUserId: String,
+    currentUserProfile: Profile,
+    otherProfile: Profile,
+    compatibilityScore: Double,
+    onComplete: (AiMatchCheckResult) -> Unit
+) {
+    val displayHighSchool = if (currentUserProfile.highSchool.isNotBlank())
+        currentUserProfile.highSchool else currentUserProfile.customHighSchool
+    val highSchoolText = "High School: \"$displayHighSchool, graduationYr: ${currentUserProfile.highSchoolGraduationYear}\""
+
+    val displayCollege = if (currentUserProfile.college.isNotBlank())
+        currentUserProfile.college else currentUserProfile.customCollege
+    val collegeText = "College: \"$displayCollege, graduationYr: ${currentUserProfile.collegeGraduationYear}, ${currentUserProfile.collegeDegree}\""
+
+    val displayPostGrad = if (!currentUserProfile.postGraduation.isNullOrEmpty())
+        currentUserProfile.postGraduation else currentUserProfile.customPostGraduation
+    val postGradText = "Post Graduation: \"$displayPostGrad, graduationYr: ${currentUserProfile.postGraduationYear}, ${currentUserProfile.postGraduationDegree}\""
+    val interestNames = currentUserProfile.interests.joinToString { it.name }
+    val displayJobRole = if (currentUserProfile.jobRole.isNotBlank()) currentUserProfile.jobRole else currentUserProfile.customJobRole
+    val displayWork = if (currentUserProfile.work.isNotBlank()) currentUserProfile.work else currentUserProfile.customWork
+
+    val displayOtherHighSchool = if (otherProfile.highSchool.isNotBlank())
+        otherProfile.highSchool else otherProfile.customHighSchool
+    val otherHighSchoolText = "High School: \"$displayOtherHighSchool, graduationYr: ${otherProfile.highSchoolGraduationYear}\""
+
+    val displayOtherCollege = if (otherProfile.college.isNotBlank())
+        otherProfile.college else otherProfile.customCollege
+    val collegeOtherText = "College: \"$displayOtherCollege, graduationYr: ${otherProfile.collegeGraduationYear}, ${otherProfile.collegeDegree}\""
+
+    val displayOtherPostGrad = if (!otherProfile.postGraduation.isNullOrEmpty())
+        otherProfile.postGraduation else otherProfile.customPostGraduation
+    val otherPostGradText = "Post Graduation: \"$displayOtherPostGrad, graduationYr: ${otherProfile.postGraduationYear}, ${otherProfile.postGraduationDegree}\""
+    val otherInterestNames = otherProfile.interests.joinToString { it.name }
+    val displayOtherJobRole = if (otherProfile.jobRole.isNotBlank()) otherProfile.jobRole else otherProfile.customJobRole
+    val displayOtherWork = if (otherProfile.work.isNotBlank()) otherProfile.work else otherProfile.customWork
+    // 1) Gather relevant text from both profiles (customize fields as needed)
+    val userSnippet = """
+        Name: ${currentUserProfile.name}
+        Gender: ${currentUserProfile.gender}
+        DOB: ${currentUserProfile.dob}
+        Rating by others: ${currentUserProfile.averageRating} by ${currentUserProfile.numberOfRatings} users
+        Community: ${currentUserProfile.community}
+        Lifestyle: ${currentUserProfile.lifestyle}
+        Politics: ${currentUserProfile.politics}
+        Interests: $interestNames
+        Politics: ${currentUserProfile.loveLanguage}
+        HighSchool: $highSchoolText
+        College: $collegeText
+        PostGrad: $postGradText
+        Work and JobRole: $displayJobRole at $displayWork
+        Social Causes: ${currentUserProfile.socialCauses}
+        Kolkata Ranking among other users: ${currentUserProfile.am24Ranking}
+        Looking For: ${currentUserProfile.lookingFor}
+        Zodiac: ${currentUserProfile.am24Ranking}
+        ...
+    """.trimIndent()
+
+    val otherSnippet = """
+        Name: ${otherProfile.name}
+        Gender: ${otherProfile.gender}
+        DOB: ${otherProfile.dob}
+        Rating by others: ${otherProfile.averageRating} by ${otherProfile.numberOfRatings} users
+        Community: ${otherProfile.community}
+        Lifestyle: ${otherProfile.lifestyle}
+        Politics: ${otherProfile.politics}
+        Interests: $otherInterestNames
+        Politics: ${otherProfile.loveLanguage}
+        HighSchool: $otherHighSchoolText
+        College: $collegeOtherText
+        PostGrad: $otherPostGradText
+        Work and JobRole: $displayOtherJobRole at $displayOtherWork
+        Social Causes: ${otherProfile.socialCauses}
+        Kolkata Ranking among other users: ${otherProfile.am24Ranking}
+        Looking For: ${otherProfile.lookingFor}
+        Zodiac: ${otherProfile.am24Ranking}
+        ...
+    """.trimIndent()
+
+    // 2) Build the prompt text
+    val prompt = """
+       You are a 'Relationship Analyst AI'.
+       We have 2 profiles:
+
+       [User Profile]
+       $userSnippet
+
+       [Potential Match]
+       $otherSnippet
+
+       They have a numeric compatibility score of $compatibilityScore (0..100).
+
+       Please provide:
+         1) The top 3 "green flags"
+         2) The top 3 "red flags"
+         3) A short summary or recommendation and make it positive
+
+       Return valid JSON ONLY, with keys exactly:
+       {
+         "green_flags": ["","", ""],
+         "red_flags": ["","", ""],
+         "summary": "..."
+       }
+    """.trimIndent()
+
+    Log.d("runAiMatchCheck", "Starting runAiMatchCheck for currentUserId: $currentUserId and otherProfileId: ${otherProfile.userId}")
+    Log.d("runAiMatchCheck", "Prompt built: $prompt")
+
+    // 3) Launch a coroutine in the IO context so as not to block the UI
+    coroutineScope.launch(Dispatchers.IO) {
+        Log.d("runAiMatchCheck", "Coroutine launched in IO context")
+        val gptReply = callGptApi(prompt)
+        Log.d("runAiMatchCheck", "GPT reply received: $gptReply")
+
+        if (gptReply.isNullOrBlank()) {
+            Log.e("runAiMatchCheck", "GPT reply is null or blank; aborting runAiMatchCheck")
+            return@launch
+        }
+
+        try {
+            // Remove markdown code fences if present
+            val cleanedReply = gptReply
+                .replace("```json", "", ignoreCase = true)
+                .replace("```", "")
+                .trim()
+            Log.d("runAiMatchCheck", "Cleaned GPT reply: $cleanedReply")
+
+            val jsonObj = com.google.gson.JsonParser.parseString(cleanedReply).asJsonObject
+            Log.d("runAiMatchCheck", "Parsed JSON from GPT: $jsonObj")
+
+            val greenArr = jsonObj.getAsJsonArray("green_flags").map { it.asString }
+            val redArr = jsonObj.getAsJsonArray("red_flags").map { it.asString }
+            val summary = jsonObj.get("summary").asString
+            Log.d("runAiMatchCheck", "Extracted - Green flags: $greenArr, Red flags: $redArr, Summary: $summary")
+
+            val result = AiMatchCheckResult(
+                greenFlags = greenArr,
+                redFlags = redArr,
+                summary = summary,
+                timestamp = System.currentTimeMillis()
+            )
+            Log.d("runAiMatchCheck", "Constructed AiMatchCheckResult: $result")
+
+            // Persist the result to Firebase
+            FirebaseDatabase.getInstance()
+                .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
+                .setValue(result)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.d("runAiMatchCheck", "Successfully saved AI match result to Firebase.")
+                    } else {
+                        Log.e("runAiMatchCheck", "Failed to save AI match result to Firebase: ${task.exception}")
+                    }
+                }
+
+            // Switch back to Main thread to notify UI
+            withContext(Dispatchers.Main) {
+                Log.d("runAiMatchCheck", "Switching back to Main thread; calling onComplete callback.")
+                onComplete(result)
+            }
+        } catch (e: Exception) {
+            Log.e("runAiMatchCheck", "Error parsing GPT response", e)
+        }
+    }
+}
+
+// Minimal GPT call helper function with logging added
+private fun callGptApi(prompt: String): String? {
+    return try {
+        Log.d("callGptApi", "Building OkHttpClient for GPT API call")
+        val client = OkHttpClient.Builder()
+            .callTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        val messages = listOf(ChatMessage(role = "user", content = prompt))
+        val requestObj = ChatRequest(
+            model = "gpt-4o-mini",   // or "gpt-4" etc.
+            messages = messages
+        )
+        val gson = Gson()
+        val requestBody = gson.toJson(requestObj)
+            .toRequestBody("application/json".toMediaType())
+
+        Log.d("callGptApi", "Sending request to GPT API with prompt: $prompt")
+        val req = Request.Builder()
+            .url("https://api.openai.com/v1/chat/completions")
+            .header("Authorization", "Bearer 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") // Replace with your actual API key
+            .post(requestBody)
+            .build()
+
+        client.newCall(req).execute().use { response ->
+            if (!response.isSuccessful) {
+                Log.e("callGptApi", "GPT API call unsuccessful: ${response.code}")
+                return null
+            }
+            val body = response.body?.string()
+            Log.d("callGptApi", "GPT API response body: $body")
+            val chatResp = gson.fromJson(body, ChatResponse::class.java)
+            val content = chatResp.choices.firstOrNull()?.message?.content
+            Log.d("callGptApi", "Extracted GPT content: $content")
+            content
+        }
+    } catch (e: Exception) {
+        Log.e("callGptApi", "Exception during GPT API call", e)
+        null
     }
 }
 
@@ -1526,3 +1846,14 @@ fun PhotoWithDynamicOverlays(
         compatibilityScore = compatibilityScore,
     )
 }
+
+/**
+ * A data class representing the AI's analysis result of a potential match.
+ */
+data class AiMatchCheckResult(
+    val greenFlags: List<String> = emptyList(),  // Top 3 "green flags"
+    val redFlags: List<String> = emptyList(),    // Top 3 "red flags"
+    val summary: String = "",                    // Short summary or recommendation
+    val timestamp: Long = 0L                     // When the analysis was done
+)
+

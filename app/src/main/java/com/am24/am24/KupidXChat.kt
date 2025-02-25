@@ -431,12 +431,12 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             sb.appendLine("Custom Work: ${profile.customWork}, ")
         }
         if (profile.socialCauses.isNotEmpty()) {
-            sb.appendLine("socialCauses: ${profile.socialCauses}, ")
+            sb.appendLine("Social Causes: ${profile.socialCauses}, ")
         }
         if (profile.lookingFor.isNotEmpty()) {
             sb.appendLine("lookingFor: ${profile.lookingFor}, ")
         }
-        sb.appendLine("Swipe Right Probability of this user: ${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%, ")
+        sb.appendLine("Probability of others to swipe right on this user: ${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%, ")
         sb.appendLine("Age Group Ranking: ${profile.am24RankingAge}, ")
         if (profile.highSchool.isNotEmpty()) {
             sb.appendLine("High School ranking: ${profile.am24RankingHighSchool}, ")
@@ -739,7 +739,7 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
                 .build()
 
             // placeholder for a "project" key
-            val apiKey = "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"
+            val apiKey = "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"
 
             val chatRequest = ChatRequest(model = "gpt-4", messages = messages)
             val jsonBody = gson.toJson(chatRequest)
@@ -834,7 +834,7 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
                 .writeTimeout(300, TimeUnit.SECONDS)
                 .build()
 
-            val apiKey = "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"
+            val apiKey = "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"
 
             val chatRequest = ChatRequest(model = "gpt-4", messages = messages)
             val jsonBody = gson.toJson(chatRequest)
