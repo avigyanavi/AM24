@@ -10,6 +10,7 @@ ccp = "2.7.3"
 coilCompose = "2.4.0"
 coilComposeVersion = "2.0.0"
 coilKtCoilCompose = "2.2.2"
+coilKtCoilComposeVersion = "2.3.0"
 coilTransformations = "2.3.0"
 core = "1.45.0"
 coreKtxVersion = "1.8.0"
@@ -95,6 +96,7 @@ ccp = { module = "com.hbb20:ccp", version.ref = "ccp" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 coil-compose-v200 = { module = "io.coil-kt:coil-compose", version.ref = "coilComposeVersion" }
 coil-compose-v222 = { module = "io.coil-kt:coil-compose", version.ref = "coilKtCoilCompose" }
+coil-compose-v230 = { module = "io.coil-kt:coil-compose", version.ref = "coilKtCoilComposeVersion" }
 coil-transformations = { module = "io.coil-kt:coil-transformations", version.ref = "coilTransformations" }
 core = { module = "com.google.ar:core", version.ref = "core" }
 exoplayer = { module = "com.google.android.exoplayer:exoplayer", version.ref = "exoplayer" }

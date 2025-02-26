@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.ccp)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.coil.compose.v230)
 
     // For Coil image loading
     implementation(libs.coil.compose.v222)

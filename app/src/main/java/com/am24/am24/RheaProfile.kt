@@ -44,7 +44,7 @@ fun RheaProfileScreen(
                 .padding(16.dp),
         ) {
             Text("Age: ${modelingState.age}", color = Color.White)
-            Text("Mood: ${modelingState.mood}", color = Color.White)
+            Text("Mood: ${modelingState.moodLevels}", color = Color.White)
             Text("Career Progress: ${modelingState.careerProgress}", color = Color.White)
             Text("External Attention: ${modelingState.externalAttention}", color = Color.White)
             Text("Focus on User: ${modelingState.focusOnUser}", color = Color.White)

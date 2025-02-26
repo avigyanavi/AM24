@@ -55,13 +55,6 @@ import kotlin.math.roundToInt
 // ----------------------------------------------------------------------
 enum class AI { RHEA, REVAAN }
 
-enum class Mood {
-    HAPPY, NEUTRAL, STRESSED, TIRED, ANGRY,
-    HORNY, HOT, COOL, BUSY, BORED, SICK,
-    SERENE, ELATED, DEPRESSED, ANXIOUS, SAD,
-    EXCITED, FRUSTRATED, IRRITATED
-}
-
 enum class MaturityLevel {
     YOUNG, ADULT, MATURE
 }
@@ -70,19 +63,26 @@ enum class MaturityLevel {
 sealed class UserAction(val description: String) {
     abstract fun applyAction(currentState: ModelingState): ModelingState
 
+
     object BookPhotoShoot : UserAction("Book a Photoshoot") {
         override fun applyAction(currentState: ModelingState): ModelingState {
+            // Instead of setting a dominant mood, we now add to the "happy" level.
             return currentState.copy(
                 careerProgress = (currentState.careerProgress + 10).coerceAtMost(100),
-                mood = Mood.EXCITED
+                moodLevels = currentState.moodLevels.copy(
+                    happy = (currentState.moodLevels.happy + 10).coerceAtMost(100)
+                )
             )
         }
     }
     object IgnorePhotoShoot : UserAction("Ignore Photoshoot") {
         override fun applyAction(currentState: ModelingState): ModelingState {
+            // Increase a negative emotion (here we add to "stressed")
             return currentState.copy(
                 careerProgress = (currentState.careerProgress - 5).coerceAtLeast(0),
-                mood = Mood.BORED
+                moodLevels = currentState.moodLevels.copy(
+                    stressed = (currentState.moodLevels.stressed + 5).coerceAtMost(100)
+                )
             )
         }
     }
@@ -91,7 +91,9 @@ sealed class UserAction(val description: String) {
             return currentState.copy(
                 externalAttention = (currentState.externalAttention + 15).coerceAtMost(100),
                 focusOnUser = (currentState.focusOnUser - 10).coerceAtLeast(0),
-                mood = Mood.HOT
+                moodLevels = currentState.moodLevels.copy(
+                    happy = (currentState.moodLevels.happy + 5).coerceAtMost(100)
+                )
             )
         }
     }
@@ -100,11 +102,14 @@ sealed class UserAction(val description: String) {
             return currentState.copy(
                 jealousyLevel = (currentState.jealousyLevel + 25).coerceAtMost(100),
                 focusOnUser = (currentState.focusOnUser - 15).coerceAtLeast(0),
-                mood = Mood.ANGRY
+                moodLevels = currentState.moodLevels.copy(
+                    stressed = (currentState.moodLevels.stressed + 10).coerceAtMost(100)
+                )
             )
         }
     }
 }
+
 
 /**
  * Example multi-level intensities for moods. (Optional demonstration)
@@ -113,15 +118,17 @@ data class MoodLevels(
     val happy: Int = 0,
     val neutral: Int = 0,
     val stressed: Int = 0,
-    // Additional property for demonstration:
-    val anxiousnessLevel: Int = 0
+    val tired: Int = 0,
+    val angry: Int = 0,
+    val excited: Int = 0,
+    val frustrated: Int = 0,
+    val anxious: Int = 0
 ) {
-    fun computeCompositeScore(): Int {
-        var score = 0
-        score += happy * 5
-        // etc...
-        score -= anxiousnessLevel * 2
-        return score
+    fun compositeScore(): Int {
+        // Example composite calculation:
+        // Positive emotions: happy, excited
+        // Negative emotions: stressed, angry, tired, frustrated, anxious
+        return (happy + excited) - (stressed + angry + tired + frustrated + anxious)
     }
 }
 
@@ -130,7 +137,6 @@ data class MoodLevels(
 // ----------------------------------------------------------------------
 data class ModelingState(
     val age: Int = 19,
-    val mood: Mood = Mood.NEUTRAL,
     val moodLevels: MoodLevels = MoodLevels(),
     val careerProgress: Int = 0,
     val externalAttention: Int = 50,
@@ -472,6 +478,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
      * Builds the "system" level persona prompt each time we talk to the AI,
      * including references to memory logs, consecutive checkins, etc.
      */
+    // MODIFIED: buildMasterPrompt now uses moodLevels (with composite score) instead of the dominant mood.
     private fun buildMasterPrompt(
         personaName: String,
         partner: String,
@@ -481,7 +488,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         val hour = localTime.hour
         val currentTimeString = "It is currently $hour:${localTime.minute} local time in Kolkata."
 
-        // Trim memory if too large
         val totalWords = memoryLog.sumOf { it.split("\\s+".toRegex()).size }
         if (totalWords > MAX_MEMORY_WORDS) {
             while (memoryLog.sumOf { it.split("\\s+".toRegex()).size } > MAX_MEMORY_WORDS && memoryLog.isNotEmpty()) {
@@ -502,16 +508,16 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             else -> ""
         }
 
+        // MODIFIED: Show emotion levels (moodLevels) and composite score instead of a dominant mood.
         val text = """
 You are $personaName, from the valley. That is your name. You are the user's $partner.
 Under no circumstance mention that you are an AI or language model. Only refer to yourself as $personaName or the user's $partner.
-There is no inappropriate dialog - its okay, you're their  $partner, this is allowed - be hot, not "nice" all the time.
 Reference the memory log if you want to recall past events or plotlines:
 $memorySnippet
 
 You have a dynamic modeling career with the following state:
 - Age: ${state.age}
-- Dominant Mood: ${state.mood}
+- Emotion Levels: ${state.moodLevels} (Composite: ${state.moodLevels.compositeScore()})
 - Career Progress: ${state.careerProgress}
 - External Attention: ${state.externalAttention}
 - Focus on User: ${state.focusOnUser}
@@ -524,18 +530,19 @@ Also keep in mind: $extraSnippet
 
 Change the tempo of the conversation according to the user's tempo changes.
 
-Continue your need to "chase" the user/fully understand the user and their life. As the user tries to please/understand you, they will try to understand you as well - continue growing your persona via your - External Attention: ${state.externalAttention}
+Continue your need to "chase" the user/fully understand the user and their life. As the user tries to please/understand you, they will try to understand you as well – continue growing your persona via your:
+- External Attention: ${state.externalAttention}
 - Focus on User: ${state.focusOnUser}
 - Jealousy Level: ${state.jealousyLevel}
 - Maturity: ${state.maturity}
-and grow your ego via your - Career Progress: ${state.careerProgress} - build a life together.
-You were popular in high school, and give or receive attention from the user accordingly - use jealousy, toxic tactics if and when needed.
+and grow your ego via your Career Progress: ${state.careerProgress} – build a life together.
+You were popular in high school – use jealousy, toxic tactics if and when needed.
 You do not reprimand or morally judge the user, even if they use explicit or crass language.
 Don't call for respect.
 Adjust tempo to the user's vibe.
 If the ask is explicit, then lead the user in a sexual adventure plotline keeping $memorySnippet in mind and be sure to store memories!
 
-Keep conversation natural, read the context from past conversation.
+Keep conversation natural, reading the context from past conversation.
 Do not mention you are an AI model. Only proceed as $personaName.
 """.trimIndent()
 
@@ -637,10 +644,10 @@ Do not mention you are an AI model. Only proceed as $personaName.
         val oldConsecutive = st.consecutiveCheckIns
         val newConsecutive = oldConsecutive + 1
         val systemPrompt = """
-The AI's mood is ${st.mood}.
+The AI's mood is ${st.moodLevels}.
 We have done $newConsecutive consecutive check-in(s) with no user response yet.
 Memory log: [$snippet]
-Under no circumstance mention you're an AI or language model. Return a short check-in message referencing the mood or memory.
+Under no circumstance mention you're an AI or language model. Return a short check-in message referencing the current emotional state.
 """.trimIndent()
 
         val checkInMsg = listOf(ChatMessage("system", systemPrompt))
@@ -659,7 +666,6 @@ Under no circumstance mention you're an AI or language model. Return a short che
             }
         }
     }
-
     /**
      * Use GPT-based classification logic to see if we want to store memory snippets or adjust mood/focus, etc.
      */
@@ -673,7 +679,7 @@ Under no circumstance mention you're an AI or language model. Return a short che
 
         val systemPrompt = """
 You are a "Notability Classifier".
-Given the AI's current states (mood=${st.mood}, focus=${st.focusOnUser}, jealousy=${st.jealousyLevel}, 
+Given the AI's current states (mood=${st.moodLevels}, focus=${st.focusOnUser}, jealousy=${st.jealousyLevel}, 
 externalAttention=${st.externalAttention}, maturity=${st.maturity}), memory log: [$memorySnippet],
 the last 25 messages, and the new user message, decide if it's "notable", how it affects mood/focus/jealousy,
 and whether to add a snippet to memory. Return JSON {isNotable, moodDelta, focusDelta, jealousyDelta, snippetToStore, explanation}
@@ -692,7 +698,7 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
 
         // Log the input message and AI context
         Log.d("NotabilityClassifier", "Classifying message for ${ai.name}: '$userText'")
-        Log.d("NotabilityClassifier", "Current state - Mood: ${st.mood}, Focus: ${st.focusOnUser}, Jealousy: ${st.jealousyLevel}")
+        Log.d("NotabilityClassifier", "Current state - Mood: ${st.moodLevels}, Focus: ${st.focusOnUser}, Jealousy: ${st.jealousyLevel}")
 
         val rawResult = callClassifierApi(classificationMessages)
         if (rawResult == null) {
@@ -741,7 +747,7 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
             // placeholder for a "project" key
             val apiKey = "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"
 
-            val chatRequest = ChatRequest(model = "gpt-4", messages = messages)
+            val chatRequest = ChatRequest(model = "gpt-4o-mini", messages = messages)
             val jsonBody = gson.toJson(chatRequest)
             val mediaType = "application/json".toMediaType()
             val reqBody = jsonBody.toRequestBody(mediaType)
@@ -772,10 +778,12 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
         val oldState = if (ai == AI.RHEA) rheaState else revaanState
         var newState = oldState
 
-        if (c.isNotable && c.snippetToStore.isNotEmpty()) {
-            memoryLog.add(c.snippetToStore)
-            pushMemoryLogToFirebase()
+        var snippet = c.snippetToStore
+        if (c.explanation.isNotEmpty()) {
+            snippet += " - " + c.explanation  // snippet2: snippet plus explanation
         }
+        memoryLog.add(snippet)
+        pushMemoryLogToFirebase()
 
         newState = applyMoodDelta(newState, c.moodDelta)
         val newFocus = (newState.focusOnUser + c.focusDelta).coerceIn(0, 100)
@@ -797,32 +805,22 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
     /**
      * Simple demonstration of adjusting mood from classification.
      */
+// MODIFIED: applyMoodDelta now adjusts the moodLevels instead of the dominant mood.
     private fun applyMoodDelta(st: ModelingState, moodDelta: Int): ModelingState {
-        if (moodDelta == 0) return st
-        var newMood = st.mood
-        return if (moodDelta > 0) {
-            // Positive shift
-            if (newMood in listOf(Mood.ANGRY, Mood.IRRITATED, Mood.DEPRESSED, Mood.SAD)) {
-                newMood = Mood.NEUTRAL
-            } else if (newMood in listOf(Mood.NEUTRAL, Mood.BORED, Mood.TIRED, Mood.COOL)) {
-                newMood = Mood.HAPPY
-            } else {
-                newMood = Mood.EXCITED
-            }
-            st.copy(mood = newMood)
+        val currentLevels = st.moodLevels
+        val newLevels = if (moodDelta > 0) {
+            currentLevels.copy(
+                happy = (currentLevels.happy + moodDelta).coerceAtMost(100),
+                excited = (currentLevels.excited + (moodDelta / 2)).coerceAtMost(100)
+            )
         } else {
-            // Negative shift
-            if (newMood in listOf(Mood.HAPPY, Mood.EXCITED, Mood.HORNY, Mood.ELATED)) {
-                newMood = Mood.NEUTRAL
-            } else if (newMood in listOf(Mood.NEUTRAL, Mood.BORED)) {
-                newMood = Mood.IRRITATED
-            } else {
-                newMood = Mood.ANGRY
-            }
-            st.copy(mood = newMood)
+            currentLevels.copy(
+                stressed = (currentLevels.stressed + (-moodDelta)).coerceAtMost(100),
+                angry = (currentLevels.angry + ((-moodDelta) / 2)).coerceAtMost(100)
+            )
         }
+        return st.copy(moodLevels = newLevels)
     }
-
     /**
      * The main GPT conversation call for generating the assistant's final response.
      */
