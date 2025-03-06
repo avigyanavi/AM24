@@ -2,9 +2,16 @@ package com.am24.am24
 
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -13,21 +20,29 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.am24.am24.profiles.RevaanProfileScreen
 import com.am24.am24.profiles.RheaProfileScreen
 import com.google.firebase.database.*
@@ -136,6 +151,9 @@ data class MoodLevels(
 // 2) ModelingState
 // ----------------------------------------------------------------------
 data class ModelingState(
+    val relationshipHistory: RelationshipHistory = RelationshipHistory(),
+    val interactionsCount: Int = 0,
+    val lastEmotionShift: Instant = Instant.now(),
     val age: Int = 19,
     val moodLevels: MoodLevels = MoodLevels(),
     val careerProgress: Int = 0,
@@ -148,6 +166,14 @@ data class ModelingState(
     val lastUserMessageInstant: Instant = Instant.now(),
     val autoCheckInInterval: Long = 1,  // hours
     val consecutiveCheckIns: Int = 0
+)
+
+data class RelationshipHistory(
+    val attachment: Int = 50,   // Higher = clingy, possessive; Lower = distant, independent
+    val trust: Int = 50,        // Higher = trusting; Lower = suspicious, jealous
+    val confidence: Int = 50,   // Higher = dominant, assertive; Lower = shy, submissive
+    val emotionalDepth: Int = 50, // Higher = emotionally deep; Lower = superficial
+    val backStory: MutableList<String> = mutableListOf(),
 )
 
 // ----------------------------------------------------------------------
@@ -865,13 +891,13 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
 @RequiresApi(35)
 @Composable
 fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
-    var showRheaProfileDialog by remember { mutableStateOf(false) }
-    var showRevaanProfileDialog by remember { mutableStateOf(false) }
+    var showAIProfileDialog by remember { mutableStateOf(false) }
+    var showChangeAIOverlay by remember { mutableStateOf(false) }
 
-    // We'll keep a local copy of memoryLog for immediate UI reflection.
+    // local memoryLog copy...
     val memoryLogState = remember { mutableStateListOf<String>().apply { addAll(memoryLog) } }
 
-    // Fetch the user's profile
+    // fetch profile...
     LaunchedEffect(Unit) {
         if (profileViewModel.currentUserProfile.value == null) {
             profileViewModel.fetchCurrentUserProfile()
@@ -885,7 +911,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
         return
     }
 
-    // Create/retain our chat ViewModel
+    // create/retain chatViewModel
     val chatViewModel: KupidXChatViewModel = viewModel(
         key = "KupidXChatVM",
         factory = object : ViewModelProvider.Factory {
@@ -896,144 +922,45 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
         }
     )
 
-    // Watch for memoryLog changes
+    var activeAI by remember { mutableStateOf(AI.RHEA) }
+
+    // update local memory log whenever memoryLog changes
     LaunchedEffect(memoryLog.size) {
         memoryLogState.clear()
         memoryLogState.addAll(memoryLog)
     }
 
-    // Possibly show a user action prompt if triggered
-    if (chatViewModel.showActionPrompt && chatViewModel.currentEventToShow != null) {
-        // We'll arbitrarily apply action to Rhea by default (or choose based on user).
-        UserActionPrompt(
-            ai = AI.RHEA,
-            currentEvent = chatViewModel.currentEventToShow!!,
-            onConfirm = {
-                chatViewModel.applyUserAction(AI.RHEA, chatViewModel.currentEventToShow!!)
-            },
-            onDecline = {
-                chatViewModel.showActionPrompt = false
-                chatViewModel.currentEventToShow = null
-            }
-        )
-    }
-
-    // Simple tab selection for which AI we are chatting with
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    val selectedAI = if (selectedTabIndex == 0) AI.RHEA else AI.REVAAN
-
-    var currentInput by remember { mutableStateOf("") }
-    val displayedMessages = if (selectedAI == AI.RHEA) chatViewModel.messagesRhea else chatViewModel.messagesRevaan
-    val listState = rememberLazyListState()
-
-    // Scroll to bottom whenever new messages arrive
-    LaunchedEffect(displayedMessages.size) {
-        if (displayedMessages.isNotEmpty()) {
-            listState.animateScrollToItem(displayedMessages.lastIndex)
-        }
-    }
-
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("AM24 AI", fontSize = 24.sp, color = Color.White) },
-                backgroundColor = Color.Black,
-                actions = {
-                    // Clear chat
-                    IconButton(onClick = {
-                        chatViewModel.clearChatForAI(selectedAI)
-                        currentInput = ""
-                    }) {
-                        Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red)
-                    }
-                    // Force a check-in
-                    IconButton(onClick = { chatViewModel.sendDailyCheckIn(selectedAI) }) {
-                        Icon(Icons.Default.Info, "Daily CheckIn", tint = Color.Green)
-                    }
-                }
+            ChatTopAppBar(
+                activeAI = activeAI,
+                onNavigateBack = { /* handle nav back if needed */ },
+                onShowAIProfile = { showAIProfileDialog = true },     // callback
+                onChangeAI = { showChangeAIOverlay = true },          // callback
+                onClearChat = { chatViewModel.clearChatForAI(activeAI) },
+                onDailyCheckIn = { chatViewModel.sendDailyCheckIn(activeAI) }
             )
         },
         backgroundColor = Color.Black
     ) { paddingVals ->
         Column(
-            Modifier
+            modifier = Modifier
                 .padding(paddingVals)
                 .fillMaxSize()
         ) {
-            // Tab row for Rhea/Revaan
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .border(2.dp, Color(0xFFFF6F00), RectangleShape)
-                    .background(Color.Black)
-            ) {
-                // Rhea tab
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(if (selectedTabIndex == 0) Color(0xFFFF6F00) else Color.Black)
-                        .clickable { selectedTabIndex = 0 },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            "Rhea",
-                            color = if (selectedTabIndex == 0) Color.Black else Color.White
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Rhea Info",
-                            tint = if (selectedTabIndex == 0) Color.Black else Color.White,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .clickable { showRheaProfileDialog = true }
-                        )
-                    }
-                }
-                // Divider
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .fillMaxHeight()
-                        .background(Color(0xFFFF6F00))
-                )
-                // Revaan tab
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(if (selectedTabIndex == 1) Color(0xFFFF6F00) else Color.Black)
-                        .clickable { selectedTabIndex = 1 },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            "Revaan",
-                            color = if (selectedTabIndex == 1) Color.Black else Color.White
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Revaan Info",
-                            tint = if (selectedTabIndex == 1) Color.Black else Color.White,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .clickable { showRevaanProfileDialog = true }
-                        )
-                    }
+            val displayedMessages = when (activeAI) {
+                AI.RHEA -> chatViewModel.messagesRhea
+                AI.REVAAN -> chatViewModel.messagesRevaan
+            }
+            val listState = rememberLazyListState()
+
+            // scroll to bottom on new messages
+            LaunchedEffect(displayedMessages.size) {
+                if (displayedMessages.isNotEmpty()) {
+                    listState.animateScrollToItem(displayedMessages.lastIndex)
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            // The messages list
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -1041,20 +968,21 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                     .padding(horizontal = 16.dp)
             ) {
                 items(displayedMessages) { msg ->
-                    ChatMessageItem(msg)
-                    Spacer(Modifier.height(8.dp))
+                    ChatMessageItem(msg, activeAI, userProfile.profilepicUrl)
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                // Show typing indicator
-                if (selectedAI == AI.RHEA && chatViewModel.isRheaTyping) {
-                    item { TypingIndicator() }
-                } else if (selectedAI == AI.REVAAN && chatViewModel.isRevaanTyping) {
+                // typing indicator
+                if ((activeAI == AI.RHEA && chatViewModel.isRheaTyping) ||
+                    (activeAI == AI.REVAAN && chatViewModel.isRevaanTyping)
+                ) {
                     item { TypingIndicator() }
                 }
             }
 
-            // Input row
+            // input row
+            var currentInput by remember { mutableStateOf("") }
             Row(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
@@ -1072,56 +1000,187 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                     ),
                     textStyle = LocalTextStyle.current.copy(color = Color.White, fontSize = 16.sp),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = {
-                        chatViewModel.sendMessageToAI(selectedAI, currentInput)
-                        currentInput = ""
-                    })
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            chatViewModel.sendMessageToAI(activeAI, currentInput)
+                            currentInput = ""
+                        }
+                    )
                 )
                 IconButton(onClick = {
-                    chatViewModel.sendMessageToAI(selectedAI, currentInput)
+                    chatViewModel.sendMessageToAI(activeAI, currentInput)
                     currentInput = ""
                 }) {
-                    Icon(Icons.Default.Send, "Send", tint = Color(0xFFFF6F00))
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Send",
+                        tint = Color(0xFFFF6F00)
+                    )
                 }
             }
         }
     }
 
-    if (showRheaProfileDialog) {
-        RheaProfileScreen(
-            modelingState = chatViewModel.rheaState,
-            memoryLog = memoryLogState,
-            onNavigateBack = { showRheaProfileDialog = false }
-        )
+    // AI profile
+    if (showAIProfileDialog) {
+        if (activeAI == AI.RHEA) {
+            RheaProfileScreen(
+                modelingState = chatViewModel.rheaState,
+                memoryLog = memoryLogState,
+                onNavigateBack = { showAIProfileDialog = false }
+            )
+        } else {
+            RevaanProfileScreen(
+                modelingState = chatViewModel.revaanState,
+                memoryLog = memoryLogState,
+                onNavigateBack = { showAIProfileDialog = false }
+            )
+        }
     }
-    if (showRevaanProfileDialog) {
-        RevaanProfileScreen(
-            modelingState = chatViewModel.revaanState,
-            memoryLog = memoryLogState,
-            onNavigateBack = { showRevaanProfileDialog = false }
+
+    // AI overlay
+    if (showChangeAIOverlay) {
+        val aiOptions = listOf(
+            AIOption(AI.RHEA, "Rhea", R.drawable.rhea_avatar),
+            AIOption(AI.REVAAN, "Revaan", R.drawable.revaan_avatar)
+        )
+        ChangeAIOverlay(
+            aiOptions = aiOptions,
+            onAISelected = { selectedAI ->
+                activeAI = selectedAI
+                showChangeAIOverlay = false
+            },
+            onDismiss = { showChangeAIOverlay = false }
         )
     }
 }
 
-/**
- * Displays a single chat message bubble.
- */
 @Composable
-fun ChatMessageItem(msg: ChatMessage) {
+fun ChatTopAppBar(
+    activeAI: AI,
+    onNavigateBack: () -> Unit,
+    onShowAIProfile: () -> Unit,
+    onChangeAI: () -> Unit,
+    onClearChat: () -> Unit,
+    onDailyCheckIn: () -> Unit
+) {
+    // Keep a local state for the drop-down expansion
+    var showMenu by remember { mutableStateOf(false) }
+
+    TopAppBar(
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Show the AI avatar in a circle next to the title
+                if (activeAI == AI.RHEA) {
+                    Image(
+                        painter = painterResource(id = R.drawable.rhea_avatar),
+                        contentDescription = "Rhea Avatar",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Rhea", fontSize = 24.sp, color = Color.White)
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.revaan_avatar),
+                        contentDescription = "Revaan Avatar",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Revaan", fontSize = 24.sp, color = Color.White)
+                }
+            }
+        },
+        backgroundColor = Color.Black,
+        actions = {
+            // Wrap your MoreVert icon + DropdownMenu in a Box (the anchor).
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More Options",
+                        tint = Color.White
+                    )
+                }
+
+                // The menu is anchored to the IconButton because it’s in the same Box.
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(onClick = {
+                        onShowAIProfile()
+                        showMenu = false
+                    }) {
+                        Text("Show AI Profile")
+                    }
+                    DropdownMenuItem(onClick = {
+                        onChangeAI()
+                        showMenu = false
+                    }) {
+                        Text("Change AI")
+                    }
+                }
+            }
+
+            // The rest of your icons to the right
+            IconButton(onClick = onClearChat) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Clear Chat",
+                    tint = Color.Red
+                )
+            }
+            IconButton(onClick = onDailyCheckIn) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Daily CheckIn",
+                    tint = Color.Green
+                )
+            }
+        }
+    )
+}
+
+
+
+@Composable
+fun ChatMessageItem(
+    msg: ChatMessage,
+    activeAI: AI,
+    userProfilePicUrl: String?
+) {
     val timeString = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(msg.timestamp))
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = if (msg.role == "user") Arrangement.End else Arrangement.Start
-        ) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (msg.role == "assistant") Arrangement.End else Arrangement.Start
+    ) {
+        if (msg.role == "user") {
+            // --- USER message: user on the LEFT ---
+            // Show user avatar on the left
+            UserAvatar(userProfilePicUrl = userProfilePicUrl)
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Chat bubble
             Card(
-                backgroundColor = if (msg.role == "user") Color(0xFFFF6F00) else Color.DarkGray,
-                modifier = Modifier.widthIn(max = 280.dp),
-                shape = RoundedCornerShape(16.dp)
+                backgroundColor = Color(0xFFFF6F00),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.widthIn(max = 280.dp)
             ) {
-                Column(Modifier.padding(8.dp)) {
-                    Text(msg.content, color = Color.White, fontSize = 16.sp)
-                    Spacer(Modifier.height(4.dp))
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(text = msg.content, color = Color.White, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = timeString,
                         color = Color.LightGray,
@@ -1130,25 +1189,159 @@ fun ChatMessageItem(msg: ChatMessage) {
                     )
                 }
             }
+        } else {
+            // --- AI message: AI on the RIGHT ---
+            // Chat bubble first
+            Card(
+                backgroundColor = Color.DarkGray,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.widthIn(max = 280.dp)
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(text = msg.content, color = Color.White, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = timeString,
+                        color = Color.LightGray,
+                        fontSize = 12.sp,
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // AI avatar
+            AIAvatar(activeAI = activeAI)
+        }
+    }
+}
+
+
+@Composable
+fun ChatBubble(content: String, timeString: String, isUser: Boolean) {
+    Card(
+        backgroundColor = if (isUser) Color(0xFFFF6F00) else Color.DarkGray,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.widthIn(max = 280.dp)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(text = content, color = Color.White, fontSize = 16.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = timeString,
+                color = Color.LightGray,
+                fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.End)
+            )
         }
     }
 }
 
 /**
- * A small row of dots to show typing.
+ * Displays the AI avatar as a circular image. The displayed avatar depends on the active AI.
+ */
+@Composable
+fun AIAvatar(activeAI: AI): Unit {
+    val avatarRes = if (activeAI == AI.RHEA) R.drawable.rhea_avatar else R.drawable.revaan_avatar
+    Image(
+        painter = painterResource(id = avatarRes),
+        contentDescription = "AI Avatar",
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color.Gray),
+        contentScale = ContentScale.Crop
+    )
+}
+
+@Composable
+fun UserAvatar(userProfilePicUrl: String?) {
+    if (!userProfilePicUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = userProfilePicUrl,
+            contentDescription = "User Avatar",
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Color.Gray),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Icon(
+            imageVector = Icons.Default.Person,
+            contentDescription = "User Avatar",
+            tint = Color.White,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Color.Gray)
+        )
+    }
+}
+/**
+ * Helper composable: returns a scale factor for a dancing dot animation.
+ */
+@Composable
+fun DancingDot(delayMillis: Int): Float {
+    val infiniteTransition = rememberInfiniteTransition()
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 600, delayMillis = delayMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+    return scale
+}
+
+/**
+ * Animated dancing dots as a typing indicator.
  */
 @Composable
 fun TypingIndicator() {
-    Row(modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)) {
-        repeat(3) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(Color.Gray)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-        }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 16.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.End
+    ) {
+        val scale1 = DancingDot(0)
+        val scale2 = DancingDot(200)
+        val scale3 = DancingDot(400)
+
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .graphicsLayer {
+                    scaleX = scale1
+                    scaleY = scale1
+                }
+                .clip(CircleShape)
+                .background(Color.Gray)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .graphicsLayer {
+                    scaleX = scale2
+                    scaleY = scale2
+                }
+                .clip(CircleShape)
+                .background(Color.Gray)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .graphicsLayer {
+                    scaleX = scale3
+                    scaleY = scale3
+                }
+                .clip(CircleShape)
+                .background(Color.Gray)
+        )
     }
 }
 
@@ -1188,3 +1381,108 @@ fun UserActionPrompt(
         contentColor = Color.White
     )
 }
+@Composable
+fun ChangeAIOverlay(
+    aiOptions: List<AIOption>,
+    onAISelected: (AI) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // Show a dialog overlay
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.DarkGray
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Select Your AI",
+                    style = MaterialTheme.typography.h6,
+                    color = Color.White,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // A horizontally scrollable list of AI cards
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    items(aiOptions) { aiOption ->
+                        AICard(
+                            aiOption = aiOption,
+                            onSelect = {
+                                onAISelected(aiOption.aiEnum)
+                                onDismiss() // close after selection
+                            }
+                        )
+                    }
+                }
+
+                // Optional close button
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.Gray),
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Close", color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AICard(
+    aiOption: AIOption,
+    onSelect: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        backgroundColor = Color.Black,
+        modifier = Modifier
+            .size(width = 250.dp, height = 350.dp)
+            .padding(vertical = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+        ) {
+            // AI Image
+            Image(
+                painter = painterResource(id = aiOption.imageResId),
+                contentDescription = aiOption.displayName,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // AI Name
+            Text(
+                text = aiOption.displayName,
+                style = MaterialTheme.typography.h6,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Select Button
+            Button(
+                onClick = onSelect,
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+            ) {
+                Text("Select", color = Color.White)
+            }
+        }
+    }
+}
+
