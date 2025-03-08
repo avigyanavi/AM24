@@ -889,26 +889,33 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
     private suspend fun callClassifierApi(messages: List<ChatMessage>): String? {
         return withContext(Dispatchers.IO) {
             val client = OkHttpClient.Builder()
-                .connectTimeout(3000, TimeUnit.SECONDS)
-                .readTimeout(3000, TimeUnit.SECONDS)
-                .writeTimeout(3000, TimeUnit.SECONDS)
+                .connectTimeout(120, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS)
                 .build()
 
-            val apiKey = "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"
+            // Use your Railway endpoint for classifier calls
+            val railwayUrl = "https://flaskam24-production.up.railway.app/openai/chat"
+            // Build request using the classifier model
             val chatRequest = ChatRequest(model = "gpt-4o-mini", messages = messages, max_tokens = 8000)
             val jsonBody = gson.toJson(chatRequest)
+            Log.d("ClassifierRequest", jsonBody)
             val mediaType = "application/json".toMediaType()
             val reqBody = jsonBody.toRequestBody(mediaType)
             val req = Request.Builder()
-                .url("https://api.openai.com/v1/chat/completions")
-                .addHeader("Authorization", "Bearer $apiKey")
+                .url(railwayUrl)
                 .post(reqBody)
                 .build()
 
             try {
                 client.newCall(req).execute().use { resp ->
-                    if (!resp.isSuccessful) return@withContext "Error: ${resp.code}"
+                    if (!resp.isSuccessful) {
+                        Log.e("ClassifierResponse", "Request failed with code: ${resp.code}")
+                        return@withContext "Error: ${resp.code}"
+                    }
                     val rBody = resp.body?.string() ?: return@withContext null
+                    Log.d("ClassifierResponse", rBody)
+                    // Parse response into your ChatResponse object
                     val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
                     chatResp.choices.firstOrNull()?.message?.content
                 }
@@ -970,22 +977,28 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
                 .writeTimeout(3000, TimeUnit.SECONDS)
                 .build()
 
-            val apiKey = "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"
+            // Use the Railway endpoint for the main chat call.
+            val railwayUrl = "https://flaskam24-production.up.railway.app/openai/chat"
+            // Build request using the main chat model
             val chatRequest = ChatRequest(model = "gpt-4o", messages = messages, max_tokens = 8000)
             val jsonBody = gson.toJson(chatRequest)
+            Log.d("FinalRequest", "Sending final request: $jsonBody")
             val mediaType = "application/json".toMediaType()
             val reqBody = jsonBody.toRequestBody(mediaType)
             val req = Request.Builder()
-                .url("https://api.openai.com/v1/chat/completions")
-                .addHeader("Authorization", "Bearer $apiKey")
+                .url(railwayUrl)
                 .post(reqBody)
                 .build()
 
-            Log.d("FinalRequest", "Sending final request to model: $jsonBody")
             try {
                 client.newCall(req).execute().use { resp ->
-                    if (!resp.isSuccessful) return@withContext "Error: ${resp.code}"
+                    if (!resp.isSuccessful) {
+                        Log.e("FinalResponse", "Request failed with code: ${resp.code}")
+                        return@withContext "Error: ${resp.code}"
+                    }
                     val rBody = resp.body?.string() ?: return@withContext null
+                    Log.d("FinalResponse", rBody)
+                    // Parse the response into your ChatResponse structure
                     val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
                     chatResp.choices.firstOrNull()?.message?.content
                 }
@@ -994,8 +1007,7 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
                 "Error: ${e.message}"
             }
         }
-    }
-}
+    }}
 
 // ----------------------------------------------------------------------
 // Composables
