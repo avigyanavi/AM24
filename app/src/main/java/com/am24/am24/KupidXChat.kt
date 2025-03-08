@@ -889,9 +889,9 @@ Only assign negative deltas if the message clearly indicates non-consensual beha
     private suspend fun callClassifierApi(messages: List<ChatMessage>): String? {
         return withContext(Dispatchers.IO) {
             val client = OkHttpClient.Builder()
-                .connectTimeout(120, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .writeTimeout(120, TimeUnit.SECONDS)
+                .connectTimeout(3000, TimeUnit.SECONDS)
+                .readTimeout(3000, TimeUnit.SECONDS)
+                .writeTimeout(3000, TimeUnit.SECONDS)
                 .build()
 
             val apiKey = "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"
