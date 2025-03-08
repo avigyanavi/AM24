@@ -15,7 +15,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.SliderDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mood
@@ -23,21 +22,16 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.am24.am24.ModelingState
-import com.am24.am24.MoodLevels
 import com.am24.am24.R
 import com.am24.am24.ui.theme.White
 
@@ -314,7 +308,7 @@ fun RevaanProfileScreen(
     memoryLog: List<String>,
     onNavigateBack: () -> Unit,
     // Use the local drawable resource for Revaan's avatar
-    revaanAvatarRes: Int = R.drawable.revaan_avatar
+    revaanAvatarRes: Int = R.drawable.revaan_avatar3
 ) {
     var showFullScreenImage by remember { mutableStateOf(false) }
     Scaffold(
