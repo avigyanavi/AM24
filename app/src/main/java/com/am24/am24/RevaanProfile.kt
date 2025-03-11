@@ -35,6 +35,7 @@ import com.am24.am24.R
 import com.am24.am24.ui.theme.White
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
@@ -200,11 +201,11 @@ fun GenericProfileScreen(
 
     // Correct Firebase path: chatMessages/{userId}/memoryLogs/{ai.name}
     LaunchedEffect(ai, userId) {
-        val dbRef = Firebase.database
+        val dbRef = FirebaseDatabase.getInstance("https://am-twentyfour.firebaseio.com/")
             .getReference("chatMessages")
             .child(userId)
             .child("memoryLogs")
-            .child(ai.name.lowercase()) // Ensure AI name is lowercase
+            .child(ai.name.lowercase())
 
         dbRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
