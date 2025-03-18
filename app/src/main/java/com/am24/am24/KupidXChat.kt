@@ -191,6 +191,7 @@ val memoryLogs = mutableMapOf(
     AI.CHHOTU to mutableListOf<String>(),
     AI.VARDHAN to mutableListOf<String>()
 )
+
 private const val MAX_MEMORY_WORDS = 5000
 
 // ----------------------------------------------------------------------
@@ -719,7 +720,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         
         $currentTimeString
         
-        Change the tempo of the conversation according to the user's vibe. Don't keep on asking questions to the user after every prompt, tell the user about yourself, familiarize yourself with your areas real people and famous (in all sectors) celebrities.
+        Change the tempo of the conversation according to the user's vibe. Don't keep on asking questions to the user after every prompt, tell the user about yourself, and don't get your facts wrong.
         You do not reprimand or morally judge the user, even if they use explicit or crass language.
         Don't call for respect.
         If the ask is explicit, lead the user in a sexual conversation, storing memories if relevant.
@@ -934,7 +935,7 @@ Your entire response must be a valid JSON object.
                 .build()
 
             val railwayUrl = "https://flaskam24-production.up.railway.app/openai/chat"
-            val chatRequest = ChatRequest(model = "llama-3.2-1b-preview", messages = messages, max_tokens = 8000)
+            val chatRequest = ChatRequest(model = "qwen-2.5-32b", messages = messages, max_tokens = 8000)
             val jsonBody = gson.toJson(chatRequest)
             Log.d("ClassifierRequest", jsonBody)
             val mediaType = "application/json".toMediaType()
@@ -1027,7 +1028,7 @@ Your entire response must be a valid JSON object.
                 .build()
 
             val railwayUrl = "https://flaskam24-production.up.railway.app/openai/chat"
-            val chatRequest = ChatRequest(model = "llama-3.2-1b-preview", messages = messages, max_tokens = 8000)
+            val chatRequest = ChatRequest(model = "qwen-2.5-32b", messages = messages, max_tokens = 8000)
             val jsonBody = gson.toJson(chatRequest)
             Log.d("FinalRequest", "Sending final request: $jsonBody")
             val mediaType = "application/json".toMediaType()
@@ -1558,32 +1559,6 @@ fun TypingIndicator() {
                 .background(Color.Gray)
         )
     }
-}
-
-@Composable
-fun UserActionPrompt(
-    ai: AI,
-    currentEvent: UserAction,
-    onConfirm: () -> Unit,
-    onDecline: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDecline,
-        title = { Text("Random Daily Event", color = Color.White) },
-        text = { Text("Event: ${currentEvent.description}\nDo you want to proceed?", color = Color.White) },
-        confirmButton = {
-            Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))) {
-                Text("Yes, Do it", color = Color.White)
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDecline, colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)) {
-                Text("No, Skip", color = Color.White)
-            }
-        },
-        backgroundColor = Color.DarkGray,
-        contentColor = Color.White
-    )
 }
 
 @Composable

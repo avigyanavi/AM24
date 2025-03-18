@@ -1319,24 +1319,13 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
 
 @Composable
 fun ShowAiMatchAnalysis(aiResult: AiMatchCheckResult) {
-    // Display the green flags, red flags, summary
-    Text("Green Flags:", color = Color(0xFF00FF00), fontWeight = FontWeight.Bold)
-    aiResult.greenFlags.forEach { flag ->
-        Text("- $flag", color = Color.White)
-    }
-
-    Spacer(Modifier.height(8.dp))
-
-    Text("Red Flags:", color = Color.Red, fontWeight = FontWeight.Bold)
-    aiResult.redFlags.forEach { flag ->
-        Text("- $flag", color = Color.White)
-    }
-
-    Spacer(Modifier.height(8.dp))
-
-    Text("Summary:", color = Color.White, fontWeight = FontWeight.Bold)
-    Text(aiResult.summary, color = Color.White)
-
+    // Show the full text output directly
+    Text(
+        text = aiResult.summary,
+        color = Color.White,
+        fontSize = 16.sp,
+        modifier = Modifier.padding(8.dp)
+    )
     Spacer(Modifier.height(8.dp))
     Text(
         text = "Analyzed on: ${formatTime(aiResult.timestamp)}",
@@ -1375,6 +1364,7 @@ fun runAiMatchCheck(
     compatibilityScore: Double,
     onComplete: (AiMatchCheckResult) -> Unit
 ) {
+    // Build text snippets for both profiles.
     val displayHighSchool = if (currentUserProfile.highSchool.isNotBlank())
         currentUserProfile.highSchool else currentUserProfile.customHighSchool
     val highSchoolText = "High School: \"$displayHighSchool, graduationYr: ${currentUserProfile.highSchoolGraduationYear}\""
@@ -1404,23 +1394,25 @@ fun runAiMatchCheck(
     val otherInterestNames = otherProfile.interests.joinToString { it.name }
     val displayOtherJobRole = if (otherProfile.jobRole.isNotBlank()) otherProfile.jobRole else otherProfile.customJobRole
     val displayOtherWork = if (otherProfile.work.isNotBlank()) otherProfile.work else otherProfile.customWork
-    // 1) Gather relevant text from both profiles (customize fields as needed)
+
+    // Build snippets.
     val userSnippet = """
         Name: ${currentUserProfile.name}
         Gender: ${currentUserProfile.gender}
         DOB: ${currentUserProfile.dob}
         Rating by others: ${currentUserProfile.averageRating} by ${currentUserProfile.numberOfRatings} users
         Community: ${currentUserProfile.community}
+        Locality: ${ if (currentUserProfile.hometown != "") currentUserProfile.hometown else currentUserProfile.customHometown }
         Lifestyle: ${currentUserProfile.lifestyle}
         Politics: ${currentUserProfile.politics}
         Interests: $interestNames
-        Politics: ${currentUserProfile.loveLanguage}
+        Love Language: ${currentUserProfile.loveLanguage}
         HighSchool: $highSchoolText
         College: $collegeText
         PostGrad: $postGradText
         Work and JobRole: $displayJobRole at $displayWork
         Social Causes: ${currentUserProfile.socialCauses}
-        Kolkata Ranking among other users: ${currentUserProfile.am24Ranking}
+        Kolkata Ranking: ${currentUserProfile.am24Ranking}
         Looking For: ${currentUserProfile.lookingFor}
         Zodiac: ${currentUserProfile.am24Ranking}
         ...
@@ -1432,54 +1424,45 @@ fun runAiMatchCheck(
         DOB: ${otherProfile.dob}
         Rating by others: ${otherProfile.averageRating} by ${otherProfile.numberOfRatings} users
         Community: ${otherProfile.community}
+        Locality: ${ if (otherProfile.hometown != "") otherProfile.hometown else otherProfile.customHometown }        
         Lifestyle: ${otherProfile.lifestyle}
         Politics: ${otherProfile.politics}
         Interests: $otherInterestNames
-        Politics: ${otherProfile.loveLanguage}
+        Love Language: ${otherProfile.loveLanguage}
         HighSchool: $otherHighSchoolText
         College: $collegeOtherText
         PostGrad: $otherPostGradText
         Work and JobRole: $displayOtherJobRole at $displayOtherWork
         Social Causes: ${otherProfile.socialCauses}
-        Kolkata Ranking among other users: ${otherProfile.am24Ranking}
+        Kolkata Ranking: ${otherProfile.am24Ranking}
         Looking For: ${otherProfile.lookingFor}
         Zodiac: ${otherProfile.am24Ranking}
         ...
     """.trimIndent()
 
-    // 2) Build the prompt text
+    // Build the full prompt.
     val prompt = """
-       You are a 'Relationship Analyst AI'.
+       You are a Relationship Analyst.
        We have 2 profiles:
-
+       
        [User Profile]
        $userSnippet
-
+       
        [Potential Match]
        $otherSnippet
-
-       They have a numeric compatibility score of $compatibilityScore (0..100).
-
-       Please provide:
-         1) The top 3 "green flags"
-         2) The top 3 "red flags"
-         3) A short summary or recommendation and make it positive
-
-       Return valid JSON ONLY, with keys exactly:
-       {
-         "green_flags": ["","", ""],
-         "red_flags": ["","", ""],
-         "summary": "..."
-       }
+       
+       Compare shared interests, zodiac, lifestyle overlap, locality match, education and work match.
+       
+       Give short term prospects, and long term prospects, keeping in mind they are users situated in Kolkata. Use emojis.
     """.trimIndent()
 
     Log.d("runAiMatchCheck", "Starting runAiMatchCheck for currentUserId: $currentUserId and otherProfileId: ${otherProfile.userId}")
     Log.d("runAiMatchCheck", "Prompt built: $prompt")
 
-    // 3) Launch a coroutine in the IO context so as not to block the UI
     coroutineScope.launch(Dispatchers.IO) {
         Log.d("runAiMatchCheck", "Coroutine launched in IO context")
-        val gptReply = callGptApi(prompt)
+        val messages = listOf(ChatMessage(role = "user", content = prompt))
+        val gptReply = callKupidXApi(messages)
         Log.d("runAiMatchCheck", "GPT reply received: $gptReply")
 
         if (gptReply.isNullOrBlank()) {
@@ -1487,94 +1470,119 @@ fun runAiMatchCheck(
             return@launch
         }
 
-        try {
-            // Remove markdown code fences if present
-            val cleanedReply = gptReply
-                .replace("```json", "", ignoreCase = true)
-                .replace("```", "")
-                .trim()
-            Log.d("runAiMatchCheck", "Cleaned GPT reply: $cleanedReply")
+        // Use the full text reply without JSON parsing.
+        val fullText = gptReply.trim()
+        Log.d("runAiMatchCheck", "Full text response: $fullText")
 
-            val jsonObj = com.google.gson.JsonParser.parseString(cleanedReply).asJsonObject
-            Log.d("runAiMatchCheck", "Parsed JSON from GPT: $jsonObj")
+        // Construct result with empty flags and full text summary.
+        val result = AiMatchCheckResult(
+            greenFlags = emptyList(),
+            redFlags = emptyList(),
+            summary = fullText,
+            timestamp = System.currentTimeMillis()
+        )
+        Log.d("runAiMatchCheck", "Constructed AiMatchCheckResult: $result")
 
-            val greenArr = jsonObj.getAsJsonArray("green_flags").map { it.asString }
-            val redArr = jsonObj.getAsJsonArray("red_flags").map { it.asString }
-            val summary = jsonObj.get("summary").asString
-            Log.d("runAiMatchCheck", "Extracted - Green flags: $greenArr, Red flags: $redArr, Summary: $summary")
-
-            val result = AiMatchCheckResult(
-                greenFlags = greenArr,
-                redFlags = redArr,
-                summary = summary,
-                timestamp = System.currentTimeMillis()
-            )
-            Log.d("runAiMatchCheck", "Constructed AiMatchCheckResult: $result")
-
-            // Persist the result to Firebase
-            FirebaseDatabase.getInstance()
-                .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
-                .setValue(result)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.d("runAiMatchCheck", "Successfully saved AI match result to Firebase.")
-                    } else {
-                        Log.e("runAiMatchCheck", "Failed to save AI match result to Firebase: ${task.exception}")
-                    }
+        // Optionally, persist the result to Firebase.
+        FirebaseDatabase.getInstance()
+            .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
+            .setValue(result)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("runAiMatchCheck", "Successfully saved AI match result to Firebase.")
+                } else {
+                    Log.e("runAiMatchCheck", "Failed to save AI match result to Firebase: ${task.exception}")
                 }
+            }
 
-            // Switch back to Main thread to notify UI
-            withContext(Dispatchers.Main) {
-                Log.d("runAiMatchCheck", "Switching back to Main thread; calling onComplete callback.")
-                onComplete(result)
+        withContext(Dispatchers.Main) {
+            Log.d("runAiMatchCheck", "Switching back to Main thread; calling onComplete callback.")
+            onComplete(result)
+        }
+    }
+}
+
+
+private suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
+    val gson = Gson()
+    return withContext(Dispatchers.IO) {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(3000, TimeUnit.SECONDS)
+            .readTimeout(3000, TimeUnit.SECONDS)
+            .writeTimeout(3000, TimeUnit.SECONDS)
+            .build()
+
+        val railwayUrl = "https://flaskam24-production.up.railway.app/openai/chat"
+        val chatRequest = ChatRequest(model = "llama-3.3-70b-versatile", messages = messages, max_tokens = 8000)
+        val jsonBody = gson.toJson(chatRequest)
+        Log.d("FinalRequest", "Sending final request: $jsonBody")
+        val mediaType = "application/json".toMediaType()
+        val reqBody = jsonBody.toRequestBody(mediaType)
+        val req = Request.Builder()
+            .url(railwayUrl)
+            .post(reqBody)
+            .build()
+
+        try {
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    Log.e("FinalResponse", "Request failed with code: ${resp.code}")
+                    return@withContext "Error: ${resp.code}"
+                }
+                val rBody = resp.body?.string() ?: return@withContext null
+                Log.d("FinalResponse", rBody)
+                val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
+                chatResp.choices.firstOrNull()?.message?.content
             }
         } catch (e: Exception) {
-            Log.e("runAiMatchCheck", "Error parsing GPT response", e)
+            e.printStackTrace()
+            "Error: ${e.message}"
         }
     }
 }
+
 
 // Minimal GPT call helper function with logging added
-private fun callGptApi(prompt: String): String? {
-    return try {
-        Log.d("callGptApi", "Building OkHttpClient for GPT API call")
-        val client = OkHttpClient.Builder()
-            .callTimeout(30, TimeUnit.SECONDS)
-            .build()
-
-        val messages = listOf(ChatMessage(role = "user", content = prompt))
-        val requestObj = ChatRequest(
-            model = "gpt-4o-mini",   // or "gpt-4" etc.
-            messages = messages
-        )
-        val gson = Gson()
-        val requestBody = gson.toJson(requestObj)
-            .toRequestBody("application/json".toMediaType())
-
-        Log.d("callGptApi", "Sending request to GPT API with prompt: $prompt")
-        val req = Request.Builder()
-            .url("https://api.openai.com/v1/chat/completions")
-            .header("Authorization", "Bearer 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") // Replace with your actual API key
-            .post(requestBody)
-            .build()
-
-        client.newCall(req).execute().use { response ->
-            if (!response.isSuccessful) {
-                Log.e("callGptApi", "GPT API call unsuccessful: ${response.code}")
-                return null
-            }
-            val body = response.body?.string()
-            Log.d("callGptApi", "GPT API response body: $body")
-            val chatResp = gson.fromJson(body, ChatResponse::class.java)
-            val content = chatResp.choices.firstOrNull()?.message?.content
-            Log.d("callGptApi", "Extracted GPT content: $content")
-            content
-        }
-    } catch (e: Exception) {
-        Log.e("callGptApi", "Exception during GPT API call", e)
-        null
-    }
-}
+//private fun callGptApi(prompt: String): String? {
+//    return try {
+//        Log.d("callGptApi", "Building OkHttpClient for GPT API call")
+//        val client = OkHttpClient.Builder()
+//            .callTimeout(30, TimeUnit.SECONDS)
+//            .build()
+//
+//        val messages = listOf(ChatMessage(role = "user", content = prompt))
+//        val requestObj = ChatRequest(
+//            model = "gpt-4o-mini",   // or "gpt-4" etc.
+//            messages = messages
+//        )
+//        val gson = Gson()
+//        val requestBody = gson.toJson(requestObj)
+//            .toRequestBody("application/json".toMediaType())
+//
+//        Log.d("callGptApi", "Sending request to GPT API with prompt: $prompt")
+//        val req = Request.Builder()
+//            .url("https://api.openai.com/v1/chat/completions")
+//            .header("Authorization", "Bearer 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") // Replace with your actual API key
+//            .post(requestBody)
+//            .build()
+//
+//        client.newCall(req).execute().use { response ->
+//            if (!response.isSuccessful) {
+//                Log.e("callGptApi", "GPT API call unsuccessful: ${response.code}")
+//                return null
+//            }
+//            val body = response.body?.string()
+//            Log.d("callGptApi", "GPT API response body: $body")
+//            val chatResp = gson.fromJson(body, ChatResponse::class.java)
+//            val content = chatResp.choices.firstOrNull()?.message?.content
+//            Log.d("callGptApi", "Extracted GPT content: $content")
+//            content
+//        }
+//    } catch (e: Exception) {
+//        Log.e("callGptApi", "Exception during GPT API call", e)
+//        null
+//    }
+//}
 
 
 /** CollapsibleSection that does NOT show edit icon here in the DatingScreen. */

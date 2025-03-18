@@ -73,7 +73,7 @@ fun ModelingStateSliders(modelingState: ModelingState) {
             val careerProgress = modelingState.careerProgress.coerceIn(0, 100)
             SliderRowWithIcon(
                 icon = Icons.Default.Work,
-                label = "Reputation",
+                label = "Work",
                 valueText = "$careerProgress",
                 progress = careerProgress / 100f,
                 trackColor = Color(0xFFFF6F00)
