@@ -1503,7 +1503,7 @@ fun runAiMatchCheck(
 }
 
 
-private suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
+suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
     val gson = Gson()
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient.Builder()
@@ -1512,8 +1512,8 @@ private suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
             .writeTimeout(3000, TimeUnit.SECONDS)
             .build()
 
-        val railwayUrl = "https://flaskam24-production.up.railway.app/openai/chat"
-        val chatRequest = ChatRequest(model = "llama-3.3-70b-versatile", messages = messages, max_tokens = 8000)
+        val railwayUrl = "https://am24.org/openai/chat"
+        val chatRequest = ChatRequest(model = "qwen-2.5-32b", messages = messages, max_tokens = 8000)
         val jsonBody = gson.toJson(chatRequest)
         Log.d("FinalRequest", "Sending final request: $jsonBody")
         val mediaType = "application/json".toMediaType()

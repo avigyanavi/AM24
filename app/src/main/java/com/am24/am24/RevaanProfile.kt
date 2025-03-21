@@ -31,14 +31,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.am24.am24.AI
 import com.am24.am24.ModelingState
+import com.am24.am24.PlotEvent
 import com.am24.am24.R
 import com.am24.am24.ui.theme.White
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 
 /**
  * Displays the modeling state using linear progress indicators.
@@ -55,37 +54,79 @@ fun ModelingStateSliders(modelingState: ModelingState) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Emotion sliders
-            EmotionSliderRow(icon = Icons.Default.Favorite, label = "Trust", value = modelingState.moodLevels.trust)
+            EmotionSliderRow(Icons.Default.Favorite, "Trust", modelingState.moodLevels.trust)
             Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(icon = Icons.Default.Warning, label = "Jealousy", value = modelingState.moodLevels.jealousy)
+            EmotionSliderRow(Icons.Default.Warning, "Jealousy", modelingState.moodLevels.jealousy)
             Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(icon = Icons.Default.Report, label = "Fear", value = modelingState.moodLevels.fear)
+            EmotionSliderRow(Icons.Default.Report, "Fear", modelingState.moodLevels.fear)
             Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(icon = Icons.Default.AttachMoney, label = "Greed", value = modelingState.moodLevels.greed)
+            EmotionSliderRow(Icons.Default.AttachMoney, "Greed", modelingState.moodLevels.greed)
             Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(icon = Icons.Default.Star, label = "Ambition", value = modelingState.moodLevels.ambition)
+            EmotionSliderRow(Icons.Default.Star, "Ambition", modelingState.moodLevels.ambition)
             Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(icon = Icons.Default.Liquor, label = "Romantic Passion", value = modelingState.moodLevels.romantic_passion)
+            EmotionSliderRow(Icons.Default.Liquor, "Romantic Passion", modelingState.moodLevels.romantic_passion)
             Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(icon = Icons.Default.SentimentSatisfied, label = "Satisfaction", value = modelingState.moodLevels.satisfaction)
+            EmotionSliderRow(Icons.Default.SentimentSatisfied, "Satisfaction", modelingState.moodLevels.satisfaction)
+
             Spacer(modifier = Modifier.height(16.dp))
-            // Career Progress (or Reputation)
-            val careerProgress = modelingState.careerProgress.coerceIn(0, 100)
+
+            // Career Progress
             SliderRowWithIcon(
                 icon = Icons.Default.Work,
-                label = "Work",
-                valueText = "$careerProgress",
-                progress = careerProgress / 100f,
+                label = "Career Progress",
+                valueText = "${modelingState.careerProgress.coerceIn(0,100)}",
+                progress = modelingState.careerProgress.coerceIn(0,100) / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
+
             Spacer(modifier = Modifier.height(16.dp))
+
             // External Attention
-            val externalAttention = modelingState.externalAttention.coerceIn(0, 100)
             SliderRowWithIcon(
                 icon = Icons.Default.Visibility,
                 label = "External Attention",
-                valueText = "$externalAttention",
-                progress = externalAttention / 100f,
+                valueText = "${modelingState.externalAttention.coerceIn(0,100)}",
+                progress = modelingState.externalAttention.coerceIn(0,100) / 100f,
+                trackColor = Color(0xFFFF6F00)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Relationship Stage
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Relationship",
+                    tint = Color(0xFFFF6F00),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Relationship: ${modelingState.relationshipStage}",
+                    color = White,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Money
+            SliderRowWithIcon(
+                icon = Icons.Default.AttachMoney,
+                label = "Money",
+                valueText = "${modelingState.money}",
+                progress = (modelingState.money.coerceIn(0,100)) / 100f,
+                trackColor = Color(0xFFFF6F00)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Reputation
+            SliderRowWithIcon(
+                icon = Icons.Default.Star,
+                label = "Reputation",
+                valueText = "${modelingState.reputation.coerceIn(0,100)}",
+                progress = modelingState.reputation.coerceIn(0,100) / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
         }
@@ -183,8 +224,8 @@ fun FullScreenImageOverlay(
 
 /**
  * GenericProfileScreen displays any AI character’s profile.
- * It uses the passed memory log (which is updated by the chat screen’s view model)
- * so that each profile shows its own memories.
+ * We must fix references to modelingState.plotStack because
+ * it's now storing string IDs (not PlotEvent objects).
  */
 @Composable
 fun GenericProfileScreen(
@@ -192,14 +233,13 @@ fun GenericProfileScreen(
     modelingState: ModelingState,
     avatarRes: Int,
     onNavigateBack: () -> Unit,
-    description: String,
     ai: AI,
-    userId: String // User ID to fetch correct data
+    userId: String,
+    messageCount: Int
 ) {
     var showFullScreenImage by remember { mutableStateOf(false) }
     val memoryLogState = remember { mutableStateListOf<String>() }
 
-    // Correct Firebase path: chatMessages/{userId}/memoryLogs/{ai.name}
     LaunchedEffect(ai, userId) {
         val dbRef = FirebaseDatabase.getInstance("https://am-twentyfour.firebaseio.com/")
             .getReference("chatMessages")
@@ -211,13 +251,25 @@ fun GenericProfileScreen(
             override fun onDataChange(snapshot: DataSnapshot) {
                 memoryLogState.clear()
                 snapshot.children.mapNotNullTo(memoryLogState) { it.getValue(String::class.java) }
-                Log.d("Firebase", "Loaded memory logs for ${ai.name}: $memoryLogState")
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("Firebase", "Failed to load memory log for ${ai.name}: ${error.message}")
-            }
+            override fun onCancelled(error: DatabaseError) {}
         })
+    }
+
+    // We convert the string IDs in plotStack back to PlotEvents to retrieve .description.
+    val description = buildString {
+        appendLine("$title - Current Plot Progression:")
+        if (modelingState.plotStack.isEmpty()) {
+            appendLine("No major events yet.")
+        } else {
+            modelingState.plotStack.forEachIndexed { index, actionId ->
+                // Convert the ID -> PlotEvent so we can show the .description
+                val eventObj = PlotEvent.PlotEventUtil.fromEventId(actionId)
+                val eventDesc = eventObj?.description ?: actionId  // fallback if not found
+                appendLine("${index + 1}. $eventDesc")
+            }
+        }
     }
 
     Scaffold(
@@ -227,11 +279,7 @@ fun GenericProfileScreen(
                 backgroundColor = Color.Black,
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
                     }
                 }
             )
@@ -265,17 +313,13 @@ fun GenericProfileScreen(
             item { ModelingStateSliders(modelingState) }
             item {
                 Text(
-                    text = "Recent Memories:",
+                    "Recent Memories:",
                     color = Color.White,
                     style = MaterialTheme.typography.h6,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
                 if (memoryLogState.isEmpty()) {
-                    Text(
-                        text = "No memories yet.",
-                        color = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                    Text("No memories yet.", color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp))
                 } else {
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                         memoryLogState.forEach { memory ->
@@ -285,8 +329,28 @@ fun GenericProfileScreen(
                 }
             }
             item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = "Messages Sent",
+                        tint = Color(0xFFFF6F00),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Messages Sent: $messageCount",
+                        color = White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            item {
                 Text(
-                    text = description,
+                    description,
                     color = Color.White,
                     style = MaterialTheme.typography.body1,
                     modifier = Modifier.padding(16.dp)
@@ -294,6 +358,7 @@ fun GenericProfileScreen(
             }
         }
     }
+
     if (showFullScreenImage) {
         FullScreenImageOverlay(
             imageRes = avatarRes,
