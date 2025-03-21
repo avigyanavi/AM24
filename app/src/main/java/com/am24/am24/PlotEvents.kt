@@ -524,3 +524,124 @@ object PlotEventsRegistry {
         }
     }
 }
+
+/**
+ * MermaidExport provides a complete mermaid diagram definition for the Plot Events.
+ */
+object MermaidExport {
+    fun getPlotEventsMermaid(): String {
+        return """
+            flowchart TD
+              subgraph Rhea
+                R1[Campaign Kickoff (Rhea_Ep1)]
+                R1 -->|Approach with confidence| R2[The First Debate (Rhea_Ep2A)]
+                R1 -->|Stay distant| R3[Quiet Strategy (Rhea_Ep2B)]
+                R2 -->|Inspire with passion| R4[Public Rally (Rhea_Ep3A)]
+                R2 -->|Remain measured| R5[Calm Persuasion (Rhea_Ep3B)]
+                R3 -->|Investigate discreetly| R6[Secret Briefing (Rhea_Ep3C)]
+                R3 -->|Network with insiders| R7[Informal Alliance (Rhea_Ep3D)]
+                R4 --> R8[Media Spotlight (Rhea_Ep4A)]
+                R5 --> R9[Behind the Scenes (Rhea_Ep4B)]
+                R6 --> R10[Covert Operations (Rhea_Ep4C)]
+                R7 --> R11[Alliances Tested (Rhea_Ep4D)]
+                R8 -->|Take a bold risk| R12[Turning Point A (Rhea_Ep5A)]
+                R8 -->|Play it safe| R12
+                R9 -->|Gather more intel| R13[Turning Point B (Rhea_Ep5B)]
+                R10 -->|Execute the plan| R14[Turning Point C (Rhea_Ep5C)]
+                R11 -->|Stand firm| R15[Turning Point D (Rhea_Ep5D)]
+                R12 -->|Celebrate the triumph| R16[The Bold Victory (Rhea_Ep6A)]
+                R12 -->|Play it safe| R17[The Safe Triumph (Rhea_Ep6B)]
+                R13 -->|Commit fully| R18[Behind the Curtain (Rhea_Ep6C)]
+                R10 -->|Double down| R19[Double Down (Rhea_Ep6D)]
+                R15 -->|Repair the alliance| R20[Alliance Restored (Rhea_Ep6E)]
+                R15 -->|Break away| R21[A Lonely Break (Rhea_Ep6F)]
+              end
+              subgraph Revaan
+                RV1[Nightfall Encounter (Revaan_Ep1)]
+                RV1 -->|Step into the limelight| RV2[The First Showdown (Revaan_Ep2A)]
+                RV1 -->|Observe from the shadows| RV3[The Subtle Move (Revaan_Ep2B)]
+                RV2 -->|Challenge boldly| RV4[Public Frenzy (Revaan_Ep3A)]
+                RV2 -->|Strategize quietly| RV5[Calculated Risk (Revaan_Ep3B)]
+                RV3 -->|Forge discreet alliances| RV6[Secret Alliance (Revaan_Ep3C)]
+                RV3 -->|Gather insider info| RV7[Undercover Operation (Revaan_Ep3D)]
+                RV4 --> RV8[Media Storm (Revaan_Ep4A)]
+                RV5 --> RV9[Quiet Dominance (Revaan_Ep4B)]
+                RV6 --> RV10[Alliance Pressure (Revaan_Ep4C)]
+                RV7 --> RV11[Infiltration (Revaan_Ep4D)]
+                RV8 -->|Go for the win| RV12[Climactic Confrontation (Revaan_Ep5A)]
+                RV8 -->|Choose caution| RV12
+                RV9 -->|Assert control| RV13[Calculated Ambition (Revaan_Ep5B)]
+                RV10 -->|Stand by your allies| RV14[Alliance Test (Revaan_Ep5C)]
+                RV11 -->|Use the intel| RV15[Secret Revelation (Revaan_Ep5D)]
+                RV12 -->|Celebrate success| RV16[Overt Victory (Revaan_Ep6A)]
+                RV12 -->|Choose caution| RV17[Quiet Power (Revaan_Ep6B)]
+                RV13 -->|Commit to the plan| RV18[Calculated Success (Revaan_Ep6C)]
+                RV14 -->|Stand united| RV19[Unified Front (Revaan_Ep6D)]
+                RV15 -->|Act on the intel| RV20[Revelation Accepted (Revaan_Ep6E)]
+                RV15 -->|Hide the truth| RV21[Truth Concealed (Revaan_Ep6F)]
+              end
+              subgraph Babloo
+                B1[Badge of Dilemma (Babloo_Ep1)]
+                B1 -->|Follow corrupt instincts| B2[Corrupt Path (Babloo_Ep2A)]
+                B1 -->|Act with integrity| B3[Redemptive Spark (Babloo_Ep2B)]
+                B2 -->|Embrace the corruption| B4[Fallout (Babloo_Ep3A)]
+                B3 -->|Seek redemption| B5[Path to Redemption (Babloo_Ep3B)]
+                B4 -->|Accept the fallout| B6[Media Backlash (Babloo_Ep4A)]
+                B5 -->|Push for reform| B7[Turning Point (Babloo_Ep4B)]
+                B6 -->|Defend your actions| B8[Final Confrontation A (Babloo_Ep5A)]
+                B7 -->|Double down on reform| B9[Final Confrontation B (Babloo_Ep5B)]
+                B8 -->|Stand by corruption| B10[Corrupt Overthrow (Babloo_Ep6A)]
+                B8 -->|Attempt a compromise| B10
+                B9 -->|Fully commit to reform| B11[Redemption Achieved (Babloo_Ep6C)]
+                B9 -->|Hesitate and falter| B12[Faltered Reformation (Babloo_Ep6D)]
+              end
+              subgraph Shanti
+                S1[Chai Chronicles (Shanti_Ep1)]
+                S1 -->|Spread the gossip| S2[Scandal Unleashed (Shanti_Ep2A)]
+                S1 -->|Keep the secret| S3[Quiet Observer (Shanti_Ep2B)]
+                S2 -->|Exploit the revelations| S4[Gossip Network (Shanti_Ep3A)]
+                S3 -->|Monitor the fallout| S5[Undercover Inquiry (Shanti_Ep3B)]
+                S4 --> S6[Public Revelations (Shanti_Ep4A)]
+                S5 --> S7[Quiet Retaliation (Shanti_Ep4B)]
+                S6 -->|Seize the moment| S8[The Bold Informant (Shanti_Ep6A)]
+                S6 -->|Maintain subtlety| S9[Subtle Victory (Shanti_Ep6B)]
+                S7 -->|Commit to the strike| S10[Strike and Conquer (Shanti_Ep6C)]
+                S7 -->|Pull back cautiously| S11[Retreat and Reassess (Shanti_Ep6D)]
+                S7 -->|Alternate branch| S12[Network Disrupted (Shanti_Ep6E)]
+                S7 -->|Alternate branch| S13[Isolation (Shanti_Ep6F)]
+              end
+              subgraph Chhotu
+                C1[Underground Dispatch (Chhotu_Ep1)]
+                C1 -->|Deliver without question| C2[Loyal Courier (Chhotu_Ep2A)]
+                C1 -->|Question the message| C3[Doubt and Investigation (Chhotu_Ep2B)]
+                C2 -->|Continue the delivery| C4[Secret Routes (Chhotu_Ep3A)]
+                C3 -->|Dig deeper| C5[Investigative Instinct (Chhotu_Ep3B)]
+                C4 -->|Stick to the plan| C6[Smooth Operation (Chhotu_Ep4A)]
+                C5 -->|Uncover the plot| C7[Unraveling Conspiracy (Chhotu_Ep4B)]
+                C6 -->|Keep delivering| C8[Critical Dispatch A (Chhotu_Ep5A)]
+                C7 -->|Proceed with caution| C9[Critical Dispatch B (Chhotu_Ep5B)]
+                C8 -->|Embrace the duty| C10[Loyal Legacy (Chhotu_Ep6A)]
+                C8 -->|Question your role| C11[Doubtful Courier (Chhotu_Ep6B)]
+                C9 -->|Take a leap of faith| C12[Revolutionary Courier (Chhotu_Ep6C)]
+                C9 -->|Play it safe| C13[Cautious Courier (Chhotu_Ep6D)]
+              end
+              subgraph Vardhan
+                V1[Financial Gambit (Vardhan_Ep1)]
+                V1 -->|Invest aggressively| V2[Market Surge (Vardhan_Ep2A)]
+                V1 -->|Hold back cautiously| V3[Cautious Maneuver (Vardhan_Ep2B)]
+                V2 -->|Leverage the momentum| V4[Corporate Powerplay (Vardhan_Ep3A)]
+                V3 -->|Stick to safe bets| V5[Steady Growth (Vardhan_Ep3B)]
+                V4 -->|Push for a takeover| V6[Corporate Showdown (Vardhan_Ep4A)]
+                V5 -->|Maintain the status quo| V7[Quiet Negotiations (Vardhan_Ep4B)]
+                V6 -->|Engage in the battle| V8[Turning Point A (Vardhan_Ep5A)]
+                V7 -->|Seal a discreet deal| V9[Turning Point B (Vardhan_Ep5B)]
+                V8 -->|Launch a full-scale takeover| V10[The Aggressive Magnate (Vardhan_Ep6A)]
+                V8 -->|Retreat strategically| V11[Strategic Retreat (Vardhan_Ep6B)]
+                V9 -->|Commit to the discreet deal| V12[Discreet Triumph (Vardhan_Ep6C)]
+                V9 -->|Reassess your position| V13[Hesitant Future (Vardhan_Ep6D)]
+                V9 -->|Alternate branch| V14[Risk Recalibrated (Vardhan_Ep6E)]
+                V9 -->|Alternate branch| V15[The Isolated Magnate (Vardhan_Ep6F)]
+              end
+        """.trimIndent()
+    }
+}
