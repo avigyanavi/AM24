@@ -31,8 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.am24.am24.AI
 import com.am24.am24.ModelingState
-import com.am24.am24.PlotEvent
-import com.am24.am24.R
 import com.am24.am24.ui.theme.White
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -74,8 +72,8 @@ fun ModelingStateSliders(modelingState: ModelingState) {
             SliderRowWithIcon(
                 icon = Icons.Default.Work,
                 label = "Career Progress",
-                valueText = "${modelingState.careerProgress.coerceIn(0,100)}",
-                progress = modelingState.careerProgress.coerceIn(0,100) / 100f,
+                valueText = "${modelingState.careerProgress.coerceIn(0, 100)}",
+                progress = modelingState.careerProgress.coerceIn(0, 100) / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
 
@@ -85,8 +83,8 @@ fun ModelingStateSliders(modelingState: ModelingState) {
             SliderRowWithIcon(
                 icon = Icons.Default.Visibility,
                 label = "External Attention",
-                valueText = "${modelingState.externalAttention.coerceIn(0,100)}",
-                progress = modelingState.externalAttention.coerceIn(0,100) / 100f,
+                valueText = "${modelingState.externalAttention.coerceIn(0, 100)}",
+                progress = modelingState.externalAttention.coerceIn(0, 100) / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
 
@@ -115,7 +113,7 @@ fun ModelingStateSliders(modelingState: ModelingState) {
                 icon = Icons.Default.AttachMoney,
                 label = "Money",
                 valueText = "${modelingState.money}",
-                progress = (modelingState.money.coerceIn(0,100)) / 100f,
+                progress = (modelingState.money.coerceIn(0, 100)) / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
 
@@ -125,8 +123,8 @@ fun ModelingStateSliders(modelingState: ModelingState) {
             SliderRowWithIcon(
                 icon = Icons.Default.Star,
                 label = "Reputation",
-                valueText = "${modelingState.reputation.coerceIn(0,100)}",
-                progress = modelingState.reputation.coerceIn(0,100) / 100f,
+                valueText = "${modelingState.reputation.coerceIn(0, 100)}",
+                progress = modelingState.reputation.coerceIn(0, 100) / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
         }
@@ -223,9 +221,8 @@ fun FullScreenImageOverlay(
 }
 
 /**
- * GenericProfileScreen displays any AI character’s profile.
- * We must fix references to modelingState.plotStack because
- * it's now storing string IDs (not PlotEvent objects).
+ * GenericProfileScreen displays an AI character’s profile.
+ * All references to plot events have been removed.
  */
 @Composable
 fun GenericProfileScreen(
@@ -257,21 +254,6 @@ fun GenericProfileScreen(
         })
     }
 
-    // We convert the string IDs in plotStack back to PlotEvents to retrieve .description.
-    val description = buildString {
-        appendLine("$title - Current Plot Progression:")
-        if (modelingState.plotStack.isEmpty()) {
-            appendLine("No major events yet.")
-        } else {
-            modelingState.plotStack.forEachIndexed { index, actionId ->
-                // Convert the ID -> PlotEvent so we can show the .description
-                val eventObj = PlotEvent.PlotEventUtil.fromEventId(actionId)
-                val eventDesc = eventObj?.description ?: actionId  // fallback if not found
-                appendLine("${index + 1}. $eventDesc")
-            }
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -279,7 +261,7 @@ fun GenericProfileScreen(
                 backgroundColor = Color.Black,
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 }
             )
@@ -346,15 +328,6 @@ fun GenericProfileScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-            }
-
-            item {
-                Text(
-                    description,
-                    color = Color.White,
-                    style = MaterialTheme.typography.body1,
-                    modifier = Modifier.padding(16.dp)
-                )
             }
         }
     }

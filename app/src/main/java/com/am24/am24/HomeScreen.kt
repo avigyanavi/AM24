@@ -69,30 +69,28 @@ fun HomeScreen(
     postViewModel: PostViewModel,
     modifier: Modifier = Modifier
 ) {
+    // Get the current user ID from FirebaseAuth.
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
-    // 1) Kick off filter loading & posts refresh when userId changes or screen first shown
+    // Immediately update the PostViewModel with the current user ID.
     LaunchedEffect(userId) {
-        // If you want to load filters from Firebase:
+        postViewModel.setCurrentUserId(userId)
         if (userId != null) {
             postViewModel.loadFiltersFromFirebase(userId)
         }
-        // Start or re-attach real-time listener to "posts"
         postViewModel.refreshPosts()
     }
 
-    // 2) Pause the feed if the user navigates away from HomeScreen
+    // Pause the feed when the user navigates away.
     DisposableEffect(Unit) {
         onDispose {
             postViewModel.pauseFeed()
         }
     }
 
-    // 3) Wait for filter settings to load
+    // Wait for filters to load.
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
-
     if (!filtersLoaded) {
-        // Still loading filters: show a placeholder
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -100,20 +98,15 @@ fun HomeScreen(
             CircularProgressIndicator(color = Color(0xFFFF6F00))
         }
     } else {
-        // 4) Once filters are loaded, collect the actual posts
+        // Once loaded, collect posts and profiles.
         val posts by postViewModel.filteredPosts.collectAsState()
         Log.d("HomeScreen", "Filtered Posts Count in HomeScreen: ${posts.size}")
 
-        // Collect user profiles (if needed)
         val userProfiles by postViewModel.userProfiles.collectAsState()
-
-        // Collect filter settings (for toggles, search bar, etc.)
         val filterSettings by postViewModel.filterSettings.collectAsState()
 
-        // 5) If needed, store the user's own Profile from DB
+        // Fetch the current user's own Profile.
         var userProfile by remember { mutableStateOf<Profile?>(null) }
-
-        // 6) Fetch the user's own Profile once, in IO thread
         LaunchedEffect(userId) {
             if (userId != null) {
                 withContext(Dispatchers.IO) {
@@ -125,14 +118,14 @@ fun HomeScreen(
                             }
                         }
                         override fun onCancelled(error: DatabaseError) {
-                            // Handle any error if needed
+                            // Handle any error if needed.
                         }
                     })
                 }
             }
         }
 
-        // 7) Finally, show the actual HomeScreen content
+        // Show HomeScreenContent with the updated data.
         HomeScreenContent(
             navController = navController,
             modifier = modifier,
@@ -140,24 +133,17 @@ fun HomeScreen(
             postViewModel = postViewModel,
             userProfiles = userProfiles,
             filterOption = filterSettings.filterOption,
-            filterValue = "",  // If you need extra param
+            filterValue = "",  // if extra parameter needed
             searchQuery = filterSettings.searchQuery,
-            onFilterOptionChanged = { newOption ->
-                postViewModel.setFilterOption(newOption)
-            },
-            onSearchQueryChanged = { newQuery ->
-                postViewModel.setSearchQuery(newQuery)
-            },
+            onFilterOptionChanged = { newOption -> postViewModel.setFilterOption(newOption) },
+            onSearchQueryChanged = { newQuery -> postViewModel.setSearchQuery(newQuery) },
             userId = userId,
             userProfile = userProfile,
             sortOption = filterSettings.sortOption,
-            onSortOptionChanged = { newSortOption ->
-                postViewModel.setSortOption(newSortOption)
-            }
+            onSortOptionChanged = { newSortOption -> postViewModel.setSortOption(newSortOption) }
         )
     }
 }
-
 
 @Composable
 fun HomeScreenContent(
@@ -181,7 +167,6 @@ fun HomeScreenContent(
     val focusManager = LocalFocusManager.current
     var isVoiceOnly by remember { mutableStateOf(false) }
 
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -189,46 +174,44 @@ fun HomeScreenContent(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) {
-                focusManager.clearFocus()
-            }
+            ) { focusManager.clearFocus() }
     ) {
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Search Bar
-        CustomSearchBar(
-            query = searchQuery,
-            onQueryChange = onSearchQueryChanged,
-            onSearch = { /* Logic handled via ViewModel */ }
-        )
+        // Only show the search bar when a tag search is active.
+        if (searchQuery.isNotEmpty()) {
+            CustomSearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChanged,
+                onSearch = { /* No extra logic needed */ }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Create Post, Filter, and Sort Section
+        // Create Post, Filter, and Sort Section.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp), // Add padding to ensure spacing from screen edges
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Create Post Button
+            // Create Post Button.
             Button(
                 onClick = { navController.navigate("create_post") },
                 border = BorderStroke(1.dp, Color(0xFFFF6F00)),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                modifier = Modifier
-                    .weight(0.9f)
+                modifier = Modifier.weight(0.9f)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Create Post",
                     tint = Color.White,
-                    modifier = Modifier.size(18.dp) // Adjust icon size for better fit
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp)) // Add spacing between buttons
+            Spacer(modifier = Modifier.width(8.dp))
 
             Button(
                 onClick = {
@@ -236,7 +219,9 @@ fun HomeScreenContent(
                     postViewModel.setIsVoiceOnly(isVoiceOnly)
                 },
                 border = BorderStroke(1.dp, Color(0xFFFF6F00)),
-                colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceOnly) Color(0xFFFFDB00) else Color.Black),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isVoiceOnly) Color(0xFFFFDB00) else Color.Black
+                )
             ) {
                 Text(
                     text = if (isVoiceOnly) "Voice Only" else "All Posts",
@@ -245,9 +230,9 @@ fun HomeScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp)) // Add spacing between buttons
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // Filter Button
+            // Filter Button and Dropdown.
             Box {
                 Button(
                     onClick = { showFilterMenu = !showFilterMenu },
@@ -265,11 +250,9 @@ fun HomeScreenContent(
                         tint = Color(0xFFFF6F00)
                     )
                 }
-
-                // Dropdown Menu for Filter Options
                 DropdownMenu(
                     expanded = showFilterMenu,
-                    onDismissRequest = { showFilterMenu = false },
+                    onDismissRequest = { showFilterMenu = false }
                 ) {
                     val filterOptions = listOf("everyone", "matches", "my posts")
                     filterOptions.forEach { option ->
@@ -298,10 +281,10 @@ fun HomeScreenContent(
                 }
             }
 
-            // Sort Button
+            // Sort Button and Dropdown.
             Box {
                 IconButton(
-                    onClick = { showSortMenu = !showSortMenu },
+                    onClick = { showSortMenu = !showSortMenu }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sort,
@@ -309,11 +292,9 @@ fun HomeScreenContent(
                         tint = Color(0xFFFF6F00)
                     )
                 }
-
-                // Dropdown Menu for Sort Options
                 DropdownMenu(
                     expanded = showSortMenu,
-                    onDismissRequest = { showSortMenu = false },
+                    onDismissRequest = { showSortMenu = false }
                 ) {
                     val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
                     sortOptions.forEach { option ->
@@ -346,7 +327,7 @@ fun HomeScreenContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Feed Section
+        // Feed Section.
         FeedSection(
             navController = navController,
             posts = posts,
@@ -356,13 +337,12 @@ fun HomeScreenContent(
             postViewModel = postViewModel,
             userProfiles = userProfiles,
             onTagClick = { tag ->
+                // When a tag is clicked, update the search query so that the search bar appears.
                 onSearchQueryChanged(tag)
             }
         )
     }
 }
-
-
 
 @Composable
 fun FeedSection(
@@ -1903,7 +1883,7 @@ fun CustomSearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = { onQueryChange(it) },
-        placeholder = { Text("Search by name or tags", color = Color.Gray, fontSize = 12.sp) },
+        placeholder = { Text("Search tags", color = Color.Gray, fontSize = 12.sp) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 10.dp),

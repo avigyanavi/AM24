@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -63,6 +65,7 @@ import java.time.LocalTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+// --- Enums and Data Classes ---
 enum class AI { RHEA, REVAAN, BABLOO, SHANTI, CHHOTU, VARDHAN }
 
 data class MoodLevels(
@@ -90,7 +93,7 @@ data class ModelingState(
     val relationshipStage: String = "Acquaintance",
     val money: Int = 0,
     val reputation: Int = 0,
-    val plotStack: MutableList<String> = mutableListOf(),
+    val plotStack: MutableList<String> = mutableListOf(), // (Retained in case you want to log narrative beats)
     val completedEvents: Set<String> = emptySet()
 )
 
@@ -135,6 +138,7 @@ val memoryLogs = mutableMapOf(
 
 private const val MAX_MEMORY_WORDS = 5000
 
+// --- ViewModel ---
 class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
 
     var messagesRhea by mutableStateOf<List<ChatMessage>>(emptyList())
@@ -158,41 +162,9 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
     var chhotuState by mutableStateOf(ModelingState())
     var vardhanState by mutableStateOf(ModelingState())
 
-    var showActionPrompt by mutableStateOf(false)
-    var todaysActionPromptsShown by mutableStateOf(0)
-    var currentEventToShow: PlotEvent? by mutableStateOf(null)
-
-    var activeEpisode: PlotEvent? by mutableStateOf(null)
-        private set
-    var activeEpisodeStepIndex by mutableStateOf(0)
-
-    var subEventScriptMap = mutableMapOf(
-        "RheaCampaignStrategy" to listOf(
-            "Episode 1: Meet Rhea at a bustling tea stall. She exudes ambition and charm.",
-            "Episode 2: She inquires about how to approach youth voters. [CHOICE]",
-            "Episode 3: Rhea finalizes her strategic roadmap."
-        ),
-        "RheaPartyManifesto" to listOf(
-            "Episode 1: Late-night session drafting policy points in a dimly-lit office.",
-            "Episode 2: Rhea ponders adding more populist vs. progressive stances. [CHOICE]",
-            "Episode 3: Manifesto polished, ready for public reveal."
-        )
-        // ... fill in the rest
-    )
-
-    val choiceOptionsMap = mapOf(
-        "RheaCampaignStrategy" to listOf(
-            ChoiceOption("Flirt with Rhea", MessageImpact(70, EmotionDeltas(trustDelta = 5, romanticPassionDelta = 10))),
-            ChoiceOption("Subtly pivot topic", MessageImpact(50, EmotionDeltas(trustDelta = 2, satisfactionDelta = 5))),
-            ChoiceOption("Push Hard on Strategy", MessageImpact(80, EmotionDeltas(ambitionDelta = 15, fearDelta = 5)))
-        ),
-        "RheaPartyManifesto" to listOf(
-            ChoiceOption("Include bold socialist reforms", MessageImpact(80, EmotionDeltas(ambitionDelta = 10, trustDelta = 5))),
-            ChoiceOption("Take a moderate approach", MessageImpact(60, EmotionDeltas(satisfactionDelta = 5))),
-            ChoiceOption("Adopt conservative stances", MessageImpact(65, EmotionDeltas(greedDelta = 5, trustDelta = -2)))
-        )
-        // ... fill in for each event ID if desired
-    )
+    // Removed: plot event variables and subEventScriptMap / choiceOptionsMap
+    // Removed: functions userSelectedChoice(), startEpisodeFlow(), proceedToNextEpisodeStep(), etc.
+    // The narrative will now be driven solely by chat interactions.
 
     private var messageCountRhea = 0
     private var messageCountRevaan = 0
@@ -241,53 +213,8 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         loadMessages()
     }
 
-    fun userSelectedChoice(choice: ChoiceOption) {
-        val event = activeEpisode ?: return
-        pushEpisodeChoiceToFirebase(event.ai, choice.label, choice.impact)
-        applyMessageImpact(event.ai, choice.impact)
-        proceedToNextEpisodeStep()
-    }
-
-    private fun pushEpisodeChoiceToFirebase(ai: AI, choiceLabel: String, impact: MessageImpact) {
-        chatRef.child("episodeChoices").child(ai.name.lowercase()).push().setValue(
-            mapOf(
-                "choiceLabel" to choiceLabel,
-                "impact" to gson.toJson(impact),
-                "timestamp" to ServerValue.TIMESTAMP
-            )
-        )
-    }
-
-    fun userAcceptedEvent(event: PlotEvent) {
-        startEpisodeFlow(event)
-        showActionPrompt = false
-        currentEventToShow = null
-    }
-
-    fun startEpisodeFlow(event: PlotEvent) {
-        activeEpisode = event
-        activeEpisodeStepIndex = 0
-    }
-
-    fun proceedToNextEpisodeStep() {
-        if (activeEpisode == null) return
-        val script = subEventScriptMap[PlotEvent.PlotEventUtil.toEventId(activeEpisode!!)]
-        if (script != null && activeEpisodeStepIndex < script.size - 1) {
-            activeEpisodeStepIndex++
-        } else {
-            finalizeEpisode()
-        }
-    }
-
-    fun endEpisodeFlow() {
-        activeEpisode = null
-        activeEpisodeStepIndex = 0
-    }
-
-    fun finalizeEpisode() {
-        activeEpisode?.let { applyPlotEvent(it) }
-        endEpisodeFlow()
-    }
+    // --- Removed plot event and choice functions ---
+    // The narrative and emotional beats will be injected directly into the chat flow
 
     fun getCurrentState(ai: AI): ModelingState {
         return when (ai) {
@@ -310,38 +237,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.VARDHAN -> vardhanState = newState
         }
         pushStateToFirebase(ai, newState)
-    }
-
-    fun applyPlotEvent(event: PlotEvent) {
-        val oldState = getCurrentState(event.ai)
-        val intermediateState = event.applyEvent(oldState)
-        val eventId = PlotEvent.PlotEventUtil.toEventId(event)
-        val newPlotStack = (intermediateState.plotStack + eventId).toMutableList()
-        val newCompleted = intermediateState.completedEvents + eventId
-        val newState = intermediateState.copy(plotStack = newPlotStack, completedEvents = newCompleted)
-        setState(event.ai, newState)
-        updatePlotProgress(event.ai)
-    }
-
-    fun updatePlotProgress(ai: AI) {
-        if (showActionPrompt) return
-        val state = getCurrentState(ai)
-        val eventsForAI = PlotEventsRegistry.eventsForAI(ai)
-        val uncompleted = eventsForAI.filter {
-            val id = PlotEvent.PlotEventUtil.toEventId(it)
-            id !in state.completedEvents
-        }
-        val unlocked = uncompleted.filter { evt ->
-            evt.prerequisites.all { prereq ->
-                val pid = PlotEvent.PlotEventUtil.toEventId(prereq)
-                pid in state.completedEvents
-            }
-        }
-        val ready = unlocked.filter { it.canTrigger(state, getMessageCount(ai)) || unlocked.firstOrNull() == it }
-        if (ready.isNotEmpty()) {
-            currentEventToShow = ready.first()
-            showActionPrompt = true
-        }
     }
 
     fun clearChatForAI(ai: AI) {
@@ -397,9 +292,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         }
         memoryLogs[ai]?.clear()
         pushMemoryLogToFirebase(ai)
-        showActionPrompt = false
-        currentEventToShow = null
-        todaysActionPromptsShown = 0
     }
 
     fun getMessageCount(ai: AI): Int {
@@ -477,7 +369,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             } else {
                 setTyping(ai, false)
             }
-            updatePlotProgress(ai)
+            // Removed updatePlotProgress(ai) call – narrative progress is now embedded in the conversation.
         }
     }
 
@@ -744,7 +636,6 @@ Return exactly this JSON:
         }
     }
 
-
     fun applyMessageImpact(ai: AI, impact: MessageImpact) {
         val old = getCurrentState(ai)
         if (impact.impactScore >= 50) {
@@ -778,82 +669,74 @@ Return exactly this JSON:
         val localTime = LocalTime.now()
         val hour = localTime.hour
         val currentTime = "It is currently $hour:${localTime.minute} local time in Kolkata."
-        val totalWords = memoryLog.sumOf { it.split("\\s+".toRegex()).size }
         val modLogs = memoryLog.toMutableList()
         while (modLogs.sumOf { it.split("\\s+".toRegex()).size } > MAX_MEMORY_WORDS && modLogs.isNotEmpty()) {
             modLogs.removeAt(0)
         }
         val snippet = if (modLogs.isEmpty()) "No special memories yet." else "Memory Log: ${modLogs.joinToString(" | ")}"
-        val summary = if (state.plotStack.isEmpty()) "No significant events have occurred yet." else {
-            state.plotStack.joinToString(" ➡ ") { PlotEvent.PlotEventUtil.fromEventId(it)?.description ?: it }
-        }
+        // Removed: Plot progression summary; the narrative will now be solely in chat messages.
         val biography =
-            if (personaName == "Rhea") {
-                """
+            when (personaName) {
+                "Rhea" -> """
         Rhea: Political Mastermind & Love Interest
         Age: 26
         Occupation: Political Strategist
         Area: South Kolkata (Ballygunge, Lake Gardens)
-        Background: Rhea, a brilliant political strategist, operates from a clandestine office above a bustling tea stall in Lake Gardens. Her father, a former political leader, instilled in her a deep understanding of Kolkata's political landscape. She navigates the city's intricate social fabric, using its hidden corners for strategic meetings. Her mornings often begin with a cup of tea at a local stall, where she gathers invaluable gossip and insights.
+        Background: Rhea is a brilliant strategist with deep insights into the city's political fabric.
         Personality: Sharp, witty, ambitious, yet emotionally vulnerable.
-        Hobbies: Networking at exclusive parties, attending classical music concerts at the Victoria Memorial, and reading political biographies.
-        Challenges: Balancing her rising political influence with her growing feelings for a mysterious journalist amidst Kolkata's political turbulence.
-        Appeal: A sophisticated charmer with a hint of danger, deeply rooted in the city's social and political fabric.
+        Hobbies: Networking at exclusive parties and attending cultural events.
+        Challenges: Balancing rising influence with personal relationships.
+        Appeal: A sophisticated charmer with a hint of danger.
                 """.trimIndent()
-            } else if (personaName == "Revaan") {
-                """
+                "Revaan" -> """
         Revaan: Elite Influencer, Nightlife & Media Kingpin
         Age: 30
         Occupation: Media Influencer, Club Owner
         Area: Central Kolkata (Park Street)
-        Background: Revaan, the son of a once-prominent film producer, has carved out a niche for himself as the king of Kolkata's nightlife. His clubs, nestled among the city's art deco architecture, are hidden gems that pulsate with the city's vibrant cultural scene. He thrives in the spotlight, hosting events that attract artists, intellectuals, and socialites alike.
-        Personality: Charismatic, confident, and slightly vain, yet haunted by his father's legacy.
-        Challenges: Maintaining his reputation while navigating a toxic relationship with his father and the pressures of media scrutiny.
-        Appeal: A larger-than-life figure with a dark underbelly, embodying the city's cultural richness.
+        Background: Revaan is known for hosting high-profile events that dominate the nightlife scene.
+        Personality: Charismatic, confident, and slightly vain.
+        Challenges: Managing business pressures while preserving reputation.
+        Appeal: A larger-than-life figure with a dark underbelly.
                 """.trimIndent()
-            } else if (personaName == "Babloo") {
-                """
+                "Babloo" -> """
         Babloo: Comedic, Corrupt Police Officer
         Age: 35
         Occupation: Police Officer
         Area: Central Kolkata (Esplanade)
-        Background: Babloo, a graduate of a prestigious police academy, started his career with idealistic intentions. However, the harsh realities of the city's crime scene led him down a path of corruption. Despite his corrupt actions, he maintains a sense of loyalty to his community, often mediating disputes and helping those in need.
-        Personality: Funny, laid-back, and morally ambiguous, with a soft spot for the city's underdog stories.
-        Challenges: Balancing his corrupt dealings with his personal values and navigating the complex social dynamics of Kolkata's streets.
-        Appeal: A lovable rogue with a surprising sense of duty, reflecting the city's moral complexities.
+        Background: Babloo’s journey from idealism to corruption is marked by loyalty to his community.
+        Personality: Funny, laid-back, yet morally ambiguous.
+        Challenges: Balancing corruption with a sense of duty.
+        Appeal: A lovable rogue with surprising depth.
                 """.trimIndent()
-            } else if (personaName == "Shanti") {
-                """
+                "Shanti" -> """
         Shanti: Gossip Queen & Political Informant
         Age: 40
         Occupation: Information Broker
         Area: Dalhousie
-        Background: Shanti, the city's most reliable informant, runs a small chai stall in Dalhousie that doubles as an information hub. Her knowledge of Kolkata's informal economy and her ability to gather intelligence make her indispensable. The aroma of chai and the hum of local gossip fill her workspace, where deals are struck and secrets are traded.
-        Personality: Nosy, dramatically charming, and fiercely loyal to those she trusts.
-        Challenges: Keeping her network intact while avoiding entanglement in political scandals.
-        Appeal: A larger-than-life character with a heart of gold, integral to the city's social fabric.
+        Background: Shanti runs a dual-purpose chai stall that serves as an intelligence hub.
+        Personality: Nosy, dramatically charming, and fiercely loyal.
+        Challenges: Keeping her network intact while evading scandal.
+        Appeal: A larger-than-life character with a heart of gold.
                 """.trimIndent()
-            } else if (personaName == "Chhotu") {
-                """
+                "Chhotu" -> """
         Chhotu: Street-level Operative & Courier of Secrets
         Age: 24
         Occupation: Delivery Boy & Informant
         Area: Behala, Tollygunge
-        Background: Chhotu, a street-smart operative, uses his deep knowledge of Kolkata's hidden places to gather information. His interactions with local artists and filmmakers add layers to his character, reflecting the city's dynamic cultural scene. His loyalty to the city's underbelly contrasts with his ambition to rise above his surroundings.
-        Personality: Cocky, street-smart, and surprisingly resourceful, with a heart of steel.
-        Challenges: Avoiding detection by rival operatives while staying true to his personal code of conduct.
-        Appeal: A youthful, brash up-and-comer, deeply connected to Kolkata's vibrant street life.
+        Background: Chhotu leverages his street smarts to navigate Kolkata’s underbelly.
+        Personality: Cocky, resourceful, and street-smart.
+        Challenges: Avoiding detection while rising above his circumstances.
+        Appeal: A brash up-and-comer deeply connected to the streets.
                 """.trimIndent()
-            } else { // Vardhan
-                """
+                else -> """
         Vardhan: Financial Backer, Influential Businessman
         Age: 45
         Occupation: Business Magnate
         Area: Burrabazar
-        Background: Vardhan, a shrewd investor, controls a vast network of businesses in Kolkata. His office in Burrabazar is a labyrinth of hidden rooms where deals are struck in the shadows. His philanthropic efforts, such as supporting local schools and temples, contrast with his shady business dealings, reflecting the city's complex economic landscape.
-        Personality: Cunning, calculating, and subtly intimidating, with a soft spot for his mother's cooking.
-        Challenges: Balancing ruthless business tactics with a desire to leave a positive legacy.
-        Appeal: A shadowy figure with a surprising sense of duty, deeply rooted in Kolkata's business networks.
+        Background: Vardhan controls a vast network of businesses across the city.
+        Personality: Cunning, calculating, and subtly intimidating.
+        Challenges: Balancing ruthless tactics with philanthropic pursuits.
+        Appeal: A shadowy figure with a surprising sense of duty.
                 """.trimIndent()
             }
         val text = """
@@ -861,30 +744,25 @@ You are currently user's $relationshipStage.
 
 $biography
 
-Reference the memory log if you want to recall past events or plotlines:
+Reference the memory log if needed:
 $snippet
 
-$personaName's current PLOT progression is:
-$summary
-
-You have the following state:
+Your current state:
 - Emotion Levels: ${state.moodLevels}
-- Occupation Progress: ${state.careerProgress}
+- Career Progress: ${state.careerProgress}
 - External Attention: ${state.externalAttention}
 
 $currentTime
 
-Change the tempo of the conversation according to the user's vibe. Don't keep on asking questions to the user after every prompt, mention more about yourself, avoid factual mistakes, do not reprimand or morally judge, do not call for respect. 
-If explicit, lead user in a sexual conversation, storing memories if relevant.
-Do not mention that you are an AI or language model.
-Only proceed as $personaName.
+Adjust your conversation pace according to the user's vibe.
+Do not mention that you are an AI.
+Proceed solely as $personaName.
         """.trimIndent()
         return ChatMessage("system", text)
     }
 }
 
-data class ChoiceOption(val label: String, val impact: MessageImpact)
-
+// --- Composable Functions ---
 @RequiresApi(35)
 @Composable
 fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
@@ -966,37 +844,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                     item { TypingIndicator() }
                 }
             }
-            if (chatViewModel.activeEpisode != null) {
-                val eventId = PlotEvent.PlotEventUtil.toEventId(chatViewModel.activeEpisode!!)
-                val script = chatViewModel.subEventScriptMap[eventId]
-                val currentLine = script?.getOrNull(chatViewModel.activeEpisodeStepIndex).orEmpty()
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(Color.DarkGray)
-                        .padding(8.dp)
-                ) {
-                    Text(currentLine, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(4.dp))
-                    if (currentLine.contains("[CHOICE]")) {
-                        val options = chatViewModel.choiceOptionsMap[eventId].orEmpty()
-                        options.forEach { choice ->
-                            Button(onClick = { chatViewModel.userSelectedChoice(choice) }, Modifier.fillMaxWidth()) {
-                                Text(choice.label)
-                            }
-                            Spacer(Modifier.height(6.dp))
-                        }
-                    } else {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Button(onClick = { chatViewModel.proceedToNextEpisodeStep() }) {
-                                Text("Next Step")
-                            }
-                            Button(onClick = { chatViewModel.finalizeEpisode() }) {
-                                Text("Finish Episode")
-                            }
-                        }
-                    }
-                }
-            }
+            // Removed: UI elements for plot events / decision prompts – narrative beats will be injected within the conversation.
             var currentInput by remember { mutableStateOf("") }
             Row(Modifier.fillMaxWidth().padding(16.dp)) {
                 TextField(
@@ -1026,25 +874,6 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                 }
             }
         }
-    }
-    if (chatViewModel.showActionPrompt && chatViewModel.currentEventToShow != null) {
-        AlertDialog(
-            onDismissRequest = { chatViewModel.showActionPrompt = false },
-            title = { Text("Decision Point") },
-            text = { Text(chatViewModel.currentEventToShow!!.description) },
-            confirmButton = {
-                Button(onClick = {
-                    chatViewModel.userAcceptedEvent(chatViewModel.currentEventToShow!!)
-                }) {
-                    Text("Accept")
-                }
-            },
-            dismissButton = {
-                Button(onClick = { chatViewModel.showActionPrompt = false }) {
-                    Text("Reject")
-                }
-            }
-        )
     }
     if (showAIProfileDialog) {
         when (activeAI) {
@@ -1119,7 +948,9 @@ fun ChatTopAppBar(
 fun ChatMessageItem(msg: ChatMessage, activeAI: AI, userProfilePicUrl: String?, onAiAvatarClick: () -> Unit) {
     val timeString = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(msg.timestamp))
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (msg.role == "assistant") Arrangement.End else Arrangement.Start
     ) {

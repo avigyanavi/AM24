@@ -2,10 +2,12 @@ package com.am24.am24
 
 import android.net.Uri
 import com.google.firebase.database.Exclude
+import com.google.firebase.database.IgnoreExtraProperties
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+@IgnoreExtraProperties
 data class Profile(
     val email: String = "",
     val password: String = "",
