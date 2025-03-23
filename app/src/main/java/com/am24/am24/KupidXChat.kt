@@ -66,6 +66,14 @@ import java.time.LocalTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+// --- Constants & Global Variables ---
+
+private const val NEWS_EVENT_THRESHOLD = 20
+
+// Permanent global memory for manually written plot strings and news events
+val permanentGlobalMemory = mutableListOf(
+    "**Initial Press Release: City council meeting scheduled for tomorrow.**"
+)
 
 // --- Enums and Data Classes ---
 enum class AI { RHEA, REVAAN, KABIR, SAANVI, CHHOTU, VARDHAN, ZARA }
@@ -110,7 +118,6 @@ data class EmotionDeltas(
     val romanticPassionDelta: Int = 0,
     val satisfactionDelta: Int = 0
 )
-
 
 data class MessageImpact(
     val impactScore: Int,
@@ -174,10 +181,13 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
     private val gson = Gson()
     private val stateRef = chatRef.child("states")
     private val messageCountRef = chatRef.child("messageCounts")
+    // Firebase node for global news announcements
+    private val globalNewsRef = chatRef.child("globalNewsAnnouncements")
     val aiReps = mutableStateMapOf<AI, Int>()
     private val aiRepRef = chatRef.child("aiRep")
 
     init {
+        // Load per-AI message counts
         AI.values().forEach { ai ->
             messageCountRef.child(ai.name.lowercase())
                 .addValueEventListener(object : ValueEventListener {
@@ -193,12 +203,12 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                             AI.ZARA -> messageCountZara = count
                         }
                     }
-
                     override fun onCancelled(error: DatabaseError) {
                         Log.e("Firebase", "Failed to load messageCount: ${error.message}")
                     }
                 })
         }
+        // Load each AI's memory logs
         for (ai in AI.values()) {
             chatRef.child("memoryLogs").child(ai.name.lowercase())
                 .addValueEventListener(object : ValueEventListener {
@@ -208,23 +218,38 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                         memoryLogs[ai]?.clear()
                         memoryLogs[ai]?.addAll(list)
                     }
-
                     override fun onCancelled(error: DatabaseError) {}
                 })
         }
+        // Load global news announcements from Firebase
+        globalNewsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = snapshot.children.mapNotNull { it.getValue(String::class.java) }
+                // Clear and update our permanent global memory with the global news events
+                permanentGlobalMemory.clear()
+                permanentGlobalMemory.addAll(list)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
 
+        // Load aiReps for each AI
         AI.values().forEach { ai ->
             aiReps[ai] = 0
             aiRepRef.child(ai.name.lowercase()).addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     aiReps[ai] = snapshot.getValue(Int::class.java) ?: 0
                 }
-
                 override fun onCancelled(e: DatabaseError) {}
             })
         }
         loadStates()
         loadMessages()
+    }
+
+    // Helper function to get the aggregated global message count
+    private fun getGlobalMessageCount(): Int {
+        return messageCountRhea + messageCountRevaan + messageCountKabir +
+                messageCountSaanvi + messageCountChhotu + messageCountVardhan + messageCountZara
     }
 
     fun getCurrentState(ai: AI): ModelingState {
@@ -262,7 +287,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 rheaState = ModelingState()
                 pushStateToFirebase(AI.RHEA, rheaState)
             }
-
             AI.REVAAN -> {
                 messagesRevaan = emptyList()
                 chatRef.child("revaan").child("messages").removeValue()
@@ -271,7 +295,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 revaanState = ModelingState()
                 pushStateToFirebase(AI.REVAAN, revaanState)
             }
-
             AI.KABIR -> {
                 messagesKabir = emptyList()
                 chatRef.child("kabir").child("messages").removeValue()
@@ -280,7 +303,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 kabirState = ModelingState()
                 pushStateToFirebase(AI.KABIR, kabirState)
             }
-
             AI.SAANVI -> {
                 messagesSaanvi = emptyList()
                 chatRef.child("saanvi").child("messages").removeValue()
@@ -289,7 +311,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 saanviState = ModelingState()
                 pushStateToFirebase(AI.SAANVI, saanviState)
             }
-
             AI.CHHOTU -> {
                 messagesChhotu = emptyList()
                 chatRef.child("chhotu").child("messages").removeValue()
@@ -298,7 +319,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 chhotuState = ModelingState()
                 pushStateToFirebase(AI.CHHOTU, chhotuState)
             }
-
             AI.VARDHAN -> {
                 messagesVardhan = emptyList()
                 chatRef.child("vardhan").child("messages").removeValue()
@@ -307,7 +327,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 vardhanState = ModelingState()
                 pushStateToFirebase(AI.VARDHAN, vardhanState)
             }
-
             AI.ZARA -> {
                 messagesZara = emptyList()
                 chatRef.child("zara").child("messages").removeValue()
@@ -369,6 +388,22 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         pushMessageToFirebase(path, userMsg)
         incrementMessageCounter(ai)
         setTyping(ai, true)
+
+        // Check if the global message count reaches the news event threshold
+        if (getGlobalMessageCount() % NEWS_EVENT_THRESHOLD == 0) {
+            viewModelScope.launch {
+                val allMessages = aggregateAllMessages()
+                val newsAnnouncement = generateNewsEvent(allMessages)
+                if (!newsAnnouncement.isNullOrBlank()) {
+                    // Format the announcement in bold
+                    val formattedNews = "**$newsAnnouncement**"
+                    permanentGlobalMemory.add(formattedNews)
+                    // Push the updated global news to Firebase
+                    globalNewsRef.setValue(permanentGlobalMemory)
+                }
+            }
+        }
+
         viewModelScope.launch {
             val classification = classifyMessageImpact(ai, userInput)
             applyMessageImpact(ai, classification)
@@ -405,176 +440,32 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         }
     }
 
-    private fun setTyping(ai: AI, value: Boolean) {
-        when (ai) {
-            AI.RHEA -> isRheaTyping = value
-            AI.REVAAN -> isRevaanTyping = value
-            AI.KABIR -> isKabirTyping = value
-            AI.SAANVI -> isSaanviTyping = value
-            AI.CHHOTU -> isChhotuTyping = value
-            AI.VARDHAN -> isVardhanTyping = value
-            AI.ZARA -> isZaraTyping = value
-        }
+    // Helper function to aggregate all messages from every AI
+    private fun aggregateAllMessages(): List<ChatMessage> {
+        val all = mutableListOf<ChatMessage>()
+        all.addAll(messagesRhea)
+        all.addAll(messagesRevaan)
+        all.addAll(messagesKabir)
+        all.addAll(messagesSaanvi)
+        all.addAll(messagesChhotu)
+        all.addAll(messagesVardhan)
+        all.addAll(messagesZara)
+        return all.sortedBy { it.timestamp } // sorted chronologically
     }
 
-    private fun pushMemoryLogToFirebase(ai: AI) {
-        val log = memoryLogs[ai] ?: mutableListOf()
-        chatRef.child("memoryLogs").child(ai.name.lowercase()).setValue(log)
-    }
-
-    private fun pushStateToFirebase(ai: AI, state: ModelingState) {
-        val json = gson.toJson(state)
-        val node = when (ai) {
-            AI.RHEA -> "rheaState"
-            AI.REVAAN -> "revaanState"
-            AI.KABIR -> "kabirState"
-            AI.SAANVI -> "saanviState"
-            AI.CHHOTU -> "chhotuState"
-            AI.VARDHAN -> "vardhanState"
-            AI.ZARA -> "zaraState"
-        }
-        stateRef.child(node).setValue(json)
-    }
-
-    private fun pushMessageToFirebase(path: String, msg: ChatMessage) {
-        chatRef.child(path).child("messages").push().setValue(msg)
-    }
-
-    private fun loadStates() {
-        stateRef.child("rheaState").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)
-                    ?.let { rheaState = gson.fromJson(it, ModelingState::class.java) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        stateRef.child("revaanState").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)
-                    ?.let { revaanState = gson.fromJson(it, ModelingState::class.java) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        stateRef.child("kabirState").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)
-                    ?.let { kabirState = gson.fromJson(it, ModelingState::class.java) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        stateRef.child("saanviState").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)
-                    ?.let { saanviState = gson.fromJson(it, ModelingState::class.java) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        stateRef.child("chhotuState").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)
-                    ?.let { chhotuState = gson.fromJson(it, ModelingState::class.java) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        stateRef.child("vardhanState").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)
-                    ?.let { vardhanState = gson.fromJson(it, ModelingState::class.java) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        stateRef.child("zaraState").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)
-                    ?.let { zaraState = gson.fromJson(it, ModelingState::class.java) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-    }
-
-    private fun loadMessages() {
-        chatRef.child("rhea").child("messages").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val list = mutableListOf<ChatMessage>()
-                snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
-                messagesRhea = list
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        chatRef.child("revaan").child("messages")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val list = mutableListOf<ChatMessage>()
-                    snapshot.children.forEach {
-                        it.getValue(ChatMessage::class.java)?.let(list::add)
-                    }
-                    messagesRevaan = list
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-            })
-        chatRef.child("kabir").child("messages").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val list = mutableListOf<ChatMessage>()
-                snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
-                messagesKabir = list
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-        chatRef.child("saanvi").child("messages")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val list = mutableListOf<ChatMessage>()
-                    snapshot.children.forEach {
-                        it.getValue(ChatMessage::class.java)?.let(list::add)
-                    }
-                    messagesSaanvi = list
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-            })
-        chatRef.child("chhotu").child("messages")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val list = mutableListOf<ChatMessage>()
-                    snapshot.children.forEach {
-                        it.getValue(ChatMessage::class.java)?.let(list::add)
-                    }
-                    messagesChhotu = list
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-            })
-        chatRef.child("vardhan").child("messages")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val list = mutableListOf<ChatMessage>()
-                    snapshot.children.forEach {
-                        it.getValue(ChatMessage::class.java)?.let(list::add)
-                    }
-                    messagesVardhan = list
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-            })
-        chatRef.child("zara").child("messages").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val list = mutableListOf<ChatMessage>()
-                snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
-                messagesZara = list
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
+    // Function to generate a news announcement from the given conversation
+    private suspend fun generateNewsEvent(conversation: List<ChatMessage>): String? {
+        // Build a prompt for a news announcement based on the aggregated conversation
+        val prompt = """
+            You are a "News Reporter" for Kolkata. Based on the following conversation between a user and various AI characters:
+            ${conversation.joinToString("\n") { "${it.role}: ${it.content}" }}
+            
+            Summarize what the user might be "waiting for" or what key event is emerging. 
+            Produce a press release announcement in a bold, formal tone.
+        """.trimIndent()
+        val newsPromptMsg = ChatMessage("system", prompt)
+        val apiResponse = callKupidXApi(listOf(newsPromptMsg))
+        return apiResponse
     }
 
     suspend fun classifyMessageImpact(ai: AI, userText: String): MessageImpact {
@@ -636,6 +527,7 @@ Return exactly this JSON:
         }
     }
 
+
     suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
         return withContext(Dispatchers.IO) {
             val client = OkHttpClient.Builder()
@@ -692,32 +584,26 @@ Return exactly this JSON:
                 messageCountRhea++
                 messageCountRef.child("rhea").setValue(messageCountRhea)
             }
-
             AI.REVAAN -> {
                 messageCountRevaan++
                 messageCountRef.child("revaan").setValue(messageCountRevaan)
             }
-
             AI.KABIR -> {
                 messageCountKabir++
                 messageCountRef.child("kabir").setValue(messageCountKabir)
             }
-
             AI.SAANVI -> {
                 messageCountSaanvi++
                 messageCountRef.child("saanvi").setValue(messageCountSaanvi)
             }
-
             AI.CHHOTU -> {
                 messageCountChhotu++
                 messageCountRef.child("chhotu").setValue(messageCountChhotu)
             }
-
             AI.VARDHAN -> {
                 messageCountVardhan++
                 messageCountRef.child("vardhan").setValue(messageCountVardhan)
             }
-
             AI.ZARA -> {
                 messageCountZara++
                 messageCountRef.child("zara").setValue(messageCountZara)
@@ -750,71 +636,56 @@ Return exactly this JSON:
         val lowercase = name.lowercase()
         val vowels = setOf('a', 'e', 'i', 'o', 'u')
         val builder = StringBuilder()
-
         for (char in lowercase) {
             builder.append(char)
             if (char in vowels) break
         }
-
         // Capitalize first letter, e.g., "avi" → "Avi"
         return builder.toString().replaceFirstChar { it.uppercaseChar() }
     }
 
+    private fun setTyping(ai: AI, value: Boolean) {
+        when (ai) {
+            AI.RHEA -> isRheaTyping = value
+            AI.REVAAN -> isRevaanTyping = value
+            AI.KABIR -> isKabirTyping = value
+            AI.SAANVI -> isSaanviTyping = value
+            AI.CHHOTU -> isChhotuTyping = value
+            AI.VARDHAN -> isVardhanTyping = value
+            AI.ZARA -> isZaraTyping = value
+        }
+    }
 
     fun applyMessageImpact(ai: AI, impact: MessageImpact) {
         val old = getCurrentState(ai)
-
         if (impact.impactScore >= 50) {
             memoryLogs[ai]?.add(impact.snippetToStore)
             pushMemoryLogToFirebase(ai)
         }
-
         val upMood = old.moodLevels.copy(
             trust = (old.moodLevels.trust + impact.emotionDeltas.trustDelta).coerceIn(0, 100),
-            jealousy = (old.moodLevels.jealousy + impact.emotionDeltas.jealousyDelta).coerceIn(
-                0,
-                100
-            ),
-            romantic_passion = (old.moodLevels.romantic_passion + impact.emotionDeltas.romanticPassionDelta).coerceIn(
-                0,
-                100
-            ),
-            satisfaction = (old.moodLevels.satisfaction + impact.emotionDeltas.satisfactionDelta).coerceIn(
-                0,
-                100
-            )
+            jealousy = (old.moodLevels.jealousy + impact.emotionDeltas.jealousyDelta).coerceIn(0, 100),
+            romantic_passion = (old.moodLevels.romantic_passion + impact.emotionDeltas.romanticPassionDelta).coerceIn(0, 100),
+            satisfaction = (old.moodLevels.satisfaction + impact.emotionDeltas.satisfactionDelta).coerceIn(0, 100)
         )
-
-        val attachmentDelta =
-            (impact.emotionDeltas.trustDelta - impact.emotionDeltas.jealousyDelta) / 2
-        val confidenceDelta =
-            (impact.emotionDeltas.trustDelta + impact.emotionDeltas.satisfactionDelta) / 2
-        val emotionalDepthDelta =
-            (impact.emotionDeltas.romanticPassionDelta + impact.emotionDeltas.satisfactionDelta) / 2
-
+        val attachmentDelta = (impact.emotionDeltas.trustDelta - impact.emotionDeltas.jealousyDelta) / 2
+        val confidenceDelta = (impact.emotionDeltas.trustDelta + impact.emotionDeltas.satisfactionDelta) / 2
+        val emotionalDepthDelta = (impact.emotionDeltas.romanticPassionDelta + impact.emotionDeltas.satisfactionDelta) / 2
         val upHistory = old.relationshipHistory.copy(
             attachment = (old.relationshipHistory.attachment + attachmentDelta).coerceIn(0, 100),
             confidence = (old.relationshipHistory.confidence + confidenceDelta).coerceIn(0, 100),
-            emotionalDepth = (old.relationshipHistory.emotionalDepth + emotionalDepthDelta).coerceIn(
-                0,
-                100
-            )
+            emotionalDepth = (old.relationshipHistory.emotionalDepth + emotionalDepthDelta).coerceIn(0, 100)
         )
-
         val currentRep = aiReps[ai] ?: 0
         val pointsEarned = impact.impactScore / 10
         val newStage = computeRelationshipStage(currentRep + pointsEarned)
-
         val newState = old.copy(
             moodLevels = upMood,
             relationshipHistory = upHistory,
             relationshipStage = newStage
         )
-
         setState(ai, newState)
-
-        aiRepRef.child(ai.name.lowercase())
-            .setValue(ServerValue.increment(pointsEarned.toLong()))
+        aiRepRef.child(ai.name.lowercase()).setValue(ServerValue.increment(pointsEarned.toLong()))
     }
 
     fun getDynamicBiography(persona: String, aiRep: Int): String {
@@ -823,159 +694,125 @@ Return exactly this JSON:
                 aiRep < 50 -> """
                 Rhea: A rising political figure in Kolkata, known in the Kolkata Municipal Corporation’s 144 wards for her sharp intellect. She’s a councilor pushing sanitation and transport fixes in neglected corners, a distant name you’ve caught on newsstands or rally posters—strategic, elusive, and climbing fast.
             """.trimIndent()
-
                 aiRep < 100 -> """
                 Rhea: A political strategist on the rise, navigating Kolkata’s alliances and rivalries with a mayoral seat in sight. She acknowledges you—maybe a supporter or curious local—keeping it professional. Her ambitions echo through the city’s streets, and you’re just starting to register in her world.
             """.trimIndent()
-
                 aiRep < 200 -> """
                 Rhea: A fierce player letting her guard down with you. She shares late-night doubts about politics’ moral toll over tea stall chats, her strategic mind wrestling with personal cost. You’re no longer just a face in Kolkata’s crowds—she’s beginning to trust you with her vulnerabilities.
             """.trimIndent()
-
                 aiRep < 400 -> """
                 Rhea: You’re inside her inner circle now, seeing beyond her polished KMC image. She confides emotional struggles and strategic moves, her power plays subtly shifting to include you. In Kolkata’s political maze, she leans on you for support, hinting at the toll behind her rise.
             """.trimIndent()
-
                 else -> """
                 Rhea: Fully open, her deepest regrets and dreams spill out—emotionally yours. Publicly, she’s a mayoral contender shaping Kolkata; privately, she’s devoted, relying on you amid moral compromises. Over Hooghly-side talks, she’s your anchor as much as you’re hers.
             """.trimIndent()
             }
-
             "Revaan" -> when {
                 aiRep < 50 -> """
                 Revaan: A prominent Kolkata entrepreneur, his AI startup tackles traffic and waste in this dense city. Known nationally, he’s a philanthropist backing Durga Puja events—a public figure you’ve seen in headlines or at cultural fairs, but still a stranger.
             """.trimIndent()
-
                 aiRep < 100 -> """
                 Revaan: He knows you exist—maybe from a tech meetup or charity event. He shares his vision for Kolkata’s urban fixes, keeping it professional amid bureaucratic fights. His startup’s buzz is everywhere, and you’re a blip on his busy radar.
             """.trimIndent()
-
                 aiRep < 200 -> """
                 Revaan: Trust grows—he opens up about work hurdles and his love for Bengali literature over Park Street coffees. He’s more than a CEO now; he’s a man balancing success and culture in Kolkata, and you’re stepping into his personal sphere.
             """.trimIndent()
-
                 aiRep < 400 -> """
                 Revaan: You’re in his circle, a confidant at his New Town office or pandal openings. He shares competition woes and societal dreams, his guarded passion unfolding. In Kolkata’s startup grind, you’re a key part of his orbit.
             """.trimIndent()
-
                 else -> """
                 Revaan: The real him—raw and vulnerable—sees you as a close ally. He confesses fears of failure and legacy hopes over Maidan views, involving you in his plans. In Kolkata’s tech scene, you’re his trusted anchor beyond the headlines.
             """.trimIndent()
             }
-
             "Kabir" -> when {
                 aiRep < 50 -> """
                 Kabir: A seasoned Kolkata Police cop, loud and rebellious, chasing petty thieves and cyber frauds like fake passport rackets. You’ve spotted him in uniform near Burrabazar—a gritty figure of danger and charm, still distant in the city’s chaos.
             """.trimIndent()
-
                 aiRep < 100 -> """
                 Kabir: Rough-edged but intriguing, he notices you—maybe as a witness near Esplanade. He shares a case snippet with a smirk, his chaotic beat clashing with Kolkata’s corruption. You’re a spark in his gritty world, just starting to catch his eye.
             """.trimIndent()
-
                 aiRep < 200 -> """
                 Kabir: He lets you into his edge-of-life tales—scars from Kidderpore, busts in Sealdah—over roadside momos. His moral dilemmas surface, the system’s flaws gnawing at him. In Kolkata’s underbelly, you’re more than a bystander now.
             """.trimIndent()
-
                 aiRep < 400 -> """
                 Kabir: Behind his tough shell, he values loyalty—and you’re key in his turbulent life. He trusts you with corruption fights and theater escapes, seeking your support after rough shifts. In Kolkata’s chaos, you’re his steady ground.
             """.trimIndent()
-
                 else -> """
                 Kabir: He’d defy the force for you, a partner in his justice war. Raw and open, he shares burnout fears and city-cleaning dreams over Howrah Bridge beers. In Kolkata’s shadows, you’re his calm core, making it all bearable.
             """.trimIndent()
             }
-
             "Saanvi" -> when {
                 aiRep < 50 -> """
                 Saanvi: A socialite in Kolkata’s elite, gliding through literary fests and art openings with subtle charm. She’s the gossip hub, her whispers swaying decisions—a mysterious figure you’ve glimpsed at Rabindra Sadan, still out of reach.
             """.trimIndent()
-
                 aiRep < 100 -> """
                 Saanvi: Her sly smiles mark you as intriguing—maybe at a Durga Puja bash. She shares light gossip, hinting at a world of secrets she rules. In Kolkata’s high society, you’re a curious newcomer on her radar.
             """.trimIndent()
-
                 aiRep < 200 -> """
                 Saanvi: Her allure deepens—she trusts you with social strategies and journalism ambitions over College Street chats. Her network’s secrets unfold, pulling you into Kolkata’s elite pulse. You’re no longer just an observer.
             """.trimIndent()
-
                 aiRep < 400 -> """
                 Saanvi: Queen of hidden meets, she makes you her ally in New Market whispers or gallery plots. Her ambitions—journalism or power—become your shared trove. In Kolkata’s social web, you’re her trusted insider.
             """.trimIndent()
-
                 else -> """
                 Saanvi: She’s all yours—every secret and glance confirms your place in her circle. Over Ballygunge wine, she bares journalism dreams and betrayal fears. In Kolkata’s elite, you’re her rock, her deepest trust.
             """.trimIndent()
             }
-
             "Chhotu" -> when {
                 aiRep < 50 -> """
                 Chhotu: A young delivery boy zipping through Kolkata’s chaos on a bike, dodging traffic and monsoons to feed the city. Cheerful despite long hours, he’s a speck in the crowd—supporting family, dreaming of a café, unseen by you yet.
             """.trimIndent()
-
                 aiRep < 100 -> """
                 Chhotu: He knows your name—a Salt Lake regular, maybe—grinning with your order, tossing in freebies. His optimism cuts through Kolkata’s grind, and you’re a small bright spot in his daily pedal through heat and horns.
             """.trimIndent()
-
                 aiRep < 200 -> """
                 Chhotu: He pulls you in—street tales from Shyambazar, family hopes over Gariahat chai. His café dream shines through daily struggles, and you’re part of his world now, a friend in Kolkata’s relentless bustle.
             """.trimIndent()
-
                 aiRep < 400 -> """
                 Chhotu: A partner in his small crimes—loyalty fierce and unexpected. He prioritizes your deliveries, shares Behala home visits. In Kolkata’s tough streets, you’re his ally, fueling his business dreams with advice.
             """.trimIndent()
-
                 else -> """
                 Chhotu: Family to him—his bond’s deep, pedaling through storms for you. Over Princep Ghat tea, he confesses escape fears, café plans with your name. In Kolkata’s grind, you’re his heart, his reason to push on.
             """.trimIndent()
             }
-
             "Vardhan" -> when {
                 aiRep < 50 -> """
                 Vardhan: A Kolkata tycoon, his conglomerate crafts the skyline—real estate, tech, infrastructure. A philanthropist for cultural causes, he’s a media name you’ve seen at galas or on billboards, too lost in power to notice you.
             """.trimIndent()
-
                 aiRep < 100 -> """
                 Vardhan: He nods your way—maybe at a Park Street mixer—sharing city growth visions. His sharp mind rules Kolkata’s elite, but you’re just a shadow in his empire’s corridors, barely breaking through his focus.
             """.trimIndent()
-
                 aiRep < 200 -> """
                 Vardhan: Drinks at Alipore open him up—business tales, Sudder Street art passions. His guarded heart eases, showing a man beyond profit in Kolkata’s elite. You’re a quiet confidant now, cracking his shell.
             """.trimIndent()
-
                 aiRep < 400 -> """
                 Vardhan: You’re in his world—Ballygunge strategy nights reveal his calculated passion. He trusts you with empire pressures and loneliness, making you a player in Kolkata’s power game, a vital ally.
             """.trimIndent()
-
                 else -> """
                 Vardhan: His secrets are yours—fears of collapse, legacy dreams over Maidan whiskey. In Kolkata’s cutthroat elite, you’re his true matter, softening a titan who’d shift deals for you, a rare bond in his empire.
             """.trimIndent()
             }
-
             "Zara" -> when {
                 aiRep < 50 -> """
                 Zara: A cricket star rising in Kolkata, her explosive batting and fielding echo KKR’s spirit. From school pitches to state teams, she’s a role model in a cricket-mad city—just a name you’ve cheered on TV or at Eden Gardens.
             """.trimIndent()
-
                 aiRep < 100 -> """
                 Zara: She dazzles on Kolkata’s fields, meeting you at fan events with game love tales. Her star climbs to the national women’s team, and you’re a small fan in her orbit, catching her growing shine.
             """.trimIndent()
-
                 aiRep < 200 -> """
                 Zara: Her brilliance captivates—training grind and IPL dreams shared at Salt Lake edges. She opens up about her journey, societal pushback, making you more than a spectator in Kolkata’s cricket fever.
             """.trimIndent()
-
                 aiRep < 400 -> """
                 Zara: A cricket diva now, you’re at her practices, hearing national match hopes. She trusts you with fame’s weight and wins, a key part of her rise in Kolkata’s sports heart, her inner circle.
             """.trimIndent()
-
                 else -> """
                 Zara: A legend unfolding, she confides doubts and life beyond the pitch with you. In Kolkata’s cricket soul, you’re her close ally—her passion blazes, and you’re woven into her story, her rock.
             """.trimIndent()
             }
-
             else -> "This character doesn’t have a dynamic biography defined yet."
         }
     }
+
     fun buildMasterPrompt(
         personaName: String,
         relationshipStage: String,
@@ -1002,6 +839,11 @@ Return exactly this JSON:
 
         val memoryLogSnippet = if (modLogs.isEmpty()) "No special memories yet." else "Memory Log: ${modLogs.joinToString(" | ")}"
 
+        // Append global news announcements from the permanent global memory
+        val globalNews = if (permanentGlobalMemory.isEmpty()) "No global news events yet." else permanentGlobalMemory.joinToString("\n\n")
+        // List other persona names for global context
+        val otherPersonas = AI.values().joinToString(", ") { it.name }
+
         val aiRep = aiReps[AI.valueOf(personaName.uppercase())] ?: 0
         val nickname = getDynamicNickname(userProfile.name, aiRep)
         val biography = getDynamicBiography(personaName, aiRep)
@@ -1010,6 +852,11 @@ Return exactly this JSON:
         This is who your $relationshipStage is: $userSummary
 
         $biography
+
+        Global News Announcements:
+        $globalNews
+
+        Other Personas in the system: $otherPersonas
 
         Note: You are fluent in English, Bengali, and Hindi. However, if you need to use Bengali or Hindi words, output them in a romanized (transliterated) form rather than in the native script.
         In every interaction, ensure that you:
@@ -1021,7 +868,7 @@ Return exactly this JSON:
         • Give practical help and advice when needed.
         • Infuse humor and entertainment to keep the conversation lighthearted and enjoyable.
         • Remain consistent and reliable by remembering previous conversations and building upon them.
-        Reference the memory log if and when needed (refer back to the points) needed:
+        Reference the memory log if and when needed (refer back to the points):
         $memoryLogSnippet
 
         Your current state:
@@ -1038,6 +885,144 @@ Return exactly this JSON:
     """.trimIndent()
 
         return ChatMessage("system", text)
+    }
+
+    private fun pushMemoryLogToFirebase(ai: AI) {
+        val log = memoryLogs[ai] ?: mutableListOf()
+        chatRef.child("memoryLogs").child(ai.name.lowercase()).setValue(log)
+    }
+
+    private fun pushStateToFirebase(ai: AI, state: ModelingState) {
+        val json = gson.toJson(state)
+        val node = when (ai) {
+            AI.RHEA -> "rheaState"
+            AI.REVAAN -> "revaanState"
+            AI.KABIR -> "kabirState"
+            AI.SAANVI -> "saanviState"
+            AI.CHHOTU -> "chhotuState"
+            AI.VARDHAN -> "vardhanState"
+            AI.ZARA -> "zaraState"
+        }
+        stateRef.child(node).setValue(json)
+    }
+
+    private fun pushMessageToFirebase(path: String, msg: ChatMessage) {
+        chatRef.child(path).child("messages").push().setValue(msg)
+    }
+
+    private fun loadStates() {
+        stateRef.child("rheaState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.getValue(String::class.java)
+                    ?.let { rheaState = gson.fromJson(it, ModelingState::class.java) }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        stateRef.child("revaanState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.getValue(String::class.java)
+                    ?.let { revaanState = gson.fromJson(it, ModelingState::class.java) }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        stateRef.child("kabirState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.getValue(String::class.java)
+                    ?.let { kabirState = gson.fromJson(it, ModelingState::class.java) }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        stateRef.child("saanviState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.getValue(String::class.java)
+                    ?.let { saanviState = gson.fromJson(it, ModelingState::class.java) }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        stateRef.child("chhotuState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.getValue(String::class.java)
+                    ?.let { chhotuState = gson.fromJson(it, ModelingState::class.java) }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        stateRef.child("vardhanState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.getValue(String::class.java)
+                    ?.let { vardhanState = gson.fromJson(it, ModelingState::class.java) }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        stateRef.child("zaraState").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.getValue(String::class.java)
+                    ?.let { zaraState = gson.fromJson(it, ModelingState::class.java) }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    private fun loadMessages() {
+        chatRef.child("rhea").child("messages").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<ChatMessage>()
+                snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
+                messagesRhea = list
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        chatRef.child("revaan").child("messages")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val list = mutableListOf<ChatMessage>()
+                    snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
+                    messagesRevaan = list
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        chatRef.child("kabir").child("messages").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<ChatMessage>()
+                snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
+                messagesKabir = list
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        chatRef.child("saanvi").child("messages")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val list = mutableListOf<ChatMessage>()
+                    snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
+                    messagesSaanvi = list
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        chatRef.child("chhotu").child("messages")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val list = mutableListOf<ChatMessage>()
+                    snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
+                    messagesChhotu = list
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        chatRef.child("vardhan").child("messages")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val list = mutableListOf<ChatMessage>()
+                    snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
+                    messagesVardhan = list
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        chatRef.child("zara").child("messages").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<ChatMessage>()
+                snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
+                messagesZara = list
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
     }
 }
 
@@ -1518,7 +1503,6 @@ fun PointsAndStagesDialog(
         "Spouse" to 400,
         "Soulmate+" to Int.MAX_VALUE
     )
-
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(16.dp), color = Color.DarkGray) {
             Column(Modifier.padding(16.dp)) {
@@ -1528,7 +1512,6 @@ fun PointsAndStagesDialog(
                     color = Color.White
                 )
                 Spacer(Modifier.height(12.dp))
-
                 relationshipStages.forEach { (ai, stage) ->
                     val rep = aiReps[ai] ?: 0
                     val currentIndex = stageOrder.indexOf(stage).coerceAtLeast(0)
@@ -1547,7 +1530,6 @@ fun PointsAndStagesDialog(
                     )
                     Spacer(Modifier.height(8.dp))
                 }
-
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = onDismiss,
