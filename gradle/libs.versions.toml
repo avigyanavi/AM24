@@ -15,6 +15,7 @@ coilTransformations = "2.3.0"
 core = "1.45.0"
 coreKtxVersion = "1.8.0"
 datastorePreferences = "1.1.1"
+datastorePreferencesVersion = "1.1.0"
 exoplayer = "2.19.1"
 exoplayerVersion = "2.17.1"
 firebaseDatabaseKtxVersion = "20.2.2"
@@ -81,6 +82,7 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-ktx-v180 = { module = "androidx.core:core-ktx", version.ref = "coreKtxVersion" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+androidx-datastore-preferences-v110 = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferencesVersion" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundationLayout" }
 androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundationLayout" }
 androidx-foundation-v100 = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }

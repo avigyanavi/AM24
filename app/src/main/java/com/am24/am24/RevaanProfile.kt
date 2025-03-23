@@ -51,16 +51,10 @@ fun ModelingStateSliders(modelingState: ModelingState) {
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Emotion sliders
+            // Mood sliders
             EmotionSliderRow(Icons.Default.Favorite, "Trust", modelingState.moodLevels.trust)
             Spacer(modifier = Modifier.height(8.dp))
             EmotionSliderRow(Icons.Default.Warning, "Jealousy", modelingState.moodLevels.jealousy)
-            Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(Icons.Default.Report, "Fear", modelingState.moodLevels.fear)
-            Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(Icons.Default.AttachMoney, "Greed", modelingState.moodLevels.greed)
-            Spacer(modifier = Modifier.height(8.dp))
-            EmotionSliderRow(Icons.Default.Star, "Ambition", modelingState.moodLevels.ambition)
             Spacer(modifier = Modifier.height(8.dp))
             EmotionSliderRow(Icons.Default.Liquor, "Romantic Passion", modelingState.moodLevels.romantic_passion)
             Spacer(modifier = Modifier.height(8.dp))
@@ -68,23 +62,28 @@ fun ModelingStateSliders(modelingState: ModelingState) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Career Progress
+            // Relationship History sliders
             SliderRowWithIcon(
-                icon = Icons.Default.Work,
-                label = "Career Progress",
-                valueText = "${modelingState.careerProgress.coerceIn(0, 100)}",
-                progress = modelingState.careerProgress.coerceIn(0, 100) / 100f,
+                icon = Icons.Default.Star,
+                label = "Attachment",
+                valueText = "${modelingState.relationshipHistory.attachment}",
+                progress = modelingState.relationshipHistory.attachment / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // External Attention
+            Spacer(modifier = Modifier.height(8.dp))
             SliderRowWithIcon(
                 icon = Icons.Default.Visibility,
-                label = "External Attention",
-                valueText = "${modelingState.externalAttention.coerceIn(0, 100)}",
-                progress = modelingState.externalAttention.coerceIn(0, 100) / 100f,
+                label = "Confidence",
+                valueText = "${modelingState.relationshipHistory.confidence}",
+                progress = modelingState.relationshipHistory.confidence / 100f,
+                trackColor = Color(0xFFFF6F00)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            SliderRowWithIcon(
+                icon = Icons.Default.Work,
+                label = "Emotional Depth",
+                valueText = "${modelingState.relationshipHistory.emotionalDepth}",
+                progress = modelingState.relationshipHistory.emotionalDepth / 100f,
                 trackColor = Color(0xFFFF6F00)
             )
 
@@ -105,28 +104,6 @@ fun ModelingStateSliders(modelingState: ModelingState) {
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Money
-            SliderRowWithIcon(
-                icon = Icons.Default.AttachMoney,
-                label = "Money",
-                valueText = "${modelingState.money}",
-                progress = (modelingState.money.coerceIn(0, 100)) / 100f,
-                trackColor = Color(0xFFFF6F00)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Reputation
-            SliderRowWithIcon(
-                icon = Icons.Default.Star,
-                label = "Reputation",
-                valueText = "${modelingState.reputation.coerceIn(0, 100)}",
-                progress = modelingState.reputation.coerceIn(0, 100) / 100f,
-                trackColor = Color(0xFFFF6F00)
-            )
         }
     }
 }

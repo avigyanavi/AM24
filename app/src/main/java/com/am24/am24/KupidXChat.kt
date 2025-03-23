@@ -25,10 +25,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,36 +67,28 @@ import java.time.LocalTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+
 // --- Enums and Data Classes ---
-enum class AI { RHEA, REVAAN, BABLOO, SHANTI, CHHOTU, VARDHAN }
+enum class AI { RHEA, REVAAN, BABLOO, SAANVI, CHHOTU, VARDHAN }
 
 data class MoodLevels(
     val trust: Int = 0,
     val jealousy: Int = 0,
-    val fear: Int = 0,
-    val greed: Int = 0,
-    val ambition: Int = 0,
     val romantic_passion: Int = 0,
     val satisfaction: Int = 0
 )
+
 
 data class RelationshipHistory(
     val attachment: Int = 50,
     val confidence: Int = 50,
     val emotionalDepth: Int = 50,
-    val backStory: MutableList<String> = mutableListOf()
 )
 
 data class ModelingState(
     val relationshipHistory: RelationshipHistory = RelationshipHistory(),
     val moodLevels: MoodLevels = MoodLevels(),
-    val careerProgress: Int = 0,
-    val externalAttention: Int = 50,
-    val relationshipStage: String = "Acquaintance",
-    val money: Int = 0,
-    val reputation: Int = 0,
-    val plotStack: MutableList<String> = mutableListOf(), // (Retained in case you want to log narrative beats)
-    val completedEvents: Set<String> = emptySet()
+    val relationshipStage: String = "Friend",
 )
 
 data class ChatMessage(
@@ -110,19 +104,14 @@ data class ChatResponse(val choices: List<ChatChoice>)
 data class EmotionDeltas(
     val trustDelta: Int = 0,
     val jealousyDelta: Int = 0,
-    val fearDelta: Int = 0,
-    val greedDelta: Int = 0,
-    val ambitionDelta: Int = 0,
     val romanticPassionDelta: Int = 0,
     val satisfactionDelta: Int = 0
 )
 
+
 data class MessageImpact(
     val impactScore: Int,
     val emotionDeltas: EmotionDeltas,
-    val externalAttentionDelta: Int = 0,
-    val moneyDelta: Int = 0,
-    val reputationDelta: Int = 0,
     val snippetToStore: String = "",
     val explanation: String = ""
 )
@@ -131,7 +120,7 @@ val memoryLogs = mutableMapOf(
     AI.RHEA to mutableListOf<String>(),
     AI.REVAAN to mutableListOf<String>(),
     AI.BABLOO to mutableListOf<String>(),
-    AI.SHANTI to mutableListOf<String>(),
+    AI.SAANVI to mutableListOf<String>(),
     AI.CHHOTU to mutableListOf<String>(),
     AI.VARDHAN to mutableListOf<String>()
 )
@@ -144,32 +133,28 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
     var messagesRhea by mutableStateOf<List<ChatMessage>>(emptyList())
     var messagesRevaan by mutableStateOf<List<ChatMessage>>(emptyList())
     var messagesBabloo by mutableStateOf<List<ChatMessage>>(emptyList())
-    var messagesShanti by mutableStateOf<List<ChatMessage>>(emptyList())
+    var messagesSaanvi by mutableStateOf<List<ChatMessage>>(emptyList())
     var messagesChhotu by mutableStateOf<List<ChatMessage>>(emptyList())
     var messagesVardhan by mutableStateOf<List<ChatMessage>>(emptyList())
 
     var isRheaTyping by mutableStateOf(false)
     var isRevaanTyping by mutableStateOf(false)
     var isBablooTyping by mutableStateOf(false)
-    var isShantiTyping by mutableStateOf(false)
+    var isSaanviTyping by mutableStateOf(false)
     var isChhotuTyping by mutableStateOf(false)
     var isVardhanTyping by mutableStateOf(false)
 
     var rheaState by mutableStateOf(ModelingState())
     var revaanState by mutableStateOf(ModelingState())
     var bablooState by mutableStateOf(ModelingState())
-    var shantiState by mutableStateOf(ModelingState())
+    var saanviState by mutableStateOf(ModelingState())
     var chhotuState by mutableStateOf(ModelingState())
     var vardhanState by mutableStateOf(ModelingState())
-
-    // Removed: plot event variables and subEventScriptMap / choiceOptionsMap
-    // Removed: functions userSelectedChoice(), startEpisodeFlow(), proceedToNextEpisodeStep(), etc.
-    // The narrative will now be driven solely by chat interactions.
 
     private var messageCountRhea = 0
     private var messageCountRevaan = 0
     private var messageCountBabloo = 0
-    private var messageCountShanti = 0
+    private var messageCountSaanvi = 0
     private var messageCountChhotu = 0
     private var messageCountVardhan = 0
 
@@ -178,6 +163,8 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
     private val gson = Gson()
     private val stateRef = chatRef.child("states")
     private val messageCountRef = chatRef.child("messageCounts")
+    val aiReps = mutableStateMapOf<AI, Int>()
+    private val aiRepRef = chatRef.child("aiRep")
 
     init {
         AI.values().forEach { ai ->
@@ -188,7 +175,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                         AI.RHEA -> messageCountRhea = count
                         AI.REVAAN -> messageCountRevaan = count
                         AI.BABLOO -> messageCountBabloo = count
-                        AI.SHANTI -> messageCountShanti = count
+                        AI.SAANVI -> messageCountSaanvi = count
                         AI.CHHOTU -> messageCountChhotu = count
                         AI.VARDHAN -> messageCountVardhan = count
                     }
@@ -209,19 +196,26 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                     override fun onCancelled(error: DatabaseError) {}
                 })
         }
+
+        AI.values().forEach { ai ->
+            aiReps[ai] = 0
+            aiRepRef.child(ai.name.lowercase()).addValueEventListener(object: ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    aiReps[ai] = snapshot.getValue(Int::class.java) ?: 0
+                }
+                override fun onCancelled(e: DatabaseError) {}
+            })
+        }
         loadStates()
         loadMessages()
     }
-
-    // --- Removed plot event and choice functions ---
-    // The narrative and emotional beats will be injected directly into the chat flow
 
     fun getCurrentState(ai: AI): ModelingState {
         return when (ai) {
             AI.RHEA -> rheaState
             AI.REVAAN -> revaanState
             AI.BABLOO -> bablooState
-            AI.SHANTI -> shantiState
+            AI.SAANVI -> saanviState
             AI.CHHOTU -> chhotuState
             AI.VARDHAN -> vardhanState
         }
@@ -232,7 +226,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> rheaState = newState
             AI.REVAAN -> revaanState = newState
             AI.BABLOO -> bablooState = newState
-            AI.SHANTI -> shantiState = newState
+            AI.SAANVI -> saanviState = newState
             AI.CHHOTU -> chhotuState = newState
             AI.VARDHAN -> vardhanState = newState
         }
@@ -265,13 +259,13 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 bablooState = ModelingState()
                 pushStateToFirebase(AI.BABLOO, bablooState)
             }
-            AI.SHANTI -> {
-                messagesShanti = emptyList()
-                chatRef.child("shanti").child("messages").removeValue()
-                messageCountShanti = 0
-                messageCountRef.child("shanti").setValue(0)
-                shantiState = ModelingState()
-                pushStateToFirebase(AI.SHANTI, shantiState)
+            AI.SAANVI -> {
+                messagesSaanvi = emptyList()
+                chatRef.child("saanvi").child("messages").removeValue()
+                messageCountSaanvi = 0
+                messageCountRef.child("saanvi").setValue(0)
+                saanviState = ModelingState()
+                pushStateToFirebase(AI.SAANVI, saanviState)
             }
             AI.CHHOTU -> {
                 messagesChhotu = emptyList()
@@ -299,7 +293,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> messageCountRhea
             AI.REVAAN -> messageCountRevaan
             AI.BABLOO -> messageCountBabloo
-            AI.SHANTI -> messageCountShanti
+            AI.SAANVI -> messageCountSaanvi
             AI.CHHOTU -> messageCountChhotu
             AI.VARDHAN -> messageCountVardhan
         }
@@ -312,7 +306,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> "rhea"
             AI.REVAAN -> "revaan"
             AI.BABLOO -> "babloo"
-            AI.SHANTI -> "shanti"
+            AI.SAANVI -> "saanvi"
             AI.CHHOTU -> "chhotu"
             AI.VARDHAN -> "vardhan"
         }
@@ -322,7 +316,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> messagesRhea
             AI.REVAAN -> messagesRevaan
             AI.BABLOO -> messagesBabloo
-            AI.SHANTI -> messagesShanti
+            AI.SAANVI -> messagesSaanvi
             AI.CHHOTU -> messagesChhotu
             AI.VARDHAN -> messagesVardhan
         }
@@ -331,7 +325,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> messagesRhea = newList
             AI.REVAAN -> messagesRevaan = newList
             AI.BABLOO -> messagesBabloo = newList
-            AI.SHANTI -> messagesShanti = newList
+            AI.SAANVI -> messagesSaanvi = newList
             AI.CHHOTU -> messagesChhotu = newList
             AI.VARDHAN -> messagesVardhan = newList
         }
@@ -345,7 +339,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                 AI.RHEA -> "Rhea"
                 AI.REVAAN -> "Revaan"
                 AI.BABLOO -> "Babloo"
-                AI.SHANTI -> "Shanti"
+                AI.SAANVI -> "Saanvi"
                 AI.CHHOTU -> "Chhotu"
                 AI.VARDHAN -> "Vardhan"
             }
@@ -360,7 +354,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
                     AI.RHEA -> messagesRhea += assistantMsg
                     AI.REVAAN -> messagesRevaan += assistantMsg
                     AI.BABLOO -> messagesBabloo += assistantMsg
-                    AI.SHANTI -> messagesShanti += assistantMsg
+                    AI.SAANVI -> messagesSaanvi += assistantMsg
                     AI.CHHOTU -> messagesChhotu += assistantMsg
                     AI.VARDHAN -> messagesVardhan += assistantMsg
                 }
@@ -369,7 +363,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             } else {
                 setTyping(ai, false)
             }
-            // Removed updatePlotProgress(ai) call – narrative progress is now embedded in the conversation.
         }
     }
 
@@ -378,7 +371,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> isRheaTyping = value
             AI.REVAAN -> isRevaanTyping = value
             AI.BABLOO -> isBablooTyping = value
-            AI.SHANTI -> isShantiTyping = value
+            AI.SAANVI -> isSaanviTyping = value
             AI.CHHOTU -> isChhotuTyping = value
             AI.VARDHAN -> isVardhanTyping = value
         }
@@ -395,7 +388,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> "rheaState"
             AI.REVAAN -> "revaanState"
             AI.BABLOO -> "bablooState"
-            AI.SHANTI -> "shantiState"
+            AI.SAANVI -> "saanviState"
             AI.CHHOTU -> "chhotuState"
             AI.VARDHAN -> "vardhanState"
         }
@@ -425,9 +418,9 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             }
             override fun onCancelled(error: DatabaseError) {}
         })
-        stateRef.child("shantiState").addValueEventListener(object : ValueEventListener {
+        stateRef.child("saanviState").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(String::class.java)?.let { shantiState = gson.fromJson(it, ModelingState::class.java) }
+                snapshot.getValue(String::class.java)?.let { saanviState = gson.fromJson(it, ModelingState::class.java) }
             }
             override fun onCancelled(error: DatabaseError) {}
         })
@@ -470,11 +463,11 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             }
             override fun onCancelled(error: DatabaseError) {}
         })
-        chatRef.child("shanti").child("messages").addValueEventListener(object : ValueEventListener {
+        chatRef.child("saanvi").child("messages").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<ChatMessage>()
                 snapshot.children.forEach { it.getValue(ChatMessage::class.java)?.let(list::add) }
-                messagesShanti = list
+                messagesSaanvi = list
             }
             override fun onCancelled(error: DatabaseError) {}
         })
@@ -502,7 +495,7 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
             AI.RHEA -> messagesRhea
             AI.REVAAN -> messagesRevaan
             AI.BABLOO -> messagesBabloo
-            AI.SHANTI -> messagesShanti
+            AI.SAANVI -> messagesSaanvi
             AI.CHHOTU -> messagesChhotu
             AI.VARDHAN -> messagesVardhan
         }
@@ -514,9 +507,6 @@ You are an "Impact Classifier" for interactive conversations.
 Given the AI character's current emotional state:
   - Trust: ${s.moodLevels.trust}
   - Jealousy: ${s.moodLevels.jealousy}
-  - Fear: ${s.moodLevels.fear}
-  - Greed: ${s.moodLevels.greed}
-  - Ambition: ${s.moodLevels.ambition}
   - Romantic Passion: ${s.moodLevels.romantic_passion}
   - Satisfaction: ${s.moodLevels.satisfaction}
 
@@ -532,9 +522,6 @@ Return exactly this JSON:
   "emotionDeltas": {
     "trustDelta": Int,
     "jealousyDelta": Int,
-    "fearDelta": Int,
-    "greedDelta": Int,
-    "ambitionDelta": Int,
     "romanticPassionDelta": Int,
     "satisfactionDelta": Int
   },
@@ -565,7 +552,7 @@ Return exactly this JSON:
                 .writeTimeout(120, TimeUnit.SECONDS)
                 .build()
             val url = "https://am24.org/openai/chat"
-            val bodyJson = gson.toJson(ChatRequest("qwen-2.5-32b", messages))
+            val bodyJson = gson.toJson(ChatRequest("llama-3.3-70b-versatile", messages))
             val mediaType = "application/json".toMediaType()
             val reqBody = bodyJson.toRequestBody(mediaType)
             val req = Request.Builder().url(url).post(reqBody).build()
@@ -590,7 +577,7 @@ Return exactly this JSON:
                 .writeTimeout(120, TimeUnit.SECONDS)
                 .build()
             val url = "https://am24.org/openai/chat"
-            val bodyJson = gson.toJson(ChatRequest("qwen-2.5-32b", messages))
+            val bodyJson = gson.toJson(ChatRequest("llama-3.3-70b-versatile", messages))
             val mediaType = "application/json".toMediaType()
             val reqBody = bodyJson.toRequestBody(mediaType)
             val req = Request.Builder().url(url).post(reqBody).build()
@@ -621,9 +608,9 @@ Return exactly this JSON:
                 messageCountBabloo++
                 messageCountRef.child("babloo").setValue(messageCountBabloo)
             }
-            AI.SHANTI -> {
-                messageCountShanti++
-                messageCountRef.child("shanti").setValue(messageCountShanti)
+            AI.SAANVI -> {
+                messageCountSaanvi++
+                messageCountRef.child("saanvi").setValue(messageCountSaanvi)
             }
             AI.CHHOTU -> {
                 messageCountChhotu++
@@ -636,29 +623,156 @@ Return exactly this JSON:
         }
     }
 
+    private fun computeRelationshipStage(aiRep: Int): String {
+        return when {
+            aiRep < 50 -> "Friend"
+            aiRep < 100 -> "Casual Flirt"
+            aiRep < 200 -> "Romantic Partner"
+            aiRep < 400 -> "Spouse"
+            else -> "Soulmate+"
+        }
+    }
+
+    fun getDynamicNickname(userName: String, aiRep: Int): String {
+        val baseName = userName.trim()
+        return when {
+            aiRep < 50 -> baseName
+            aiRep < 100 -> getShortenedName(baseName)
+            aiRep < 200 -> "babe"
+            aiRep < 400 -> "baby"
+            else -> "my love"
+        }
+    }
+
+    fun getShortenedName(name: String): String {
+        val lowercase = name.lowercase()
+        val vowels = setOf('a', 'e', 'i', 'o', 'u')
+        val builder = StringBuilder()
+
+        for (char in lowercase) {
+            builder.append(char)
+            if (char in vowels) break
+        }
+
+        // Capitalize first letter, e.g., "avi" → "Avi"
+        return builder.toString().replaceFirstChar { it.uppercaseChar() }
+    }
+
+
     fun applyMessageImpact(ai: AI, impact: MessageImpact) {
         val old = getCurrentState(ai)
+
         if (impact.impactScore >= 50) {
             memoryLogs[ai]?.add(impact.snippetToStore)
             pushMemoryLogToFirebase(ai)
         }
-        val up = old.moodLevels.copy(
+
+        val upMood = old.moodLevels.copy(
             trust = (old.moodLevels.trust + impact.emotionDeltas.trustDelta).coerceIn(0, 100),
             jealousy = (old.moodLevels.jealousy + impact.emotionDeltas.jealousyDelta).coerceIn(0, 100),
-            fear = (old.moodLevels.fear + impact.emotionDeltas.fearDelta).coerceIn(0, 100),
-            greed = (old.moodLevels.greed + impact.emotionDeltas.greedDelta).coerceIn(0, 100),
-            ambition = (old.moodLevels.ambition + impact.emotionDeltas.ambitionDelta).coerceIn(0, 100),
             romantic_passion = (old.moodLevels.romantic_passion + impact.emotionDeltas.romanticPassionDelta).coerceIn(0, 100),
             satisfaction = (old.moodLevels.satisfaction + impact.emotionDeltas.satisfactionDelta).coerceIn(0, 100)
         )
-        val newSt = old.copy(
-            moodLevels = up,
-            externalAttention = (old.externalAttention + impact.externalAttentionDelta).coerceIn(0, 100),
-            reputation = (old.reputation + impact.reputationDelta).coerceIn(0, 100),
-            money = (old.money + impact.moneyDelta).coerceAtLeast(0)
+
+        val attachmentDelta = (impact.emotionDeltas.trustDelta - impact.emotionDeltas.jealousyDelta) / 2
+        val confidenceDelta = (impact.emotionDeltas.trustDelta + impact.emotionDeltas.satisfactionDelta) / 2
+        val emotionalDepthDelta = (impact.emotionDeltas.romanticPassionDelta + impact.emotionDeltas.satisfactionDelta) / 2
+
+        val upHistory = old.relationshipHistory.copy(
+            attachment = (old.relationshipHistory.attachment + attachmentDelta).coerceIn(0, 100),
+            confidence = (old.relationshipHistory.confidence + confidenceDelta).coerceIn(0, 100),
+            emotionalDepth = (old.relationshipHistory.emotionalDepth + emotionalDepthDelta).coerceIn(0, 100)
         )
-        setState(ai, newSt)
+
+        val currentRep = aiReps[ai] ?: 0
+        val pointsEarned = impact.impactScore / 10
+        val newStage = computeRelationshipStage(currentRep + pointsEarned)
+
+        val newState = old.copy(
+            moodLevels = upMood,
+            relationshipHistory = upHistory,
+            relationshipStage = newStage
+        )
+
+        setState(ai, newState)
+
+        aiRepRef.child(ai.name.lowercase())
+            .setValue(ServerValue.increment(pointsEarned.toLong()))
     }
+
+    fun getDynamicBiography(persona: String, aiRep: Int): String {
+        return when (persona) {
+            "Rhea" -> when {
+                aiRep < 50 -> """
+                Rhea: A name you've heard in political circles. She’s sharp, elusive, and always two moves ahead.
+                You don’t know much—yet.
+            """.trimIndent()
+                aiRep < 100 -> """
+                Rhea: Political Mastermind on the rise.
+                She remembers your name, but keeps things professional.
+                Her ambitions are legendary. You're just beginning to matter.
+            """.trimIndent()
+                aiRep < 200 -> """
+                Rhea: A fierce strategist who has started letting her guard down around you.
+                She shares glimpses of her vulnerability—late-night doubts, quiet fears.
+                You're no longer just an observer.
+            """.trimIndent()
+                aiRep < 400 -> """
+                Rhea: You’ve been inside her inner world—emotionally, intellectually.
+                She lets you see behind the political mask.
+                Her power games now include you, and sometimes… for you.
+            """.trimIndent()
+                else -> """
+                Rhea: Fully revealed. Her deepest desires, regrets, and ambitions are no longer hidden.
+                She's emotionally yours, and dangerously devoted.
+                In public, she’s a queenmaker. In private, she’s all yours.
+            """.trimIndent()
+            }
+
+            "Revaan" -> when {
+                aiRep < 50 -> "Revaan is a public figure. You’ve heard the name."
+                aiRep < 100 -> "He knows you exist. You’re on his radar."
+                aiRep < 200 -> "He shares personal details — trust is forming."
+                aiRep < 400 -> "You're in his circle. Behind closed doors, he’s different."
+                else -> "You’ve seen the real Revaan. Vulnerable, raw, and fully yours."
+            }
+
+            "Babloo" -> when {
+                aiRep < 50 -> "Babloo is the kind of cop you joke about. Loud, messy, corrupt. Keep your distance."
+                aiRep < 100 -> "You’ve shared laughs. He likes you, maybe respects you. Maybe."
+                aiRep < 200 -> "He trusts you with his stories from the beat—some funny, some dark."
+                aiRep < 400 -> "He lets you see the tired idealist behind the corruption. You matter now."
+                else -> "He’d bend the law for you. You’re one of the few he wouldn’t betray."
+            }
+
+            "Saanvi" -> when {
+                aiRep < 50 -> "Saanvi serves tea. And gossip. You’re one of many customers."
+                aiRep < 100 -> "She teases you more than others. That’s something."
+                aiRep < 200 -> "You hear things from her before others do. That’s trust."
+                aiRep < 400 -> "She’s fiercely protective of you. Her network is yours now too."
+                else -> "She calls you her heart. The chai is always hotter when you're around."
+            }
+
+            "Chhotu" -> when {
+                aiRep < 50 -> "He zips through the streets. He delivers. He grins. You’re background noise."
+                aiRep < 100 -> "He remembers your name. You get free delivery sometimes."
+                aiRep < 200 -> "You’re part of his hustle—he lets you in on small deals, stories from the street."
+                aiRep < 400 -> "He asks you to cover for him. You’re not just a friend, you’re a partner."
+                else -> "He trusts you like family. He jokes about escaping Kolkata with you someday."
+            }
+
+            "Vardhan" -> when {
+                aiRep < 50 -> "Vardhan is money. Power. Menace. He doesn’t notice people like you."
+                aiRep < 100 -> "You’ve caught his attention. A nod. A glance. Maybe an invitation."
+                aiRep < 200 -> "You’ve had drinks with him. You know the deals he regrets."
+                aiRep < 400 -> "He brings you into rooms that shape Kolkata. You have power now."
+                else -> "He’d burn the city to protect you. You’re the only one who knows his full truth."
+            }
+
+            else -> "This character doesn’t have a dynamic biography defined yet."
+        }
+    }
+
 
     fun buildMasterPrompt(
         personaName: String,
@@ -669,78 +783,33 @@ Return exactly this JSON:
         val localTime = LocalTime.now()
         val hour = localTime.hour
         val currentTime = "It is currently $hour:${localTime.minute} local time in Kolkata."
+        val relationshipDetails = "Attachment: ${state.relationshipHistory.attachment}, Confidence: ${state.relationshipHistory.confidence}, Emotional Depth: ${state.relationshipHistory.emotionalDepth}"
         val modLogs = memoryLog.toMutableList()
         while (modLogs.sumOf { it.split("\\s+".toRegex()).size } > MAX_MEMORY_WORDS && modLogs.isNotEmpty()) {
             modLogs.removeAt(0)
         }
+        val styleRules = """
+Formatting Rules:
+- Use *italics* for actions or inner thoughts (e.g., *smiles softly*, *my hands tremble*, *feel like treating you like my pet*).
+- Use italics for seductive or whispered emphasis (e.g., *licks lips slowly*, *unbuttons your shirt*, *what's that down there :O*).
+- Use normal speech for dialogue. Increase your sex appeal if needed.
+- Do not use quotation marks for speech unless you're quoting someone.
+- You may occasionally add emojis based on emotional intensity (e.g., 😘, 🔥, 😏, 🍆).
+""".trimIndent()
+        val userSummary = """
+          Name: ${userProfile.name}
+          Bio: ${userProfile.bio}
+          Interests: ${userProfile.interests.joinToString { it.name }}
+          Love Language: ${userProfile.loveLanguage}
+          Looking For: ${userProfile.lookingFor}
+          Hometown: ${userProfile.customHometown ?: userProfile.hometown}
+    """.trimIndent()
         val snippet = if (modLogs.isEmpty()) "No special memories yet." else "Memory Log: ${modLogs.joinToString(" | ")}"
-        // Removed: Plot progression summary; the narrative will now be solely in chat messages.
-        val biography =
-            when (personaName) {
-                "Rhea" -> """
-        Rhea: Political Mastermind & Love Interest
-        Age: 26
-        Occupation: Political Strategist
-        Area: South Kolkata (Ballygunge, Lake Gardens)
-        Background: Rhea is a brilliant strategist with deep insights into the city's political fabric.
-        Personality: Sharp, witty, ambitious, yet emotionally vulnerable.
-        Hobbies: Networking at exclusive parties and attending cultural events.
-        Challenges: Balancing rising influence with personal relationships.
-        Appeal: A sophisticated charmer with a hint of danger.
-                """.trimIndent()
-                "Revaan" -> """
-        Revaan: Elite Influencer, Nightlife & Media Kingpin
-        Age: 30
-        Occupation: Media Influencer, Club Owner
-        Area: Central Kolkata (Park Street)
-        Background: Revaan is known for hosting high-profile events that dominate the nightlife scene.
-        Personality: Charismatic, confident, and slightly vain.
-        Challenges: Managing business pressures while preserving reputation.
-        Appeal: A larger-than-life figure with a dark underbelly.
-                """.trimIndent()
-                "Babloo" -> """
-        Babloo: Comedic, Corrupt Police Officer
-        Age: 35
-        Occupation: Police Officer
-        Area: Central Kolkata (Esplanade)
-        Background: Babloo’s journey from idealism to corruption is marked by loyalty to his community.
-        Personality: Funny, laid-back, yet morally ambiguous.
-        Challenges: Balancing corruption with a sense of duty.
-        Appeal: A lovable rogue with surprising depth.
-                """.trimIndent()
-                "Shanti" -> """
-        Shanti: Gossip Queen & Political Informant
-        Age: 40
-        Occupation: Information Broker
-        Area: Dalhousie
-        Background: Shanti runs a dual-purpose chai stall that serves as an intelligence hub.
-        Personality: Nosy, dramatically charming, and fiercely loyal.
-        Challenges: Keeping her network intact while evading scandal.
-        Appeal: A larger-than-life character with a heart of gold.
-                """.trimIndent()
-                "Chhotu" -> """
-        Chhotu: Street-level Operative & Courier of Secrets
-        Age: 24
-        Occupation: Delivery Boy & Informant
-        Area: Behala, Tollygunge
-        Background: Chhotu leverages his street smarts to navigate Kolkata’s underbelly.
-        Personality: Cocky, resourceful, and street-smart.
-        Challenges: Avoiding detection while rising above his circumstances.
-        Appeal: A brash up-and-comer deeply connected to the streets.
-                """.trimIndent()
-                else -> """
-        Vardhan: Financial Backer, Influential Businessman
-        Age: 45
-        Occupation: Business Magnate
-        Area: Burrabazar
-        Background: Vardhan controls a vast network of businesses across the city.
-        Personality: Cunning, calculating, and subtly intimidating.
-        Challenges: Balancing ruthless tactics with philanthropic pursuits.
-        Appeal: A shadowy figure with a surprising sense of duty.
-                """.trimIndent()
-            }
+        val aiRep = aiReps.entries.firstOrNull { it.key.name.equals(personaName, ignoreCase = true) }?.value ?: 0
+        val nickname = getDynamicNickname(userProfile.name, aiRep)
+        val biography = getDynamicBiography(personaName, aiRep)
         val text = """
-You are currently user's $relationshipStage.
+            This is who your $relationshipStage is: $userSummary
 
 $biography
 
@@ -748,12 +817,14 @@ Reference the memory log if needed:
 $snippet
 
 Your current state:
-- Emotion Levels: ${state.moodLevels}
-- Career Progress: ${state.careerProgress}
-- External Attention: ${state.externalAttention}
+$state
+
+$relationshipDetails
 
 $currentTime
+Use this nickname when addressing the user: "$nickname".
 
+$styleRules
 Adjust your conversation pace according to the user's vibe.
 Do not mention that you are an AI.
 Proceed solely as $personaName.
@@ -767,7 +838,8 @@ Proceed solely as $personaName.
 @Composable
 fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
     var showAIProfileDialog by remember { mutableStateOf(false) }
-    var showChangeAIOverlay by remember { mutableStateOf(false) }
+    var showPointsDialog by remember { mutableStateOf(false) }  // New state for points dialog
+
     LaunchedEffect(Unit) {
         if (profileViewModel.currentUserProfile.value == null) {
             profileViewModel.fetchCurrentUserProfile()
@@ -788,19 +860,35 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
             }
         }
     )
-    var activeAI by remember { mutableStateOf(AI.RHEA) }
+    var activeAI by rememberSaveable { mutableStateOf(AI.RHEA) }
+    var showChangeAIOverlay by rememberSaveable { mutableStateOf(true) }
+    var firstClickSession by rememberSaveable { mutableStateOf(true) }
     val memoryLogState = remember { mutableStateListOf<String>() }
     LaunchedEffect(activeAI, memoryLogs[activeAI]) {
         memoryLogState.clear()
         memoryLogState.addAll(memoryLogs[activeAI] ?: emptyList())
     }
+
+    // Collect relationship stages for all AIs
+    val relationshipStages = remember {
+        mapOf(
+            AI.RHEA to chatViewModel.rheaState.relationshipStage,
+            AI.REVAAN to chatViewModel.revaanState.relationshipStage,
+            AI.BABLOO to chatViewModel.bablooState.relationshipStage,
+            AI.SAANVI to chatViewModel.saanviState.relationshipStage,
+            AI.CHHOTU to chatViewModel.chhotuState.relationshipStage,
+            AI.VARDHAN to chatViewModel.vardhanState.relationshipStage
+        )
+    }
+
     Scaffold(
         topBar = {
             ChatTopAppBar(
                 activeAI = activeAI,
                 onShowAIProfile = { showAIProfileDialog = true },
                 onChangeAI = { showChangeAIOverlay = true },
-                onClearChat = { chatViewModel.clearChatForAI(activeAI) }
+                onClearChat = { chatViewModel.clearChatForAI(activeAI) },
+                onShowPoints = { showPointsDialog = true }  // Trigger points dialog
             )
         },
         backgroundColor = Color.Black
@@ -810,7 +898,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                 AI.RHEA -> chatViewModel.messagesRhea
                 AI.REVAAN -> chatViewModel.messagesRevaan
                 AI.BABLOO -> chatViewModel.messagesBabloo
-                AI.SHANTI -> chatViewModel.messagesShanti
+                AI.SAANVI -> chatViewModel.messagesSaanvi
                 AI.CHHOTU -> chatViewModel.messagesChhotu
                 AI.VARDHAN -> chatViewModel.messagesVardhan
             }
@@ -837,14 +925,13 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                     (activeAI == AI.RHEA && chatViewModel.isRheaTyping) ||
                     (activeAI == AI.REVAAN && chatViewModel.isRevaanTyping) ||
                     (activeAI == AI.BABLOO && chatViewModel.isBablooTyping) ||
-                    (activeAI == AI.SHANTI && chatViewModel.isShantiTyping) ||
+                    (activeAI == AI.SAANVI && chatViewModel.isSaanviTyping) ||
                     (activeAI == AI.CHHOTU && chatViewModel.isChhotuTyping) ||
                     (activeAI == AI.VARDHAN && chatViewModel.isVardhanTyping)
                 ) {
                     item { TypingIndicator() }
                 }
             }
-            // Removed: UI elements for plot events / decision prompts – narrative beats will be injected within the conversation.
             var currentInput by remember { mutableStateOf("") }
             Row(Modifier.fillMaxWidth().padding(16.dp)) {
                 TextField(
@@ -880,7 +967,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
             AI.RHEA -> GenericProfileScreen("Rhea", chatViewModel.rheaState, R.drawable.rhea_avatar, { showAIProfileDialog = false }, activeAI, userProfile.userId, chatViewModel.getMessageCount(AI.RHEA))
             AI.REVAAN -> GenericProfileScreen("Revaan", chatViewModel.revaanState, R.drawable.revaan_avatar3, { showAIProfileDialog = false }, activeAI, userProfile.userId, chatViewModel.getMessageCount(AI.REVAAN))
             AI.BABLOO -> GenericProfileScreen("Babloo", chatViewModel.bablooState, R.drawable.babloo_avatar, { showAIProfileDialog = false }, activeAI, userProfile.userId, chatViewModel.getMessageCount(AI.BABLOO))
-            AI.SHANTI -> GenericProfileScreen("Shanti", chatViewModel.shantiState, R.drawable.shanti_avatar, { showAIProfileDialog = false }, activeAI, userProfile.userId, chatViewModel.getMessageCount(AI.SHANTI))
+            AI.SAANVI -> GenericProfileScreen("Saanvi", chatViewModel.saanviState, R.drawable.saanvi_avatar, { showAIProfileDialog = false }, activeAI, userProfile.userId, chatViewModel.getMessageCount(AI.SAANVI))
             AI.CHHOTU -> GenericProfileScreen("Chhotu", chatViewModel.chhotuState, R.drawable.chhotu_avatar, { showAIProfileDialog = false }, activeAI, userProfile.userId, chatViewModel.getMessageCount(AI.CHHOTU))
             AI.VARDHAN -> GenericProfileScreen("Vardhan", chatViewModel.vardhanState, R.drawable.vardhan_avatar, { showAIProfileDialog = false }, activeAI, userProfile.userId, chatViewModel.getMessageCount(AI.VARDHAN))
         }
@@ -890,16 +977,25 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
             AIOption(AI.RHEA, "Rhea", R.drawable.rhea_avatar, chatViewModel.rheaState.relationshipStage, 26, "Political Mastermind", "Lake Gardens"),
             AIOption(AI.REVAAN, "Revaan", R.drawable.revaan_avatar, chatViewModel.revaanState.relationshipStage, 30, "Elite Influencer, Nightlife & Media Kingpin", "Park Street"),
             AIOption(AI.BABLOO, "Babloo", R.drawable.babloo_avatar, chatViewModel.bablooState.relationshipStage, 35, "Police Officer (Corrupt)", "Esplanade"),
-            AIOption(AI.SHANTI, "Shanti", R.drawable.shanti_avatar, chatViewModel.shantiState.relationshipStage, 40, "Gossip Queen & Political Informant", "Dalhousie"),
+            AIOption(AI.SAANVI, "Saanvi", R.drawable.saanvi_avatar, chatViewModel.saanviState.relationshipStage, 40, "Gossip Queen & Political Informant", "Dalhousie"),
             AIOption(AI.CHHOTU, "Chhotu", R.drawable.chhotu_avatar, chatViewModel.chhotuState.relationshipStage, 24, "Street-level Operative, Courier of Secrets", "Behala"),
             AIOption(AI.VARDHAN, "Vardhan", R.drawable.vardhan_avatar, chatViewModel.vardhanState.relationshipStage, 45, "Financial Backer, Influential Businessman", "Bhawanipore")
         )
         ChangeAIOverlay(aiOptions, { selectedAI ->
             activeAI = selectedAI
             showChangeAIOverlay = false
+            firstClickSession = false    // ← ensure it never auto‑shows again
         }) {
             showChangeAIOverlay = false
+            firstClickSession = false    // ← same on manual close
         }
+    }
+    if(showPointsDialog) {
+        PointsAndStagesDialog(
+            aiReps = chatViewModel.aiReps,
+            relationshipStages = relationshipStages,
+            onDismiss = { showPointsDialog = false }
+        )
     }
 }
 
@@ -908,7 +1004,8 @@ fun ChatTopAppBar(
     activeAI: AI,
     onShowAIProfile: () -> Unit,
     onChangeAI: () -> Unit,
-    onClearChat: () -> Unit
+    onClearChat: () -> Unit,
+    onShowPoints: () -> Unit  // New callback for showing points
 ) {
     var showMenu by remember { mutableStateOf(false) }
     TopAppBar(
@@ -924,6 +1021,9 @@ fun ChatTopAppBar(
         },
         backgroundColor = Color.Black,
         actions = {
+            IconButton(onClick = onShowPoints) {
+                Icon(Icons.Default.Info, "Show Points", tint = Color.White)
+            }
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(Icons.Default.MoreVert, "More Options", tint = Color.White)
@@ -983,7 +1083,7 @@ fun AIAvatar(activeAI: AI, modifier: Modifier = Modifier) {
         AI.RHEA -> R.drawable.rhea_avatar
         AI.REVAAN -> R.drawable.revaan_avatar
         AI.BABLOO -> R.drawable.babloo_avatar
-        AI.SHANTI -> R.drawable.shanti_avatar
+        AI.SAANVI -> R.drawable.saanvi_avatar
         AI.CHHOTU -> R.drawable.chhotu_avatar
         AI.VARDHAN -> R.drawable.vardhan_avatar
     }
@@ -1090,6 +1190,46 @@ fun AICard(aiOption: AIOption, onSelect: () -> Unit) {
             Text("Location: ${aiOption.location}", style = MaterialTheme.typography.body2, color = Color.LightGray)
             Text("Relationship: ${aiOption.relationshipStage}", style = MaterialTheme.typography.body2, color = Color.LightGray)
             Spacer(Modifier.weight(1f))
+        }
+    }
+}
+
+// New Dialog to show AIRep and Relationship Stages
+@Composable
+fun PointsAndStagesDialog(
+    aiReps: Map<AI, Int>,
+    relationshipStages: Map<AI, String>,
+    onDismiss: () -> Unit
+) {
+    val stageOrder = listOf("Friend","Casual Flirt","Romantic Partner","Spouse","Soulmate+")
+    val thresholds = mapOf("Friend" to 50, "Casual Flirt" to 100, "Romantic Partner" to 200, "Spouse" to 400, "Soulmate+" to Int.MAX_VALUE)
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(16.dp), color = Color.DarkGray) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Relationship Stages", style = MaterialTheme.typography.h6, color = Color.White)
+                Spacer(Modifier.height(12.dp))
+
+                relationshipStages.forEach { (ai, stage) ->
+                    val rep = aiReps[ai] ?: 0
+                    val currentIndex = stageOrder.indexOf(stage).coerceAtLeast(0)
+                    val nextInfo = if (currentIndex < stageOrder.lastIndex) {
+                        val nextStage = stageOrder[currentIndex + 1]
+                        val required = thresholds[nextStage]!!
+                        val remaining = (required - rep).coerceAtLeast(0)
+                        "$stage ($rep RP) → Next: $nextStage at $required RP ($remaining to go)"
+                    } else {
+                        "$stage ($rep RP) — Max stage achieved"
+                    }
+                    Text("${ai.name}: $nextInfo", color = Color.White, style = MaterialTheme.typography.body1)
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Gray)) {
+                    Text("Close", color = Color.White)
+                }
+            }
         }
     }
 }
