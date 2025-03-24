@@ -23,11 +23,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -38,6 +40,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,7 +71,7 @@ import java.util.concurrent.TimeUnit
 
 // --- Constants & Global Variables ---
 
-private const val NEWS_EVENT_THRESHOLD = 20
+private const val NEWS_EVENT_THRESHOLD = 3
 
 // Permanent global memory for manually written plot strings and news events
 val permanentGlobalMemory = mutableListOf(
@@ -84,6 +87,16 @@ data class MoodLevels(
     val romantic_passion: Int = 0,
     val satisfaction: Int = 0
 )
+
+data class NewsItem(
+    val id: String = UUID.randomUUID().toString(),
+    val parentId: String? = null,
+    val content: String,
+    val timestamp: Long = System.currentTimeMillis()
+){
+    // Firebase needs this
+    constructor(): this("", null, "", System.currentTimeMillis())
+}
 
 data class RelationshipHistory(
     val attachment: Int = 50,
@@ -140,9 +153,7 @@ private const val MAX_MEMORY_WORDS = 5000
 
 // --- ViewModel ---
 class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
-    companion object {
-        var lastChosenAI: AI = AI.RHEA
-    }
+    var newsMessages by mutableStateOf<List<NewsItem>>(emptyList())
 
     var messagesRhea by mutableStateOf<List<ChatMessage>>(emptyList())
     var messagesRevaan by mutableStateOf<List<ChatMessage>>(emptyList())
@@ -183,10 +194,19 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
     private val messageCountRef = chatRef.child("messageCounts")
     // Firebase node for global news announcements
     private val globalNewsRef = chatRef.child("globalNewsAnnouncements")
+    private val newsRef = chatRef.child("newsMessages")
     val aiReps = mutableStateMapOf<AI, Int>()
     private val aiRepRef = chatRef.child("aiRep")
 
     init {
+        newsRef.addValueEventListener(object: ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                newsMessages = s.children
+                    .mapNotNull { it.getValue(NewsItem::class.java) }
+                    .sortedBy { it.timestamp }
+            }
+            override fun onCancelled(e: DatabaseError) {}
+        })
         // Load per-AI message counts
         AI.values().forEach { ai ->
             messageCountRef.child(ai.name.lowercase())
@@ -391,17 +411,12 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
 
         // Check if the global message count reaches the news event threshold
         if (getGlobalMessageCount() % NEWS_EVENT_THRESHOLD == 0) {
-            viewModelScope.launch {
-                val allMessages = aggregateAllMessages()
-                val newsAnnouncement = generateNewsEvent(allMessages)
-                if (!newsAnnouncement.isNullOrBlank()) {
-                    // Format the announcement in bold
-                    val formattedNews = "**$newsAnnouncement**"
-                    permanentGlobalMemory.add(formattedNews)
-                    // Push the updated global news to Firebase
-                    globalNewsRef.setValue(permanentGlobalMemory)
-                }
-            }
+            val manualPress = "**Press Release: City Hall announces free public Wi‑Fi rollout next week.**"
+            permanentGlobalMemory.add(manualPress)
+            globalNewsRef.setValue(permanentGlobalMemory)
+
+            // PUSH only into newsMessages — NOT into AI conversation or chat messages
+            newsRef.push().setValue(ChatMessage("news", manualPress))
         }
 
         viewModelScope.launch {
@@ -440,33 +455,6 @@ class KupidXChatViewModel(private val userProfile: Profile) : ViewModel() {
         }
     }
 
-    // Helper function to aggregate all messages from every AI
-    private fun aggregateAllMessages(): List<ChatMessage> {
-        val all = mutableListOf<ChatMessage>()
-        all.addAll(messagesRhea)
-        all.addAll(messagesRevaan)
-        all.addAll(messagesKabir)
-        all.addAll(messagesSaanvi)
-        all.addAll(messagesChhotu)
-        all.addAll(messagesVardhan)
-        all.addAll(messagesZara)
-        return all.sortedBy { it.timestamp } // sorted chronologically
-    }
-
-    // Function to generate a news announcement from the given conversation
-    private suspend fun generateNewsEvent(conversation: List<ChatMessage>): String? {
-        // Build a prompt for a news announcement based on the aggregated conversation
-        val prompt = """
-            You are a "News Reporter" for Kolkata. Based on the following conversation between a user and various AI characters:
-            ${conversation.joinToString("\n") { "${it.role}: ${it.content}" }}
-            
-            Summarize what the user might be "waiting for" or what key event is emerging. 
-            Produce a press release announcement in a bold, formal tone.
-        """.trimIndent()
-        val newsPromptMsg = ChatMessage("system", prompt)
-        val apiResponse = callKupidXApi(listOf(newsPromptMsg))
-        return apiResponse
-    }
 
     suspend fun classifyMessageImpact(ai: AI, userText: String): MessageImpact {
         val s = getCurrentState(ai)
@@ -536,7 +524,7 @@ Return exactly this JSON:
                 .writeTimeout(120, TimeUnit.SECONDS)
                 .build()
             val url = "https://am24.org/openai/chat"
-            val bodyJson = gson.toJson(ChatRequest("mistral-saba-24b", messages))
+            val bodyJson = gson.toJson(ChatRequest("llama-3.3-70b-versatile", messages))
             val mediaType = "application/json".toMediaType()
             val reqBody = bodyJson.toRequestBody(mediaType)
             val req = Request.Builder().url(url).post(reqBody).build()
@@ -561,7 +549,7 @@ Return exactly this JSON:
                 .writeTimeout(120, TimeUnit.SECONDS)
                 .build()
             val url = "https://am24.org/openai/chat"
-            val bodyJson = gson.toJson(ChatRequest("mistral-saba-24b", messages))
+            val bodyJson = gson.toJson(ChatRequest("llama-3.3-70b-versatile", messages))
             val mediaType = "application/json".toMediaType()
             val reqBody = bodyJson.toRequestBody(mediaType)
             val req = Request.Builder().url(url).post(reqBody).build()
@@ -892,6 +880,15 @@ Return exactly this JSON:
         chatRef.child("memoryLogs").child(ai.name.lowercase()).setValue(log)
     }
 
+    fun publishNews(text: String) {
+        if (text.isBlank()) return
+        val news = NewsItem(content = text)
+        newsRef.push().setValue(news)
+        // Optionally, update the permanent global memory as well:
+        permanentGlobalMemory.add(text)
+        globalNewsRef.setValue(permanentGlobalMemory)
+    }
+
     private fun pushStateToFirebase(ai: AI, state: ModelingState) {
         val json = gson.toJson(state)
         val node = when (ai) {
@@ -1088,13 +1085,24 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
     }
     Scaffold(
         topBar = {
+            var showPublishDialog by remember { mutableStateOf(false) }
+            var showNewsFeed by remember { mutableStateOf(false) }
+
             ChatTopAppBar(
                 activeAI = activeAI,
+                onShowPublish = { showPublishDialog = true },
+                onShowNewsFeed = { showNewsFeed = true },
                 onShowAIProfile = { showAIProfileDialog = true },
                 onChangeAI = { showChangeAIOverlay = true },
                 onClearChat = { chatViewModel.clearChatForAI(activeAI) },
                 onShowPoints = { showPointsDialog = true }
             )
+
+            if (showPublishDialog) PublishNewsDialog(
+                onPublish = { parentId, text -> chatViewModel.publishNews(text) },
+                onDismiss = { showPublishDialog = false }
+            )
+            if (showNewsFeed) NewsFeedScreen(news = chatViewModel.newsMessages, onDismiss = { showNewsFeed = false })
         },
         backgroundColor = Color.Black
     ) { paddingVals ->
@@ -1103,7 +1111,7 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                 .padding(paddingVals)
                 .fillMaxSize()
         ) {
-            val displayedMessages = when (activeAI) {
+            val convo = when (activeAI) {
                 AI.RHEA -> chatViewModel.messagesRhea
                 AI.REVAAN -> chatViewModel.messagesRevaan
                 AI.KABIR -> chatViewModel.messagesKabir
@@ -1112,6 +1120,13 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
                 AI.VARDHAN -> chatViewModel.messagesVardhan
                 AI.ZARA -> chatViewModel.messagesZara
             }
+            // In KupidXChatScreen, replace displayedMessages line with:
+            val displayedMessages = (
+                    convo +
+                            chatViewModel.newsMessages.map { news ->
+                                ChatMessage(role = "news", content = news.content, timestamp = news.timestamp)
+                            }
+                    ).sortedBy { it.timestamp }
             val listState = rememberLazyListState()
             LaunchedEffect(displayedMessages.size) {
                 if (displayedMessages.isNotEmpty()) {
@@ -1222,6 +1237,8 @@ fun KupidXChatScreen(profileViewModel: ProfileViewModel = viewModel()) {
 @Composable
 fun ChatTopAppBar(
     activeAI: AI,
+    onShowPublish: () -> Unit,
+    onShowNewsFeed: () -> Unit,
     onShowAIProfile: () -> Unit,
     onChangeAI: () -> Unit,
     onClearChat: () -> Unit,
@@ -1241,6 +1258,12 @@ fun ChatTopAppBar(
         },
         backgroundColor = Color.Black,
         actions = {
+            IconButton(onClick = onShowPublish) {
+                Icon(Icons.Default.Create, contentDescription = "Publish News", tint = Color.White)
+            }
+            IconButton(onClick = onShowNewsFeed) {
+                Icon(Icons.Outlined.Info, contentDescription = "News Feed", tint = Color.White)
+            }
             IconButton(onClick = onShowPoints) {
                 Icon(Icons.Default.Info, contentDescription = "Show Points", tint = Color.White)
             }
@@ -1279,17 +1302,49 @@ fun ChatMessageItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (msg.role == "assistant") Arrangement.End else Arrangement.Start
     ) {
-        if (msg.role == "user") {
-            UserAvatar(userProfilePicUrl)
-            Spacer(Modifier.width(8.dp))
-            ChatBubble(msg.content, timeString, Color(0xFFFF6F00))
-        } else {
-            ChatBubble(msg.content, timeString, Color.DarkGray)
-            Spacer(Modifier.width(8.dp))
-            AIAvatar(activeAI,
-                Modifier
-                    .clickable { onAiAvatarClick() }
-                    .size(40.dp))
+        when (msg.role) {
+            "user" -> {
+                UserAvatar(userProfilePicUrl)
+                Spacer(Modifier.width(8.dp))
+                ChatBubble(msg.content, timeString, Color(0xFFFF6F00))
+            }
+            "news" -> {
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Card(
+                        backgroundColor = Color.White,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.widthIn(max = 300.dp)
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
+                            Text(
+                                text = msg.content.replace("*", ""),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                timeString,
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.align(Alignment.End)
+                            )
+                        }
+                    }
+                }
+            }
+            else -> {
+                ChatBubble(msg.content, timeString, Color.DarkGray)
+                Spacer(Modifier.width(8.dp))
+                AIAvatar(activeAI,
+                    Modifier
+                        .clickable { onAiAvatarClick() }
+                        .size(40.dp))
+            }
         }
     }
 }
@@ -1313,6 +1368,44 @@ fun ChatBubble(content: String, time: String, bubbleColor: Color) {
         }
     }
 }
+
+@Composable
+fun PublishNewsDialog(onPublish: (parentId: String?, text: String)->Unit, onDismiss: ()->Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(12.dp), color = Color.DarkGray, modifier = Modifier.padding(16.dp)) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Publish Global News", color = Color.White)
+                Spacer(Modifier.height(8.dp))
+                TextField(value = text, onValueChange={text=it}, placeholder={Text("News…")})
+                Spacer(Modifier.height(16.dp))
+                Button(onClick={ onPublish(null, text.trim()); onDismiss() }) {
+                    Text("Publish", color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsFeedScreen(news: List<NewsItem>, onDismiss: ()->Unit) {
+    Dialog(onDismissRequest=onDismiss) {
+        Surface(shape=RoundedCornerShape(12.dp), modifier=Modifier.fillMaxSize().padding(16.dp)) {
+            LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp), contentPadding=PaddingValues(16.dp)) {
+                items(news) { item ->
+                    Card(backgroundColor=Color.White, shape=RoundedCornerShape(8.dp)) {
+                        Column(Modifier.padding(12.dp)) {
+                            Text(item.content, fontWeight=FontWeight.Bold, color=Color.Black)
+                            Spacer(Modifier.height(4.dp))
+                            Text(SimpleDateFormat("MMM dd, hh:mm a").format(Date(item.timestamp)), fontSize=12.sp, color=Color.Gray)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun AIAvatar(activeAI: AI, modifier: Modifier = Modifier) {
