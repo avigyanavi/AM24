@@ -44,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
@@ -65,6 +67,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.util.Calendar
+import java.util.Locale
+
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
 
@@ -90,6 +94,14 @@ class RegistrationActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         deleteIncompleteRegistration()
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        // Retrieve the language code from SharedPreferences (default "en")
+        val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val languageCode = prefs.getString("language", "en") ?: "en"
+        val updatedContext = updateLocale(newBase, languageCode)
+        super.attachBaseContext(updatedContext)
     }
 
     private fun deleteIncompleteRegistration() {
@@ -120,6 +132,10 @@ class RegistrationActivity : ComponentActivity() {
 }
 
 class RegistrationViewModel : ViewModel() {
+
+    var selectedLanguage by mutableStateOf("en") // Options: "en", "bn", "hi"
+    var city by mutableStateOf("")
+    var customCity by mutableStateOf("")
 
     // Voice Recording
     var voiceNoteUri by mutableStateOf<Uri?>(null) // To hold the voice recording URI
@@ -219,12 +235,12 @@ class RegistrationViewModel : ViewModel() {
 @Composable
 fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
     val registrationViewModel: RegistrationViewModel = viewModel()
+    // Now totalSteps increases to 11 (adjust as needed)
     var currentStep by remember { mutableStateOf(1) }
-    val totalSteps = 9  // Updated total steps
+    val totalSteps = 11
     val progress = currentStep.toFloat() / totalSteps.toFloat()
 
     val context = LocalContext.current
-
     val onNext = { currentStep += 1 }
     val onBack: () -> Unit = {
         if (currentStep > 1) {
@@ -253,7 +269,6 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
                     .background(Color(0xFF1A1A1A))
                     .padding(innerPadding)
             ) {
-                // Progress Bar
                 LinearProgressIndicator(
                     progress = progress,
                     modifier = Modifier
@@ -262,25 +277,137 @@ fun RegistrationScreen(onRegistrationComplete: () -> Unit) {
                     color = Color(0xFFFF6000),
                     trackColor = Color.Gray
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Content based on the current step
                 when (currentStep) {
-                    1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
-                    2 -> EnterNameScreen(registrationViewModel, onNext)
-                    3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
-                    4 -> EnterBirthDateAndInterestsScreen(registrationViewModel, onNext, onBack)
-                    5 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
-                    6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
-                    7 -> EnterLifestyleScreen(registrationViewModel, onNext)  // New step
-                    8 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
-                    9 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    1 -> ChooseLanguageScreen(registrationViewModel, onNext)
+                    2 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
+                    3 -> EnterNameScreen(registrationViewModel, onNext)
+                    4 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
+                    5 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext)  // New screen
+                    6 -> EnterInterestsScreen(registrationViewModel, onNext)            // Modified interests screen
+                    7 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
+                    8 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
+                    9 -> EnterLifestyleScreen(registrationViewModel, onNext)
+                    10 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
+                    11 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChooseLanguageScreen(
+    registrationViewModel: RegistrationViewModel,
+    onNext: () -> Unit
+) {
+    val context = LocalContext.current
+    val currentLocaleLanguage = Locale.getDefault().language
+
+    var shouldRestart by remember { mutableStateOf(false) }
+    if (shouldRestart) {
+        LanguageRestartScreen()
+        return
+    }
+
+    val options = listOf(
+        "English" to "en",
+        "বাংলা (Bengali)" to "bn",
+        "हिन्दी (Hindi)" to "hi"
+    )
+
+    // Optionally update the locale immediately for preview (won't fully reload the context)
+    LaunchedEffect(registrationViewModel.selectedLanguage) {
+        updateLocale(context, registrationViewModel.selectedLanguage)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.choose_language_title), color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
+            )
+        },
+        content = { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 32.dp, vertical = 48.dp)
+                    .background(Color(0xFF1A1A1A)),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    stringResource(R.string.select_preferred_language),
+                    color = Color.White,
+                    fontSize = 20.sp
+                )
+                options.forEach { (label, langCode) ->
+                    val isSelected = registrationViewModel.selectedLanguage == langCode
+                    Button(
+                        onClick = {
+                            registrationViewModel.selectedLanguage = langCode
+                            // Save selected language persistently
+                            context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit()
+                                .putString("language", langCode)
+                                .apply()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) Color(0xFFFF6000) else Color.DarkGray
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(label, color = Color.White)
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        if (registrationViewModel.selectedLanguage != currentLocaleLanguage) {
+                            shouldRestart = true
+                        } else {
+                            onNext()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = registrationViewModel.selectedLanguage.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+                ) {
+                    Text(stringResource(R.string.next_button), color = Color.White)
+                }
+            }
+        }
+    )
+}
+
+
+// Add this new composable for restarting the activity
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LanguageRestartScreen() {
+    // Get the current context as an Activity.
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        delay(2000) // Wait 2 seconds before restarting.
+        (context as? ComponentActivity)?.recreate()
+    }
+    // Display a simple pause UI.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = Color(0xFFFF6000))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Restarting to apply language changes...", color = Color.White, fontSize = 18.sp)
+        }
+    }
+}
+
 
 @Composable
 fun EnterLifestyleScreen(
@@ -671,7 +798,7 @@ fun EnterLifestyleScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
                     ) {
-                        Text(text = "Next", color = Color.White)
+                        Text(text = stringResource(R.string.next_button), color = Color.White)
                     }
                 }
             }
@@ -738,7 +865,7 @@ fun DropdownWithStaticOptions(
             border = BorderStroke(1.dp, Color(0xFFFF6000)),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
         ) {
-            Text(text = selectedOption.ifEmpty { "Select" }, color = Color(0xFFFF6000))
+            Text(text = selectedOption.ifEmpty { stringResource(R.string.select_default) }, color = Color(0xFFFF6000))
         }
 
         DropdownMenu(
@@ -820,7 +947,7 @@ fun EnterLocationAndSchoolScreen(
             ) {
                 // Section Title
                 Text(
-                    text = "Enter Education and Location",
+                    text = stringResource(R.string.education_and_location_title),
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -829,13 +956,13 @@ fun EnterLocationAndSchoolScreen(
 
                 // Education Level Dropdown
                 Text(
-                    text = "Education Level",
+                    text = stringResource(R.string.education_level_label),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 DropdownWithSearch(
-                    title = "Select Education Level",
+                    title = stringResource(R.string.select_education_level),
                     options = educationLevels,
                     selectedOption = registrationViewModel.educationLevel,
                     onOptionSelected = { registrationViewModel.educationLevel = it }
@@ -845,13 +972,13 @@ fun EnterLocationAndSchoolScreen(
                 if (registrationViewModel.educationLevel in listOf("High School", "College", "Post-Graduation")) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "High School",
+                        text = stringResource(R.string.high_school_label),
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     SearchableDropdownWithCustomOption(
-                        title = "Select or type your high school",
+                        title = stringResource(R.string.select_or_type_high_school),
                         options = highSchoolOptions,
                         selectedOption = registrationViewModel.highSchool,
                         onOptionSelected = { registrationViewModel.highSchool = it },
@@ -866,16 +993,16 @@ fun EnterLocationAndSchoolScreen(
                 }
 
                 // College Section
-                if (registrationViewModel.educationLevel in listOf("College", "Post-Graduation")) {
+                if (registrationViewModel.educationLevel in listOf(stringResource(R.string.college_label), stringResource(R.string.post_graduation_label))) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "College",
+                        text = stringResource(R.string.college_label),
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     SearchableDropdownWithCustomOption(
-                        title = "Select or type your college",
+                        title = stringResource(R.string.select_or_type_college),
                         options = collegeOptions,
                         selectedOption = registrationViewModel.college,
                         onOptionSelected = { registrationViewModel.college = it },
@@ -890,16 +1017,16 @@ fun EnterLocationAndSchoolScreen(
                 }
 
                 // Post-Graduation Section
-                if (registrationViewModel.educationLevel == "Post-Graduation") {
+                if (registrationViewModel.educationLevel == stringResource(R.string.post_graduation_label)) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Post-Graduation",
+                        text = stringResource(R.string.post_graduation_label),
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     SearchableDropdownWithCustomOption(
-                        title = "Select or type your post-graduation institute",
+                        title = stringResource(R.string.select_or_type_post_grad),
                         options = postGraduationOptions,
                         selectedOption = registrationViewModel.postGraduation ?: "",
                         onOptionSelected = { registrationViewModel.postGraduation = it },
@@ -927,7 +1054,7 @@ fun EnterLocationAndSchoolScreen(
                     shape = CircleShape
                 ) {
                     Text(
-                        text = "Next",
+                        text = stringResource(R.string.next_button),
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -955,7 +1082,7 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
             border = BorderStroke(1.dp, Color(0xFFFF6000))
         ) {
             Text(
-                text = year.ifEmpty { "Select Graduation Year" },
+                text = year.ifEmpty { stringResource(R.string.select_graduation_year_label) },
                 color = Color(0xFFFF6000)
             )
         }
@@ -971,7 +1098,7 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
             TextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search Year", color = Color(0xFFFF6000)) },
+                label = { Text(stringResource(R.string.search_year_label), color = Color(0xFFFF6000)) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF6000),
                     cursorColor = Color(0xFFFF6000),
@@ -1057,7 +1184,7 @@ fun SearchableDropdownWithCustomOption(
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
         ) {
             Text(
-                text = if (showCustomInput) customInput else selectedOption.ifEmpty { "Select or type" },
+                text = if (showCustomInput) customInput else selectedOption.ifEmpty { stringResource(R.string.select_or_type) },
                 color = Color.White
             )
         }
@@ -1075,7 +1202,7 @@ fun SearchableDropdownWithCustomOption(
                     searchText = input
                     showCustomInput = false
                 },
-                label = { Text("Search", color = Color.White) },
+                label = { Text(stringResource(R.string.search_label), color = Color.White) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
@@ -1231,7 +1358,7 @@ fun EnterEmailAndPasswordScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Create Account",
+                        text = stringResource(R.string.create_account_title),
                         color = Color.White,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
@@ -1245,7 +1372,7 @@ fun EnterEmailAndPasswordScreen(
                             email = it
                             registrationViewModel.email = it.text
                         },
-                        label = { Text("Email", color = Color.White) },
+                        label = { Text(stringResource(R.string.email_label), color = Color.White) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1268,7 +1395,7 @@ fun EnterEmailAndPasswordScreen(
                             password = it
                             registrationViewModel.password = it.text
                         },
-                        label = { Text("Password", color = Color.White) },
+                        label = { Text(stringResource(R.string.password_label), color = Color.White) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1288,7 +1415,7 @@ fun EnterEmailAndPasswordScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text("Confirm Password", color = Color.White) },
+                        label = { Text(stringResource(R.string.confirm_password_label), color = Color.White) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         isError = passwordError,
@@ -1307,7 +1434,7 @@ fun EnterEmailAndPasswordScreen(
                     )
 
                     if (passwordError) {
-                        Text("Passwords do not match", color = Color.Red)
+                        Text(stringResource(R.string.password_mismatch_error), color = Color.Red)
                     }
 
                     Button(
@@ -1337,7 +1464,7 @@ fun EnterEmailAndPasswordScreen(
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
                         Text(
-                            text = "Next",
+                            text = stringResource(R.string.next_button),
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -1356,7 +1483,7 @@ fun EnterGenderCommunityReligionScreen(
     onNext: () -> Unit
 ) {
     // Predefined lists for dropdown options
-    val genderOptions = listOf("Male", "Female", "Non-Binary", "Other")
+    val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), "Other")
     val communityOptions = listOf("Marwari", "Bengali", "Punjabi", "Tamil", "Other")
     val religionOptions = listOf("Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Other")
 
@@ -1384,7 +1511,7 @@ fun EnterGenderCommunityReligionScreen(
             ) {
                 // Title
                 Text(
-                    text = "Enter Your Gender, Community, and Religion",
+                    text = stringResource(R.string.enter_gender_community_religion_title),
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -1393,13 +1520,13 @@ fun EnterGenderCommunityReligionScreen(
 
                 // Gender Dropdown
                 Text(
-                    text = "Gender",
+                    text = stringResource(R.string.gender_label),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 DropdownWithSearch(
-                    title = "Select Gender",
+                    title = stringResource(R.string.select_gender),
                     options = genderOptions,
                     selectedOption = registrationViewModel.gender,
                     onOptionSelected = { registrationViewModel.gender = it }
@@ -1409,13 +1536,13 @@ fun EnterGenderCommunityReligionScreen(
 
                 // Community Dropdown
                 Text(
-                    text = "Community",
+                    text = stringResource(R.string.community_label),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 DropdownWithSearch(
-                    title = "Select Community",
+                    title = stringResource(R.string.select_community),
                     options = communityOptions,
                     selectedOption = registrationViewModel.community,
                     onOptionSelected = { registrationViewModel.community = it }
@@ -1425,13 +1552,13 @@ fun EnterGenderCommunityReligionScreen(
 
                 // Religion Dropdown
                 Text(
-                    text = "Religion",
+                    text = stringResource(R.string.religion_label),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 DropdownWithSearch(
-                    title = "Select Religion",
+                    title = stringResource(R.string.select_religion),
                     options = religionOptions,
                     selectedOption = registrationViewModel.religion,
                     onOptionSelected = { registrationViewModel.religion = it }
@@ -1452,7 +1579,7 @@ fun EnterGenderCommunityReligionScreen(
                     shape = CircleShape
                 ) {
                     Text(
-                        text = "Next",
+                        text = stringResource(R.string.next_button),
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -1488,7 +1615,7 @@ fun DropdownWithSearch(
             border = BorderStroke(1.dp, Color(0xFFFF4500)),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF4500))
         ) {
-            Text(text = selectedOption.ifEmpty { "Select" }, color = Color.White)
+            Text(text = selectedOption.ifEmpty { stringResource(R.string.select_default) }, color = Color.White)
         }
 
         DropdownMenu(
@@ -1501,7 +1628,7 @@ fun DropdownWithSearch(
             TextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search", color = Color.White) },
+                label = { Text(stringResource(R.string.search_label), color = Color.White) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
@@ -1572,7 +1699,7 @@ fun EnterUsernameScreen(
                             isUsernameValid = true
                             usernameErrorMessage = ""
                         },
-                        label = { Text("Username", color = Color.White) },
+                        label = { Text(stringResource(R.string.username_label), color = Color.White) },
                         singleLine = true,
                         isError = !isUsernameValid,
                         supportingText = {
@@ -1642,7 +1769,7 @@ fun EnterUsernameScreen(
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
                         Text(
-                            text = "Finish",
+                            text = stringResource(R.string.finish_button),
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -1653,7 +1780,6 @@ fun EnterUsernameScreen(
         }
     )
 }
-
 
 suspend fun saveProfileToFirebase(
     registrationViewModel: RegistrationViewModel,
@@ -1672,12 +1798,15 @@ suspend fun saveProfileToFirebase(
             bio = registrationViewModel.bio,
             gender = registrationViewModel.gender,
             interests = registrationViewModel.interests.toList(),
+            // Save the city using customCity if "Other" is selected
+            city = if (registrationViewModel.city == "Other") registrationViewModel.customCity else registrationViewModel.city,
+            // Hometown represents locality; if empty, fallback to a custom value if provided
             hometown = registrationViewModel.hometown.ifEmpty { registrationViewModel.customHometown },
             highSchool = if (registrationViewModel.highSchool == "Other") registrationViewModel.customHighSchool else registrationViewModel.highSchool,
             college = if (registrationViewModel.college == "Other") registrationViewModel.customCollege else registrationViewModel.college,
             postGraduation = if (registrationViewModel.postGraduation == "Other") registrationViewModel.customPostGraduation else registrationViewModel.postGraduation,
             work = if (registrationViewModel.work == "Other") registrationViewModel.customWork else registrationViewModel.work,
-            profilepicUrl = registrationViewModel.profilePicUrl,  // Use the uploaded profile picture URL
+            profilepicUrl = registrationViewModel.profilePicUrl,
             optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
             religion = registrationViewModel.religion,
             community = registrationViewModel.community,
@@ -1689,10 +1818,11 @@ suspend fun saveProfileToFirebase(
             height = registrationViewModel.height,
             height2 = registrationViewModel.height2,
             caste = registrationViewModel.caste,
-            voiceNoteUrl = registrationViewModel.voiceNoteUrl,  // Use the uploaded voice note URL
+            voiceNoteUrl = registrationViewModel.voiceNoteUrl,
             datingAgeStart = registrationViewModel.datingAgeStart,
             datingAgeEnd = registrationViewModel.datingAgeEnd,
-            datingDistancePreference = registrationViewModel.datingDistancePreference
+            datingDistancePreference = registrationViewModel.datingDistancePreference,
+            preferredLanguage = registrationViewModel.selectedLanguage // NEW: Save language choice
         )
 
         database.child("users").child(userId).setValue(profile).await()
@@ -1704,6 +1834,7 @@ suspend fun saveProfileToFirebase(
         Log.e("Registration", "Failed to save profile: ${e.message}")
     }
 }
+
 
 fun uploadProfilePicToFirebase(
     storageRef: StorageReference,
@@ -1784,7 +1915,7 @@ fun EnterNameScreen(
                     item {
                         // Name Input
                         TextFieldWithLabel(
-                            label = "Full Name",
+                            label = stringResource(R.string.full_name_label),
                             value = registrationViewModel.name,
                             onValueChange = { registrationViewModel.name = it }
                         )
@@ -1792,7 +1923,7 @@ fun EnterNameScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Height Section
-                        Text("Height", color = Color.White, fontSize = 18.sp)
+                        Text(stringResource(R.string.height_label), color = Color.White, fontSize = 18.sp)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(vertical = 8.dp)
@@ -1811,9 +1942,9 @@ fun EnterNameScreen(
                             )
                             Text(
                                 text = if (registrationViewModel.isHeightInFeet)
-                                    " Feet + Inches"
+                                    stringResource(R.string.feet_inches_label)
                                 else
-                                    " Centimeters",
+                                    stringResource(R.string.centimeters_label),
                                 color = Color.White
                             )
                         }
@@ -1830,7 +1961,7 @@ fun EnterNameScreen(
                                         .weight(1f)
                                 ) {
                                     TextFieldWithLabel(
-                                        label = "Feet",
+                                        label = stringResource(R.string.feet_label),
                                         value = registrationViewModel.height2.getOrNull(0)?.toString() ?: "",
                                         onValueChange = { newFeet ->
                                             registrationViewModel.height2 = listOf(
@@ -1847,7 +1978,7 @@ fun EnterNameScreen(
                                         .weight(1f)
                                 ) {
                                     TextFieldWithLabel(
-                                        label = "Inches",
+                                        label = stringResource(R.string.inches_label),
                                         value = registrationViewModel.height2.getOrNull(1)?.toString() ?: "",
                                         onValueChange = { newInches ->
                                             registrationViewModel.height2 = listOf(
@@ -1861,7 +1992,7 @@ fun EnterNameScreen(
                         }
                          else {
                             TextFieldWithLabel(
-                                label = "Height (cm)",
+                                label = stringResource(R.string.height_cm_label),
                                 value = registrationViewModel.height.toString(),
                                 onValueChange = { newHeight ->
                                     registrationViewModel.height =
@@ -1874,7 +2005,7 @@ fun EnterNameScreen(
 
                         // Caste Input using SearchableDropdownWithCustomOption
                         SearchableDropdownWithCustomOption(
-                            title = "Caste",
+                            title = stringResource(R.string.caste_title),
                             options = listOf("Brahmin", "Kshatriya", "Vaishya", "Shudra"),
                             selectedOption = registrationViewModel.caste,
                             onOptionSelected = { selectedOption ->
@@ -1891,7 +2022,7 @@ fun EnterNameScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Interested In Options
-                        Text("Interested In", color = Color.White, fontSize = 18.sp)
+                        Text(stringResource(R.string.interested_in_title), color = Color.White, fontSize = 18.sp)
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier
@@ -1954,7 +2085,7 @@ fun EnterNameScreen(
                             ),
                             enabled = canProceed
                         ) {
-                            Text("Next", color = Color.White)
+                            Text(stringResource(R.string.next_button), color = Color.White)
                         }
                     }
                 }
@@ -1965,68 +2096,329 @@ fun EnterNameScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EnterBirthDateAndInterestsScreen(
+fun EnterBirthdateCityHometownScreen(
     registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit,
-    onBack: () -> Unit
+    onNext: () -> Unit
 ) {
-    // 1) Birth Date Setup
+    val context = LocalContext.current
+
+    // --- Birthdate Setup ---
     val dayRange = (1..31).toList()
     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-    val yearRange = (1950..currentYear).toList().reversed()
-    val monthNames = listOf(
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    )
+    val yearRange = (1950..currentYear).map { it.toString() }.reversed()
+    val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-    var selectedDay by remember { mutableStateOf(dayRange[0]) }
+    var selectedDay by remember { mutableStateOf(dayRange.first()) }
     var selectedMonthIndex by remember { mutableStateOf(0) }
-    var selectedYear by remember { mutableStateOf(yearRange[0]) }
+    var selectedYear by remember { mutableStateOf(yearRange.first().toInt()) }
 
-    fun updateDobInViewModel() {
-        val monthNumber = selectedMonthIndex + 1
-        registrationViewModel.dob = "$selectedDay/$monthNumber/$selectedYear"
+    fun updateDob() {
+        registrationViewModel.dob = "$selectedDay/${selectedMonthIndex + 1}/$selectedYear"
     }
-
-    // Restore existing DOB if previously set
     LaunchedEffect(Unit) {
-        val storedDob = registrationViewModel.dob
-        if (storedDob.isNotBlank()) {
-            val parts = storedDob.split("/")
+        if (registrationViewModel.dob.isNotBlank()) {
+            val parts = registrationViewModel.dob.split("/")
             if (parts.size == 3) {
-                val parsedDay = parts[0].toIntOrNull()
-                val parsedMonth = parts[1].toIntOrNull()
-                val parsedYear = parts[2].toIntOrNull()
-
-                if (parsedDay != null && parsedDay in dayRange) selectedDay = parsedDay
-                if (parsedMonth != null && parsedMonth in 1..12) selectedMonthIndex = parsedMonth - 1
-                if (parsedYear != null && parsedYear in yearRange) selectedYear = parsedYear
+                parts[0].toIntOrNull()?.let { selectedDay = it }
+                parts[1].toIntOrNull()?.let { selectedMonthIndex = it - 1 }
+                parts[2].toIntOrNull()?.let { selectedYear = it }
             }
         }
-        updateDobInViewModel()
+        updateDob()
     }
+    var dayExpanded by remember { mutableStateOf(false) }
+    var monthExpanded by remember { mutableStateOf(false) }
+    var yearExpanded by remember { mutableStateOf(false) }
 
-    // Expand states
-    var expandedDay by remember { mutableStateOf(false) }
-    var expandedMonth by remember { mutableStateOf(false) }
-    var expandedYear by remember { mutableStateOf(false) }
-    val isDateSelected = registrationViewModel.dob.isNotBlank()
+    // --- City Selection ---
+    // Assume your "city_names" array includes an "Other" option.
+    val cities = context.resources.getStringArray(R.array.city_names)
+    var selectedCity by remember { mutableStateOf(cities.firstOrNull() ?: "") }
+    var cityExpanded by remember { mutableStateOf(false) }
+    // New custom city state
+    var customCity by remember { mutableStateOf("") }
 
-    // 2) Kolkata Localities Only
-    val kolkataLocalities = listOf("Salt Lake", "New Town", "Dum Dum", "Behala", "Park Street")
-
-    // We store the user’s selected locality in "hometown."
-    var selectedLocality by rememberSaveable { mutableStateOf(registrationViewModel.hometown) }
-
-    // Update registrationViewModel.hometown when locality changes
-    LaunchedEffect(selectedLocality) {
-        registrationViewModel.hometown = selectedLocality
+    // --- Locality (Hometown) Selection ---
+    // Use a when clause to choose localities based on the selected city.
+    // For cities other than "Other", we append an "Other" option.
+    val localities = remember(selectedCity) {
+        when (selectedCity) {
+            "Kolkata" -> context.resources.getStringArray(R.array.localities_kolkata).toList() + "Other"
+            "Salt Lake, Newtown and Rajarhat" ->
+                context.resources.getStringArray(R.array.localities_salt_lake_newtown_rajarhat).toList() + "Other"
+            "Howrah" -> context.resources.getStringArray(R.array.localities_howrah).toList() + "Other"
+            "Durgapur" -> context.resources.getStringArray(R.array.localities_durgapur).toList() + "Other"
+            "Darjeeling" -> context.resources.getStringArray(R.array.localities_darjeeling).toList() + "Other"
+            "Siliguri" -> context.resources.getStringArray(R.array.localities_siliguri).toList() + "Other"
+            "Asansol" -> context.resources.getStringArray(R.array.localities_asansol).toList() + "Other"
+            "Other" -> listOf("Other")
+            else -> emptyList()
+        }
     }
+    var selectedLocality by remember { mutableStateOf(if (localities.isNotEmpty()) localities.first() else "") }
+    var localityExpanded by remember { mutableStateOf(false) }
+    // Custom locality state (for "Other")
+    var customLocality by remember { mutableStateOf("") }
 
-    // For the dropdown
-    var localityDropdownExpanded by remember { mutableStateOf(false) }
+    // Determine if "Other" is chosen for city or locality
+    val isCityOther = selectedCity == "Other"
+    val isLocalityOther = selectedLocality == "Other"
 
-    // 3) Interests
+    // Next button is enabled only if:
+    // • Birthdate is filled,
+    // • And either if city is "Other" then customCity must be nonblank, or else selectedCity is nonblank,
+    // • And either if locality is "Other" then customLocality must be nonblank, or else selectedLocality is nonblank.
+    val isNextEnabled = registrationViewModel.dob.isNotBlank() &&
+            ((isCityOther && customCity.isNotBlank()) || (!isCityOther && selectedCity.isNotBlank())) &&
+            ((isLocalityOther && customLocality.isNotBlank()) || (!isLocalityOther && selectedLocality.isNotBlank()))
+
+    // Update profile fields accordingly:
+    registrationViewModel.city = if (isCityOther) customCity else selectedCity
+    registrationViewModel.hometown = if (isLocalityOther) customLocality else selectedLocality
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        stringResource(R.string.enter_birthdate_city_hometown_title),
+                        color = Color.White
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
+            )
+        },
+        content = { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1A1A1A))
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 32.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // --- Birthdate Section ---
+                Text(stringResource(R.string.select_birth_date_label), color = Color.White, fontSize = 18.sp)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    // Day
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { dayExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
+                        ) {
+                            Text("$selectedDay", color = Color.White)
+                        }
+                        DropdownMenu(expanded = dayExpanded, onDismissRequest = { dayExpanded = false },
+                            modifier = Modifier.background(Color(0xFF1A1A1A))) {
+                            dayRange.forEach { day ->
+                                DropdownMenuItem(
+                                    text = { Text("$day", color = Color.White) },
+                                    onClick = {
+                                        selectedDay = day
+                                        dayExpanded = false
+                                        updateDob()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    // Month
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { monthExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
+                        ) {
+                            Text(monthNames[selectedMonthIndex], color = Color.White)
+                        }
+                        DropdownMenu(expanded = monthExpanded, onDismissRequest = { monthExpanded = false },
+                            modifier = Modifier.background(Color(0xFF1A1A1A))) {
+                            monthNames.forEachIndexed { index, monthName ->
+                                DropdownMenuItem(
+                                    text = { Text(monthName, color = Color.White) },
+                                    onClick = {
+                                        selectedMonthIndex = index
+                                        monthExpanded = false
+                                        updateDob()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    // Year
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { yearExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
+                        ) {
+                            Text("$selectedYear", color = Color.White)
+                        }
+                        DropdownMenu(expanded = yearExpanded, onDismissRequest = { yearExpanded = false },
+                            modifier = Modifier.background(Color(0xFF1A1A1A))) {
+                            yearRange.forEach { yr ->
+                                DropdownMenuItem(
+                                    text = { Text(yr, color = Color.White) },
+                                    onClick = {
+                                        selectedYear = yr.toInt()
+                                        yearExpanded = false
+                                        updateDob()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                // --- City Section ---
+                Text(stringResource(R.string.city_label), color = Color.White, fontSize = 18.sp)
+                Box {
+                    OutlinedButton(
+                        onClick = { cityExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, Color(0xFFFF6000)),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
+                    ) {
+                        Text(
+                            text = if (selectedCity.isNotEmpty()) selectedCity else stringResource(R.string.select_city_default),
+                            color = Color.White
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = cityExpanded,
+                        onDismissRequest = { cityExpanded = false },
+                        modifier = Modifier.background(Color(0xFF1A1A1A))
+                    ) {
+                        cities.forEach { cityName ->
+                            DropdownMenuItem(
+                                text = { Text(cityName, color = Color.White) },
+                                onClick = {
+                                    selectedCity = cityName
+                                    // Update the profile field for city.
+                                    registrationViewModel.city = if (cityName == "Other") customCity else cityName
+                                    cityExpanded = false
+                                    // Reset locality when city changes.
+                                    selectedLocality = ""
+                                }
+                            )
+                        }
+                    }
+                }
+                // Show custom city input if "Other" is selected.
+                if (selectedCity == "Other") {
+                    OutlinedTextField(
+                        value = customCity,
+                        onValueChange = { customCity = it
+                            registrationViewModel.customCity = it // Update the view model as well.
+                        },
+                        label = { Text(stringResource(R.string.city_label), color = Color.White) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFFFF6000),
+                            focusedBorderColor = Color(0xFFFF6000),
+                            unfocusedBorderColor = Color.White,
+                            focusedLabelColor = Color(0xFFFF6000),
+                            unfocusedLabelColor = Color.White
+                        )
+                    )
+                }
+                // --- Locality Section ---
+                Text(stringResource(R.string.locality_label), color = Color.White, fontSize = 18.sp)
+                Box {
+                    OutlinedButton(
+                        onClick = { localityExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, Color(0xFFFF6000)),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
+                    ) {
+                        Text(
+                            text = if (selectedLocality.isNotEmpty()) selectedLocality else stringResource(R.string.select_locality_default),
+                            color = Color.White
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = localityExpanded,
+                        onDismissRequest = { localityExpanded = false },
+                        modifier = Modifier.background(Color(0xFF1A1A1A))
+                    ) {
+                        // Use the computed localities list (which already includes "Other")
+                        localities.forEach { loc ->
+                            DropdownMenuItem(
+                                text = { Text(loc, color = Color.White) },
+                                onClick = {
+                                    selectedLocality = loc
+                                    registrationViewModel.hometown = if (loc == "Other") customLocality else loc
+                                    localityExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                // If locality "Other" is selected, show custom locality input.
+                if (selectedLocality == "Other") {
+                    OutlinedTextField(
+                        value = customLocality,
+                        onValueChange = { customLocality = it
+                            registrationViewModel.customHometown = it // Update the view model as well.
+                        },
+                        label = { Text(stringResource(R.string.locality_label), color = Color.White) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color(0xFFFF6000),
+                            focusedBorderColor = Color(0xFFFF6000),
+                            unfocusedBorderColor = Color.White,
+                            focusedLabelColor = Color(0xFFFF6000),
+                            unfocusedLabelColor = Color.White
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = { if (isNextEnabled) onNext() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = isNextEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.DarkGray
+                    ),
+                    shape = CircleShape
+                ) {
+                    Text(stringResource(R.string.next_button), color = Color.White)
+                }
+            }
+        }
+    )
+}
+
+fun updateLocale(context: Context, languageCode: String): Context {
+    val locale = Locale(languageCode)
+    Locale.setDefault(locale)
+    val config = context.resources.configuration
+    config.setLocale(locale)
+    return context.createConfigurationContext(config)
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnterInterestsScreen(
+    registrationViewModel: RegistrationViewModel,
+    onNext: () -> Unit
+) {
+    // Global interests (static list)
     val globalInterests = listOf(
         Interest("Music", "🎵"),
         Interest("Movies", "🎥"),
@@ -2038,8 +2430,8 @@ fun EnterBirthDateAndInterestsScreen(
         Interest("Gaming", "🎮")
     )
 
-    // Locality-Specific Interests (Only for Kolkata)
-    val kolkataLocalitiesInterests = mapOf(
+    // Locality-based interests for all localities (union of all values)
+    val localityInterestsMap = mapOf(
         "Salt Lake" to listOf(
             Interest("CC Block Market", "🛒"),
             Interest("Sector V IT Hub", "💻")
@@ -2060,23 +2452,22 @@ fun EnterBirthDateAndInterestsScreen(
             Interest("Nightlife", "🌃"),
             Interest("Park Street Cafes", "☕")
         )
+        // Add additional mappings as needed.
     )
+    // Instead of showing only the interests corresponding to the selected hometown,
+    // we now take the union of all locality interests.
+    val localityInterests = localityInterestsMap.values.flatten()
 
-    // Additional Interests for entire Kolkata
-    val kolkataCityInterests = listOf(
-        Interest("Durga Puja", "🙏"),
-        Interest("Roshogolla", "⚪"),
-        Interest("Jhalmuri", "🍿"),
-        Interest("Victoria Memorial", "🏛️")
-    )
+    // Combine global and locality-based interests and remove duplicates (by name)
+    val allInterests = (globalInterests + localityInterests).distinctBy { it.name }
 
-    // 4) "Next" Enabled only if DOB + Locality chosen
-    val isNextEnabled = isDateSelected && selectedLocality.isNotEmpty()
+    val maxInterests = 15
+    val interestsOverLimit = registrationViewModel.interests.size > maxInterests
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {},
+                title = { Text(stringResource(R.string.enter_interests_title), color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
@@ -2088,291 +2479,79 @@ fun EnterBirthDateAndInterestsScreen(
                     .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 32.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Enter Birth Date and Interests",
+                    stringResource(R.string.global_interests_label),
                     color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    fontSize = 18.sp
                 )
 
-                // Birth Date Section
-                Text("Select Birth Date", color = Color.White, fontSize = 18.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Day
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { expandedDay = true },
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("$selectedDay", color = Color.White)
-                        }
-                        DropdownMenu(
-                            expanded = expandedDay,
-                            onDismissRequest = { expandedDay = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            dayRange.forEachIndexed { index, day ->
-                                DropdownMenuItem(
-                                    text = { Text("$day", color = Color.White) },
-                                    onClick = {
-                                        selectedDay = day
-                                        expandedDay = false
-                                        updateDobInViewModel()
-                                    }
-                                )
-                                if (index != dayRange.lastIndex) {
-                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
+                // Render all the interests (both global and locality-based)
+                allInterests.forEach { interest ->
+                    val isSelected = registrationViewModel.interests.contains(interest)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (isSelected) {
+                                    registrationViewModel.interests.remove(interest)
+                                } else if (registrationViewModel.interests.size < maxInterests) {
+                                    registrationViewModel.interests.add(interest)
                                 }
                             }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Month
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { expandedMonth = true },
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(monthNames[selectedMonthIndex], color = Color.White)
-                        }
-                        DropdownMenu(
-                            expanded = expandedMonth,
-                            onDismissRequest = { expandedMonth = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            monthNames.forEachIndexed { index, monthName ->
-                                DropdownMenuItem(
-                                    text = { Text(monthName, color = Color.White) },
-                                    onClick = {
-                                        selectedMonthIndex = index
-                                        expandedMonth = false
-                                        updateDobInViewModel()
-                                    }
-                                )
-                                if (index != monthNames.lastIndex) {
-                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Year
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { expandedYear = true },
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color(0xFF1A1A1A),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("$selectedYear", color = Color.White)
-                        }
-                        DropdownMenu(
-                            expanded = expandedYear,
-                            onDismissRequest = { expandedYear = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            yearRange.forEachIndexed { index, yr ->
-                                DropdownMenuItem(
-                                    text = { Text("$yr", color = Color.White) },
-                                    onClick = {
-                                        selectedYear = yr
-                                        expandedYear = false
-                                        updateDobInViewModel()
-                                    }
-                                )
-                                if (index != yearRange.lastIndex) {
-                                    Divider(color = Color(0xFFFF6000), thickness = 1.dp)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Kolkata Locality
-                Text("Select Your Locality in Kolkata", color = Color.White, fontSize = 18.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box {
-                    OutlinedButton(
-                        onClick = { localityDropdownExpanded = true },
-                        border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1A1A1A),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = null,
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFFFF6000),
+                                uncheckedColor = Color.White
+                            )
+                        )
                         Text(
-                            text = if (selectedLocality.isNotEmpty()) selectedLocality else "Select Locality",
-                            color = Color.White
+                            text = "${interest.emoji} ${interest.name}",
+                            color = if (isSelected) Color(0xFFFF6000) else Color.White
                         )
-                    }
-                    DropdownMenu(
-                        expanded = localityDropdownExpanded,
-                        onDismissRequest = { localityDropdownExpanded = false },
-                        modifier = Modifier.background(Color(0xFF1A1A1A))
-                    ) {
-                        kolkataLocalities.forEachIndexed { index, locality ->
-                            DropdownMenuItem(
-                                text = { Text(locality, color = Color.White) },
-                                onClick = {
-                                    selectedLocality = locality
-                                    localityDropdownExpanded = false
-                                }
-                            )
-                            if (index != kolkataLocalities.lastIndex) {
-                                Divider(color = Color(0xFFFF6000), thickness = 1.dp)
-                            }
-                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Global Interests
-                Text("Global Interests", color = Color.White, fontSize = 18.sp)
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    globalInterests.forEach { interest ->
-                        val isSelected = registrationViewModel.interests.contains(interest)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clickable {
-                                    if (isSelected) {
-                                        registrationViewModel.interests.remove(interest)
-                                    } else {
-                                        registrationViewModel.interests.add(interest)
-                                    }
-                                },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null,
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = Color(0xFFFF6000),
-                                    uncheckedColor = Color.White
-                                )
-                            )
-                            Text(
-                                text = "${interest.emoji} ${interest.name}",
-                                color = if (isSelected) Color(0xFFFF6000) else Color.White
-                            )
-                        }
-                    }
-                }
-
-                // Locality-Specific Interests (Within Kolkata)
-                Spacer(modifier = Modifier.height(16.dp))
-                if (selectedLocality.isNotBlank()) {
-                    Text("Interests in $selectedLocality", color = Color.White, fontSize = 18.sp)
-                    // Hardcode a map of localities to interests if you want more detail:
-                    val kolkataLocalitiesInterestsMap = mapOf(
-                        "Salt Lake" to listOf(
-                            Interest("CC Block Market", "🛒"),
-                            Interest("Sector V IT Hub", "💻")
-                        ),
-                        "New Town" to listOf(
-                            Interest("Eco Park", "🌳"),
-                            Interest("City Centre 2", "🛍️")
-                        ),
-                        "Dum Dum" to listOf(
-                            Interest("Airport Area", "✈️"),
-                            Interest("Local Market", "🛍️")
-                        ),
-                        "Behala" to listOf(
-                            Interest("Old Market", "🏪"),
-                            Interest("Local Eateries", "🍴")
-                        ),
-                        "Park Street" to listOf(
-                            Interest("Nightlife", "🌃"),
-                            Interest("Park Street Cafes", "☕")
-                        )
+                if (interestsOverLimit) {
+                    Text(
+                        stringResource(R.string.max_interests_error),
+                        color = Color.Red
                     )
-
-                    val localInterests = kolkataLocalitiesInterestsMap[selectedLocality] ?: emptyList()
-
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        localInterests.forEach { interest ->
-                            val isSelected = registrationViewModel.interests.contains(interest)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .clickable {
-                                        if (isSelected) {
-                                            registrationViewModel.interests.remove(interest)
-                                        } else {
-                                            registrationViewModel.interests.add(interest)
-                                        }
-                                    },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = isSelected,
-                                    onCheckedChange = null,
-                                    colors = CheckboxDefaults.colors(
-                                        checkedColor = Color(0xFFFF6000),
-                                        uncheckedColor = Color.White
-                                    )
-                                )
-                                Text(
-                                    text = "${interest.emoji} ${interest.name}",
-                                    color = if (isSelected) Color(0xFFFF6000) else Color.White
-                                )
-                            }
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-
-                // Next Button
                 Button(
-                    onClick = { if (isNextEnabled) onNext() },
+                    onClick = { onNext() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    enabled = isNextEnabled,
+                    enabled = registrationViewModel.interests.isNotEmpty() &&
+                            registrationViewModel.interests.size <= maxInterests,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.DarkGray
+                        containerColor = if (registrationViewModel.interests.isNotEmpty() &&
+                            registrationViewModel.interests.size <= maxInterests)
+                            Color(0xFFFF6000) else Color.DarkGray
                     ),
                     shape = CircleShape
                 ) {
-                    Text("Next", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        stringResource(R.string.next_button),
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
     )
 }
+
 
 data class InterestSubcategory(val name: String, val emoji: String)
 data class InterestCategory(val category: String, val emoji: String, val subcategories: List<InterestSubcategory>)
@@ -2513,7 +2692,7 @@ fun UploadMediaComposable(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Upload Media", color = Color.White) },
+                title = { Text(stringResource(R.string.upload_media_title), color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
@@ -2534,7 +2713,7 @@ fun UploadMediaComposable(
                 ) {
                     item {
                         // Profile Picture Section
-                        Text("Profile Picture", color = Color.White, fontSize = 18.sp)
+                        Text(stringResource(R.string.profile_picture_label), color = Color.White, fontSize = 18.sp)
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
@@ -2551,14 +2730,14 @@ fun UploadMediaComposable(
                                         .clip(CircleShape)
                                 )
                             } else {
-                                Text("Tap", color = Color.White, fontSize = 14.sp)
+                                Text(stringResource(R.string.tap_placeholder), color = Color.White, fontSize = 14.sp)
                             }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Optional Photos Section
-                        Text("Optional Photos", color = Color.White, fontSize = 18.sp)
+                        Text(stringResource(R.string.optional_photos_label), color = Color.White, fontSize = 18.sp)
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2586,13 +2765,13 @@ fun UploadMediaComposable(
                             modifier = Modifier.padding(vertical = 8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
                         ) {
-                            Text("Add Photos", color = Color.White)
+                            Text(stringResource(R.string.add_photos_button), color = Color.White)
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Voice Bio Section
-                        Text("Voice Bio [Tap icon to record/re-record]", color = Color.White, fontSize = 18.sp)
+                        Text(stringResource(R.string.voice_bio_label), color = Color.White, fontSize = 18.sp)
                         Spacer(modifier = Modifier.height(16.dp))
                         IconButton(onClick = toggleRecording) {
                             Icon(
@@ -2606,7 +2785,7 @@ fun UploadMediaComposable(
 
                         if (!isVoiceBioValid) {
                             Text(
-                                text = "Voice Bio exceeds 60 seconds. Please record a shorter one.",
+                                text = stringResource(R.string.voice_bio_duration_error),
                                 color = Color.Red,
                                 fontSize = 14.sp
                             )
@@ -2643,7 +2822,7 @@ fun UploadMediaComposable(
                             ),
                             enabled = canProceed
                         ) {
-                            Text("Next", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.next_button), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -2653,8 +2832,12 @@ fun UploadMediaComposable(
 }
 
 
-fun uploadOptionalPhoto(storageRef: StorageReference, uri: Uri, registrationViewModel: RegistrationViewModel) {
-    val userId = "testUser" // Replace with actual user ID
+fun uploadOptionalPhoto(
+    storageRef: StorageReference,
+    uri: Uri,
+    registrationViewModel: RegistrationViewModel
+) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val ref = storageRef.child("users/$userId/${uri.lastPathSegment}")
     ref.putFile(uri).addOnSuccessListener {
         ref.downloadUrl.addOnSuccessListener { downloadUri ->
@@ -2759,7 +2942,7 @@ fun EnterProfileHeadlineScreen(
                         elevation = ButtonDefaults.buttonElevation(8.dp)
                     ) {
                         Text(
-                            text = "Next",
+                            text = stringResource(R.string.next_button),
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold

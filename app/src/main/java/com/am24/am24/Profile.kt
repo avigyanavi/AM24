@@ -14,7 +14,7 @@ data class Profile(
 
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),
-
+    val preferredLanguage: String = "",
     val userId: String = "",
     val username: String = "",  // Unique username (e.g., MS1)
     val name: String = "",
@@ -34,6 +34,8 @@ data class Profile(
     val matches: List<String> = emptyList(),  // List of matched user IDs
     val religion: String = "",
     val community: String = "",
+    val city: String = "",
+    val customCity: String? = null,
     val hometown: String = "",  // User's hometown
     val customHometown: String? = null,  // Custom value for hometown
     val educationLevel: String = "",  // (New) High School, Bachelors, Masters, PhD, etc.

@@ -1,3 +1,84 @@
 <resources>
     <string name="app_name">Kupidx</string>
+
+    <!-- Language Selection -->
+    <string name="choose_language_title">Choose Language</string>
+    <string name="select_preferred_language">Select your preferred language</string>
+    <string name="next_button">Next</string>
+
+    <!-- Create Account -->
+    <string name="create_account_title">Create Account</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="confirm_password_label">Confirm Password</string>
+    <string name="password_mismatch_error">Passwords do not match</string>
+
+    <!-- Enter Name & Height -->
+    <string name="full_name_label">Full Name</string>
+    <string name="height_label">Height</string>
+    <string name="feet_inches_label">Feet + Inches</string>
+    <string name="centimeters_label">Centimeters</string>
+    <string name="feet_label">Feet</string>
+    <string name="inches_label">Inches</string>
+    <string name="height_cm_label">Height (cm)</string>
+    <string name="caste_title">Caste</string>
+    <string name="select_or_type">Select or type</string>
+    <string name="interested_in_title">Interested In</string>
+    <string name="male_option">Male</string>
+    <string name="female_option">Female</string>
+
+    <!-- Upload Media -->
+    <string name="upload_media_title">Upload Media</string>
+    <string name="profile_picture_label">Profile Picture</string>
+    <string name="tap_placeholder">Tap</string>
+    <string name="optional_photos_label">Optional Photos</string>
+    <string name="add_photos_button">Add Photos</string>
+    <string name="voice_bio_label">Voice Bio [Tap icon to record/re-record]</string>
+    <string name="voice_bio_duration_error">Voice Bio exceeds 60 seconds. Please record a shorter one.</string>
+
+    <!-- Birthdate, City & Locality -->
+    <string name="enter_birthdate_city_hometown_title">Enter Birthdate, City and Locality</string>
+    <string name="select_birth_date_label">Select Birth Date</string>
+    <string name="city_label">City</string>
+    <string name="select_city_default">Select City</string>
+    <string name="locality_label">Locality</string>
+    <string name="select_locality_default">Select Locality</string>
+
+    <!-- Interests -->
+    <string name="enter_interests_title">Select Your Interests</string>
+    <string name="global_interests_label">Global Interests</string>
+    <!-- The %1$s placeholder can be used to inject the locality name -->
+    <string name="local_interests_label">Local Interests in %1$s</string>
+    <string name="max_interests_error">You can select up to 15 interests only.</string>
+
+    <!-- Education and Location -->
+    <string name="education_and_location_title">Enter Education and Location</string>
+    <string name="education_level_label">Education Level</string>
+    <string name="select_education_level">Select Education Level</string>
+    <string name="high_school_label">High School</string>
+    <string name="select_or_type_high_school">Select or type your high school</string>
+    <string name="college_label">College</string>
+    <string name="select_or_type_college">Select or type your college</string>
+    <string name="post_graduation_label">Post-Graduation</string>
+    <string name="select_or_type_post_grad">Select or type your post-graduation institute</string>
+    <string name="select_graduation_year_label">Select Graduation Year</string>
+    <string name="search_year_label">Search Year</string>
+
+    <!-- Gender, Community, Religion -->
+    <string name="enter_gender_community_religion_title">Enter Your Gender, Community, and Religion</string>
+    <string name="gender_label">Gender</string>
+    <string name="select_gender">Select Gender</string>
+    <string name="community_label">Community</string>
+    <string name="select_community">Select Community</string>
+    <string name="religion_label">Religion</string>
+    <string name="select_religion">Select Religion</string>
+
+    <!-- Username -->
+    <string name="username_label">Username</string>
+    <string name="username_empty_error">Username cannot be empty</string>
+    <string name="finish_button">Finish</string>
+
+    <!-- Common Dropdown/Search -->
+    <string name="search_label">Search</string>
+    <string name="select_default">Select</string>
 </resources>

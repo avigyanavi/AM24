@@ -1,0 +1,83 @@
+<resources>
+    <string name="app_name">কিউপিডেক্স</string>
+
+    <!-- Language Selection -->
+    <string name="choose_language_title">ভাষা নির্বাচন করুন</string>
+    <string name="select_preferred_language">আপনার পছন্দের ভাষা নির্বাচন করুন</string>
+    <string name="next_button">পরবর্তী</string>
+
+    <!-- Create Account -->
+    <string name="create_account_title">অ্যাকাউন্ট তৈরি করুন</string>
+    <string name="email_label">ইমেইল</string>
+    <string name="password_label">পাসওয়ার্ড</string>
+    <string name="confirm_password_label">পাসওয়ার্ড নিশ্চিত করুন</string>
+    <string name="password_mismatch_error">পাসওয়ার্ডগুলো মিলেনি</string>
+
+    <!-- Enter Name & Height -->
+    <string name="full_name_label">পূর্ণ নাম</string>
+    <string name="height_label">উচ্চতা</string>
+    <string name="feet_inches_label">ফুট + ইঞ্চি</string>
+    <string name="centimeters_label">সেন্টিমিটার</string>
+    <string name="feet_label">ফুট</string>
+    <string name="inches_label">ইঞ্চি</string>
+    <string name="height_cm_label">উচ্চতা (সেন্টিমিটার)</string>
+    <string name="caste_title">জাতি</string>
+    <string name="select_or_type">নির্বাচন করুন অথবা লিখুন</string>
+    <string name="interested_in_title">রুচির বিষয়</string>
+    <string name="male_option">পুরুষ</string>
+    <string name="female_option">মহিলা</string>
+
+    <!-- Upload Media -->
+    <string name="upload_media_title">মিডিয়া আপলোড করুন</string>
+    <string name="profile_picture_label">প্রোফাইল ছবি</string>
+    <string name="tap_placeholder">স্পর্শ করুন</string>
+    <string name="optional_photos_label">ঐচ্ছিক ছবি</string>
+    <string name="add_photos_button">ছবি যোগ করুন</string>
+    <string name="voice_bio_label">ভয়েস বায়ো [রিকর্ড/পুনরায় রেকর্ড করতে আইকন স্পর্শ করুন]</string>
+    <string name="voice_bio_duration_error">ভয়েস বায়ো ৬০ সেকেন্ডের বেশি, দয়া করে ছোট সময়ের রেকর্ড করুন</string>
+
+    <!-- Birthdate, City & Locality -->
+    <string name="enter_birthdate_city_hometown_title">জন্ম তারিখ, শহর ও লোকালিটি প্রবেশ করুন</string>
+    <string name="select_birth_date_label">জন্ম তারিখ নির্বাচন করুন</string>
+    <string name="city_label">শহর</string>
+    <string name="select_city_default">শহর নির্বাচন করুন</string>
+    <string name="locality_label">লোকালিটি</string>
+    <string name="select_locality_default">লোকালিটি নির্বাচন করুন</string>
+
+    <!-- Interests -->
+    <string name="enter_interests_title">আপনার শখ নির্বাচন করুন</string>
+    <string name="global_interests_label">সাধারণ শখ</string>
+    <string name="local_interests_label">%1$s-এ শখ</string>
+    <string name="max_interests_error">আপনি সর্বোচ্চ ১৫টি শখ নির্বাচন করতে পারবেন</string>
+
+    <!-- Education and Location -->
+    <string name="education_and_location_title">শিক্ষা ও অবস্থান প্রবেশ করুন</string>
+    <string name="education_level_label">শিক্ষার স্তর</string>
+    <string name="select_education_level">শিক্ষার স্তর নির্বাচন করুন</string>
+    <string name="high_school_label">হাই স্কুল</string>
+    <string name="select_or_type_high_school">আপনার হাই স্কুল নির্বাচন বা লিখুন</string>
+    <string name="college_label">কলেজ</string>
+    <string name="select_or_type_college">আপনার কলেজ নির্বাচন বা লিখুন</string>
+    <string name="post_graduation_label">পোস্ট-গ্র্যাজুয়েশন</string>
+    <string name="select_or_type_post_grad">আপনার পোস্ট-গ্র্যাজুয়েশন প্রতিষ্ঠান নির্বাচন বা লিখুন</string>
+    <string name="select_graduation_year_label">গ্র্যাজুয়েশন বছর নির্বাচন করুন</string>
+    <string name="search_year_label">বছর অনুসন্ধান করুন</string>
+
+    <!-- Gender, Community, Religion -->
+    <string name="enter_gender_community_religion_title">আপনার লিঙ্গ, সম্প্রদায় ও ধর্ম প্রবেশ করুন</string>
+    <string name="gender_label">লিঙ্গ</string>
+    <string name="select_gender">লিঙ্গ নির্বাচন করুন</string>
+    <string name="community_label">সম্প্রদায়</string>
+    <string name="select_community">সম্প্রদায় নির্বাচন করুন</string>
+    <string name="religion_label">ধর্ম</string>
+    <string name="select_religion">ধর্ম নির্বাচন করুন</string>
+
+    <!-- Username -->
+    <string name="username_label">ইউজারনেম</string>
+    <string name="username_empty_error">ইউজারনেম খালি রাখা যাবে না</string>
+    <string name="finish_button">শেষ</string>
+
+    <!-- Common Dropdown/Search -->
+    <string name="search_label">অনুসন্ধান</string>
+    <string name="select_default">নির্বাচন করুন</string>
+</resources>

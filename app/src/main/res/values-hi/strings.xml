@@ -1,0 +1,83 @@
+<resources>
+    <string name="app_name">क्यूपिडेक्स</string>
+
+    <!-- Language Selection -->
+    <string name="choose_language_title">भाषा चुनें</string>
+    <string name="select_preferred_language">अपनी पसंदीदा भाषा चुनें</string>
+    <string name="next_button">आगे</string>
+
+    <!-- Create Account -->
+    <string name="create_account_title">खाता बनाएं</string>
+    <string name="email_label">ईमेल</string>
+    <string name="password_label">पासवर्ड</string>
+    <string name="confirm_password_label">पासवर्ड की पुष्टि करें</string>
+    <string name="password_mismatch_error">पासवर्ड मेल नहीं खाते</string>
+
+    <!-- Enter Name & Height -->
+    <string name="full_name_label">पूरा नाम</string>
+    <string name="height_label">ऊंचाई</string>
+    <string name="feet_inches_label">फीट + इंच</string>
+    <string name="centimeters_label">सेंटीमीटर</string>
+    <string name="feet_label">फीट</string>
+    <string name="inches_label">इंच</string>
+    <string name="height_cm_label">ऊंचाई (सेंटीमीटर)</string>
+    <string name="caste_title">जाति</string>
+    <string name="select_or_type">चुनें या लिखें</string>
+    <string name="interested_in_title">रुचि</string>
+    <string name="male_option">पुरुष</string>
+    <string name="female_option">महिला</string>
+
+    <!-- Upload Media -->
+    <string name="upload_media_title">मीडिया अपलोड करें</string>
+    <string name="profile_picture_label">प्रोफ़ाइल चित्र</string>
+    <string name="tap_placeholder">टैप करें</string>
+    <string name="optional_photos_label">वैकल्पिक चित्र</string>
+    <string name="add_photos_button">चित्र जोड़ें</string>
+    <string name="voice_bio_label">वॉयस बायो [रिकॉर्ड/पुनः रिकॉर्ड करने के लिए टैप करें]</string>
+    <string name="voice_bio_duration_error">वॉयस बायो 60 सेकंड से अधिक है, कृपया कम समय का रिकॉर्ड करें</string>
+
+    <!-- Birthdate, City & Locality -->
+    <string name="enter_birthdate_city_hometown_title">जन्म तिथि, शहर और स्थानीयता दर्ज करें</string>
+    <string name="select_birth_date_label">जन्म तिथि चुनें</string>
+    <string name="city_label">शहर</string>
+    <string name="select_city_default">शहर चुनें</string>
+    <string name="locality_label">स्थानीयता</string>
+    <string name="select_locality_default">स्थानीयता चुनें</string>
+
+    <!-- Interests -->
+    <string name="enter_interests_title">अपनी रुचियाँ चुनें</string>
+    <string name="global_interests_label">वैश्विक रुचियाँ</string>
+    <string name="local_interests_label">स्थानीय रुचियाँ in %1$s</string>
+    <string name="max_interests_error">आप अधिकतम 15 रुचियाँ ही चुन सकते हैं</string>
+
+    <!-- Education and Location -->
+    <string name="education_and_location_title">शिक्षा और स्थान दर्ज करें</string>
+    <string name="education_level_label">शैक्षिक स्तर</string>
+    <string name="select_education_level">शैक्षिक स्तर चुनें</string>
+    <string name="high_school_label">हाई स्कूल</string>
+    <string name="select_or_type_high_school">अपना हाई स्कूल चुनें या लिखें</string>
+    <string name="college_label">कॉलेज</string>
+    <string name="select_or_type_college">अपना कॉलेज चुनें या लिखें</string>
+    <string name="post_graduation_label">पोस्ट-ग्रेजुएशन</string>
+    <string name="select_or_type_post_grad">अपना पोस्ट-ग्रेजुएशन संस्थान चुनें या लिखें</string>
+    <string name="select_graduation_year_label">ग्रेजुएशन वर्ष चुनें</string>
+    <string name="search_year_label">वर्ष खोजें</string>
+
+    <!-- Gender, Community, Religion -->
+    <string name="enter_gender_community_religion_title">अपना लिंग, समुदाय और धर्म दर्ज करें</string>
+    <string name="gender_label">लिंग</string>
+    <string name="select_gender">लिंग चुनें</string>
+    <string name="community_label">समुदाय</string>
+    <string name="select_community">समुदाय चुनें</string>
+    <string name="religion_label">धर्म</string>
+    <string name="select_religion">धर्म चुनें</string>
+
+    <!-- Username -->
+    <string name="username_label">यूजरनेम</string>
+    <string name="username_empty_error">यूजरनेम खाली नहीं हो सकता</string>
+    <string name="finish_button">समाप्त</string>
+
+    <!-- Common Dropdown/Search -->
+    <string name="search_label">खोजें</string>
+    <string name="select_default">चुनें</string>
+</resources>

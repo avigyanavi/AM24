@@ -1,0 +1,71 @@
+<resources>
+    <!-- শহরসমূহ -->
+    <string-array name="city_names">
+        <item>কলকাতা</item>
+        <item>সল্ট লেক, নিউটাউন ও রাজরহাট</item>
+        <item>হাওড়া</item>
+        <item>দুর্গাপুর</item>
+        <item>দার্জিলিং</item>
+        <item>শিলিগুড়ি</item>
+        <item>আসানসোল</item>
+    </string-array>
+
+    <!-- কলকাতার লোকালিটি -->
+    <string-array name="localities_kolkata">
+        <item>সল্ট লেক</item>
+        <item>নিউটাউন</item>
+        <item>ডাম ডাম</item>
+        <item>বেহালা</item>
+        <item>পার্ক স্ট্রিট</item>
+        <item>বালিগঞ্জ</item>
+        <item>জাদবপুর</item>
+        <item>দক্ষিণ কলকাতা</item>
+    </string-array>
+
+    <!-- সল্ট লেক, নিউটাউন ও রাজরহাটের লোকালিটি -->
+    <string-array name="localities_salt_lake_newtown_rajarhat">
+        <item>সল্ট লেক সেক্টর ভি</item>
+        <item>নিউটাউন</item>
+        <item>রাজরহাট</item>
+        <item>অ্যাকশন এরিয়া ১</item>
+        <item>অ্যাকশন এরিয়া ২</item>
+        <item>অ্যাকশন এরিয়া ৩</item>
+    </string-array>
+
+    <!-- হাওড়ার লোকালিটি -->
+    <string-array name="localities_howrah">
+        <item>হাওড়া স্টেশন এলাকা</item>
+        <item>লিলুয়া</item>
+        <item>বেলুর</item>
+        <item>শিবপুর</item>
+    </string-array>
+
+    <!-- দুর্গাপুরের লোকালিটি -->
+    <string-array name="localities_durgapur">
+        <item>শিল্প এলাকা</item>
+        <item>কাস্তুরি</item>
+        <item>মহাম্মদপুর</item>
+        <item>সিটি সেন্টার</item>
+    </string-array>
+
+    <!-- দার্জিলিংয়ের লোকালিটি -->
+    <string-array name="localities_darjeeling">
+        <item>দার্জিলিং টাউন</item>
+        <item>কুরসিয়ং</item>
+        <item>ঘুম</item>
+    </string-array>
+
+    <!-- শিলিগুড়ির লোকালিটি -->
+    <string-array name="localities_siliguri">
+        <item>শিলিগুড়ি</item>
+        <item>প্রধান নগর</item>
+        <item>বিরটামোড</item>
+    </string-array>
+
+    <!-- আসানসোলে লোকালিটি -->
+    <string-array name="localities_asansol">
+        <item>আসানসোল</item>
+        <item>চিত্তরঞ্জন</item>
+        <item>জামুরিয়া</item>
+    </string-array>
+</resources>

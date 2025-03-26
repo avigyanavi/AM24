@@ -1,0 +1,71 @@
+<resources>
+    <!-- शहरों के नाम -->
+    <string-array name="city_names">
+        <item>कोलकाता</item>
+        <item>सॉल्ट लेक, न्यूटाउन और राजरहाट</item>
+        <item>हाउड़ा</item>
+        <item>दुर्गापुर</item>
+        <item>दार्जिलिंग</item>
+        <item>सिलिगुड़ी</item>
+        <item>असनसोल</item>
+    </string-array>
+
+    <!-- कोलकाता की स्थानीयताएँ -->
+    <string-array name="localities_kolkata">
+        <item>सॉल्ट लेक</item>
+        <item>न्यूटाउन</item>
+        <item>डम डम</item>
+        <item>बहेला</item>
+        <item>पार्क स्ट्रीट</item>
+        <item>बालीगंज</item>
+        <item>जादवपुर</item>
+        <item>दक्षिण कोलकाता</item>
+    </string-array>
+
+    <!-- सॉल्ट लेक, न्यूटाउन और राजरहाट की स्थानीयताएँ -->
+    <string-array name="localities_salt_lake_newtown_rajarhat">
+        <item>सॉल्ट लेक सेक्टर V</item>
+        <item>न्यूटाउन</item>
+        <item>राजरहाट</item>
+        <item>एक्शन एरिया 1</item>
+        <item>एक्शन एरिया 2</item>
+        <item>एक्शन एरिया 3</item>
+    </string-array>
+
+    <!-- हाउड़ा की स्थानीयताएँ -->
+    <string-array name="localities_howrah">
+        <item>हाउड़ा स्टेशन क्षेत्र</item>
+        <item>लिलुआ</item>
+        <item>बेलुर</item>
+        <item>शिबपुर</item>
+    </string-array>
+
+    <!-- दुर्गापुर की स्थानीयताएँ -->
+    <string-array name="localities_durgapur">
+        <item>औद्योगिक क्षेत्र</item>
+        <item>कास्तुरी</item>
+        <item>महामदपुर</item>
+        <item>सिटी सेंटर</item>
+    </string-array>
+
+    <!-- दार्जिलिंग की स्थानीयताएँ -->
+    <string-array name="localities_darjeeling">
+        <item>दार्जिलिंग टाउन</item>
+        <item>कुर्सियांग</item>
+        <item>घुम</item>
+    </string-array>
+
+    <!-- सिलिगुड़ी की स्थानीयताएँ -->
+    <string-array name="localities_siliguri">
+        <item>सिलिगुड़ी</item>
+        <item>प्रधान नगर</item>
+        <item>बिरटामोड</item>
+    </string-array>
+
+    <!-- असनसोल की स्थानीयताएँ -->
+    <string-array name="localities_asansol">
+        <item>असनसोल</item>
+        <item>चित्तरंजन</item>
+        <item>जामुरिया</item>
+    </string-array>
+</resources>
