@@ -2,7 +2,7 @@
 accompanistPermissions = "<latest-version>"
 accompanistSwiperefresh = "0.30.1"
 activityComposeVersion = "1.8.0"
-agp = "8.5.1"
+agp = "8.9.1"
 androidVideoTrimmer = "1.6.0"
 androidxMaterial = "1.0.0"
 cameraView = "1.3.4"
@@ -27,7 +27,7 @@ googleExoplayer = "2.18.1"
 googleMaterial = "1.5.0"
 gpuimage = "2.1.0"
 gson = "2.10.1"
-kotlin = "1.9.0"
+kotlin = "2.1.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -59,6 +59,7 @@ okhttpVersion = "4.10.0"
 opencvAndroid = "4.5.5"
 photoeditor = "1.1.0"
 picasso = "2.71828"
+places = "4.2.0"
 playServicesLocation = "21.3.0"
 playServicesMaps = "19.1.0"
 recyclerview = "1.3.2"
@@ -146,6 +147,7 @@ okhttp-v4100 = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttpVe
 opencv-android = { module = "org.opencv:opencv-android", version.ref = "opencvAndroid" }
 photoeditor = { module = "com.github.burhanrashid52:PhotoEditor", version.ref = "photoeditor" }
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
+places = { module = "com.google.android.libraries.places:places", version.ref = "places" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 recyclerview-v7 = { group = "com.android.support", name = "recyclerview-v7", version.ref = "recyclerviewV7" }
@@ -163,4 +165,4 @@ play-services-cast-tv = { group = "com.google.android.gms", name = "play-service
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
-
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

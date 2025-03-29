@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem("Profile", Icons.Default.PersonOutline, "profile"),
-        BottomNavItem("Map", Icons.Default.Map, "map"), // New map tab
+        BottomNavItem("Map", Icons.Default.Map, "Map"), // New map tab
         BottomNavItem("Date", Icons.Default.FavoriteBorder, "dating"),
         BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
         BottomNavItem("Chat", Icons.Default.MailOutline, "dms"),

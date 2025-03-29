@@ -14,24 +14,24 @@ import androidx.navigation.NavHostController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CityGroupChatScreen(
+fun NeighborhoodGroupChatScreen(
     navController: NavHostController,
-    cityName: String,
+    neighborhoodName: String,
     profileViewModel: ProfileViewModel
 ) {
-    val (cityProfiles, setCityProfiles) = remember { mutableStateOf<List<Profile>>(emptyList()) }
+    val (profiles, setProfiles) = remember { mutableStateOf(emptyList<Profile>()) }
 
-    // Fetch city-based profiles once
-    LaunchedEffect(cityName) {
-        profileViewModel.fetchProfilesByCity(cityName) { result ->
-            setCityProfiles(result)
+    // Filter by hometown
+    LaunchedEffect(neighborhoodName) {
+        profileViewModel.fetchProfilesByHometown(neighborhoodName) { result ->
+            setProfiles(result)
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("City Chat: $cityName") },
+                title = { Text("Neighborhood Chat: $neighborhoodName") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -46,35 +46,19 @@ fun CityGroupChatScreen(
                 .fillMaxSize(),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (cityProfiles.isEmpty()) {
+            if (profiles.isEmpty()) {
                 Text(
-                    text = "No profiles found for $cityName",
+                    text = "No profiles found for $neighborhoodName",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(cityProfiles) { profile ->
+                    items(profiles) { profile ->
                         ProfileRow(profile)
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ProfileRow(profile: Profile) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = profile.name.ifBlank { "Unnamed" },
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(8.dp)
-        )
     }
 }

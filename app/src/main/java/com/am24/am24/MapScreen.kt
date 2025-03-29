@@ -1,116 +1,220 @@
 package com.am24.am24
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapEffect
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.TileOverlay
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberTileOverlayState
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+import com.firebase.geofire.GeoFire
+import com.firebase.geofire.GeoLocation
+import com.firebase.geofire.GeoQuery
+import com.firebase.geofire.GeoQueryEventListener
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.*
+import com.google.maps.android.compose.*
 import com.google.maps.android.heatmaps.HeatmapTileProvider
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
-/**
- * A Jetpack Compose screen that displays a map of West Bengal
- * with a bounding box, clickable markers for major cities,
- * and an optional heatmap overlay.
- *
- * @param onCityClicked A callback that lets you navigate or show info
- *                      whenever a user taps one of the city markers.
- */
 @Composable
 fun MapScreen(
-    onCityClicked: (String) -> Unit
+    userId: String,
+    locationManager: LocationManager,
+    geoFireDatabaseRef: DatabaseReference,
+    onProfileMarkerClicked: (String) -> Unit
 ) {
-    // 1) Approximate bounding box for West Bengal
-    val westBengalBounds = LatLngBounds(
-        LatLng(21.42, 85.82), // southwestern corner
-        LatLng(27.13, 89.82)  // northeastern corner
-    )
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var searchQuery by remember { mutableStateOf("") }
+    val cameraPositionState = rememberCameraPositionState()
+    val markersState = remember { mutableStateListOf<MarkerData>() }
+    var searchMarker by remember { mutableStateOf<LatLng?>(null) }
 
-    // 2) Camera position near Kolkata
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(
-            LatLng(22.5726, 88.3639),
-            7f
-        )
+    // 1. Get user location
+    LaunchedEffect(userId) {
+        locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
+            if (lat != null && lng != null) {
+                val userLatLng = LatLng(lat, lng)
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(userLatLng, 12f)
+
+                val geoFire = GeoFire(geoFireDatabaseRef)
+                val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(lat, lng), 10.0)
+                query.addGeoQueryEventListener(object : GeoQueryEventListener {
+                    override fun onKeyEntered(key: String, location: GeoLocation) {
+                        markersState.add(
+                            MarkerData(
+                                userId = key,
+                                position = LatLng(location.latitude, location.longitude)
+                            )
+                        )
+                    }
+                    override fun onKeyExited(key: String) {
+                        markersState.removeAll { it.userId == key }
+                    }
+                    override fun onKeyMoved(key: String, location: GeoLocation) {
+                        markersState.replaceAll { existing ->
+                            if (existing.userId == key) existing.copy(position = LatLng(location.latitude, location.longitude))
+                            else existing
+                        }
+                    }
+                    override fun onGeoQueryReady() {}
+                    override fun onGeoQueryError(error: DatabaseError) {
+                        Toast.makeText(context, "GeoQuery error: ${error.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
+            } else {
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                    LatLng(22.5726, 88.3639), 7f
+                )
+            }
+        }
     }
 
-    // 3) Prepare a heatmap provider
-    val heatmapPoints = listOf(
-        LatLng(22.5726, 88.3639), // Kolkata
-        LatLng(23.5204, 87.3119), // Durgapur
-        LatLng(23.6901, 86.9524), // Asansol
-        LatLng(26.7271, 88.3953), // Siliguri
-        // Add more if you want ...
-    )
-    val heatmapProvider = remember {
-        HeatmapTileProvider.Builder()
-            .data(heatmapPoints)
-            .build()
-    }
-    val heatmapOverlayState = rememberTileOverlayState()
-
-    // 4) Draw the map
-    GoogleMap(
+    Column(
         modifier = Modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState,
-        uiSettings = MapUiSettings(
-            zoomControlsEnabled = true,
-            mapToolbarEnabled = false
-        )
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Restrict camera movement to the bounding box
-        MapEffect(westBengalBounds) { googleMap ->
-            googleMap.setLatLngBoundsForCameraTarget(westBengalBounds)
-            googleMap.setMinZoomPreference(6.0f)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BasicTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp)
+                    .background(Color.White)
+                    .padding(8.dp),
+                textStyle = TextStyle(color = Color.Black)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = {
+                    scope.launch {
+                        val result = searchPlaceWithOkHttp(searchQuery)
+                        if (result != null) {
+                            cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(result, 17f))
+                            searchMarker = result
+                        } else {
+                            Toast.makeText(context, "No results found", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            ) {
+                Text("Search", color = Color.White)
+            }
         }
 
-        // 5) Clickable markers for major cities
-        Marker(
-            state = MarkerState(position = LatLng(22.5726, 88.3639)),
-            title = "Kolkata",
-            onClick = {
-                onCityClicked("Kolkata")
-                true
+        Box(modifier = Modifier.weight(1f)) {
+            val heatmapProvider = remember(markersState) {
+                if (markersState.isNotEmpty()) {
+                    HeatmapTileProvider.Builder()
+                        .data(markersState.map { it.position })
+                        .build()
+                } else null
             }
-        )
-        Marker(
-            state = MarkerState(position = LatLng(26.7271, 88.3953)),
-            title = "Siliguri",
-            onClick = {
-                onCityClicked("Siliguri")
-                true
-            }
-        )
-        Marker(
-            state = MarkerState(position = LatLng(23.6901, 86.9524)),
-            title = "Asansol",
-            onClick = {
-                onCityClicked("Asansol")
-                true
-            }
-        )
-        Marker(
-            state = MarkerState(position = LatLng(23.5204, 87.3119)),
-            title = "Durgapur",
-            onClick = {
-                onCityClicked("Durgapur")
-                true
-            }
-        )
+            val heatmapState = rememberTileOverlayState()
 
-        // 6) Optionally add a heatmap overlay
-        TileOverlay(
-            tileProvider = heatmapProvider,
-            state = heatmapOverlayState
-        )
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                uiSettings = MapUiSettings(
+                    zoomControlsEnabled = true,
+                    mapToolbarEnabled = false
+                )
+            ) {
+                markersState.forEach { markerData ->
+                    Marker(
+                        state = MarkerState(position = markerData.position),
+                        title = "User: ${markerData.userId}",
+                        onClick = {
+                            onProfileMarkerClicked(markerData.userId)
+                            true
+                        }
+                    )
+                }
+
+                searchMarker?.let { latLng ->
+                    Marker(
+                        state = MarkerState(position = latLng),
+                        title = "Search Result"
+                    )
+                }
+
+                if (heatmapProvider != null) {
+                    TileOverlay(tileProvider = heatmapProvider, state = heatmapState)
+                }
+            }
+        }
     }
+}
+
+data class MarkerData(
+    val userId: String,
+    val position: LatLng
+)
+
+suspend fun searchPlaceWithOkHttp(query: String): LatLng? = withContext(Dispatchers.IO) {
+    val client = OkHttpClient()
+    val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ"
+
+    val requestBody = JSONObject()
+        .put("textQuery", query)
+        .toString()
+        .toRequestBody("application/json".toMediaType())
+
+    val request = Request.Builder()
+        .url("https://places.googleapis.com/v1/places:searchText")
+        .addHeader("Content-Type", "application/json")
+        .addHeader("X-Goog-Api-Key", apiKey)
+        .addHeader(
+            "X-Goog-FieldMask",
+            "places.displayName,places.formattedAddress,places.location"
+        )
+        .post(requestBody)
+        .build()
+
+    try {
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                Log.e("PlacesSearch", "Error: ${response.code} - ${response.body?.string()}")
+                return@withContext null
+            }
+
+            val json = JSONObject(response.body?.string() ?: return@withContext null)
+            val places = json.getJSONArray("places")
+            if (places.length() > 0) {
+                val first = places.getJSONObject(0)
+                val location = first.getJSONObject("location")
+                val lat = location.getDouble("latitude")
+                val lng = location.getDouble("longitude")
+                return@withContext LatLng(lat, lng)
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("PlacesSearch", "Exception: ${e.message}", e)
+    }
+
+    return@withContext null
 }

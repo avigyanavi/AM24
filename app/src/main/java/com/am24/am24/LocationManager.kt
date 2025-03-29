@@ -79,6 +79,28 @@ class LocationManager(private val context: Context) {
         }
     }
 
+    fun getUserLocationFromGeoFire(
+        userId: String,
+        onLocationResult: (latitude: Double?, longitude: Double?) -> Unit
+    ) {
+        geoFire.getLocation(userId, object : com.firebase.geofire.LocationCallback {
+            override fun onLocationResult(key: String?, location: GeoLocation?) {
+                if (location != null) {
+                    onLocationResult(location.latitude, location.longitude)
+                } else {
+                    // Means no location found for that user
+                    onLocationResult(null, null)
+                }
+            }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                println("Error retrieving location from GeoFire: ${error.message}")
+                onLocationResult(null, null)
+            }
+        })
+    }
+
+
     // Function to update GeoFire with new location
     private fun updateLocationInGeoFire(userId: String, latitude: Double, longitude: Double) {
         geoFire.setLocation(userId, GeoLocation(latitude, longitude)) { key, error ->

@@ -75,6 +75,24 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             })
     }
 
+    fun fetchProfilesByHometown(hometown: String, onResult: (List<Profile>) -> Unit) {
+        val dbRef = FirebaseDatabase.getInstance().getReference("profiles")
+        dbRef.orderByChild("hometown").equalTo(hometown)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val results = mutableListOf<Profile>()
+                    for (child in snapshot.children) {
+                        val prof = child.getValue(Profile::class.java)
+                        prof?.let { results.add(it) }
+                    }
+                    onResult(results)
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    onResult(emptyList())
+                }
+            })
+    }
+
     fun fetchUsernameById(userId: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
         userRef.child("username").get().addOnSuccessListener { snapshot ->

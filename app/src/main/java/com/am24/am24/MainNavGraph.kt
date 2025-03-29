@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +61,13 @@ fun MainNavGraph(
             LocalContext.current.applicationContext as Application
         )
     )
+
+    // Initialize LocationManager (safe inside Composable)
+    val context = LocalContext.current
+    val locationManager = remember { LocationManager(context) }
+
+
+    var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     NavHost(
         navController = navController,
@@ -181,29 +189,73 @@ fun MainNavGraph(
                 ChatScreen(navController, otherUserId)
             }
         }
+        // 1) West Bengal top-level map
         composable("map") {
+            val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+            // Pass references
             MapScreen(
-                onCityClicked = { cityName ->
-                    // Navigate to cityGroupChat route, passing cityName
-                    navController.navigate("cityGroupChat/$cityName")
+                userId = userId,
+                locationManager = locationManager,        // Or create it via DI
+                geoFireDatabaseRef = FirebaseDatabase.getInstance().getReference("geoFireLocations"),
+                onProfileMarkerClicked = { profileId ->
+                    // maybe navController.navigate("profile/$profileId")
                 }
             )
         }
 
-        // A new route for "cityGroupChat/{cityName}" with city name as argument
+        // 2) A simple menu: city group chat OR neighborhood map
+        composable(
+            route = "cityMenu/{cityName}",
+            arguments = listOf(navArgument("cityName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val cityName = backStackEntry.arguments?.getString("cityName") ?: return@composable
+            CityMenuScreen(
+                navController = navController,
+                cityName = cityName
+            )
+        }
+
+        // 3) City-level group chat
         composable(
             route = "cityGroupChat/{cityName}",
-            arguments = listOf(navArgument("cityName") {
-                type = NavType.StringType
-            })
+            arguments = listOf(navArgument("cityName") { type = NavType.StringType })
         ) { backStackEntry ->
             val cityName = backStackEntry.arguments?.getString("cityName") ?: return@composable
             CityGroupChatScreen(
                 navController = navController,
                 cityName = cityName,
-                profileViewModel = profileViewModel // pass your existing ProfileViewModel
+                profileViewModel = profileViewModel
             )
         }
+
+        // 4) City-level map for neighborhoods
+        composable(
+            route = "cityMap/{cityName}",
+            arguments = listOf(navArgument("cityName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val cityName = backStackEntry.arguments?.getString("cityName") ?: return@composable
+            CityNeighborhoodMapScreen(
+                userId = userId,
+                cityName = cityName,
+                onNeighborhoodClicked = { hoodName ->
+                    navController.navigate("neighborhoodGroupChat/$hoodName")
+                }
+            )
+        }
+
+        // 5) Neighborhood-based group chat
+        composable(
+            route = "neighborhoodGroupChat/{hoodName}",
+            arguments = listOf(navArgument("hoodName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val hoodName = backStackEntry.arguments?.getString("hoodName") ?: return@composable
+            NeighborhoodGroupChatScreen(
+                navController = navController,
+                neighborhoodName = hoodName,
+                profileViewModel = profileViewModel
+            )
+        }
+
         composable("matchedUserProfile/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
             MatchedUserProfile(
