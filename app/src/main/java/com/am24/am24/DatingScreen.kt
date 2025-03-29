@@ -4,6 +4,8 @@
 
 package com.am24.am24
 
+import ChatRequest
+import ChatResponse
 import DatingViewModel
 import android.util.Log
 import androidx.compose.foundation.*
@@ -1513,7 +1515,7 @@ suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
             .build()
 
         val railwayUrl = "https://am24.org/openai/chat"
-        val chatRequest = ChatRequest(model = "qwen-2.5-32b", messages = messages, max_tokens = 8000)
+        val chatRequest = ChatRequest(model = "llama-3.3-70b-versatile", messages = messages, max_tokens = 8000)
         val jsonBody = gson.toJson(chatRequest)
         Log.d("FinalRequest", "Sending final request: $jsonBody")
         val mediaType = "application/json".toMediaType()

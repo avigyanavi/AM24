@@ -1,5 +1,7 @@
 package com.am24.am24
 
+import AI
+
 // Original AIOption (remains unchanged)
 data class AIOption(
     val aiEnum: AI,

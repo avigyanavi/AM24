@@ -2,6 +2,42 @@
 
 package com.am24.am24
 
+import ChatRequest
+import ChatResponse
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.google.firebase.database.*
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
@@ -9,76 +45,400 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Report
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.delay
 import java.io.File
 
+// Assuming Profile, Message, ProfileViewModel, and ChatAIViewModel are defined elsewhere
+
+// Data classes for state and messaging
+data class MoodLevels(
+    val trust: Int = 0,
+    val jealousy: Int = 0,
+    val romantic_passion: Int = 0,
+    val satisfaction: Int = 0
+)
+
+data class RelationshipHistory(
+    val attachment: Int = 50,
+    val confidence: Int = 50,
+    val emotionalDepth: Int = 50
+)
+
+data class ModelingState(
+    val relationshipHistory: RelationshipHistory = RelationshipHistory(),
+    val moodLevels: MoodLevels = MoodLevels(),
+    val relationshipStage: String = "Friend"
+)
+
+data class ChatMessage(
+    val role: String = "",
+    val content: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class EmotionDeltas(
+    val trustDelta: Int = 0,
+    val jealousyDelta: Int = 0,
+    val romanticPassionDelta: Int = 0,
+    val satisfactionDelta: Int = 0
+)
+
+data class MessageImpact(
+    val impactScore: Int,
+    val emotionDeltas: EmotionDeltas,
+    val snippetToStore: String = "",
+    val explanation: String = ""
+)
+
+// Updated Chat AI ViewModel (for AI conversations only)
+class ChatAIViewModel : ViewModel() {
+    private val database = FirebaseDatabase.getInstance()
+    private val gson = Gson()
+    private val aiStates = mutableMapOf<String, ModelingState>()
+    private val memoryLogs = mutableMapOf<String, MutableList<String>>()
+    private val messageCounts = mutableMapOf<String, Int>()
+
+    // Firebase references
+    private val statesRef = database.getReference("aiStates")
+    private val memoryRef = database.getReference("aiMemoryLogs")
+    private val messageCountRef = database.getReference("aiMessageCounts")
+
+    init {
+        listOf("zaraAi", "kabirAi").forEach { aiId ->
+            statesRef.child(aiId).addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val stateJson = snapshot.getValue(String::class.java)
+                    aiStates[aiId] = stateJson?.let { gson.fromJson(it, ModelingState::class.java) } ?: ModelingState()
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+            memoryRef.child(aiId).addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val logs = snapshot.children.mapNotNull { it.getValue(String::class.java) }.toMutableList()
+                    memoryLogs[aiId] = logs
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+            messageCountRef.child(aiId).addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    messageCounts[aiId] = snapshot.getValue(Int::class.java) ?: 0
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        }
+    }
+
+    fun getModelingState(aiId: String): ModelingState = aiStates[aiId] ?: ModelingState()
+    fun getMemoryLog(aiId: String): List<String> = memoryLogs[aiId] ?: mutableListOf()
+    fun getMessageCount(aiId: String): Int = messageCounts[aiId] ?: 0
+
+    // Helper: Convert our Message type (used in ChatScreenContent) to ChatMessage
+    private fun convertMessages(msgs: List<Message>): List<ChatMessage> {
+        return msgs.map { ChatMessage(it.senderId, it.text, it.timestamp) }
+    }
+
+    // CLASSIFICATION: Build a prompt with memory log and last 7 messages
+    suspend fun classifyMessageImpact(
+        aiId: String,
+        userText: String,
+        recentMessages: List<Message>
+    ): MessageImpact {
+        val state = getModelingState(aiId)
+        val conv = convertMessages(recentMessages).takeLast(7)
+        val mem = getMemoryLog(aiId).joinToString(" | ")
+        val systemPrompt = """
+You are an "Impact Classifier" for interactive conversations.
+
+Given the AI character's current emotional state:
+  - Trust: ${state.moodLevels.trust}
+  - Jealousy: ${state.moodLevels.jealousy}
+  - Romantic Passion: ${state.moodLevels.romantic_passion}
+  - Satisfaction: ${state.moodLevels.satisfaction}
+
+Memory log: [$mem]
+LAST 7 MSGS: ${conv.joinToString(" | ") { "${it.role}: ${it.content}" }}
+NEW MSG: $userText
+
+Assign an "impactScore" (0–100) and distribute this impact across emotional deltas.
+Only store messages with impactScore ≥ 50.
+Return exactly this JSON:
+{
+  "impactScore": Int,
+  "emotionDeltas": {
+    "trustDelta": Int,
+    "jealousyDelta": Int,
+    "romanticPassionDelta": Int,
+    "satisfactionDelta": Int
+  },
+  "snippetToStore": "<exact user message>",
+  "explanation": "<brief explanation>"
+}
+""".trimIndent()
+
+        val raw = callClassifierApi(listOf(ChatMessage("system", systemPrompt)))
+        return raw?.let {
+            try {
+                val jsonPart = it.substring(it.indexOf('{'), it.lastIndexOf('}') + 1)
+                gson.fromJson(jsonPart, MessageImpact::class.java)
+            } catch (e: Exception) {
+                MessageImpact(0, EmotionDeltas())
+            }
+        } ?: MessageImpact(0, EmotionDeltas())
+    }
+
+    // Update relationship state based on impact
+    private fun computeRelationshipStage(points: Int): String {
+        return when {
+            points < 50 -> "Friend"
+            points < 100 -> "Casual Flirt"
+            points < 200 -> "Romantic Partner"
+            points < 400 -> "Spouse"
+            else -> "Soulmate+"
+        }
+    }
+
+    private fun applyMessageImpact(aiId: String, impact: MessageImpact) {
+        val oldState = getModelingState(aiId)
+        if (impact.impactScore >= 50) {
+            memoryLogs.getOrPut(aiId) { mutableListOf() }.add(impact.snippetToStore)
+            memoryRef.child(aiId).setValue(memoryLogs[aiId])
+        }
+        val updatedMood = oldState.moodLevels.copy(
+            trust = (oldState.moodLevels.trust + impact.emotionDeltas.trustDelta).coerceIn(0, 100),
+            jealousy = (oldState.moodLevels.jealousy + impact.emotionDeltas.jealousyDelta).coerceIn(0, 100),
+            romantic_passion = (oldState.moodLevels.romantic_passion + impact.emotionDeltas.romanticPassionDelta).coerceIn(0, 100),
+            satisfaction = (oldState.moodLevels.satisfaction + impact.emotionDeltas.satisfactionDelta).coerceIn(0, 100)
+        )
+        val attachmentDelta = (impact.emotionDeltas.trustDelta - impact.emotionDeltas.jealousyDelta) / 2
+        val confidenceDelta = (impact.emotionDeltas.trustDelta + impact.emotionDeltas.satisfactionDelta) / 2
+        val emotionalDepthDelta = (impact.emotionDeltas.romanticPassionDelta + impact.emotionDeltas.satisfactionDelta) / 2
+
+        val updatedHistory = oldState.relationshipHistory.copy(
+            attachment = (oldState.relationshipHistory.attachment + attachmentDelta).coerceIn(0, 100),
+            confidence = (oldState.relationshipHistory.confidence + confidenceDelta).coerceIn(0, 100),
+            emotionalDepth = (oldState.relationshipHistory.emotionalDepth + emotionalDepthDelta).coerceIn(0, 100)
+        )
+        val currentPoints = (updatedHistory.attachment + updatedHistory.confidence + updatedHistory.emotionalDepth) / 3
+        val pointsEarned = impact.impactScore / 10
+        val newPoints = currentPoints + pointsEarned
+        val newStage = computeRelationshipStage(newPoints)
+        val newState = oldState.copy(
+            moodLevels = updatedMood,
+            relationshipHistory = updatedHistory,
+            relationshipStage = newStage
+        )
+        aiStates[aiId] = newState
+        statesRef.child(aiId).setValue(gson.toJson(newState))
+    }
+
+    // Build master prompt for AI response generation
+    private fun buildMasterPrompt(aiId: String, state: ModelingState, userName: String): ChatMessage {
+        val mem = getMemoryLog(aiId).joinToString(" | ")
+        val currentPoints = (state.relationshipHistory.attachment + state.relationshipHistory.confidence + state.relationshipHistory.emotionalDepth) / 3
+        val nickname = getDynamicNickname(userName, currentPoints)
+        val biography = getPersonaBiography(aiId)
+        val promptText = """
+You are ${getPersonaName(aiId)}.
+User Profile: $userName
+Your Biography: $biography
+
+Memory Log: [$mem]
+
+Your current state:
+$state
+
+Use the nickname "$nickname" when addressing the user.
+Respond with a message that reflects your personality, current mood, and relationship stage.
+""".trimIndent()
+        return ChatMessage("system", promptText)
+    }
+
+    private fun getPersonaName(aiId: String): String {
+        return when (aiId) {
+            "zaraAi" -> "Zara"
+            "kabirAi" -> "Kabir"
+            else -> "AI"
+        }
+    }
+
+    private fun getDynamicNickname(userName: String, points: Int): String {
+        return when {
+            points < 50 -> userName.split(" ").firstOrNull() ?: userName
+            points < 100 -> "babe"
+            points < 200 -> "darling"
+            points < 400 -> "love"
+            else -> "my love"
+        }
+    }
+
+    private fun getPersonaBiography(aiId: String): String {
+        return when (aiId) {
+            "zaraAi" -> "Cricket Diva with passion and grace."
+            "kabirAi" -> "Bad Boy Cop with a rebellious charm."
+            else -> "A unique personality."
+        }
+    }
+
+    // Generate AI response using the master prompt
+    private suspend fun generateAIResponse(
+        aiId: String,
+        userInput: String,
+        recentMessages: List<Message>,
+        userName: String
+    ): String {
+        val state = getModelingState(aiId)
+        val masterPrompt = buildMasterPrompt(aiId, state, userName)
+        val messagesForResponse = listOf(
+            masterPrompt,
+            ChatMessage("user", userInput)
+        )
+        val raw = callKupidXApi(messagesForResponse)
+        return raw?.trim()?.removePrefix("```json")?.removeSuffix("```")?.trim()
+            ?: "Hello! How can I assist you today?"
+    }
+
+    // For AI conversations only
+    fun sendMessageToAI(
+        aiId: String,
+        userInput: String,
+        currentUserId: String,
+        messagesRef: DatabaseReference,
+        context: android.content.Context,
+        recentMessages: List<Message>,
+        userName: String
+    ) {
+        if (userInput.isBlank()) return
+
+        // Always add the user message to Firebase
+        val userMsg = Message(
+            id = messagesRef.push().key ?: return,
+            senderId = currentUserId,
+            receiverId = aiId,
+            text = userInput,
+            timestamp = System.currentTimeMillis(),
+            read = false
+        )
+        messagesRef.child(userMsg.id).setValue(userMsg)
+        incrementMessageCount(aiId)
+
+        viewModelScope.launch {
+            val impact = classifyMessageImpact(aiId, userInput, recentMessages)
+            applyMessageImpact(aiId, impact)
+            val responseText = generateAIResponse(aiId, userInput, recentMessages, userName)
+            val aiMsg = Message(
+                id = messagesRef.push().key ?: return@launch,
+                senderId = aiId,
+                receiverId = currentUserId,
+                text = responseText,
+                timestamp = System.currentTimeMillis(),
+                read = false
+            )
+            messagesRef.child(aiMsg.id).setValue(aiMsg)
+        }
+    }
+
+    private fun incrementMessageCount(aiId: String) {
+        val currentCount = messageCounts[aiId] ?: 0
+        messageCounts[aiId] = currentCount + 1
+        messageCountRef.child(aiId).setValue(currentCount + 1)
+    }
+
+    suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
+        return withContext(Dispatchers.IO) {
+            val client = OkHttpClient.Builder()
+                .connectTimeout(120, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS)
+                .build()
+            val railwayUrl = "https://am24.org/openai/chat"
+            val chatRequest = ChatRequest(model = "llama-3.3-70b-versatile", messages = messages, max_tokens = 8000)
+            val jsonBody = gson.toJson(chatRequest)
+            Log.d("FinalRequest", "Sending final request: $jsonBody")
+            val mediaType = "application/json".toMediaType()
+            val reqBody = jsonBody.toRequestBody(mediaType)
+            val req = Request.Builder()
+                .url(railwayUrl)
+                .post(reqBody)
+                .build()
+            try {
+                client.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) {
+                        Log.e("FinalResponse", "Request failed with code: ${resp.code}")
+                        return@withContext "Error: ${resp.code}"
+                    }
+                    val rBody = resp.body?.string() ?: return@withContext null
+                    Log.d("FinalResponse", rBody)
+                    val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
+                    chatResp.choices.firstOrNull()?.message?.content
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                "Error: ${e.message}"
+            }
+        }
+    }
+
+    private suspend fun callClassifierApi(messages: List<ChatMessage>): String? {
+        return callKupidXApi(messages)
+    }
+}
+
+
 @Composable
-fun ChatScreen(navController: NavController, otherUserId: String) {
+fun ChatScreen(
+    navController: NavController,
+    otherUserId: String
+) {
     val profileViewModel: ProfileViewModel = viewModel()
-    ChatScreenContent(navController = navController, otherUserId = otherUserId, profileViewModel = profileViewModel)
+    val chatAIViewModel: ChatAIViewModel = viewModel()
+    ChatScreenContent(
+        navController = navController,
+        otherUserId = otherUserId,
+        profileViewModel = profileViewModel,
+        chatAIViewModel = chatAIViewModel
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreenContent(navController: NavController, otherUserId: String, profileViewModel: ProfileViewModel) {
+fun ChatScreenContent(
+    navController: NavController,
+    otherUserId: String,
+    profileViewModel: ProfileViewModel,
+    chatAIViewModel: ChatAIViewModel
+) {
     val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
     val database = FirebaseDatabase.getInstance()
     val usersRef = database.getReference("users")
     val chatId = getChatId(currentUserId, otherUserId)
     val messagesRef = database.getReference("messages/$chatId")
     val ratingsRef = database.getReference("ratings")
 
+    // Check if this is an AI conversation
+    val isAiConversation = otherUserId.endsWith("Ai")
+
+    // State variables
     var averageRating by remember { mutableStateOf(0.0) }
     var yourRating by rememberSaveable(otherUserId) { mutableStateOf(-1.0) }
     var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
-
-    // Voice recording states
     var showRating by remember { mutableStateOf(true) }
     var moreOptionsMenuExpanded by remember { mutableStateOf(false) }
+
+    // Voice recording states
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
     var recordFile: File? by remember { mutableStateOf(null) }
@@ -88,62 +448,102 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
     var isVoicePlaying by remember { mutableStateOf(false) }
     var voiceProgress by remember { mutableStateOf(0f) }
     var voicePlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-    val chatPrefsRef = usersRef.child(currentUserId).child("chatPreferences").child(otherUserId)
 
-    // Permission for RECORD_AUDIO
+    // Permission launcher for RECORD_AUDIO
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
+        if (granted && !isAiConversation) {
             isRecording = true
-        } else {
+            recordFile = File(context.filesDir, "voice_message.aac")
+            recorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(recordFile?.absolutePath)
+                prepare()
+                start()
+            }
+            recordingTimeLeft = maxDurationMs
+        } else if (!granted) {
             Toast.makeText(context, "Microphone permission is required.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Load user profile and rating
+    // Load user profile
     LaunchedEffect(otherUserId) {
-        usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
-            val profile = snapshot.getValue(Profile::class.java)
-            if (profile != null) {
-                otherUserProfile = profile
-                averageRating = profile.averageRating
+        if (isAiConversation) {
+            otherUserProfile = when (otherUserId) {
+                "zaraAi" -> Profile(
+                    userId = "zaraAi",
+                    name = "Zara",
+                    bio = "Kolkata Cricket Diva",
+                    profilepicUrl = "",
+                    averageRating = 4.2,
+                    numberOfRatings = 35
+                )
+                "kabirAi" -> Profile(
+                    userId = "kabirAi",
+                    name = "Kabir",
+                    bio = "Bad Boy Cop of Kolkata",
+                    profilepicUrl = "",
+                    averageRating = 3.8,
+                    numberOfRatings = 20
+                )
+                else -> null
             }
-        }.addOnFailureListener {
-            Toast.makeText(context, "Failed to load user", Toast.LENGTH_SHORT).show()
-        }
-
-        fetchUserRating(ratingsRef, otherUserId) { rating ->
-            yourRating = rating
-        }
-
-        fetchAverageRating(ratingsRef, otherUserId) { avg ->
-            averageRating = avg
+            averageRating = otherUserProfile?.averageRating ?: 0.0
+        } else {
+            usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
+                val profile = snapshot.getValue(Profile::class.java)
+                if (profile != null) {
+                    otherUserProfile = profile
+                    averageRating = profile.averageRating
+                }
+            }.addOnFailureListener {
+                Toast.makeText(context, "Failed to load user", Toast.LENGTH_SHORT).show()
+            }
+            fetchUserRating(ratingsRef, otherUserId) { rating ->
+                yourRating = rating
+            }
+            fetchAverageRating(ratingsRef, otherUserId) { avg ->
+                averageRating = avg
+            }
         }
     }
 
-    // <-- Added Firebase listener to update the messages list -->
+    // Listen to messages from Firebase
     DisposableEffect(messagesRef) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 messages.clear()
-                for (child in snapshot.children) {
-                    val message = child.getValue(Message::class.java)
-                    if (message != null) {
-                        messages.add(message)
-                    }
-                }
+                snapshot.children.mapNotNull { it.getValue(Message::class.java) }
+                    .forEach { messages.add(it) }
             }
             override fun onCancelled(error: DatabaseError) {
                 Log.e("ChatScreen", "Error reading messages: ${error.message}")
             }
         }
         messagesRef.addValueEventListener(listener)
-        onDispose {
-            messagesRef.removeEventListener(listener)
+        onDispose { messagesRef.removeEventListener(listener) }
+    }
+
+    // Recording timer (only for non-AI conversations)
+    LaunchedEffect(isRecording) {
+        if (!isAiConversation && isRecording) {
+            while (recordingTimeLeft > 0) {
+                delay(1000L)
+                recordingTimeLeft -= 1000
+            }
+            if (isRecording) {
+                recorder?.stop()
+                recorder?.release()
+                recorder = null
+                isRecording = false
+                recordedVoiceUri = Uri.fromFile(recordFile)
+            }
         }
     }
-    // <-- End of Firebase listener addition -->
 
     Scaffold(
         topBar = {
@@ -152,23 +552,41 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                     Row(
                         modifier = Modifier.clickable {
                             otherUserProfile?.let {
-                                navController.navigate("matchedUserProfile/${otherUserId}")
+                                if (isAiConversation) {
+                                    navController.navigate("aiProfile/$otherUserId")
+                                } else {
+                                    navController.navigate("matchedUserProfile/$otherUserId")
+                                }
                             }
                         },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
-                            AsyncImage(
-                                model = otherUserProfile!!.profilepicUrl,
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray),
+                        when {
+                            isAiConversation && otherUserId == "zaraAi" -> Image(
+                                painter = painterResource(id = R.drawable.zara_avatar),
+                                contentDescription = "Zara avatar",
+                                modifier = Modifier.size(40.dp).clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            isAiConversation && otherUserId == "kabirAi" -> Image(
+                                painter = painterResource(id = R.drawable.kabir_avatar),
+                                contentDescription = "Kabir avatar",
+                                modifier = Modifier.size(40.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            otherUserProfile?.profilepicUrl?.isNotBlank() == true -> AsyncImage(
+                                model = otherUserProfile!!.profilepicUrl,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray),
+                                contentScale = ContentScale.Crop
+                            )
+                            else -> Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Default Avatar",
+                                tint = Color.White
+                            )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = otherUserProfile?.name ?: "Chat",
                             color = Color.White,
@@ -176,14 +594,14 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(onClick = {
-                            showRating = !showRating
-                        }) {
-                            Icon(
-                                imageVector = if (showRating) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = "Hide/Show Rating",
-                                tint = Color.Gray
-                            )
+                        if (!isAiConversation) {
+                            IconButton(onClick = { showRating = !showRating }) {
+                                Icon(
+                                    imageVector = if (showRating) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Hide/Show Rating",
+                                    tint = Color.Gray
+                                )
+                            }
                         }
                     }
                 },
@@ -192,9 +610,54 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
+                actions = {
+                    IconButton(onClick = { moreOptionsMenuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
+                    }
+                    DropdownMenu(
+                        expanded = moreOptionsMenuExpanded,
+                        onDismissRequest = { moreOptionsMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Clear Chat", tint = Color.Red)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Clear Chat")
+                                }
+                            },
+                            onClick = {
+                                moreOptionsMenuExpanded = false
+                                messagesRef.setValue(null)
+                                messages.clear()
+                            }
+                        )
+                        if (isAiConversation) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Info, contentDescription = "Memory Log", tint = Color.Gray)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("View Memory Log")
+                                    }
+                                },
+                                onClick = {
+                                    moreOptionsMenuExpanded = false
+                                    val log = chatAIViewModel.getMemoryLog(otherUserId).joinToString("\n")
+                                    Toast.makeText(
+                                        context,
+                                        log.ifEmpty { "No memories yet." },
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
-        }
+        },
+        containerColor = Color.Black
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -202,7 +665,7 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                 .padding(paddingValues)
                 .background(Color.Black)
         ) {
-            if (otherUserProfile != null && showRating) {
+            if (!isAiConversation && otherUserProfile != null && showRating) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -251,14 +714,17 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                 }
             }
 
-            if (isRecording) {
+            // Recording timer (only for non-AI conversations)
+            if (!isAiConversation && isRecording) {
                 Text(
                     text = "Recording... Time left: ${recordingTimeLeft / 1000}s",
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-            } else if (recordedVoiceUri != null) {
-                // Voice message preview
+            }
+
+            // Voice message preview (only for non-AI conversations)
+            if (!isAiConversation && recordedVoiceUri != null) {
                 VoiceMessagePlayer(
                     mediaUrl = recordedVoiceUri.toString(),
                     isPlaying = isVoicePlaying,
@@ -314,26 +780,43 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
-                    if (isRecording) {
-                        isRecording = false
-                    } else {
-                        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                            isRecording = true
-                            messageText = ""
-                            recordedVoiceUri = null
+                // Microphone button (only for non-AI conversations)
+                if (!isAiConversation) {
+                    IconButton(onClick = {
+                        if (isRecording) {
+                            recorder?.stop()
+                            recorder?.release()
+                            recorder = null
+                            isRecording = false
+                            recordedVoiceUri = Uri.fromFile(recordFile)
                         } else {
-                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                isRecording = true
+                                messageText = ""
+                                recordedVoiceUri = null
+                                recordFile = File(context.filesDir, "voice_message.aac")
+                                recorder = MediaRecorder().apply {
+                                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                                    setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
+                                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                    setOutputFile(recordFile?.absolutePath)
+                                    prepare()
+                                    start()
+                                }
+                                recordingTimeLeft = maxDurationMs
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         }
+                    }) {
+                        Icon(
+                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = "Record",
+                            tint = Color(0xFFFFA500)
+                        )
                     }
-                }) {
-                    Icon(
-                        imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                        contentDescription = "Record",
-                        tint = Color(0xFFFFA500)
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                Spacer(modifier = Modifier.width(8.dp))
                 TextField(
                     value = messageText,
                     onValueChange = { messageText = it },
@@ -355,7 +838,19 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                     keyboardActions = KeyboardActions(
                         onSend = {
                             if (messageText.isNotBlank()) {
-                                sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                                if (isAiConversation) {
+                                    chatAIViewModel.sendMessageToAI(
+                                        otherUserId,
+                                        messageText,
+                                        currentUserId,
+                                        messagesRef,
+                                        context,
+                                        messages,
+                                        profileViewModel.currentUserProfile.value?.name ?: "User"
+                                    )
+                                } else {
+                                    sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                                }
                                 messageText = ""
                             }
                         }
@@ -365,7 +860,19 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
                 IconButton(
                     onClick = {
                         if (messageText.isNotBlank()) {
-                            sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                            if (isAiConversation) {
+                                chatAIViewModel.sendMessageToAI(
+                                    otherUserId,
+                                    messageText,
+                                    currentUserId,
+                                    messagesRef,
+                                    context,
+                                    messages,
+                                    profileViewModel.currentUserProfile.value?.name ?: "User"
+                                )
+                            } else {
+                                sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                            }
                             messageText = ""
                         }
                     },
@@ -380,6 +887,7 @@ fun ChatScreenContent(navController: NavController, otherUserId: String, profile
     }
 }
 
+// Helper functions from the old code, kept intact
 fun getChatId(userId1: String, userId2: String): String {
     return if (userId1 < userId2) "${userId1}_$userId2" else "${userId2}_$userId1"
 }
@@ -436,13 +944,6 @@ fun sendVoiceMessage(
         }
     }.addOnFailureListener {
         Toast.makeText(context, "Failed to upload voice.", Toast.LENGTH_SHORT).show()
-    }
-}
-
-fun markMessagesAsRead(messagesRef: DatabaseReference, messages: List<Message>, currentUserId: String) {
-    val unreadMessages = messages.filter { it.receiverId == currentUserId && !it.read }
-    for (msg in unreadMessages) {
-        messagesRef.child(msg.id).child("read").setValue(true)
     }
 }
 
@@ -552,7 +1053,6 @@ fun VoiceMessageBubble(message: Message, currentUserId: String) {
                     fontSize = 12.sp
                 )
             }
-
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(formatRelativeTime(message.timestamp), color = Color.LightGray, fontSize = 12.sp)
@@ -590,7 +1090,7 @@ fun VoiceMessagePlayer(
             trackColor = Color.Gray
         )
         Text(
-            text = formatRelativeTime(duration),
+            text = formatDuration(duration),
             color = Color.Gray,
             fontSize = 12.sp,
             modifier = Modifier.padding(start = 8.dp)
@@ -598,24 +1098,7 @@ fun VoiceMessagePlayer(
     }
 }
 
-fun unmatchUser(userId: String, context: android.content.Context) {
-    // Implement unmatch logic in ProfileViewModel if needed
-    Toast.makeText(context, "User $userId unmatched.", Toast.LENGTH_SHORT).show()
-}
-
-fun fetchAverageRating(
-    ratingsRef: DatabaseReference,
-    userId: String,
-    onAverageFetched: (Double) -> Unit
-) {
-    ratingsRef.child(userId).child("averageRating").get().addOnSuccessListener { snapshot ->
-        val average = snapshot.getValue(Double::class.java) ?: 0.0
-        onAverageFetched(average)
-    }.addOnFailureListener {
-        onAverageFetched(0.0)
-    }
-}
-
+// Include other necessary functions like fetchUserRating, updateUserRating, etc., as they were in the old code
 fun fetchUserRating(
     ratingsRef: DatabaseReference,
     userId: String,
@@ -630,6 +1113,19 @@ fun fetchUserRating(
         .addOnFailureListener {
             onRatingFetched(0.0)
         }
+}
+
+fun fetchAverageRating(
+    ratingsRef: DatabaseReference,
+    userId: String,
+    onAverageFetched: (Double) -> Unit
+) {
+    ratingsRef.child(userId).child("averageRating").get().addOnSuccessListener { snapshot ->
+        val average = snapshot.getValue(Double::class.java) ?: 0.0
+        onAverageFetched(average)
+    }.addOnFailureListener {
+        onAverageFetched(0.0)
+    }
 }
 
 fun updateUserRating(
@@ -650,30 +1146,21 @@ fun updateUserRating(
             mutableMapOf()
         }
 
-        // Check if the user has already rated this profile
         val isNewRating = !ratingsMap.containsKey(currentUserId)
-
-        // Update the user's rating
         ratingsMap[currentUserId] = rating
-
-        // Calculate the new average rating
         val averageRating = if (ratingsMap.isNotEmpty()) ratingsMap.values.average() else 0.0
 
-        // Prepare updates for the "ratings" and "averageRating" fields
         val updates = mapOf(
             "ratings" to ratingsMap,
             "averageRating" to averageRating
         )
 
         userRatingRef.updateChildren(updates).addOnSuccessListener {
-            // Update the user's profile with the new average rating
             usersRef.child(userId).child("averageRating").setValue(averageRating).addOnSuccessListener {
                 Toast.makeText(context, "Rating updated!", Toast.LENGTH_SHORT).show()
             }.addOnFailureListener {
-                Toast.makeText(context, "Failed to update average rating in profile.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Failed to update average rating.", Toast.LENGTH_SHORT).show()
             }
-
-            // Increment numberOfRatings only if this is a new rating
             if (isNewRating) {
                 usersRef.child(userId).child("numberOfRatings").runTransaction(object : Transaction.Handler {
                     override fun doTransaction(mutableData: MutableData): Transaction.Result {
@@ -681,17 +1168,8 @@ fun updateUserRating(
                         mutableData.value = currentCount + 1
                         return Transaction.success(mutableData)
                     }
-
-                    override fun onComplete(
-                        error: DatabaseError?,
-                        committed: Boolean,
-                        currentData: DataSnapshot?
-                    ) {
-                        if (committed) {
-                            Log.d("Rating", "numberOfRatings incremented successfully.")
-                        } else {
-                            Log.e("Rating", "Failed to increment numberOfRatings: ${error?.message}")
-                        }
+                    override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+                        if (!committed) Log.e("Rating", "Failed to increment numberOfRatings: ${error?.message}")
                     }
                 })
             }
@@ -700,33 +1178,5 @@ fun updateUserRating(
         }
     }.addOnFailureListener {
         Toast.makeText(context, "Failed to fetch current ratings.", Toast.LENGTH_SHORT).show()
-    }
-}
-
-fun resetUserRatings(
-    ratingsRef: DatabaseReference,
-    usersRef: DatabaseReference,
-    userId: String,
-    context: android.content.Context,
-    onResetComplete: () -> Unit // Callback to notify the UI
-) {
-    val userRatingRef = ratingsRef.child(userId)
-
-    // Reset ratings in the "ratings" node
-    userRatingRef.child("ratings").removeValue().addOnSuccessListener {
-        // Reset averageRating
-        userRatingRef.child("averageRating").setValue(0.0).addOnSuccessListener {
-            // Reset numberOfRatings
-            usersRef.child(userId).child("numberOfRatings").setValue(0).addOnSuccessListener {
-                Toast.makeText(context, "Ratings reset successfully!", Toast.LENGTH_SHORT).show()
-                onResetComplete() // Notify the UI
-            }.addOnFailureListener {
-                Toast.makeText(context, "Failed to reset numberOfRatings.", Toast.LENGTH_SHORT).show()
-            }
-        }.addOnFailureListener {
-            Toast.makeText(context, "Failed to reset averageRating.", Toast.LENGTH_SHORT).show()
-        }
-    }.addOnFailureListener {
-        Toast.makeText(context, "Failed to reset ratings.", Toast.LENGTH_SHORT).show()
     }
 }

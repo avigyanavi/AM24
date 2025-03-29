@@ -23,7 +23,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.am24.am24.profiles.GenericProfileScreen
 import com.firebase.geofire.GeoFire
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
 // Initialize GeoFire instance globally
@@ -109,10 +111,30 @@ fun MainNavGraph(
         }
 
         // ----- The AI route for KupidXChatScreen -----
-        composable("ai") {
-                KupidXChatScreen()
+        composable("aiProfile/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            val chatAIViewModel: ChatAIViewModel = viewModel()
+            val modelingState = chatAIViewModel.getModelingState(userId)
+            val aiEnum = when (userId) {
+                "zaraAi" -> AI.ZARA
+                "kabirAi" -> AI.KABIR
+                else -> return@composable
+            }
+            val avatarRes = when (aiEnum) {
+                AI.ZARA -> R.drawable.zara_avatar
+                AI.KABIR -> R.drawable.kabir_avatar
+                else -> R.drawable.zara_avatar // Fallback
+            }
+            GenericProfileScreen(
+                title = aiEnum.name,
+                modelingState = modelingState,
+                avatarRes = avatarRes,
+                onNavigateBack = { navController.popBackStack() },
+                ai = aiEnum,
+                userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                messageCount = chatAIViewModel.getMessageCount(userId)
+            )
         }
-
         composable("notifications") {
             NotificationsScreen(navController = navController)
         }

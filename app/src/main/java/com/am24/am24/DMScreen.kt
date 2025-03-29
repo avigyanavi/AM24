@@ -5,6 +5,7 @@ package com.am24.am24
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +40,7 @@ fun DMScreen(navController: NavController) {
     DMScreenContent(navController = navController)
 }
 
+
 @Composable
 fun DMScreenContent(navController: NavController) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -47,6 +50,256 @@ fun DMScreenContent(navController: NavController) {
     val matchesRef = database.getReference("matches/$currentUserId")
     val usersRef = database.getReference("users")
     val messagesRootRef = database.getReference("messages")
+
+     val zaraProfile = Profile(
+        email = "zara@am24.org",
+        password = "ZaraPassword123!",
+        interestedIn = listOf("Male"),
+        preferredLanguage = "English",
+        userId = "zaraAi",
+        username = "ZaraAI",
+        name = "Zara",
+        dob = "12/04/1999",
+        bio = "Kolkata sports star turned dating coach, once a jock in high school!",
+        gender = "Female",
+        lastActive = System.currentTimeMillis(),
+        badges = listOf("CricketChampion", "SchoolJock"),
+        profilepicUrl = "", // local drawables used in your ChatScreen anyway
+        voiceNoteUrl = "",
+        loveLanguage = "Words of Affirmation",
+        optionalPhotoUrls = emptyList(),
+        matches = emptyList(),
+        religion = "Hindu",
+        community = "Bengali",
+        city = "Kolkata",
+        customCity = null,
+        hometown = "Kolkata",
+        customHometown = null,
+        educationLevel = "Masters",
+        highSchool = "Kolkata HS",
+        customHighSchool = null,
+        highSchoolGraduationYear = "2014",
+        college = "Kolkata University",
+        customCollege = null,
+        collegeGraduationYear = "2018",
+        collegeDegree = "B.A. in Sociology",
+        postGraduation = "Kolkata University PG",
+        customPostGraduation = null,
+        postGraduationYear = "2020",
+        postGraduationDegree = "M.A. in Psychology",
+        lifestyle = Lifestyle(
+            smoking = 0,
+            drinking = 1,
+            cannabisFriendly = false,
+            indoorsyToOutdoorsy = 2,
+            sal = 1,
+            IE = 2,
+            socialMedia = 2,
+            diet = "Non-Veg",
+            sleepCycle = 2,
+            workLifeBalance = 3,
+            exerciseFrequency = 4,
+            adventurous = 4,
+            petFriendly = true,
+            familyOriented = 3,
+            intellectual = 3,
+            creativeArtistic = 4,
+            fitnessLevel = 4,
+            spiritualMindful = 2,
+            humorousEasyGoing = 3,
+            professionalAmbitious = 3,
+            environmentallyConscious = 2,
+            foodieCulinaryEnthusiast = 3,
+            politicallyAware = 3,
+            communityOriented = 3,
+            sportsEnthusiast = 5, // She’s a jock
+            alcoholType = "Social"
+        ),
+        politics = "Liberal",
+        jobRole = "Dating Coach",
+        customJobRole = null,
+        work = "Self-Employed",
+        customWork = null,
+        socialCauses = listOf("Women Empowerment"),
+        lookingFor = "Connections",
+        likedUsers = mutableMapOf(),
+        numberOfUsersWhoSwiped = 0.0,
+        UsersWhoLikeMe = mutableMapOf(),
+        isBoosted = false,
+        isPremium = false,
+        isPrivate = false,
+        am24RankingAge = 5,
+        am24RankingHighSchool = 5,
+        am24RankingCollege = 5,
+        am24RankingHometown = 5,
+        am24Ranking = 20,
+        numberOfRatings = 35,
+        numberOfSwipeRights = 0,
+        matchCount = 0,
+        matchCountPerSwipeRight = 0.0,
+        cumulativeUpvotes = 0,
+        cumulativeDownvotes = 0,
+        averageUpvoteCount = 0.0,
+        averageDownvoteCount = 0.0,
+        reportUsers = mutableMapOf(),
+        blockedUsers = mutableMapOf(),
+        upvoteCount = 0,
+        downvoteCount = 0,
+        userTags = emptyList(),
+        zodiac = null,
+        dateOfJoin = System.currentTimeMillis(),
+        am24RankingCompositeScore = 100.0,
+        vibepoints = 0.0,
+        latitude = 0.0,
+        longitude = 0.0,
+        averageRating = 4.2,
+        isMatrimonyMode = false,
+        marriageTimeline = null,
+        relocationPreference = null,
+        postMarriageCareerPlan = null,
+        traditionalVsLiberal = null,
+        fatherOccupation = null,
+        motherOccupation = null,
+        numberOfSiblings = null,
+        elderSiblings = null,
+        youngerSiblings = null,
+        isConsultantVerified = false,
+        datingAgeStart = 18,
+        datingAgeEnd = 30,
+        datingDistancePreference = 10,
+        height = 163,
+        height2 = emptyList(),
+        caste = "",
+        relationship = null,
+        averageSwipeRightsOnUser = 0.0,
+        ratingsGiven = emptyMap(),
+        ratingsReceived = emptyMap()
+    )
+
+     val kabirProfile = Profile(
+        email = "kabir@am24.org",
+        password = "KabirPassword456!",
+        interestedIn = listOf("Female"),
+        preferredLanguage = "English",
+        userId = "kabirAi",
+        username = "KabirAI",
+        name = "Kabir",
+        dob = "07/02/1998",
+        bio = "Ex-college athlete turned edgy approach mentor, jock vibes all the way!",
+        gender = "Male",
+        lastActive = System.currentTimeMillis(),
+        badges = listOf("SchoolJock", "FootballStar"),
+        profilepicUrl = "",
+        voiceNoteUrl = "",
+        loveLanguage = "Physical Touch",
+        optionalPhotoUrls = emptyList(),
+        matches = emptyList(),
+        religion = "Muslim",
+        community = "Bengali",
+        city = "Kolkata",
+        customCity = null,
+        hometown = "Kolkata",
+        customHometown = null,
+        educationLevel = "Bachelors",
+        highSchool = "Kolkata HS",
+        customHighSchool = null,
+        highSchoolGraduationYear = "2013",
+        college = "Kolkata College",
+        customCollege = null,
+        collegeGraduationYear = "2017",
+        collegeDegree = "B.Com",
+        postGraduation = "",
+        customPostGraduation = null,
+        postGraduationYear = "",
+        postGraduationDegree = null,
+        lifestyle = Lifestyle(
+            smoking = 2,
+            drinking = 2,
+            cannabisFriendly = false,
+            indoorsyToOutdoorsy = 4,
+            sal = 2,
+            IE = 2,
+            socialMedia = 3,
+            diet = "Non-Veg",
+            sleepCycle = 2,
+            workLifeBalance = 3,
+            exerciseFrequency = 5,
+            adventurous = 5,
+            petFriendly = false,
+            familyOriented = 3,
+            intellectual = 2,
+            creativeArtistic = 2,
+            fitnessLevel = 5,
+            spiritualMindful = 2,
+            humorousEasyGoing = 3,
+            professionalAmbitious = 2,
+            environmentallyConscious = 2,
+            foodieCulinaryEnthusiast = 2,
+            politicallyAware = 2,
+            communityOriented = 2,
+            sportsEnthusiast = 5, // He’s big on sports
+            alcoholType = "Occasional"
+        ),
+        politics = "Moderate",
+        jobRole = "Approach Mentor",
+        customJobRole = null,
+        work = "Freelancer",
+        customWork = null,
+        socialCauses = listOf("Youth Empowerment"),
+        lookingFor = "Fun & Flirting",
+        likedUsers = mutableMapOf(),
+        numberOfUsersWhoSwiped = 0.0,
+        UsersWhoLikeMe = mutableMapOf(),
+        isBoosted = false,
+        isPremium = false,
+        isPrivate = false,
+        am24RankingAge = 5,
+        am24RankingHighSchool = 5,
+        am24RankingCollege = 3,
+        am24RankingHometown = 5,
+        am24Ranking = 18,
+        numberOfRatings = 20,
+        numberOfSwipeRights = 0,
+        matchCount = 0,
+        matchCountPerSwipeRight = 0.0,
+        cumulativeUpvotes = 0,
+        cumulativeDownvotes = 0,
+        averageUpvoteCount = 0.0,
+        averageDownvoteCount = 0.0,
+        reportUsers = mutableMapOf(),
+        blockedUsers = mutableMapOf(),
+        upvoteCount = 0,
+        downvoteCount = 0,
+        userTags = emptyList(),
+        zodiac = null,
+        dateOfJoin = System.currentTimeMillis(),
+        am24RankingCompositeScore = 80.0,
+        vibepoints = 0.0,
+        latitude = 0.0,
+        longitude = 0.0,
+        averageRating = 3.8,
+        isMatrimonyMode = false,
+        marriageTimeline = null,
+        relocationPreference = null,
+        postMarriageCareerPlan = null,
+        traditionalVsLiberal = null,
+        fatherOccupation = null,
+        motherOccupation = null,
+        numberOfSiblings = null,
+        elderSiblings = null,
+        youngerSiblings = null,
+        isConsultantVerified = false,
+        datingAgeStart = 18,
+        datingAgeEnd = 30,
+        datingDistancePreference = 10,
+        height = 178,
+        height2 = emptyList(),
+        caste = "",
+        relationship = null,
+        averageSwipeRightsOnUser = 0.0,
+        ratingsGiven = emptyMap(),
+        ratingsReceived = emptyMap()
+    )
 
     val matchedUsers = remember { mutableStateListOf<Profile>() }
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
@@ -60,17 +313,19 @@ fun DMScreenContent(navController: NavController) {
         }
     }
 
-    // lastMessages map: Key = userId, Value = Triple(msg, fromCurrentUser, read)
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
 
     LaunchedEffect(currentUserId) {
+        // 2) Fetch real matches, then insert Zara/Kabir
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
+            injectAIProfiles(matchedUsers, zaraProfile, kabirProfile)
+
             checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
                 nonInitiatedMatches.clear()
                 nonInitiatedMatches.addAll(nonInitiated)
             }
 
-            // Listen for last message updates in real-time
+            // Listen for last messages
             matchedUsers.forEach { profile ->
                 val chatId = getChatId(currentUserId, profile.userId)
                 messagesRootRef.child(chatId)
@@ -85,13 +340,11 @@ fun DMScreenContent(navController: NavController) {
                             for (msgSnap in snapshot.children) {
                                 val text = msgSnap.child("text").getValue(String::class.java) ?: ""
                                 val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
-                                // Default to false if not present
                                 val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
                                 val fromCurrentUser = (senderId == currentUserId)
                                 lastMessages[profile.userId] = Triple(text, fromCurrentUser, read)
                             }
                         }
-
                         override fun onCancelled(error: DatabaseError) {
                             Log.e("DMScreen", "Failed to listen last message: ${error.message}")
                         }
@@ -105,6 +358,7 @@ fun DMScreenContent(navController: NavController) {
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // Search bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -121,6 +375,7 @@ fun DMScreenContent(navController: NavController) {
                 .padding(top = 8.dp, bottom = 8.dp, start = 10.dp, end = 10.dp)
         )
 
+        // Row with likes + nonInitiated
         val scrollState = rememberScrollState()
         Row(
             modifier = Modifier
@@ -129,7 +384,6 @@ fun DMScreenContent(navController: NavController) {
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Instead of toast, navigate to peopleWhoLikedMe
             Box(
                 modifier = Modifier
                     .size(70.dp)
@@ -147,28 +401,27 @@ fun DMScreenContent(navController: NavController) {
                     fontSize = 16.sp
                 )
             }
-
             Spacer(modifier = Modifier.width(8.dp))
 
-            for (profile in nonInitiatedMatches) {
-                AsyncImage(
-                    model = profile.profilepicUrl,
-                    contentDescription = profile.username,
+            nonInitiatedMatches.forEach { profile ->
+                AIOrProfileImage(
+                    profile = profile,
                     modifier = Modifier
                         .size(70.dp)
                         .clip(CircleShape)
                         .background(Color.Gray)
                         .clickable {
                             navController.navigate("chat/${profile.userId}")
-                        },
-                    contentScale = ContentScale.Crop
+                        }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
         }
 
+        // Filter list
         val displayedUsers = matchedUsers.filter {
-            it.username.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
+            it.username.contains(searchQuery, ignoreCase = true) ||
+                    it.name.contains(searchQuery, ignoreCase = true)
         }
 
         if (displayedUsers.isEmpty()) {
@@ -208,6 +461,53 @@ fun DMScreenContent(navController: NavController) {
     }
 }
 
+// Helper function to show either local resource for Zara/Kabir or the real user's pic
+@Composable
+fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
+    // If userId = "zaraAi" => load R.drawable.zara_avatar
+    // If userId = "kabirAi" => load R.drawable.kabir_avatar
+    // else => load profilepicUrl with AsyncImage
+    when (profile.userId) {
+        "zaraAi" -> {
+            Image(
+                painter = painterResource(R.drawable.zara_avatar),
+                contentDescription = "Zara",
+                modifier = modifier,
+                contentScale = ContentScale.Crop
+            )
+        }
+        "kabirAi" -> {
+            Image(
+                painter = painterResource(R.drawable.kabir_avatar),
+                contentDescription = "Kabir",
+                modifier = modifier,
+                contentScale = ContentScale.Crop
+            )
+        }
+        else -> {
+            AsyncImage(
+                model = profile.profilepicUrl,
+                contentDescription = profile.username,
+                modifier = modifier,
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+fun injectAIProfiles(
+    matchedUsers: MutableList<Profile>,
+    zaraProfile: Profile,
+    kabirProfile: Profile
+) {
+    if (matchedUsers.none { it.userId == "zaraAi" }) {
+        matchedUsers.add(zaraProfile)
+    }
+    if (matchedUsers.none { it.userId == "kabirAi" }) {
+        matchedUsers.add(kabirProfile)
+    }
+}
+
 @Composable
 fun DMUserCard(
     profile: Profile,
@@ -227,20 +527,18 @@ fun DMUserCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(16.dp)
         ) {
-            AsyncImage(
-                model = profile.profilepicUrl,
-                contentDescription = "Profile Picture",
+            // Use the same approach for the row image
+            AIOrProfileImage(
+                profile = profile,
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(Color.Gray),
-                contentScale = ContentScale.Crop
+                    .background(Color.Gray)
             )
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                // Display username
                 Text(
                     text = profile.username,
                     color = Color.White,
@@ -248,19 +546,15 @@ fun DMUserCard(
                     fontWeight = FontWeight.Bold
                 )
 
-                // Calculate age
                 val age = profile.dob?.let { calculateAge(it) }
-                // Location info
                 val locality = profile.hometown
-
-                if(profile.hometown != "") {
+                if (profile.hometown.isNotBlank()) {
                     Text(
-                        text = "${locality}, ${profile.jobRole}, Age: ${age ?: ""}",
+                        text = "$locality, ${profile.jobRole}, Age: ${age ?: ""}",
                         fontSize = 16.sp,
                         color = Color.White
                     )
                 } else {
-                    // Show username, location, age
                     Text(
                         text = "${locality ?: ""}, Age: ${age ?: ""}",
                         color = Color.White,
@@ -274,14 +568,12 @@ fun DMUserCard(
                     else -> lastMessage
                 }
 
-                // Determine ticks
                 val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
                     if (lastMessageRead) " ✔✔ Seen" else " ✔ Delivered"
                 } else {
                     ""
                 }
 
-                // Apply color to ticks
                 val fullText = messageText + ticks
                 val styledText = buildAnnotatedString {
                     val tickIndex = fullText.indexOf('✔')
