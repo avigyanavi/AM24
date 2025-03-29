@@ -21,8 +21,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.am24.am24.profiles.GenericProfileScreen
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
@@ -108,6 +110,41 @@ fun MainNavGraph(
         }
         composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(navController = navController)
+        }
+
+        composable(
+            route = "aiProfile/{aiId}?scrollToMemoryLogs={scrollToMemoryLogs}",
+            arguments = listOf(
+                navArgument("aiId") { type = NavType.StringType },
+                navArgument("scrollToMemoryLogs") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val aiId = backStackEntry.arguments?.getString("aiId") ?: return@composable
+            val scrollToMemoryLogs = backStackEntry.arguments?.getBoolean("scrollToMemoryLogs") ?: false
+            val chatAIViewModel: ChatAIViewModel = viewModel()
+            val ai = when (aiId) {
+                "zaraAi" -> AI.ZARA
+                "kabirAi" -> AI.KABIR
+                else -> return@composable
+            }
+            val avatarRes = when (ai) {
+                AI.ZARA -> R.drawable.zara_avatar
+                AI.KABIR -> R.drawable.kabir_avatar
+                else -> R.drawable.zara_avatar // Fallback
+            }
+            GenericProfileScreen(
+                title = ai.name,
+                modelingState = chatAIViewModel.getModelingState(aiId),
+                avatarRes = avatarRes,
+                onNavigateBack = { navController.popBackStack() },
+                ai = ai,
+                userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                messageCount = chatAIViewModel.getMessageCount(aiId),
+                scrollToMemoryLogs = scrollToMemoryLogs
+            )
         }
 
         // ----- The AI route for KupidXChatScreen -----

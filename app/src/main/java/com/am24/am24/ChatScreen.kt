@@ -643,12 +643,7 @@ fun ChatScreenContent(
                                 },
                                 onClick = {
                                     moreOptionsMenuExpanded = false
-                                    val log = chatAIViewModel.getMemoryLog(otherUserId).joinToString("\n")
-                                    Toast.makeText(
-                                        context,
-                                        log.ifEmpty { "No memories yet." },
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                    navController.navigate("aiProfile/$otherUserId")
                                 }
                             )
                         }

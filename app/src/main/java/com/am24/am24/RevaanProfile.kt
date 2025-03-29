@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -209,17 +210,18 @@ fun GenericProfileScreen(
     onNavigateBack: () -> Unit,
     ai: AI,
     userId: String,
-    messageCount: Int
+    messageCount: Int,
+    scrollToMemoryLogs: Boolean = false
 ) {
     var showFullScreenImage by remember { mutableStateOf(false) }
     val memoryLogState = remember { mutableStateListOf<String>() }
+    val lazyListState = rememberLazyListState()
 
-    LaunchedEffect(ai, userId) {
-        val dbRef = FirebaseDatabase.getInstance("https://am-twentyfour.firebaseio.com/")
-            .getReference("chatMessages")
-            .child(userId)
-            .child("memoryLogs")
-            .child(ai.name.lowercase())
+    // Fetch memory logs from aiMemoryLogs/{aiId}
+    LaunchedEffect(ai) {
+        val dbRef = FirebaseDatabase.getInstance("https://am-twentyfour-default-rtdb.firebaseio.com/")
+            .getReference("aiMemoryLogs")
+            .child(ai.name.lowercase() + "Ai") // Match aiId format (e.g., "zaraAi", "kabirAi")
 
         dbRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -227,8 +229,17 @@ fun GenericProfileScreen(
                 snapshot.children.mapNotNullTo(memoryLogState) { it.getValue(String::class.java) }
             }
 
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("GenericProfileScreen", "Failed to load memory logs: ${error.message}")
+            }
         })
+    }
+
+    // Scroll to memory logs if requested
+    LaunchedEffect(scrollToMemoryLogs, memoryLogState) {
+        if (scrollToMemoryLogs && memoryLogState.isNotEmpty()) {
+            lazyListState.scrollToItem(2)
+        }
     }
 
     Scaffold(
@@ -246,6 +257,7 @@ fun GenericProfileScreen(
         backgroundColor = Color.Black
     ) { paddingValues ->
         LazyColumn(
+            state = lazyListState,
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
