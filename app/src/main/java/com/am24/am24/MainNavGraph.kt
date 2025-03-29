@@ -181,6 +181,29 @@ fun MainNavGraph(
                 ChatScreen(navController, otherUserId)
             }
         }
+        composable("map") {
+            MapScreen(
+                onCityClicked = { cityName ->
+                    // Navigate to cityGroupChat route, passing cityName
+                    navController.navigate("cityGroupChat/$cityName")
+                }
+            )
+        }
+
+        // A new route for "cityGroupChat/{cityName}" with city name as argument
+        composable(
+            route = "cityGroupChat/{cityName}",
+            arguments = listOf(navArgument("cityName") {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val cityName = backStackEntry.arguments?.getString("cityName") ?: return@composable
+            CityGroupChatScreen(
+                navController = navController,
+                cityName = cityName,
+                profileViewModel = profileViewModel // pass your existing ProfileViewModel
+            )
+        }
         composable("matchedUserProfile/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
             MatchedUserProfile(

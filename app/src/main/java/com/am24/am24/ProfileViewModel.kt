@@ -57,6 +57,23 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun fetchProfilesByCity(cityName: String, onResult: (List<Profile>) -> Unit) {
+        val dbRef = FirebaseDatabase.getInstance().getReference("profiles")
+        dbRef.orderByChild("city").equalTo(cityName)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    val profiles = mutableListOf<Profile>()
+                    for (child in dataSnapshot.children) {
+                        val profile = child.getValue(Profile::class.java)
+                        if (profile != null) {
+                            profiles.add(profile)
+                        }
+                    }
+                    onResult(profiles)
+                }
+                override fun onCancelled(error: DatabaseError) { /* handle error */ }
+            })
+    }
 
     fun fetchUsernameById(userId: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)

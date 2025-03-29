@@ -249,17 +249,6 @@ data class Interest(
     constructor() : this("", null)
 }
 
-data class Message(
-    val id: String = "",
-    val senderId: String = "",
-    val receiverId: String = "",
-    val text: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
-    val read: Boolean = false,
-    val mediaType: String? = null,
-    val mediaUrl: String? = null,
-    val isOnline: Boolean = false,
-)
 
 data class Lifestyle(
     var smoking: Int = -1,

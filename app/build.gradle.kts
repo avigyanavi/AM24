@@ -76,6 +76,9 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.coil.compose.v230)
     implementation(libs.androidx.datastore.preferences.v110)
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
+    implementation("com.google.maps.android:android-maps-utils:2.3.0")
 
     // For Coil image loading
     implementation(libs.coil.compose.v222)
