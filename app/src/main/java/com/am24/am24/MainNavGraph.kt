@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +31,10 @@ import androidx.navigation.navArgument
 import com.am24.am24.profiles.GenericProfileScreen
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 // Initialize GeoFire instance globally
 val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
@@ -47,13 +52,25 @@ fun MainNavGraph(
             LocalContext.current.applicationContext as Application
         )
     )
+    var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // Initialize `datingViewModel`
-    val datingViewModel: DatingViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-            LocalContext.current.applicationContext as Application
-        )
-    )
+    // Read in the current user's matches from Firebase
+    val matchesSet = remember { mutableStateListOf<String>() }
+    LaunchedEffect(userId) {
+        val matchesRef = FirebaseDatabase.getInstance().getReference("matches").child(userId)
+        matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                matchesSet.clear()
+                for (child in snapshot.children) {
+                    child.key?.let { matchesSet.add(it) }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error if needed
+            }
+        })
+    }
+
 
     // Initialize `profileViewModel`
     val profileViewModel: ProfileViewModel = viewModel(
@@ -65,9 +82,6 @@ fun MainNavGraph(
     // Initialize LocationManager (safe inside Composable)
     val context = LocalContext.current
     val locationManager = remember { LocationManager(context) }
-
-
-    var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     NavHost(
         navController = navController,
@@ -191,14 +205,19 @@ fun MainNavGraph(
         }
         // 1) West Bengal top-level map
         composable("map") {
-            val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
             // Pass references
             MapScreen(
                 userId = userId,
                 locationManager = locationManager,        // Or create it via DI
                 geoFireDatabaseRef = FirebaseDatabase.getInstance().getReference("geoFireLocations"),
+                navController = navController, // NEW parameter
                 onProfileMarkerClicked = { profileId ->
-                    // maybe navController.navigate("profile/$profileId")
+                    // Replace 'matchesSet' with your available list of matched user IDs.
+                    if (matchesSet.contains(profileId)) {
+                        navController.navigate("matchedUserProfile/$profileId")
+                    } else {
+                        navController.navigate("dating_screen?initialQuery=$profileId")
+                    }
                 }
             )
         }

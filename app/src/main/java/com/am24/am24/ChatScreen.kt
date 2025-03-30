@@ -44,6 +44,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
@@ -52,8 +53,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
 import com.google.firebase.database.PropertyName
 import java.io.File
@@ -679,14 +685,51 @@ fun sendVoiceMessage(currentUserId: String, otherUserId: String, chatId: String,
 @Composable
 fun MessageBubble(message: Message, currentUserId: String) {
     val isCurrentUser = message.senderId == currentUserId
-    val ticks = if (isCurrentUser) if (message.read) "✔✔" else "✔" else ""
-    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start) {
-        Column(Modifier.background(Color.Black, RoundedCornerShape(12.dp)).padding(12.dp)) {
-            Text(message.text, color = Color.White, fontSize = 16.sp)
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatRelativeTime(message.timestamp), color = Color.LightGray, fontSize = 12.sp)
-                if (ticks.isNotEmpty()) { Spacer(Modifier.width(4.dp)); Text(ticks, color = Color(0xFFFF4500), fontSize = 12.sp) }
+    // Set bubble colors: Yellow for current user, Orange for other user
+    val bubbleColor = if (isCurrentUser) Color(0xFFFFDB00) else Color(0xFFFF6F00)
+    // Use a contrasting text color based on bubble color
+    val textColor = if (isCurrentUser) Color.Black else Color.White
+
+    val context = LocalContext.current
+    // Create an annotated string where links are detected and styled
+    val annotatedText = remember(message.text) { createAnnotatedString(message.text) }
+
+    // Display check ticks if needed
+    val ticks = if (isCurrentUser) {
+        if (message.read) "✔✔" else "✔"
+    } else ""
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
+    ) {
+        Column(
+            modifier = Modifier
+                .background(bubbleColor, RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
+            // Use ClickableText to allow clickable links within the message text
+            ClickableText(
+                text = annotatedText,
+                style = TextStyle(color = textColor, fontSize = 16.sp),
+                onClick = { offset ->
+                    annotatedText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                        .firstOrNull()?.let { annotation ->
+                            // Launch the browser with the URL
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item))
+                            context.startActivity(intent)
+                        }
+                }
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row {
+                Text(text = formatRelativeTime(message.timestamp), color = Color.DarkGray, fontSize = 12.sp)
+                if (ticks.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = ticks, color = Color(0xFFFF4500), fontSize = 12.sp)
+                }
             }
         }
     }
@@ -730,15 +773,42 @@ fun VoiceMessageBubble(message: Message, currentUserId: String) {
                     }
                 }) { Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, "Play/Pause", tint = Color(0xFFFF4500)) }
                 LinearProgressIndicator(progress = progress, Modifier.weight(1f).padding(horizontal = 8.dp), color = Color(0xFFFFA500), trackColor = Color.Gray)
-                Text(formatDuration(player?.duration?.toLong() ?: 0L), color = Color.LightGray, fontSize = 12.sp)
+                Text(formatDuration(player?.duration?.toLong() ?: 0L), color = Color.DarkGray, fontSize = 12.sp)
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatRelativeTime(message.timestamp), color = Color.LightGray, fontSize = 12.sp)
+                Text(formatRelativeTime(message.timestamp), color = Color.DarkGray, fontSize = 12.sp)
                 if (ticks.isNotEmpty()) { Spacer(Modifier.width(4.dp)); Text(ticks, color = Color(0xFFFF4500), fontSize = 12.sp) }
             }
         }
     }
+}
+
+
+fun createAnnotatedString(text: String): AnnotatedString {
+    val regex = Regex("((http|https)://[\\w-]+(\\.[\\w-]+)+([\\w.,@?^=%&:/~+#-]*[\\w@?^=%&/~+#-])?)")
+    val builder = AnnotatedString.Builder(text)
+    regex.findAll(text).forEach { result ->
+        val start = result.range.first
+        val end = result.range.last + 1
+        // Style the link text (e.g., blue and underlined)
+        builder.addStyle(
+            style = SpanStyle(
+                color = Color.Blue,
+                textDecoration = TextDecoration.Underline
+            ),
+            start = start,
+            end = end
+        )
+        // Add an annotation to detect clicks on the URL
+        builder.addStringAnnotation(
+            tag = "URL",
+            annotation = result.value,
+            start = start,
+            end = end
+        )
+    }
+    return builder.toAnnotatedString()
 }
 
 @Composable
