@@ -1160,174 +1160,174 @@ fun LifestyleSection(profile: Profile) {
     CompositionLocalProvider(LocalTextStyle provides TextStyle(fontSize = 12.sp)) {
         Column {
             profile.lifestyle?.let { lifestyle ->
-                if (lifestyle.smoking != -1)
+                if (lifestyle.smoking_habit != -1)
                     LifestyleSlider(
                         label = "Smoking",
-                        value = lifestyle.smoking,
+                        value = lifestyle.smoking_habit,
                         nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker"),
                         icon = Icons.Default.SmokingRooms
                     )
-                if (lifestyle.drinking != -1)
+                if (lifestyle.drinking_habit != -1)
                     LifestyleSlider(
                         label = "Drinking",
-                        value = lifestyle.drinking,
+                        value = lifestyle.drinking_habit,
                         nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker"),
                         icon = Icons.Default.LocalDrink
                     )
-                if (lifestyle.indoorsyToOutdoorsy != -1)
+                if (lifestyle.indoor_outdoor_orientation != -1)
                     LifestyleSlider(
                         label = "Going out",
-                        value = lifestyle.indoorsyToOutdoorsy,
+                        value = lifestyle.indoor_outdoor_orientation,
                         nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy"),
                         icon = Icons.Default.DirectionsWalk
                     )
-                if (lifestyle.socialMedia != -1)
+                if (lifestyle.social_media_engagement != -1)
                     LifestyleSlider(
                         label = "Social Media",
-                        value = lifestyle.socialMedia,
+                        value = lifestyle.social_media_engagement,
                         nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
                         icon = Icons.Default.Groups2
                     )
-                if (lifestyle.workLifeBalance != -1)
+                if (lifestyle.work_life_balance != -1)
                     LifestyleSlider(
                         label = "Work-Life Balance",
-                        value = lifestyle.workLifeBalance,
+                        value = lifestyle.work_life_balance,
                         nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed"),
                         icon = Icons.Default.WorkOff
                     )
-                if (lifestyle.exerciseFrequency != -1)
+                if (lifestyle.exercise_frequency != -1)
                     LifestyleSlider(
                         label = "Exercise Frequency",
-                        value = lifestyle.exerciseFrequency,
+                        value = lifestyle.exercise_frequency,
                         nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active"),
                         icon = Icons.Default.SportsGymnastics
                     )
-                if (lifestyle.familyOriented != -1)
+                if (lifestyle.family_orientated != -1)
                     LifestyleSlider(
                         label = "Family-Oriented",
-                        value = lifestyle.familyOriented,
+                        value = lifestyle.family_orientated,
                         nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented"),
                         icon = Icons.Default.FamilyRestroom
                     )
-                if (lifestyle.diet.isNotBlank())
-                    LifestyleDropdown("Diet", lifestyle.diet, Icons.Default.Restaurant)
-                if (lifestyle.sleepCycle != -1)
+                if (lifestyle.dietary_preferences.isNotBlank())
+                    LifestyleDropdown("Diet", lifestyle.dietary_preferences, Icons.Default.Restaurant)
+                if (lifestyle.sleep_pattern != -1)
                     LifestyleSlider(
                         label = "Sleep Cycle",
-                        value = lifestyle.sleepCycle,
+                        value = lifestyle.sleep_pattern,
                         nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast"),
                         icon = Icons.Default.Bedtime
                     )
-                if (lifestyle.adventurous != -1)
+                if (lifestyle.adventurousness != -1)
                     LifestyleSlider(
                         label = "Adventurous",
-                        value = lifestyle.adventurous,
+                        value = lifestyle.adventurousness,
                         nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker"),
                         icon = Icons.Default.Hiking
                     )
-                if (lifestyle.socialMedia != -1)
+                if (lifestyle.social_media_engagement != -1)
                     LifestyleSlider(
                         label = "Social Media",
-                        value = lifestyle.socialMedia,
+                        value = lifestyle.social_media_engagement,
                         nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
                         icon = Icons.Default.Groups2
                     )
-                if (lifestyle.petFriendly)
+                if (lifestyle.pet_affinity)
                     LifestyleDropdown("Pet Friendly", "Yes", Icons.Default.Pets)
-                if (lifestyle.intellectual != -1)
+                if (lifestyle.intellectual_curiosity != -1)
                     LifestyleSlider(
                         label = "Intellectual",
-                        value = lifestyle.intellectual,
+                        value = lifestyle.intellectual_curiosity,
                         nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher"),
                         icon = Icons.Default.School
                     )
-                if (lifestyle.creativeArtistic != -1)
+                if (lifestyle.creative_expression != -1)
                     LifestyleSlider(
                         label = "Creative/Artistic",
-                        value = lifestyle.creativeArtistic,
+                        value = lifestyle.creative_expression,
                         nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius"),
                         icon = Icons.Default.Palette
                     )
-                if (lifestyle.fitnessLevel != -1)
+                if (lifestyle.physical_fitness != -1)
                     LifestyleSlider(
                         label = "Fitness Level",
-                        value = lifestyle.fitnessLevel,
+                        value = lifestyle.physical_fitness,
                         nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness"),
                         icon = Icons.Default.FitnessCenter
                     )
-                if (lifestyle.spiritualMindful != -1)
+                if (lifestyle.spirituality_mindfulness != -1)
                     LifestyleSlider(
                         label = "Spiritual/Mindful",
-                        value = lifestyle.spiritualMindful,
+                        value = lifestyle.spirituality_mindfulness,
                         nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful"),
                         icon = Icons.Default.SelfImprovement
                     )
-                if (lifestyle.humorousEasyGoing != -1)
+                if (lifestyle.easy_goingness != -1)
                     LifestyleSlider(
                         label = "Humorous/Easy-Going",
-                        value = lifestyle.humorousEasyGoing,
+                        value = lifestyle.easy_goingness,
                         nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party"),
                         icon = Icons.Default.SentimentVerySatisfied
                     )
-                if (lifestyle.professionalAmbitious != -1)
+                if (lifestyle.professional_ambition != -1)
                     LifestyleSlider(
                         label = "Professional/Ambitious",
-                        value = lifestyle.professionalAmbitious,
+                        value = lifestyle.professional_ambition,
                         nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious"),
                         icon = Icons.Default.Work
                     )
-                if (lifestyle.environmentallyConscious != -1)
+                if (lifestyle.environmental_awareness != -1)
                     LifestyleSlider(
                         label = "Environmentally Conscious",
-                        value = lifestyle.environmentallyConscious,
+                        value = lifestyle.environmental_awareness,
                         nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion"),
                         icon = Icons.Default.Eco
                     )
-                if (lifestyle.foodieCulinaryEnthusiast != -1)
+                if (lifestyle.culinary_enthusiasm != -1)
                     LifestyleSlider(
                         label = "Foodie",
-                        value = lifestyle.foodieCulinaryEnthusiast,
+                        value = lifestyle.culinary_enthusiasm,
                         nouns = listOf("Not a Foodie", "Occasionally Foodie", "Foodie", "Passionate Foodie", "Gourmet"),
                         icon = Icons.Default.LocalDining
                     )
-                if (lifestyle.politicallyAware != -1)
+                if (lifestyle.political_awareness != -1)
                     LifestyleSlider(
                         label = "Politically Aware",
-                        value = lifestyle.politicallyAware,
+                        value = lifestyle.political_awareness,
                         nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged"),
                         icon = Icons.Default.Gavel
                     )
-                if (lifestyle.communityOriented != -1)
+                if (lifestyle.community_engagement != -1)
                     LifestyleSlider(
                         label = "Community Oriented",
-                        value = lifestyle.communityOriented,
+                        value = lifestyle.community_engagement,
                         nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader"),
                         icon = Icons.Default.Groups
                     )
-                if (lifestyle.sportsEnthusiast != -1)
+                if (lifestyle.sports_enthusiasm != -1)
                     LifestyleSlider(
                         label = "Sports Enthusiast",
-                        value = lifestyle.sportsEnthusiast,
+                        value = lifestyle.sports_enthusiasm,
                         nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic"),
                         icon = Icons.Default.SportsSoccer
                     )
-                if (lifestyle.IE != -1)
+                if (lifestyle.sociability != -1)
                     LifestyleSlider(
                         label = "Introvert Level",
-                        value = lifestyle.IE,
+                        value = lifestyle.sociability,
                         nouns = listOf("Not Introverted", "Slightly Introverted", "Moderately Introverted", "Very Introverted", "Extremely Introverted"),
                         icon = Icons.Default.Person
                     )
-                if (lifestyle.sal != -1)
+                if (lifestyle.sexual_activity_level != -1)
                     LifestyleSlider(
                         label = "Sexual Activity Level",
-                        value = lifestyle.sal,
+                        value = lifestyle.sexual_activity_level,
                         nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High"),
                         icon = Icons.Default.Favorite
                     )
-                LifestyleBooleanField(label = "Pet Friendly", value = lifestyle.petFriendly)
-                LifestyleBooleanField(label = "Cannabis Friendly", value = lifestyle.cannabisFriendly)
-                LifestyleDropdown(label = "Alcohol Type", value = lifestyle.alcoholType, icon = Icons.Default.LocalDrink)
+                LifestyleBooleanField(label = "Pet Friendly", value = lifestyle.pet_affinity)
+                LifestyleBooleanField(label = "Cannabis Friendly", value = lifestyle.cannabis_friendly)
+                LifestyleDropdown(label = "Alcohol Type", value = lifestyle.preferred_alcohol_type, icon = Icons.Default.LocalDrink)
             }
         }
     }
@@ -2023,130 +2023,130 @@ fun LifestyleEditSection(
     ) {
         LifestyleSliderEdit(
             label = "Smoking",
-            value = localLifestyle.smoking,
+            value = localLifestyle.smoking_habit,
             nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker")
-        ) { localLifestyle = localLifestyle.copy(smoking = it) }
+        ) { localLifestyle = localLifestyle.copy(smoking_habit = it) }
         LifestyleSliderEdit(
             label = "Drinking",
-            value = localLifestyle.drinking,
+            value = localLifestyle.drinking_habit,
             nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker")
-        ) { localLifestyle = localLifestyle.copy(drinking = it) }
+        ) { localLifestyle = localLifestyle.copy(drinking_habit = it) }
         LifestyleSliderEdit(
             label = "Indoor <-> Outdoor",
-            value = localLifestyle.indoorsyToOutdoorsy,
+            value = localLifestyle.indoor_outdoor_orientation,
             nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy")
-        ) { localLifestyle = localLifestyle.copy(indoorsyToOutdoorsy = it) }
+        ) { localLifestyle = localLifestyle.copy(indoor_outdoor_orientation = it) }
         LifestyleSliderEdit(
             label = "Social Media",
-            value = localLifestyle.socialMedia,
+            value = localLifestyle.social_media_engagement,
             nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer")
-        ) { localLifestyle = localLifestyle.copy(socialMedia = it) }
+        ) { localLifestyle = localLifestyle.copy(social_media_engagement = it) }
         LifestyleSliderEdit(
             label = "Work-Life Balance",
-            value = localLifestyle.workLifeBalance,
+            value = localLifestyle.work_life_balance,
             nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed")
-        ) { localLifestyle = localLifestyle.copy(workLifeBalance = it) }
+        ) { localLifestyle = localLifestyle.copy(work_life_balance = it) }
         LifestyleSliderEdit(
             label = "Exercise Frequency",
-            value = localLifestyle.exerciseFrequency,
+            value = localLifestyle.exercise_frequency,
             nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active")
-        ) { localLifestyle = localLifestyle.copy(exerciseFrequency = it) }
+        ) { localLifestyle = localLifestyle.copy(exercise_frequency = it) }
         LifestyleSliderEdit(
             label = "Family-Oriented",
-            value = localLifestyle.familyOriented,
+            value = localLifestyle.family_orientated,
             nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented")
-        ) { localLifestyle = localLifestyle.copy(familyOriented = it) }
-        LifestyleDropdownEdit("Diet", localLifestyle.diet) { localLifestyle = localLifestyle.copy(diet = it) }
+        ) { localLifestyle = localLifestyle.copy(family_orientated = it) }
+        LifestyleDropdownEdit("Diet", localLifestyle.dietary_preferences) { localLifestyle = localLifestyle.copy(dietary_preferences = it) }
         LifestyleSliderEdit(
             label = "Sleep Cycle",
-            value = localLifestyle.sleepCycle,
+            value = localLifestyle.sleep_pattern,
             nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast")
-        ) { localLifestyle = localLifestyle.copy(sleepCycle = it) }
+        ) { localLifestyle = localLifestyle.copy(sleep_pattern = it) }
         LifestyleSliderEdit(
             label = "Adventurous",
-            value = localLifestyle.adventurous,
+            value = localLifestyle.adventurousness,
             nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker")
-        ) { localLifestyle = localLifestyle.copy(adventurous = it) }
-        if (localLifestyle.petFriendly)
-            LifestyleDropdownEdit("Pet Friendly", "Yes") { localLifestyle = localLifestyle.copy(petFriendly = true) }
+        ) { localLifestyle = localLifestyle.copy(adventurousness = it) }
+        if (localLifestyle.pet_affinity)
+            LifestyleDropdownEdit("Pet Friendly", "Yes") { localLifestyle = localLifestyle.copy(pet_affinity = true) }
         LifestyleSliderEdit(
             label = "Intellectual",
-            value = localLifestyle.intellectual,
+            value = localLifestyle.intellectual_curiosity,
             nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher")
-        ) { localLifestyle = localLifestyle.copy(intellectual = it) }
+        ) { localLifestyle = localLifestyle.copy(intellectual_curiosity = it) }
         LifestyleSliderEdit(
             label = "Creative/Artistic",
-            value = localLifestyle.creativeArtistic,
+            value = localLifestyle.creative_expression,
             nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius")
-        ) { localLifestyle = localLifestyle.copy(creativeArtistic = it) }
+        ) { localLifestyle = localLifestyle.copy(creative_expression = it) }
         LifestyleSliderEdit(
             label = "Fitness Level",
-            value = localLifestyle.fitnessLevel,
+            value = localLifestyle.physical_fitness,
             nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness")
-        ) { localLifestyle = localLifestyle.copy(fitnessLevel = it) }
+        ) { localLifestyle = localLifestyle.copy(physical_fitness = it) }
         LifestyleSliderEdit(
             label = "Spiritual/Mindful",
-            value = localLifestyle.spiritualMindful,
+            value = localLifestyle.spirituality_mindfulness,
             nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful")
-        ) { localLifestyle = localLifestyle.copy(spiritualMindful = it) }
+        ) { localLifestyle = localLifestyle.copy(spirituality_mindfulness = it) }
         LifestyleSliderEdit(
             label = "Humorous/Easygoing",
-            value = localLifestyle.humorousEasyGoing,
+            value = localLifestyle.easy_goingness,
             nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party")
-        ) { localLifestyle = localLifestyle.copy(humorousEasyGoing = it) }
+        ) { localLifestyle = localLifestyle.copy(easy_goingness = it) }
         LifestyleSliderEdit(
             label = "Professional/Ambitious",
-            value = localLifestyle.professionalAmbitious,
+            value = localLifestyle.professional_ambition,
             nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious")
-        ) { localLifestyle = localLifestyle.copy(professionalAmbitious = it) }
+        ) { localLifestyle = localLifestyle.copy(professional_ambition = it) }
         LifestyleSliderEdit(
             label = "Environmentally Conscious",
-            value = localLifestyle.environmentallyConscious,
+            value = localLifestyle.environmental_awareness,
             nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion")
-        ) { localLifestyle = localLifestyle.copy(environmentallyConscious = it) }
+        ) { localLifestyle = localLifestyle.copy(environmental_awareness = it) }
         LifestyleSliderEdit(
             label = "Sports Enthusiast",
-            value = localLifestyle.sportsEnthusiast,
+            value = localLifestyle.sports_enthusiasm,
             nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic")
-        ) { localLifestyle = localLifestyle.copy(sportsEnthusiast = it) }
+        ) { localLifestyle = localLifestyle.copy(sports_enthusiasm = it) }
         LifestyleSliderEdit(
             label = "Politically Aware",
-            value = localLifestyle.politicallyAware,
+            value = localLifestyle.political_awareness,
             nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged")
-        ) { localLifestyle = localLifestyle.copy(politicallyAware = it) }
+        ) { localLifestyle = localLifestyle.copy(political_awareness = it) }
         LifestyleSliderEdit(
             label = "Community-Oriented",
-            value = localLifestyle.communityOriented,
+            value = localLifestyle.community_engagement,
             nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader")
-        ) { localLifestyle = localLifestyle.copy(communityOriented = it) }
+        ) { localLifestyle = localLifestyle.copy(community_engagement = it) }
         // NEW SLIDERS ADDED:
         LifestyleSliderEdit(
             label = "Introvert Level",
-            value = localLifestyle.IE,
+            value = localLifestyle.sociability,
             nouns = listOf("Not Introverted", "Slightly Introverted", "Moderately Introverted", "Very Introverted", "Extremely Introverted")
-        ) { localLifestyle = localLifestyle.copy(IE = it) }
+        ) { localLifestyle = localLifestyle.copy(sociability = it) }
         LifestyleSliderEdit(
             label = "Sexual Activity Level",
-            value = localLifestyle.sal,
+            value = localLifestyle.sexual_activity_level,
             nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High")
-        ) { localLifestyle = localLifestyle.copy(sal = it) }
+        ) { localLifestyle = localLifestyle.copy(sexual_activity_level = it) }
         // For pet friendly
         LifestyleCheckboxEdit(
             label = "Pet Friendly",
-            checked = localLifestyle.petFriendly,
-            onCheckedChange = { localLifestyle = localLifestyle.copy(petFriendly = it) }
+            checked = localLifestyle.pet_affinity,
+            onCheckedChange = { localLifestyle = localLifestyle.copy(pet_affinity = it) }
         )
 // For cannabis friendly
         LifestyleCheckboxEdit(
             label = "Cannabis Friendly",
-            checked = localLifestyle.cannabisFriendly,
-            onCheckedChange = { localLifestyle = localLifestyle.copy(cannabisFriendly = it) }
+            checked = localLifestyle.cannabis_friendly,
+            onCheckedChange = { localLifestyle = localLifestyle.copy(cannabis_friendly = it) }
         )
 // For alcohol type
         LifestyleDropdownEdit(
             label = "Alcohol Type",
-            value = localLifestyle.alcoholType,
-            onValueChange = { localLifestyle = localLifestyle.copy(alcoholType = it) }
+            value = localLifestyle.preferred_alcohol_type,
+            onValueChange = { localLifestyle = localLifestyle.copy(preferred_alcohol_type = it) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))

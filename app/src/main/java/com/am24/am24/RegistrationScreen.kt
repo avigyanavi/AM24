@@ -437,12 +437,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Smoking",
-                        value = registrationViewModel.lifestyle.smoking,
+                        value = registrationViewModel.lifestyle.smoking_habit,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(smoking = it)
+                                registrationViewModel.lifestyle.copy(smoking_habit = it)
                         },
                         nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker")
                     )
@@ -452,12 +452,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Drinking",
-                        value = registrationViewModel.lifestyle.drinking,
+                        value = registrationViewModel.lifestyle.drinking_habit,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(drinking = it)
+                                registrationViewModel.lifestyle.copy(drinking_habit = it)
                         },
                         nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker")
                     )
@@ -467,10 +467,10 @@ fun EnterLifestyleScreen(
                 item {
                     CheckboxInput(
                         label = "Cannabis Friendly",
-                        isChecked = registrationViewModel.lifestyle.cannabisFriendly,
+                        isChecked = registrationViewModel.lifestyle.cannabis_friendly,
                         onCheckedChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(cannabisFriendly = it)
+                                registrationViewModel.lifestyle.copy(cannabis_friendly = it)
                         }
                     )
                 }
@@ -479,12 +479,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Indoor<->Outdoor",
-                        value = registrationViewModel.lifestyle.indoorsyToOutdoorsy,
+                        value = registrationViewModel.lifestyle.indoor_outdoor_orientation,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(indoorsyToOutdoorsy = it)
+                                registrationViewModel.lifestyle.copy(indoor_outdoor_orientation = it)
                         },
                         nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy")
                     )
@@ -494,12 +494,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Social Media",
-                        value = registrationViewModel.lifestyle.socialMedia,
+                        value = registrationViewModel.lifestyle.social_media_engagement,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(socialMedia = it)
+                                registrationViewModel.lifestyle.copy(social_media_engagement = it)
                         },
                         nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer")
                     )
@@ -513,10 +513,10 @@ fun EnterLifestyleScreen(
                             "Vegetarian", "Non-Veg", "Vegan", "Keto",
                             "Eggetarian", "Paleo", "Fruitarian", "Carnivore"
                         ),
-                        selectedOption = registrationViewModel.lifestyle.diet,
+                        selectedOption = registrationViewModel.lifestyle.dietary_preferences,
                         onOptionSelected = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(diet = it)
+                                registrationViewModel.lifestyle.copy(dietary_preferences = it)
                         }
                     )
                 }
@@ -525,12 +525,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Sleep Cycle",
-                        value = registrationViewModel.lifestyle.sleepCycle,
+                        value = registrationViewModel.lifestyle.sleep_pattern,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(sleepCycle = it)
+                                registrationViewModel.lifestyle.copy(sleep_pattern = it)
                         },
                         nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast")
                     )
@@ -540,12 +540,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Work-Life Balance",
-                        value = registrationViewModel.lifestyle.workLifeBalance,
+                        value = registrationViewModel.lifestyle.work_life_balance,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(workLifeBalance = it)
+                                registrationViewModel.lifestyle.copy(work_life_balance = it)
                         },
                         nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed")
                     )
@@ -555,12 +555,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Exercise Frequency",
-                        value = registrationViewModel.lifestyle.exerciseFrequency,
+                        value = registrationViewModel.lifestyle.exercise_frequency,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(exerciseFrequency = it)
+                                registrationViewModel.lifestyle.copy(exercise_frequency = it)
                         },
                         nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active")
                     )
@@ -570,12 +570,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Family-Oriented",
-                        value = registrationViewModel.lifestyle.familyOriented,
+                        value = registrationViewModel.lifestyle.family_orientated,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(familyOriented = it)
+                                registrationViewModel.lifestyle.copy(family_orientated = it)
                         },
                         nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented")
                     )
@@ -585,12 +585,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Adventurous",
-                        value = registrationViewModel.lifestyle.adventurous,
+                        value = registrationViewModel.lifestyle.adventurousness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(adventurous = it)
+                                registrationViewModel.lifestyle.copy(adventurousness = it)
                         },
                         nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker")
                     )
@@ -600,12 +600,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Intellectual",
-                        value = registrationViewModel.lifestyle.intellectual,
+                        value = registrationViewModel.lifestyle.intellectual_curiosity,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(intellectual = it)
+                                registrationViewModel.lifestyle.copy(intellectual_curiosity = it)
                         },
                         nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher")
                     )
@@ -615,12 +615,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Creative/Artistic",
-                        value = registrationViewModel.lifestyle.creativeArtistic,
+                        value = registrationViewModel.lifestyle.creative_expression,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(creativeArtistic = it)
+                                registrationViewModel.lifestyle.copy(creative_expression = it)
                         },
                         nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius")
                     )
@@ -630,12 +630,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Fitness Level",
-                        value = registrationViewModel.lifestyle.fitnessLevel,
+                        value = registrationViewModel.lifestyle.physical_fitness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(fitnessLevel = it)
+                                registrationViewModel.lifestyle.copy(physical_fitness = it)
                         },
                         nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness")
                     )
@@ -645,12 +645,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Spiritual/Mindful",
-                        value = registrationViewModel.lifestyle.spiritualMindful,
+                        value = registrationViewModel.lifestyle.spirituality_mindfulness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(spiritualMindful = it)
+                                registrationViewModel.lifestyle.copy(spirituality_mindfulness = it)
                         },
                         nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful")
                     )
@@ -660,12 +660,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Humorous/Easygoing",
-                        value = registrationViewModel.lifestyle.humorousEasyGoing,
+                        value = registrationViewModel.lifestyle.easy_goingness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(humorousEasyGoing = it)
+                                registrationViewModel.lifestyle.copy(easy_goingness = it)
                         },
                         nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party")
                     )
@@ -675,12 +675,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Professional/Ambitious",
-                        value = registrationViewModel.lifestyle.professionalAmbitious,
+                        value = registrationViewModel.lifestyle.professional_ambition,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(professionalAmbitious = it)
+                                registrationViewModel.lifestyle.copy(professional_ambition = it)
                         },
                         nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious")
                     )
@@ -690,12 +690,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Environmentally Conscious",
-                        value = registrationViewModel.lifestyle.environmentallyConscious,
+                        value = registrationViewModel.lifestyle.environmental_awareness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(environmentallyConscious = it)
+                                registrationViewModel.lifestyle.copy(environmental_awareness = it)
                         },
                         nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion")
                     )
@@ -705,14 +705,14 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Foodie/Culinary Enthusiast",
-                        value = registrationViewModel.lifestyle.foodieCulinaryEnthusiast,
+                        value = registrationViewModel.lifestyle.culinary_enthusiasm,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(foodieCulinaryEnthusiast = it)
+                                registrationViewModel.lifestyle.copy(culinary_enthusiasm = it)
                         },
-                        nouns = listOf("Basic", "Occasional Foodie", "Balanced", "Food Enthusiast", "Culinary Expert")
+                        nouns = listOf("Non Foodie", "Occasional Foodie", "Balanced", "Food Enthusiast", "Culinary Expert")
                     )
                 }
 
@@ -720,12 +720,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Sports Enthusiast",
-                        value = registrationViewModel.lifestyle.sportsEnthusiast,
+                        value = registrationViewModel.lifestyle.sports_enthusiasm,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(sportsEnthusiast = it)
+                                registrationViewModel.lifestyle.copy(sports_enthusiasm = it)
                         },
                         nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic")
                     )
@@ -735,12 +735,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Sexual Activity Level",
-                        value = registrationViewModel.lifestyle.sal,
+                        value = registrationViewModel.lifestyle.sexual_activity_level,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(sal = it)
+                                registrationViewModel.lifestyle.copy(sexual_activity_level = it)
                         },
                         nouns = listOf("Abstinent", "Rarely Active", "Moderately Active", "Active", "Highly Active")
                     )
@@ -750,12 +750,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Politically Aware",
-                        value = registrationViewModel.lifestyle.politicallyAware,
+                        value = registrationViewModel.lifestyle.political_awareness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(politicallyAware = it)
+                                registrationViewModel.lifestyle.copy(political_awareness = it)
                         },
                         nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged")
                     )
@@ -765,12 +765,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Introvert to Extrovert",
-                        value = registrationViewModel.lifestyle.IE,
+                        value = registrationViewModel.lifestyle.sociability,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(IE = it)
+                                registrationViewModel.lifestyle.copy(sociability = it)
                         },
                         nouns = listOf("Highly Introverted", "Somewhat Introverted", "Ambivert", "Somewhat Extroverted", "Highly Extroverted")
                     )
@@ -780,12 +780,12 @@ fun EnterLifestyleScreen(
                 item {
                     LifestyleSlider(
                         label = "Community-Oriented",
-                        value = registrationViewModel.lifestyle.communityOriented,
+                        value = registrationViewModel.lifestyle.community_engagement,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
                             registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(communityOriented = it)
+                                registrationViewModel.lifestyle.copy(community_engagement = it)
                         },
                         nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader")
                     )

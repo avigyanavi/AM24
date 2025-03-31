@@ -648,8 +648,8 @@ if (showEditInterestsScreen) {
 // Smoking Level Slider
                     Text("Smoking Level", color = Color.White)
                     Slider(
-                        value = lifestyle.smoking.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(smoking = it.toInt()) },
+                        value = lifestyle.smoking_habit.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(smoking_habit = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -658,7 +658,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.smoking) {
+                        text = when (lifestyle.smoking_habit) {
                             in 0..2 -> "Non-Smoker"
                             in 3..6 -> "Social Smoker"
                             else -> "Regular Smoker"
@@ -671,8 +671,8 @@ if (showEditInterestsScreen) {
 // Drinking Level Slider
                     Text("Drinking Level", color = Color.White)
                     Slider(
-                        value = lifestyle.drinking.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(drinking = it.toInt()) },
+                        value = lifestyle.drinking_habit.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(drinking_habit = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -681,7 +681,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.drinking) {
+                        text = when (lifestyle.drinking_habit) {
                             in 0..2 -> "Non-Drinker"
                             in 3..6 -> "Occasional Drinker"
                             else -> "Heavy Drinker"
@@ -695,8 +695,8 @@ if (showEditInterestsScreen) {
                     DropdownWithSearch(
                         title = "Preferred Alcohol Type",
                         options = listOf("Beer", "Wine", "Vodka", "Whiskey", "None"),
-                        selectedOption = lifestyle.alcoholType,
-                        onOptionSelected = { lifestyle = lifestyle.copy(alcoholType = it) }
+                        selectedOption = lifestyle.preferred_alcohol_type,
+                        onOptionSelected = { lifestyle = lifestyle.copy(preferred_alcohol_type = it) }
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -705,12 +705,12 @@ if (showEditInterestsScreen) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
-                            lifestyle = lifestyle.copy(cannabisFriendly = !lifestyle.cannabisFriendly)
+                            lifestyle = lifestyle.copy(cannabis_friendly = !lifestyle.cannabis_friendly)
                         }
                     ) {
                         Checkbox(
-                            checked = lifestyle.cannabisFriendly,
-                            onCheckedChange = { lifestyle = lifestyle.copy(cannabisFriendly = it) },
+                            checked = lifestyle.cannabis_friendly,
+                            onCheckedChange = { lifestyle = lifestyle.copy(cannabis_friendly = it) },
                             colors = CheckboxDefaults.colors(checkmarkColor = Color(0xFF00bf63))
                         )
                         Text("Cannabis Friendly", color = Color.White)
@@ -721,8 +721,8 @@ if (showEditInterestsScreen) {
 // Indoorsy to Outdoorsy Slider
                     Text("Indoorsy to Outdoorsy", color = Color.White)
                     Slider(
-                        value = lifestyle.indoorsyToOutdoorsy.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(indoorsyToOutdoorsy = it.toInt()) },
+                        value = lifestyle.indoor_outdoor_orientation.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(indoor_outdoor_orientation = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -731,7 +731,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.indoorsyToOutdoorsy) {
+                        text = when (lifestyle.indoor_outdoor_orientation) {
                             in 0..2 -> "Homebody"
                             in 3..6 -> "Balanced"
                             else -> "Outdoorsy"
@@ -744,8 +744,8 @@ if (showEditInterestsScreen) {
 // Social Butterfly Slider
                     Text("Social Media", color = Color.White)
                     Slider(
-                        value = lifestyle.socialMedia.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(socialMedia = it.toInt()) },
+                        value = lifestyle.social_media_engagement.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(social_media_engagement = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -754,7 +754,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.socialMedia) {
+                        text = when (lifestyle.social_media_engagement) {
                             in 0..2 -> "Introverted"
                             in 3..6 -> "Ambivert"
                             else -> "Extroverted"
@@ -768,8 +768,8 @@ if (showEditInterestsScreen) {
                     DropdownWithSearch(
                         title = "Diet",
                         options = listOf("Vegan", "Vegetarian", "Non-Vegetarian", "Keto", "Paleo"),
-                        selectedOption = lifestyle.diet,
-                        onOptionSelected = { lifestyle = lifestyle.copy(diet = it) }
+                        selectedOption = lifestyle.dietary_preferences,
+                        onOptionSelected = { lifestyle = lifestyle.copy(dietary_preferences = it) }
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -777,8 +777,8 @@ if (showEditInterestsScreen) {
 // Sleep Cycle Slider
                     Text("Sleep Cycle", color = Color.White)
                     Slider(
-                        value = lifestyle.sleepCycle.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(sleepCycle = it.toInt()) },
+                        value = lifestyle.sleep_pattern.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(sleep_pattern = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -787,7 +787,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.sleepCycle) {
+                        text = when (lifestyle.sleep_pattern) {
                             in 0..2 -> "Early Riser"
                             in 3..6 -> "Balanced"
                             else -> "Night Owl"
@@ -800,8 +800,8 @@ if (showEditInterestsScreen) {
 // Work-Life Balance Slider
                     Text("Work-Life Balance", color = Color.White)
                     Slider(
-                        value = lifestyle.workLifeBalance.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(workLifeBalance = it.toInt()) },
+                        value = lifestyle.work_life_balance.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(work_life_balance = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -810,7 +810,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.workLifeBalance) {
+                        text = when (lifestyle.work_life_balance) {
                             in 0..2 -> "Workaholic"
                             in 3..6 -> "Balanced"
                             else -> "Relaxed"
@@ -823,8 +823,8 @@ if (showEditInterestsScreen) {
 // Exercise Frequency Slider
                     Text("Exercise Frequency", color = Color.White)
                     Slider(
-                        value = lifestyle.exerciseFrequency.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(exerciseFrequency = it.toInt()) },
+                        value = lifestyle.exercise_frequency.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(exercise_frequency = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -833,7 +833,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.exerciseFrequency) {
+                        text = when (lifestyle.exercise_frequency) {
                             in 0..2 -> "Never Exercises"
                             in 3..6 -> "Occasionally Exercises"
                             else -> "Exercises Daily"
@@ -847,12 +847,12 @@ if (showEditInterestsScreen) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
-                            lifestyle = lifestyle.copy(petFriendly = !lifestyle.petFriendly)
+                            lifestyle = lifestyle.copy(pet_affinity = !lifestyle.pet_affinity)
                         }
                     ) {
                         Checkbox(
-                            checked = lifestyle.petFriendly,
-                            onCheckedChange = { lifestyle = lifestyle.copy(petFriendly = it) },
+                            checked = lifestyle.pet_affinity,
+                            onCheckedChange = { lifestyle = lifestyle.copy(pet_affinity = it) },
                             colors = CheckboxDefaults.colors(checkmarkColor = Color(0xFF00bf63))
                         )
                         Text("Pet Friendly", color = Color.White)
@@ -860,8 +860,8 @@ if (showEditInterestsScreen) {
                     // Family-Oriented Slider
                     Text("Family Oriented", color = Color.White)
                     Slider(
-                        value = lifestyle.familyOriented.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(familyOriented = it.toInt()) },
+                        value = lifestyle.family_orientated.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(family_orientated = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -870,7 +870,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.familyOriented) {
+                        text = when (lifestyle.family_orientated) {
                             in 0..2 -> "Independent"
                             in 3..6 -> "Balanced"
                             else -> "Family-Oriented"
@@ -883,8 +883,8 @@ if (showEditInterestsScreen) {
 // Intellectual Slider
                     Text("Intellectual", color = Color.White)
                     Slider(
-                        value = lifestyle.intellectual.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(intellectual = it.toInt()) },
+                        value = lifestyle.intellectual_curiosity.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(intellectual_curiosity = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -893,7 +893,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.intellectual) {
+                        text = when (lifestyle.intellectual_curiosity) {
                             in 0..2 -> "Casual"
                             in 3..6 -> "Inquisitive"
                             else -> "Intellectual"
@@ -906,8 +906,8 @@ if (showEditInterestsScreen) {
 // Creative/Artistic Slider
                     Text("Creative/Artistic", color = Color.White)
                     Slider(
-                        value = lifestyle.creativeArtistic.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(creativeArtistic = it.toInt()) },
+                        value = lifestyle.creative_expression.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(creative_expression = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -916,7 +916,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.creativeArtistic) {
+                        text = when (lifestyle.creative_expression) {
                             in 0..2 -> "Practical"
                             in 3..6 -> "Occasionally Creative"
                             else -> "Artistic"
@@ -929,8 +929,8 @@ if (showEditInterestsScreen) {
 // Health/Fitness Enthusiast Slider
                     Text("Health/Fitness Level", color = Color.White)
                     Slider(
-                        value = lifestyle.fitnessLevel.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(fitnessLevel = it.toInt()) },
+                        value = lifestyle.physical_fitness.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(physical_fitness = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -939,7 +939,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.fitnessLevel) {
+                        text = when (lifestyle.physical_fitness) {
                             in 0..2 -> "Occasional"
                             in 3..6 -> "Moderate"
                             else -> "Dedicated"
@@ -952,8 +952,8 @@ if (showEditInterestsScreen) {
 // Spiritual/Mindful Slider
                     Text("Spiritual/Mindful", color = Color.White)
                     Slider(
-                        value = lifestyle.spiritualMindful.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(spiritualMindful = it.toInt()) },
+                        value = lifestyle.spirituality_mindfulness.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(spirituality_mindfulness = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -962,7 +962,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.spiritualMindful) {
+                        text = when (lifestyle.spirituality_mindfulness) {
                             in 0..2 -> "Non-Spiritual"
                             in 3..6 -> "Occasionally Mindful"
                             else -> "Deeply Mindful"
@@ -975,8 +975,8 @@ if (showEditInterestsScreen) {
 // Humorous/Easy-Going Slider
                     Text("Humorous/Easy-Going", color = Color.White)
                     Slider(
-                        value = lifestyle.humorousEasyGoing.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(humorousEasyGoing = it.toInt()) },
+                        value = lifestyle.easy_goingness.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(easy_goingness = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -985,7 +985,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.humorousEasyGoing) {
+                        text = when (lifestyle.easy_goingness) {
                             in 0..2 -> "Serious"
                             in 3..6 -> "Balanced"
                             else -> "Humorous"
@@ -998,8 +998,8 @@ if (showEditInterestsScreen) {
 // Professional/Ambitious Slider
                     Text("Professional/Ambitious", color = Color.White)
                     Slider(
-                        value = lifestyle.professionalAmbitious.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(professionalAmbitious = it.toInt()) },
+                        value = lifestyle.professional_ambition.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(professional_ambition = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -1008,7 +1008,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.professionalAmbitious) {
+                        text = when (lifestyle.professional_ambition) {
                             in 0..2 -> "Relaxed"
                             in 3..6 -> "Balanced"
                             else -> "Ambitious"
@@ -1021,8 +1021,8 @@ if (showEditInterestsScreen) {
 // Environmentally Conscious Slider
                     Text("Environmentally Conscious", color = Color.White)
                     Slider(
-                        value = lifestyle.environmentallyConscious.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(environmentallyConscious = it.toInt()) },
+                        value = lifestyle.environmental_awareness.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(environmental_awareness = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -1031,7 +1031,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.environmentallyConscious) {
+                        text = when (lifestyle.environmental_awareness) {
                             in 0..2 -> "Not Conscious"
                             in 3..6 -> "Occasionally Conscious"
                             else -> "Eco-Conscious"
@@ -1044,8 +1044,8 @@ if (showEditInterestsScreen) {
 // Foodie/Culinary Enthusiast Slider
                     Text("Foodie/Culinary Enthusiast", color = Color.White)
                     Slider(
-                        value = lifestyle.foodieCulinaryEnthusiast.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(foodieCulinaryEnthusiast = it.toInt()) },
+                        value = lifestyle.culinary_enthusiasm.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(culinary_enthusiasm = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -1054,7 +1054,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.foodieCulinaryEnthusiast) {
+                        text = when (lifestyle.culinary_enthusiasm) {
                             in 0..2 -> "Basic"
                             in 3..6 -> "Moderate"
                             else -> "Food Enthusiast"
@@ -1067,8 +1067,8 @@ if (showEditInterestsScreen) {
 // Politically Aware Slider
                     Text("Politically Aware", color = Color.White)
                     Slider(
-                        value = lifestyle.politicallyAware.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(politicallyAware = it.toInt()) },
+                        value = lifestyle.political_awareness.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(political_awareness = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -1077,7 +1077,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.politicallyAware) {
+                        text = when (lifestyle.political_awareness) {
                             in 0..2 -> "Not Interested"
                             in 3..6 -> "Aware"
                             else -> "Engaged"
@@ -1090,8 +1090,8 @@ if (showEditInterestsScreen) {
 // Community-Oriented Slider
                     Text("Community-Oriented", color = Color.White)
                     Slider(
-                        value = lifestyle.communityOriented.toFloat(),
-                        onValueChange = { lifestyle = lifestyle.copy(communityOriented = it.toInt()) },
+                        value = lifestyle.community_engagement.toFloat(),
+                        onValueChange = { lifestyle = lifestyle.copy(community_engagement = it.toInt()) },
                         valueRange = 0f..10f,
                         steps = 9,
                         colors = SliderDefaults.colors(
@@ -1100,7 +1100,7 @@ if (showEditInterestsScreen) {
                         )
                     )
                     Text(
-                        text = when (lifestyle.communityOriented) {
+                        text = when (lifestyle.community_engagement) {
                             in 0..2 -> "Individualist"
                             in 3..6 -> "Balanced"
                             else -> "Community-Oriented"

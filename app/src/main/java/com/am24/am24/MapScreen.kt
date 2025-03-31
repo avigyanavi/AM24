@@ -63,17 +63,24 @@ import org.json.JSONObject
 import kotlin.math.floor
 import androidx.navigation.NavController
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MapScreen(
     userId: String,
     locationManager: LocationManager,
     geoFireDatabaseRef: DatabaseReference,
-    navController: NavController, // Now passed in
-    onProfileMarkerClicked: (String) -> Unit  // NEW callback parameter
+    navController: NavController, // Passed in for navigation
+    onProfileMarkerClicked: (String) -> Unit  // Callback used when a user profile is tapped
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // ----------------- LOCATION PREFERENCES (LOCAL) -----------------
+    // New variables to hold the current user's location visibility preferences.
+    var allowLocationForMatches by remember { mutableStateOf(false) }
+    var allowLocationForPublic by remember { mutableStateOf(false) }
+    // Show the overlay the very first time the map screen is visited.
+    var showLocationPrefOverlay by remember { mutableStateOf(true) }
 
     // ----------------- UI STATES -----------------
     var searchQuery by remember { mutableStateOf("") }
@@ -107,9 +114,7 @@ fun MapScreen(
 
     // ----------------- 1) LOAD MATCHES -----------------
     LaunchedEffect(userId) {
-        val matchesRef = FirebaseDatabase.getInstance("https://am-twentyfour-default-rtdb.firebaseio.com/")
-            .getReference("matches")
-            .child(userId)
+        val matchesRef = FirebaseDatabase.getInstance().getReference("matches").child(userId)
         matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 matchesSet.clear()
@@ -149,9 +154,7 @@ fun MapScreen(
     LaunchedEffect(showSendOverlay) {
         if (showSendOverlay && matchProfiles.isEmpty()) {
             matchesSet.forEach { matchUid ->
-                val dbRef = FirebaseDatabase.getInstance("https://am-twentyfour-default-rtdb.firebaseio.com/")
-                    .getReference("users")
-                    .child(matchUid)
+                val dbRef = FirebaseDatabase.getInstance().getReference("users").child(matchUid)
                 dbRef.get().addOnSuccessListener { snapshot ->
                     val name = snapshot.child("name").value?.toString() ?: "Unknown"
                     // Assume age and hometown fields exist
@@ -164,13 +167,40 @@ fun MapScreen(
         }
     }
 
+    // ----------------- LOCATION PREFERENCE OVERLAY -----------------
+    if (showLocationPrefOverlay) {
+        AlertDialog(
+            onDismissRequest = { /* Force user to choose */ },
+            title = { Text("Location Visibility Settings") },
+            text = {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Visible to Matches")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(checked = allowLocationForMatches, onCheckedChange = { allowLocationForMatches = it })
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Visible to Public")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(checked = allowLocationForPublic, onCheckedChange = { allowLocationForPublic = it })
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    // Here you could update the user's profile in Firebase.
+                    showLocationPrefOverlay = false
+                }) { Text("Save") }
+            }
+        )
+    }
+
     // ----------------- 2) MAIN LAYOUT -----------------
     Column(Modifier.fillMaxSize()) {
         // (A) Top Row: Search, Clear & Filter
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Search Bar
@@ -286,7 +316,7 @@ fun MapScreen(
                 cameraPositionState = cameraPositionState,
                 uiSettings = MapUiSettings(zoomControlsEnabled = true, mapToolbarEnabled = false)
             ) {
-                // Markers for users
+                // Markers for users: Now filter based on the other user's location preferences.
                 markersState.forEach { markerData ->
                     Marker(
                         state = MarkerState(position = markerData.position),
@@ -294,21 +324,26 @@ fun MapScreen(
                         icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
                         onClick = {
                             scope.launch {
-                                val dbRef = FirebaseDatabase.getInstance("https://am-twentyfour-default-rtdb.firebaseio.com/")
-                                    .getReference("users")
-                                    .child(markerData.userId)
-                                dbRef.get().addOnSuccessListener { snapshot ->
+                                // Fetch the other user's profile to check their location visibility settings.
+                                FirebaseDatabase.getInstance().getReference("users").child(markerData.userId).get().addOnSuccessListener { snapshot ->
                                     val name = snapshot.child("name").value?.toString() ?: "Unknown"
                                     val rating = snapshot.child("averageRating").value?.toString()?.toDoubleOrNull() ?: 0.0
                                     val ratingCount = snapshot.child("ratingCount").value?.toString()?.toIntOrNull() ?: 0
                                     val photoUrl = snapshot.child("profilepicUrl").value?.toString()
-                                    selectedUserProfile = UserProfile(
-                                        userId = markerData.userId,
-                                        name = name,
-                                        rating = rating,
-                                        ratingCount = ratingCount,
-                                        photoUrl = photoUrl
-                                    )
+                                    // Get the two location booleans from the other user's profile.
+                                    val allowMatches = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
+                                    val allowPublic = snapshot.child("allowLocationForPublic").getValue(Boolean::class.java) ?: false
+                                    // If this user is a match, require allowMatches; else require allowPublic.
+                                    val shouldShow = if (matchesSet.contains(markerData.userId)) allowMatches else allowPublic
+                                    if (shouldShow) {
+                                        selectedUserProfile = UserProfile(
+                                            userId = markerData.userId,
+                                            name = name,
+                                            rating = rating,
+                                            ratingCount = ratingCount,
+                                            photoUrl = photoUrl
+                                        )
+                                    }
                                 }
                             }
                             true
@@ -338,13 +373,12 @@ fun MapScreen(
                     name = name,
                     onDismiss = { selectedPlaceDetails = null },
                     onSendToMatch = {
-                        // Save details and show overlay for sending message.
                         placeDetailsToSend = Pair(latLng, name)
                         showSendOverlay = true
                     }
                 )
             }
-            // User Profile Popup with updated navigation behavior using onProfileMarkerClicked
+            // User Profile Popup using onProfileMarkerClicked callback
             selectedUserProfile?.let { profile ->
                 Box(
                     modifier = Modifier
@@ -370,6 +404,7 @@ fun MapScreen(
                         UserProfilePopup(
                             profile = profile,
                             onProfileClick = { userIdClicked ->
+                                // Call the provided callback for navigation.
                                 onProfileMarkerClicked(userIdClicked)
                                 selectedUserProfile = null
                             },
@@ -679,8 +714,19 @@ fun loadUserLocationAndMatches(
             val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(lat, lng), 10.0)
             query.addGeoQueryEventListener(object : GeoQueryEventListener {
                 override fun onKeyEntered(key: String, location: GeoLocation) {
-                    if (displayAllUsers || matchesSet.contains(key)) {
-                        markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
+                    // For each user marker, check their location visibility settings
+                    FirebaseDatabase.getInstance().getReference("users").child(key).get().addOnSuccessListener { snapshot ->
+                        val allowMatches = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
+                        val allowPublic = snapshot.child("allowLocationForPublic").getValue(Boolean::class.java) ?: false
+                        if (matchesSet.contains(key)) {
+                            if (allowMatches) {
+                                markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
+                            }
+                        } else {
+                            if (allowPublic) {
+                                markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
+                            }
+                        }
                     }
                 }
                 override fun onKeyExited(key: String) { markersState.removeAll { it.userId == key } }

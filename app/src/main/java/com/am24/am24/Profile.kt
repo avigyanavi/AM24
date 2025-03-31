@@ -66,6 +66,10 @@ data class Profile(
     var isPremium: Boolean = false,
     var isPrivate: Boolean = false,
 
+    // NEW: New variables for location preferences
+    var allowLocationForMatches: Boolean = false,
+    var allowLocationForPublic: Boolean = false,
+
     val am24RankingAge: Int = 0,
     val am24RankingHighSchool: Int = 0,
     val am24RankingCollege: Int = 0,
@@ -131,58 +135,6 @@ data class Profile(
     @Exclude
     var ratingsReceived: Map<String, Float> = emptyMap()
 ) {
-    /** Calculate compatibility score between two profiles. */
-    @Exclude
-    fun calculateCompatibility(otherProfile: Profile): Double {
-        var score = 0.0
-
-        // 1. Shared interests
-        val sharedInterests = interests.map { it.name }.intersect(otherProfile.interests.map { it.name })
-        score += sharedInterests.size * 10 // Each shared interest adds 10 points
-
-        // 2. Zodiac compatibility
-        val thisZodiac = deriveZodiac(this.dob)
-        val otherZodiac = deriveZodiac(otherProfile.dob)
-        if (thisZodiac != "Unknown" && otherZodiac != "Unknown") {
-            if (isZodiacCompatible(thisZodiac, otherZodiac)) {
-                score += 10
-            }
-        }
-
-        // 3. Lifestyle compatibility
-        if (this.lifestyle != null && otherProfile.lifestyle != null) {
-            score += this.lifestyle.compareCompatibility(otherProfile.lifestyle) * 20 // Lifestyle compatibility
-        }
-
-        // 4. Locality match
-        if (this.hometown == otherProfile.hometown) {
-            score += 20 // Same locality adds points
-        }
-
-        // 5. Education match
-        score += calculateEducationCompatibility(otherProfile)
-
-        // Normalize the score to a percentage
-        return (score / 100.0) * 100.0
-    }
-
-    /** Education compatibility logic. */
-    private fun calculateEducationCompatibility(otherProfile: Profile): Double {
-        var educationScore = 0.0
-
-        if (this.highSchool == otherProfile.highSchool || this.customHighSchool == otherProfile.customHighSchool) {
-            educationScore += 10 // Same high school adds points
-        }
-        if (this.college == otherProfile.college || this.customCollege == otherProfile.customCollege) {
-            educationScore += 10 // Same college adds points
-        }
-        if (this.postGraduation == otherProfile.postGraduation || this.customPostGraduation == otherProfile.customPostGraduation) {
-            educationScore += 10 // Same post-graduation adds points
-        }
-
-        return educationScore
-    }
-
     @get:Exclude
     val profileCompletionPercentage: Int
         get() {
@@ -225,21 +177,6 @@ fun isZodiacCompatible(zodiac1: String, zodiac2: String): Boolean {
     return compatiblePairs[zodiac1]?.contains(zodiac2) == true
 }
 
-/** Compare lifestyle attributes for compatibility. */
-fun Lifestyle.compareCompatibility(other: Lifestyle): Double {
-    var compatibilityScore = 0.0
-    val fields = listOf(
-        this.smoking to other.smoking,
-        this.drinking to other.drinking,
-        this.exerciseFrequency to other.exerciseFrequency,
-        this.familyOriented to other.familyOriented
-    )
-    fields.forEach { (field1, field2) ->
-        if (field1 == field2) compatibilityScore += 1
-    }
-    return compatibilityScore / fields.size
-}
-
 
 data class Interest(
     var name: String = "",
@@ -251,40 +188,40 @@ data class Interest(
 
 
 data class Lifestyle(
-    var smoking: Int = -1,
-    var drinking: Int = -1,
-    var cannabisFriendly: Boolean = false,
-    var indoorsyToOutdoorsy: Int = -1,
-    var sal: Int = -1,
-    var IE: Int = -1,
-    var socialMedia: Int = -1,
-    var diet: String = "",
-    var sleepCycle: Int = -1,
-    var workLifeBalance: Int = -1,
-    var exerciseFrequency: Int = -1,
-    var adventurous: Int = -1,
-    val petFriendly: Boolean = false,
-    var familyOriented: Int = -1,
-    val intellectual: Int = -1,
-    var creativeArtistic: Int = -1,
-    val fitnessLevel: Int = -1,
-    val spiritualMindful: Int = -1,
-    val humorousEasyGoing: Int = -1,
-    var professionalAmbitious: Int = -1,
-    var environmentallyConscious: Int = -1,
-    val foodieCulinaryEnthusiast: Int = -1,
-    val politicallyAware: Int = -1,
-    val communityOriented: Int = -1,
-    var sportsEnthusiast: Int = -1,
-    var alcoholType: String = "",
+    var smoking_habit: Int = -1,
+    var drinking_habit: Int = -1,
+    var cannabis_friendly: Boolean = false,
+    var indoor_outdoor_orientation: Int = -1,
+    var sexual_activity_level: Int = -1,
+    var sociability: Int = -1,
+    var social_media_engagement: Int = -1,
+    var dietary_preferences: String = "",
+    var sleep_pattern: Int = -1,
+    var work_life_balance: Int = -1,
+    var exercise_frequency: Int = -1,
+    var adventurousness: Int = -1,
+    val pet_affinity: Boolean = false,
+    var family_orientated: Int = -1,
+    val intellectual_curiosity: Int = -1,
+    var creative_expression: Int = -1,
+    val physical_fitness: Int = -1,
+    val spirituality_mindfulness: Int = -1,
+    val easy_goingness: Int = -1,
+    var professional_ambition: Int = -1,
+    var environmental_awareness: Int = -1,
+    val culinary_enthusiasm: Int = -1,
+    val political_awareness: Int = -1,
+    val community_engagement: Int = -1,
+    var sports_enthusiasm: Int = -1,
+    var preferred_alcohol_type: String = "",
 ) {
     fun isComplete(): Boolean {
         val fields = listOf(
-            smoking, drinking, indoorsyToOutdoorsy, socialMedia, diet, sportsEnthusiast,
-            sleepCycle, workLifeBalance, exerciseFrequency, adventurous, familyOriented,
-            intellectual, creativeArtistic, fitnessLevel, spiritualMindful, sal, IE,
-            humorousEasyGoing, professionalAmbitious, environmentallyConscious,
-            foodieCulinaryEnthusiast, politicallyAware, communityOriented, alcoholType
+            smoking_habit, drinking_habit, cannabis_friendly, indoor_outdoor_orientation, social_media_engagement, dietary_preferences, sports_enthusiasm,
+            sleep_pattern, work_life_balance, exercise_frequency, adventurousness, family_orientated, pet_affinity,
+            intellectual_curiosity, creative_expression, physical_fitness, spirituality_mindfulness, sexual_activity_level, sociability,
+            easy_goingness, professional_ambition, environmental_awareness,
+            culinary_enthusiasm, political_awareness, community_engagement, preferred_alcohol_type
         )
         return fields.all {
             when (it) {

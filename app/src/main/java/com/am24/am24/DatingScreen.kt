@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Info
@@ -38,6 +40,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Swipe
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
@@ -63,6 +67,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
@@ -91,7 +96,6 @@ data class SwipeData(
 /**
  * Main DatingScreen with swipe counter and info overlay beside the Filters button.
  */
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DatingScreen(
     navController: NavController,
@@ -112,6 +116,16 @@ fun DatingScreen(
     val remainingSwipes = remember { mutableStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
     var forcedProfile by remember { mutableStateOf<Profile?>(null) }
+
+    // State to control overlay visibility
+    var visible by remember { mutableStateOf(true) }
+
+    // Show overlays for 1 second when the screen is first visited
+    LaunchedEffect(Unit) {
+        visible = true
+        delay(5000) // 1 second
+        visible = false
+    }
 
     val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
 
@@ -259,6 +273,42 @@ fun DatingScreen(
                                     updateSwipesInFirebase(remainingSwipes.value)
                                 }
                             }
+                        )
+                    }
+                }
+                // Swipe Left Overlay (Red)
+                if (visible) {
+                    Surface(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .align(Alignment.CenterStart),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.Red.copy(alpha = 0.2f),
+                        elevation = 4.dp
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronLeft,
+                            contentDescription = "Swipe Left",
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
+                // Swipe Right Overlay (Green)
+                if (visible) {
+                    Surface(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .align(Alignment.CenterEnd),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.Green.copy(alpha = 0.2f),
+                        elevation = 4.dp
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Swipe Right",
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
                         )
                     }
                 }
@@ -519,7 +569,6 @@ fun FiltersOverlay(
     }
 }
 
-
 @Composable
 fun FilterSectionTitle(title: String) {
     Text(
@@ -583,7 +632,6 @@ fun DropdownFilter(
     }
 }
 
-
 @Composable
 fun NoMoreProfilesScreen() {
     Column(
@@ -630,56 +678,60 @@ fun DatingScreenContent(
         val currentProfile = profiles[currentProfileIndex]
 
         var userDistance by remember { mutableStateOf<Float?>(null) }
-        var compatibilityScore by remember { mutableStateOf<Double?>(null) }
+        var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
-        LaunchedEffect(currentProfile) {
+        LaunchedEffect(currentProfile.userId) {
             userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-            currentUserProfile?.let { userProfile ->
-                compatibilityScore = userProfile.calculateCompatibility(currentProfile)
+            val ref = FirebaseDatabase.getInstance().getReference("aiMatchCheck/$currentUserId/${currentProfile.userId}")
+            val snap = ref.get().await()
+            val existing = snap.getValue(AiMatchCheckResult::class.java)
+            if (existing != null) {
+                aiMatchResult = existing
+            } else {
+                runAiMatchCheck(
+                    coroutineScope = this,
+                    currentUserId = currentUserId,
+                    currentUserProfile = currentUserProfile!!,
+                    otherProfile = currentProfile
+                ) { newResult ->
+                    aiMatchResult = newResult
+                }
             }
         }
 
         userDistance?.let { distance ->
             DatingProfileCard(
                 profile = currentProfile,
-                compatibilityScore = compatibilityScore,
+                aiMatchResult = aiMatchResult,
                 onSwipeRight = {
                     onSwipeRight()
                     handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
-                    if (currentProfileIndex + 1 < profiles.size) {
-                        currentProfileIndex++
-                    } else {
-                        currentProfileIndex = profiles.size
-                    }
+                    if (currentProfileIndex + 1 < profiles.size) currentProfileIndex++ else currentProfileIndex = profiles.size
                 },
                 onSwipeLeft = {
                     onSwipeLeft()
                     handleSwipeLeft(currentUserId, currentProfile.userId)
-                    if (currentProfileIndex + 1 < profiles.size) {
-                        currentProfileIndex++
-                    } else {
-                        currentProfileIndex = profiles.size
-                    }
+                    if (currentProfileIndex + 1 < profiles.size) currentProfileIndex++ else currentProfileIndex = profiles.size
                 },
                 navController = navController,
                 userDistance = distance,
                 postViewModel = postViewModel,
-                currentProfile = currentUserProfile // Pass current user's profile
+                currentProfile = currentUserProfile
             )
         }
     }
 }
-
+// Updated DatingProfileCard
 @Composable
 fun DatingProfileCard(
     profile: Profile,
-    compatibilityScore: Double?,
+    aiMatchResult: AiMatchCheckResult?,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
     userDistance: Float,
     navController: NavController,
     postViewModel: PostViewModel,
-    currentProfile: Profile? // Add current user's profile parameter
+    currentProfile: Profile?
 ) {
     val computedAvg = if (profile.numberOfUsersWhoSwiped > 0) {
         profile.numberOfSwipeRights.toDouble() / profile.numberOfUsersWhoSwiped
@@ -709,6 +761,7 @@ fun DatingProfileCard(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .padding(16.dp)
             .background(Color.Black)
             .border(
                 width = 3.dp,
@@ -732,15 +785,15 @@ fun DatingProfileCard(
                 PhotoWithTwoOverlays(
                     profile = profile,
                     userDistance = userDistance,
-                    compatibilityScore = compatibilityScore,
-                    currentProfile = currentProfile // Pass currentProfile
+                    aiMatchResult = aiMatchResult,
+                    currentProfile = currentProfile
                 )
             }
             item {
                 DatingProfileHeader(profile, userDistance)
             }
             item {
-                ProfileCollapsibleSectionsAll(profile, currentUserProfile = currentProfile, compatibilityScore)
+                ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult)
             }
             if (featuredPosts.isNotEmpty()) {
                 item {
@@ -805,7 +858,6 @@ fun DatingProfileHeader(
         ) {
             // Right side => row of community, religion, caste
             Row {
-                // Show each only if not blank
                 if (community.isNotBlank()) {
                     TagBox(text = community)
                     Spacer(modifier = Modifier.width(6.dp))
@@ -831,7 +883,6 @@ fun DatingProfileHeader(
         )
     }
 }
-
 
 /**
  * Info Overlay Component.
@@ -892,7 +943,6 @@ fun SwipeCounter(remainingSwipes: Int) {
         )
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(
-            // Divide by 25 now instead of 50
             progress = remainingSwipes / 25f,
             color = Color(0xFFFF6F00),
             backgroundColor = Color.Gray,
@@ -907,89 +957,48 @@ fun SwipeCounter(remainingSwipes: Int) {
 fun PhotoWithTwoOverlays(
     profile: Profile,
     userDistance: Float,
-    compatibilityScore: Double?,
-    currentProfile: Profile? = null // Add current user's profile as an optional parameter
+    aiMatchResult: AiMatchCheckResult?,
+    currentProfile: Profile? = null
 ) {
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
-    val age = calculateAge(profile.dob)
-    val heightCm = profile.height
+    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.75f) // Set the desired aspect ratio
+            .aspectRatio(0.75f)
             .background(Color.Black)
+            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
             .pointerInput(photoUrls) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        if (photoUrls.size > 1) {
-                            currentPhotoIndex = if (offset.x > size.width / 2) {
-                                (currentPhotoIndex + 1) % photoUrls.size
-                            } else {
-                                (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
-                            }
+                detectTapGestures(onTap = { offset ->
+                    if (photoUrls.size > 1) {
+                        currentPhotoIndex = if (offset.x > size.width / 2) {
+                            (currentPhotoIndex + 1) % photoUrls.size
+                        } else {
+                            (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
                         }
                     }
-                )
+                })
             }
     ) {
         if (photoUrls.isNotEmpty()) {
             AsyncImage(
                 model = photoUrls[currentPhotoIndex],
                 contentDescription = "Profile Photo",
-                placeholder = painterResource(R.drawable.local_placeholder),
-                error = painterResource(R.drawable.local_placeholder),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 300.dp)
+                modifier = Modifier.fillMaxWidth().heightIn(min = 300.dp)
             )
         }
 
-        // Dot row at the top
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            photoUrls.forEachIndexed { index, _ ->
-                Box(
-                    modifier = Modifier
-                        .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
-                        .height(4.dp)
-                        .padding(horizontal = 2.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
-                )
-            }
-        }
-
-        // Overlays on picture 0 only
         if (currentPhotoIndex == 0) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-            ) {
-                // Distance overlay (bottom-left)
-                TagBox(
-                    text = "${userDistance.roundToInt()} km away",
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                )
-
-                // FlashyVibeScore overlay (bottom-right)
-                if (currentProfile != null) { // Ensure currentProfile is provided
+            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(14.dp, 10.dp)) {
+                TagBox(text = "${userDistance.roundToInt()} km away", modifier = Modifier.align(Alignment.BottomStart))
+                if (currentProfile != null) {
                     FlashyVibeScore(
-                        compatibilityScore = compatibilityScore,
+                        aiMatchResult = aiMatchResult,
                         currentProfile = currentProfile,
                         otherProfile = profile,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
+                        modifier = Modifier.align(Alignment.BottomEnd)
                     )
                 }
             }
@@ -1000,7 +1009,7 @@ fun PhotoWithTwoOverlays(
 @Composable
 fun TagBox(
     text: String,
-    modifier: Modifier = Modifier // Add modifier parameter with default
+    modifier: Modifier = Modifier
 ) {
     if (text.isNotBlank()) {
         Box(
@@ -1033,67 +1042,38 @@ fun TagBox2(text: String) {
 /** Updated FlashyVibeScore with modifier parameter for overlay positioning */
 @Composable
 fun FlashyVibeScore(
-    compatibilityScore: Double?,
+    aiMatchResult: AiMatchCheckResult?,
     currentProfile: Profile,
     otherProfile: Profile,
     modifier: Modifier = Modifier
 ) {
     var showCompatibilityDialog by remember { mutableStateOf(false) }
-    val displayPercent = compatibilityScore?.roundToInt()?.coerceIn(0, 100) ?: 0
+    val displayPercent = aiMatchResult?.totalMatchPercentage?.let { "$it%" } ?: "Calculating..."
 
-    // Overlay button
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(Brush.horizontalGradient(colors = listOf(Color(0xFFFF4500), Color(0xFFFF6F00))))
+            .background(Brush.horizontalGradient(listOf(Color(0xFFFF4500), Color(0xFFFF6F00))))
             .padding(horizontal = 6.dp, vertical = 2.dp)
             .clickable { showCompatibilityDialog = true }
     ) {
         Text(
-            text = "$displayPercent%",
+            text = "It's a $displayPercent match",
             color = Color.White,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 16.sp
         )
     }
 
-    // Dialog for detailed breakdown
     if (showCompatibilityDialog) {
-        val sharedInterestsCount = currentProfile.interests.map { it.name }
-            .intersect(otherProfile.interests.map { it.name }.toSet())
-            .size.coerceAtMost(7)
-        val interestsScore = sharedInterestsCount * 5
-
-        val thisZodiac = deriveZodiac(currentProfile.dob)
-        val otherZodiac = deriveZodiac(otherProfile.dob)
-        val zodiacScore = if (thisZodiac != "Unknown" && otherZodiac != "Unknown" &&
-            isZodiacCompatible(thisZodiac, otherZodiac)) 5 else 0
-
-        val lifestyleScore = if (currentProfile.lifestyle != null && otherProfile.lifestyle != null) {
-            (currentProfile.lifestyle.compareCompatibility(otherProfile.lifestyle) * 25).toInt()
-        } else 0
-
-        val localityScore = if (currentProfile.hometown == otherProfile.hometown) 10 else 0
-
-        val educationWorkScore = calculateEducationWorkBreakdown(currentProfile, otherProfile)
-
         AlertDialog(
             onDismissRequest = { showCompatibilityDialog = false },
-            title = {
-                Text("Compatibility Breakdown", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-            },
+            title = { Text("Compatibility Breakdown", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black) },
             text = {
-                Column {
-                    Text("Shared Interests: +$interestsScore% ($sharedInterestsCount matches)", fontSize = 12.sp)
-                    Text("Zodiac Match: +$zodiacScore%", fontSize = 12.sp)
-                    Text("Lifestyle Overlap: +$lifestyleScore%", fontSize = 12.sp)
-                    Text("Locality Bonus: +$localityScore%", fontSize = 12.sp)
-                    Text("Education & Work:", fontSize = 12.sp)
-                    Text(" - High School: +${if (educationWorkScore.first) 5 else 0}%", fontSize = 12.sp)
-                    Text(" - College: +${if (educationWorkScore.second) 5 else 0}%", fontSize = 12.sp)
-                    Text(" - Post-Graduation: +${if (educationWorkScore.third) 5 else 0}%", fontSize = 12.sp)
-                    Text(" - Work: +${if (educationWorkScore.fourth) 10 else 0}%", fontSize = 12.sp)
-                    Text("\nTotal: $displayPercent%", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                if (aiMatchResult != null) {
+                    Text(aiMatchResult.compatibilityBreakdown, fontSize = 12.sp)
+                } else {
+                    Text("Analysis in progress...", fontSize = 12.sp)
                 }
             },
             confirmButton = {
@@ -1106,7 +1086,6 @@ fun FlashyVibeScore(
         )
     }
 }
-
 /** Helper function for education + work breakdown */
 private fun calculateEducationWorkBreakdown(currentProfile: Profile, otherProfile: Profile): Quadruple<Boolean, Boolean, Boolean, Boolean> {
     val highSchoolMatch = currentProfile.highSchool == otherProfile.highSchool ||
@@ -1124,7 +1103,7 @@ private fun calculateEducationWorkBreakdown(currentProfile: Profile, otherProfil
 data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
-fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double?) {
+fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchCheckResult?) {
     var showPerformance by rememberSaveable { mutableStateOf(false) }
     CollapsibleSection(
         title = "Performance Metrics",
@@ -1139,10 +1118,9 @@ fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double
             value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
             icon = Icons.Default.Swipe
         )
-        // For Compatibility, if you have a computed value, use it; else, show placeholder.
         ProfileDetailRow(
             label = "Compatibility",
-            value = "${compatibilityScore?.roundToInt() ?: 0}%",
+            value = aiMatchResult?.totalMatchPercentage?.let { "$it%" } ?: "N/A",
             icon = Icons.Default.HowToVote
         )
         ProfileDetailRow("Kolkata Ranking", profile.am24Ranking.toString(), Icons.Filled.Language)
@@ -1181,41 +1159,17 @@ fun PerformanceMetricsSectionDating(profile: Profile, compatibilityScore: Double
         ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
     }
 }
-
 /**
- * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests
- * without edit icons for the DatingScreen usage.
+ * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests.
  */
 @Composable
-fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, compatibilityScore: Double?) {
-    // Declare state variables for each collapsible section
+fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, aiMatchResult: AiMatchCheckResult?) {
     var showVoiceBio by rememberSaveable { mutableStateOf(false) }
     var showBasic by rememberSaveable { mutableStateOf(false) }
     var showPreferences by rememberSaveable { mutableStateOf(false) }
     var showLifestyle by rememberSaveable { mutableStateOf(false) }
     var showInterests by rememberSaveable { mutableStateOf(false) }
-
-    // We’ll add a new state: whether the AI section is expanded, and the AI results
     var showAiSection by rememberSaveable { mutableStateOf(false) }
-    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
-
-    // We'll store the current user ID so we can read from `aiMatchCheckRef`
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-
-    val coroutineScope = rememberCoroutineScope()
-
-    // Compose effect: load existing AI match data from Firebase if it exists
-    LaunchedEffect(profile.userId) {
-        if (currentUserId != null) {
-            val ref = FirebaseDatabase.getInstance()
-                .getReference("aiMatchCheck/$currentUserId/${profile.userId}")
-            val snap = ref.get().await()
-            val existing = snap.getValue(AiMatchCheckResult::class.java)
-            if (existing != null) {
-                aiMatchResult = existing
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -1225,48 +1179,19 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
     ) {
         CollapsibleSection(
             title = "AI Match Analysis",
-            icon = Icons.Default.Info,  // or some icon
+            icon = Icons.Default.Info,
             isExpanded = showAiSection,
             onToggle = { showAiSection = !showAiSection }
         ) {
-            // If we have a stored match analysis, display it
             if (aiMatchResult != null) {
-                ShowAiMatchAnalysis(aiMatchResult!!)
+                ShowAiMatchAnalysis(aiMatchResult)
             } else {
-                Text(
-                    "No AI analysis stored yet. Tap the button below to generate.",
-                    color = Color.White
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Button to run or rerun the AI match check
-            Button(
-                onClick = {
-                    if (currentUserId != null) {
-                        runAiMatchCheck(
-                            coroutineScope = coroutineScope,
-                            currentUserId = currentUserId,
-                            currentUserProfile = currentUserProfile!!,
-                            otherProfile = profile,
-                            compatibilityScore = compatibilityScore ?: 0.0
-                        ) { newResult ->
-                            aiMatchResult = newResult
-                        }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
-            ) {
-                Text("Run AI Match Check", color = Color.White)
+                Text("Analysis in progress...", color = Color.White)
             }
         }
-
         Spacer(modifier = Modifier.height(12.dp))
-        PerformanceMetricsSectionDating(profile, compatibilityScore)
+        PerformanceMetricsSectionDating(profile, aiMatchResult)
         Spacer(modifier = Modifier.height(12.dp))
-
-        // Basic Information
         CollapsibleSection(
             title = "Basic Information",
             icon = Icons.Default.Person,
@@ -1276,18 +1201,15 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             BasicInfoSection(profile)
         }
         Spacer(modifier = Modifier.height(12.dp))
-
-        // Voice & Bio accordion
         CollapsibleSection(
             title = "Bio",
-            icon = Icons.Default.Mic,  // Choose a microphone icon
+            icon = Icons.Default.Mic,
             isExpanded = showVoiceBio,
             onToggle = { showVoiceBio = !showVoiceBio }
         ) {
             showVoiceBio(profile = profile)
         }
         Spacer(modifier = Modifier.height(12.dp))
-
         CollapsibleSection(
             title = "Preferences",
             icon = Icons.Default.Favorite,
@@ -1297,7 +1219,6 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             PreferencesSection(profile)
         }
         Spacer(modifier = Modifier.height(12.dp))
-
         CollapsibleSection(
             title = "Lifestyle Attributes",
             icon = Icons.Default.Nature,
@@ -1307,7 +1228,6 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             LifestyleSection(profile)
         }
         Spacer(modifier = Modifier.height(12.dp))
-
         CollapsibleSection(
             title = "Interests",
             icon = Icons.Default.Star,
@@ -1321,7 +1241,6 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
 
 @Composable
 fun ShowAiMatchAnalysis(aiResult: AiMatchCheckResult) {
-    // Show the full text output directly
     Text(
         text = aiResult.summary,
         color = Color.White,
@@ -1341,8 +1260,6 @@ fun formatTime(timestamp: Long): String {
     return sdf.format(java.util.Date(timestamp))
 }
 
-
-
 @Composable
 fun showVoiceBio(profile: Profile) {
     Column {
@@ -1358,15 +1275,20 @@ fun showVoiceBio(profile: Profile) {
     }
 }
 
+/**
+ * Updated runAiMatchCheck:
+ * - The prompt now instructs the AI to output two extra lines:
+ *   1. "Total Match: X%" (for total percentage)
+ *   2. "Breakdown: ..." (for a detailed breakdown ending with a full stop)
+ * - After receiving the GPT reply, two regexes extract these values.
+ */
 fun runAiMatchCheck(
     coroutineScope: CoroutineScope,
     currentUserId: String,
     currentUserProfile: Profile,
     otherProfile: Profile,
-    compatibilityScore: Double,
     onComplete: (AiMatchCheckResult) -> Unit
 ) {
-    // Build text snippets for both profiles.
     val displayHighSchool = if (currentUserProfile.highSchool.isNotBlank())
         currentUserProfile.highSchool else currentUserProfile.customHighSchool
     val highSchoolText = "High School: \"$displayHighSchool, graduationYr: ${currentUserProfile.highSchoolGraduationYear}\""
@@ -1397,7 +1319,6 @@ fun runAiMatchCheck(
     val displayOtherJobRole = if (otherProfile.jobRole.isNotBlank()) otherProfile.jobRole else otherProfile.customJobRole
     val displayOtherWork = if (otherProfile.work.isNotBlank()) otherProfile.work else otherProfile.customWork
 
-    // Build snippets.
     val userSnippet = """
         Name: ${currentUserProfile.name}
         Gender: ${currentUserProfile.gender}
@@ -1442,9 +1363,7 @@ fun runAiMatchCheck(
         ...
     """.trimIndent()
 
-    // Build the full prompt.
     val prompt = """
-       You are a Relationship Analyst.
        We have 2 profiles:
        
        [User Profile]
@@ -1453,57 +1372,46 @@ fun runAiMatchCheck(
        [Potential Match]
        $otherSnippet
        
-       Compare shared interests, zodiac, lifestyle overlap, locality match, education and work match.
+       Compare shared interests, zodiac compatibility, lifestyle overlap, locality match, education and work match.
        
-       Give short term prospects, and long term prospects, keeping in mind they are users situated in Kolkata. Use emojis.
+       Provide both short term and long term match prospects using emojis.
+       
+       Then, on a new line, output the total match percentage in the following format:
+       Total Match: [percentage]%
+       
+       On another new line, output a detailed breakdown of the compatibility score in the following format:
+       Breakdown: [detailed breakdown text ending with a full stop - show what affected how much %]
+       
+       Keep your entire output limited to 420 words and limit the breakdown to 120 words.
     """.trimIndent()
 
     Log.d("runAiMatchCheck", "Starting runAiMatchCheck for currentUserId: $currentUserId and otherProfileId: ${otherProfile.userId}")
     Log.d("runAiMatchCheck", "Prompt built: $prompt")
 
     coroutineScope.launch(Dispatchers.IO) {
-        Log.d("runAiMatchCheck", "Coroutine launched in IO context")
         val messages = listOf(ChatMessage(role = "user", content = prompt))
-        val gptReply = callKupidXApi(messages)
-        Log.d("runAiMatchCheck", "GPT reply received: $gptReply")
+        val gptReply = callKupidXApi(messages) ?: return@launch
 
-        if (gptReply.isNullOrBlank()) {
-            Log.e("runAiMatchCheck", "GPT reply is null or blank; aborting runAiMatchCheck")
-            return@launch
-        }
-
-        // Use the full text reply without JSON parsing.
         val fullText = gptReply.trim()
-        Log.d("runAiMatchCheck", "Full text response: $fullText")
+        val totalRegex = Regex("Total Match:\\s*(\\d+)%")
+        val breakdownRegex = Regex("Breakdown:\\s*(.+?)(?:\\n|$)")
+        val totalMatchPercentage = totalRegex.find(fullText)?.groupValues?.get(1)?.toInt() ?: 0
+        val compatibilityBreakdown = breakdownRegex.find(fullText)?.groupValues?.get(1) ?: ""
 
-        // Construct result with empty flags and full text summary.
         val result = AiMatchCheckResult(
-            greenFlags = emptyList(),
-            redFlags = emptyList(),
             summary = fullText,
+            totalMatchPercentage = totalMatchPercentage,
+            compatibilityBreakdown = compatibilityBreakdown,
             timestamp = System.currentTimeMillis()
         )
-        Log.d("runAiMatchCheck", "Constructed AiMatchCheckResult: $result")
 
-        // Optionally, persist the result to Firebase.
         FirebaseDatabase.getInstance()
             .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
             .setValue(result)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Log.d("runAiMatchCheck", "Successfully saved AI match result to Firebase.")
-                } else {
-                    Log.e("runAiMatchCheck", "Failed to save AI match result to Firebase: ${task.exception}")
-                }
-            }
 
-        withContext(Dispatchers.Main) {
-            Log.d("runAiMatchCheck", "Switching back to Main thread; calling onComplete callback.")
-            onComplete(result)
-        }
+        withContext(Dispatchers.Main) { onComplete(result) }
     }
 }
-
 
 suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
     val gson = Gson()
@@ -1543,107 +1451,65 @@ suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
     }
 }
 
-
-// Minimal GPT call helper function with logging added
-//private fun callGptApi(prompt: String): String? {
-//    return try {
-//        Log.d("callGptApi", "Building OkHttpClient for GPT API call")
-//        val client = OkHttpClient.Builder()
-//            .callTimeout(30, TimeUnit.SECONDS)
-//            .build()
-//
-//        val messages = listOf(ChatMessage(role = "user", content = prompt))
-//        val requestObj = ChatRequest(
-//            model = "gpt-4o-mini",   // or "gpt-4" etc.
-//            messages = messages
-//        )
-//        val gson = Gson()
-//        val requestBody = gson.toJson(requestObj)
-//            .toRequestBody("application/json".toMediaType())
-//
-//        Log.d("callGptApi", "Sending request to GPT API with prompt: $prompt")
-//        val req = Request.Builder()
-//            .url("https://api.openai.com/v1/chat/completions")
-//            .header("Authorization", "Bearer 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") // Replace with your actual API key
-//            .post(requestBody)
-//            .build()
-//
-//        client.newCall(req).execute().use { response ->
-//            if (!response.isSuccessful) {
-//                Log.e("callGptApi", "GPT API call unsuccessful: ${response.code}")
-//                return null
-//            }
-//            val body = response.body?.string()
-//            Log.d("callGptApi", "GPT API response body: $body")
-//            val chatResp = gson.fromJson(body, ChatResponse::class.java)
-//            val content = chatResp.choices.firstOrNull()?.message?.content
-//            Log.d("callGptApi", "Extracted GPT content: $content")
-//            content
-//        }
-//    } catch (e: Exception) {
-//        Log.e("callGptApi", "Exception during GPT API call", e)
-//        null
-//    }
-//}
-
-
-/** CollapsibleSection that does NOT show edit icon here in the DatingScreen. */
 @Composable
 fun CollapsibleSection(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     isExpanded: Boolean,
     onToggle: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    // Header row
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggle() }
             .border(width = 1.dp, color = Color.White, shape = CircleShape)
             .background(Color.Black)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = title, tint = Color(0xFFFF6F00), modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            icon,
+            contentDescription = title,
+            tint = Color(0xFFFF6F00),
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(7.dp))
         Text(
             text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
+            fontSize = 16.sp,
             modifier = Modifier.weight(1f)
         )
-        IconButton(onClick = onToggle) {
+        IconButton(
+            onClick = onToggle,
+            modifier = Modifier.size(30.dp)
+        ) {
             Icon(
                 imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                 contentDescription = if (isExpanded) "Collapse" else "Expand",
-                tint = Color.White
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
             )
         }
     }
 
     if (isExpanded) {
-        Spacer(Modifier.height(8.dp))
-
-        // Wrap your content in a card with background color #1A1A1A
+        Spacer(Modifier.height(4.dp))
         Card(
-//            backgroundColor = Color(0xFF1A1A1A),
-            backgroundColor = Color.Black,
-            elevation = 4.dp,                    // Choose an elevation if you like
-            shape = RoundedCornerShape(8.dp),    // Slight rounding
+            backgroundColor = Color(0xFF1A1A1A),
+            elevation = 4.dp,
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)      // Indent from screen edges
+                .padding(horizontal = 8.dp)
         ) {
-            // Add some padding so it looks “depressed” inside
             Column(modifier = Modifier.padding(12.dp)) {
                 content()
             }
         }
-
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
     }
 }
 
@@ -1661,31 +1527,26 @@ fun handleSwipeRight(
     val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
     val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
 
-    // Write swipe data for the current user
     val swipeData = SwipeData(liked = true, timestamp = timestamp)
     currentUserSwipesRef.setValue(swipeData)
     currentUserLikesGivenRef.setValue(timestamp)
     otherUserLikesReceivedRef.setValue(timestamp)
 
-    // ✅ 1) Record that the other user was swiped on (for total "swipes received")
     val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
     otherUserTotalSwipesRef.setValue(true)
 
-    // ✅ 2) Increment the other user’s total "numberOfUsersWhoSwiped"
     val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
     otherUserProfileRef.get().addOnSuccessListener { snapshot ->
         val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
         otherUserProfileRef.setValue(currentCount + 1)
     }
 
-    // ✅ 3) Increment the other user’s "numberOfSwipeRights" ONLY on a right-swipe
     val otherUserSwipeRightsRef = database.getReference("users/$otherUserId/numberOfSwipeRights")
     otherUserSwipeRightsRef.get().addOnSuccessListener { snapshot ->
         val currentSwipeRights = snapshot.getValue(Int::class.java) ?: 0
         otherUserSwipeRightsRef.setValue(currentSwipeRights + 1)
     }
 
-    // Check if it’s a match
     otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
         val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
         if (otherUserSwipeData?.liked == true) {
@@ -1706,18 +1567,15 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
 
-    // ✅ Increment total swipes received for other user
     val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
-    otherUserTotalSwipesRef.setValue(true)  // Just track presence
+    otherUserTotalSwipesRef.setValue(true)
 
-    // ✅ Increment count for numberOfUsersWhoSwiped
     val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
     otherUserProfileRef.get().addOnSuccessListener { snapshot ->
         val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
         otherUserProfileRef.setValue(currentCount + 1)
     }
 }
-
 
 /**
  * fetchExcludedUsers => matched or liked recently
@@ -1745,7 +1603,7 @@ suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
     }
 }
 
-/** Haversine + getUserLocation => same as your code */
+/** Haversine + getUserLocation */
 fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     val earthRadius = 6371.0
     val dLat = Math.toRadians(lat2 - lat1)
@@ -1777,7 +1635,7 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? =
         })
     }
 
-/** Standard “MatchPopUp” remains unchanged. */
+/** Standard “MatchPopUp” */
 @Composable
 fun MatchPopUp(
     currentUserProfilePic: String,
@@ -1844,26 +1702,13 @@ fun MatchPopUp(
     }
 }
 
-@Composable
-fun PhotoWithDynamicOverlays(
-    profile: Profile,
-    userDistance: Float,
-    compatibilityScore: Double?
-) {
-    PhotoWithTwoOverlays(
-        profile = profile,
-        userDistance = userDistance,
-        compatibilityScore = compatibilityScore,
-    )
-}
 
 /**
- * A data class representing the AI's analysis result of a potential match.
+ * Updated AiMatchCheckResult with new fields.
  */
 data class AiMatchCheckResult(
-    val greenFlags: List<String> = emptyList(),  // Top 3 "green flags"
-    val redFlags: List<String> = emptyList(),    // Top 3 "red flags"
-    val summary: String = "",                    // Short summary or recommendation
-    val timestamp: Long = 0L                     // When the analysis was done
+    val summary: String = "",                     // Full text output from the AI
+    val totalMatchPercentage: Int = 0,            // Total match percentage extracted from GPT reply
+    val compatibilityBreakdown: String = "",      // Detailed breakdown of compatibility score
+    val timestamp: Long = 0L                      // When the analysis was done
 )
-

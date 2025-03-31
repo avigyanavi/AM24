@@ -26,6 +26,7 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,10 +36,10 @@ import androidx.compose.ui.unit.sp
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem("Profile", Icons.Default.PersonOutline, "profile"),
-        BottomNavItem("Map", Icons.Default.Map, "Map"), // New map tab
+        BottomNavItem("Map", Icons.Default.Map, "map"), // New map tab
         BottomNavItem("Date", Icons.Default.FavoriteBorder, "dating"),
         BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
-        BottomNavItem("Chat", Icons.Default.MailOutline, "dms"),
+        BottomNavItem("Chat", Icons.Default.MailOutline, "dms")
     )
 
     // Obtain the current user ID
@@ -48,8 +49,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Determine if TopNavBar should be visible
-    val isTopNavBarVisible = currentRoute != "chat/{otherUserId}" // Hide on ChatScreen
+    // Updated condition to hide TopNavBar on both chat and dating screens
+    val isTopNavBarVisible = currentRoute != "chat/{otherUserId}" && currentRoute != "dating"
 
     // Obtain the ProfileViewModel instance
     val profileViewModel: ProfileViewModel = viewModel()
@@ -121,6 +122,13 @@ fun TopNavBar(
         }
     }
 
+    // NEW: Local state for location visibility preferences dialog.
+    var showLocationPrefDialog by remember { mutableStateOf(false) }
+    // For demonstration, default values are fetched from local state.
+    // In a full app you might initialize these from the user's profile.
+    var allowLocationForMatches by remember { mutableStateOf(false) }
+    var allowLocationForPublic by remember { mutableStateOf(false) }
+
     TopAppBar(
         title = {
             // No textual title
@@ -128,7 +136,7 @@ fun TopNavBar(
         navigationIcon = {
             // Logo is now in a Box (not clickable)
             Box(
-                modifier = Modifier.size(40.dp) // Adjust as needed
+                modifier = Modifier.size(40.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.kupidx_logo),
@@ -138,10 +146,21 @@ fun TopNavBar(
             }
         },
         actions = {
+            // NEW: Show location settings icon only when on map screen.
+            if (currentRoute == "map") {
+                IconButton(onClick = { showLocationPrefDialog = true }) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Location Settings",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
             // User Settings Icon (only on Profile screen)
             if (isProfileScreen || isUserSettings) {
                 IconButton(onClick = {
-                    navController.navigate("settings") // New route for user settings
+                    navController.navigate("settings")
                 }) {
                     Icon(
                         imageVector = Icons.Default.Settings,
@@ -187,11 +206,46 @@ fun TopNavBar(
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
+
+    // NEW: Location Preferences Dialog (only for map screen)
+    if (showLocationPrefDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocationPrefDialog = false },
+            title = { Text("Location Visibility Settings") },
+            text = {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Visible to Matches")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = allowLocationForMatches,
+                            onCheckedChange = { allowLocationForMatches = it }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Visible to Public")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = allowLocationForPublic,
+                            onCheckedChange = { allowLocationForPublic = it }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    // Update the user's profile in Firebase with these settings.
+                    FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+                        .child("allowLocationForMatches").setValue(allowLocationForMatches)
+                    FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+                        .child("allowLocationForPublic").setValue(allowLocationForPublic)
+                    showLocationPrefDialog = false
+                }) { Text("Save") }
+            }
+        )
+    }
 }
-
-
-
-
 
 data class BottomNavItem(val label: String, val icon: ImageVector, val route: String)
 
@@ -210,7 +264,6 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
                     navController.navigate(item.route) {
                         launchSingleTop = true
                         restoreState = true
-                        // Remove popUpTo to allow normal back stack behavior
                     }
                 },
                 icon = {
