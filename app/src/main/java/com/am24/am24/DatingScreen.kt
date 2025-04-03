@@ -47,12 +47,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.imageLoader
+import coil.request.ImageRequest
 import com.firebase.geofire.GeoFire
 import com.firebase.geofire.GeoLocation
 import com.firebase.geofire.LocationCallback
@@ -665,6 +668,11 @@ fun DatingScreenContent(
 ) {
     var currentProfileIndex by remember { mutableStateOf(0) }
 
+    // Ensure posts are fetched
+    LaunchedEffect(Unit) {
+        postViewModel.fetchPosts()
+    }
+
     if (profiles.isEmpty() || currentProfileIndex >= profiles.size) {
         NoMoreProfilesScreen()
     } else {
@@ -716,6 +724,7 @@ fun DatingScreenContent(
         }
     }
 }
+
 // Updated DatingProfileCard
 @Composable
 fun DatingProfileCard(
@@ -782,7 +791,11 @@ fun DatingProfileCard(
                 )
             }
             item {
-                DatingProfileHeader(profile, userDistance)
+                DatingProfileHeader(
+                    profile = profile,
+                    userDistance = userDistance,
+                    sortedByUpvotes = sortedByUpvotes // Pass the list here
+                )
             }
             item {
                 ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult)
@@ -828,13 +841,14 @@ fun DatingProfileCard(
 @Composable
 fun DatingProfileHeader(
     profile: Profile,
-    userDistance: Float
+    userDistance: Float,
+    sortedByUpvotes: List<Post>
 ) {
     val age = calculateAge(profile.dob)
-    // We'll gather these tag-like items:
     val community = profile.community
     val religion = profile.religion
     val caste = profile.caste
+    var showPostsOverlay by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -842,13 +856,11 @@ fun DatingProfileHeader(
             .background(Color.Black)
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Top Row: distance on the left, community/religion/caste on the right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Right side => row of community, religion, caste
             Row {
                 if (community.isNotBlank()) {
                     TagBox(text = community)
@@ -866,16 +878,63 @@ fun DatingProfileHeader(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Second Row: name + age
-        Text(
-            text = if (age > 0) "${profile.name}, $age" else profile.name,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            color = Color.White
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (age > 0) "${profile.name}, $age" else profile.name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                color = Color.White,
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState())
+                    .padding(end = 8.dp)
+            )
+            Button(
+                onClick = { showPostsOverlay = true },
+                colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00)),
+                modifier = Modifier.height(30.dp)
+            ) {
+                Text("Posts", color = Color.White, fontSize = 12.sp)
+            }
+        }
+    }
+
+    if (showPostsOverlay) {
+        PostsOverlay(
+            posts = sortedByUpvotes,
+            onDismiss = { showPostsOverlay = false }
         )
     }
 }
 
+@Composable
+fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("", color = Color.Black) },
+        text = {
+            if (posts.isEmpty()) {
+                Text("No posts available", color = Color.Gray)
+            } else {
+                LazyColumn {
+                    items(posts) { post ->
+                        PostItemInProfile(post)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = Color(0xFFFF6F00))
+            }
+        },
+        backgroundColor = Color.Black,
+        contentColor = Color.White
+    )
+}
 /**
  * Info Overlay Component.
  */
@@ -953,7 +1012,20 @@ fun PhotoWithTwoOverlays(
     currentProfile: Profile? = null
 ) {
     var currentPhotoIndex by remember { mutableStateOf(0) }
+    val context = LocalContext.current
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+
+    // Prefetch images with caching
+    LaunchedEffect(photoUrls) {
+        photoUrls.forEach { url ->
+            val request = ImageRequest.Builder(context)
+                .data(url)
+                .diskCacheKey(url)
+                .memoryCacheKey(url)
+                .build()
+            context.imageLoader.enqueue(request)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -964,39 +1036,78 @@ fun PhotoWithTwoOverlays(
             .pointerInput(photoUrls) {
                 detectTapGestures(onTap = { offset ->
                     if (photoUrls.size > 1) {
-                        currentPhotoIndex = if (offset.x > size.width / 2) {
+                        currentPhotoIndex = if (offset.x > size.width / 2)
                             (currentPhotoIndex + 1) % photoUrls.size
-                        } else {
+                        else
                             (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
-                        }
                     }
                 })
             }
     ) {
         if (photoUrls.isNotEmpty()) {
             AsyncImage(
-                model = photoUrls[currentPhotoIndex],
+                model = ImageRequest.Builder(context)
+                    .data(photoUrls[currentPhotoIndex])
+                    .diskCacheKey(photoUrls[currentPhotoIndex])
+                    .memoryCacheKey(photoUrls[currentPhotoIndex])
+                    .crossfade(true)
+                    .build(),
                 contentDescription = "Profile Photo",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 300.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 300.dp)
             )
-        }
 
-        if (currentPhotoIndex == 0) {
-            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(14.dp, 10.dp)) {
-                TagBox(text = "${userDistance.roundToInt()} km away", modifier = Modifier.align(Alignment.BottomStart))
-                if (currentProfile != null) {
-                    FlashyVibeScore(
-                        aiMatchResult = aiMatchResult,
-                        currentProfile = currentProfile,
-                        otherProfile = profile,
-                        modifier = Modifier.align(Alignment.BottomEnd)
+            // Photo indicators
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                photoUrls.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
+                            .height(4.dp)
+                            .padding(horizontal = 2.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
                     )
                 }
+            }
+
+            if (currentPhotoIndex == 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(14.dp, 10.dp)
+                ) {
+                    TagBox(text = "${userDistance.roundToInt()} km away", modifier = Modifier.align(Alignment.BottomStart))
+                    if (currentProfile != null) {
+                        FlashyVibeScore(
+                            aiMatchResult = aiMatchResult,
+                            currentProfile = currentProfile,
+                            otherProfile = profile,
+                            modifier = Modifier.align(Alignment.BottomEnd)
+                        )
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No Images", color = Color.White)
             }
         }
     }
 }
+
 
 @Composable
 fun TagBox(
@@ -1078,21 +1189,6 @@ fun FlashyVibeScore(
         )
     }
 }
-/** Helper function for education + work breakdown */
-private fun calculateEducationWorkBreakdown(currentProfile: Profile, otherProfile: Profile): Quadruple<Boolean, Boolean, Boolean, Boolean> {
-    val highSchoolMatch = currentProfile.highSchool == otherProfile.highSchool ||
-            currentProfile.customHighSchool == otherProfile.customHighSchool
-    val collegeMatch = currentProfile.college == otherProfile.college ||
-            currentProfile.customCollege == otherProfile.customCollege
-    val postGradMatch = currentProfile.postGraduation == otherProfile.postGraduation ||
-            currentProfile.customPostGraduation == otherProfile.customPostGraduation
-    val workMatch = currentProfile.work == otherProfile.work ||
-            currentProfile.customWork == otherProfile.customWork
-    return Quadruple(highSchoolMatch, collegeMatch, postGradMatch, workMatch)
-}
-
-/** Data class for quadruple return type */
-data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
 fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchCheckResult?) {

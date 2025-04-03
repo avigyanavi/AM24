@@ -113,8 +113,51 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         finalFilteredPosts
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // New StateFlow for profile screen posts
+    private val _profilePosts = MutableStateFlow<List<Post>>(emptyList())
+    val profilePosts: StateFlow<List<Post>> = _profilePosts.asStateFlow()
 
+    // Loading state to indicate when posts are being fetched
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    fun fetchPosts() {
+        viewModelScope.launch {
+            Log.d("PostViewModel", "Starting fetchPosts")
+            _isLoading.value = true
+            _profilePosts.value = emptyList() // Reset to avoid stale data
+            val database = FirebaseDatabase.getInstance()
+            val postsRef = database.getReference("posts")
+
+            postsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val postsList = mutableListOf<Post>()
+                    for (postSnapshot in snapshot.children) {
+                        try {
+                            val post = postSnapshot.getValue(Post::class.java)
+                            if (post != null) {
+                                postsList.add(post)
+                                Log.d("PostViewModel", "Added post: $post")
+                            } else {
+                                Log.w("PostViewModel", "Failed to deserialize post at ${postSnapshot.key}: ${postSnapshot.value}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("PostViewModel", "Error deserializing post at ${postSnapshot.key}: ${e.message}")
+                        }
+                    }
+                    Log.d("PostViewModel", "Setting _profilePosts to ${postsList.size} posts: $postsList")
+                    _profilePosts.value = postsList
+                    _isLoading.value = false
+                    Log.d("PostViewModel", "Fetched ${postsList.size} posts, _profilePosts.value.size=${_profilePosts.value.size}")
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    _isLoading.value = false
+                    Log.e("PostViewModel", "Failed to fetch posts: ${error.message}")
+                }
+            })
+        }
+    }
 
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
@@ -182,7 +225,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             FirebaseDatabase.getInstance().getReference("posts").removeEventListener(it)
         }
     }
-
     // Resume observing posts
     fun resumeFeed() {
         if (!isFeedPaused) return
@@ -1211,6 +1253,5 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-
 
 }

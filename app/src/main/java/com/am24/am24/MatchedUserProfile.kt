@@ -1,270 +1,190 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.am24.am24
 
-import android.util.Log
-import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
+import com.firebase.geofire.GeoFire
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
-fun MatchedUserProfile(
-    navController: NavController,
-    userId: String,
+fun MatchedUserProfileScreen(
+    profile: Profile,
+    geoFire: GeoFire,
+    postViewModel: PostViewModel,
     profileViewModel: ProfileViewModel,
+    navController: NavController,
     modifier: Modifier = Modifier
 ) {
-    var userProfile by remember { mutableStateOf<Profile?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var isDetailedView by remember { mutableStateOf(false) }
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
+    val allPosts by postViewModel.profilePosts.collectAsState() // Changed to profilePosts
+    val isLoading by postViewModel.isLoading.collectAsState()
+    var postsLoaded by remember { mutableStateOf(false) }
 
-    // Fetch user profile from ProfileViewModel
-    LaunchedEffect(userId) {
-        profileViewModel.fetchUserProfile(
-            userId = userId,
-            onSuccess = { profile ->
-                userProfile = profile
-                isLoading = false
-            },
-            onFailure = {
-                Log.e("MatchedUserProfile", "Failed to load profile: $it")
-                isLoading = false
+    var userDistance by remember { mutableStateOf<Float?>(null) }
+    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Fetch data on initial load
+    LaunchedEffect(Unit) {
+        println("MatchedUserProfileScreen: Starting initial fetch")
+        postViewModel.fetchPosts()
+        profileViewModel.fetchCurrentUserProfile()
+        println("MatchedUserProfileScreen: Fetch requests dispatched")
+    }
+
+    // Update postsLoaded when fetch completes
+    LaunchedEffect(isLoading) {
+        if (!isLoading && allPosts.isNotEmpty()) {
+            postsLoaded = true
+            println("MatchedUserProfileScreen: Posts loaded, size=${allPosts.size}")
+        }
+    }
+
+    // Fetch distance and AI match result
+    LaunchedEffect(profile.userId, currentUserProfile) {
+        println("LaunchedEffect for profile: ${profile.userId}, currentUserProfile: $currentUserProfile")
+        try {
+            val distance = calculateDistance(currentUserId, profile.userId, geoFire)
+            userDistance = distance
+            println("Distance calculated: $distance km")
+        } catch (e: Exception) {
+            println("Error calculating distance: ${e.message}")
+            userDistance = null
+        }
+
+        val ref = FirebaseDatabase.getInstance().getReference("aiMatchCheck/$currentUserId/${profile.userId}")
+        try {
+            val snap = ref.get().await()
+            val existing = snap.getValue(AiMatchCheckResult::class.java)
+            if (existing != null) {
+                aiMatchResult = existing
+                println("AI match result fetched: $existing")
+            } else if (currentUserProfile != null) {
+                println("Running AI match check since no existing result found")
+                runAiMatchCheck(
+                    coroutineScope = coroutineScope,
+                    currentUserId = currentUserId,
+                    currentUserProfile = currentUserProfile!!,
+                    otherProfile = profile
+                ) { newResult ->
+                    aiMatchResult = newResult
+                    println("AI match result computed: $newResult")
+                }
             }
-        )
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFFFF6F00))
-        }
-    } else if (userProfile == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "Failed to load profile.",
-                color = Color.White,
-                fontSize = 18.sp
-            )
-        }
-    } else {
-        if (isDetailedView) {
-            MatchedUserDetailsTabs(
-                profile = userProfile!!,
-                onCloseClick = { isDetailedView = false }
-            )
-        } else {
-            MatchedUserContent(
-                profile = userProfile!!,
-                onBackClick = { navController.popBackStack() },
-                onInfoClick = { isDetailedView = true }
-            )
+        } catch (e: Exception) {
+            println("Error fetching AI match result: ${e.message}")
         }
     }
-}
 
-@Composable
-fun MatchedUserContent(
-    profile: Profile,
-    onBackClick: () -> Unit,
-    onInfoClick: () -> Unit
-) {
-    var currentPhotoIndex by remember(profile) { mutableStateOf(0) }
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    // Filter posts
+    val myPosts = allPosts.filter { it.userId == profile.userId } // Adjust to "userId" if needed
+    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
+    val featuredPosts = sortedByUpvotes.take(5)
+    val remainingPosts = sortedByUpvotes.drop(5)
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        AsyncImage(
-            model = photoUrls[currentPhotoIndex],
-            contentDescription = "Profile Photo",
-            placeholder = painterResource(R.drawable.local_placeholder),
-            error = painterResource(R.drawable.local_placeholder),
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(7 / 10f)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { offset ->
-                            val tapX = offset.x
-                            val photoCount = photoUrls.size
-                            if (photoCount > 1) {
-                                currentPhotoIndex = if (tapX > size.width / 2) {
-                                    (currentPhotoIndex + 1) % photoCount
-                                } else {
-                                    (currentPhotoIndex - 1 + photoCount) % photoCount
-                                }
+    // Main layout
+    Box(modifier = modifier.fillMaxSize()) {
+        println("Rendering UI: isLoading=$isLoading, allPosts.size=${allPosts.size}, myPosts.size=${myPosts.size}, postsLoaded=$postsLoaded")
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color(0xFFFF6F00)
+                )
+            }
+            userDistance != null && currentUserProfile != null && postsLoaded -> {
+                Card(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    backgroundColor = Color.Black,
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
+                ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black)
+                    ) {
+                        item {
+                            PhotoWithTwoOverlays(
+                                profile = profile,
+                                userDistance = userDistance!!,
+                                aiMatchResult = aiMatchResult,
+                                currentProfile = currentUserProfile
+                            )
+                        }
+                        item {
+                            DatingProfileHeader(
+                                profile = profile,
+                                userDistance = userDistance!!,
+                                sortedByUpvotes = sortedByUpvotes
+                            )
+                        }
+                        item {
+                            ProfileCollapsibleSectionsAll(profile, currentUserProfile, aiMatchResult)
+                        }
+                        if (featuredPosts.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Featured Posts",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(featuredPosts) { post ->
+                                PostItemInProfile(post)
                             }
                         }
-                    )
-                },
-            contentScale = ContentScale.Crop
-        )
-
-        // Back and Info Icons
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .size(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = Color(0xFFFFFFFF)
-            )
-        }
-
-        IconButton(
-            onClick = onInfoClick,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .size(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "View More Info",
-                tint = Color.White
-            )
-        }
-
-        // Profile Details Overlay
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(16.dp)
-        ) {
-            Column {
-                Text(
-                    text = "${profile.name}, ${calculateAge(profile.dob)}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    color = Color.White
-                )
-                if (profile.hometown.isNotEmpty()) {
-                    Text(
-                        text = "From ${profile.hometown}",
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                RatingBar(
-                    rating = profile.averageRating,
-                    ratingCount = profile.numberOfRatings
-                )
-                Text(
-                    text = "Vibe Score: ${profile.vibepoints}",
-                    fontSize = 14.sp,
-                    color = Color.White
-                )
-            }
-        }
-
-        // Dots Indicator for Photos
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            photoUrls.forEachIndexed { index, _ ->
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .padding(horizontal = 2.dp)
-                        .clip(CircleShape)
-                        .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun MatchedUserDetailsTabs(profile: Profile, onCloseClick: () -> Unit) {
-    val tabTitles = listOf("Profile", "Posts", "Comparison")
-    var selectedTabIndex by remember { mutableStateOf(0) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Tab Row with Close Button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                modifier = Modifier.weight(1f)
-            ) {
-                tabTitles.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
-                        text = { Text(title, color = Color.White) }
-                    )
+                        item {
+                            CollapsedMetricsSection(profile)
+                        }
+                        if (remainingPosts.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Button(
+                                        onClick = { /* TODO: Navigate to full posts screen */ },
+                                        colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
+                                    ) {
+                                        Text("View More Posts", color = Color.White)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
                 }
             }
-
-            // Close Button
-            IconButton(
-                onClick = { onCloseClick() },
-                modifier = Modifier
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = Color(0xFFFF6F00)
+            else -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color(0xFFFF6F00)
                 )
             }
         }
-
-        // Tab Content
-        when (selectedTabIndex) {
-//            0 -> ProfileDetails(profile)
-//            1 -> ProfilePosts(profile)
-            2 -> ComparisonSection(profile)
-        }
-    }
-}
-
-@Composable
-fun ComparisonSection(profile: Profile) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Comparison for ${profile.name}",
-            color = Color.White,
-            fontSize = 16.sp
-        )
-        // Dynamically fetch and display comparison data
     }
 }

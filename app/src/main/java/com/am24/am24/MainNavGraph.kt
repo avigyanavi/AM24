@@ -10,16 +10,21 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,6 +40,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.tasks.await
 
 // Initialize GeoFire instance globally
 val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
@@ -65,6 +71,7 @@ fun MainNavGraph(
                     child.key?.let { matchesSet.add(it) }
                 }
             }
+
             override fun onCancelled(error: DatabaseError) {
                 // Handle error if needed
             }
@@ -145,7 +152,8 @@ fun MainNavGraph(
             )
         ) { backStackEntry ->
             val aiId = backStackEntry.arguments?.getString("aiId") ?: return@composable
-            val scrollToMemoryLogs = backStackEntry.arguments?.getBoolean("scrollToMemoryLogs") ?: false
+            val scrollToMemoryLogs =
+                backStackEntry.arguments?.getBoolean("scrollToMemoryLogs") ?: false
             val chatAIViewModel: ChatAIViewModel = viewModel()
             val ai = when (aiId) {
                 "zaraAi" -> AI.ZARA
@@ -209,7 +217,8 @@ fun MainNavGraph(
             MapScreen(
                 userId = userId,
                 locationManager = locationManager,        // Or create it via DI
-                geoFireDatabaseRef = FirebaseDatabase.getInstance().getReference("geoFireLocations"),
+                geoFireDatabaseRef = FirebaseDatabase.getInstance()
+                    .getReference("geoFireLocations"),
                 navController = navController, // NEW parameter
                 onProfileMarkerClicked = { profileId ->
                     // Replace 'matchesSet' with your available list of matched user IDs.
@@ -275,13 +284,55 @@ fun MainNavGraph(
             )
         }
 
-        composable("matchedUserProfile/{userId}") { backStackEntry ->
+        composable(
+            route = "matchedUserProfile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
-            MatchedUserProfile(
-                navController = navController,
-                userId = userId,
-                profileViewModel = profileViewModel
-            )
+            var matchedProfile by remember { mutableStateOf<Profile?>(null) }
+            var errorMessage by remember { mutableStateOf<String?>(null) }
+
+            LaunchedEffect(userId) {
+                profileViewModel.fetchCurrentUserProfile() // Ensure current profile is fetched
+                try {
+                    println("Fetching profile for userId: $userId")
+                    val snapshot = FirebaseDatabase.getInstance()
+                        .getReference("users")
+                        .child(userId)
+                        .get()
+                        .await()
+                    if (snapshot.exists()) {
+                        val profile = snapshot.getValue(Profile::class.java)
+                        println("Profile fetched: $profile")
+                        matchedProfile = profile
+                        println("matchedProfile updated to: $matchedProfile")
+                        if (profile == null) {
+                            errorMessage = "Profile data could not be parsed"
+                        }
+                    } else {
+                        errorMessage = "No profile found for userId: $userId"
+                    }
+                } catch (e: Exception) {
+                    errorMessage = "Error fetching profile: ${e.message}"
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (matchedProfile != null) {
+                    println("Rendering MatchedUserProfileScreen for: ${matchedProfile?.userId}")
+                    MatchedUserProfileScreen(
+                        profile = matchedProfile!!,
+                        geoFire = geoFire,
+                        postViewModel = postViewModel,
+                        profileViewModel = profileViewModel,
+                        navController = navController
+                    )
+                } else if (errorMessage != null) {
+                    Text(text = errorMessage!!, color = Color.Red, modifier = Modifier.padding(16.dp))
+                } else {
+                    Text("Loading profile...", color = Color.White)
+                }
+            }
         }
     }
 }
