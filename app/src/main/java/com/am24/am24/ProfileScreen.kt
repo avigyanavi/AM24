@@ -43,6 +43,11 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.compose.rememberAsyncImagePainter
+import coil.imageLoader
+
 
 @Composable
 fun ProfileScreen(
@@ -258,14 +263,26 @@ fun CollapsibleSection(
     }
 }
 
-/** Photo carousel with top-right Edit icon */
 @Composable
 fun PhotoCarouselWithOverlay(
     profile: Profile,
     onEditProfileClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
+
+    // Pre-fetch images
+    LaunchedEffect(photoUrls) {
+        photoUrls.forEach { url ->
+            val request = ImageRequest.Builder(context)
+                .data(url)
+                .diskCacheKey(url)
+                .memoryCacheKey(url)
+                .build()
+            context.imageLoader.enqueue(request)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -273,30 +290,31 @@ fun PhotoCarouselWithOverlay(
             .aspectRatio(7f / 10f)
             .background(Color.Black)
             .pointerInput(photoUrls) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        if (photoUrls.size > 1) {
-                            if (offset.x > size.width / 2) {
-                                currentPhotoIndex = (currentPhotoIndex + 1) % photoUrls.size
-                            } else {
-                                currentPhotoIndex =
-                                    (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
-                            }
-                        }
+                detectTapGestures(onTap = { offset ->
+                    if (photoUrls.size > 1) {
+                        currentPhotoIndex = if (offset.x > size.width / 2)
+                            (currentPhotoIndex + 1) % photoUrls.size
+                        else
+                            (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
                     }
-                )
+                })
             }
     ) {
         if (photoUrls.isNotEmpty()) {
             AsyncImage(
-                model = photoUrls[currentPhotoIndex],
+                model = ImageRequest.Builder(context)
+                    .data(photoUrls[currentPhotoIndex])
+                    .diskCacheKey(photoUrls[currentPhotoIndex])
+                    .memoryCacheKey(photoUrls[currentPhotoIndex])
+                    .crossfade(true)
+                    .build(),
                 contentDescription = "Profile Photo",
                 placeholder = painterResource(R.drawable.local_placeholder),
                 error = painterResource(R.drawable.local_placeholder),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            // Multi-photo "dots" at the top
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -324,12 +342,11 @@ fun PhotoCarouselWithOverlay(
             }
         }
 
-        // A bottom overlay for name, age, hometown, rating, etc.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .background(Color.Black.copy(alpha = 1f))
+                .background(Color.Black)
                 .padding(16.dp)
         ) {
             Column {
@@ -348,7 +365,6 @@ fun PhotoCarouselWithOverlay(
             }
         }
 
-        // Top-right edit icon => navigates to another screen
         IconButton(
             onClick = onEditProfileClick,
             modifier = Modifier
@@ -359,12 +375,13 @@ fun PhotoCarouselWithOverlay(
         ) {
             Icon(
                 imageVector = Icons.Default.Edit,
-                contentDescription = "Edit Profile / Photos",
+                contentDescription = "Edit Profile",
                 tint = Color.White
             )
         }
     }
 }
+
 
 /** Display a horizontal progress for completion. */
 @Composable
@@ -1481,487 +1498,6 @@ fun BioEditSection(
         }
     }
 }
-
-//@Composable
-//fun BasicInfoEditSection(
-//    tempProfile: Profile,
-//    onSave: (Profile) -> Unit,
-//    onCancel: () -> Unit
-//) {
-//    var name by remember { mutableStateOf(tempProfile.name) }
-//    var gender by remember { mutableStateOf(tempProfile.gender) }
-//    var hometown by remember { mutableStateOf(tempProfile.hometown) }
-//
-//    // --- Love Language dropdown logic ---
-//    val loveLanguageOptions = listOf(
-//        "Not Selected",
-//        "Words of Affirmation",
-//        "Quality Time",
-//        "Receiving Gifts",
-//        "Acts of Service",
-//        "Physical Touch",
-//        "Other"
-//    )
-//    // If the stored value is one of the options, use it; otherwise default to the first option.
-//    var selectedLoveLanguage by remember {
-//        mutableStateOf(if (loveLanguageOptions.contains(tempProfile.loveLanguage)) tempProfile.loveLanguage else loveLanguageOptions.first())
-//    }
-//    var customLoveLanguage by remember { mutableStateOf(if (selectedLoveLanguage == "Other") tempProfile.loveLanguage else "") }
-//    val showCustomLoveLanguageField = remember { mutableStateOf(selectedLoveLanguage == "Other") }
-//    var loveLanguageDropdownExpanded by remember { mutableStateOf(false) }
-//
-//    // --- Politics dropdown logic ---
-//    val politicsOptions = listOf("Not Selected", "Liberal", "Conservative", "Moderate", "Right Wing Economics", "Left Wing Economics", "Nationalist", "Communist")
-//    var selectedPolitics by remember {
-//        mutableStateOf(if (politicsOptions.contains(tempProfile.politics)) tempProfile.politics else politicsOptions.first())
-//    }
-//    var customPolitics by remember { mutableStateOf(if (selectedPolitics == "Other") tempProfile.politics else "") }
-//    val showCustomPoliticsField = remember { mutableStateOf(selectedPolitics == "Other") }
-//    var politicsDropdownExpanded by remember { mutableStateOf(false) }
-//
-//    // Job Role dropdown logic (unchanged)
-//    val jobRoleOptions = listOf("Not Selected", "Engineer", "Doctor", "Lawyer", "Teacher", "Other")
-//    var selectedJobRole by remember { mutableStateOf(tempProfile.jobRole.ifBlank { "Engineer" }) }
-//    var customJobRole by remember { mutableStateOf(tempProfile.customJobRole ?: "") }
-//    val showCustomJobRoleField = remember {
-//        mutableStateOf(selectedJobRole == "Other" || tempProfile.customJobRole?.isNotBlank() == true)
-//    }
-//
-//    // Work dropdown logic (unchanged)
-//    val workOptions = listOf("Not Selected", "Private Sector", "Government", "Freelance", "Business", "Other")
-//    var selectedWork by remember { mutableStateOf(tempProfile.work.ifBlank { "Private Sector" }) }
-//    var customWork by remember { mutableStateOf(tempProfile.customWork ?: "") }
-//    val showCustomWorkField = remember {
-//        mutableStateOf(selectedWork == "Other" || tempProfile.customWork?.isNotBlank() == true)
-//    }
-//
-//    // High School
-//    var highSchool by remember { mutableStateOf(tempProfile.highSchool) }
-//    var highSchoolGradYear by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
-//
-//    // College + Degree
-//    var college by remember { mutableStateOf(tempProfile.college) }
-//    var collegeGradYear by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
-//    var collegeDegree by remember { mutableStateOf(tempProfile.collegeDegree ?: "") }
-//
-//    // Post-Grad + Degree
-//    var postGrad by remember { mutableStateOf(tempProfile.postGraduation ?: "") }
-//    var postGradYear by remember { mutableStateOf(tempProfile.postGraduationYear) }
-//    var postGraduationDegree by remember { mutableStateOf(tempProfile.postGraduationDegree ?: "") }
-//
-//    var community by remember { mutableStateOf(tempProfile.community) }
-//    var religion by remember { mutableStateOf(tempProfile.religion) }
-//
-//    Column {
-//        // 1) Name
-//        OutlinedTextField(
-//            value = name,
-//            onValueChange = { name = it },
-//            label = { Text("Name", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 2) Gender
-//        OutlinedTextField(
-//            value = gender,
-//            onValueChange = { gender = it },
-//            label = { Text("Gender", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 3) Hometown
-//        OutlinedTextField(
-//            value = hometown,
-//            onValueChange = { hometown = it },
-//            label = { Text("Hometown", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 4) Love Language Dropdown
-//        Text("Love Language", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-//        Spacer(modifier = Modifier.height(4.dp))
-//        Button(
-//            onClick = { loveLanguageDropdownExpanded = true },
-//            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-//        ) {
-//            Text(
-//                text = if (selectedLoveLanguage.isBlank()) "Select Love Language" else selectedLoveLanguage,
-//                color = Color.White
-//            )
-//        }
-//        DropdownMenu(
-//            expanded = loveLanguageDropdownExpanded,
-//            onDismissRequest = { loveLanguageDropdownExpanded = false }
-//        ) {
-//            loveLanguageOptions.forEach { option ->
-//                DropdownMenuItem(
-//                    text = { Text(option) },
-//                    onClick = {
-//                        selectedLoveLanguage = option
-//                        loveLanguageDropdownExpanded = false
-//                        showCustomLoveLanguageField.value = (option == "Other")
-//                    }
-//                )
-//            }
-//        }
-//        if (showCustomLoveLanguageField.value) {
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = customLoveLanguage,
-//                onValueChange = { customLoveLanguage = it },
-//                label = { Text("Custom Love Language", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//        }
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 5) Politics Dropdown
-//        Text("Politics", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-//        Spacer(modifier = Modifier.height(4.dp))
-//        Button(
-//            onClick = { politicsDropdownExpanded = true },
-//            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-//        ) {
-//            Text(
-//                text = if (selectedPolitics.isBlank()) "Select Politics" else selectedPolitics,
-//                color = Color.White
-//            )
-//        }
-//        DropdownMenu(
-//            expanded = politicsDropdownExpanded,
-//            onDismissRequest = { politicsDropdownExpanded = false }
-//        ) {
-//            politicsOptions.forEach { option ->
-//                DropdownMenuItem(
-//                    text = { Text(option) },
-//                    onClick = {
-//                        selectedPolitics = option
-//                        politicsDropdownExpanded = false
-//                        showCustomPoliticsField.value = (option == "Other")
-//                    }
-//                )
-//            }
-//        }
-//        if (showCustomPoliticsField.value) {
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = customPolitics,
-//                onValueChange = { customPolitics = it },
-//                label = { Text("Custom Politics", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//        }
-//
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 6) Job Role Dropdown (unchanged)
-//        Text("Job Role", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-//        Spacer(modifier = Modifier.height(4.dp))
-//        var jobDropdownExpanded by remember { mutableStateOf(false) }
-//        Button(
-//            onClick = { jobDropdownExpanded = true },
-//            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-//        ) {
-//            Text(
-//                text = if (selectedJobRole.isBlank()) "Select Job Role" else selectedJobRole,
-//                color = Color.White
-//            )
-//        }
-//        DropdownMenu(
-//            expanded = jobDropdownExpanded,
-//            onDismissRequest = { jobDropdownExpanded = false }
-//        ) {
-//            jobRoleOptions.forEach { option ->
-//                DropdownMenuItem(
-//                    text = { Text(option) },
-//                    onClick = {
-//                        selectedJobRole = option
-//                        jobDropdownExpanded = false
-//                        showCustomJobRoleField.value = (option == "Other")
-//                    }
-//                )
-//            }
-//        }
-//        if (showCustomJobRoleField.value) {
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = customJobRole,
-//                onValueChange = { customJobRole = it },
-//                label = { Text("Custom Job Role", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//        }
-//        Spacer(modifier = Modifier.height(16.dp))
-//
-//        // 7) Work Dropdown (unchanged)
-//        Text("Work Type", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-//        Spacer(modifier = Modifier.height(4.dp))
-//        var workDropdownExpanded by remember { mutableStateOf(false) }
-//        Button(
-//            onClick = { workDropdownExpanded = true },
-//            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-//        ) {
-//            Text(
-//                text = if (selectedWork.isBlank()) "Select Work" else selectedWork,
-//                color = Color.White
-//            )
-//        }
-//        DropdownMenu(
-//            expanded = workDropdownExpanded,
-//            onDismissRequest = { workDropdownExpanded = false }
-//        ) {
-//            workOptions.forEach { option ->
-//                DropdownMenuItem(
-//                    text = { Text(option) },
-//                    onClick = {
-//                        selectedWork = option
-//                        workDropdownExpanded = false
-//                        showCustomWorkField.value = (option == "Other")
-//                    }
-//                )
-//            }
-//        }
-//        if (showCustomWorkField.value) {
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = customWork,
-//                onValueChange = { customWork = it },
-//                label = { Text("Custom Work", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//        }
-//        Spacer(modifier = Modifier.height(16.dp))
-//
-//        // 8) High School + Graduation Year
-//        OutlinedTextField(
-//            value = highSchool,
-//            onValueChange = { highSchool = it },
-//            label = { Text("High School", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        if (highSchool.isNotBlank()) {
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = highSchoolGradYear,
-//                onValueChange = { highSchoolGradYear = it },
-//                label = { Text("High School Graduation Year", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//        }
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 9) College + Graduation Year + Degree
-//        OutlinedTextField(
-//            value = college,
-//            onValueChange = { college = it },
-//            label = { Text("College", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        if (college.isNotBlank()) {
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = collegeGradYear,
-//                onValueChange = { collegeGradYear = it },
-//                label = { Text("College Graduation Year", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = collegeDegree,
-//                onValueChange = { collegeDegree = it },
-//                label = { Text("College Degree (e.g. B.Sc)", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//        }
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 10) Post-Graduation + Year + Degree
-//        OutlinedTextField(
-//            value = postGrad,
-//            onValueChange = { postGrad = it },
-//            label = { Text("Post-Graduation", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        if (postGrad.isNotBlank()) {
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = postGradYear ?: "",
-//                onValueChange = { postGradYear = it },
-//                label = { Text("Post-Grad Year", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//            Spacer(modifier = Modifier.height(8.dp))
-//            OutlinedTextField(
-//                value = postGraduationDegree,
-//                onValueChange = { postGraduationDegree = it },
-//                label = { Text("Post-Grad Degree (e.g. M.Sc)", color = Color(0xFFFF6F00)) },
-//                modifier = Modifier.fillMaxWidth(),
-//                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                    focusedBorderColor = Color(0xFFFF6F00),
-//                    cursorColor = Color(0xFFFF6F00),
-//                    focusedTextColor = Color.White
-//                )
-//            )
-//        }
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // 11) Community + Religion
-//        OutlinedTextField(
-//            value = community,
-//            onValueChange = { community = it },
-//            label = { Text("Community", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        Spacer(modifier = Modifier.height(8.dp))
-//        OutlinedTextField(
-//            value = religion,
-//            onValueChange = { religion = it },
-//            label = { Text("Religion", color = Color(0xFFFF6F00)) },
-//            modifier = Modifier.fillMaxWidth(),
-//            colors = TextFieldDefaults.outlinedTextFieldColors(
-//                focusedBorderColor = Color(0xFFFF6F00),
-//                cursorColor = Color(0xFFFF6F00),
-//                focusedTextColor = Color.White
-//            )
-//        )
-//        Spacer(modifier = Modifier.height(16.dp))
-//
-//        // 12) Save / Cancel Buttons
-//        Row {
-//            Button(
-//                onClick = {
-//                    // Clear custom fields if not applicable.
-//                    val finalCustomJobRole = if (selectedJobRole == "Other") customJobRole else ""
-//                    val finalCustomWork = if (selectedWork == "Other") customWork else ""
-//                    // For love language and politics, use custom value if "Other" was selected.
-//                    val finalLoveLanguage = if (selectedLoveLanguage == "Other") customLoveLanguage else selectedLoveLanguage
-//                    val finalPolitics = if (selectedPolitics == "Other") customPolitics else selectedPolitics
-//
-//                    onSave(
-//                        tempProfile.copy(
-//                            name = name,
-//                            gender = gender,
-//                            hometown = hometown,
-//                            // Job
-//                            jobRole = if (selectedJobRole == "Other") "" else selectedJobRole,
-//                            customJobRole = finalCustomJobRole,
-//                            // Work
-//                            work = if (selectedWork == "Other") "" else selectedWork,
-//                            customWork = finalCustomWork,
-//                            // High School
-//                            highSchool = highSchool,
-//                            highSchoolGraduationYear = highSchoolGradYear,
-//                            // College
-//                            college = college,
-//                            collegeGraduationYear = collegeGradYear,
-//                            collegeDegree = collegeDegree.ifBlank { null },
-//                            // Post Grad
-//                            postGraduation = postGrad.ifBlank { null },
-//                            postGraduationYear = postGradYear ?: "",
-//                            postGraduationDegree = postGraduationDegree.ifBlank { null },
-//                            // Community & Religion
-//                            community = community,
-//                            religion = religion,
-//                            // New fields:
-//                            loveLanguage = finalLoveLanguage,
-//                            politics = finalPolitics
-//                        )
-//                    )
-//                },
-//                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-//            ) {
-//                Text("Save", color = Color.White)
-//            }
-//            Spacer(modifier = Modifier.width(8.dp))
-//            Button(
-//                onClick = onCancel,
-//                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-//            ) {
-//                Text("Cancel", color = Color.White)
-//            }
-//        }
-//    }
-//}
-//
-
 
 /** Preferences Edit */
 @Composable

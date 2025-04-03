@@ -6,12 +6,16 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
+import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+import coil.Coil
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.runtime.Composable
@@ -23,22 +27,18 @@ class KupidXAppActivity : ComponentActivity() {
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
 
-
-    // Registering the permission result launcher
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
             val coarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
 
             if (fineLocationGranted || coarseLocationGranted) {
-                // Permissions granted, update user's location
                 val currentUser = auth.currentUser
                 if (currentUser != null) {
                     locationManager.updateUserLocation(currentUser.uid)
                 }
             } else {
-                // Permission denied, show a message
-                Toast.makeText(this, "Location permission denied. Cannot retrieve location.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -46,51 +46,56 @@ class KupidXAppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
-
-        // Check if the user is authenticated and email is verified
         val currentUser = auth.currentUser
         if (currentUser == null || !currentUser.isEmailVerified) {
-            // User is not authenticated, navigate back to LandingActivity
             startActivity(Intent(this, LandingActivity::class.java))
             finish()
             return
         }
 
-        // Initialize LocationManager
         locationManager = LocationManager(this)
-
-        // Check location permissions and update user's location
         checkLocationPermissionsAndUpdate(currentUser.uid)
-
-        // **Call loadFiltersFromFirebase here**
         postViewModel.loadFiltersFromFirebase(currentUser.uid)
+
+        // Set up global Coil caching
+        Coil.setImageLoader(
+            ImageLoader.Builder(applicationContext)
+                .crossfade(true)
+                .diskCache {
+                    DiskCache.Builder()
+                        .directory(applicationContext.cacheDir.resolve("image_cache"))
+                        .maxSizePercent(0.05) // Adjust cache size (5% of available storage)
+                        .build()
+                }
+                .memoryCache {
+                    MemoryCache.Builder(applicationContext)
+                        .maxSizePercent(0.25) // 25% of available memory
+                        .build()
+                }
+                .build()
+        )
 
         setContent {
             AppTheme {
                 KupidXApp(
                     onLogout = {
-                        // Handle logout
                         auth.signOut()
                         startActivity(Intent(this, LandingActivity::class.java))
                         finish()
                     },
-                    postViewModel = postViewModel // Pass the ViewModel to the Composable
+                    postViewModel = postViewModel
                 )
             }
         }
     }
 
-
     private fun checkLocationPermissionsAndUpdate(userId: String) {
-        // Check if location permissions are granted
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED) {
-            // Permissions already granted, update user's location
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED
+        ) {
             locationManager.updateUserLocation(userId)
         } else {
-            // Request permissions if not granted
             requestPermissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -105,6 +110,5 @@ class KupidXAppActivity : ComponentActivity() {
 @Composable
 fun KupidXApp(onLogout: () -> Unit, postViewModel: PostViewModel) {
     val navController = rememberNavController()
-
     MainScreen(navController = navController, onLogout = onLogout, postViewModel = postViewModel)
 }

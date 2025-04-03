@@ -382,7 +382,6 @@ fun ChooseLanguageScreen(
     )
 }
 
-
 // Add this new composable for restarting the activity
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -84,6 +84,7 @@ dependencies {
     // For Coil image loading
     implementation(libs.coil.compose.v222)
     implementation(libs.gpuimage)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     //geofire
     implementation(libs.firebase.geofire.android) // Check for the latest version

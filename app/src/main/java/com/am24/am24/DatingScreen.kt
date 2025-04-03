@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
@@ -34,14 +33,11 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
-import androidx.compose.material.icons.filled.Note
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Swipe
-import androidx.compose.material.icons.filled.ThumbDown
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
@@ -51,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
@@ -758,23 +753,20 @@ fun DatingProfileCard(
     val featuredPosts = sortedByUpvotes.take(5)
     val remainingPosts = sortedByUpvotes.drop(5)
 
-    Box(
+    Card(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(Color.Black)
-            .border(
-                width = 3.dp,
-                color = getLevelBorderColor(profile.averageRating),
-                shape = RoundedCornerShape(8.dp)
-            )
+            .offset { IntOffset(swipeOffset.roundToInt(), 0) }
             .swipeable(
                 state = swipeableState,
                 anchors = anchors,
                 thresholds = { _, _ -> FractionalThreshold(0.3f) },
                 orientation = Orientation.Horizontal
-            )
-            .offset { IntOffset(swipeOffset.roundToInt(), 0) }
+            ),
+        backgroundColor = Color.Black,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
     ) {
         LazyColumn(
             modifier = Modifier
