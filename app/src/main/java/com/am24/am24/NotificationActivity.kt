@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,11 +106,12 @@ fun NotificationCard(
     notification: Notification,
     currentUserId: String,
     profileViewModel: ProfileViewModel,
-    navController: NavController, // Add navController parameter
+    navController: NavController,
     onRead: () -> Unit,
     onAction: () -> Unit
 ) {
     val dynamicUsername = remember { mutableStateOf(notification.senderUsername) }
+    var hasBeenSeen by remember { mutableStateOf(false) } // track if already marked as seen
 
     LaunchedEffect(notification.senderId) {
         if (notification.senderUsername.isEmpty()) {
@@ -121,55 +123,68 @@ fun NotificationCard(
         }
     }
 
+    // Use the background color to show read vs unread notifications
     val backgroundColor = if (notification.isRead == "true") Color.Black else Color.DarkGray
 
-    Card(
+    // Wrap the card in a Box to detect when it becomes visible
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                when (notification.type) {
-                    "new_like" -> {
-                        // Navigate to PeopleWhoLikedMeScreen
-                        navController.navigate("peopleWhoLikedMe")
-                        onRead()
-                    }
-                    "new_match" -> {
-                        // Navigate to DMScreen
-                        navController.navigate("dms")
-                        onRead()
-                    }
-                    else -> {
+            .onGloballyPositioned { coordinates ->
+                // Since LazyColumn only composes visible items, this indicates the notification is on screen.
+                if (!hasBeenSeen) {
+                    hasBeenSeen = true
+                    if (notification.isRead != "true") {
                         onRead()
                     }
                 }
-            },
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            }
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    // Even if the notification is already marked as read when seen,
+                    // you can still perform navigation or additional actions on click.
+                    when (notification.type) {
+                        "new_like" -> {
+                            navController.navigate("peopleWhoLikedMe")
+                        }
+                        "new_match" -> {
+                            navController.navigate("dms")
+                        }
+                        else -> { /* no navigation */ }
+                    }
+                    onAction() // If any additional action is needed on click
+                },
+            colors = CardDefaults.cardColors(containerColor = backgroundColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = "Notification",
-                tint = Color(0xFF00bf63),
-                modifier = Modifier.size(40.dp)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = notification.message.replace("senderUsername", dynamicUsername.value),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Notification",
+                    tint = Color(0xFF00bf63),
+                    modifier = Modifier.size(40.dp)
                 )
-                Text(
-                    text = "Received at: ${formatTimestamp(notification.timestamp)}",
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = notification.message.replace("senderUsername", dynamicUsername.value),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Received at: ${formatTimestamp(notification.timestamp)}",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
     }
