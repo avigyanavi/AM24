@@ -9,7 +9,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,7 +19,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -30,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -82,13 +79,35 @@ fun MapScreen(
     val searchResultsState = remember { mutableStateListOf<Pair<LatLng, String>>() }
     var selectedPlaceDetails by remember { mutableStateOf<Pair<LatLng, String>?>(null) }
     var selectedUserProfile by remember { mutableStateOf<Profile?>(null) }
-    val quickSearchItems = listOf("OYO", "hotels", "cafes", "bars", "malls")
+    val quickSearchItems = listOf(
+        "OYO",              // Budget hotels, popular for privacy
+        "hotels",           // General hotels for outings
+        "cafes",            // Casual hangouts for dates or socializing
+        "bars",             // Trendy spots for older teens (19+)
+        "malls",            // Shopping and entertainment hubs
+        "parks",            // Romantic spots like Rabindra Sarobar or Eco Park
+        "cinemas",          // Movie theaters, a classic teen date spot
+        "restaurants",      // Dining options for foodie teens
+        "lovers point",     // Informal romantic spots (e.g., near Ganges or Princep Ghat)
+        "street food",      // Popular with teens, e.g., phuchka or roll stalls
+        "clubs",            // Dance or music clubs for nightlife
+        "riverfronts",      // Scenic spots like Princep Ghat or Hooghly ghats
+        "bookstores",       // Intellectual hangouts like College Street
+        "gaming zones",     // Arcade or gaming cafes for fun
+        "rooftops",         // Trendy rooftop cafes or bars with views
+        "festivals",        // Seasonal events like Durga Puja pandals
+        "chai stalls"       // Casual tea spots for late-night chats
+    )
     val matchesSet = remember { mutableStateListOf<String>() }
     var showPriceFilterDialog by remember { mutableStateOf(false) }
     var selectedPriceRange by remember { mutableStateOf("All") }
-    var showAllUsers by remember { mutableStateOf(false) }
-    var showMapTypeDialog by remember { mutableStateOf(false) }
-    var selectedMapType by remember { mutableStateOf("West Bengal") }
+    var navigateToProfile by remember { mutableStateOf<String?>(null) }
+    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
+
+    // Loading States
+    var isLoadingSearch by remember { mutableStateOf(false) }
+    var isLoadingQuickSearch by remember { mutableStateOf(false) }
+    var isLoadingMatches by remember { mutableStateOf(false) }
 
     // Overlay states
     var showSendOverlay by remember { mutableStateOf(false) }
@@ -96,10 +115,30 @@ fun MapScreen(
     val matchProfiles = remember { mutableStateListOf<MatchProfile>() }
     var showLocationPrefOverlay by remember { mutableStateOf(true) }
     var allowLocationForMatches by remember { mutableStateOf(false) }
-    var allowLocationForPublic by remember { mutableStateOf(false) }
 
-    // Load Matches
+    // Fetch user location with loading
     LaunchedEffect(userId) {
+        isLoadingMatches = true
+        locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
+            if (lat != null && lng != null) {
+                userLatLng = LatLng(lat, lng)
+            }
+            isLoadingMatches = false
+        }
+    }
+
+    // Handle navigation
+    LaunchedEffect(navigateToProfile) {
+        navigateToProfile?.let { userId ->
+            navController.navigate("matchedUserProfile/$userId")
+            navigateToProfile = null
+            selectedUserProfile = null
+        }
+    }
+
+    // Load Matches with loading
+    LaunchedEffect(userId) {
+        isLoadingMatches = true
         val matchesRef = FirebaseDatabase.getInstance().getReference("matches").child(userId)
         matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -107,7 +146,6 @@ fun MapScreen(
                 for (child in snapshot.children) {
                     child.key?.let { matchesSet.add(it) }
                 }
-                Log.d("MapScreen", "Loaded matches: $matchesSet")
                 loadUserLocationAndMatches(
                     userId,
                     locationManager,
@@ -115,29 +153,15 @@ fun MapScreen(
                     matchesSet,
                     markersState,
                     cameraPositionState,
-                    context,
-                    showAllUsers
+                    context
                 )
+                isLoadingMatches = false
             }
             override fun onCancelled(error: DatabaseError) {
                 Toast.makeText(context, "Failed to load matches: ${error.message}", Toast.LENGTH_LONG).show()
-                Log.e("MapScreen", "Matches load failed: ${error.message}")
+                isLoadingMatches = false
             }
         })
-    }
-
-    LaunchedEffect(showAllUsers) {
-        markersState.clear()
-        loadUserLocationAndMatches(
-            userId,
-            locationManager,
-            geoFireDatabaseRef,
-            matchesSet,
-            markersState,
-            cameraPositionState,
-            context,
-            showAllUsers
-        )
     }
 
     LaunchedEffect(showSendOverlay) {
@@ -147,11 +171,15 @@ fun MapScreen(
                 dbRef.get().addOnSuccessListener { snapshot ->
                     val profile = snapshot.getValue(Profile::class.java)
                     if (profile != null) {
-                        val name = profile.name
-                        val age = calculateAge(profile.dob)
-                        val hometown = profile.hometown
-                        val photoUrl = profile.profilepicUrl
-                        matchProfiles.add(MatchProfile(matchUid, name, age, hometown, photoUrl))
+                        matchProfiles.add(
+                            MatchProfile(
+                                matchUid,
+                                profile.name,
+                                calculateAge(profile.dob),
+                                profile.hometown,
+                                profile.profilepicUrl
+                            )
+                        )
                     }
                 }
             }
@@ -170,65 +198,196 @@ fun MapScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Switch(checked = allowLocationForMatches, onCheckedChange = { allowLocationForMatches = it })
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Visible to Public")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(checked = allowLocationForPublic, onCheckedChange = { allowLocationForPublic = it })
-                    }
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     showLocationPrefOverlay = false
+                    val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+                    userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
                 }) { Text("Save") }
             }
         )
     }
 
-    // Main Layout with Tap to Unfocus
-    Column(
-        Modifier
-            .fillMaxSize()
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) {
-                if (showSearchBar) {
-                    focusManager.clearFocus()
-                    showSearchBar = false
+    // Main Layout
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    if (showSearchBar) {
+                        focusManager.clearFocus()
+                        showSearchBar = false
+                    }
+                }
+        ) {
+            // Top Row: Search and Filter Buttons
+            if (showSearchBar) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.White, RoundedCornerShape(16.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                textStyle = TextStyle(color = Color.Black),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    isLoadingSearch = true
+                                    val queryWithFilter = if (selectedPriceRange != "All")
+                                        "$searchQuery, Price: $selectedPriceRange" else searchQuery
+                                    userLatLng?.let { location ->
+                                        val results = searchPlacesWithOkHttp(queryWithFilter, location)
+                                        searchResultsState.clear()
+                                        searchResultsState.addAll(results)
+                                        selectedPlaceDetails = null
+                                        if (checkNotEmpty(results)) {
+                                            val boundsBuilder = LatLngBounds.builder()
+                                            results.forEach { boundsBuilder.include(it.first) }
+                                            cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100))
+                                        }
+                                    } ?: run {
+                                        Toast.makeText(context, "User location not available", Toast.LENGTH_SHORT).show()
+                                    }
+                                    isLoadingSearch = false
+                                }
+                            },
+                            enabled = !isLoadingSearch,
+                            border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Added orange border
+                        ) {
+                            if (isLoadingSearch) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color.White
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = "Search",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = {
+                            searchQuery = ""
+                            searchResultsState.clear()
+                            selectedPlaceDetails = null
+                            showSearchBar = false
+                            focusManager.clearFocus()
+                        }) { Text("Clear", color = Color.White) }
+                    }
+                    IconButton(onClick = { showPriceFilterDialog = true }) {
+                        Icon(imageVector = Icons.Filled.FilterList, contentDescription = "Filter by Price")
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = { showSearchBar = true },
+                        border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Added orange border here
+                    ) {
+                        Text("Search", color = Color.White)
+                    }
+                    IconButton(onClick = { showPriceFilterDialog = true }) {
+                        Icon(imageVector = Icons.Filled.FilterList, contentDescription = "Filter by Price")
+                    }
                 }
             }
-    ) {
-        // Top Row: Search, Filters
-        if (showSearchBar) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(Color.White, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            textStyle = TextStyle(color = Color.Black),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
-                        scope.launch {
-                            val queryWithFilter = if (selectedPriceRange != "All")
-                                "$searchQuery, Price: $selectedPriceRange" else searchQuery
-                            val results = searchPlacesWithOkHttp(queryWithFilter)
+
+            // Price Filter Indicator
+            if (selectedPriceRange != "All") {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 12.dp, bottom = 4.dp)
+                        .background(Color(0xFFFFEB3B), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text("Price Filter: $selectedPriceRange", color = Color.Black, fontSize = 14.sp)
+                }
+            }
+
+            // Price Filter Dialog
+            if (showPriceFilterDialog) {
+                AlertDialog(
+                    onDismissRequest = { showPriceFilterDialog = false },
+                    title = { Text("Select Price Range") },
+                    text = {
+                        Column {
+                            listOf("All", "$", "$$", "$$$", "$$$$").forEach { price ->
+                                Text(
+                                    text = price,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedPriceRange = price
+                                            showPriceFilterDialog = false
+                                            if (searchQuery.isNotEmpty()) {
+                                                scope.launch {
+                                                    isLoadingSearch = true
+                                                    val queryWithFilter = if (price != "All")
+                                                        "$searchQuery, Price: $price" else searchQuery
+                                                    userLatLng?.let { location ->
+                                                        val results = searchPlacesWithOkHttp(queryWithFilter, location)
+                                                        searchResultsState.clear()
+                                                        searchResultsState.addAll(results)
+                                                        selectedPlaceDetails = null
+                                                        if (checkNotEmpty(results)) {
+                                                            val boundsBuilder = LatLngBounds.builder()
+                                                            results.forEach { boundsBuilder.include(it.first) }
+                                                            cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100))
+                                                        }
+                                                    } ?: run {
+                                                        Toast.makeText(context, "User location not available", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                    isLoadingSearch = false
+                                                }
+                                            }
+                                        }
+                                        .padding(8.dp)
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {}
+                )
+            }
+
+            // Quick Search Tags with Loading
+            QuickSearchTags(
+                tags = quickSearchItems,
+                onTagSelected = { tag ->
+                    scope.launch {
+                        isLoadingQuickSearch = true
+                        searchQuery = tag
+                        val queryWithFilter = if (selectedPriceRange != "All") "$tag, Price: $selectedPriceRange" else tag
+                        userLatLng?.let { location ->
+                            val results = searchPlacesWithOkHttp(queryWithFilter, location)
                             searchResultsState.clear()
                             searchResultsState.addAll(results)
                             selectedPlaceDetails = null
@@ -237,276 +396,165 @@ fun MapScreen(
                                 results.forEach { boundsBuilder.include(it.first) }
                                 cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100))
                             }
+                        } ?: run {
+                            Toast.makeText(context, "User location not available", Toast.LENGTH_SHORT).show()
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
-                            tint = Color.White
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
-                        searchQuery = ""
-                        searchResultsState.clear()
-                        selectedPlaceDetails = null
-                        showSearchBar = false
-                        focusManager.clearFocus()
-                    }) { Text("Clear", color = Color.White) }
-                }
-                IconButton(onClick = { showPriceFilterDialog = true }) {
-                    Icon(imageVector = Icons.Filled.FilterList, contentDescription = "Filter by Price")
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(onClick = { showSearchBar = true }) {
-                    Text("Search", color = Color.White)
-                }
-                Row {
-                    IconButton(onClick = { showPriceFilterDialog = true }) {
-                        Icon(imageVector = Icons.Filled.FilterList, contentDescription = "Filter by Price")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(onClick = { showMapTypeDialog = true }) {
-                        Icon(imageVector = Icons.Filled.Map, contentDescription = "Map Type")
-                    }
-                }
-            }
-        }
-
-        // Price Filter Indicator
-        if (selectedPriceRange != "All") {
-            Box(
-                modifier = Modifier
-                    .padding(start = 12.dp, bottom = 4.dp)
-                    .background(Color(0xFFFFEB3B), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text("Price Filter: $selectedPriceRange", color = Color.Black, fontSize = 14.sp)
-            }
-        }
-
-        // Price Filter Dialog
-        if (showPriceFilterDialog) {
-            AlertDialog(
-                onDismissRequest = { showPriceFilterDialog = false },
-                title = { Text("Select Price Range") },
-                text = {
-                    Column {
-                        listOf("All", "$", "$$", "$$$", "$$$$").forEach { price ->
-                            Text(
-                                text = price,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        selectedPriceRange = price
-                                        showPriceFilterDialog = false
-                                    }
-                                    .padding(8.dp)
-                            )
-                        }
+                        isLoadingQuickSearch = false
                     }
                 },
-                confirmButton = {}
+                isLoading = isLoadingQuickSearch
             )
-        }
 
-        // Map Type Dialog
-        if (showMapTypeDialog) {
-            AlertDialog(
-                onDismissRequest = { showMapTypeDialog = false },
-                title = { Text("Select Map Type") },
-                text = {
-                    Column {
-                        listOf("West Bengal", "City Map", "Neighborhood Map").forEach { mapType ->
-                            Text(
-                                text = mapType,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        selectedMapType = mapType
-                                        showMapTypeDialog = false
-                                        when (mapType) {
-                                            "City Map" -> navController.navigate("cityMap/Kolkata") // Example city
-                                            "Neighborhood Map" -> navController.navigate("cityMap/Kolkata") // Placeholder
-                                            "West Bengal" -> navController.navigate("map")
-                                        }
-                                    }
-                                    .padding(8.dp)
-                            )
-                        }
-                    }
-                },
-                confirmButton = {}
-            )
-        }
-
-        // Quick Search Tags
-        QuickSearchTags(
-            tags = quickSearchItems,
-            onTagSelected = { tag ->
-                scope.launch {
-                    searchQuery = tag
-                    val queryWithFilter = if (selectedPriceRange != "All") "$tag, Price: $selectedPriceRange" else tag
-                    val results = searchPlacesWithOkHttp(queryWithFilter)
-                    searchResultsState.clear()
-                    searchResultsState.addAll(results)
-                    selectedPlaceDetails = null
-                    if (checkNotEmpty(results)) {
-                        val boundsBuilder = LatLngBounds.builder()
-                        results.forEach { boundsBuilder.include(it.first) }
-                        cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100))
-                    }
+            // Map & Overlays
+            Box(Modifier.weight(1f)) {
+                val heatmapProvider = remember(markersState) {
+                    if (checkNotEmpty(markersState)) {
+                        HeatmapTileProvider.Builder()
+                            .data(markersState.map { it.position })
+                            .build()
+                    } else null
                 }
-            }
-        )
-
-        // Map & Overlays
-        Box(Modifier.weight(1f)) {
-            val heatmapProvider = remember(markersState) {
-                if (checkNotEmpty(markersState)) {
-                    HeatmapTileProvider.Builder()
-                        .data(markersState.map { it.position })
-                        .build()
-                } else null
-            }
-            val heatmapState = rememberTileOverlayState()
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState,
-                uiSettings = MapUiSettings(
-                    zoomControlsEnabled = true,
-                    mapToolbarEnabled = false,
-                    myLocationButtonEnabled = true
-                ),
-                properties = MapProperties(isMyLocationEnabled = true)
-            ) {
-                markersState.forEach { markerData ->
-                    Marker(
-                        state = MarkerState(position = markerData.position),
-                        title = markerData.userId,
-                        icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
-                        onClick = {
-                            scope.launch {
-                                FirebaseDatabase.getInstance().getReference("users").child(markerData.userId)
-                                    .get().addOnSuccessListener { snapshot ->
-                                        val profile = snapshot.getValue(Profile::class.java)
-                                        if (profile != null) {
-                                            val allowMatches = profile.allowLocationForMatches
-                                            val allowPublic = profile.allowLocationForPublic
-                                            val shouldShow = if (matchesSet.contains(markerData.userId)) allowMatches else allowPublic
-                                            if (shouldShow) {
+                val heatmapState = rememberTileOverlayState()
+                GoogleMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState,
+                    uiSettings = MapUiSettings(
+                        zoomControlsEnabled = true,
+                        mapToolbarEnabled = false,
+                        myLocationButtonEnabled = true
+                    ),
+                    properties = MapProperties(isMyLocationEnabled = true)
+                ) {
+                    markersState.forEach { markerData ->
+                        Marker(
+                            state = MarkerState(position = markerData.position),
+                            title = markerData.userId,
+                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
+                            onClick = {
+                                scope.launch {
+                                    FirebaseDatabase.getInstance().getReference("users").child(markerData.userId)
+                                        .get().addOnSuccessListener { snapshot ->
+                                            val profile = snapshot.getValue(Profile::class.java)
+                                            if (profile != null && matchesSet.contains(markerData.userId) && profile.allowLocationForMatches) {
                                                 selectedUserProfile = profile
                                             }
                                         }
-                                    }
+                                }
+                                true
                             }
-                            true
-                        }
-                    )
-                }
-                searchResultsState.forEach { (position, name) ->
-                    Marker(
-                        state = MarkerState(position = position),
-                        title = name,
-                        onClick = {
-                            selectedPlaceDetails = position to name
-                            true
-                        }
-                    )
-                }
-                if (heatmapProvider != null) {
-                    TileOverlay(tileProvider = heatmapProvider, state = heatmapState)
-                }
-            }
-
-            // Popups and Overlays
-            selectedPlaceDetails?.let { (latLng, name) ->
-                PlaceDetailsPopup(
-                    latLng = latLng,
-                    name = name,
-                    onDismiss = { selectedPlaceDetails = null },
-                    onSendToMatch = {
-                        placeDetailsToSend = Pair(latLng, name)
-                        showSendOverlay = true
+                        )
                     }
-                )
-            }
-
-            selectedUserProfile?.let { profile ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f))
-                        .pointerInput(Unit) {
-                            awaitPointerEventScope {
-                                awaitFirstDown(false)
-                                selectedUserProfile = null
+                    searchResultsState.forEach { (position, name) ->
+                        Marker(
+                            state = MarkerState(position = position),
+                            title = name,
+                            onClick = {
+                                selectedPlaceDetails = position to name
+                                true
                             }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
+                        )
+                    }
+                    if (heatmapProvider != null) {
+                        TileOverlay(tileProvider = heatmapProvider, state = heatmapState)
+                    }
+                }
+
+                // Popups and Overlays
+                selectedPlaceDetails?.let { (latLng, name) ->
+                    PlaceDetailsPopup(
+                        latLng = latLng,
+                        name = name,
+                        onDismiss = { selectedPlaceDetails = null },
+                        onSendToMatch = {
+                            placeDetailsToSend = Pair(latLng, name)
+                            showSendOverlay = true
+                        }
+                    )
+                }
+
+                selectedUserProfile?.let { profile ->
                     Box(
                         modifier = Modifier
-                            .padding(16.dp)
-                            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f)),
                         contentAlignment = Alignment.Center
                     ) {
                         UserProfilePopup(
                             profile = profile,
                             onProfileClick = { userIdClicked ->
-                                onProfileMarkerClicked(userIdClicked)
-                                selectedUserProfile = null
+                                navigateToProfile = userIdClicked
                             },
                             onCloseClick = { selectedUserProfile = null }
                         )
                     }
                 }
-            }
 
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(8.dp)
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Show All Users", color = Color.Black)
-                Spacer(Modifier.width(8.dp))
-                Switch(checked = showAllUsers, onCheckedChange = { showAllUsers = it })
-            }
-
-            if (showSendOverlay) {
-                MatchesListOverlay(
-                    matches = matchProfiles,
-                    onDismiss = { showSendOverlay = false },
-                    onSend = { selectedMatch ->
-                        placeDetailsToSend?.let { (latLng, placeName) ->
-                            val messageText = "Check out this place: $placeName. Directions: https://maps.google.com/?q=${latLng.latitude},${latLng.longitude}"
-                            val chatId = getChatId2(userId, selectedMatch.userId)
-                            val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$chatId")
-                            sendMessage2(userId, selectedMatch.userId, chatId, messageText, messagesRef)
-                            Toast.makeText(context, "Sent place details to ${selectedMatch.name}", Toast.LENGTH_LONG).show()
-                            showSendOverlay = false
-                            placeDetailsToSend = null
+                if (showSendOverlay) {
+                    MatchesListOverlay(
+                        matches = matchProfiles,
+                        onDismiss = { showSendOverlay = false },
+                        onSend = { selectedMatch ->
+                            placeDetailsToSend?.let { (latLng, placeName) ->
+                                val messageText = "Check out this place: $placeName. Directions: https://maps.google.com/?q=${latLng.latitude},${latLng.longitude}"
+                                val chatId = getChatId2(userId, selectedMatch.userId)
+                                val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$chatId")
+                                sendMessage2(userId, selectedMatch.userId, chatId, messageText, messagesRef)
+                                Toast.makeText(context, "Sent place details to ${selectedMatch.name}", Toast.LENGTH_LONG).show()
+                                showSendOverlay = false
+                                placeDetailsToSend = null
+                            }
                         }
-                    }
-                )
+                    )
+                }
+            }
+        }
+
+        // Loading Overlay
+        if (isLoadingMatches || isLoadingSearch || isLoadingQuickSearch) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
             }
         }
     }
 }
 
-// Supporting Composables and Functions
-
+@Composable
+fun QuickSearchTags(
+    tags: List<String>,
+    onTagSelected: (String) -> Unit,
+    isLoading: Boolean
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+    ) {
+        items(tags) { tag ->
+            Box(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .background(Color.Black, RoundedCornerShape(4.dp))
+                    .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .clickable(enabled = !isLoading) { onTagSelected(tag) }
+            ) {
+                if (isLoading && tag == tags.first()) { // Show loading on first tag as an example
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = Color.White
+                    )
+                } else {
+                    Text("#$tag", color = Color.LightGray, fontSize = 10.sp)
+                }
+            }
+        }
+    }
+}
 @Composable
 fun PlaceDetailsPopup(
     latLng: LatLng,
@@ -629,7 +677,9 @@ fun UserProfilePopup(
                 imageVector = Icons.Filled.Close,
                 contentDescription = "Close",
                 tint = Color.Gray,
-                modifier = Modifier.size(24.dp).clickable { onCloseClick() }
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onCloseClick() }
             )
         }
         profile.profilepicUrl?.let { url ->
@@ -645,7 +695,10 @@ fun UserProfilePopup(
         Spacer(modifier = Modifier.height(6.dp))
         RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { onProfileClick(profile.userId) }) { Text("View Full Profile") }
+        Button(onClick = {
+            Log.d("MapScreen", "View Full Profile clicked for ${profile.userId}")
+            onProfileClick(profile.userId)
+        }) { Text("View Full Profile") }
     }
 }
 
@@ -679,36 +732,28 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun QuickSearchTags(
-    tags: List<String>,
-    onTagSelected: (String) -> Unit
-) {
-    FlowRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-    ) {
-        tags.forEach { tag ->
-            Box(
-                Modifier
-                    .padding(4.dp)
-                    .background(Color.Black, RoundedCornerShape(4.dp))
-                    .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                    .clickable { onTagSelected(tag) }
-            ) {
-                Text("#$tag", color = Color.LightGray, fontSize = 10.sp)
-            }
-        }
-    }
-}
 
-suspend fun searchPlacesWithOkHttp(query: String): List<Pair<LatLng, String>> = withContext(Dispatchers.IO) {
+suspend fun searchPlacesWithOkHttp(query: String, userLocation: LatLng): List<Pair<LatLng, String>> = withContext(Dispatchers.IO) {
     val client = OkHttpClient()
     val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ" // Replace with your actual Places API key
-    val requestBody = JSONObject().put("textQuery", query).toString().toRequestBody("application/json".toMediaType())
+    val requestBody = JSONObject()
+        .put("textQuery", query)
+        .put(
+            "locationBias",
+            JSONObject()
+                .put("circle",
+                    JSONObject()
+                        .put("center",
+                            JSONObject()
+                                .put("latitude", userLocation.latitude)
+                                .put("longitude", userLocation.longitude)
+                        )
+                        .put("radius", 10000) // 10 km radius
+                )
+        )
+        .toString()
+        .toRequestBody("application/json".toMediaType())
+
     val request = Request.Builder()
         .url("https://places.googleapis.com/v1/places:searchText")
         .addHeader("Content-Type", "application/json")
@@ -716,6 +761,7 @@ suspend fun searchPlacesWithOkHttp(query: String): List<Pair<LatLng, String>> = 
         .addHeader("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.location")
         .post(requestBody)
         .build()
+
     val results = mutableListOf<Pair<LatLng, String>>()
     try {
         client.newCall(request).execute().use { response ->
@@ -747,8 +793,7 @@ fun loadUserLocationAndMatches(
     matchesSet: List<String>,
     markersState: MutableList<MarkerData>,
     cameraPositionState: CameraPositionState,
-    context: android.content.Context,
-    displayAllUsers: Boolean
+    context: android.content.Context
 ) {
     locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
         if (lat != null && lng != null) {
@@ -761,23 +806,9 @@ fun loadUserLocationAndMatches(
                     Log.d("MapScreen", "GeoFire key entered: $key at ${location.latitude}, ${location.longitude}")
                     FirebaseDatabase.getInstance().getReference("users").child(key).get().addOnSuccessListener { snapshot ->
                         val profile = snapshot.getValue(Profile::class.java)
-                        if (profile != null) {
-                            val allowMatches = profile.allowLocationForMatches
-                            val allowPublic = profile.allowLocationForPublic
-                            Log.d("MapScreen", "Profile for $key: allowMatches=$allowMatches, matchesSet.contains=${matchesSet.contains(key)}")
-                            if (matchesSet.contains(key)) {
-                                if (allowMatches) {
-                                    markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
-                                    Log.d("MapScreen", "Added match marker for $key. Markers state size: ${markersState.size}")
-                                }
-                            } else if (displayAllUsers) {
-                                if (allowPublic) {
-                                    markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
-                                    Log.d("MapScreen", "Added public marker for $key. Markers state size: ${markersState.size}")
-                                }
-                            }
-                        } else {
-                            Log.e("MapScreen", "Failed to parse profile for $key")
+                        if (profile != null && matchesSet.contains(key) && profile.allowLocationForMatches) {
+                            markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
+                            Log.d("MapScreen", "Added match marker for $key. Markers state size: ${markersState.size}")
                         }
                     }
                 }
@@ -786,7 +817,7 @@ fun loadUserLocationAndMatches(
                     Log.d("MapScreen", "Key exited: $key. Markers state size: ${markersState.size}")
                 }
                 override fun onKeyMoved(key: String, location: GeoLocation) {
-                    if (displayAllUsers || matchesSet.contains(key)) {
+                    if (matchesSet.contains(key)) {
                         markersState.replaceAll { if (it.userId == key) it.copy(position = LatLng(location.latitude, location.longitude)) else it }
                         Log.d("MapScreen", "Key moved: $key to ${location.latitude}, ${location.longitude}")
                     }
@@ -845,9 +876,7 @@ fun calculateAge(dob: String): Int {
     return age
 }
 
-fun <T> checkNotEmpty(list: List<T>): Boolean {
-    return list.isNotEmpty()
-}
+fun <T> checkNotEmpty(list: List<T>): Boolean = list.isNotEmpty()
 
 data class MarkerData(val userId: String, val position: LatLng)
 

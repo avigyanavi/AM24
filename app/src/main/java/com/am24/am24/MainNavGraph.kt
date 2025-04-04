@@ -231,59 +231,6 @@ fun MainNavGraph(
             )
         }
 
-        // 2) A simple menu: city group chat OR neighborhood map
-        composable(
-            route = "cityMenu/{cityName}",
-            arguments = listOf(navArgument("cityName") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val cityName = backStackEntry.arguments?.getString("cityName") ?: return@composable
-            CityMenuScreen(
-                navController = navController,
-                cityName = cityName
-            )
-        }
-
-        // 3) City-level group chat
-        composable(
-            route = "cityGroupChat/{cityName}",
-            arguments = listOf(navArgument("cityName") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val cityName = backStackEntry.arguments?.getString("cityName") ?: return@composable
-            CityGroupChatScreen(
-                navController = navController,
-                cityName = cityName,
-                profileViewModel = profileViewModel
-            )
-        }
-
-        // 4) City-level map for neighborhoods
-        composable(
-            route = "cityMap/{cityName}",
-            arguments = listOf(navArgument("cityName") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val cityName = backStackEntry.arguments?.getString("cityName") ?: return@composable
-            CityNeighborhoodMapScreen(
-                userId = userId,
-                cityName = cityName,
-                onNeighborhoodClicked = { hoodName ->
-                    navController.navigate("neighborhoodGroupChat/$hoodName")
-                }
-            )
-        }
-
-        // 5) Neighborhood-based group chat
-        composable(
-            route = "neighborhoodGroupChat/{hoodName}",
-            arguments = listOf(navArgument("hoodName") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val hoodName = backStackEntry.arguments?.getString("hoodName") ?: return@composable
-            NeighborhoodGroupChatScreen(
-                navController = navController,
-                neighborhoodName = hoodName,
-                profileViewModel = profileViewModel
-            )
-        }
-
         composable(
             route = "matchedUserProfile/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })

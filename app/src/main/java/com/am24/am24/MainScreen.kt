@@ -222,15 +222,6 @@ fun TopNavBar(
                             onCheckedChange = { allowLocationForMatches = it }
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Visible to Public")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = allowLocationForPublic,
-                            onCheckedChange = { allowLocationForPublic = it }
-                        )
-                    }
                 }
             },
             confirmButton = {
@@ -238,8 +229,6 @@ fun TopNavBar(
                     // Update the user's profile in Firebase with these settings.
                     FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
                         .child("allowLocationForMatches").setValue(allowLocationForMatches)
-                    FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
-                        .child("allowLocationForPublic").setValue(allowLocationForPublic)
                     showLocationPrefDialog = false
                 }) { Text("Save") }
             }
