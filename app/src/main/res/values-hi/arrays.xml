@@ -2,70 +2,290 @@
     <!-- शहरों के नाम -->
     <string-array name="city_names">
         <item>कोलकाता</item>
-        <item>सॉल्ट लेक, न्यूटाउन और राजरहाट</item>
-        <item>हाउड़ा</item>
+        <item>हावड़ा</item>
         <item>दुर्गापुर</item>
-        <item>दार्जिलिंग</item>
-        <item>सिलिगुड़ी</item>
         <item>असनसोल</item>
+        <item>सिलिगुड़ी</item>
+        <item>दार्जिलिंग</item>
+        <item>मालदा</item>
+        <item>जलपाईगुड़ी</item>
+        <item>कूच बिहार</item>
+        <item>अलीपुरद्वार</item>
+        <item>बांकुड़ा</item>
+        <item>पुरुलिया</item>
+        <item>खड़गपुर</item>
+        <item>मिदनापुर</item>
+        <item>बर्द्धमान</item>
+        <item>हुगली</item>
+        <item>नादिया</item>
+        <item>मुर्शिदाबाद</item>
+        <item>बहरमपुर</item>
+        <item>हल्दिया</item>
+        <item>रानाघाट</item>
+        <item>कल्याणी</item>
+        <item>चंदननगर</item>
+        <item>अन्य</item>
     </string-array>
 
-    <!-- कोलकाता की स्थानीयताएँ -->
+    <!-- कोलकाता की स्थानीयताएँ (ग्रेटर कोलकाता) -->
     <string-array name="localities_kolkata">
-        <item>सॉल्ट लेक</item>
-        <item>न्यूटाउन</item>
+        <item>सॉल्ट लेक (बिधाननगर) - सेक्टर १</item>
+        <item>सॉल्ट लेक (बिधाननगर) - सेक्टर २</item>
+        <item>सॉल्ट लेक (बिधाननगर) - सेक्टर ३</item>
+        <item>सॉल्ट लेक (बिधाननगर) - सेक्टर ५</item>
+        <item>न्यूटाउन - एक्शन एरिया १</item>
+        <item>न्यूटाउन - एक्शन एरिया २</item>
+        <item>न्यूटाउन - एक्शन एरिया ३</item>
+        <item>राजरहाट - चिनार पार्क</item>
+        <item>राजरहाट - बागुईआटी</item>
+        <item>राजरहाट - तेगोरिया</item>
         <item>डम डम</item>
-        <item>बहेला</item>
+        <item>बहाला</item>
         <item>पार्क स्ट्रीट</item>
-        <item>बालीगंज</item>
+        <item>बालिगंज</item>
         <item>जादवपुर</item>
-        <item>दक्षिण कोलकाता</item>
+        <item>दक्षिण एवेन्यू</item>
+        <item>गरियाहाट</item>
+        <item>टॉलीगंज</item>
+        <item>श्यामबाजार</item>
+        <item>एस्प्लेनेड</item>
+        <item>अलीपुर</item>
+        <item>कसबा</item>
+        <item>गरिया</item>
+        <item>बरानगर</item>
+        <item>कांकुड़गाछी</item>
+        <item>लेक टाउन</item>
+        <item>फूल बागान</item>
+        <item>अन्य</item>
     </string-array>
 
-    <!-- सॉल्ट लेक, न्यूटाउन और राजरहाट की स्थानीयताएँ -->
-    <string-array name="localities_salt_lake_newtown_rajarhat">
-        <item>सॉल्ट लेक सेक्टर V</item>
-        <item>न्यूटाउन</item>
-        <item>राजरहाट</item>
-        <item>एक्शन एरिया 1</item>
-        <item>एक्शन एरिया 2</item>
-        <item>एक्शन एरिया 3</item>
-    </string-array>
-
-    <!-- हाउड़ा की स्थानीयताएँ -->
+    <!-- हावड़ा की स्थानीयताएँ -->
     <string-array name="localities_howrah">
-        <item>हाउड़ा स्टेशन क्षेत्र</item>
+        <item>हावड़ा स्टेशन क्षेत्र</item>
+        <item>शिवपुर</item>
         <item>लिलुआ</item>
         <item>बेलुर</item>
-        <item>शिबपुर</item>
+        <item>सालकिया</item>
+        <item>घुसुरी</item>
+        <item>अंडुल</item>
+        <item>संतरागाछी</item>
+        <item>अन्य</item>
     </string-array>
 
     <!-- दुर्गापुर की स्थानीयताएँ -->
     <string-array name="localities_durgapur">
-        <item>औद्योगिक क्षेत्र</item>
-        <item>कास्तुरी</item>
-        <item>महामदपुर</item>
         <item>सिटी सेंटर</item>
+        <item>बिधाननगर</item>
+        <item>एनआईटी दुर्गापुर क्षेत्र</item>
+        <item>बेनाचिटी</item>
+        <item>मुचिपारा</item>
+        <item>औद्योगिक क्षेत्र</item>
+        <item>फुलझोर</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- असनसोल की स्थानीयताएँ -->
+    <string-array name="localities_asansol">
+        <item>असनसोल प्रॉपर</item>
+        <item>चितरंजन</item>
+        <item>जमुरिया</item>
+        <item>रानीगंज</item>
+        <item>कुल्टी</item>
+        <item>बर्नपुर</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- सिलिगुड़ी की स्थानीयताएँ -->
+    <string-array name="localities_siliguri">
+        <item>सिलिगुड़ी टाउन</item>
+        <item>प्रधान नगर</item>
+        <item>सेवक रोड</item>
+        <item>हिल कार्ट रोड</item>
+        <item>माटीगाड़ा</item>
+        <item>चम्पासारी</item>
+        <item>सालुगारा</item>
+        <item>अन्य</item>
     </string-array>
 
     <!-- दार्जिलिंग की स्थानीयताएँ -->
     <string-array name="localities_darjeeling">
         <item>दार्जिलिंग टाउन</item>
         <item>कुर्सियांग</item>
-        <item>घुम</item>
+        <item>घूम</item>
+        <item>मिरिक</item>
+        <item>सोनादा</item>
+        <item>कालिम्पोंग</item>
+        <item>अन्य</item>
     </string-array>
 
-    <!-- सिलिगुड़ी की स्थानीयताएँ -->
-    <string-array name="localities_siliguri">
-        <item>सिलिगुड़ी</item>
-        <item>प्रधान नगर</item>
-        <item>बिरटामोड</item>
+    <!-- मालदा की स्थानीयताएँ -->
+    <string-array name="localities_malda">
+        <item>इंग्लिश बाजार</item>
+        <item>पुराना मालदा</item>
+        <item>रथबाड़ी</item>
+        <item>गजोल</item>
+        <item>मालदा टाउन</item>
+        <item>अन्य</item>
     </string-array>
 
-    <!-- असनसोल की स्थानीयताएँ -->
-    <string-array name="localities_asansol">
-        <item>असनसोल</item>
-        <item>चित्तरंजन</item>
-        <item>जामुरिया</item>
+    <!-- जलपाईगुड़ी की स्थानीयताएँ -->
+    <string-array name="localities_jalpaiguri">
+        <item>जलपाईगुड़ी टाउन</item>
+        <item>धूपगुड़ी</item>
+        <item>मयनागुड़ी</item>
+        <item>मालबाजार</item>
+        <item>लटागुड़ी</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- कूच बिहार की स्थानीयताएँ -->
+    <string-array name="localities_cooch_behar">
+        <item>कूच बिहार टाउन</item>
+        <item>दिनहाटा</item>
+        <item>तुफानगंज</item>
+        <item>मथाभंगा</item>
+        <item>मेखलीगंज</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- अलीपुरद्वार की स्थानीयताएँ -->
+    <string-array name="localities_alipurduar">
+        <item>अलीपुरद्वार टाउन</item>
+        <item>फालाकाटा</item>
+        <item>जयगांव</item>
+        <item>बीरपारा</item>
+        <item>मदारीहाट</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- बांकुड़ा की स्थानीयताएँ -->
+    <string-array name="localities_bankura">
+        <item>बांकुड़ा टाउन</item>
+        <item>बिष्णुपुर</item>
+        <item>खत्रा</item>
+        <item>सोनामुखी</item>
+        <item>बरजोड़ा</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- पुरुलिया की स्थानीयताएँ -->
+    <string-array name="localities_purulia">
+        <item>पुरुलिया टाउन</item>
+        <item>झालदा</item>
+        <item>रघुनाथपुर</item>
+        <item>आद्रा</item>
+        <item>बलरामपुर</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- खड़गपुर की स्थानीयताएँ -->
+    <string-array name="localities_kharagpur">
+        <item>आईआईटी खड़गपुर कैंपस</item>
+        <item>खड़गपुर टाउन</item>
+        <item>सालुआ</item>
+        <item>गोल बाजार</item>
+        <item>मलंचा</item>
+        <item>निमपुरा</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- मिदनापुर की स्थानीयताएँ -->
+    <string-array name="localities_midnapore">
+        <item>मिदनापुर टाउन</item>
+        <item>विद्यासागर विश्वविद्यालय क्षेत्र</item>
+        <item>रंगामाटी</item>
+        <item>केरानीचट्टी</item>
+        <item>तमलूक</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- बर्द्धमान की स्थानीयताएँ -->
+    <string-array name="localities_bardhaman">
+        <item>बर्द्धमान टाउन</item>
+        <item>कटवा</item>
+        <item>कालना</item>
+        <item>धात्रीग्राम</item>
+        <item>मेमारी</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- हुगली की स्थानीयताएँ -->
+    <string-array name="localities_hooghly">
+        <item>चिनसुराह</item>
+        <item>सेरामपुर</item>
+        <item>आरामबाग</item>
+        <item>कोन नगर</item>
+        <item>उत्तरपारा</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- नादिया की स्थानीयताएँ -->
+    <string-array name="localities_nadia">
+        <item>कृष्णनगर</item>
+        <item>नवद्वीप</item>
+        <item>शांतिपुर</item>
+        <item>करीमपुर</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- मुर्शिदाबाद की स्थानीयताएँ -->
+    <string-array name="localities_murshidabad">
+        <item>मुर्शिदाबाद टाउन</item>
+        <item>लालबाग</item>
+        <item>जियागंज</item>
+        <item>अजिमगंज</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- बहरमपुर की स्थानीयताएँ -->
+    <string-array name="localities_baharampur">
+        <item>बहरमपुर टाउन</item>
+        <item>गोराबाजार</item>
+        <item>खागड़ा</item>
+        <item>पंचनंताला</item>
+        <item>काशिमनगर</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- हल्दिया की स्थानीयताएँ -->
+    <string-array name="localities_haldia">
+        <item>हल्दिया टाउनशिप</item>
+        <item>एचआईटी कैंपस क्षेत्र</item>
+        <item>दुर्गाचक</item>
+        <item>ब्रजलालचक</item>
+        <item>हातीबेरिया</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- रानाघाट की स्थानीयताएँ -->
+    <string-array name="localities_ranaghat">
+        <item>रानाघाट टाउन</item>
+        <item>कूपर्स कैंप</item>
+        <item>ताहिरपुर</item>
+        <item>हबीबपुर</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- कल्याणी की स्थानीयताएँ -->
+    <string-array name="localities_kalyani">
+        <item>कल्याणी विश्वविद्यालय क्षेत्र</item>
+        <item>कल्याणी टाउन</item>
+        <item>गायेशपुर</item>
+        <item>चकदहा</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- चंदननगर की स्थानीयताएँ -->
+    <string-array name="localities_chandannagar">
+        <item>चंदननगर स्ट्रैंड</item>
+        <item>मानकुंडु</item>
+        <item>भद्रेश्वर</item>
+        <item>खालिसानी</item>
+        <item>अन्य</item>
+    </string-array>
+
+    <!-- अन्य के लिए स्थानीयताएँ -->
+    <string-array name="localities_other">
+        <item>अन्य</item>
     </string-array>
 </resources>

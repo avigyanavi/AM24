@@ -272,15 +272,11 @@ fun PhotoCarouselWithOverlay(
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
 
-    // Pre-fetch images
+    // pre‑cache
     LaunchedEffect(photoUrls) {
         photoUrls.forEach { url ->
-            val request = ImageRequest.Builder(context)
-                .data(url)
-                .diskCacheKey(url)
-                .memoryCacheKey(url)
-                .build()
-            context.imageLoader.enqueue(request)
+            val req = ImageRequest.Builder(context).data(url).diskCacheKey(url).memoryCacheKey(url).build()
+            context.imageLoader.enqueue(req)
         }
     }
 
@@ -290,31 +286,28 @@ fun PhotoCarouselWithOverlay(
             .aspectRatio(7f / 10f)
             .background(Color.Black)
             .pointerInput(photoUrls) {
-                detectTapGestures(onTap = { offset ->
+                detectTapGestures { offset ->
                     if (photoUrls.size > 1) {
-                        currentPhotoIndex = if (offset.x > size.width / 2)
-                            (currentPhotoIndex + 1) % photoUrls.size
-                        else
-                            (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                        currentPhotoIndex =
+                            if (offset.x > size.width / 2)
+                                (currentPhotoIndex + 1) % photoUrls.size
+                            else
+                                (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
                     }
-                })
+                }
             }
     ) {
         if (photoUrls.isNotEmpty()) {
             AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(photoUrls[currentPhotoIndex])
-                    .diskCacheKey(photoUrls[currentPhotoIndex])
-                    .memoryCacheKey(photoUrls[currentPhotoIndex])
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "Profile Photo",
+                model = photoUrls[currentPhotoIndex],
+                contentDescription = "Profile photo",
                 placeholder = painterResource(R.drawable.local_placeholder),
                 error = painterResource(R.drawable.local_placeholder),
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
 
+            // tiny page indicators
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -333,15 +326,9 @@ fun PhotoCarouselWithOverlay(
                     )
                 }
             }
-        } else {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No Images", color = Color.White)
-            }
         }
 
+        /* --- overlay with name, age, zodiac & hometown --- */
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -351,12 +338,29 @@ fun PhotoCarouselWithOverlay(
         ) {
             Column {
                 val age = calculateAge(profile.dob)
-                Text(
-                    text = if (age > 0) "${profile.name}, $age" else profile.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    color = Color.White
-                )
+                val zodiac = profile.zodiac ?: deriveZodiac(profile.dob)
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (age > 0) "${profile.name}, $age" else profile.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        color = Color.White
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    /* zodiac tag */
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFFF6F00)
+                    ) {
+                        Text(
+                            text = zodiac,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 if (profile.hometown.isNotBlank()) {
                     Text("From ${profile.hometown}", fontSize = 16.sp, color = Color.White)
                 }
@@ -373,11 +377,7 @@ fun PhotoCarouselWithOverlay(
                 .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
                 .size(32.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit Profile",
-                tint = Color.White
-            )
+            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White)
         }
     }
 }
@@ -1122,13 +1122,45 @@ fun PerformanceMetricsSection(profile: Profile) {
         onToggle = { showPerformance = !showPerformance },
         editMode = false
     ) {
+        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
         ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
         ProfileDetailRow(
             label = "Swipe Right Probability",
             value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
             icon = Icons.Default.Swipe
         )
-        ProfileDetailRow("Kolkata Ranking", profile.am24Ranking.toString(), Icons.Filled.Language)
+        // Overall West Bengal rank (kept from am24Ranking)
+        ProfileDetailRow(
+            label = "West Bengal Ranking",
+            value = profile.am24Ranking.toString(),
+            icon  = Icons.Default.Public
+        )
+
+        // City‑level rank (handles custom city)
+        val cityRank = if (profile.city == "Other")
+            profile.am24RankingCustomCity
+        else
+            profile.am24RankingCity
+        if (cityRank > 0) {
+            ProfileDetailRow(
+                label = "${profile.city.ifBlank { "City" }} Ranking",
+                value = cityRank.toString(),
+                icon  = Icons.Default.LocationCity
+            )
+        }
+
+        // Locality / hometown rank (handles custom hometown)
+        val hoodRank = if (profile.hometown == "Other")
+            profile.am24RankingCustomHometown
+        else
+            profile.am24RankingHometown
+        if (hoodRank > 0) {
+            ProfileDetailRow(
+                label = "${profile.hometown.ifBlank { "Locality" }} Ranking",
+                value = hoodRank.toString(),
+                icon  = Icons.Default.Home
+            )
+        }
         ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
 
         if (profile.highSchool.isNotBlank()) {
@@ -1156,12 +1188,6 @@ fun PerformanceMetricsSection(profile: Profile) {
                 )
             }
         }
-
-        if (profile.hometown.isNotBlank()) {
-            ProfileDetailRow("${profile.hometown} Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
-        }
-
-        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
     }
 }
 

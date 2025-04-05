@@ -798,7 +798,25 @@ fun DatingProfileCard(
                 )
             }
             item {
-                ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult)
+                val scope = rememberCoroutineScope()          //  just once at top
+                var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+
+                /* existing LaunchedEffect that sets aiMatchResult … */
+
+                ProfileCollapsibleSectionsAll(
+                    profile            = profile,
+                    currentUserProfile = currentProfile,
+                    aiMatchResult      = aiMatchResult,
+                    onRetry            = {
+                        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@ProfileCollapsibleSectionsAll // ← NEW
+                        runAiMatchCheck(
+                            coroutineScope     = scope,
+                            currentUserId      = uid,
+                            currentUserProfile = currentProfile!!,
+                            otherProfile       = profile
+                        ) { fresh -> aiMatchResult = fresh }
+                    }
+                )
             }
             if (featuredPosts.isNotEmpty()) {
                 item {
@@ -1251,7 +1269,7 @@ fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchChec
  * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests.
  */
 @Composable
-fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, aiMatchResult: AiMatchCheckResult?) {
+fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, aiMatchResult: AiMatchCheckResult?, onRetry: () -> Unit) {
     var showVoiceBio by rememberSaveable { mutableStateOf(false) }
     var showBasic by rememberSaveable { mutableStateOf(false) }
     var showPreferences by rememberSaveable { mutableStateOf(false) }
@@ -1272,7 +1290,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             onToggle = { showAiSection = !showAiSection }
         ) {
             if (aiMatchResult != null) {
-                ShowAiMatchAnalysis(aiMatchResult)
+                ShowAiMatchAnalysis(aiMatchResult, onRetry)
             } else {
                 Text("Analysis in progress...", color = Color.White)
             }
@@ -1328,18 +1346,29 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
 }
 
 @Composable
-fun ShowAiMatchAnalysis(aiResult: AiMatchCheckResult) {
-    Text(
-        text = aiResult.summary,
-        color = Color.White,
-        fontSize = 16.sp,
-        modifier = Modifier.padding(8.dp)
-    )
+fun ShowAiMatchAnalysis(
+    aiResult : AiMatchCheckResult,
+    onRetry  : () -> Unit          //  NEW
+) {
+    if (aiResult.isError) {
+        Text(
+            "Couldn’t generate analysis. Please try again.",
+            color = Color.Red, fontSize = 14.sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = onRetry,
+            colors  = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
+        ) { Text("Run again", color = Color.White) }
+        return                                    //  don’t show stale text
+    }
+
+    /* normal, successful display */
+    Text(aiResult.summary, color = Color.White, fontSize = 16.sp)
     Spacer(Modifier.height(8.dp))
     Text(
-        text = "Analyzed on: ${formatTime(aiResult.timestamp)}",
-        color = Color.Gray,
-        fontSize = 12.sp
+        "Analyzed on: ${formatTime(aiResult.timestamp)}",
+        color = Color.Gray, fontSize = 12.sp
     )
 }
 
@@ -1478,7 +1507,7 @@ fun runAiMatchCheck(
 
     coroutineScope.launch(Dispatchers.IO) {
         val messages = listOf(ChatMessage(role = "user", content = prompt))
-        val gptReply = callKupidXApi(messages) ?: return@launch
+        val gptReply = callKupidXApi(messages) ?: "Error: empty response"
 
         val fullText = gptReply.trim()
         val totalRegex = Regex("Total Match:\\s*(\\d+)%")
@@ -1486,13 +1515,17 @@ fun runAiMatchCheck(
         val totalMatchPercentage = totalRegex.find(fullText)?.groupValues?.get(1)?.toInt() ?: 0
         val compatibilityBreakdown = breakdownRegex.find(fullText)?.groupValues?.get(1) ?: ""
 
-        val result = AiMatchCheckResult(
-            summary = fullText,
-            totalMatchPercentage = totalMatchPercentage,
-            compatibilityBreakdown = compatibilityBreakdown,
-            timestamp = System.currentTimeMillis()
-        )
+        val error    = gptReply.startsWith("Error", ignoreCase = true)
 
+        /* …regex parsing unchanged…  when regexes fail you’ll just get 0 % / “” */
+
+        val result = AiMatchCheckResult(
+            summary                 = gptReply.trim(),
+            totalMatchPercentage    = totalMatchPercentage,
+            compatibilityBreakdown  = compatibilityBreakdown,
+            timestamp               = System.currentTimeMillis(),
+            isError                 = error                      //  NEW
+        )
         FirebaseDatabase.getInstance()
             .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
             .setValue(result)
@@ -1798,5 +1831,6 @@ data class AiMatchCheckResult(
     val summary: String = "",                     // Full text output from the AI
     val totalMatchPercentage: Int = 0,            // Total match percentage extracted from GPT reply
     val compatibilityBreakdown: String = "",      // Detailed breakdown of compatibility score
-    val timestamp: Long = 0L                      // When the analysis was done
+    val timestamp: Long = 0L,                      // When the analysis was done
+    val isError: Boolean           = false        //  NEW
 )

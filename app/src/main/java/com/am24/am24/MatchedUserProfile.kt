@@ -140,7 +140,20 @@ fun MatchedUserProfileScreen(
                             )
                         }
                         item {
-                            ProfileCollapsibleSectionsAll(profile, currentUserProfile, aiMatchResult)
+                            ProfileCollapsibleSectionsAll(
+                                profile            = profile,
+                                currentUserProfile = currentUserProfile,
+                                aiMatchResult      = aiMatchResult,
+                                onRetry            = {                    //  NEW
+                                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@ProfileCollapsibleSectionsAll
+                                    runAiMatchCheck(
+                                        coroutineScope      = coroutineScope,
+                                        currentUserId       = uid,
+                                        currentUserProfile  = currentUserProfile!!,
+                                        otherProfile        = profile
+                                    ) { fresh -> aiMatchResult = fresh }
+                                }
+                            )
                         }
                         if (featuredPosts.isNotEmpty()) {
                             item {

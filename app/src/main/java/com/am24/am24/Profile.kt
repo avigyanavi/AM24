@@ -93,7 +93,11 @@ data class Profile(
     val zodiac: String? = null,
     val dateOfJoin: Long = System.currentTimeMillis(),
     val am24RankingCompositeScore: Double = 0.0,
-    var vibepoints: Double = 0.0,
+    // New fields for city and custom city rankings
+    val am24RankingCity: Int = 0,            // City-based ranking
+    val am24RankingCustomCity: Int = 0,      // Custom city-based ranking (if city is "Other")
+    // New field for custom hometown ranking
+    val am24RankingCustomHometown: Int = 0,   // Custom locality-based ranking (if hometown is "Other")
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     var averageRating: Double = 0.0,

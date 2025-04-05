@@ -2,50 +2,109 @@
     <!-- Cities -->
     <string-array name="city_names">
         <item>Kolkata</item>
-        <item>Salt Lake, Newtown and Rajarhat</item>
         <item>Howrah</item>
         <item>Durgapur</item>
-        <item>Darjeeling</item>
-        <item>Siliguri</item>
         <item>Asansol</item>
+        <item>Siliguri</item>
+        <item>Darjeeling</item>
+        <item>Malda</item>
+        <item>Jalpaiguri</item>
+        <item>Cooch Behar</item>
+        <item>Alipurduar</item>
+        <item>Bankura</item>
+        <item>Purulia</item>
+        <item>Kharagpur</item>
+        <item>Midnapore</item>
+        <item>Bardhaman</item>
+        <item>Hooghly</item>
+        <item>Nadia</item>
+        <item>Murshidabad</item> <!-- Historical city -->
+        <item>Baharampur</item> <!-- Separate city in Murshidabad district -->
+        <item>Haldia</item>
+        <item>Ranaghat</item> <!-- Added for its significance in Nadia -->
+        <item>Kalyani</item> <!-- Added as a standalone city due to its university hub -->
+        <item>Chandannagar</item> <!-- Added for its historical and urban significance -->
+        <item>Other</item>
     </string-array>
 
-    <!-- Localities for Kolkata -->
+    <!-- Localities for Kolkata (Greater Kolkata) -->
     <string-array name="localities_kolkata">
-        <item>Salt Lake</item>
-        <item>New Town</item>
+        <item>Salt Lake (Bidhannagar) - Sector I</item>
+        <item>Salt Lake (Bidhannagar) - Sector II</item>
+        <item>Salt Lake (Bidhannagar) - Sector III</item>
+        <item>Salt Lake (Bidhannagar) - Sector V</item>
+        <item>Newtown - Action Area I</item>
+        <item>Newtown - Action Area II</item>
+        <item>Newtown - Action Area III</item>
+        <item>Rajarhat - Chinar Park</item>
+        <item>Rajarhat - Baguiati</item>
+        <item>Rajarhat - Teghoria</item>
         <item>Dum Dum</item>
         <item>Behala</item>
         <item>Park Street</item>
         <item>Ballygunge</item>
-        <item>Jadavpur</item>
-        <item>Southern Kolkata</item>
-    </string-array>
-
-    <!-- Localities for Salt Lake, Newtown and Rajarhat -->
-    <string-array name="localities_salt_lake_newtown_rajarhat">
-        <item>Salt Lake Sector V</item>
-        <item>New Town</item>
-        <item>Rajarhat</item>
-        <item>Action Area I</item>
-        <item>Action Area II</item>
-        <item>Action Area III</item>
+        <item>Jadavpur</item> <!-- Major student hub -->
+        <item>Southern Avenue</item>
+        <item>Gariahat</item>
+        <item>Tollygunge</item>
+        <item>Shyambazar</item>
+        <item>Esplanade</item>
+        <item>Alipore</item>
+        <item>Kasba</item>
+        <item>Garia</item>
+        <item>Baranagar</item>
+        <item>Kankurgachi</item>
+        <item>Lake Town</item>
+        <item>Phoolbagan</item>
+        <item>Other</item>
     </string-array>
 
     <!-- Localities for Howrah -->
     <string-array name="localities_howrah">
         <item>Howrah Station Area</item>
+        <item>Shibpur</item> <!-- IIEST Shibpur student hub -->
         <item>Liluah</item>
         <item>Belur</item>
-        <item>Shibpur</item>
+        <item>Salkia</item>
+        <item>Ghusuri</item>
+        <item>Andul</item>
+        <item>Santragachi</item>
+        <item>Other</item>
     </string-array>
 
     <!-- Localities for Durgapur -->
     <string-array name="localities_durgapur">
-        <item>Industrial Area</item>
-        <item>Kasturi</item>
-        <item>Mahammadpur</item>
         <item>City Centre</item>
+        <item>Bidhannagar</item>
+        <item>NIT Durgapur Area</item> <!-- Student hub -->
+        <item>Benachity</item>
+        <item>Muchipara</item>
+        <item>Industrial Area</item>
+        <item>Fuljhore</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Asansol -->
+    <string-array name="localities_asansol">
+        <item>Asansol Proper</item>
+        <item>Chittaranjan</item>
+        <item>Jamuria</item>
+        <item>Raniganj</item>
+        <item>Kulti</item>
+        <item>Burnpur</item> <!-- Industrial and educational area -->
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Siliguri -->
+    <string-array name="localities_siliguri">
+        <item>Siliguri Town</item>
+        <item>Pradhan Nagar</item>
+        <item>Sevoke Road</item>
+        <item>Hill Cart Road</item>
+        <item>Matigara</item>
+        <item>Champasari</item>
+        <item>Salugara</item>
+        <item>Other</item>
     </string-array>
 
     <!-- Localities for Darjeeling -->
@@ -53,20 +112,180 @@
         <item>Darjeeling Town</item>
         <item>Kurseong</item>
         <item>Ghum</item>
+        <item>Mirik</item>
+        <item>Sonada</item>
+        <item>Kalimpong</item> <!-- Added for its significance -->
+        <item>Other</item>
     </string-array>
 
-    <!-- Localities for Siliguri -->
-    <string-array name="localities_siliguri">
-        <item>Siliguri Proper</item>
-        <item>Pradhan Nagar</item>
-        <item>Birtamode</item>
+    <!-- Localities for Malda -->
+    <string-array name="localities_malda">
+        <item>English Bazar</item>
+        <item>Old Malda</item>
+        <item>Rathbari</item>
+        <item>Gazole</item>
+        <item>Malda Town</item>
+        <item>Other</item>
     </string-array>
 
+    <!-- Localities for Jalpaiguri -->
+    <string-array name="localities_jalpaiguri">
+        <item>Jalpaiguri Town</item>
+        <item>Dhupguri</item>
+        <item>Mainaguri</item>
+        <item>Malbazar</item>
+        <item>Lataguri</item>
+        <item>Other</item>
+    </string-array>
 
-    <!-- Localities for Asansol -->
-    <string-array name="localities_asansol">
-        <item>Asansol</item>
-        <item>Chittaranjan</item>
-        <item>Jamuria</item>
+    <!-- Localities for Cooch Behar -->
+    <string-array name="localities_cooch_behar">
+        <item>Cooch Behar Town</item>
+        <item>Dinhata</item>
+        <item>Tufanganj</item>
+        <item>Mathabhanga</item>
+        <item>Mekhliganj</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Alipurduar -->
+    <string-array name="localities_alipurduar">
+        <item>Alipurduar Town</item>
+        <item>Falakata</item>
+        <item>Jaigaon</item>
+        <item>Birpara</item>
+        <item>Madarihat</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Bankura -->
+    <string-array name="localities_bankura">
+        <item>Bankura Town</item>
+        <item>Bishnupur</item>
+        <item>Khatra</item>
+        <item>Sonamukhi</item>
+        <item>Barjora</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Purulia -->
+    <string-array name="localities_purulia">
+        <item>Purulia Town</item>
+        <item>Jhalda</item>
+        <item>Raghunathpur</item>
+        <item>Adra</item>
+        <item>Balarampur</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Kharagpur -->
+    <string-array name="localities_kharagpur">
+        <item>IIT Kharagpur Campus</item> <!-- Major student hub -->
+        <item>Kharagpur Town</item>
+        <item>Salua</item>
+        <item>Golbazar</item>
+        <item>Malancha</item>
+        <item>Nimpura</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Midnapore -->
+    <string-array name="localities_midnapore">
+        <item>Midnapore Town</item>
+        <item>Vidyasagar University Area</item> <!-- Student hub -->
+        <item>Rangamati</item>
+        <item>Keranichati</item>
+        <item>Tamluk</item> <!-- Added as a significant town -->
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Bardhaman -->
+    <string-array name="localities_bardhaman">
+        <item>Bardhaman Town</item>
+        <item>Katwa</item>
+        <item>Kalna</item>
+        <item>Dhatrigram</item>
+        <item>Memari</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Hooghly -->
+    <string-array name="localities_hooghly">
+        <item>Chinsurah</item>
+        <item>Serampore</item>
+        <item>Arambagh</item>
+        <item>Kon Nagar</item>
+        <item>Uttarpara</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Nadia -->
+    <string-array name="localities_nadia">
+        <item>Krishnanagar</item>
+        <item>Nabadwip</item>
+        <item>Shantipur</item>
+        <item>Karimpur</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Murshidabad -->
+    <string-array name="localities_murshidabad">
+        <item>Murshidabad Town</item> <!-- Historical city center -->
+        <item>Lalbagh</item>
+        <item>Jiaganj</item>
+        <item>Azimganj</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Baharampur -->
+    <string-array name="localities_baharampur">
+        <item>Baharampur Town</item>
+        <item>Gorabazar</item>
+        <item>Khagra</item>
+        <item>Panchanantala</item>
+        <item>Kashimnagar</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Haldia -->
+    <string-array name="localities_haldia">
+        <item>Haldia Township</item>
+        <item>HIT Campus Area</item> <!-- Student hub -->
+        <item>Durgachak</item>
+        <item>Brajalalchak</item>
+        <item>Hatiberia</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Ranaghat -->
+    <string-array name="localities_ranaghat">
+        <item>Ranaghat Town</item>
+        <item>Coopers Camp</item>
+        <item>Taherpur</item>
+        <item>Habibpur</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Kalyani -->
+    <string-array name="localities_kalyani">
+        <item>Kalyani University Area</item> <!-- Major student hub -->
+        <item>Kalyani Town</item>
+        <item>Gayespur</item>
+        <item>Chakdaha</item> <!-- Nearby significant town -->
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Chandannagar -->
+    <string-array name="localities_chandannagar">
+        <item>Chandannagar Strand</item>
+        <item>Mankundu</item>
+        <item>Bhadreswar</item>
+        <item>Khalisani</item>
+        <item>Other</item>
+    </string-array>
+
+    <!-- Localities for Other (Generic) -->
+    <string-array name="localities_other">
+        <item>Other</item>
     </string-array>
 </resources>

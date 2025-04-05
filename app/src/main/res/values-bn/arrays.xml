@@ -2,50 +2,109 @@
     <!-- শহরসমূহ -->
     <string-array name="city_names">
         <item>কলকাতা</item>
-        <item>সল্ট লেক, নিউটাউন ও রাজরহাট</item>
         <item>হাওড়া</item>
         <item>দুর্গাপুর</item>
-        <item>দার্জিলিং</item>
-        <item>শিলিগুড়ি</item>
         <item>আসানসোল</item>
+        <item>শিলিগুড়ি</item>
+        <item>দার্জিলিং</item>
+        <item>মালদা</item>
+        <item>জলপাইগুড়ি</item>
+        <item>কোচবিহার</item>
+        <item>আলিপুরদুয়ার</item>
+        <item>বাঁকুড়া</item>
+        <item>পুরুলিয়া</item>
+        <item>খড়গপুর</item>
+        <item>মেদিনীপুর</item>
+        <item>বর্ধমান</item>
+        <item>হুগলি</item>
+        <item>নদিয়া</item>
+        <item>মুর্শিদাবাদ</item>
+        <item>বহরমপুর</item>
+        <item>হলদিয়া</item>
+        <item>রানাঘাট</item>
+        <item>কল্যাণী</item>
+        <item>চন্দননগর</item>
+        <item>অন্যান্য</item>
     </string-array>
 
-    <!-- কলকাতার লোকালিটি -->
+    <!-- কলকাতার লোকালিটি (গ্রেটার কলকাতা) -->
     <string-array name="localities_kolkata">
-        <item>সল্ট লেক</item>
-        <item>নিউটাউন</item>
+        <item>সল্ট লেক (বিধাননগর) - সেক্টর ১</item>
+        <item>সল্ট লেক (বিধাননগর) - সেক্টর ২</item>
+        <item>সল্ট লেক (বিধাননগর) - সেক্টর ৩</item>
+        <item>সল্ট লেক (বিধাননগর) - সেক্টর ৫</item>
+        <item>নিউটাউন - অ্যাকশন এরিয়া ১</item>
+        <item>নিউটাউন - অ্যাকশন এরিয়া ২</item>
+        <item>নিউটাউন - অ্যাকশন এরিয়া ৩</item>
+        <item>রাজরহাট - চিনার পার্ক</item>
+        <item>রাজরহাট - বাগুইআটি</item>
+        <item>রাজরহাট - তেঘরিয়া</item>
         <item>ডাম ডাম</item>
         <item>বেহালা</item>
         <item>পার্ক স্ট্রিট</item>
         <item>বালিগঞ্জ</item>
         <item>জাদবপুর</item>
-        <item>দক্ষিণ কলকাতা</item>
-    </string-array>
-
-    <!-- সল্ট লেক, নিউটাউন ও রাজরহাটের লোকালিটি -->
-    <string-array name="localities_salt_lake_newtown_rajarhat">
-        <item>সল্ট লেক সেক্টর ভি</item>
-        <item>নিউটাউন</item>
-        <item>রাজরহাট</item>
-        <item>অ্যাকশন এরিয়া ১</item>
-        <item>অ্যাকশন এরিয়া ২</item>
-        <item>অ্যাকশন এরিয়া ৩</item>
+        <item>দক্ষিণ এভিনিউ</item>
+        <item>গড়িয়াহাট</item>
+        <item>টালিগঞ্জ</item>
+        <item>শ্যামবাজার</item>
+        <item>এসপ্ল্যানেড</item>
+        <item>আলিপুর</item>
+        <item>কসবা</item>
+        <item>গড়িয়া</item>
+        <item>বড়ানগর</item>
+        <item>কাঁকুড়গাছি</item>
+        <item>লেক টাউন</item>
+        <item>ফুলবাগান</item>
+        <item>অন্যান্য</item>
     </string-array>
 
     <!-- হাওড়ার লোকালিটি -->
     <string-array name="localities_howrah">
         <item>হাওড়া স্টেশন এলাকা</item>
+        <item>শিবপুর</item>
         <item>লিলুয়া</item>
         <item>বেলুর</item>
-        <item>শিবপুর</item>
+        <item>সালকিয়া</item>
+        <item>ঘুসুড়ি</item>
+        <item>আন্দুল</item>
+        <item>সাঁতরাগাছি</item>
+        <item>অন্যান্য</item>
     </string-array>
 
     <!-- দুর্গাপুরের লোকালিটি -->
     <string-array name="localities_durgapur">
-        <item>শিল্প এলাকা</item>
-        <item>কাস্তুরি</item>
-        <item>মহাম্মদপুর</item>
         <item>সিটি সেন্টার</item>
+        <item>বিধাননগর</item>
+        <item>এনআইটি দুর্গাপুর এলাকা</item>
+        <item>বেনাচিটি</item>
+        <item>মুচিপাড়া</item>
+        <item>শিল্প এলাকা</item>
+        <item>ফুলঝোর</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- আসানসোলের লোকালিটি -->
+    <string-array name="localities_asansol">
+        <item>আসানসোল প্রপার</item>
+        <item>চিত্তরঞ্জন</item>
+        <item>জামুরিয়া</item>
+        <item>রানীগঞ্জ</item>
+        <item>কুলটি</item>
+        <item>বার্নপুর</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- শিলিগুড়ির লোকালিটি -->
+    <string-array name="localities_siliguri">
+        <item>শিলিগুড়ি টাউন</item>
+        <item>প্রধান নগর</item>
+        <item>সেবক রোড</item>
+        <item>হিল কার্ট রোড</item>
+        <item>মাটিগাড়া</item>
+        <item>চম্পাসারি</item>
+        <item>সালুগাড়া</item>
+        <item>অন্যান্য</item>
     </string-array>
 
     <!-- দার্জিলিংয়ের লোকালিটি -->
@@ -53,19 +112,180 @@
         <item>দার্জিলিং টাউন</item>
         <item>কুরসিয়ং</item>
         <item>ঘুম</item>
+        <item>মিরিক</item>
+        <item>সোনাদা</item>
+        <item>কালিম্পং</item>
+        <item>অন্যান্য</item>
     </string-array>
 
-    <!-- শিলিগুড়ির লোকালিটি -->
-    <string-array name="localities_siliguri">
-        <item>শিলিগুড়ি</item>
-        <item>প্রধান নগর</item>
-        <item>বিরটামোড</item>
+    <!-- মালদার লোকালিটি -->
+    <string-array name="localities_malda">
+        <item>ইংলিশ বাজার</item>
+        <item>ওল্ড মালদা</item>
+        <item>রথবাড়ি</item>
+        <item>গজোল</item>
+        <item>মালদা টাউন</item>
+        <item>অন্যান্য</item>
     </string-array>
 
-    <!-- আসানসোলে লোকালিটি -->
-    <string-array name="localities_asansol">
-        <item>আসানসোল</item>
-        <item>চিত্তরঞ্জন</item>
-        <item>জামুরিয়া</item>
+    <!-- জলপাইগুড়ির লোকালিটি -->
+    <string-array name="localities_jalpaiguri">
+        <item>জলপাইগুড়ি টাউন</item>
+        <item>ধূপগুড়ি</item>
+        <item>ময়নাগুড়ি</item>
+        <item>মালবাজার</item>
+        <item>লাটাগুড়ি</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- কোচবিহারের লোকালিটি -->
+    <string-array name="localities_cooch_behar">
+        <item>কোচবিহার টাউন</item>
+        <item>দিনহাটা</item>
+        <item>তুফানগঞ্জ</item>
+        <item>মাথাভাঙা</item>
+        <item>মেখলিগঞ্জ</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- আলিপুরদুয়ারের লোকালিটি -->
+    <string-array name="localities_alipurduar">
+        <item>আলিপুরদুয়ার টাউন</item>
+        <item>ফালাকাটা</item>
+        <item>জয়গাঁও</item>
+        <item>বীরপাড়া</item>
+        <item>মাদারিহাট</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- বাঁকুড়ার লোকালিটি -->
+    <string-array name="localities_bankura">
+        <item>বাঁকুড়া টাউন</item>
+        <item>বিষ্ণুপুর</item>
+        <item>খাতরা</item>
+        <item>সোনামুখী</item>
+        <item>বড়জোড়া</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- পুরুলিয়ার লোকালিটি -->
+    <string-array name="localities_purulia">
+        <item>পুরুলিয়া টাউন</item>
+        <item>ঝালদা</item>
+        <item>রঘুনাথপুর</item>
+        <item>আদ্রা</item>
+        <item>বলরামপুর</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- খড়গপুরের লোকালিটি -->
+    <string-array name="localities_kharagpur">
+        <item>আইআইটি খড়গপুর ক্যাম্পাস</item>
+        <item>খড়গপুর টাউন</item>
+        <item>সালুয়া</item>
+        <item>গোলবাজার</item>
+        <item>মালঞ্চ</item>
+        <item>নিমপুরা</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- মেদিনীপুরের লোকালিটি -->
+    <string-array name="localities_midnapore">
+        <item>মেদিনীপুর টাউন</item>
+        <item>বিদ্যাসাগর বিশ্ববিদ্যালয় এলাকা</item>
+        <item>রঙ্গামাটি</item>
+        <item>কেরানিচটি</item>
+        <item>তমলুক</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- বর্ধমানের লোকালিটি -->
+    <string-array name="localities_bardhaman">
+        <item>বর্ধমান টাউন</item>
+        <item>কাটোয়া</item>
+        <item>কালনা</item>
+        <item>ধাত্রিগ্রাম</item>
+        <item>মেমারি</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- হুগলির লোকালিটি -->
+    <string-array name="localities_hooghly">
+        <item>চুঁচুড়া</item>
+        <item>সেরামপুর</item>
+        <item>আরামবাগ</item>
+        <item>কোন্নগর</item>
+        <item>উত্তরপাড়া</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- নদিয়ার লোকালিটি -->
+    <string-array name="localities_nadia">
+        <item>কৃষ্ণনগর</item>
+        <item>নবদ্বীপ</item>
+        <item>শান্তিপুর</item>
+        <item>করিমপুর</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- মুর্শিদাবাদের লোকালিটি -->
+    <string-array name="localities_murshidabad">
+        <item>মুর্শিদাবাদ টাউন</item>
+        <item>লালবাগ</item>
+        <item>জিয়াগঞ্জ</item>
+        <item>আজিমগঞ্জ</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- বহরমপুরের লোকালিটি -->
+    <string-array name="localities_baharampur">
+        <item>বহরমপুর টাউন</item>
+        <item>গোরাবাজার</item>
+        <item>খাগড়া</item>
+        <item>পঞ্চনান্তলা</item>
+        <item>কাশিমনগর</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- হলদিয়ার লোকালিটি -->
+    <string-array name="localities_haldia">
+        <item>হলদিয়া টাউনশিপ</item>
+        <item>এইচআইটি ক্যাম্পাস এলাকা</item>
+        <item>দুর্গাচক</item>
+        <item>ব্রজলালচক</item>
+        <item>হাতিবেড়িয়া</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- রানাঘাটের লোকালিটি -->
+    <string-array name="localities_ranaghat">
+        <item>রানাঘাট টাউন</item>
+        <item>কুপার্স ক্যাম্প</item>
+        <item>তাহেরপুর</item>
+        <item>হাবিবপুর</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- কল্যাণীর লোকালিটি -->
+    <string-array name="localities_kalyani">
+        <item>কল্যাণী বিশ্ববিদ্যালয় এলাকা</item>
+        <item>কল্যাণী টাউন</item>
+        <item>গায়েশপুর</item>
+        <item>চাকদহ</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- চন্দননগরের লোকালিটি -->
+    <string-array name="localities_chandannagar">
+        <item>চন্দননগর স্ট্র্যান্ড</item>
+        <item>মানকুণ্ডু</item>
+        <item>ভদ্রেশ্বর</item>
+        <item>খালিসানি</item>
+        <item>অন্যান্য</item>
+    </string-array>
+
+    <!-- অন্যান্যের জন্য লোকালিটি -->
+    <string-array name="localities_other">
+        <item>অন্যান্য</item>
     </string-array>
 </resources>

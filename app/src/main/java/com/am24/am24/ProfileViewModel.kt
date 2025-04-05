@@ -133,24 +133,87 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val userId = updatedProfile.userId
+                    .takeIf { it.isNotBlank() }
                     ?: FirebaseAuth.getInstance().currentUser?.uid
                     ?: throw Exception("No userId found for updatedProfile")
 
-                // Convert updatedProfile to a map
-                val updates = mapOf(
-                    "profilepicUrl" to updatedProfile.profilepicUrl,
-                    "optionalPhotoUrls" to updatedProfile.optionalPhotoUrls,
-                    "voiceNoteUrl" to updatedProfile.voiceNoteUrl
-                    // plus other fields you want to update
+                // 1) Recompute local composite
+                val newComposite = calculateCompositeScore(updatedProfile)
+                val profileWithScore = updatedProfile.copy(
+                    am24RankingCompositeScore = newComposite
                 )
+
+                // 2) Build updates for all changed fields
+                val updates = mapOf<String, Any?>(
+                    // from your partial code + the "score" fields
+                    "profilepicUrl"               to profileWithScore.profilepicUrl,
+                    "optionalPhotoUrls"           to profileWithScore.optionalPhotoUrls,
+                    "voiceNoteUrl"                to profileWithScore.voiceNoteUrl,
+
+                    "email"                       to profileWithScore.email,
+                    "name"                        to profileWithScore.name,
+                    "bio"                         to profileWithScore.bio,
+                    "gender"                      to profileWithScore.gender,
+                    "hometown"                    to profileWithScore.hometown,
+                    "highSchool"                  to profileWithScore.highSchool,
+                    "highSchoolGraduationYear"    to profileWithScore.highSchoolGraduationYear,
+                    "college"                     to profileWithScore.college,
+                    "collegeGraduationYear"       to profileWithScore.collegeGraduationYear,
+                    "collegeDegree"               to profileWithScore.collegeDegree,
+                    "postGraduation"              to profileWithScore.postGraduation,
+                    "postGraduationYear"          to profileWithScore.postGraduationYear,
+                    "postGraduationDegree"        to profileWithScore.postGraduationDegree,
+                    "community"                   to profileWithScore.community,
+                    "religion"                    to profileWithScore.religion,
+                    "lookingFor"                  to profileWithScore.lookingFor,
+                    "interests"                   to profileWithScore.interests.map {
+                        mapOf("name" to it.name, "emoji" to it.emoji)
+                    },
+                    "lifestyle"                   to profileWithScore.lifestyle,
+
+                    // job & work
+                    "jobRole"                     to profileWithScore.jobRole,
+                    "customJobRole"               to profileWithScore.customJobRole,
+                    "work"                        to profileWithScore.work,
+                    "customWork"                  to profileWithScore.customWork,
+
+                    // matrimony toggles & fields
+                    "isMatrimonyMode"             to profileWithScore.isMatrimonyMode,
+                    "marriageTimeline"            to profileWithScore.marriageTimeline,
+                    "relocationPreference"        to profileWithScore.relocationPreference,
+                    "postMarriageCareerPlan"      to profileWithScore.postMarriageCareerPlan,
+                    "traditionalVsLiberal"        to profileWithScore.traditionalVsLiberal,
+                    "fatherOccupation"            to profileWithScore.fatherOccupation,
+                    "motherOccupation"            to profileWithScore.motherOccupation,
+                    "numberOfSiblings"            to profileWithScore.numberOfSiblings,
+                    "elderSiblings"               to profileWithScore.elderSiblings,
+                    "youngerSiblings"             to profileWithScore.youngerSiblings,
+                    "isConsultantVerified"        to profileWithScore.isConsultantVerified,
+
+                    // data that influences the composite
+                    "averageRating"               to profileWithScore.averageRating,
+                    "averageSwipeRightsOnUser"    to profileWithScore.averageSwipeRightsOnUser,
+                    "averageUpvoteCount"          to profileWithScore.averageUpvoteCount,
+                    "averageDownvoteCount"        to profileWithScore.averageDownvoteCount,
+                    "matchCount"                  to profileWithScore.matchCount,
+                    "matchCountPerSwipeRight"     to profileWithScore.matchCountPerSwipeRight,
+
+                    // final composite
+                    "am24RankingCompositeScore"   to newComposite
+                )
+
+                // 3) Push to Firebase
                 usersRef.child(userId).updateChildren(updates).await()
+
+                // 4) If you keep local state
+                _currentUserProfile.value = profileWithScore
                 onSuccess()
+
             } catch (e: Exception) {
                 onFailure(e.message ?: "Failed to save updated profile")
             }
         }
     }
-
 
     // Function to clear the match pop-up state
     fun clearMatchPopUp() {
@@ -414,4 +477,41 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+}
+/** ------------------------------------------------------------------
+ *  Composite‑score formula for *this* profile only
+ *  ------------------------------------------------------------------
+ *  We normalise each component to 0‒1, multiply by a weight,
+ *  then sum.  Feel free to tweak the weights.
+ */
+private fun calculateCompositeScore(p: Profile): Double {
+    /* weights must sum to 1 */
+    val ratingWeight     = 0.30   // averageRating (0‑5)
+    val swipeWeight      = 0.20   // averageSwipeRightsOnUser (0‑1)
+    val upvoteWeight     = 0.15   // up‑vote ratio (0‑1)
+    val matchProbWeight  = 0.15   // matchCountPerSwipeRight (0‑1)
+    val matchesWeight    = 0.10   // total matches (normalised 0‑1)
+    val completionWeight = 0.10   // profileCompletionPercentage (0‑1)
+
+    /* 0‒1 normalised sub‑scores */
+    val ratingPart  = (p.averageRating / 5.0).coerceIn(0.0, 1.0)
+    val swipePart   = p.averageSwipeRightsOnUser.coerceIn(0.0, 1.0)
+
+    val votesTotal  = p.averageUpvoteCount + p.averageDownvoteCount
+    val upvotePart  = if (votesTotal > 0)
+        (p.averageUpvoteCount / votesTotal).coerceIn(0.0, 1.0) else 0.0
+
+    val matchProb   = p.getCalculatedMatchCountPerSwipeRight().coerceIn(0.0, 1.0)
+
+    /* total matches – normalise with a soft cap of 100 */
+    val matchesPart = (p.matchCount / 100.0).coerceIn(0.0, 1.0)
+
+    val completionPart = (p.profileCompletionPercentage / 100.0).coerceIn(0.0, 1.0)
+
+    return ratingWeight     * ratingPart +
+            swipeWeight      * swipePart  +
+            upvoteWeight     * upvotePart +
+            matchProbWeight  * matchProb  +
+            matchesWeight    * matchesPart+
+            completionWeight * completionPart
 }

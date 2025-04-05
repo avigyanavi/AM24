@@ -5,6 +5,7 @@
 package com.am24.am24
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
@@ -140,6 +141,7 @@ fun HomeScreen(
     }
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreenContent(
     navController: NavController,
@@ -161,181 +163,104 @@ fun HomeScreenContent(
     var showSortMenu by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     var isVoiceOnly by remember { mutableStateOf(false) }
+    val feedTabs       = listOf("everyone", "matches")
+    var selectedTab by remember {                   // keeps UI and VM in sync
+        mutableStateOf(if (filterOption == "matches") 1 else 0)
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { focusManager.clearFocus() }
-    ) {
-        Spacer(modifier = Modifier.height(8.dp))
 
-        // Only show the search bar when a tag search is active.
-        if (searchQuery.isNotEmpty()) {
-            CustomSearchBar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChanged,
-                onSearch = { /* No extra logic needed */ }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // Create Post, Filter, and Sort Section.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Create Post Button.
-            Button(
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = Color.Black,
+        floatingActionButton = {
+            FloatingActionButton(
                 onClick = { navController.navigate("create_post") },
-                border = BorderStroke(1.dp, Color(0xFFFF6F00)),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                modifier = Modifier.weight(0.9f)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Create Post",
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Button(
-                onClick = {
-                    isVoiceOnly = !isVoiceOnly
-                    postViewModel.setIsVoiceOnly(isVoiceOnly)
-                },
-                border = BorderStroke(1.dp, Color(0xFFFF6F00)),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isVoiceOnly) Color(0xFFFFDB00) else Color.Black
+                shape = CircleShape,
+                containerColor = Color.Black,
+                contentColor = Color.White,
+                modifier = Modifier.border(
+                    BorderStroke(1.dp, Color(0xFFFF6F00)),
+                    CircleShape
                 )
             ) {
-                Text(
-                    text = if (isVoiceOnly) "Voice Only" else "All Posts",
-                    color = if (isVoiceOnly) Color.Black else Color.White,
-                    fontSize = 12.sp
+                Icon(Icons.Default.Add, contentDescription = "Create Post")
+            }
+        }
+    ) {
+    Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { focusManager.clearFocus() }
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Only show the search bar when a tag search is active.
+            if (searchQuery.isNotEmpty()) {
+                CustomSearchBar(
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChanged,
+                    onSearch = { /* No extra logic needed */ }
                 )
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Filter Button and Dropdown.
-            Box {
-                Button(
-                    onClick = { showFilterMenu = !showFilterMenu },
-                    border = BorderStroke(1.dp, Color(0xFFFF6F00)),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor   = Color.Black,
+            contentColor     = Color.White,          // label colour
+            indicator        = {}                    // we’ll draw our own border
+        ) {
+            feedTabs.forEachIndexed { index, option ->
+                val isSelected = selectedTab == index
+                Tab(
+                    selected  = isSelected,
+                    onClick   = {
+                        selectedTab = index
+                        onFilterOptionChanged(option)   // update ViewModel
+                    },
+                    modifier = Modifier
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .border(
+                            BorderStroke(1.dp, Color(0xFFFF6F00)),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .background(
+                            if (isSelected) Color(0xFF2B2B2B) /* dark‑grey */
+                            else Color.Black,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = filterOption.replaceFirstChar { it.uppercaseChar() },
-                        color = Color.White,
-                        fontSize = 12.sp
+                        text  = option.replaceFirstChar { it.uppercaseChar() },
+                        fontSize = 13.sp,
+                        color    = Color.White
                     )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Filter options",
-                        tint = Color(0xFFFF6F00)
-                    )
-                }
-                DropdownMenu(
-                    expanded = showFilterMenu,
-                    onDismissRequest = { showFilterMenu = false }
-                ) {
-                    val filterOptions = listOf("everyone", "matches", "my posts")
-                    filterOptions.forEach { option ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = option.replaceFirstChar { it.uppercaseChar() },
-                                    color = if (option == filterOption) Color(0xFFFFDB00) else Color.White
-                                )
-                            },
-                            onClick = {
-                                onFilterOptionChanged(option)
-                                showFilterMenu = false
-                            },
-                            leadingIcon = {
-                                if (option == filterOption) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFDB00)
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Sort Button and Dropdown.
-            Box {
-                IconButton(
-                    onClick = { showSortMenu = !showSortMenu }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Sort,
-                        contentDescription = "Sort options",
-                        tint = Color(0xFFFF6F00)
-                    )
-                }
-                DropdownMenu(
-                    expanded = showSortMenu,
-                    onDismissRequest = { showSortMenu = false }
-                ) {
-                    val sortOptions = listOf("Sort by Upvotes", "Sort by Downvotes", "No Sort")
-                    sortOptions.forEach { option ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = option,
-                                    color = if (option == sortOption) Color(0xFFFFDB00) else Color.White,
-                                    fontSize = 14.sp
-                                )
-                            },
-                            onClick = {
-                                onSortOptionChanged(option)
-                                showSortMenu = false
-                            },
-                            leadingIcon = {
-                                if (option == sortOption) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFDB00)
-                                    )
-                                }
-                            }
-                        )
-                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Feed Section.
-        FeedSection(
-            navController = navController,
-            posts = posts,
-            userId = userId,
-            userProfile = userProfile,
-            isPosting = false,
-            postViewModel = postViewModel,
-            userProfiles = userProfiles,
-            onTagClick = { tag ->
-                // When a tag is clicked, update the search query so that the search bar appears.
-                onSearchQueryChanged(tag)
-            }
-        )
+            // Feed Section.
+            FeedSection(
+                navController = navController,
+                posts = posts,
+                userId = userId,
+                userProfile = userProfile,
+                isPosting = false,
+                postViewModel = postViewModel,
+                userProfiles = userProfiles,
+                onTagClick = { tag ->
+                    // When a tag is clicked, update the search query so that the search bar appears.
+                    onSearchQueryChanged(tag)
+                }
+            )
+        }
     }
 }
 
@@ -682,6 +607,14 @@ fun FeedItem(
 
                 Spacer(modifier = Modifier.weight(1f))
 
+                /* 1️⃣  NEW: grey “8 m ago” label */
+                Text(
+                    text  = formatRelativeTime(post.getTimestampLong()),
+                    color = Color(0xFFB0B0B0),               // light‑grey
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+
                 var moreOptionsExpanded by remember { mutableStateOf(false) }
                 Box(modifier = Modifier.width(IntrinsicSize.Max)) {
                     IconButton(onClick = { moreOptionsExpanded = !moreOptionsExpanded }) {
@@ -852,21 +785,6 @@ fun FeedItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-// Place time/distance first
-            Spacer(modifier = Modifier.width(4.dp))
-            Row(
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.padding(horizontal = 8.dp) // Add horizontal padding
-            ) {
-                Text(
-                    text = formatRelativeTime(post.getTimestampLong()),
-                    color = Color.White,
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.weight(1f)) // Pushes distance to the right
-            }
             Spacer(modifier = Modifier.height(4.dp))
 
 // Now place tags below time/distance
