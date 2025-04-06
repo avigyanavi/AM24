@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
@@ -44,6 +45,7 @@ import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.IOException
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun CreatePostScreen(
     navController: NavController,
@@ -61,12 +63,10 @@ fun CreatePostScreen(
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
         },
-        content = { padding ->
+        content = {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

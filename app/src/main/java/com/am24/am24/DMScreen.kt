@@ -5,6 +5,7 @@ package com.am24.am24
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.style.TextOverflow // <-- Import this
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -356,11 +357,11 @@ fun DMScreenContent(navController: NavController) {
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Search bar
+        // Search bar - reduced size
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search matches", color = Color.Gray) },
+            placeholder = { Text("Search matches", color = Color.Gray, fontSize = 14.sp) },
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = Color(0xFFFF4500),
                 unfocusedBorderColor = Color.Gray,
@@ -370,21 +371,23 @@ fun DMScreenContent(navController: NavController) {
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 8.dp, start = 10.dp, end = 10.dp)
+                .padding(top = 6.dp, bottom = 6.dp, start = 8.dp, end = 8.dp) // Reduced padding
+                .height(48.dp), // Added explicit smaller height
+            textStyle = LocalTextStyle.current.copy(fontSize = 14.sp) // Smaller text
         )
 
-        // Row with likes + nonInitiated
+        // Row with likes + nonInitiated - reduced sizes
         val scrollState = rememberScrollState()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(scrollState)
-                .padding(8.dp),
+                .padding(6.dp), // Reduced padding
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(60.dp) // Reduced from 70.dp
                     .clip(CircleShape)
                     .background(Color.DarkGray)
                     .clickable {
@@ -396,23 +399,23 @@ fun DMScreenContent(navController: NavController) {
                     text = "+$likedCount",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 14.sp // Reduced from 16.sp
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp)) // Reduced from 8.dp
 
             nonInitiatedMatches.forEach { profile ->
                 AIOrProfileImage(
                     profile = profile,
                     modifier = Modifier
-                        .size(70.dp)
+                        .size(60.dp) // Reduced from 70.dp
                         .clip(CircleShape)
                         .background(Color.Gray)
                         .clickable {
                             navController.navigate("chat/${profile.userId}")
                         }
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp)) // Reduced from 8.dp
             }
         }
 
@@ -432,7 +435,7 @@ fun DMScreenContent(navController: NavController) {
                 Text(
                     text = "No matches found",
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp, // Reduced from 18.sp
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -441,8 +444,8 @@ fun DMScreenContent(navController: NavController) {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(12.dp), // Reduced from 16.dp
+                verticalArrangement = Arrangement.spacedBy(12.dp) // Reduced from 16.dp
             ) {
                 items(displayedUsers) { profile ->
                     val lastMsgState = lastMessages[profile.userId] ?: Triple("", false, true)
@@ -462,9 +465,6 @@ fun DMScreenContent(navController: NavController) {
 // Helper function to show either local resource for Zara/Kabir or the real user's pic
 @Composable
 fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
-    // If userId = "zaraAi" => load R.drawable.zara_avatar
-    // If userId = "kabirAi" => load R.drawable.kabir_avatar
-    // else => load profilepicUrl with AsyncImage
     when (profile.userId) {
         "zaraAi" -> {
             Image(
@@ -523,24 +523,23 @@ fun DMUserCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(12.dp) // Reduced from 16.dp
         ) {
-            // Use the same approach for the row image
             AIOrProfileImage(
                 profile = profile,
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(70.dp) // Reduced from 80.dp
                     .clip(CircleShape)
                     .background(Color.Gray)
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp)) // Reduced from 16.dp
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = profile.username,
                     color = Color.White,
-                    fontSize = 20.sp,
+                    fontSize = 18.sp, // Reduced from 20.sp
                     fontWeight = FontWeight.Bold
                 )
 
@@ -549,14 +548,14 @@ fun DMUserCard(
                 if (profile.hometown.isNotBlank()) {
                     Text(
                         text = "$locality, ${profile.jobRole}, Age: ${age ?: ""}",
-                        fontSize = 16.sp,
+                        fontSize = 14.sp, // Reduced from 16.sp
                         color = Color.White
                     )
                 } else {
                     Text(
                         text = "${locality ?: ""}, Age: ${age ?: ""}",
                         color = Color.White,
-                        fontSize = 14.sp
+                        fontSize = 12.sp // Reduced from 14.sp
                     )
                 }
 
@@ -587,8 +586,10 @@ fun DMUserCard(
 
                 Text(
                     text = styledText,
-                    fontSize = 14.sp,
-                    color = Color.White
+                    fontSize = 12.sp, // Reduced from 14.sp
+                    color = Color.White,
+                    maxLines = 2, // Added max lines constraint
+                    overflow = TextOverflow.Ellipsis // Add ellipsis for overflow
                 )
             }
         }
