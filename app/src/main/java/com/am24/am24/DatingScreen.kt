@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Swipe
@@ -1079,6 +1081,27 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
+            // Zodiac overlay at the top left
+            if (currentPhotoIndex == 0) {
+                TagBox(
+                    text = profile.zodiac.toString(),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(14.dp, 10.dp)
+                )
+            }
+
+            // Zodiac overlay at the top left
+            if (currentPhotoIndex == 0) {
+                TagBox(
+                    text = ((profile.averageSwipeRightsOnUser)*100).roundToInt().toString()+"%",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(14.dp, 10.dp)
+                )
+            }
+
+            // Bottom overlays (distance and vibe score)
             if (currentPhotoIndex == 0) {
                 Box(
                     modifier = Modifier
@@ -1086,7 +1109,10 @@ fun PhotoWithTwoOverlays(
                         .align(Alignment.BottomCenter)
                         .padding(14.dp, 10.dp)
                 ) {
-                    TagBox(text = "${userDistance.roundToInt()} km away", modifier = Modifier.align(Alignment.BottomStart))
+                    TagBox(
+                        text = "${userDistance.roundToInt()} km away",
+                        modifier = Modifier.align(Alignment.BottomStart)
+                    )
                     if (currentProfile != null) {
                         FlashyVibeScore(
                             aiMatchResult = aiMatchResult,
@@ -1107,7 +1133,6 @@ fun PhotoWithTwoOverlays(
         }
     }
 }
-
 
 @Composable
 fun TagBox(
@@ -1184,23 +1209,23 @@ fun FlashyVibeScore(
                     Text("Close", color = Color(0xFFFF6F00), fontSize = 12.sp)
                 }
             },
-            backgroundColor = Color.White,
-            contentColor = Color.Black
+            backgroundColor = Color.Black,
+            contentColor = Color(0xFFFF6F00)
         )
     }
 }
 
 @Composable
 fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchCheckResult?) {
-    var showPerformance by rememberSaveable { mutableStateOf(false) }
+    var showPerformance by rememberSaveable { mutableStateOf(true) }
     CollapsibleSection(
         title = "Performance Metrics",
         icon = Icons.Default.Assessment,
         isExpanded = showPerformance,
-        onToggle = { showPerformance = !showPerformance }
+        onToggle = { showPerformance = !showPerformance },
     ) {
+        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
         ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
-        RatingBar(profile.averageRating, profile.numberOfRatings)
         ProfileDetailRow(
             label = "Swipe Right Probability",
             value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
@@ -1211,7 +1236,35 @@ fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchChec
             value = aiMatchResult?.totalMatchPercentage?.let { "$it%" } ?: "N/A",
             icon = Icons.Default.HowToVote
         )
-        ProfileDetailRow("Kolkata Ranking", profile.am24Ranking.toString(), Icons.Filled.Language)
+        ProfileDetailRow(
+            label = "West Bengal Ranking",
+            value = profile.am24Ranking.toString(),
+            icon = Icons.Default.Public
+        )
+
+        val cityRank = if (profile.city == "Other")
+            profile.am24RankingCustomCity
+        else
+            profile.am24RankingCity
+        if (cityRank > 0) {
+            ProfileDetailRow(
+                label = "${profile.city.ifBlank { "City" }} Ranking",
+                value = cityRank.toString(),
+                icon = Icons.Default.LocationCity
+            )
+        }
+
+        val hoodRank = if (profile.hometown == "Other")
+            profile.am24RankingCustomHometown
+        else
+            profile.am24RankingHometown
+        if (hoodRank > 0) {
+            ProfileDetailRow(
+                label = "${profile.hometown.ifBlank { "Locality" }} Ranking",
+                value = hoodRank.toString(),
+                icon = Icons.Default.Home
+            )
+        }
         ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
 
         if (profile.highSchool.isNotBlank()) {
@@ -1230,7 +1283,7 @@ fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchChec
         }
 
         if (profile.college.isNotBlank()) {
-            ProfileDetailRow("College Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
+            ProfileDetailRow("${profile.college} Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
             if (!profile.collegeGraduationYear.isNullOrBlank()) {
                 ProfileDetailRow(
                     "Graduation Year from ${profile.college}",
@@ -1239,25 +1292,22 @@ fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchChec
                 )
             }
         }
-
-        if (profile.hometown.isNotBlank()) {
-            ProfileDetailRow("${profile.hometown} Ranking", profile.am24RankingHometown.toString(), Icons.Default.LocationCity)
-        }
-
-        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
     }
 }
+
 /**
  * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests.
  */
 @Composable
 fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, aiMatchResult: AiMatchCheckResult?) {
-    var showVoiceBio by rememberSaveable { mutableStateOf(false) }
-    var showBasic by rememberSaveable { mutableStateOf(false) }
-    var showPreferences by rememberSaveable { mutableStateOf(false) }
-    var showLifestyle by rememberSaveable { mutableStateOf(false) }
-    var showInterests by rememberSaveable { mutableStateOf(false) }
-    var showAiSection by rememberSaveable { mutableStateOf(false) }
+    var showVoiceBio by rememberSaveable { mutableStateOf(true) }
+    var showBasic by rememberSaveable { mutableStateOf(true) }
+    var showPreferences by rememberSaveable { mutableStateOf(true) }
+    var showLifestyle by rememberSaveable { mutableStateOf(true) }
+    var showInterests by rememberSaveable { mutableStateOf(true) }
+    var showAiSection by rememberSaveable { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
+    var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
 
     Column(
         modifier = Modifier
@@ -1271,10 +1321,33 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             isExpanded = showAiSection,
             onToggle = { showAiSection = !showAiSection }
         ) {
-            if (aiMatchResult != null) {
-                ShowAiMatchAnalysis(aiMatchResult)
-            } else {
-                Text("Analysis in progress...", color = Color.White)
+            Column {
+                if (currentAiMatchResult != null) {
+                    ShowAiMatchAnalysis(currentAiMatchResult!!)
+                } else {
+                    Text("Analysis in progress...", color = Color.White)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        if (currentUserProfile != null) {
+                            runAiMatchCheck(
+                                coroutineScope = coroutineScope,
+                                currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button,
+                                currentUserProfile = currentUserProfile,
+                                otherProfile = profile
+                            ) { newResult ->
+                                currentAiMatchResult = newResult
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                    modifier = Modifier
+                        .height(36.dp)
+                        .align(Alignment.End)
+                ) {
+                    Text("Re-run", color = Color.White, fontSize = 12.sp)
+                }
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
@@ -1423,9 +1496,12 @@ fun runAiMatchCheck(
         PostGrad: $postGradText
         Work and JobRole: $displayJobRole at $displayWork
         Social Causes: ${currentUserProfile.socialCauses}
-        Kolkata Ranking: ${currentUserProfile.am24Ranking}
         Looking For: ${currentUserProfile.lookingFor}
-        Zodiac: ${currentUserProfile.am24Ranking}
+        Zodiac: ${currentUserProfile.zodiac}
+        West Bengal Ranking: ${currentUserProfile.am24Ranking}
+        ${ if (currentUserProfile.city != "") currentUserProfile.city else currentUserProfile.customCity } Ranking: ${ if (currentUserProfile.city != "") currentUserProfile.am24RankingCity else currentUserProfile.am24RankingCustomCity }
+        ${ if (currentUserProfile.hometown != "") currentUserProfile.hometown else currentUserProfile.customHometown } Ranking: ${ if (currentUserProfile.hometown != "") currentUserProfile.am24RankingHometown else currentUserProfile.am24RankingCustomHometown }
+
         ...
     """.trimIndent()
 
@@ -1445,9 +1521,12 @@ fun runAiMatchCheck(
         PostGrad: $otherPostGradText
         Work and JobRole: $displayOtherJobRole at $displayOtherWork
         Social Causes: ${otherProfile.socialCauses}
-        Kolkata Ranking: ${otherProfile.am24Ranking}
         Looking For: ${otherProfile.lookingFor}
-        Zodiac: ${otherProfile.am24Ranking}
+        Zodiac: ${otherProfile.zodiac}
+        West Bengal Ranking: ${otherProfile.am24Ranking}
+        ${ if (otherProfile.city != "") otherProfile.city else otherProfile.customCity } Ranking: ${ if (otherProfile.city != "") otherProfile.am24RankingCity else otherProfile.am24RankingCustomCity }
+        ${ if (otherProfile.hometown != "") otherProfile.hometown else otherProfile.customHometown } Ranking: ${ if (otherProfile.hometown != "") otherProfile.am24RankingHometown else otherProfile.am24RankingCustomHometown }
+
         ...
     """.trimIndent()
 

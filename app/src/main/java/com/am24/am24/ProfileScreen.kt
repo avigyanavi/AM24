@@ -115,65 +115,80 @@ fun ProfileLazyScreen(
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-        state = listState
-    ) {
-        item {
-            PhotoCarouselWithOverlay(
-                profile = profile,
-                onEditProfileClick = { navController.navigate("editPicAndVoiceBio") }
-            )
-        }
-        item {
-            ProfileCompletionIndicator(profile)
-        }
-        item {
-            ProfileCollapsibleSections(
-                profile = profile,
-                profileViewModel = profileViewModel,
-                onProfileUpdated = { updated ->
-                    scope.launch { updateProfileInFirebase(updated) }
-                }
-            )
-        }
-        if (featuredPosts.isNotEmpty()) {
+    // State to control the visibility of the posts overlay
+    var showPostsOverlay by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            state = listState
+        ) {
             item {
-                Text(
-                    text = "Featured Posts",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                PhotoCarouselWithOverlay(
+                    profile = profile,
+                    onEditProfileClick = { navController.navigate("editPicAndVoiceBio") },
+                    onPostsClick = { showPostsOverlay = true } // NEW: trigger posts overlay
                 )
             }
-            items(featuredPosts) { post ->
-                PostItemInProfile(post)
-            }
-        }
-        item {
-            CollapsedMetricsSection(profile = profile)
-        }
-        if (remainingPosts.isNotEmpty()) {
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Button(
-                        onClick = {
-                            Log.d("Profile", "View More Posts clicked!")
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-                    ) {
-                        Text(text = "View More Posts", color = Color.White)
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
+                ProfileCompletionIndicator(profile)
             }
+            item {
+                ProfileCollapsibleSections(
+                    profile = profile,
+                    profileViewModel = profileViewModel,
+                    onProfileUpdated = { updated ->
+                        scope.launch { updateProfileInFirebase(updated) }
+                    }
+                )
+            }
+            if (featuredPosts.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Featured Posts",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                items(featuredPosts) { post ->
+                    PostItemInProfile(post)
+                }
+            }
+            item {
+                CollapsedMetricsSection(profile = profile)
+            }
+            if (remainingPosts.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Button(
+                            onClick = {
+                                Log.d("Profile", "View More Posts clicked!")
+                                // You can also set showPostsOverlay = true here if desired.
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+                        ) {
+                            Text(text = "View More Posts", color = Color.White)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+        // Show the posts overlay on top of the profile screen when triggered
+        if (showPostsOverlay) {
+            PostsOverlay(
+                posts = featuredPosts + remainingPosts, // You can merge both lists or pass as needed
+                onDismiss = { showPostsOverlay = false }
+            )
         }
     }
 }
+
 
 /**
  * Main LazyColumn structure:
@@ -266,48 +281,54 @@ fun CollapsibleSection(
 @Composable
 fun PhotoCarouselWithOverlay(
     profile: Profile,
-    onEditProfileClick: () -> Unit
+    onEditProfileClick: () -> Unit,
+    onPostsClick: () -> Unit
 ) {
     val context = LocalContext.current
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
 
-    // pre‑cache
+    // Pre-cache images
     LaunchedEffect(photoUrls) {
         photoUrls.forEach { url ->
-            val req = ImageRequest.Builder(context).data(url).diskCacheKey(url).memoryCacheKey(url).build()
-            context.imageLoader.enqueue(req)
+            val request = ImageRequest.Builder(context)
+                .data(url)
+                .diskCacheKey(url)
+                .memoryCacheKey(url)
+                .build()
+            context.imageLoader.enqueue(request)
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(7f / 10f)
+            .aspectRatio(7f / 10f) // adjust as needed
             .background(Color.Black)
             .pointerInput(photoUrls) {
                 detectTapGestures { offset ->
+                    // Tap left or right to cycle photos
                     if (photoUrls.size > 1) {
-                        currentPhotoIndex =
-                            if (offset.x > size.width / 2)
-                                (currentPhotoIndex + 1) % photoUrls.size
-                            else
-                                (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                        currentPhotoIndex = if (offset.x > size.width / 2)
+                            (currentPhotoIndex + 1) % photoUrls.size
+                        else
+                            (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
                     }
                 }
             }
     ) {
+        // Main photo
         if (photoUrls.isNotEmpty()) {
             AsyncImage(
                 model = photoUrls[currentPhotoIndex],
-                contentDescription = "Profile photo",
-                placeholder = painterResource(R.drawable.local_placeholder),
+                contentDescription = "Profile Photo",
+                placeholder = painterResource(R.drawable.local_placeholder), // your placeholder
                 error = painterResource(R.drawable.local_placeholder),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
 
-            // tiny page indicators
+            // Photo indicators at top
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -328,7 +349,7 @@ fun PhotoCarouselWithOverlay(
             }
         }
 
-        /* --- overlay with name, age, zodiac & hometown --- */
+        // Bottom overlay: name, age, hometown, rating bar, zodiac, posts button
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -337,38 +358,67 @@ fun PhotoCarouselWithOverlay(
                 .padding(16.dp)
         ) {
             Column {
+                // Name + age + Posts button
                 val age = calculateAge(profile.dob)
-                val zodiac = profile.zodiac ?: deriveZodiac(profile.dob)
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(), // Make the Row take the full available width
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // This Text stays on the start (left)
                     Text(
                         text = if (age > 0) "${profile.name}, $age" else profile.name,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
-                        color = Color.White
+                        fontSize = 26.sp,
+                        color = Color.White // Make sure this is appropriate for your background
                     )
-                    Spacer(Modifier.width(8.dp))
-                    /* zodiac tag */
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFFF6F00)
+
+                    // This Spacer takes up all remaining space in the Row
+                    Spacer(Modifier.weight(1f))
+
+                    // This Button is pushed to the end (right)
+                    Button(
+                        onClick = onPostsClick,
+                        // Use containerColor for Material 3, backgroundColor for Material 2
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
+                        modifier = Modifier.height(34.dp)
+                        // No .align modifier needed here for end alignment
                     ) {
-                        Text(
-                            text = zodiac,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
+                        Text("Posts", color = Color.White, fontSize = 14.sp)
                     }
                 }
+
+                // Hometown
                 if (profile.hometown.isNotBlank()) {
                     Text("From ${profile.hometown}", fontSize = 16.sp, color = Color.White)
                 }
+
                 Spacer(modifier = Modifier.height(8.dp))
-                RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+
+                // Rating Bar + zodiac side by side
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                    Spacer(Modifier.width(8.dp))
+
+                    // Zodiac next to rating bar
+                    val zodiac = profile.zodiac ?: deriveZodiac(profile.dob)
+                    if (zodiac.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFF6F00)
+                        ) {
+                            Text(
+                                text = zodiac,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
+        // Edit icon at top right
         IconButton(
             onClick = onEditProfileClick,
             modifier = Modifier
@@ -377,7 +427,7 @@ fun PhotoCarouselWithOverlay(
                 .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
                 .size(32.dp)
         ) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White)
+            Icon(Icons.Default.Edit, contentDescription = "Edit Profile", tint = Color.White)
         }
     }
 }
@@ -1169,24 +1219,10 @@ fun PerformanceMetricsSection(profile: Profile) {
                 profile.am24RankingHighSchool.toString(),
                 Icons.Default.School
             )
-            if (!profile.highSchoolGraduationYear.isNullOrBlank()) {
-                ProfileDetailRow(
-                    "Graduation Year from ${profile.highSchool}",
-                    profile.highSchoolGraduationYear,
-                    Icons.Default.School
-                )
-            }
         }
 
         if (profile.college.isNotBlank()) {
             ProfileDetailRow("${profile.college} Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
-            if (!profile.collegeGraduationYear.isNullOrBlank()) {
-                ProfileDetailRow(
-                    "Graduation Year from ${profile.college}",
-                    profile.collegeGraduationYear,
-                    Icons.Default.Book
-                )
-            }
         }
     }
 }

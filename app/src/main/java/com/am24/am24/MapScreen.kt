@@ -36,7 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import coil.imageLoader
+import coil.request.ImageRequest
 import com.firebase.geofire.GeoFire
 import com.firebase.geofire.GeoLocation
 import com.firebase.geofire.GeoQuery
@@ -664,6 +667,8 @@ fun UserProfilePopup(
     onProfileClick: (String) -> Unit,
     onCloseClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .background(Color.White, RoundedCornerShape(12.dp))
@@ -672,7 +677,11 @@ fun UserProfilePopup(
             .width(260.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        // Close button at the top-right
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
             Icon(
                 imageVector = Icons.Filled.Close,
                 contentDescription = "Close",
@@ -682,25 +691,52 @@ fun UserProfilePopup(
                     .clickable { onCloseClick() }
             )
         }
+        // Load and cache the profile picture
         profile.profilepicUrl?.let { url ->
-            Image(
-                painter = rememberAsyncImagePainter(model = url),
-                contentDescription = null,
-                modifier = Modifier.size(72.dp).clip(CircleShape),
+            // Prefetch the image into cache
+            LaunchedEffect(url) {
+                val request = ImageRequest.Builder(context)
+                    .data(url)
+                    .diskCacheKey(url)
+                    .memoryCacheKey(url)
+                    .crossfade(true)
+                    .build()
+                context.imageLoader.enqueue(request)
+            }
+            // Display the image using AsyncImage with caching settings
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(url)
+                    .diskCacheKey(url)
+                    .memoryCacheKey(url)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
-        Text(profile.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+        Text(
+            text = profile.name,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = Color.Black
+        )
         Spacer(modifier = Modifier.height(6.dp))
         RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = {
             Log.d("MapScreen", "View Full Profile clicked for ${profile.userId}")
             onProfileClick(profile.userId)
-        }) { Text("View Full Profile") }
+        }) {
+            Text("View Full Profile")
+        }
     }
 }
+
 
 @Composable
 fun RatingBar2(rating: Double, ratingCount: Int) {

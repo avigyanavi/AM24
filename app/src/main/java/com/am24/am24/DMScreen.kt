@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.imageLoader
+import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 
@@ -314,40 +316,27 @@ fun DMScreenContent(navController: NavController) {
 
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
 
+    // Fetch matched users and prefetch their dp images
     LaunchedEffect(currentUserId) {
-        // 2) Fetch real matches, then insert Zara/Kabir
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
-            injectAIProfiles(matchedUsers, zaraProfile, kabirProfile)
-
+            // Optionally, inject AI profiles if not already present
+            zaraProfile?.let { if (matchedUsers.none { it.userId == "zaraAi" }) matchedUsers.add(it) }
+            kabirProfile?.let { if (matchedUsers.none { it.userId == "kabirAi" }) matchedUsers.add(it) }
             checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
                 nonInitiatedMatches.clear()
                 nonInitiatedMatches.addAll(nonInitiated)
             }
-
-            // Listen for last messages
+            // Prefetch every dp from matchedUsers
             matchedUsers.forEach { profile ->
-                val chatId = getChatId(currentUserId, profile.userId)
-                messagesRootRef.child(chatId)
-                    .orderByChild("timestamp")
-                    .limitToLast(1)
-                    .addValueEventListener(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            if (!snapshot.exists()) {
-                                lastMessages[profile.userId] = Triple("", false, true)
-                                return
-                            }
-                            for (msgSnap in snapshot.children) {
-                                val text = msgSnap.child("text").getValue(String::class.java) ?: ""
-                                val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
-                                val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
-                                val fromCurrentUser = (senderId == currentUserId)
-                                lastMessages[profile.userId] = Triple(text, fromCurrentUser, read)
-                            }
-                        }
-                        override fun onCancelled(error: DatabaseError) {
-                            Log.e("DMScreen", "Failed to listen last message: ${error.message}")
-                        }
-                    })
+                profile.profilepicUrl?.let { url ->
+                    val request = ImageRequest.Builder(context)
+                        .data(url)
+                        .diskCacheKey(url)
+                        .memoryCacheKey(url)
+                        .crossfade(true)
+                        .build()
+                    context.imageLoader.enqueue(request)
+                }
             }
         }
     }
@@ -357,7 +346,7 @@ fun DMScreenContent(navController: NavController) {
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Search bar - reduced size
+        // Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -371,55 +360,49 @@ fun DMScreenContent(navController: NavController) {
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 6.dp, bottom = 6.dp, start = 8.dp, end = 8.dp) // Reduced padding
-                .height(48.dp), // Added explicit smaller height
-            textStyle = LocalTextStyle.current.copy(fontSize = 14.sp) // Smaller text
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .height(48.dp),
+            textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
         )
 
-        // Row with likes + nonInitiated - reduced sizes
-        val scrollState = rememberScrollState()
+        // Row with likes and non-initiated matches
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scrollState)
-                .padding(6.dp), // Reduced padding
+                .horizontalScroll(rememberScrollState())
+                .padding(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(60.dp) // Reduced from 70.dp
+                    .size(60.dp)
                     .clip(CircleShape)
                     .background(Color.DarkGray)
-                    .clickable {
-                        navController.navigate("peopleWhoLikedMe")
-                    },
+                    .clickable { navController.navigate("peopleWhoLikedMe") },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "+$likedCount",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp // Reduced from 16.sp
+                    fontSize = 14.sp
                 )
             }
-            Spacer(modifier = Modifier.width(6.dp)) // Reduced from 8.dp
-
+            Spacer(modifier = Modifier.width(6.dp))
             nonInitiatedMatches.forEach { profile ->
                 AIOrProfileImage(
                     profile = profile,
                     modifier = Modifier
-                        .size(60.dp) // Reduced from 70.dp
+                        .size(60.dp)
                         .clip(CircleShape)
                         .background(Color.Gray)
-                        .clickable {
-                            navController.navigate("chat/${profile.userId}")
-                        }
+                        .clickable { navController.navigate("chat/${profile.userId}") }
                 )
-                Spacer(modifier = Modifier.width(6.dp)) // Reduced from 8.dp
+                Spacer(modifier = Modifier.width(6.dp))
             }
         }
 
-        // Filter list
+        // Filter and Profile List
         val displayedUsers = matchedUsers.filter {
             it.username.contains(searchQuery, ignoreCase = true) ||
                     it.name.contains(searchQuery, ignoreCase = true)
@@ -435,7 +418,7 @@ fun DMScreenContent(navController: NavController) {
                 Text(
                     text = "No matches found",
                     color = Color.White,
-                    fontSize = 16.sp, // Reduced from 18.sp
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -444,8 +427,8 @@ fun DMScreenContent(navController: NavController) {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    .padding(12.dp), // Reduced from 16.dp
-                verticalArrangement = Arrangement.spacedBy(12.dp) // Reduced from 16.dp
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(displayedUsers) { profile ->
                     val lastMsgState = lastMessages[profile.userId] ?: Triple("", false, true)
@@ -465,6 +448,7 @@ fun DMScreenContent(navController: NavController) {
 // Helper function to show either local resource for Zara/Kabir or the real user's pic
 @Composable
 fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     when (profile.userId) {
         "zaraAi" -> {
             Image(
@@ -483,26 +467,23 @@ fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
             )
         }
         else -> {
-            AsyncImage(
-                model = profile.profilepicUrl,
-                contentDescription = profile.username,
-                modifier = modifier,
-                contentScale = ContentScale.Crop
-            )
+            profile.profilepicUrl?.let { url ->
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(url)
+                        .diskCacheKey(url)
+                        .memoryCacheKey(url)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = profile.username,
+                    modifier = modifier,
+                    contentScale = ContentScale.Crop
+                )
+            } ?: run {
+                // Fallback if URL is null or blank
+                Box(modifier = modifier.background(Color.Gray))
+            }
         }
-    }
-}
-
-fun injectAIProfiles(
-    matchedUsers: MutableList<Profile>,
-    zaraProfile: Profile,
-    kabirProfile: Profile
-) {
-    if (matchedUsers.none { it.userId == "zaraAi" }) {
-        matchedUsers.add(zaraProfile)
-    }
-    if (matchedUsers.none { it.userId == "kabirAi" }) {
-        matchedUsers.add(kabirProfile)
     }
 }
 

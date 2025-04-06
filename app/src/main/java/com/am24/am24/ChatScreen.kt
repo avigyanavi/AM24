@@ -60,6 +60,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
+import coil.imageLoader
+import coil.request.ImageRequest
 import java.io.File
 
 // Data classes
@@ -468,8 +470,36 @@ fun ChatScreenContent(
                                     modifier = Modifier.size(40.dp).clip(CircleShape),
                                     contentScale = ContentScale.Crop
                                 )
-                            otherUserProfile?.profilepicUrl?.isNotBlank() == true -> AsyncImage(model = otherUserProfile!!.profilepicUrl, "Profile", Modifier.size(40.dp).clip(CircleShape).background(Color.Gray), contentScale = ContentScale.Crop)
-                            else -> Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
+                            otherUserProfile?.profilepicUrl?.isNotBlank() == true -> {
+                                // Prefetch the dp if not already in cache
+                                LaunchedEffect(otherUserProfile?.profilepicUrl) {
+                                    otherUserProfile?.profilepicUrl?.let { url ->
+                                        val request = ImageRequest.Builder(context)
+                                            .data(url)
+                                            .diskCacheKey(url)
+                                            .memoryCacheKey(url)
+                                            .crossfade(true)
+                                            .build()
+                                        context.imageLoader.enqueue(request)
+                                    }
+                                }
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(otherUserProfile!!.profilepicUrl)
+                                        .diskCacheKey(otherUserProfile!!.profilepicUrl)
+                                        .memoryCacheKey(otherUserProfile!!.profilepicUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Profile",
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Gray),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            else ->
+                                Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(otherUserProfile?.name ?: "Chat", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)

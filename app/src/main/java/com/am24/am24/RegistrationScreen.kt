@@ -205,6 +205,7 @@ class RegistrationViewModel : ViewModel() {
     var datingAgeEnd by mutableStateOf(30)           // Ending age for preference
     var datingDistancePreference by mutableStateOf(10)   // Distance preference in kilometers
     var interestedIn = mutableStateListOf<String>()      // List for "Men," "Women," "Other"
+    var zodiac: String = "" // Add this to hold the zodiac sign
 
     // ---------------------------------------------------
     // Voice Recording Methods
@@ -1833,7 +1834,8 @@ suspend fun saveProfileToFirebase(
             datingAgeStart = registrationViewModel.datingAgeStart,
             datingAgeEnd = registrationViewModel.datingAgeEnd,
             datingDistancePreference = registrationViewModel.datingDistancePreference,
-            preferredLanguage = registrationViewModel.selectedLanguage // NEW: Save language choice
+            preferredLanguage = registrationViewModel.selectedLanguage, // NEW: Save language choice
+            zodiac = registrationViewModel.zodiac // Include zodiac in the profile
         )
 
         database.child("users").child(userId).setValue(profile).await()
@@ -2127,6 +2129,7 @@ fun EnterBirthdateCityHometownScreen(
 
     fun updateDob() {
         registrationViewModel.dob = "$selectedDay/${selectedMonthIndex + 1}/$selectedYear"
+        registrationViewModel.zodiac = deriveZodiac(registrationViewModel.dob) // Compute and set zodiac
     }
     LaunchedEffect(Unit) {
         if (registrationViewModel.dob.isNotBlank()) {

@@ -44,6 +44,7 @@ import com.google.firebase.database.*
 import kotlinx.coroutines.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -591,7 +592,23 @@ fun FeedItem(
                 Column {
                     Row {
                         Text(
-                            text = userProfile?.username.toString(),
+                            text = userProfile?.username.toString() + ",",
+                            color = Color.White,
+                            fontWeight = FontWeight.Light,
+                            fontSize = dynamicFontSize
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text =  if (userProfile?.hometown != null) {
+                                userProfile.hometown.toString() + "," } else { userProfile?.customHometown.toString() + "," },
+                            color = Color.White,
+                            fontWeight = FontWeight.Light,
+                            fontSize = dynamicFontSize
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text =  if (userProfile?.city != null) {
+                                userProfile.city.toString() } else { userProfile?.customCity.toString() },
                             color = Color.White,
                             fontWeight = FontWeight.Light,
                             fontSize = dynamicFontSize
