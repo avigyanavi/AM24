@@ -356,8 +356,6 @@ fun FeedSection(
                             // Navigate to ProfileScreen if it's your own profile
                             navController.navigate("profile")
                         } else {
-                            // Navigate to DatingScreen with the other user's ID
-                            val username = userProfiles[post.userId]?.name ?: "Unknown"
                             // NEW: pass the userId instead
                             navController.navigate("dating_screen?initialQuery=${post.userId}")
                         }
