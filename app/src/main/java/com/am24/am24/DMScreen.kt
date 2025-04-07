@@ -39,6 +39,12 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+/* ----------  extra imports  ---------- */
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import kotlinx.coroutines.launch
+
 
 @Composable
 fun DMScreen(navController: NavController) {
@@ -51,9 +57,11 @@ fun DMScreenContent(navController: NavController) {
     val context = LocalContext.current
     val database = FirebaseDatabase.getInstance()
     val matchesRef = database.getReference("matches/$currentUserId")
+    val likesRef = database.getReference("likesReceived/$currentUserId") // Added for likes
     val usersRef = database.getReference("users")
     val messagesRootRef = database.getReference("messages")
 
+    /* ───────── Profiles for AI coaches (unchanged) ───────── */
     val zaraProfile = Profile(
         email = "zara@am24.org",
         password = "ZaraPassword123!",
@@ -327,13 +335,38 @@ fun DMScreenContent(navController: NavController) {
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
 
+    /* ---- Lists to compute likedCount (likes – matches) ---- */
+    val matchIds = remember { mutableStateListOf<String>() }
+    val likeIds = remember { mutableStateListOf<String>() }
+    fun recomputeLiked() { likedCount = likeIds.count { !matchIds.contains(it) } }
+
+    /* ---- Scroll-to-top helpers ---- */
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     val focusManager = LocalFocusManager.current // Add FocusManager
 
-    LaunchedEffect(currentUserId) {
-        database.getReference("likesReceived/$currentUserId")
-            .get().addOnSuccessListener { likedCount = it.childrenCount.toInt() }
+    /* ───────── Realtime listeners for matches & likes ───────── */
+    LaunchedEffect(Unit) {
+        matchesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                matchIds.clear()
+                s.children.forEach { it.key?.let(matchIds::add) }
+                recomputeLiked()
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        likesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                likeIds.clear()
+                s.children.forEach { it.key?.let(likeIds::add) }
+                recomputeLiked()
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
     }
 
+    /* ───────── Fetch matched user objects ───────── */
     LaunchedEffect(currentUserId) {
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
             zaraProfile?.let { if (matchedUsers.none { it.userId == "zaraAi" }) matchedUsers.add(it) }
@@ -476,7 +509,8 @@ fun DMScreenContent(navController: NavController) {
                 }
             } else {
                 LazyColumn(
-                    Modifier
+                    state = listState, // Use listState for scroll control
+                    modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black)
                         .padding(12.dp),
@@ -494,6 +528,15 @@ fun DMScreenContent(navController: NavController) {
                     }
                 }
             }
+        }
+
+        /* ───── Scroll-to-top FAB ───── */
+        FloatingActionButton(
+            onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
+            containerColor = Color(0xFFFF4500),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+        ) {
+            Icon(Icons.Default.KeyboardArrowUp, "Scroll to Top", tint = Color.White)
         }
     }
 }
