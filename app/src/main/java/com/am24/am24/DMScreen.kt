@@ -5,12 +5,13 @@ package com.am24.am24
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.text.style.TextOverflow // <-- Import this
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -43,18 +45,16 @@ fun DMScreen(navController: NavController) {
     DMScreenContent(navController = navController)
 }
 
-
 @Composable
 fun DMScreenContent(navController: NavController) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
-
     val database = FirebaseDatabase.getInstance()
     val matchesRef = database.getReference("matches/$currentUserId")
     val usersRef = database.getReference("users")
     val messagesRootRef = database.getReference("messages")
 
-     val zaraProfile = Profile(
+    val zaraProfile = Profile(
         email = "zara@am24.org",
         password = "ZaraPassword123!",
         interestedIn = listOf("Male"),
@@ -67,7 +67,7 @@ fun DMScreenContent(navController: NavController) {
         gender = "Female",
         lastActive = System.currentTimeMillis(),
         badges = listOf("CricketChampion", "SchoolJock"),
-        profilepicUrl = "", // local drawables used in your ChatScreen anyway
+        profilepicUrl = "",
         voiceNoteUrl = "",
         loveLanguage = "Words of Affirmation",
         optionalPhotoUrls = emptyList(),
@@ -115,7 +115,7 @@ fun DMScreenContent(navController: NavController) {
             culinary_enthusiasm = 3,
             political_awareness = 3,
             community_engagement = 3,
-            sports_enthusiasm = 5, // She’s a jock
+            sports_enthusiasm = 5,
             preferred_alcohol_type = "Wine"
         ),
         politics = "Liberal",
@@ -178,7 +178,7 @@ fun DMScreenContent(navController: NavController) {
         ratingsReceived = emptyMap()
     )
 
-     val kabirProfile = Profile(
+    val kabirProfile = Profile(
         email = "kabir@am24.org",
         password = "KabirPassword456!",
         interestedIn = listOf("Female"),
@@ -239,7 +239,7 @@ fun DMScreenContent(navController: NavController) {
             culinary_enthusiasm = 2,
             political_awareness = 2,
             community_engagement = 2,
-            sports_enthusiasm = 5, // He’s big on sports
+            sports_enthusiasm = 5,
             preferred_alcohol_type = "Beer"
         ),
         politics = "Moderate",
@@ -302,31 +302,46 @@ fun DMScreenContent(navController: NavController) {
         ratingsReceived = emptyMap()
     )
 
-    val matchedUsers = remember { mutableStateListOf<Profile>() }
-    val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
-    var searchQuery by remember { mutableStateOf("") }
-
-    var likedCount by remember { mutableStateOf(0) }
+    var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     LaunchedEffect(currentUserId) {
-        val likesReceivedRef = database.getReference("likesReceived/$currentUserId")
-        likesReceivedRef.get().addOnSuccessListener {
-            likedCount = it.childrenCount.toInt()
-        }
+        usersRef.child(currentUserId).get()
+            .addOnSuccessListener { snap ->
+                currentUserProfile = snap.getValue(Profile::class.java)
+            }
     }
 
+    val groupChatTitles = remember(currentUserProfile) {
+        buildList {
+            add("West Bengal")
+            currentUserProfile?.city
+                ?.takeIf { it.isNotBlank() }?.let { add(it) }
+            currentUserProfile?.hometown
+                ?.takeIf { it.isNotBlank() }?.let { add(it) }
+        }.distinct()
+    }
+
+    var showAIChats by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var likedCount by remember { mutableStateOf(0) }
+    val matchedUsers = remember { mutableStateListOf<Profile>() }
+    val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
 
-    // Fetch matched users and prefetch their dp images
+    val focusManager = LocalFocusManager.current // Add FocusManager
+
+    LaunchedEffect(currentUserId) {
+        database.getReference("likesReceived/$currentUserId")
+            .get().addOnSuccessListener { likedCount = it.childrenCount.toInt() }
+    }
+
     LaunchedEffect(currentUserId) {
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
-            // Optionally, inject AI profiles if not already present
             zaraProfile?.let { if (matchedUsers.none { it.userId == "zaraAi" }) matchedUsers.add(it) }
             kabirProfile?.let { if (matchedUsers.none { it.userId == "kabirAi" }) matchedUsers.add(it) }
             checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
                 nonInitiatedMatches.clear()
                 nonInitiatedMatches.addAll(nonInitiated)
             }
-            // Prefetch every dp from matchedUsers
             matchedUsers.forEach { profile ->
                 profile.profilepicUrl?.let { url ->
                     val request = ImageRequest.Builder(context)
@@ -341,104 +356,142 @@ fun DMScreenContent(navController: NavController) {
         }
     }
 
-    Column(
+    // Wrap the content in a Box to handle clicks outside the text field
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .clickable(
+                onClick = { focusManager.clearFocus() }, // Clear focus when clicking outside
+                indication = null, // Remove ripple effect for better UX
+                interactionSource = remember { MutableInteractionSource() }
+            )
     ) {
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Search matches", color = Color.Gray, fontSize = 14.sp) },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF4500),
-                unfocusedBorderColor = Color.Gray,
-                cursorColor = Color(0xFFFF4500),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.Gray
-            ),
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-                .height(48.dp),
-            textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
-        )
-
-        // Row with likes and non-initiated matches
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
         ) {
-            Box(
+            // Single Row for group chat buttons and AI toggle
+            Row(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-                    .background(Color.DarkGray)
-                    .clickable { navController.navigate("peopleWhoLikedMe") },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "+$likedCount",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
+                // Scrollable Row for group chat buttons
+                Row(
+                    modifier = Modifier
+                        .weight(1f) // Takes available space on the left
+                        .horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    groupChatTitles.forEach { title ->
+                        GroupChatChip(title) {
+                            val id = when (title) {
+                                "West Bengal" -> "group_wb"
+                                else -> "group_${title.replace(" ", "_").lowercase()}"
+                            }
+                            navController.navigate("groupChat/$id")
+                        }
+                        Spacer(Modifier.width(6.dp))
+                    }
+                }
+
+                // "Show AI Chats" toggle
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Show AI Chats", color = Color.White, fontSize = 14.sp)
+                    Spacer(Modifier.width(4.dp))
+                    Switch(
+                        checked = showAIChats,
+                        onCheckedChange = { showAIChats = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color(0xFFFF4500),
+                            uncheckedThumbColor = Color.Gray
+                        )
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(6.dp))
-            nonInitiatedMatches.forEach { profile ->
-                AIOrProfileImage(
-                    profile = profile,
+
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search matches", color = Color.Gray, fontSize = 12.sp) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF4500),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color(0xFFFF4500),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.Gray
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                    .height(48.dp),
+                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
+            )
+
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
                     modifier = Modifier
                         .size(60.dp)
                         .clip(CircleShape)
-                        .background(Color.Gray)
-                        .clickable { navController.navigate("chat/${profile.userId}") }
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+                        .background(Color.DarkGray)
+                        .clickable { navController.navigate("peopleWhoLikedMe") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("+$likedCount", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+                Spacer(Modifier.width(6.dp))
+                nonInitiatedMatches
+                    .filter { showAIChats || !it.userId.endsWith("Ai") }
+                    .forEach { profile ->
+                        AIOrProfileImage(
+                            profile,
+                            Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(Color.Gray)
+                                .clickable { navController.navigate("chat/${profile.userId}") }
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
             }
-        }
 
-        // Filter and Profile List
-        val displayedUsers = matchedUsers.filter {
-            it.username.contains(searchQuery, ignoreCase = true) ||
-                    it.name.contains(searchQuery, ignoreCase = true)
-        }
-
-        if (displayedUsers.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No matches found",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            val displayedUsers = matchedUsers.filter {
+                (showAIChats || !it.userId.endsWith("Ai")) &&
+                        (it.username.contains(searchQuery, true) || it.name.contains(searchQuery, true))
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(displayedUsers) { profile ->
-                    val lastMsgState = lastMessages[profile.userId] ?: Triple("", false, true)
-                    DMUserCard(
-                        profile = profile,
-                        navController = navController,
-                        lastMessage = lastMsgState.first,
-                        lastMessageFromCurrentUser = lastMsgState.second,
-                        lastMessageRead = lastMsgState.third
-                    )
+
+            if (displayedUsers.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No matches found", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                LazyColumn(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(displayedUsers) { profile ->
+                        val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
+                        DMUserCard(
+                            profile = profile,
+                            navController = navController,
+                            lastMessage = lastMsg.first,
+                            lastMessageFromCurrentUser = lastMsg.second,
+                            lastMessageRead = lastMsg.third
+                        )
+                    }
                 }
             }
         }
@@ -504,23 +557,23 @@ fun DMUserCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp) // Reduced from 16.dp
+            modifier = Modifier.padding(12.dp)
         ) {
             AIOrProfileImage(
                 profile = profile,
                 modifier = Modifier
-                    .size(70.dp) // Reduced from 80.dp
+                    .size(70.dp)
                     .clip(CircleShape)
                     .background(Color.Gray)
             )
 
-            Spacer(modifier = Modifier.width(12.dp)) // Reduced from 16.dp
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = profile.username,
                     color = Color.White,
-                    fontSize = 18.sp, // Reduced from 20.sp
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -529,14 +582,14 @@ fun DMUserCard(
                 if (profile.hometown.isNotBlank()) {
                     Text(
                         text = "$locality, ${profile.jobRole}, Age: ${age ?: ""}",
-                        fontSize = 14.sp, // Reduced from 16.sp
+                        fontSize = 14.sp,
                         color = Color.White
                     )
                 } else {
                     Text(
                         text = "${locality ?: ""}, Age: ${age ?: ""}",
                         color = Color.White,
-                        fontSize = 12.sp // Reduced from 14.sp
+                        fontSize = 12.sp
                     )
                 }
 
@@ -567,10 +620,10 @@ fun DMUserCard(
 
                 Text(
                     text = styledText,
-                    fontSize = 12.sp, // Reduced from 14.sp
+                    fontSize = 12.sp,
                     color = Color.White,
-                    maxLines = 2, // Added max lines constraint
-                    overflow = TextOverflow.Ellipsis // Add ellipsis for overflow
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -590,7 +643,6 @@ private fun checkNonInitiatedConversations(
         return
     }
 
-    // Check if there's at least one message
     matchedUsers.forEach { profile ->
         val chatId = getChatId(currentUserId, profile.userId)
         messagesRootRef.child(chatId).limitToFirst(1).get().addOnSuccessListener {
@@ -649,13 +701,29 @@ private fun fetchUsersFromNode(
         }
     })
 }
+
 fun getLevelBorderColor(rating: Double): Color {
     return when {
-        rating in 0.0..1.0 -> Color(0xFF444444)    // 0 to 1 Rating
-        rating in 1.1..2.1 -> Color(0xFF555555)    // 1.1 to 2.0 Rating
-        rating in 2.1..3.6 -> Color(0xFF886633)    // 2.1 to 3.0 Rating
-        rating in 3.6..4.7 -> Color(0xFFAA6633)    // 3.1 to 4.0 Rating (same color as 2.1 to 3.0)
-        rating in 4.7..5.0 -> Color(0xFFFF6F00)    // 4.1 to 5.0 Rating
-        else -> Color.Gray                         // Default color if rating is out of range
+        rating in 0.0..1.0 -> Color(0xFF444444)
+        rating in 1.1..2.1 -> Color(0xFF555555)
+        rating in 2.1..3.6 -> Color(0xFF886633)
+        rating in 3.6..4.7 -> Color(0xFFAA6633)
+        rating in 4.7..5.0 -> Color(0xFFFF6F00)
+        else -> Color.Gray
+    }
+}
+
+@Composable
+fun GroupChatChip(
+    title: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .border(BorderStroke(1.dp, Color.Gray), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(title, color = Color.White, fontSize = 14.sp)
     }
 }

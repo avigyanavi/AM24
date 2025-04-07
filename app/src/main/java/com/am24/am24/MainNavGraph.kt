@@ -232,6 +232,15 @@ fun MainNavGraph(
         }
 
         composable(
+            route = "groupChat/{groupId}",
+            arguments = listOf(navArgument("groupId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
+            GroupChatScreen(navController = navController, groupId = groupId)
+        }
+
+
+        composable(
             route = "matchedUserProfile/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
