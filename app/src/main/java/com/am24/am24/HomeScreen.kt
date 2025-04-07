@@ -9,6 +9,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
+import androidx.compose.foundation.layout.Box
 import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
@@ -137,7 +138,8 @@ fun HomeScreen(
             userId = userId,
             userProfile = userProfile,
             sortOption = filterSettings.sortOption,
-            onSortOptionChanged = { newSortOption -> postViewModel.setSortOption(newSortOption) }
+            onSortOptionChanged = { newSortOption -> postViewModel.setSortOption(newSortOption) },
+            listState = rememberLazyListState() // Pass listState for scroll control
         )
     }
 }
@@ -158,37 +160,73 @@ fun HomeScreenContent(
     userId: String?,
     userProfile: Profile?,
     sortOption: String,
-    onSortOptionChanged: (String) -> Unit
+    onSortOptionChanged: (String) -> Unit,
+    listState: LazyListState // Added listState parameter
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     var isVoiceOnly by remember { mutableStateOf(false) }
-    val feedTabs       = listOf("everyone", "matches")
+    val feedTabs = listOf("everyone", "matches")
     var selectedTab by remember {                   // keeps UI and VM in sync
         mutableStateOf(if (filterOption == "matches") 1 else 0)
     }
-
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Black,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("create_post") },
-                shape = CircleShape,
-                containerColor = Color.Black,
-                contentColor = Color.White,
-                modifier = Modifier.border(
-                    BorderStroke(1.dp, Color(0xFFFF6F00)),
-                    CircleShape
-                )
+            // Use a Box with precise padding for FAB placement
+            Row(
+                modifier = Modifier
+                    .wrapContentSize() // Only take the size needed for FABs
+                    .padding(bottom = 0.dp) // Consistent bottom padding
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Create Post")
+                // "+" FAB (bottom-left) with padding from the left edge
+                FloatingActionButton(
+                    onClick = {
+                        Log.d("FAB", "Create Post FAB clicked") // Debug log
+                        navController.navigate("create_post")
+                    },
+                    shape = CircleShape,
+                    containerColor = Color.Black,
+                    contentColor = Color.White,
+                    modifier = Modifier
+                        .padding(end = 180.dp, bottom = 0.dp) // 16.dp from left edge, no bottom padding (handled by Box)
+                        .border(
+                            BorderStroke(1.dp, Color(0xFFFF6F00)),
+                            CircleShape
+                        )
+                        .zIndex(1f) // Ensure it’s on top
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Create Post",
+                        tint = Color.White
+                    )
+                }
+
+                // Scroll Up FAB (bottom-right) with padding from the right edge
+                FloatingActionButton(
+                    onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
+                    containerColor = Color(0xFFFF6F00),
+                    modifier = Modifier
+                        .padding(end = 16.dp, bottom = 0.dp) // 16.dp from right edge, no bottom padding (handled by Box)
+                        .zIndex(1f) // Ensure it’s on top
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Scroll to Top",
+                            tint = Color.White
+                        )
+                    }
+                }
             }
         }
     ) {
-    Column(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
@@ -209,41 +247,41 @@ fun HomeScreenContent(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor   = Color.Black,
-            contentColor     = Color.White,          // label colour
-            indicator        = {}                    // we’ll draw our own border
-        ) {
-            feedTabs.forEachIndexed { index, option ->
-                val isSelected = selectedTab == index
-                Tab(
-                    selected  = isSelected,
-                    onClick   = {
-                        selectedTab = index
-                        onFilterOptionChanged(option)   // update ViewModel
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                        .border(
-                            BorderStroke(1.dp, Color(0xFFFF6F00)),
-                            RoundedCornerShape(12.dp)
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Black,
+                contentColor = Color.White,          // label colour
+                indicator = {}                    // we’ll draw our own border
+            ) {
+                feedTabs.forEachIndexed { index, option ->
+                    val isSelected = selectedTab == index
+                    Tab(
+                        selected = isSelected,
+                        onClick = {
+                            selectedTab = index
+                            onFilterOptionChanged(option)   // update ViewModel
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                            .border(
+                                BorderStroke(1.dp, Color(0xFFFF6F00)),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .background(
+                                if (isSelected) Color(0xFF2B2B2B) /* dark-grey */
+                                else Color.Black,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = option.replaceFirstChar { it.uppercaseChar() },
+                            fontSize = 13.sp,
+                            color = Color.White
                         )
-                        .background(
-                            if (isSelected) Color(0xFF2B2B2B) /* dark‑grey */
-                            else Color.Black,
-                            RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text  = option.replaceFirstChar { it.uppercaseChar() },
-                        fontSize = 13.sp,
-                        color    = Color.White
-                    )
+                    }
                 }
             }
-        }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -259,7 +297,8 @@ fun HomeScreenContent(
                 onTagClick = { tag ->
                     // When a tag is clicked, update the search query so that the search bar appears.
                     onSearchQueryChanged(tag)
-                }
+                },
+                listState = listState // Pass listState to FeedSection
             )
         }
     }
@@ -274,10 +313,10 @@ fun FeedSection(
     isPosting: Boolean,
     postViewModel: PostViewModel,
     userProfiles: Map<String, Profile>,
-    onTagClick: (String) -> Unit
+    onTagClick: (String) -> Unit,
+    listState: LazyListState // Added listState parameter
 ) {
     val context = LocalContext.current
-    val listState = rememberLazyListState()
 
     // Swipe Refresh State
     var isRefreshing by remember { mutableStateOf(false) }
@@ -296,13 +335,12 @@ fun FeedSection(
         }
     }
 
-
     SwipeRefresh(
         state = swipeRefreshState,
         onRefresh = { isRefreshing = true }
     ) {
         LazyColumn(
-            state = listState,
+            state = listState, // Use the passed listState
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
@@ -552,443 +590,428 @@ fun FeedItem(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center // Center-align the card within the Box
     ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(0.95f)
-            .shadow(4.dp, RoundedCornerShape(2.dp))
-            .then(gestureDetector),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-        border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.averageRating ?: 0.0)) // Dynamic border color
-    ) {
-        Column(modifier = Modifier.padding(dynamicPadding)) {
-            // User Info Row with Delete/Report button
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onUserClick() }
-                    .padding(start = 8.dp, bottom = dynamicPadding)
-            ) {
-                // User profile picture
-                if (userProfile?.profilepicUrl != null) {
-                    AsyncImage(
-                        model = userProfile.profilepicUrl,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .size(if (screenWidth < 360.dp) 32.dp else 40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray)
-                    )
-                }
-                Spacer(modifier = Modifier.width(dynamicPadding))
-                Column {
-                    Row {
-                        Text(
-                            text = userProfile?.username.toString() + ",",
-                            color = Color.White,
-                            fontWeight = FontWeight.Light,
-                            fontSize = dynamicFontSize
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .shadow(4.dp, RoundedCornerShape(2.dp))
+                .then(gestureDetector),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
+            border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.averageRating ?: 0.0)) // Dynamic border color
+        ) {
+            Column(modifier = Modifier.padding(dynamicPadding)) {
+                // User Info Row with Delete/Report button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable { onUserClick() }
+                        .padding(start = 8.dp, bottom = dynamicPadding)
+                ) {
+                    // User profile picture
+                    if (userProfile?.profilepicUrl != null) {
+                        AsyncImage(
+                            model = userProfile.profilepicUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .size(if (screenWidth < 360.dp) 32.dp else 40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Gray)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text =  if (userProfile?.hometown != null) {
-                                userProfile.hometown.toString() + "," } else { userProfile?.customHometown.toString() + "," },
-                            color = Color.White,
-                            fontWeight = FontWeight.Light,
-                            fontSize = dynamicFontSize
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text =  if (userProfile?.city != null) {
-                                userProfile.city.toString() } else { userProfile?.customCity.toString() },
-                            color = Color.White,
-                            fontWeight = FontWeight.Light,
-                            fontSize = dynamicFontSize
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color.Gray)
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    RatingBar(
-                        rating = userProfile?.averageRating ?: 0.0,
-                        ratingCount = userProfile?.numberOfRatings ?: 0 // Pass the number of ratings
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                /* 1️⃣  NEW: grey “8 m ago” label */
-                Text(
-                    text  = formatRelativeTime(post.getTimestampLong()),
-                    color = Color(0xFFB0B0B0),               // light‑grey
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(end = 4.dp)
-                )
-
-                var moreOptionsExpanded by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.width(IntrinsicSize.Max)) {
-                    IconButton(onClick = { moreOptionsExpanded = !moreOptionsExpanded }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More Options",
-                            tint = Color.White
+                    Spacer(modifier = Modifier.width(dynamicPadding))
+                    Column {
+                        Row {
+                            Text(
+                                text = userProfile?.username.toString(),
+                                color = Color.White,
+                                fontWeight = FontWeight.Light,
+                                fontSize = dynamicFontSize
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        RatingBar(
+                            rating = userProfile?.averageRating ?: 0.0,
+                            ratingCount = userProfile?.numberOfRatings ?: 0 // Pass the number of ratings
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    DropdownMenu(
-                        expanded = moreOptionsExpanded,
-                        onDismissRequest = { moreOptionsExpanded = false }
-                    ) {
-                        if (post.userId == currentUserId) {
-                            // The user's own post
-                            DropdownMenuItem(
-                                text = { Text("Edit Post", color = Color.White) },
-                                onClick = {
-                                    moreOptionsExpanded = false
-                                    // Implement edit logic or navigate to an edit screen
-                                    // For example:
-                                    // navController.navigate("edit_post/${post.postId}")
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete Post", color = Color.White) },
-                                onClick = {
-                                    moreOptionsExpanded = false
-                                    onDelete(post)
-                                }
-                            )
-                        } else {
-                            // Another user's post
-                            DropdownMenuItem(
-                                text = { Text("Report Post", color = Color.White) },
-                                onClick = {
-                                    moreOptionsExpanded = false
-                                    onReport(post)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Hide from feed", color = Color.White) },
-                                onClick = {
-                                    moreOptionsExpanded = false
-                                    // Implement hide from feed logic here
-                                    // Possibly call a function in postViewModel to update user's feed preferences
-                                }
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    /* 1️⃣  NEW: grey “8 m ago” label */
+                    Text(
+                        text  = formatRelativeTime(post.getTimestampLong()),
+                        color = Color(0xFFB0B0B0),               // light‑grey
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+
+                    var moreOptionsExpanded by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.width(IntrinsicSize.Max)) {
+                        IconButton(onClick = { moreOptionsExpanded = !moreOptionsExpanded }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More Options",
+                                tint = Color.White
                             )
                         }
+
+                        DropdownMenu(
+                            expanded = moreOptionsExpanded,
+                            onDismissRequest = { moreOptionsExpanded = false }
+                        ) {
+                            if (post.userId == currentUserId) {
+                                // The user's own post
+                                DropdownMenuItem(
+                                    text = { Text("Edit Post", color = Color.White) },
+                                    onClick = {
+                                        moreOptionsExpanded = false
+                                        // Implement edit logic or navigate to an edit screen
+                                        // For example:
+                                        // navController.navigate("edit_post/${post.postId}")
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete Post", color = Color.White) },
+                                    onClick = {
+                                        moreOptionsExpanded = false
+                                        onDelete(post)
+                                    }
+                                )
+                            } else {
+                                // Another user's post
+                                DropdownMenuItem(
+                                    text = { Text("Report Post", color = Color.White) },
+                                    onClick = {
+                                        moreOptionsExpanded = false
+                                        onReport(post)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Hide from feed", color = Color.White) },
+                                    onClick = {
+                                        moreOptionsExpanded = false
+                                        // Implement hide from feed logic here
+                                        // Possibly call a function in postViewModel to update user's feed preferences
+                                    }
+                                )
+                            }
+                        }
                     }
+
                 }
 
-            }
 
+                // Post Content (Formatted Text)
+                if (!post.contentText.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
 
-            // Post Content (Formatted Text)
-            if (!post.contentText.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                    val collapsedCharLimit = 700
+                    val isTextOverflowing = annotatedText.length > collapsedCharLimit
 
-                val collapsedCharLimit = 700
-                val isTextOverflowing = annotatedText.length > collapsedCharLimit
-
-                val displayText = if (isExpanded || !isTextOverflowing) {
-                    annotatedText
-                } else {
-                    // Truncate the text and add ellipsis
-                    buildAnnotatedString {
-                        append(annotatedText.subSequence(0, collapsedCharLimit))
-                        append("...")  // Indicate that text is truncated
+                    val displayText = if (isExpanded || !isTextOverflowing) {
+                        annotatedText
+                    } else {
+                        // Truncate the text and add ellipsis
+                        buildAnnotatedString {
+                            append(annotatedText.subSequence(0, collapsedCharLimit))
+                            append("...")  // Indicate that text is truncated
+                        }
                     }
-                }
 
-                // Text Content
-                Text(
-                    text = displayText,
-                    color = Color.White,
-                    fontSize = 17.sp,
-                    lineHeight = 20.sp,
-                    overflow = TextOverflow.Clip,
-                    textAlign = TextAlign.Justify,
-                    modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
-                )
-
-                // "See more" Text
-                if (isTextOverflowing && !isExpanded) {
+                    // Text Content
                     Text(
-                        text = "See more",
-                        color = Color.LightGray,
-                        fontSize = 18.sp,
-                        modifier = Modifier
-                            .clickable { isExpanded = true }
-                            .padding(start = 8.dp, bottom = 4.dp)
+                        text = displayText,
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        lineHeight = 20.sp,
+                        overflow = TextOverflow.Clip,
+                        textAlign = TextAlign.Justify,
+                        modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
                     )
+
+                    // "See more" Text
+                    if (isTextOverflowing && !isExpanded) {
+                        Text(
+                            text = "See more",
+                            color = Color.LightGray,
+                            fontSize = 18.sp,
+                            modifier = Modifier
+                                .clickable { isExpanded = true }
+                                .padding(start = 8.dp, bottom = 4.dp)
+                        )
+                    }
                 }
-            }
 
 
 
-            // Media Content - Photo, Video, Voice
-            if (post.mediaType != null && post.mediaUrl != null) {
-                val context = LocalContext.current // Get the context once outside
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    when (post.mediaType) {
-                        "voice" -> {
-                            // Voice Post Playback UI
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
+                // Media Content - Photo, Video, Voice
+                if (post.mediaType != null && post.mediaUrl != null) {
+                    val context = LocalContext.current // Get the context once outside
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        when (post.mediaType) {
+                            "voice" -> {
+                                // Voice Post Playback UI
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    IconButton(
-                                        onClick = {
-                                            if (isPlaying) {
-                                                mediaPlayer?.pause()
-                                                isPlaying = false
-                                            } else {
-                                                // Play using caching logic
-                                                playVoice(context, post.mediaUrl ?: "") { player ->
-                                                    mediaPlayer = player
-                                                    isPlaying = true
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                if (isPlaying) {
+                                                    mediaPlayer?.pause()
+                                                    isPlaying = false
+                                                } else {
+                                                    // Play using caching logic
+                                                    playVoice(context, post.mediaUrl ?: "") { player ->
+                                                        mediaPlayer = player
+                                                        isPlaying = true
 
-                                                    // Fetch and set the duration for the media
-                                                    mediaDuration = player.duration.toLong()
+                                                        // Fetch and set the duration for the media
+                                                        mediaDuration = player.duration.toLong()
 
-                                                    // Set completion listener to stop playback once done
-                                                    mediaPlayer?.setOnCompletionListener {
-                                                        isPlaying = false
-                                                        playbackProgress = 0f
+                                                        // Set completion listener to stop playback once done
+                                                        mediaPlayer?.setOnCompletionListener {
+                                                            isPlaying = false
+                                                            playbackProgress = 0f
+                                                        }
                                                     }
                                                 }
                                             }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = "Play/Pause",
+                                                tint = Color(0xFFFFDB00),
+                                                modifier = Modifier.size(70.dp)
+                                            )
                                         }
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                            contentDescription = "Play/Pause",
-                                            tint = Color(0xFFFFDB00),
-                                            modifier = Modifier.size(70.dp)
+
+                                        // Progress bar for voice playback
+                                        LinearProgressIndicator(
+                                            progress = playbackProgress,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(horizontal = 16.dp),
+                                            color = Color(0xFFFFDB00),
+                                            trackColor = Color.White
+                                        )
+
+                                        // Duration label
+                                        Text(
+                                            text = formatDuration(mediaDuration),
+                                            color = Color.Gray,
+                                            fontSize = 12.sp,
+                                            modifier = Modifier.padding(start = 8.dp)
                                         )
                                     }
-
-                                    // Progress bar for voice playback
-                                    LinearProgressIndicator(
-                                        progress = playbackProgress,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .padding(horizontal = 16.dp),
-                                        color = Color(0xFFFFDB00),
-                                        trackColor = Color.White
-                                    )
-
-                                    // Duration label
-                                    Text(
-                                        text = formatDuration(mediaDuration),
-                                        color = Color.Gray,
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
 // Now place tags below time/distance
-            if (post.userTags.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp) // Add horizontal padding
-                ) {
-                    post.userTags.forEach { tag ->
-                        Box(
-                            modifier = Modifier
-                                .padding(2.dp)
-                                .background(
-                                    Color.Black,
-                                    RoundedCornerShape(4.dp)
+                if (post.userTags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp) // Add horizontal padding
+                    ) {
+                        post.userTags.forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .background(
+                                        Color.Black,
+                                        RoundedCornerShape(4.dp)
+                                    )
+                                    .border(
+                                        BorderStroke(1.dp, Color(0xFFFF6F00)),
+                                        RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "#$tag",
+                                    color = Color.LightGray,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.clickable { onTagClick(tag) }
                                 )
-                                .border(
-                                    BorderStroke(1.dp, Color(0xFFFF6F00)),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "#$tag",
-                                color = Color.LightGray,
-                                fontSize = 10.sp,
-                                modifier = Modifier.clickable { onTagClick(tag) }
-                            )
+                            }
                         }
                     }
                 }
-            }
 
 
-            // Sharing, Upvote/Downvote, and Comment Section
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row {
-                    IconButton(onClick = onShare) {
-                        Icon(
-                            Icons.Default.Share,
-                            contentDescription = "Share",
-                            tint = Color.White
-                        )
-                    }
-                    // Add Save Icon
-                    IconButton(onClick = { onSave() }) {
-                        Icon(
-                            Icons.Default.BookmarkBorder,  // Bookmark or save icon
-                            contentDescription = "Save Post",
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                // Upvote and Downvote Buttons
+                // Sharing, Upvote/Downvote, and Comment Section
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onUpvote) {
+                    Row {
+                        IconButton(onClick = onShare) {
                             Icon(
-                                Icons.Default.ThumbUpOffAlt,
-                                contentDescription = "Upvote",
-                                tint = Color(0xFFFFDB00)
+                                Icons.Default.Share,
+                                contentDescription = "Share",
+                                tint = Color.White
                             )
                         }
-                        Text(
-                            text = "${post.upvotes}",
-                            color = Color(0xFFFFDB00),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onDownvote) {
+                        // Add Save Icon
+                        IconButton(onClick = { onSave() }) {
                             Icon(
-                                Icons.Default.ThumbDownOffAlt,
-                                contentDescription = "Downvote",
-                                tint = Color(0xFFFF6F00)
+                                Icons.Default.BookmarkBorder,  // Bookmark or save icon
+                                contentDescription = "Save Post",
+                                tint = Color.White
                             )
                         }
-                        Text(
-                            text = "${post.downvotes}",
-                            color = Color(0xFFFF6F00),
-                            fontWeight = FontWeight.Bold
-                        )
                     }
 
-                    // Comment button icon to show/hide comment section
-                    IconButton(onClick = { showCommentsDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Comment,
-                            contentDescription = "Show Comments",
-                            tint = Color.White
-                        )
+                    // Upvote and Downvote Buttons
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onUpvote) {
+                                Icon(
+                                    Icons.Default.ThumbUpOffAlt,
+                                    contentDescription = "Upvote",
+                                    tint = Color(0xFFFFDB00)
+                                )
+                            }
+                            Text(
+                                text = "${post.upvotes}",
+                                color = Color(0xFFFFDB00),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onDownvote) {
+                                Icon(
+                                    Icons.Default.ThumbDownOffAlt,
+                                    contentDescription = "Downvote",
+                                    tint = Color(0xFFFF6F00)
+                                )
+                            }
+                            Text(
+                                text = "${post.downvotes}",
+                                color = Color(0xFFFF6F00),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Comment button icon to show/hide comment section
+                        IconButton(onClick = { showCommentsDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Comment,
+                                contentDescription = "Show Comments",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
-            }
-            if (post.comments.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "View Comments (${post.comments.size})",
-                    color = Color.White,
-                    modifier = Modifier
-                        .clickable {
-                        showCommentsDialog = true
-                    }
-                        .padding(start = 8.dp) // Add start padding
-                    ,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                if (post.comments.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "View Comments (${post.comments.size})",
+                        color = Color.White,
+                        modifier = Modifier
+                            .clickable {
+                                showCommentsDialog = true
+                            }
+                            .padding(start = 8.dp) // Add start padding
+                        ,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
 
-            // In FeedItem, when showing the CommentsDialog:
-            if (showCommentsDialog) {
-                CommentsDialog(
-                    post = post,
-                    onDismiss = { showCommentsDialog = false },
-                    onUpvoteComment = { commentId ->
-                        postViewModel.upvoteComment(
-                            postId = post.postId,
-                            commentId = commentId,
-                            userId = currentUserId,
-                            onSuccess = {
-                                // Handle success
-                            },
-                            onFailure = {
-                                // Handle failure
-                            }
-                        )
-                    },
-                    onDownvoteComment = { commentId ->
-                        postViewModel.downvoteComment(
-                            postId = post.postId,
-                            commentId = commentId,
-                            userId = currentUserId,
-                            onSuccess = {
-                                // Handle success
-                            },
-                            onFailure = {
-                                // Handle failure
-                            }
-                        )
-                    },
-                    onComment = { commentText ->
-                        // Handle text comment submission
-                        val comment = Comment(
-                            commentId = UUID.randomUUID().toString(),
-                            userId = currentUserId,
-                            username = userProfile?.username.toString(),
-                            commentText = commentText,
-                            timestamp = ServerValue.TIMESTAMP
-                        )
-                        postViewModel.addComment(
-                            postId = post.postId,
-                            comment = comment,
-                            onSuccess = {
-                                // Show success message or update UI
-                            },
-                            onFailure = {
-                            }
-                        )
-                    },
-                    onVoiceComment = { voiceUri ->
-                        // Handle voice comment submission
-                        handleAddVoiceComment(
-                            postId = post.postId,
-                            voiceUri = voiceUri,
-                            userId = currentUserId,
-                            username = userProfile?.username.toString(),
-                            onSuccess = {
-                                // Show success message or update UI
-                            },
-                            onFailure = {
-                            }
-                        )
-                    }
-                )
+                // In FeedItem, when showing the CommentsDialog:
+                if (showCommentsDialog) {
+                    CommentsDialog(
+                        post = post,
+                        onDismiss = { showCommentsDialog = false },
+                        onUpvoteComment = { commentId ->
+                            postViewModel.upvoteComment(
+                                postId = post.postId,
+                                commentId = commentId,
+                                userId = currentUserId,
+                                onSuccess = {
+                                    // Handle success
+                                },
+                                onFailure = {
+                                    // Handle failure
+                                }
+                            )
+                        },
+                        onDownvoteComment = { commentId ->
+                            postViewModel.downvoteComment(
+                                postId = post.postId,
+                                commentId = commentId,
+                                userId = currentUserId,
+                                onSuccess = {
+                                    // Handle success
+                                },
+                                onFailure = {
+                                    // Handle failure
+                                }
+                            )
+                        },
+                        onComment = { commentText ->
+                            // Handle text comment submission
+                            val comment = Comment(
+                                commentId = UUID.randomUUID().toString(),
+                                userId = currentUserId,
+                                username = userProfile?.username.toString(),
+                                commentText = commentText,
+                                timestamp = ServerValue.TIMESTAMP
+                            )
+                            postViewModel.addComment(
+                                postId = post.postId,
+                                comment = comment,
+                                onSuccess = {
+                                    // Show success message or update UI
+                                },
+                                onFailure = {
+                                }
+                            )
+                        },
+                        onVoiceComment = { voiceUri ->
+                            // Handle voice comment submission
+                            handleAddVoiceComment(
+                                postId = post.postId,
+                                voiceUri = voiceUri,
+                                userId = currentUserId,
+                                username = userProfile?.username.toString(),
+                                onSuccess = {
+                                    // Show success message or update UI
+                                },
+                                onFailure = {
+                                }
+                            )
+                        }
+                    )
+                }
             }
         }
-    }
         // Overlay the Icon when showUpvoteAnimation or showDownvoteAnimation is true
         if (showUpvoteAnimation) {
             Icon(

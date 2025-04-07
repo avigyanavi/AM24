@@ -1344,7 +1344,6 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                     modifier = Modifier
                         .height(36.dp)
-                        .align(Alignment.End)
                 ) {
                     Text("Re-run", color = Color.White, fontSize = 12.sp)
                 }

@@ -434,7 +434,7 @@ fun DMScreenContent(navController: NavController) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Show AI Chats", color = Color.White, fontSize = 14.sp)
+                    Text("AI Chats", color = Color.White, fontSize = 14.sp)
                     Spacer(Modifier.width(4.dp))
                     Switch(
                         checked = showAIChats,
@@ -460,8 +460,8 @@ fun DMScreenContent(navController: NavController) {
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp)
-                    .height(48.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .height(50.dp),
                 textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
             )
 
