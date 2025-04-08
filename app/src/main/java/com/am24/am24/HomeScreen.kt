@@ -189,15 +189,10 @@ fun HomeScreenContent(
                         Log.d("FAB", "Create Post FAB clicked") // Debug log
                         navController.navigate("create_post")
                     },
-                    shape = CircleShape,
-                    containerColor = Color.Black,
+                    containerColor = Color(0xFFFF6F00),
                     contentColor = Color.White,
                     modifier = Modifier
-                        .padding(end = 180.dp, bottom = 0.dp) // 16.dp from left edge, no bottom padding (handled by Box)
-                        .border(
-                            BorderStroke(1.dp, Color(0xFFFF6F00)),
-                            CircleShape
-                        )
+                        .padding(end = 235.dp, bottom = 0.dp) // 16.dp from left edge, no bottom padding (handled by Box)
                         .zIndex(1f) // Ensure it’s on top
                 ) {
                     Icon(
@@ -210,7 +205,7 @@ fun HomeScreenContent(
                 // Scroll Up FAB (bottom-right) with padding from the right edge
                 FloatingActionButton(
                     onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
-                    containerColor = Color(0xFFFF6F00),
+                    containerColor = Color(0xFFFF4500),
                     modifier = Modifier
                         .padding(end = 16.dp, bottom = 0.dp) // 16.dp from right edge, no bottom padding (handled by Box)
                         .zIndex(1f) // Ensure it’s on top
@@ -650,7 +645,7 @@ fun FeedItem(
                         text  = formatRelativeTime(post.getTimestampLong()),
                         color = Color(0xFFB0B0B0),               // light‑grey
                         fontSize = 12.sp,
-                        modifier = Modifier.padding(end = 4.dp)
+                        modifier = Modifier.padding(end = 2.dp)
                     )
 
                     var moreOptionsExpanded by remember { mutableStateOf(false) }

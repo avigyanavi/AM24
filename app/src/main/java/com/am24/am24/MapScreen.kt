@@ -83,23 +83,9 @@ fun MapScreen(
     var selectedPlaceDetails by remember { mutableStateOf<Pair<LatLng, String>?>(null) }
     var selectedUserProfile by remember { mutableStateOf<Profile?>(null) }
     val quickSearchItems = listOf(
-        "OYO",              // Budget hotels, popular for privacy
-        "hotels",           // General hotels for outings
-        "cafes",            // Casual hangouts for dates or socializing
-        "bars",             // Trendy spots for older teens (19+)
-        "malls",            // Shopping and entertainment hubs
-        "parks",            // Romantic spots like Rabindra Sarobar or Eco Park
-        "cinemas",          // Movie theaters, a classic teen date spot
-        "restaurants",      // Dining options for foodie teens
-        "lovers point",     // Informal romantic spots (e.g., near Ganges or Princep Ghat)
-        "street food",      // Popular with teens, e.g., phuchka or roll stalls
-        "clubs",            // Dance or music clubs for nightlife
-        "riverfronts",      // Scenic spots like Princep Ghat or Hooghly ghats
-        "bookstores",       // Intellectual hangouts like College Street
-        "gaming zones",     // Arcade or gaming cafes for fun
-        "rooftops",         // Trendy rooftop cafes or bars with views
-        "festivals",        // Seasonal events like Durga Puja pandals
-        "chai stalls"       // Casual tea spots for late-night chats
+        "OYO", "hotels", "cafes", "bars", "malls", "parks", "cinemas", "restaurants",
+        "lovers point", "street food", "clubs", "riverfronts", "bookstores", "gaming zones",
+        "rooftops", "festivals", "chai stalls"
     )
     val matchesSet = remember { mutableStateListOf<String>() }
     var showPriceFilterDialog by remember { mutableStateOf(false) }
@@ -116,7 +102,7 @@ fun MapScreen(
     var showSendOverlay by remember { mutableStateOf(false) }
     var placeDetailsToSend by remember { mutableStateOf<Pair<LatLng, String>?>(null) }
     val matchProfiles = remember { mutableStateListOf<MatchProfile>() }
-    var showLocationPrefOverlay by remember { mutableStateOf(true) }
+    var showLocationPrefOverlay by remember { mutableStateOf(!MapScreen.hasShownLocationPrefThisSession) }
     var allowLocationForMatches by remember { mutableStateOf(false) }
 
     // Fetch user location with loading
@@ -206,6 +192,7 @@ fun MapScreen(
             confirmButton = {
                 Button(onClick = {
                     showLocationPrefOverlay = false
+                    MapScreen.hasShownLocationPrefThisSession = true // Mark as shown for this session
                     val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
                     userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
                 }) { Text("Save") }
@@ -275,7 +262,7 @@ fun MapScreen(
                                 }
                             },
                             enabled = !isLoadingSearch,
-                            border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Added orange border
+                            border = BorderStroke(2.dp, Color(0xFFFF6F00))
                         ) {
                             if (isLoadingSearch) {
                                 CircularProgressIndicator(
@@ -313,7 +300,7 @@ fun MapScreen(
                 ) {
                     Button(
                         onClick = { showSearchBar = true },
-                        border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Added orange border here
+                        border = BorderStroke(2.dp, Color(0xFFFF6F00))
                     ) {
                         Text("Search", color = Color.White)
                     }
@@ -526,6 +513,12 @@ fun MapScreen(
     }
 }
 
+// Companion object to track session state
+object MapScreen {
+    var hasShownLocationPrefThisSession: Boolean = false
+}
+
+// Rest of the composables and functions remain unchanged
 @Composable
 fun QuickSearchTags(
     tags: List<String>,
@@ -546,7 +539,7 @@ fun QuickSearchTags(
                     .padding(horizontal = 6.dp, vertical = 2.dp)
                     .clickable(enabled = !isLoading) { onTagSelected(tag) }
             ) {
-                if (isLoading && tag == tags.first()) { // Show loading on first tag as an example
+                if (isLoading && tag == tags.first()) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         color = Color.White
@@ -558,6 +551,7 @@ fun QuickSearchTags(
         }
     }
 }
+
 @Composable
 fun PlaceDetailsPopup(
     latLng: LatLng,
@@ -677,7 +671,6 @@ fun UserProfilePopup(
             .width(260.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Close button at the top-right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -691,9 +684,7 @@ fun UserProfilePopup(
                     .clickable { onCloseClick() }
             )
         }
-        // Load and cache the profile picture
         profile.profilepicUrl?.let { url ->
-            // Prefetch the image into cache
             LaunchedEffect(url) {
                 val request = ImageRequest.Builder(context)
                     .data(url)
@@ -703,7 +694,6 @@ fun UserProfilePopup(
                     .build()
                 context.imageLoader.enqueue(request)
             }
-            // Display the image using AsyncImage with caching settings
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(url)
@@ -737,7 +727,6 @@ fun UserProfilePopup(
     }
 }
 
-
 @Composable
 fun RatingBar2(rating: Double, ratingCount: Int) {
     val starSize = 25.dp
@@ -768,10 +757,9 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
     }
 }
 
-
 suspend fun searchPlacesWithOkHttp(query: String, userLocation: LatLng): List<Pair<LatLng, String>> = withContext(Dispatchers.IO) {
     val client = OkHttpClient()
-    val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ" // Replace with your actual Places API key
+    val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ"
     val requestBody = JSONObject()
         .put("textQuery", query)
         .put(
@@ -784,7 +772,7 @@ suspend fun searchPlacesWithOkHttp(query: String, userLocation: LatLng): List<Pa
                                 .put("latitude", userLocation.latitude)
                                 .put("longitude", userLocation.longitude)
                         )
-                        .put("radius", 10000) // 10 km radius
+                        .put("radius", 10000)
                 )
         )
         .toString()

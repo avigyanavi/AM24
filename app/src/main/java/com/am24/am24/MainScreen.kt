@@ -49,8 +49,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Updated condition to hide TopNavBar on both chat and dating screens
-    val isTopNavBarVisible = currentRoute != "chat/{otherUserId}" && currentRoute != "dating"
+    // Updated condition to hide TopNavBar on "home", "chat", and "dating" screens
+    val isTopNavBarVisible = currentRoute != "chat/{otherUserId}" && currentRoute != "dating" && currentRoute != "home"
 
     // Obtain the ProfileViewModel instance
     val profileViewModel: ProfileViewModel = viewModel()

@@ -51,6 +51,8 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
@@ -62,6 +64,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
 import coil.imageLoader
 import coil.request.ImageRequest
+import com.google.gson.JsonSyntaxException
 import java.io.File
 
 // Data classes
@@ -356,11 +359,11 @@ fun ChatScreenContent(
     var suggestionsExpanded by remember { mutableStateOf(false) }
     var placeSuggestions by remember { mutableStateOf<List<PlaceDetails>?>(null) }
     var placeSuggestionsExpanded by remember { mutableStateOf(false) }
+    var isLoadingSuggestions by remember { mutableStateOf(false) }
+    var isLoadingPlaces by remember { mutableStateOf(false) }
 
-    // Coroutine scope for launching async tasks from onClick
     val scope = rememberCoroutineScope()
 
-    // Recording variables (unchanged)
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
     var recordFile: File? by remember { mutableStateOf(null) }
@@ -446,6 +449,26 @@ fun ChatScreenContent(
         }
     }
 
+    // Function to fetch suggestions with retry on JSON parse error
+    suspend fun fetchSuggestionsWithRetry(): ChatSuggestions? {
+        var attempts = 0
+        val maxAttempts = 3
+        while (attempts < maxAttempts) {
+            try {
+                return getChatSuggestions(messages, currentUserProfile ?: Profile(), otherUserProfile, context)
+            } catch (e: JsonSyntaxException) {
+                attempts++
+                Log.w("ChatScreen", "JSON parse error on attempt $attempts: ${e.message}")
+                if (attempts == maxAttempts) {
+                    Toast.makeText(context, "Failed to fetch suggestions after $maxAttempts attempts.", Toast.LENGTH_SHORT).show()
+                    return null
+                }
+                delay(1000L) // Wait 1 second before retrying
+            }
+        }
+        return null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -485,6 +508,33 @@ fun ChatScreenContent(
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
+                    if (!isAiConversation) {
+                        IconButton(
+                            onClick = {
+                                suggestionsExpanded = true
+                                if (suggestions == null || messages.size > 10) {
+                                    scope.launch {
+                                        isLoadingSuggestions = true
+                                        suggestions = fetchSuggestionsWithRetry()
+                                        isLoadingSuggestions = false
+                                    }
+                                }
+                            }
+                        ) { Icon(Icons.Default.Lightbulb, "Suggestions", tint = Color(0xFFFFA500)) }
+                        IconButton(
+                            onClick = {
+                                placeSuggestionsExpanded = true
+                                if (placeSuggestions == null || messages.size > 10) {
+                                    scope.launch {
+                                        isLoadingPlaces = true
+                                        val sugg = fetchSuggestionsWithRetry()
+                                        placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                        isLoadingPlaces = false
+                                    }
+                                }
+                            }
+                        ) { Icon(Icons.Default.Place, "Places Suggestions", tint = Color(0xFFFF6F00)) }
+                    }
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) { Icon(Icons.Default.MoreVert, "More Options", tint = Color.White) }
                     DropdownMenu(expanded = moreOptionsMenuExpanded, onDismissRequest = { moreOptionsMenuExpanded = false }) {
                         DropdownMenuItem(
@@ -501,233 +551,414 @@ fun ChatScreenContent(
         },
         containerColor = Color.Black
     ) { paddingValues ->
-        Column(Modifier.fillMaxSize().padding(paddingValues).background(Color.Black)) {
-            if (!isAiConversation && otherUserProfile != null && showRating) {
-                Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                    RatingBar(rating = averageRating, ratingCount = otherUserProfile!!.numberOfRatings)
-                    Text("Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}", color = Color.Gray, fontSize = 14.sp)
-                    Slider(
-                        value = if (yourRating >= 0) yourRating.toFloat() else 0f,
-                        onValueChange = { yourRating = it.toDouble() },
-                        onValueChangeFinished = { if (yourRating >= 0) updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context) },
-                        valueRange = 0f..5f,
-                        steps = 4,
-                        colors = SliderDefaults.colors(thumbColor = Color(0xFFFF4500), activeTrackColor = Color(0xFFFF4500))
+        Box(Modifier.fillMaxSize().padding(paddingValues).background(Color.Black)) {
+            Column(Modifier.fillMaxSize()) {
+                if (!isAiConversation && otherUserProfile != null && showRating) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        RatingBar(rating = averageRating, ratingCount = otherUserProfile!!.numberOfRatings)
+                        Text("Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}", color = Color.Gray, fontSize = 14.sp)
+                        Slider(
+                            value = if (yourRating >= 0) yourRating.toFloat() else 0f,
+                            onValueChange = { yourRating = it.toDouble() },
+                            onValueChangeFinished = { if (yourRating >= 0) updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context) },
+                            valueRange = 0f..5f,
+                            steps = 4,
+                            colors = SliderDefaults.colors(thumbColor = Color(0xFFFF4500), activeTrackColor = Color(0xFFFF4500))
+                        )
+                    }
+                }
+
+                LazyColumn(Modifier.weight(1f).padding(vertical = 8.dp), reverseLayout = true, verticalArrangement = Arrangement.Bottom) {
+                    items(messages.reversed()) { message ->
+                        if (message.mediaType == "voice" && !message.mediaUrl.isNullOrEmpty()) VoiceMessageBubble(message, currentUserId)
+                        else MessageBubble(message, currentUserId)
+                    }
+                }
+
+                if (!isAiConversation && isRecording) {
+                    Text("Recording... Time left: ${recordingTimeLeft / 1000}s", color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                }
+                if (!isAiConversation && recordedVoiceUri != null) {
+                    VoiceMessagePlayer(mediaUrl = recordedVoiceUri.toString(), isPlaying = isVoicePlaying, onPlayToggle = {
+                        if (isVoicePlaying) {
+                            voicePlayer?.pause()
+                            isVoicePlaying = false
+                        } else {
+                            playLocalVoice(context, recordedVoiceUri!!) { mp ->
+                                voicePlayer = mp
+                                isVoicePlaying = true
+                                mp.setOnCompletionListener { isVoicePlaying = false; voiceProgress = 0f }
+                            }
+                        }
+                    }, progress = voiceProgress, duration = voicePlayer?.duration?.toLong() ?: 0L)
+                    Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Button(onClick = { recordedVoiceUri = null; recordFile = null }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("Delete", color = Color.White) }
+                        Button(
+                            onClick = {
+                                sendVoiceMessage(currentUserId, otherUserId, chatId, recordedVoiceUri!!, messagesRef, context)
+                                postNotification(notificationsRef, otherUserId, currentUserId, "[Voice Message]")
+                                recordedVoiceUri = null
+                                recordFile = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
+                        ) { Text("Send Voice", color = Color.White) }
+                    }
+                }
+
+                Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (!isAiConversation) {
+                        IconButton(onClick = {
+                            if (isRecording) {
+                                recorder?.stop()
+                                recorder?.release()
+                                recorder = null
+                                isRecording = false
+                                recordedVoiceUri = Uri.fromFile(recordFile)
+                            } else {
+                                if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                    isRecording = true
+                                    messageText = ""
+                                    recordedVoiceUri = null
+                                    recordFile = File(context.filesDir, "voice_message.aac")
+                                    recorder = MediaRecorder().apply {
+                                        setAudioSource(MediaRecorder.AudioSource.MIC)
+                                        setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
+                                        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                        setOutputFile(recordFile?.absolutePath)
+                                        prepare()
+                                        start()
+                                    }
+                                    recordingTimeLeft = maxDurationMs
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                        }) { Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, "Record", tint = Color(0xFFFFA500)) }
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    TextField(
+                        value = messageText,
+                        onValueChange = { messageText = it },
+                        placeholder = { Text("Type a message...", color = Color.Gray) },
+                        modifier = Modifier.weight(1f).background(Color.DarkGray, RoundedCornerShape(24.dp)),
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = Color.DarkGray,
+                            focusedTextColor = Color.White,
+                            focusedPlaceholderColor = Color.Gray,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = {
+                            if (messageText.isNotBlank()) {
+                                if (isAiConversation) {
+                                    chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
+                                } else {
+                                    sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                                    postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                                }
+                                messageText = ""
+                            }
+                        })
                     )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = {
+                            if (messageText.isNotBlank()) {
+                                if (isAiConversation) {
+                                    chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
+                                } else {
+                                    sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                                    postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                                }
+                                messageText = ""
+                            }
+                        },
+                        modifier = Modifier.size(48.dp).background(Color(0xFFFF4500), CircleShape)
+                    ) { Icon(Icons.Default.Send, "Send", tint = Color.White) }
                 }
             }
 
-            LazyColumn(Modifier.weight(1f).padding(vertical = 8.dp), reverseLayout = true, verticalArrangement = Arrangement.Bottom) {
-                items(messages.reversed()) { message ->
-                    if (message.mediaType == "voice" && !message.mediaUrl.isNullOrEmpty()) VoiceMessageBubble(message, currentUserId)
-                    else MessageBubble(message, currentUserId)
-                }
-            }
-
-            if (!isAiConversation && isRecording) {
-                Text("Recording... Time left: ${recordingTimeLeft / 1000}s", color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            }
-            if (!isAiConversation && recordedVoiceUri != null) {
-                VoiceMessagePlayer(mediaUrl = recordedVoiceUri.toString(), isPlaying = isVoicePlaying, onPlayToggle = {
-                    if (isVoicePlaying) {
-                        voicePlayer?.pause()
-                        isVoicePlaying = false
-                    } else {
-                        playLocalVoice(context, recordedVoiceUri!!) { mp ->
-                            voicePlayer = mp
-                            isVoicePlaying = true
-                            mp.setOnCompletionListener { isVoicePlaying = false; voiceProgress = 0f }
+            // Centered Suggestions Dropdown
+            if (!isAiConversation && suggestionsExpanded) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .clickable(
+                            onClick = { suggestionsExpanded = false },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .width(400.dp)
+                            .heightIn(max = 500.dp)
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.Black),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Orange border
+                    ) {
+                        LazyColumn(Modifier.padding(16.dp)) {
+                            if (isLoadingSuggestions) {
+                                item {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                        CircularProgressIndicator(color = Color(0xFFFFA500))
+                                    }
+                                }
+                            } else {
+                                suggestions?.let { sugg ->
+                                    if (sugg.topics.isNotEmpty()) {
+                                        item {
+                                            Text("Topics", color = Color.White, fontWeight = FontWeight.Bold)
+                                        }
+                                        items(sugg.topics.toMutableList()) { topic ->
+                                            Row(
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = 8.dp, top = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(topic, color = Color.White)
+                                                IconButton(onClick = {
+                                                    suggestions = sugg.copy(topics = sugg.topics.filter { it != topic })
+                                                }) {
+                                                    Icon(Icons.Default.Delete, "Delete", tint = Color.Red, modifier = Modifier.size(20.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (sugg.activities.isNotEmpty()) {
+                                        item {
+                                            Spacer(Modifier.height(8.dp))
+                                            Text("Activities", color = Color.White, fontWeight = FontWeight.Bold)
+                                        }
+                                        items(sugg.activities.toMutableList()) { activity ->
+                                            Row(
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = 8.dp, top = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    "${activity.placeName} - ${activity.integration}",
+                                                    color = Color.White,
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clickable {
+                                                            messageText = activity.integration
+                                                            suggestionsExpanded = false
+                                                        }
+                                                )
+                                                IconButton(onClick = {
+                                                    suggestions = sugg.copy(activities = sugg.activities.filter { it != activity })
+                                                }) {
+                                                    Icon(Icons.Default.Delete, "Delete", tint = Color.Red, modifier = Modifier.size(20.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (sugg.integrationTips.isNotEmpty()) {
+                                        item {
+                                            Spacer(Modifier.height(8.dp))
+                                            Text("Tips", color = Color.White, fontWeight = FontWeight.Bold)
+                                        }
+                                        items(sugg.integrationTips.toMutableList()) { tip ->
+                                            Row(
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = 8.dp, top = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(tip, color = Color.White)
+                                                IconButton(onClick = {
+                                                    suggestions = sugg.copy(integrationTips = sugg.integrationTips.filter { it != tip })
+                                                }) {
+                                                    Icon(Icons.Default.Delete, "Delete", tint = Color.Red, modifier = Modifier.size(20.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (sugg.topics.isEmpty() && sugg.activities.isEmpty() && sugg.integrationTips.isEmpty()) {
+                                        item {
+                                            Text("No suggestions", color = Color.Gray)
+                                            Spacer(Modifier.height(8.dp))
+                                            Button(
+                                                onClick = {
+                                                    scope.launch {
+                                                        isLoadingSuggestions = true
+                                                        suggestions = fetchSuggestionsWithRetry()
+                                                        isLoadingSuggestions = false
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                                            ) { Text("Get Suggestions", color = Color.White) }
+                                        }
+                                    }
+                                } ?: item {
+                                    Text("No suggestions", color = Color.Gray)
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                isLoadingSuggestions = true
+                                                suggestions = fetchSuggestionsWithRetry()
+                                                isLoadingSuggestions = false
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                                    ) { Text("Get Suggestions", color = Color.White) }
+                                }
+                            }
+                            item {
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Button(
+                                        onClick = { suggestions = ChatSuggestions(emptyList(), emptyList(), emptyList()) }, // Clear to empty state
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                                    ) { Text("Clear All", color = Color.White) }
+                                    Button(
+                                        onClick = { suggestionsExpanded = false },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
+                                    ) { Text("Close", color = Color.White) }
+                                }
+                            }
                         }
                     }
-                }, progress = voiceProgress, duration = voicePlayer?.duration?.toLong() ?: 0L)
-                Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Button(onClick = { recordedVoiceUri = null; recordFile = null }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("Delete", color = Color.White) }
-                    Button(
-                        onClick = {
-                            sendVoiceMessage(currentUserId, otherUserId, chatId, recordedVoiceUri!!, messagesRef, context)
-                            postNotification(notificationsRef, otherUserId, currentUserId, "[Voice Message]")
-                            recordedVoiceUri = null
-                            recordFile = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
-                    ) { Text("Send Voice", color = Color.White) }
                 }
             }
 
-            Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (!isAiConversation) {
-                    IconButton(onClick = {
-                        if (isRecording) {
-                            recorder?.stop()
-                            recorder?.release()
-                            recorder = null
-                            isRecording = false
-                            recordedVoiceUri = Uri.fromFile(recordFile)
-                        } else {
-                            if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                isRecording = true
-                                messageText = ""
-                                recordedVoiceUri = null
-                                recordFile = File(context.filesDir, "voice_message.aac")
-                                recorder = MediaRecorder().apply {
-                                    setAudioSource(MediaRecorder.AudioSource.MIC)
-                                    setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
-                                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                                    setOutputFile(recordFile?.absolutePath)
-                                    prepare()
-                                    start()
-                                }
-                                recordingTimeLeft = maxDurationMs
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            }
-                        }
-                    }) { Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, "Record", tint = Color(0xFFFFA500)) }
-                    Spacer(Modifier.width(8.dp))
-                }
-                TextField(
-                    value = messageText,
-                    onValueChange = { messageText = it },
-                    placeholder = { Text("Type a message...", color = Color.Gray) },
-                    modifier = Modifier.weight(1f).background(Color.DarkGray, RoundedCornerShape(24.dp)),
-                    colors = TextFieldDefaults.textFieldColors(
-                        containerColor = Color.DarkGray,
-                        focusedTextColor = Color.White,
-                        focusedPlaceholderColor = Color.Gray,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true,
-                    shape = RoundedCornerShape(24.dp),
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = {
-                        if (messageText.isNotBlank()) {
-                            if (isAiConversation) {
-                                chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
-                            } else {
-                                sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
-                                postNotification(notificationsRef, otherUserId, currentUserId, messageText)
-                            }
-                            messageText = ""
-                        }
-                    })
-                )
-                if (!isAiConversation) {
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(
-                        onClick = {
-                            suggestionsExpanded = true
-                            if (suggestions == null || messages.size > 10) {
-                                scope.launch {
-                                    suggestions = getChatSuggestions(
-                                        messages,
-                                        currentUserProfile ?: Profile(),
-                                        otherUserProfile,
-                                        context
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier.size(48.dp).background(Color(0xFFFFA500), CircleShape)
-                    ) { Icon(Icons.Default.Lightbulb, "Suggestions", tint = Color.White) }
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(
-                        onClick = {
-                            placeSuggestionsExpanded = true
-                            if (placeSuggestions == null || messages.size > 10) {
-                                scope.launch {
-                                    val sugg = getChatSuggestions(messages, currentUserProfile ?: Profile(), otherUserProfile, context)
-                                    placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
-                                }
-                            }
-                        },
-                        modifier = Modifier.size(48.dp).background(Color(0xFFFF6F00), CircleShape)
-                    ) { Icon(Icons.Default.Place, "Places Suggestions", tint = Color.White) }
-                }
-                Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = {
-                        if (messageText.isNotBlank()) {
-                            if (isAiConversation) {
-                                chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
-                            } else {
-                                sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
-                                postNotification(notificationsRef, otherUserId, currentUserId, messageText)
-                            }
-                            messageText = ""
-                        }
-                    },
-                    modifier = Modifier.size(48.dp).background(Color(0xFFFF4500), CircleShape)
-                ) { Icon(Icons.Default.Send, "Send", tint = Color.White) }
-            }
-
-            if (!isAiConversation) {
-                // Suggestions Dropdown
-                DropdownMenu(
-                    expanded = suggestionsExpanded,
-                    onDismissRequest = { suggestionsExpanded = false },
-                    modifier = Modifier.background(Color.Black)
+            // Centered Places Suggestions Dropdown
+            if (!isAiConversation && placeSuggestionsExpanded) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .clickable(
+                            onClick = { placeSuggestionsExpanded = false },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    suggestions?.let { sugg ->
-                        if (sugg.topics.isNotEmpty()) {
-                            DropdownMenuItem(text = { Text("Topics", color = Color.White, fontWeight = FontWeight.Bold) }, onClick = {})
-                            sugg.topics.forEach { topic ->
-                                DropdownMenuItem(text = { Text(topic, color = Color.White) }, onClick = {})
+                    Card(
+                        modifier = Modifier
+                            .width(400.dp)
+                            .heightIn(max = 500.dp)
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.Black),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Orange border
+                    ) {
+                        LazyColumn(Modifier.padding(16.dp)) {
+                            if (isLoadingPlaces) {
+                                item {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                        CircularProgressIndicator(color = Color(0xFFFF6F00))
+                                    }
+                                }
+                            } else {
+                                placeSuggestions?.let { places ->
+                                    if (places.isNotEmpty()) {
+                                        items(places.toMutableList()) { place ->
+                                            Row(
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 8.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                PlaceDetailsCard(
+                                                    place,
+                                                    onSend = {
+                                                        val messageText = "Check out this place: ${place.placeName}. Directions: https://maps.google.com/?q=${place.latLng.latitude},${place.latLng.longitude}"
+                                                        sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                                                        postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                                                        placeSuggestionsExpanded = false
+                                                    },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                IconButton(onClick = {
+                                                    placeSuggestions = places.filter { it != place }
+                                                }) {
+                                                    Icon(Icons.Default.Delete, "Delete", tint = Color.Red, modifier = Modifier.size(20.dp))
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        item {
+                                            Text("No places found", color = Color.Gray)
+                                            Spacer(Modifier.height(8.dp))
+                                            Button(
+                                                onClick = {
+                                                    scope.launch {
+                                                        isLoadingPlaces = true
+                                                        val sugg = fetchSuggestionsWithRetry()
+                                                        placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                                        isLoadingPlaces = false
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+                                            ) { Text("Get Suggestions", color = Color.White) }
+                                        }
+                                    }
+                                } ?: item {
+                                    Text("No places found", color = Color.Gray)
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                isLoadingPlaces = true
+                                                val sugg = fetchSuggestionsWithRetry()
+                                                placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                                isLoadingPlaces = false
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+                                    ) { Text("Get Suggestions", color = Color.White) }
+                                }
+                            }
+                            item {
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Button(
+                                        onClick = { placeSuggestions = emptyList() }, // Clear to empty state
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                                    ) { Text("Clear All", color = Color.White) }
+                                    Button(
+                                        onClick = { placeSuggestionsExpanded = false },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
+                                    ) { Text("Close", color = Color.White) }
+                                }
                             }
                         }
-                        if (sugg.activities.isNotEmpty()) {
-                            DropdownMenuItem(text = { Text("Activities", color = Color.White, fontWeight = FontWeight.Bold) }, onClick = {})
-                            sugg.activities.forEach { activity ->
-                                DropdownMenuItem(
-                                    text = { Text("${activity.placeName} - ${activity.integration}", color = Color.White) },
-                                    onClick = { messageText = activity.integration; suggestionsExpanded = false }
-                                )
-                            }
-                        }
-                        if (sugg.integrationTips.isNotEmpty()) {
-                            DropdownMenuItem(text = { Text("Tips", color = Color.White, fontWeight = FontWeight.Bold) }, onClick = {})
-                            sugg.integrationTips.forEach { tip ->
-                                DropdownMenuItem(text = { Text(tip, color = Color.White) }, onClick = {})
-                            }
-                        }
-                    } ?: DropdownMenuItem(text = { Text("Loading suggestions...", color = Color.Gray) }, onClick = {})
-                }
-
-                // Places Suggestions Dropdown with Cards
-                DropdownMenu(
-                    expanded = placeSuggestionsExpanded,
-                    onDismissRequest = { placeSuggestionsExpanded = false },
-                    modifier = Modifier.background(Color.Black)
-                ) {
-                    placeSuggestions?.let { places ->
-                        if (places.isNotEmpty()) {
-                            places.forEach { place ->
-                                DropdownMenuItem(
-                                    text = { PlaceDetailsCard(place, onSend = {
-                                        val messageText = "Check out this place: ${place.placeName}. Directions: https://maps.google.com/?q=${place.latLng.latitude},${place.latLng.longitude}"
-                                        sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
-                                        postNotification(notificationsRef, otherUserId, currentUserId, messageText)
-                                        placeSuggestionsExpanded = false
-                                    }) },
-                                    onClick = {}
-                                )
-                            }
-                        } else {
-                            DropdownMenuItem(text = { Text("No places found near ${otherUserProfile?.name ?: "them"}", color = Color.Gray) }, onClick = {})
-                        }
-                    } ?: DropdownMenuItem(text = { Text("Loading place suggestions...", color = Color.Gray) }, onClick = {})
+                    }
                 }
             }
         }
     }
 }
 
+// Updated PlaceDetailsCard (unchanged from previous, included for completeness)
 @Composable
-fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit) {
+fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(8.dp)
             .clickable { onSend() },
