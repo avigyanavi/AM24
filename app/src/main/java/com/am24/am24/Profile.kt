@@ -109,11 +109,6 @@ data class Profile(
     var postMarriageCareerPlan: String? = null,  // "Continue working", "Open to discussion", "Prefer homemaking"
     var traditionalVsLiberal: String? = null,  // "Traditional", "Moderate", "Liberal"
 
-    // New personal details for matrimony:
-    val maritalStatus: String? = null,
-    val children: Int? = null,
-    val familyValues: String? = null,
-
     // Family details (optional)
     var fatherOccupation: String? = null,
     var motherOccupation: String? = null,

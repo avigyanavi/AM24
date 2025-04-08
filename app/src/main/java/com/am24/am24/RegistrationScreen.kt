@@ -34,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
@@ -147,6 +148,10 @@ class RegistrationViewModel : ViewModel() {
     var city by mutableStateOf("")
     var customCity by mutableStateOf("")
 
+    // Add new fields
+    var loveLanguage by mutableStateOf("")
+    var jobRole by mutableStateOf("")
+
     // Voice Recording
     var voiceNoteUri by mutableStateOf<Uri?>(null) // To hold the voice recording URI
     var voiceNoteFilePath by mutableStateOf<String?>(null) // To hold the file path
@@ -242,7 +247,6 @@ class RegistrationViewModel : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(
     onRegistrationComplete: () -> Unit,
@@ -250,17 +254,13 @@ fun RegistrationScreen(
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel()
     var currentStep by remember { mutableStateOf(1) }
-    val totalSteps = 11
+    val totalSteps = 12 // Updated to 12 steps
     val progress = currentStep.toFloat() / totalSteps.toFloat()
 
     val context = LocalContext.current
     val onNext = { currentStep += 1 }
     val onBack: () -> Unit = {
-        if (currentStep > 1) {
-            currentStep -= 1
-        } else {
-            (context as? ComponentActivity)?.finish()
-        }
+        if (currentStep > 1) currentStep -= 1 else (context as? ComponentActivity)?.finish()
     }
 
     Scaffold(
@@ -284,9 +284,7 @@ fun RegistrationScreen(
             ) {
                 LinearProgressIndicator(
                     progress = progress,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
                     color = Color(0xFFFF6000),
                     trackColor = Color.Gray
                 )
@@ -301,8 +299,9 @@ fun RegistrationScreen(
                     7 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
                     8 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
                     9 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    10 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
-                    11 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    10 -> EnterPersonalDetailsScreen(registrationViewModel, onNext, onBack) // Inserted here
+                    11 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
+                    12 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack) // Final step
                 }
             }
         }
@@ -389,6 +388,180 @@ fun ChooseLanguageScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
                 ) {
                     Text(stringResource(R.string.next_button), color = Color.White)
+                }
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnterPersonalDetailsScreen(
+    viewModel: RegistrationViewModel,
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
+    val lookingForOptions = listOf("Friendship", "Dating", "Relationship", "Marriage")
+    val loveLanguageOptions = listOf("Words of Affirmation", "Acts of Service", "Receiving Gifts", "Quality Time", "Physical Touch")
+    val politicsOptions = listOf("Liberal", "Moderate", "Conservative", "Other")
+    val jobRoleOptions = listOf("Engineer", "Teacher", "Doctor", "Student", "Entrepreneur", "Other")
+    val workOptions = listOf("Private Sector", "Government", "Freelance", "Unemployed")
+
+    var lookingFor by remember { mutableStateOf(viewModel.lookingFor) }
+    var loveLanguage by remember { mutableStateOf(viewModel.loveLanguage) }
+    var politics by remember { mutableStateOf(viewModel.politics) }
+    val socialCauses = remember { mutableStateListOf<String>().apply { addAll(viewModel.socialCauses) } }
+    var newSocialCause by remember { mutableStateOf("") }
+    var jobRole by remember { mutableStateOf(viewModel.jobRole) }
+    var work by remember { mutableStateOf(viewModel.work) }
+
+    var lookingForExpanded by remember { mutableStateOf(false) }
+    var loveLanguageExpanded by remember { mutableStateOf(false) }
+    var politicsExpanded by remember { mutableStateOf(false) }
+    var jobRoleExpanded by remember { mutableStateOf(false) }
+    var workExpanded by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Personal Details", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
+            )
+        },
+        content = { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1A1A1A))
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    Text("Tell us more about yourself", color = Color.White, fontSize = 20.sp)
+                }
+
+                item {
+                    DropdownWithStaticOptions(
+                        label = "Looking For",
+                        options = lookingForOptions,
+                        selectedOption = lookingFor,
+                        onOptionSelected = {
+                            lookingFor = it
+                            viewModel.lookingFor = it
+                        }
+                    )
+                }
+
+                item {
+                    DropdownWithStaticOptions(
+                        label = "Love Language",
+                        options = loveLanguageOptions,
+                        selectedOption = loveLanguage,
+                        onOptionSelected = {
+                            loveLanguage = it
+                            viewModel.loveLanguage = it
+                        }
+                    )
+                }
+
+                item {
+                    DropdownWithStaticOptions(
+                        label = "Political Views",
+                        options = politicsOptions,
+                        selectedOption = politics,
+                        onOptionSelected = {
+                            politics = it
+                            viewModel.politics = it
+                        }
+                    )
+                }
+
+                item {
+                    Column {
+                        Text("Social Causes", color = Color.White, fontSize = 16.sp)
+                        OutlinedTextField(
+                            value = newSocialCause,
+                            onValueChange = { newSocialCause = it },
+                            label = { Text("Add a cause", color = Color.White) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = Color(0xFFFF6000),
+                                focusedBorderColor = Color(0xFFFF6000),
+                                unfocusedBorderColor = Color.White,
+                                focusedLabelColor = Color(0xFFFF6000),
+                                unfocusedLabelColor = Color.White
+                            ),
+                            trailingIcon = {
+                                if (newSocialCause.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        socialCauses.add(newSocialCause)
+                                        viewModel.socialCauses.add(newSocialCause)
+                                        newSocialCause = ""
+                                    }) {
+                                        Icon(Icons.Default.Add, "Add", tint = Color.White)
+                                    }
+                                }
+                            }
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            items(socialCauses) { cause ->
+                                FilterChip(
+                                    selected = true,
+                                    onClick = {
+                                        socialCauses.remove(cause)
+                                        viewModel.socialCauses.remove(cause)
+                                    },
+                                    label = { Text(cause, color = Color.White) },
+                                    colors = FilterChipDefaults.filterChipColors(containerColor = Color(0xFFFF6000))
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    DropdownWithStaticOptions(
+                        label = "Job Role",
+                        options = jobRoleOptions,
+                        selectedOption = jobRole,
+                        onOptionSelected = {
+                            jobRole = it
+                            viewModel.jobRole = it
+                        }
+                    )
+                }
+
+                item {
+                    DropdownWithStaticOptions(
+                        label = "Work Type",
+                        options = workOptions,
+                        selectedOption = work,
+                        onOptionSelected = {
+                            work = it
+                            viewModel.work = it
+                        }
+                    )
+                }
+
+                item {
+                    Button(
+                        onClick = onNext,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+                    ) {
+                        Text("Next", color = Color.White)
+                    }
                 }
             }
         }
@@ -1834,6 +2007,8 @@ suspend fun saveProfileToFirebase(
             datingAgeStart = registrationViewModel.datingAgeStart,
             datingAgeEnd = registrationViewModel.datingAgeEnd,
             datingDistancePreference = registrationViewModel.datingDistancePreference,
+            loveLanguage = registrationViewModel.loveLanguage,
+            jobRole = registrationViewModel.jobRole,
             preferredLanguage = registrationViewModel.selectedLanguage, // NEW: Save language choice
             zodiac = registrationViewModel.zodiac // Include zodiac in the profile
         )

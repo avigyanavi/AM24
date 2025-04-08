@@ -68,7 +68,6 @@ import java.io.File
 data class MoodLevels(val trust: Int = 0, val jealousy: Int = 0, val romantic_passion: Int = 0, val satisfaction: Int = 0)
 data class RelationshipHistory(val attachment: Int = 50, val confidence: Int = 50, val emotionalDepth: Int = 50)
 data class ModelingState(val relationshipHistory: RelationshipHistory = RelationshipHistory(), val moodLevels: MoodLevels = MoodLevels(), val relationshipStage: String = "Friend")
-data class ChatMessage(val role: String = "", val content: String = "", val timestamp: Long = System.currentTimeMillis())
 data class EmotionDeltas(val trustDelta: Int = 0, val jealousyDelta: Int = 0, val romanticPassionDelta: Int = 0, val satisfactionDelta: Int = 0)
 data class MessageImpact(val impactScore: Int, val emotionDeltas: EmotionDeltas, val snippetToStore: String = "", val explanation: String = "")
 
@@ -346,13 +345,22 @@ fun ChatScreenContent(
 
     var averageRating by remember { mutableStateOf(0.0) }
     var yourRating by rememberSaveable(otherUserId) { mutableStateOf(-1.0) }
+    var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
     var showRating by remember { mutableStateOf(true) }
     var moreOptionsMenuExpanded by remember { mutableStateOf(false) }
     var showClearChatMenu by remember { mutableStateOf(false) }
+    var suggestions by remember { mutableStateOf<ChatSuggestions?>(null) }
+    var suggestionsExpanded by remember { mutableStateOf(false) }
+    var placeSuggestions by remember { mutableStateOf<List<PlaceDetails>?>(null) }
+    var placeSuggestionsExpanded by remember { mutableStateOf(false) }
 
+    // Coroutine scope for launching async tasks from onClick
+    val scope = rememberCoroutineScope()
+
+    // Recording variables (unchanged)
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
     var recordFile: File? by remember { mutableStateOf(null) }
@@ -381,15 +389,11 @@ fun ChatScreenContent(
         }
     }
 
-    LaunchedEffect(otherUserId) {
-        if (isAiConversation) {
-            otherUserProfile = when (otherUserId) {
-                "zaraAi" -> Profile(userId = "zaraAi", name = "Zara", bio = "Kolkata Cricket Diva", profilepicUrl = "", averageRating = 4.2, numberOfRatings = 35)
-                "kabirAi" -> Profile(userId = "kabirAi", name = "Kabir", bio = "Bad Boy Cop of Kolkata", profilepicUrl = "", averageRating = 3.8, numberOfRatings = 20)
-                else -> null
-            }
-            averageRating = otherUserProfile?.averageRating ?: 0.0
-        } else {
+    LaunchedEffect(Unit) {
+        usersRef.child(currentUserId).get().addOnSuccessListener { snapshot ->
+            currentUserProfile = snapshot.getValue(Profile::class.java)
+        }
+        if (!isAiConversation) {
             usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
                 val profile = snapshot.getValue(Profile::class.java)
                 if (profile != null) {
@@ -450,56 +454,24 @@ fun ChatScreenContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
                             otherUserProfile?.let {
-                                if (isAiConversation) navController.navigate("aiProfile/$otherUserId")
-                                else navController.navigate("matchedUserProfile/$otherUserId")
+                                if (!isAiConversation) navController.navigate("matchedUserProfile/$otherUserId")
                             }
                         }
                     ) {
-                        when {
-                            isAiConversation && otherUserId == "zaraAi" ->
-                                Image(
-                                    painter = painterResource(R.drawable.zara_avatar),
-                                    contentDescription = "Zara avatar",
-                                    modifier = Modifier.size(40.dp).clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            isAiConversation && otherUserId == "kabirAi" ->
-                                Image(
-                                    painter = painterResource(R.drawable.kabir_avatar),
-                                    contentDescription = "Kabir avatar",
-                                    modifier = Modifier.size(40.dp).clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            otherUserProfile?.profilepicUrl?.isNotBlank() == true -> {
-                                // Prefetch the dp if not already in cache
-                                LaunchedEffect(otherUserProfile?.profilepicUrl) {
-                                    otherUserProfile?.profilepicUrl?.let { url ->
-                                        val request = ImageRequest.Builder(context)
-                                            .data(url)
-                                            .diskCacheKey(url)
-                                            .memoryCacheKey(url)
-                                            .crossfade(true)
-                                            .build()
-                                        context.imageLoader.enqueue(request)
-                                    }
-                                }
-                                AsyncImage(
-                                    model = ImageRequest.Builder(context)
-                                        .data(otherUserProfile!!.profilepicUrl)
-                                        .diskCacheKey(otherUserProfile!!.profilepicUrl)
-                                        .memoryCacheKey(otherUserProfile!!.profilepicUrl)
-                                        .crossfade(true)
-                                        .build(),
-                                    contentDescription = "Profile",
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Gray),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            else ->
-                                Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
+                        if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(otherUserProfile!!.profilepicUrl)
+                                    .diskCacheKey(otherUserProfile!!.profilepicUrl)
+                                    .memoryCacheKey(otherUserProfile!!.profilepicUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Profile",
+                                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(otherUserProfile?.name ?: "Chat", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -519,25 +491,9 @@ fun ChatScreenContent(
                             text = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red); Spacer(Modifier.width(4.dp)); Text("Clear Chat...") } },
                             onClick = { moreOptionsMenuExpanded = false; showClearChatMenu = true }
                         )
-                        if (isAiConversation) {
-                            DropdownMenuItem(
-                                text = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Info, "Memory Log", tint = Color.Gray); Spacer(Modifier.width(4.dp)); Text("View Memory Log") } },
-                                onClick = { moreOptionsMenuExpanded = false; navController.navigate("aiProfile/$otherUserId") }
-                            )
-                        }
                     }
                     DropdownMenu(expanded = showClearChatMenu, onDismissRequest = { showClearChatMenu = false }) {
                         DropdownMenuItem(text = { Text("Clear Chat Only") }, onClick = { showClearChatMenu = false; messagesRef.setValue(null); messages.clear() })
-                        DropdownMenuItem(
-                            text = { Text("Clear Chat + Memory") },
-                            onClick = {
-                                showClearChatMenu = false
-                                messagesRef.setValue(null)
-                                messages.clear()
-                                if (isAiConversation) chatAIViewModel.clearMemoryForAI(otherUserId)
-                                else Toast.makeText(context, "Memory only applies to AI chats.", Toast.LENGTH_SHORT).show()
-                            }
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -648,7 +604,7 @@ fun ChatScreenContent(
                     keyboardActions = KeyboardActions(onSend = {
                         if (messageText.isNotBlank()) {
                             if (isAiConversation) {
-                                chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, profileViewModel.currentUserProfile.value?.name ?: "User")
+                                chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
                             } else {
                                 sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
                                 postNotification(notificationsRef, otherUserId, currentUserId, messageText)
@@ -657,12 +613,44 @@ fun ChatScreenContent(
                         }
                     })
                 )
+                if (!isAiConversation) {
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = {
+                            suggestionsExpanded = true
+                            if (suggestions == null || messages.size > 10) {
+                                scope.launch {
+                                    suggestions = getChatSuggestions(
+                                        messages,
+                                        currentUserProfile ?: Profile(),
+                                        otherUserProfile,
+                                        context
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.size(48.dp).background(Color(0xFFFFA500), CircleShape)
+                    ) { Icon(Icons.Default.Lightbulb, "Suggestions", tint = Color.White) }
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = {
+                            placeSuggestionsExpanded = true
+                            if (placeSuggestions == null || messages.size > 10) {
+                                scope.launch {
+                                    val sugg = getChatSuggestions(messages, currentUserProfile ?: Profile(), otherUserProfile, context)
+                                    placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                }
+                            }
+                        },
+                        modifier = Modifier.size(48.dp).background(Color(0xFFFF6F00), CircleShape)
+                    ) { Icon(Icons.Default.Place, "Places Suggestions", tint = Color.White) }
+                }
                 Spacer(Modifier.width(8.dp))
                 IconButton(
                     onClick = {
                         if (messageText.isNotBlank()) {
                             if (isAiConversation) {
-                                chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, profileViewModel.currentUserProfile.value?.name ?: "User")
+                                chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
                             } else {
                                 sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
                                 postNotification(notificationsRef, otherUserId, currentUserId, messageText)
@@ -672,6 +660,94 @@ fun ChatScreenContent(
                     },
                     modifier = Modifier.size(48.dp).background(Color(0xFFFF4500), CircleShape)
                 ) { Icon(Icons.Default.Send, "Send", tint = Color.White) }
+            }
+
+            if (!isAiConversation) {
+                // Suggestions Dropdown
+                DropdownMenu(
+                    expanded = suggestionsExpanded,
+                    onDismissRequest = { suggestionsExpanded = false },
+                    modifier = Modifier.background(Color.Black)
+                ) {
+                    suggestions?.let { sugg ->
+                        if (sugg.topics.isNotEmpty()) {
+                            DropdownMenuItem(text = { Text("Topics", color = Color.White, fontWeight = FontWeight.Bold) }, onClick = {})
+                            sugg.topics.forEach { topic ->
+                                DropdownMenuItem(text = { Text(topic, color = Color.White) }, onClick = {})
+                            }
+                        }
+                        if (sugg.activities.isNotEmpty()) {
+                            DropdownMenuItem(text = { Text("Activities", color = Color.White, fontWeight = FontWeight.Bold) }, onClick = {})
+                            sugg.activities.forEach { activity ->
+                                DropdownMenuItem(
+                                    text = { Text("${activity.placeName} - ${activity.integration}", color = Color.White) },
+                                    onClick = { messageText = activity.integration; suggestionsExpanded = false }
+                                )
+                            }
+                        }
+                        if (sugg.integrationTips.isNotEmpty()) {
+                            DropdownMenuItem(text = { Text("Tips", color = Color.White, fontWeight = FontWeight.Bold) }, onClick = {})
+                            sugg.integrationTips.forEach { tip ->
+                                DropdownMenuItem(text = { Text(tip, color = Color.White) }, onClick = {})
+                            }
+                        }
+                    } ?: DropdownMenuItem(text = { Text("Loading suggestions...", color = Color.Gray) }, onClick = {})
+                }
+
+                // Places Suggestions Dropdown with Cards
+                DropdownMenu(
+                    expanded = placeSuggestionsExpanded,
+                    onDismissRequest = { placeSuggestionsExpanded = false },
+                    modifier = Modifier.background(Color.Black)
+                ) {
+                    placeSuggestions?.let { places ->
+                        if (places.isNotEmpty()) {
+                            places.forEach { place ->
+                                DropdownMenuItem(
+                                    text = { PlaceDetailsCard(place, onSend = {
+                                        val messageText = "Check out this place: ${place.placeName}. Directions: https://maps.google.com/?q=${place.latLng.latitude},${place.latLng.longitude}"
+                                        sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
+                                        postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                                        placeSuggestionsExpanded = false
+                                    }) },
+                                    onClick = {}
+                                )
+                            }
+                        } else {
+                            DropdownMenuItem(text = { Text("No places found near ${otherUserProfile?.name ?: "them"}", color = Color.Gray) }, onClick = {})
+                        }
+                    } ?: DropdownMenuItem(text = { Text("Loading place suggestions...", color = Color.Gray) }, onClick = {})
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { onSend() },
+        colors = CardDefaults.cardColors(containerColor = Color.DarkGray),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(place.placeName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            place.address?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, color = Color.Gray, fontSize = 14.sp)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = {
+                    val gmmIntentUri = Uri.parse("google.navigation:q=${place.latLng.latitude},${place.latLng.longitude}")
+                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri).apply { setPackage("com.google.android.apps.maps") }
+                    context.startActivity(mapIntent)
+                }) { Text("Directions", color = Color(0xFFFFA500)) }
+                Text("Tap to send", color = Color(0xFFFF4500), fontSize = 12.sp)
             }
         }
     }

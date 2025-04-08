@@ -1152,21 +1152,6 @@ fun TagBox(
     }
 }
 
-@Composable
-fun TagBox2(text: String) {
-    if (text.isNotBlank()) {
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 1.dp)
-                .background(Color.Black, shape = RoundedCornerShape(4.dp))
-                .border(BorderStroke(1.dp, Color(0xFFFF6F00)), shape = RoundedCornerShape(4.dp))
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            Text(text = text, color = Color.White, fontSize = 28.sp)
-        }
-    }
-}
-
 /** Updated FlashyVibeScore with modifier parameter for overlay positioning */
 @Composable
 fun FlashyVibeScore(
