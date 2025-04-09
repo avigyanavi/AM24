@@ -14,6 +14,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
+// Data classes for chat suggestions
+
 data class ChatSuggestions(
     val topics: List<String> = emptyList(),
     val activities: List<ActivitySuggestion> = emptyList(),
@@ -31,13 +33,32 @@ data class PlaceDetails(
     val address: String? = null
 )
 
-data class ChatMessage(val role: String = "", val content: String = "", val timestamp: Long = System.currentTimeMillis())
+data class ChatMessage(
+    val role: String = "",
+    val content: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
 
-data class ChatRequest(val model: String, val messages: List<ChatMessage>, val max_tokens: Int)
+data class ChatRequest(
+    val model: String,
+    val messages: List<ChatMessage>,
+    val max_tokens: Int
+)
 
-data class ChatResponse(val choices: List<Choice>)
-data class Choice(val message: ChatMessage)
+data class ChatResponse(
+    val choices: List<Choice>
+)
 
+data class Choice(
+    val message: ChatMessage
+)
+
+/**
+ * Fetches chat suggestions based on recent messages and user profiles.
+ *
+ * The API may return a response wrapped in a code block. This method cleans the response
+ * by removing any leading "```json" and trailing "```" markers before using Gson to parse it.
+ */
 suspend fun getChatSuggestions(
     messages: List<Message>,
     currentUserProfile: Profile,
@@ -80,9 +101,7 @@ Return your response as a valid JSON object in this exact format:
   ],
   "integrationTips": ["tip1", "tip2"]
 }
-Ensure the response is a valid JSON object without additional markers or text.
-""".trimIndent()
-
+Ensure the response is a valid JSON object without additional markers or text. """.trimIndent()
     val response = withContext(Dispatchers.IO) {
         val client = OkHttpClient.Builder()
             .connectTimeout(120, TimeUnit.SECONDS)
@@ -115,12 +134,16 @@ Ensure the response is a valid JSON object without additional markers or text.
         }
     } ?: return null
 
-// Parse the response as ChatResponse, then extract and parse the content
     return try {
         val chatResponse = gson.fromJson(response, ChatResponse::class.java)
         val content = chatResponse.choices.firstOrNull()?.message?.content ?: return null
         Log.d("ChatSuggestions", "Extracted content: $content")
-        gson.fromJson(content, ChatSuggestions::class.java)
+        // Clean the content by removing any code block markers if they exist
+        val cleanedContent = content.trim()
+            .removePrefix("```json")
+            .removeSuffix("```")
+            .trim()
+        gson.fromJson(cleanedContent, ChatSuggestions::class.java)
     } catch (e: JsonSyntaxException) {
         Log.e("ChatSuggestions", "Failed to parse response: $response", e)
         null
@@ -130,126 +153,58 @@ Ensure the response is a valid JSON object without additional markers or text.
     }
 }
 
-suspend fun getPlaceSuggestions(
-    topics: List<String>,
-    otherUserProfile: Profile?,
-    context: Context
-): List<PlaceDetails> {
-    val otherUserLatLng = otherUserProfile?.let { LatLng(it.latitude ?: 0.0, it.longitude ?: 0.0) } ?: return emptyList()
+/**
+
+Returns a list of suggested places based on the provided topics and the other user's profile. */
+suspend fun getPlaceSuggestions( topics: List<String>, otherUserProfile: Profile?, context: Context ): List<PlaceDetails>
+{ val otherUserLatLng = otherUserProfile?.let { LatLng(it.latitude ?: 0.0, it.longitude ?: 0.0) } ?: return emptyList()
     val results = mutableListOf<PlaceDetails>()
+    topics.take(2).forEach { topic -> val places = searchPlacesWithOkHttp(topic, otherUserLatLng, context)
+        places.firstOrNull()?.let { (latLng, name) -> results.add(
+            PlaceDetails( placeName = name, latLng = latLng, address = fetchAddress(latLng, context) ) ) } }
+    return results }
 
-    topics.take(2).forEach { topic ->
-        val places = searchPlacesWithOkHttp(topic, otherUserLatLng, context)
-        places.firstOrNull()?.let { (latLng, name) ->
-            results.add(
-                PlaceDetails(
-                    placeName = name,
-                    latLng = latLng,
-                    address = fetchAddress(latLng, context)
-                )
-            )
-        }
-    }
+/**
 
-    return results
-}
-
-suspend fun searchPlacesWithOkHttp(query: String, userLocation: LatLng, context: Context): List<Pair<LatLng, String>> = withContext(Dispatchers.IO) {
-    val client = OkHttpClient()
+Searches for places using the Google Places API Text Search. */
+suspend fun searchPlacesWithOkHttp(query: String, userLocation: LatLng, context: Context): List<Pair<LatLng, String>> = withContext(Dispatchers.IO) { val client = OkHttpClient()
     val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ"
-    val requestBody = JSONObject()
-        .put("textQuery", query)
-        .put(
-            "locationBias",
-            JSONObject()
-                .put("circle",
-                    JSONObject()
-                        .put("center",
-                            JSONObject()
-                                .put("latitude", userLocation.latitude)
-                                .put("longitude", userLocation.longitude)
-                        )
-                        .put("radius", 10000) // 10 km radius
-                )
-        )
-        .toString()
-        .toRequestBody("application/json".toMediaType())
-
-    val request = Request.Builder()
-        .url("https://places.googleapis.com/v1/places:searchText")
-        .addHeader("Content-Type", "application/json")
-        .addHeader("X-Goog-Api-Key", apiKey)
-        .addHeader("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.location")
-        .post(requestBody)
-        .build()
-
+    val requestBody = JSONObject() .put("textQuery", query) .put( "locationBias", JSONObject() .put("circle", JSONObject() .put("center", JSONObject() .put("latitude", userLocation.latitude) .put("longitude", userLocation.longitude) ) .put("radius", 10000) ) ) .toString() .toRequestBody("application/json".toMediaType())
+    val request = Request.Builder() .url("https://places.googleapis.com/v1/places:searchText") .addHeader("Content-Type", "application/json") .addHeader("X-Goog-Api-Key", apiKey) .addHeader("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.location") .post(requestBody) .build()
     val results = mutableListOf<Pair<LatLng, String>>()
-    try {
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                Log.e("PlacesSearch", "Error: ${response.code} - ${response.body?.string()}")
-                return@withContext emptyList()
-            }
-            val json = JSONObject(response.body?.string() ?: return@withContext emptyList())
-            val places = json.getJSONArray("places")
-            for (i in 0 until places.length()) {
-                val place = places.getJSONObject(i)
-                val name = place.getJSONObject("displayName").getString("text")
-                val location = place.getJSONObject("location")
-                val lat = location.getDouble("latitude")
-                val lng = location.getDouble("longitude")
-                results.add(LatLng(lat, lng) to name)
-            }
-        }
-    } catch (e: Exception) {
-        Log.e("PlacesSearch", "Exception: ${e.message}", e)
-    }
-    return@withContext results
-}
+    try { client.newCall(request).execute().use { response -> if (!response.isSuccessful)
+    { Log.e("PlacesSearch", "Error: ${response.code} - ${response.body?.string()}")
+        return@withContext emptyList() }
+        val json = JSONObject(response.body?.string() ?: return@withContext emptyList())
+        val places = json.getJSONArray("places")
+        for (i in 0 until places.length()) { val place = places.getJSONObject(i)
+            val name = place.getJSONObject("displayName").getString("text")
+            val location = place.getJSONObject("location")
+            val lat = location.getDouble("latitude")
+            val lng = location.getDouble("longitude")
+            results.add(LatLng(lat, lng) to name) } } } catch (e: Exception) { Log.e("PlacesSearch", "Exception: ${e.message}", e) }
+    results }
 
-suspend fun fetchAddress(latLng: LatLng, context: Context): String? = withContext(Dispatchers.IO) {
-    // Placeholder: Use the Places API's formattedAddress if available
+suspend fun fetchAddress(latLng: LatLng, context: Context): String? = withContext(Dispatchers.IO)
+{
     val client = OkHttpClient()
     val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ"
-    val requestBody = JSONObject()
-        .put("textQuery", "${latLng.latitude},${latLng.longitude}")
-        .put(
-            "locationBias",
-            JSONObject()
-                .put("circle",
-                    JSONObject()
-                        .put("center",
-                            JSONObject()
-                                .put("latitude", latLng.latitude)
-                                .put("longitude", latLng.longitude)
-                        )
-                        .put("radius", 100) // Small radius for precision
-                )
-        )
-        .toString()
-        .toRequestBody("application/json".toMediaType())
-
-    val request = Request.Builder()
-        .url("https://places.googleapis.com/v1/places:searchText")
-        .addHeader("Content-Type", "application/json")
-        .addHeader("X-Goog-Api-Key", apiKey)
-        .addHeader("X-Goog-FieldMask", "places.formattedAddress")
-        .post(requestBody)
-        .build()
-
-    try {
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                Log.e("FetchAddress", "Error: ${response.code}")
-                return@withContext "Near ${latLng.latitude}, ${latLng.longitude}"
-            }
+    val requestBody = JSONObject() .put("textQuery", "${latLng.latitude},${latLng.longitude}") .put( "locationBias", JSONObject() .put("circle", JSONObject() .put("center", JSONObject() .put("latitude", latLng.latitude) .put("longitude", latLng.longitude) ) .put("radius", 100) ) ) .toString() .toRequestBody("application/json".toMediaType())
+    val request = Request.Builder() .url("https://places.googleapis.com/v1/places:searchText") .addHeader("Content-Type", "application/json") .addHeader("X-Goog-Api-Key", apiKey) .addHeader("X-Goog-FieldMask", "places.formattedAddress") .post(requestBody) .build()
+    try
+    {
+        client.newCall(request).execute().use { response -> if (!response.isSuccessful)
+        { Log.e("FetchAddress", "Error: ${response.code}")
+        return@withContext "Near ${latLng.latitude}, ${latLng.longitude}"
+        }
             val json = JSONObject(response.body?.string() ?: return@withContext "Near ${latLng.latitude}, ${latLng.longitude}")
-            val places = json.getJSONArray("places")
-            if (places.length() > 0) {
+        val places = json.getJSONArray("places")
+            if (places.length() > 0)
+            {
                 places.getJSONObject(0).optString("formattedAddress", "Near ${latLng.latitude}, ${latLng.longitude}")
-            } else {
-                "Near ${latLng.latitude}, ${latLng.longitude}"
             }
+            else
+            { "Near ${latLng.latitude}, ${latLng.longitude}" }
         }
     } catch (e: Exception) {
         Log.e("FetchAddress", "Exception: ${e.message}")

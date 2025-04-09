@@ -43,6 +43,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
@@ -66,6 +67,14 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.gson.JsonSyntaxException
 import java.io.File
+import android.os.Environment
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.window.Dialog
+import androidx.core.content.FileProvider
+import java.io.IOException
+import androidx.compose.runtime.setValue
+import android.app.DownloadManager
 
 // Data classes
 data class MoodLevels(val trust: Int = 0, val jealousy: Int = 0, val romantic_passion: Int = 0, val satisfaction: Int = 0)
@@ -74,7 +83,7 @@ data class ModelingState(val relationshipHistory: RelationshipHistory = Relation
 data class EmotionDeltas(val trustDelta: Int = 0, val jealousyDelta: Int = 0, val romanticPassionDelta: Int = 0, val satisfactionDelta: Int = 0)
 data class MessageImpact(val impactScore: Int, val emotionDeltas: EmotionDeltas, val snippetToStore: String = "", val explanation: String = "")
 
-// Message data class with processed flag
+// Updated Message data class to remove 'viewed' field
 data class Message(
     val id: String = "",
     val senderId: String = "",
@@ -82,9 +91,9 @@ data class Message(
     val text: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val read: Boolean = false,
-    val mediaType: String? = null,
+    val mediaType: String? = null, // Supports "photo" or "voice" only
     val mediaUrl: String? = null,
-    val processed: Boolean = false // Tracks if notification has been posted
+    val processed: Boolean = false,
 )
 
 // ChatAIViewModel
@@ -334,15 +343,18 @@ fun ChatScreenContent(
     profileViewModel: ProfileViewModel,
     chatAIViewModel: ChatAIViewModel
 ) {
+    var isSendingMessage by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
+    var fullScreenTarget by remember { mutableStateOf<Message?>(null) }
     val database = FirebaseDatabase.getInstance()
     val usersRef = database.getReference("users")
     val chatId = getChatId(currentUserId, otherUserId)
     val messagesRef = database.getReference("messages/$chatId")
     val notificationsRef = database.getReference("notifications")
     val ratingsRef = database.getReference("ratings")
+    val reportsRef = database.getReference("reports")
+    val storageRef = FirebaseStorage.getInstance().reference
 
     val isAiConversation = otherUserId.endsWith("Ai")
 
@@ -352,28 +364,65 @@ fun ChatScreenContent(
     var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
-    var showRating by remember { mutableStateOf(true) }
+    var showRating by remember { mutableStateOf(false) }
     var moreOptionsMenuExpanded by remember { mutableStateOf(false) }
     var showClearChatMenu by remember { mutableStateOf(false) }
+    var showDeleteTimerMenu by remember { mutableStateOf(false) }
+    /** default = 30 days */
+    val ONE_MONTH_MS = 30L * 24 * 60 * 60 * 1000   // 30 × 24 h
+    var deleteTimer by remember { mutableStateOf<Long?>(ONE_MONTH_MS) }
     var suggestions by remember { mutableStateOf<ChatSuggestions?>(null) }
     var suggestionsExpanded by remember { mutableStateOf(false) }
     var placeSuggestions by remember { mutableStateOf<List<PlaceDetails>?>(null) }
     var placeSuggestionsExpanded by remember { mutableStateOf(false) }
     var isLoadingSuggestions by remember { mutableStateOf(false) }
     var isLoadingPlaces by remember { mutableStateOf(false) }
+    var isLoadingMessages by remember { mutableStateOf(true) } // New loading state for messages
+    var isLoadingProfiles by remember { mutableStateOf(true) } // New loading state for profiles
+    var isUploadingMedia by remember { mutableStateOf(false) } // New loading state for media upload
 
     val scope = rememberCoroutineScope()
 
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
     var recordFile: File? by remember { mutableStateOf(null) }
-    val maxDurationMs = 60 * 1000
+    val maxDurationMs = 30 * 1000
     var recordingTimeLeft by remember { mutableStateOf(maxDurationMs) }
     var recordedVoiceUri by remember { mutableStateOf<Uri?>(null) }
     var isVoicePlaying by remember { mutableStateOf(false) }
     var voiceProgress by remember { mutableStateOf(0f) }
     var voicePlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
+    // Media-related state (photo only now)
+    var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedMediaType by remember { mutableStateOf<String?>(null) }
+
+    val takePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && selectedMediaUri != null) {
+            isUploadingMedia = true
+            sendMediaMessage(
+                currentUserId = currentUserId,
+                otherUserId = otherUserId,
+                chatId = chatId,
+                uri = selectedMediaUri!!,
+                mediaType = "photo",
+                messagesRef = messagesRef,
+                context = context
+            ) {
+                postNotification(notificationsRef, otherUserId, currentUserId, "[Photo Message]")
+                selectedMediaUri = null
+                selectedMediaType = null
+                isUploadingMedia = false
+            }
+        } else {
+            Toast.makeText(context, "Photo capture failed", Toast.LENGTH_SHORT).show()
+            isUploadingMedia = false
+        }
+    }
+
+    // Permission launchers
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && !isAiConversation) {
             isRecording = true
@@ -392,9 +441,32 @@ fun ChatScreenContent(
         }
     }
 
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            selectedMediaType = "photo"          // guarantee it’s set
+            selectedMediaUri = freshPhotoUri(context)
+            takePhotoLauncher.launch(selectedMediaUri!!)
+        } else {
+            Toast.makeText(context, "Camera permission required", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val pickPhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            selectedMediaUri = it
+            selectedMediaType = "photo"
+        }
+    }
+
+    // Existing LaunchedEffect blocks with loading indicators
     LaunchedEffect(Unit) {
+        isLoadingProfiles = true
         usersRef.child(currentUserId).get().addOnSuccessListener { snapshot ->
             currentUserProfile = snapshot.getValue(Profile::class.java)
+            isLoadingProfiles = false
+        }.addOnFailureListener {
+            Toast.makeText(context, "Failed to load your profile", Toast.LENGTH_SHORT).show()
+            isLoadingProfiles = false
         }
         if (!isAiConversation) {
             usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
@@ -403,8 +475,10 @@ fun ChatScreenContent(
                     otherUserProfile = profile
                     averageRating = profile.averageRating
                 }
+                isLoadingProfiles = false
             }.addOnFailureListener {
                 Toast.makeText(context, "Failed to load user", Toast.LENGTH_SHORT).show()
+                isLoadingProfiles = false
             }
             fetchUserRating(ratingsRef, otherUserId) { rating -> yourRating = rating }
             fetchAverageRating(ratingsRef, otherUserId) { avg -> averageRating = avg }
@@ -414,12 +488,15 @@ fun ChatScreenContent(
     DisposableEffect(messagesRef) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                isLoadingMessages = true
                 val newMessages = snapshot.children.mapNotNull { it.getValue(Message::class.java) }
                 messages.clear()
                 messages.addAll(newMessages)
+                isLoadingMessages = false
             }
             override fun onCancelled(error: DatabaseError) {
                 Log.e("ChatScreen", "Error reading messages: ${error.message}")
+                isLoadingMessages = false
             }
         }
         messagesRef.addValueEventListener(listener)
@@ -430,6 +507,42 @@ fun ChatScreenContent(
         messages.filter { !it.processed && it.senderId != currentUserId }.forEach { message ->
             postNotification(notificationsRef, otherUserId, message.senderId, message.text ?: "[Media]")
             messagesRef.child(message.id).child("processed").setValue(true)
+        }
+    }
+
+    // Delete timer logic
+    LaunchedEffect(deleteTimer, messages) {
+        while (true) {
+            deleteTimer?.let { timer ->
+                val oldestMessage = messages.minByOrNull { it.timestamp }
+                if (oldestMessage != null) {
+                    val elapsedTime = System.currentTimeMillis() - oldestMessage.timestamp
+                    if (elapsedTime >= timer) {
+                        // Clear RTDB
+                        messagesRef.removeValue()
+                        messages.clear()
+
+                        // Delete media from Storage
+                        messages.forEach { msg ->
+                            if (msg.mediaUrl != null && (msg.mediaType == "photo" || msg.mediaType == "voice")) {
+                                try {
+                                    val storage = FirebaseStorage.getInstance()
+                                    val mediaRef = storage.getReferenceFromUrl(msg.mediaUrl)
+                                    mediaRef.delete().addOnSuccessListener {
+                                        Log.d("Storage", "Media deleted successfully for message ${msg.id}")
+                                    }.addOnFailureListener { e ->
+                                        Log.e("Storage", "Failed to delete media for message ${msg.id}: ${e.message}")
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("Storage", "Invalid URL or failed to get reference for message ${msg.id}: ${e.message}")
+                                }
+                            }
+                        }
+                        deleteTimer = null // Reset timer after deletion
+                    }
+                }
+                delay(60000) // Check every minute
+            } ?: break
         }
     }
 
@@ -449,7 +562,6 @@ fun ChatScreenContent(
         }
     }
 
-    // Function to fetch suggestions with retry on JSON parse error
     suspend fun fetchSuggestionsWithRetry(): ChatSuggestions? {
         var attempts = 0
         val maxAttempts = 3
@@ -463,7 +575,7 @@ fun ChatScreenContent(
                     Toast.makeText(context, "Failed to fetch suggestions after $maxAttempts attempts.", Toast.LENGTH_SHORT).show()
                     return null
                 }
-                delay(1000L) // Wait 1 second before retrying
+                delay(1000L)
             }
         }
         return null
@@ -481,7 +593,9 @@ fun ChatScreenContent(
                             }
                         }
                     ) {
-                        if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
+                        if (isLoadingProfiles) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(40.dp).clip(CircleShape))
+                        } else if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(otherUserProfile!!.profilepicUrl)
@@ -498,12 +612,6 @@ fun ChatScreenContent(
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(otherUserProfile?.name ?: "Chat", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        if (!isAiConversation) {
-                            Spacer(Modifier.width(8.dp))
-                            IconButton(onClick = { showRating = !showRating }) {
-                                Icon(if (showRating) Icons.Default.VisibilityOff else Icons.Default.Visibility, "Hide/Show Rating", tint = Color.Gray)
-                            }
-                        }
                     }
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
@@ -541,9 +649,32 @@ fun ChatScreenContent(
                             text = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red); Spacer(Modifier.width(4.dp)); Text("Clear Chat...") } },
                             onClick = { moreOptionsMenuExpanded = false; showClearChatMenu = true }
                         )
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Timer, "Set Delete Timer", tint = Color.Yellow); Spacer(Modifier.width(4.dp)); Text("Set Delete Timer...") } },
+                            onClick = { moreOptionsMenuExpanded = false; showDeleteTimerMenu = true }
+                        )
                     }
                     DropdownMenu(expanded = showClearChatMenu, onDismissRequest = { showClearChatMenu = false }) {
                         DropdownMenuItem(text = { Text("Clear Chat Only") }, onClick = { showClearChatMenu = false; messagesRef.setValue(null); messages.clear() })
+                    }
+                    DropdownMenu(expanded = showDeleteTimerMenu,
+                        onDismissRequest = { showDeleteTimerMenu = false }) {
+
+                        @Composable
+                        fun item(label:String, value:Long?) = DropdownMenuItem(
+                            text = {
+                                Text(
+                                    label,
+                                    // orange when currently selected
+                                    color = if (deleteTimer == value) Color(0xFFFFA500) else Color.White
+                                )
+                            },
+                            onClick = { deleteTimer = value ; showDeleteTimerMenu = false }
+                        )
+
+                        item("1 Day"   , 24L * 60 * 60 * 1000)
+                        item("1 Week"  , 7L  * 24 * 60 * 60 * 1000)
+                        item("1 Month" , 30L * 24 * 60 * 60 * 1000)
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -555,63 +686,141 @@ fun ChatScreenContent(
             Column(Modifier.fillMaxSize()) {
                 if (!isAiConversation && otherUserProfile != null && showRating) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        RatingBar(rating = averageRating, ratingCount = otherUserProfile!!.numberOfRatings)
-                        Text("Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}", color = Color.Gray, fontSize = 14.sp)
+                        RatingBar(
+                            rating = averageRating,
+                            ratingCount = otherUserProfile!!.numberOfRatings
+                        )
+                        Text(
+                            "Your Rating: ${
+                                if (yourRating >= 0) String.format(
+                                    "%.1f",
+                                    yourRating
+                                ) else "N/A"
+                            }", color = Color.Gray, fontSize = 14.sp
+                        )
                         Slider(
                             value = if (yourRating >= 0) yourRating.toFloat() else 0f,
                             onValueChange = { yourRating = it.toDouble() },
-                            onValueChangeFinished = { if (yourRating >= 0) updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context) },
+                            onValueChangeFinished = {
+                                if (yourRating >= 0) updateUserRating(
+                                    ratingsRef,
+                                    usersRef,
+                                    otherUserId,
+                                    yourRating,
+                                    context
+                                )
+                            },
                             valueRange = 0f..5f,
                             steps = 4,
-                            colors = SliderDefaults.colors(thumbColor = Color(0xFFFF4500), activeTrackColor = Color(0xFFFF4500))
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFFFF4500),
+                                activeTrackColor = Color(0xFFFF4500)
+                            )
                         )
                     }
                 }
 
-                LazyColumn(Modifier.weight(1f).padding(vertical = 8.dp), reverseLayout = true, verticalArrangement = Arrangement.Bottom) {
-                    items(messages.reversed()) { message ->
-                        if (message.mediaType == "voice" && !message.mediaUrl.isNullOrEmpty()) VoiceMessageBubble(message, currentUserId)
-                        else MessageBubble(message, currentUserId)
+                if (isLoadingMessages) {
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Color(0xFFFFA500))
+                    }
+                } else {
+                    LazyColumn(
+                        Modifier
+                            .weight(1f)
+                            .padding(vertical = 8.dp),
+                        reverseLayout = true,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        items(messages.reversed()) { message ->
+                            when (message.mediaType) {
+                                "voice" -> VoiceMessageBubble(message, currentUserId)
+                                "photo" -> MediaMessageBubble(
+                                    message = message,
+                                    currentUserId = currentUserId,
+                                    onFullscreen = { fullScreenTarget = it }
+                                )
+                                else -> MessageBubble(message, currentUserId)
+                            }
+                        }
                     }
                 }
 
                 if (!isAiConversation && isRecording) {
-                    Text("Recording... Time left: ${recordingTimeLeft / 1000}s", color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    Text(
+                        "Recording... Time left: ${recordingTimeLeft / 1000}s",
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
+
                 if (!isAiConversation && recordedVoiceUri != null) {
-                    VoiceMessagePlayer(mediaUrl = recordedVoiceUri.toString(), isPlaying = isVoicePlaying, onPlayToggle = {
-                        if (isVoicePlaying) {
-                            voicePlayer?.pause()
-                            isVoicePlaying = false
-                        } else {
-                            playLocalVoice(context, recordedVoiceUri!!) { mp ->
-                                voicePlayer = mp
-                                isVoicePlaying = true
-                                mp.setOnCompletionListener { isVoicePlaying = false; voiceProgress = 0f }
+                    VoiceMessagePlayer(
+                        mediaUrl = recordedVoiceUri.toString(),
+                        isPlaying = isVoicePlaying,
+                        onPlayToggle = {
+                            if (isVoicePlaying) {
+                                voicePlayer?.pause()
+                                isVoicePlaying = false
+                            } else {
+                                playLocalVoice(context, recordedVoiceUri!!) { mp ->
+                                    voicePlayer = mp
+                                    isVoicePlaying = true
+                                    mp.setOnCompletionListener {
+                                        isVoicePlaying = false; voiceProgress = 0f
+                                    }
+                                }
                             }
+                        },
+                        progress = voiceProgress,
+                        duration = voicePlayer?.duration?.toLong() ?: 0L
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        IconButton(onClick = { recordedVoiceUri = null ; recordFile = null }) {
+                            Icon(Icons.Default.Close, null, tint = Color.Red)
                         }
-                    }, progress = voiceProgress, duration = voicePlayer?.duration?.toLong() ?: 0L)
-                    Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Button(onClick = { recordedVoiceUri = null; recordFile = null }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("Delete", color = Color.White) }
-                        Button(
-                            onClick = {
-                                sendVoiceMessage(currentUserId, otherUserId, chatId, recordedVoiceUri!!, messagesRef, context)
-                                postNotification(notificationsRef, otherUserId, currentUserId, "[Voice Message]")
-                                recordedVoiceUri = null
-                                recordFile = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
-                        ) { Text("Send Voice", color = Color.White) }
                     }
                 }
 
-                Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (!isAiConversation) {
+                /* Media preview (photo only, no checkbox) */
+                if (!isAiConversation &&
+                    selectedMediaUri != null &&
+                    selectedMediaType == "photo"
+                ) {
+                    Box(Modifier.padding(8.dp)) {
+                        AsyncImage(
+                            model = selectedMediaUri,
+                            contentDescription = "Preview",
+                            modifier = Modifier
+                                .height(200.dp)
+                                .fillMaxWidth(),
+                            contentScale = ContentScale.Fit
+                        )
+
+                        /* small red ✕ in the top‑right corner */
+                        IconButton(
+                            onClick = { selectedMediaUri = null; selectedMediaType = null },
+                            modifier = Modifier.align(Alignment.TopEnd)
+                        ) {
+                            Icon(Icons.Default.Close, null, tint = Color.Red)
+                        }
+                    }
+                }
+
+
+                // Media Buttons Row (with rating toggle icon)
+                if (!isAiConversation) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.Start),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Mic/Stop button
                         IconButton(onClick = {
                             if (isRecording) {
-                                recorder?.stop()
-                                recorder?.release()
-                                recorder = null
+                                recorder?.stop(); recorder?.release(); recorder = null
                                 isRecording = false
                                 recordedVoiceUri = Uri.fromFile(recordFile)
                             } else {
@@ -625,64 +834,155 @@ fun ChatScreenContent(
                                         setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
                                         setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
                                         setOutputFile(recordFile?.absolutePath)
-                                        prepare()
-                                        start()
+                                        prepare(); start()
                                     }
                                     recordingTimeLeft = maxDurationMs
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
+                                } else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
-                        }) { Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, "Record", tint = Color(0xFFFFA500)) }
-                        Spacer(Modifier.width(8.dp))
+                        }) {
+                            Icon(
+                                if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                                null,
+                                tint = Color(0xFFFFA500)
+                            )
+                        }
+
+                        // Photo picker
+                        IconButton(onClick = { pickPhotoLauncher.launch("image/*") }) {
+                            Icon(Icons.Default.Photo, null, tint = Color(0xFFFFA500))
+                        }
+
+                        // Camera for photo
+                        IconButton(onClick = {
+                            selectedMediaType = "photo"
+                            if (context.checkSelfPermission(Manifest.permission.CAMERA)
+                                == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                selectedMediaUri = freshPhotoUri(context)
+                                takePhotoLauncher.launch(selectedMediaUri!!)
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        }) { Icon(Icons.Default.Camera, null, tint = Color(0xFFFFA500)) }
+
+
+                        // Rating toggle icon
+                        IconButton(onClick = { showRating = !showRating }) {
+                            Icon(Icons.Default.Star, "Toggle Rating", tint = Color(0xFFFFA500))
+                        }
                     }
+                }
+
+                /* ─── Input bar ───────────────────────────────────────────────────────── */
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    /* text field -------------------------------------------------------- */
                     TextField(
                         value = messageText,
                         onValueChange = { messageText = it },
-                        placeholder = { Text("Type a message...", color = Color.Gray) },
-                        modifier = Modifier.weight(1f).background(Color.DarkGray, RoundedCornerShape(24.dp)),
+                        placeholder = { Text("Type a message…", color = Color.Gray) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .background(Color.DarkGray, RoundedCornerShape(24.dp)),
                         colors = TextFieldDefaults.textFieldColors(
                             containerColor = Color.DarkGray,
                             focusedTextColor = Color.White,
                             focusedPlaceholderColor = Color.Gray,
                             focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent
+                            unfocusedIndicatorColor = Color.Transparent
                         ),
                         singleLine = true,
                         shape = RoundedCornerShape(24.dp),
                         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = {
-                            if (messageText.isNotBlank()) {
-                                if (isAiConversation) {
-                                    chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
-                                } else {
-                                    sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
-                                    postNotification(notificationsRef, otherUserId, currentUserId, messageText)
-                                }
-                                messageText = ""
-                            }
-                        })
+                        keyboardActions = KeyboardActions(onSend = { /* let the orange button handle it */ })
                     )
+
                     Spacer(Modifier.width(8.dp))
+
+                    /* single orange SEND button ---------------------------------------- */
                     IconButton(
                         onClick = {
+                            if (isSendingMessage) return@IconButton   // ignore double‑taps
+                            isSendingMessage = true
+
+                            /* 1) PHOTO ---------------------------------------------------- */
+                            if (selectedMediaUri != null && selectedMediaType == "photo") {
+                                sendMediaMessage(
+                                    currentUserId, otherUserId, chatId,
+                                    selectedMediaUri!!, "photo",
+                                    messagesRef, context
+                                ) {
+                                    postNotification(
+                                        notificationsRef, otherUserId, currentUserId,
+                                        "[Photo Message]"
+                                    )
+                                    selectedMediaUri = null
+                                    selectedMediaType = null
+                                    isSendingMessage = false          // done
+                                }
+                                return@IconButton
+                            }
+
+                            /* 2) VOICE ---------------------------------------------------- */
+                            if (recordedVoiceUri != null) {
+                                sendVoiceMessage(
+                                    currentUserId, otherUserId, chatId,
+                                    recordedVoiceUri!!, messagesRef, context
+                                )
+                                postNotification(
+                                    notificationsRef, otherUserId, currentUserId,
+                                    "[Voice Message]"
+                                )
+                                recordedVoiceUri = null
+                                recordFile = null
+                                isSendingMessage = false
+                                return@IconButton
+                            }
+
+                            /* 3) TEXT ----------------------------------------------------- */
                             if (messageText.isNotBlank()) {
                                 if (isAiConversation) {
-                                    chatAIViewModel.sendMessageToAI(otherUserId, messageText, currentUserId, messagesRef, context, messages, currentUserProfile?.name ?: "User")
+                                    chatAIViewModel.sendMessageToAI(
+                                        otherUserId, messageText, currentUserId,
+                                        messagesRef, context, messages,
+                                        currentUserProfile?.name ?: "User"
+                                    )
                                 } else {
-                                    sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
-                                    postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                                    sendMessage(currentUserId, otherUserId, chatId,
+                                        messageText, messagesRef)
+                                    postNotification(
+                                        notificationsRef, otherUserId, currentUserId,
+                                        messageText
+                                    )
                                 }
                                 messageText = ""
                             }
+                            isSendingMessage = false
                         },
-                        modifier = Modifier.size(48.dp).background(Color(0xFFFF4500), CircleShape)
-                    ) { Icon(Icons.Default.Send, "Send", tint = Color.White) }
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color(0xFFFF4500), CircleShape)
+                    ) {
+                        if (isSendingMessage) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(Icons.Default.Send, null, tint = Color.White)
+                        }
+                    }
                 }
             }
 
-            // Centered Suggestions Dropdown
+            // Suggestions Dropdown (preserved from original)
             if (!isAiConversation && suggestionsExpanded) {
                 Box(
                     Modifier
@@ -702,7 +1002,7 @@ fun ChatScreenContent(
                             .padding(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.Black),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Orange border
+                        border = BorderStroke(2.dp, Color(0xFFFF6F00))
                     ) {
                         LazyColumn(Modifier.padding(16.dp)) {
                             if (isLoadingSuggestions) {
@@ -820,12 +1120,9 @@ fun ChatScreenContent(
                             }
                             item {
                                 Spacer(Modifier.height(8.dp))
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Button(
-                                        onClick = { suggestions = ChatSuggestions(emptyList(), emptyList(), emptyList()) }, // Clear to empty state
+                                        onClick = { suggestions = ChatSuggestions(emptyList(), emptyList(), emptyList()) },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                                     ) { Text("Clear All", color = Color.White) }
                                     Button(
@@ -839,7 +1136,7 @@ fun ChatScreenContent(
                 }
             }
 
-            // Centered Places Suggestions Dropdown
+            // Places Suggestions Dropdown (preserved from original)
             if (!isAiConversation && placeSuggestionsExpanded) {
                 Box(
                     Modifier
@@ -859,7 +1156,7 @@ fun ChatScreenContent(
                             .padding(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.Black),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, Color(0xFFFF6F00)) // Orange border
+                        border = BorderStroke(2.dp, Color(0xFFFF6F00))
                     ) {
                         LazyColumn(Modifier.padding(16.dp)) {
                             if (isLoadingPlaces) {
@@ -931,12 +1228,9 @@ fun ChatScreenContent(
                             }
                             item {
                                 Spacer(Modifier.height(8.dp))
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Button(
-                                        onClick = { placeSuggestions = emptyList() }, // Clear to empty state
+                                        onClick = { placeSuggestions = emptyList() },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                                     ) { Text("Clear All", color = Color.White) }
                                     Button(
@@ -951,6 +1245,159 @@ fun ChatScreenContent(
             }
         }
     }
+    /* Full-screen viewer overlay (photo only) */
+    FullscreenMediaViewer(
+        target = fullScreenTarget,
+        onDismiss = { fullScreenTarget = null },
+        messagesRef = messagesRef,
+        reportsRef = reportsRef
+    )
+}
+
+fun freshPhotoUri(context: Context): Uri {
+    val photoFile = createTempFile(context, ".jpg")
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        photoFile
+    )
+}
+
+// Helper function to create temporary files
+fun createTempFile(context: Context, extension: String): File {
+    val dir = File(context.cacheDir, "media")
+    if (!dir.exists()) dir.mkdirs()
+    return File.createTempFile("media_${System.currentTimeMillis()}", extension, dir)
+}
+
+/* Full-screen viewer overlay (photo only) */
+@Composable
+fun FullscreenMediaViewer(
+    target: Message?,
+    onDismiss: () -> Unit,
+    messagesRef: DatabaseReference,
+    reportsRef: DatabaseReference
+) {
+    val context = LocalContext.current
+
+    if (target == null) return
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            if (target.mediaType == "photo") {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(target.mediaUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Full Screen Photo",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                    onError = { Toast.makeText(context, "Failed to load photo", Toast.LENGTH_SHORT).show() }
+                )
+            }
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+            }
+        }
+    }
+}
+
+/* MediaMessageBubble (photo only) */
+@Composable
+fun MediaMessageBubble(
+    message: Message,
+    currentUserId: String,
+    onFullscreen: (Message) -> Unit
+) {
+    val isCurrentUser = message.senderId == currentUserId
+    val ticks = if (isCurrentUser) {
+        if (message.read) "✔✔" else "✔"
+    } else ""
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = if (isCurrentUser) Arrangement.End
+        else Arrangement.Start
+    ) {
+        Column(
+            modifier = Modifier
+                .background(Color.Black, RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
+            Box(Modifier.clickable { onFullscreen(message) }) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(message.mediaUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Photo",
+                    modifier = Modifier.size(150.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    formatRelativeTime(message.timestamp),
+                    color = Color.DarkGray,
+                    fontSize = 12.sp
+                )
+                if (ticks.isNotEmpty()) {
+                    Spacer(Modifier.width(4.dp))
+                    Text(ticks, color = Color(0xFFFF4500), fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
+
+
+fun sendMediaMessage(
+    currentUserId: String,
+    otherUserId: String,
+    chatId: String,
+    uri: Uri,
+    mediaType: String,
+    messagesRef: DatabaseReference,
+    context: android.content.Context,
+    onSuccess: () -> Unit = {}
+) {
+    val timestamp = System.currentTimeMillis()
+    val storageRef = FirebaseStorage.getInstance().reference
+    val fileName = "${mediaType}_${timestamp}.${if (mediaType == "photo") "jpg" else "aac"}"
+    val mediaRef = storageRef.child("$mediaType/$chatId/$fileName")
+
+    mediaRef.putFile(uri).addOnSuccessListener {
+        mediaRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+            val messageId = messagesRef.push().key ?: return@addOnSuccessListener
+            val message = Message(
+                id = messageId,
+                senderId = currentUserId,
+                receiverId = otherUserId,
+                text = "",
+                timestamp = timestamp,
+                read = false,
+                mediaType = mediaType,
+                mediaUrl = downloadUrl.toString(),
+                processed = false,
+            )
+            messagesRef.child(messageId).setValue(message)
+            onSuccess()
+        }.addOnFailureListener { Toast.makeText(context, "Failed to get $mediaType URL", Toast.LENGTH_SHORT).show() }
+    }.addOnFailureListener { Toast.makeText(context, "Failed to upload $mediaType", Toast.LENGTH_SHORT).show() }
 }
 
 // Updated PlaceDetailsCard (unchanged from previous, included for completeness)
@@ -1062,7 +1509,7 @@ fun MessageBubble(message: Message, currentUserId: String) {
             Row {
                 Text(text = formatRelativeTime(message.timestamp), color = Color.DarkGray, fontSize = 12.sp)
                 if (ticks.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(text = ticks, color = Color(0xFFFF4500), fontSize = 12.sp)
                 }
             }
@@ -1118,7 +1565,6 @@ fun VoiceMessageBubble(message: Message, currentUserId: String) {
         }
     }
 }
-
 
 fun createAnnotatedString(text: String): AnnotatedString {
     val regex = Regex("((http|https)://[\\w-]+(\\.[\\w-]+)+([\\w.,@?^=%&:/~+#-]*[\\w@?^=%&/~+#-])?)")

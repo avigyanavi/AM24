@@ -46,13 +46,16 @@
         <!-- FileProvider definition -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
+
+            <!-- Tells FileProvider where it’s allowed to create / share files -->
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
 
         <!-- Main activity which acts as the launcher -->
         <activity

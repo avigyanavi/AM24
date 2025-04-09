@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- cache/  (used by createTempFile in freshPhotoUri) -->
+    <cache-path
+        name="cache"
+        path="." />
+
+    <!-- externalCacheDir/  (optional – useful for sharing) -->
+    <external-cache-path
+        name="external_cache"
+        path="." />
+
+    <!-- uncomment if you ever save to external files dir -->
+    <!--
     <external-files-path
-        name="images"
-        path="Pictures" />
+        name="external_files"
+        path="Pictures/" />
+    -->
 </paths>
