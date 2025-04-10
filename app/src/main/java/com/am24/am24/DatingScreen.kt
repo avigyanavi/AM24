@@ -71,10 +71,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
@@ -113,6 +113,7 @@ fun DatingScreen(
 
     var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
     val remainingSwipes = remember { mutableStateOf(0) }
+    var swipesLoaded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var forcedProfile by remember { mutableStateOf<Profile?>(null) }
 
@@ -140,9 +141,11 @@ fun DatingScreen(
             profileViewModel.fetchCurrentUserProfile()
             val loadedSwipes = loadAndResetSwipesDaily(currentUserId)
             remainingSwipes.value = loadedSwipes
+            swipesLoaded = true  // Mark that swipes are loaded
             datingViewModel.refreshFilteredProfiles()
         }
     }
+
 
     LaunchedEffect(initialQuery) {
         if (initialQuery.isNotBlank()) {
@@ -317,6 +320,7 @@ fun DatingScreen(
                 }
                 // Existing swipe direction overlays (if still needed)
                 if (visible) {
+                    // Left arrow overlay
                     Surface(
                         modifier = Modifier
                             .size(100.dp)
@@ -332,6 +336,7 @@ fun DatingScreen(
                             modifier = Modifier.size(48.dp)
                         )
                     }
+                    // Right arrow overlay
                     Surface(
                         modifier = Modifier
                             .size(100.dp)
@@ -347,16 +352,29 @@ fun DatingScreen(
                             modifier = Modifier.size(48.dp)
                         )
                     }
+                    // Animated "Swipe!" text overlay
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 500)),
+                        exit = fadeOut(animationSpec = tween(durationMillis = 500)),
+                        modifier = Modifier.align(Alignment.Center)
+                    ) {
+                        Text(
+                            text = "Swipe!",
+                            color = Color.White,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
-            // End of main content column
         }
     }
 
     // --- Overlay for When Swipes Are Over ---
     // This overlay covers the screen if remainingSwipes reaches zero,
     // intercepts all touches, and displays a "No more swipes available" message.
-    if (remainingSwipes.value <= 0) {
+    if (swipesLoaded && remainingSwipes.value <= 0) {
         Box(
             modifier = Modifier
                 .fillMaxSize()

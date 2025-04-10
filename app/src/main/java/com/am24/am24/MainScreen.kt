@@ -245,7 +245,13 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
 
     NavigationBar(containerColor = Color.Black) {
         items.forEach { item ->
-            val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+            val selected = if (item.route == "dms") {
+                // For DM tab, consider nested routes (e.g., "chat/{otherUserId}" or "matchedUserProfile/{otherUserId}")
+                val route = currentDestination?.route ?: ""
+                route.startsWith("dms") || route.startsWith("chat/") || route.startsWith("matchedUserProfile/")
+            } else {
+                currentDestination?.hierarchy?.any { it.route == item.route } == true
+            }
 
             NavigationBarItem(
                 selected = selected,

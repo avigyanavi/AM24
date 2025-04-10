@@ -577,10 +577,6 @@ fun FeedItem(
     // Annotate post content based on formatting markers
     val annotatedText = buildFormattedText(post.contentText ?: "")
 
-    // Calculate user age from DOB
-    val userAge = userProfile?.dob?.let { calculateAge(it) }
-
-
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center // Center-align the card within the Box

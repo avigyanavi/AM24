@@ -43,6 +43,7 @@ import com.google.firebase.database.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 
 
@@ -60,6 +61,12 @@ fun DMScreenContent(navController: NavController) {
     val likesRef = database.getReference("likesReceived/$currentUserId") // Added for likes
     val usersRef = database.getReference("users")
     val messagesRootRef = database.getReference("messages")
+    val ratingsRef = database.getReference("ratings") // Add this, similar to ChatScreenContent
+
+    var showRatingOverlay by remember { mutableStateOf(false) }
+    var profileToRate by remember { mutableStateOf<Profile?>(null) }
+    var tempRating by remember { mutableStateOf(-1.0) }
+
 
     /* ───────── Profiles for AI coaches (unchanged) ───────── */
     val zaraProfile = Profile(
@@ -517,12 +524,60 @@ fun DMScreenContent(navController: NavController) {
                             navController = navController,
                             lastMessage = lastMsg.first,
                             lastMessageFromCurrentUser = lastMsg.second,
-                            lastMessageRead = lastMsg.third
+                            lastMessageRead = lastMsg.third,
+                            onRateClick = { selectedProfile ->
+                                // Fetch the current rating for this profile and update the state
+                                fetchUserRating(ratingsRef, selectedProfile.userId) { fetchedRating ->
+                                    tempRating = fetchedRating
+                                    profileToRate = selectedProfile
+                                    showRatingOverlay = true
+                                }
+                            }
                         )
                     }
                 }
             }
         }
+        if (showRatingOverlay && profileToRate != null) {
+            Dialog(onDismissRequest = {
+                showRatingOverlay = false
+                profileToRate = null
+            }) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black,
+                    border = BorderStroke(2.dp, Color(0xFFFF4500))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // Show the rated user's current rating info
+                        RatingBar(rating = profileToRate!!.averageRating, ratingCount = profileToRate!!.numberOfRatings)
+                        Text(
+                            "Your Rating: ${if (tempRating >= 0) String.format("%.1f", tempRating) else "N/A"}",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        Slider(
+                            value = if (tempRating >= 0) tempRating.toFloat() else 0f,
+                            onValueChange = { tempRating = it.toDouble() },
+                            onValueChangeFinished = {
+                                // Update rating on Firebase for this matched user
+                                updateUserRating(ratingsRef, usersRef, profileToRate!!.userId, tempRating, context)
+                                // Hide overlay once done
+                                showRatingOverlay = false
+                                profileToRate = null
+                            },
+                            valueRange = 0f..5f,
+                            steps = 4,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFFFF4500),
+                                activeTrackColor = Color(0xFFFF4500)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
 
         /* ───── Scroll-to-top FAB ───── */
         FloatingActionButton(
@@ -583,7 +638,8 @@ fun DMUserCard(
     navController: NavController,
     lastMessage: String,
     lastMessageFromCurrentUser: Boolean,
-    lastMessageRead: Boolean
+    lastMessageRead: Boolean,
+    onRateClick: (Profile) -> Unit  // New parameter
 ) {
     Box(
         modifier = Modifier
@@ -592,80 +648,85 @@ fun DMUserCard(
             .border(BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)), shape = RoundedCornerShape(8.dp))
             .clickable { navController.navigate("chat/${profile.userId}") }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp)
-        ) {
-            AIOrProfileImage(
-                profile = profile,
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(CircleShape)
-                    .background(Color.Gray)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = profile.username,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AIOrProfileImage(
+                    profile = profile,
+                    modifier = Modifier
+                        .size(70.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray)
                 )
-
-                val age = profile.dob?.let { calculateAge(it) }
-                val locality = profile.hometown
-                if (profile.hometown.isNotBlank()) {
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "$locality, ${profile.jobRole}, Age: ${age ?: ""}",
-                        fontSize = 14.sp,
-                        color = Color.White
-                    )
-                } else {
-                    Text(
-                        text = "${locality ?: ""}, Age: ${age ?: ""}",
+                        text = profile.username,
                         color = Color.White,
-                        fontSize = 12.sp
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // Display locality and age info
+                    val age = profile.dob?.let { calculateAge(it) }
+                    val locality = profile.hometown
+                    if (profile.hometown.isNotBlank()) {
+                        Text(
+                            text = "$locality, ${profile.jobRole}, Age: ${age ?: ""}",
+                            fontSize = 14.sp,
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            text = "${locality ?: ""}, Age: ${age ?: ""}",
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // Display last message with ticks (same as before)
+                    val messageText = when {
+                        lastMessage.isEmpty() -> "No messages yet"
+                        lastMessageFromCurrentUser -> "Sent: $lastMessage"
+                        else -> lastMessage
+                    }
+                    val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
+                        if (lastMessageRead) " ✔✔ Seen" else " ✔ Delivered"
+                    } else ""
+                    val fullText = messageText + ticks
+                    val styledText = buildAnnotatedString {
+                        val tickIndex = fullText.indexOf('✔')
+                        if (tickIndex != -1) {
+                            append(fullText.substring(0, tickIndex))
+                            withStyle(SpanStyle(color = Color(0xFFFF4500))) {
+                                append(fullText.substring(tickIndex))
+                            }
+                        } else {
+                            append(fullText)
+                        }
+                    }
+                    Text(
+                        text = styledText,
+                        fontSize = 12.sp,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-
-                val messageText = when {
-                    lastMessage.isEmpty() -> "No messages yet"
-                    lastMessageFromCurrentUser -> "Sent: $lastMessage"
-                    else -> lastMessage
+            }
+            // NEW: "Rate" button row. You can position it as desired.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = { onRateClick(profile) }
+                ) {
+                    Text("Rate", color = Color(0xFFFF4500))
                 }
-
-                val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
-                    if (lastMessageRead) " ✔✔ Seen" else " ✔ Delivered"
-                } else {
-                    ""
-                }
-
-                val fullText = messageText + ticks
-                val styledText = buildAnnotatedString {
-                    val tickIndex = fullText.indexOf('✔')
-                    if (tickIndex != -1) {
-                        append(fullText.substring(0, tickIndex))
-                        withStyle(SpanStyle(color = Color(0xFFFF4500))) {
-                            append(fullText.substring(tickIndex))
-                        }
-                    } else {
-                        append(fullText)
-                    }
-                }
-
-                Text(
-                    text = styledText,
-                    fontSize = 12.sp,
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     }
 }
+
 
 private fun checkNonInitiatedConversations(
     matchedUsers: List<Profile>,

@@ -722,6 +722,20 @@ fun ChatScreenContent(
                     }
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) { Icon(Icons.Default.MoreVert, "More Options", tint = Color.White) }
                     DropdownMenu(expanded = moreOptionsMenuExpanded, onDismissRequest = { moreOptionsMenuExpanded = false }) {
+                        // New Rating toggle item
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Star, contentDescription = "Toggle Rating", tint = Color(0xFFFF4500))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Rate Chat")
+                                }
+                            },
+                            onClick = {
+                                moreOptionsMenuExpanded = false
+                                showRating = !showRating
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red); Spacer(Modifier.width(4.dp)); Text("Clear Chat...") } },
                             onClick = { moreOptionsMenuExpanded = false; showClearChatMenu = true }
@@ -765,6 +779,8 @@ fun ChatScreenContent(
                             onValueChange = { yourRating = it.toDouble() },
                             onValueChangeFinished = {
                                 if (yourRating >= 0) updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context)
+                                // Hide the rating section after a user rates
+                                showRating = false
                             },
                             valueRange = 0f..5f,
                             steps = 4,
@@ -775,6 +791,7 @@ fun ChatScreenContent(
                         )
                     }
                 }
+
                 if (isLoadingMessages) {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Color(0xFFFFA500))
@@ -922,10 +939,6 @@ fun ChatScreenContent(
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         }) { Icon(Icons.Default.Videocam, contentDescription = null, tint = Color(0xFFFFA500)) }
-                        // Rating toggle icon
-                        IconButton(onClick = { showRating = !showRating }) {
-                            Icon(Icons.Default.Star, contentDescription = "Toggle Rating", tint = Color(0xFFFF4500))
-                        }
                     }
                 }
                 // Input Bar

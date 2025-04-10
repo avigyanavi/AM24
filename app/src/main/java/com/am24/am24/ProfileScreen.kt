@@ -393,7 +393,7 @@ fun PhotoCarouselWithOverlay(
 
                 // Rating Bar + zodiac side by side
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                    RatingBar3(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
                     Spacer(Modifier.width(8.dp))
 
                     // Zodiac next to rating bar
@@ -2163,7 +2163,58 @@ fun LifestyleSlider(label: String, value: Int, nouns: List<String>, icon: ImageV
 /** Simple star rating bar (no vibe score). */
 @Composable
 fun RatingBar(rating: Double, ratingCount: Int) {
-    val starSize = 25.dp
+    val starSize = 20.dp
+    val fullStars = kotlin.math.floor(rating).toInt()
+    val fraction = rating - fullStars
+    val orange = Color(0xFFFF6F00)
+    val backgroundColor = Color(0xFF1A1A1A)
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        repeat(fullStars) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = orange,
+                modifier = Modifier.size(starSize)
+            )
+        }
+        if (fraction > 0) {
+            Box(modifier = Modifier.size(starSize)) {
+                Icon(
+                    imageVector = Icons.Default.StarBorder,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
+                val fractionUnfilled = 1 - fraction
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(starSize * fractionUnfilled.toFloat())
+                        .align(Alignment.CenterEnd)
+                        .background(backgroundColor)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = String.format("%.2f (%d)", rating, ratingCount),
+            color = White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+    }
+}
+
+@Composable
+fun RatingBar3(rating: Double, ratingCount: Int) {
+    val starSize = 20.dp
     val fullStars = kotlin.math.floor(rating).toInt()
     val fraction = rating - fullStars
     val orange = Color(0xFFFF6F00)
