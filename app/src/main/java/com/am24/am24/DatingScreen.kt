@@ -4,9 +4,8 @@
 
 package com.am24.am24
 
-import ChatRequest
-import ChatResponse
 import DatingViewModel
+import androidx.compose.material.icons.filled.FilterList
 import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
@@ -117,18 +116,23 @@ fun DatingScreen(
     val coroutineScope = rememberCoroutineScope()
     var forcedProfile by remember { mutableStateOf<Profile?>(null) }
 
-    // State to control overlay visibility
+    // State to control overlay visibility (e.g. for the swipe direction overlays)
     var visible by remember { mutableStateOf(true) }
 
-    // Show overlays for 1 second when the screen is first visited
+    // Show overlays when first visited
     LaunchedEffect(Unit) {
         visible = true
-        delay(5000) // 1 second
+        delay(5000) // Showing for 5 seconds (adjust as needed)
         visible = false
     }
 
-    val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
+    val bottomSheetState = rememberModalBottomSheetState(
+        initialValue = ModalBottomSheetValue.Hidden,
+        skipHalfExpanded = true
+    )
 
+
+    // Load excluded users and swipes
     LaunchedEffect(Unit) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         if (currentUserId != null) {
@@ -151,22 +155,39 @@ fun DatingScreen(
         }
     }
 
+    // Choose profiles to display (forced profile if query provided, otherwise filtered)
     val displayedProfiles = if (initialQuery.isNotBlank()) {
         forcedProfile?.let { listOf(it) } ?: emptyList()
     } else {
         filteredProfiles.filter { it.userId !in excludedUserIds }
     }
 
-    val saveFilters: () -> Unit = {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-        datingViewModel.updateDatingFilters(filters)
-        datingViewModel.refreshFilteredProfiles()
-        if (currentUserId != null) {
-            coroutineScope.launch {
-                excludedUserIds = fetchExcludedUsers(currentUserId)
+    // Local lambdas for the new buttons. Here we’re using the first profile in the list as the “current” one.
+    val handleSuperSwipe = {
+        if (remainingSwipes.value > 0 && displayedProfiles.isNotEmpty()) {
+            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+            if (currentUserId != null) {
+                // Example: perform a “right swipe” action with extra logic (e.g. boosted match)
+                handleSwipeRight(currentUserId, displayedProfiles.first().userId, profileViewModel)
+                remainingSwipes.value--
+                updateSwipesInFirebase(remainingSwipes.value)
+                Log.d("DatingScreen", "Super Swipe performed on ${displayedProfiles.first().userId}")
             }
         }
-        coroutineScope.launch { bottomSheetState.hide() }
+    }
+
+    val handleForceMatch = {
+        if (remainingSwipes.value > 0 && displayedProfiles.isNotEmpty()) {
+            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+            val targetUser = displayedProfiles.first()
+            if (currentUserId != null) {
+                // Example: directly trigger a match popup bypassing the usual swipe logic
+                profileViewModel.triggerMatchPopUp(currentUserId, targetUser.userId)
+                remainingSwipes.value--
+                updateSwipesInFirebase(remainingSwipes.value)
+                Log.d("DatingScreen", "Force Match triggered for ${targetUser.userId}")
+            }
+        }
     }
 
     ModalBottomSheetLayout(
@@ -188,30 +209,28 @@ fun DatingScreen(
                     datingViewModel.updateDatingFilters(filters.copy(gender = genders.joinToString(",")))
                 },
                 selectedCommunity = filters.community,
-                onCommunityChange = { community ->
-                    datingViewModel.updateDatingFilters(filters.copy(community = community))
-                },
+                onCommunityChange = { community -> datingViewModel.updateDatingFilters(filters.copy(community = community)) },
                 selectedReligion = filters.religion,
-                onReligionChange = { religion ->
-                    datingViewModel.updateDatingFilters(filters.copy(religion = religion))
-                },
+                onReligionChange = { religion -> datingViewModel.updateDatingFilters(filters.copy(religion = religion)) },
                 selectedCaste = filters.caste,
-                onCasteChange = { caste ->
-                    datingViewModel.updateDatingFilters(filters.copy(caste = caste))
-                },
+                onCasteChange = { caste -> datingViewModel.updateDatingFilters(filters.copy(caste = caste)) },
                 selectedHighSchool = filters.highSchool,
-                onHighSchoolChange = { hs ->
-                    datingViewModel.updateDatingFilters(filters.copy(highSchool = hs))
-                },
+                onHighSchoolChange = { hs -> datingViewModel.updateDatingFilters(filters.copy(highSchool = hs)) },
                 selectedCollege = filters.college,
-                onCollegeChange = { college ->
-                    datingViewModel.updateDatingFilters(filters.copy(college = college))
-                },
+                onCollegeChange = { college -> datingViewModel.updateDatingFilters(filters.copy(college = college)) },
                 selectedPostGrad = filters.postGrad,
-                onPostGradChange = { pg ->
-                    datingViewModel.updateDatingFilters(filters.copy(postGrad = pg))
+                onPostGradChange = { pg -> datingViewModel.updateDatingFilters(filters.copy(postGrad = pg)) },
+                onSaveFilters = {
+                    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                    datingViewModel.updateDatingFilters(filters)
+                    datingViewModel.refreshFilteredProfiles()
+                    if (currentUserId != null) {
+                        coroutineScope.launch {
+                            excludedUserIds = fetchExcludedUsers(currentUserId)
+                        }
+                    }
+                    coroutineScope.launch { bottomSheetState.hide() }
                 },
-                onSaveFilters = saveFilters,
                 onCancel = { coroutineScope.launch { bottomSheetState.hide() } }
             )
         }
@@ -221,28 +240,48 @@ fun DatingScreen(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
+            // --- Top App Bar Row Modified ---
+            // Removed the SwipeCounter and added two new buttons for Super Swipe and Force Match.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(
+                IconButton(
                     onClick = { coroutineScope.launch { bottomSheetState.show() } },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Text("Filters", color = Color.White, fontSize = 12.sp)
-                }
-                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp)
+                        .padding(8.dp)
+                        .size(20.dp)
                 ) {
-                    SwipeCounter(remainingSwipes.value)
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filters",
+                        tint = Color(0xFFFF6F00), // Orange color
+                        modifier = Modifier.size(54.dp)
+                    )
                 }
-                InfoOverlay()
+                // New buttons for extra swipe actions
+                Row {
+                    Button(
+                        onClick = { handleSuperSwipe() },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text("Super Swipe", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { handleForceMatch() },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text("Force Match", color = Color.White)
+                    }
+                }
             }
+            // -------------------------------------------------
+
             Box(modifier = Modifier.fillMaxSize()) {
                 if (isLoading) {
                     Box(
@@ -276,7 +315,7 @@ fun DatingScreen(
                         )
                     }
                 }
-                // Swipe Left Overlay (Red)
+                // Existing swipe direction overlays (if still needed)
                 if (visible) {
                     Surface(
                         modifier = Modifier
@@ -293,9 +332,6 @@ fun DatingScreen(
                             modifier = Modifier.size(48.dp)
                         )
                     }
-                }
-                // Swipe Right Overlay (Green)
-                if (visible) {
                     Surface(
                         modifier = Modifier
                             .size(100.dp)
@@ -313,9 +349,33 @@ fun DatingScreen(
                     }
                 }
             }
+            // End of main content column
         }
     }
 
+    // --- Overlay for When Swipes Are Over ---
+    // This overlay covers the screen if remainingSwipes reaches zero,
+    // intercepts all touches, and displays a "No more swipes available" message.
+    if (remainingSwipes.value <= 0) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.7f))
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { /* Consume all touches to disallow swipes */ })
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No more swipes available",
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+
+    // Existing MatchPopUp code, etc.
     matchPopUpState?.let { (currentUserProfile, matchedUserProfile) ->
         MatchPopUp(
             currentUserProfilePic = currentUserProfile.profilepicUrl.orEmpty(),
@@ -331,6 +391,7 @@ fun DatingScreen(
         )
     }
 }
+
 
 /**
  * Load swipes from Firebase and reset them to 25 if a new day has started.
@@ -402,7 +463,7 @@ fun FiltersOverlay(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Filters {scroll}",
+                text = "Filters",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -767,7 +828,7 @@ fun DatingProfileCard(
     Card(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(8.dp)
             .offset { IntOffset(swipeOffset.roundToInt(), 0) }
             .swipeable(
                 state = swipeableState,
@@ -815,9 +876,6 @@ fun DatingProfileCard(
                 items(featuredPosts) { post ->
                     PostItemInProfile(post)
                 }
-            }
-            item {
-                CollapsedMetricsSection(profile)
             }
             if (remainingPosts.isNotEmpty()) {
                 item {
@@ -937,74 +995,7 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
         contentColor = Color.White
     )
 }
-/**
- * Info Overlay Component.
- */
-@Composable
-fun InfoOverlay() {
-    var showInfo by remember { mutableStateOf(false) }
 
-    Box {
-        IconButton(onClick = { showInfo = true }) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "Info",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        if (showInfo) {
-            AlertDialog(
-                onDismissRequest = { showInfo = false },
-                title = {
-                    Text(
-                        text = "Dating Screen Features",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Column {
-                        Text("- Swipe Right to Like")
-                        Text("- Swipe Left to Skip")
-                        Text("- Scroll Down for Profile Details")
-                        Text("- Metrics: SPR, Rating, etc.")
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showInfo = false }) {
-                        Text("Got it")
-                    }
-                }
-            )
-        }
-    }
-}
-
-/**
- * Swipe Counter Component.
- */
-@Composable
-fun SwipeCounter(remainingSwipes: Int) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "Remaining Swipes: $remainingSwipes",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFFF6F00)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        LinearProgressIndicator(
-            progress = remainingSwipes / 25f,
-            color = Color(0xFFFF6F00),
-            backgroundColor = Color.Gray,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-        )
-    }
-}
 
 @Composable
 fun PhotoWithTwoOverlays(
@@ -1081,46 +1072,18 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
-            // Zodiac overlay at the top left
-            if (currentPhotoIndex == 0) {
-                TagBox(
-                    text = profile.zodiac.toString(),
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(14.dp, 10.dp)
-                )
-            }
-
-            // Zodiac overlay at the top left
-            if (currentPhotoIndex == 0) {
-                TagBox(
-                    text = ((profile.averageSwipeRightsOnUser)*100).roundToInt().toString()+"%",
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(14.dp, 10.dp)
-                )
-            }
-
-            // Bottom overlays (distance and vibe score)
-            if (currentPhotoIndex == 0) {
+            // Top overlay (distance)
+            if (currentPhotoIndex == 0 || currentPhotoIndex == 1 || currentPhotoIndex == 2 || currentPhotoIndex == 3 || currentPhotoIndex == 4) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
+                        .align(Alignment.TopStart)
                         .padding(14.dp, 10.dp)
                 ) {
                     TagBox(
                         text = "${userDistance.roundToInt()} km away",
-                        modifier = Modifier.align(Alignment.BottomStart)
+                        modifier = Modifier.align(Alignment.TopStart)
                     )
-                    if (currentProfile != null) {
-                        FlashyVibeScore(
-                            aiMatchResult = aiMatchResult,
-                            currentProfile = currentProfile,
-                            otherProfile = profile,
-                            modifier = Modifier.align(Alignment.BottomEnd)
-                        )
-                    }
                 }
             }
         } else {
@@ -1152,57 +1115,9 @@ fun TagBox(
     }
 }
 
-/** Updated FlashyVibeScore with modifier parameter for overlay positioning */
 @Composable
-fun FlashyVibeScore(
-    aiMatchResult: AiMatchCheckResult?,
-    currentProfile: Profile,
-    otherProfile: Profile,
-    modifier: Modifier = Modifier
-) {
-    var showCompatibilityDialog by remember { mutableStateOf(false) }
-    val displayPercent = aiMatchResult?.totalMatchPercentage?.let { "$it%" } ?: "Calculating..."
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(Brush.horizontalGradient(listOf(Color(0xFFFF4500), Color(0xFFFF6F00))))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clickable { showCompatibilityDialog = true }
-    ) {
-        Text(
-            text = "It's a $displayPercent match",
-            color = Color.White,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 16.sp
-        )
-    }
-
-    if (showCompatibilityDialog) {
-        AlertDialog(
-            onDismissRequest = { showCompatibilityDialog = false },
-            title = { Text("Compatibility Breakdown", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black) },
-            text = {
-                if (aiMatchResult != null) {
-                    Text(aiMatchResult.compatibilityBreakdown, fontSize = 12.sp)
-                } else {
-                    Text("Analysis in progress...", fontSize = 12.sp)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showCompatibilityDialog = false }) {
-                    Text("Close", color = Color(0xFFFF6F00), fontSize = 12.sp)
-                }
-            },
-            backgroundColor = Color.Black,
-            contentColor = Color(0xFFFF6F00)
-        )
-    }
-}
-
-@Composable
-fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchCheckResult?) {
-    var showPerformance by rememberSaveable { mutableStateOf(true) }
+fun PerformanceMetricsSectionDating(profile: Profile) {
+    var showPerformance by rememberSaveable { mutableStateOf(false) }
     CollapsibleSection(
         title = "Performance Metrics",
         icon = Icons.Default.Assessment,
@@ -1212,14 +1127,9 @@ fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchChec
         ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
         ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
         ProfileDetailRow(
-            label = "Swipe Right Probability",
+            label = "Percentage who swipe right on this user",
             value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
             icon = Icons.Default.Swipe
-        )
-        ProfileDetailRow(
-            label = "Compatibility",
-            value = aiMatchResult?.totalMatchPercentage?.let { "$it%" } ?: "N/A",
-            icon = Icons.Default.HowToVote
         )
         ProfileDetailRow(
             label = "West Bengal Ranking",
@@ -1285,12 +1195,12 @@ fun PerformanceMetricsSectionDating(profile: Profile, aiMatchResult: AiMatchChec
  */
 @Composable
 fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, aiMatchResult: AiMatchCheckResult?) {
-    var showVoiceBio by rememberSaveable { mutableStateOf(true) }
-    var showBasic by rememberSaveable { mutableStateOf(true) }
-    var showPreferences by rememberSaveable { mutableStateOf(true) }
-    var showLifestyle by rememberSaveable { mutableStateOf(true) }
-    var showInterests by rememberSaveable { mutableStateOf(true) }
-    var showAiSection by rememberSaveable { mutableStateOf(true) }
+    var showVoiceBio by rememberSaveable { mutableStateOf(false) }
+    var showBasic by rememberSaveable { mutableStateOf(false) }
+    var showPreferences by rememberSaveable { mutableStateOf(false) }
+    var showLifestyle by rememberSaveable { mutableStateOf(false) }
+    var showInterests by rememberSaveable { mutableStateOf(false) }
+    var showAiSection by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
 
@@ -1301,7 +1211,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             .padding(8.dp)
     ) {
         CollapsibleSection(
-            title = "AI Match Analysis",
+            title = "Compatibility Check",
             icon = Icons.Default.Info,
             isExpanded = showAiSection,
             onToggle = { showAiSection = !showAiSection }
@@ -1310,7 +1220,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
                 if (currentAiMatchResult != null) {
                     ShowAiMatchAnalysis(currentAiMatchResult!!)
                 } else {
-                    Text("Analysis in progress...", color = Color.White)
+                    Text("Run Analysis", color = Color.White)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
@@ -1330,21 +1240,12 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
                     modifier = Modifier
                         .height(36.dp)
                 ) {
-                    Text("Re-run", color = Color.White, fontSize = 12.sp)
+                    Text("Run", color = Color.White, fontSize = 12.sp)
                 }
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
-        PerformanceMetricsSectionDating(profile, aiMatchResult)
-        Spacer(modifier = Modifier.height(12.dp))
-        CollapsibleSection(
-            title = "Basic Information",
-            icon = Icons.Default.Person,
-            isExpanded = showBasic,
-            onToggle = { showBasic = !showBasic }
-        ) {
-            BasicInfoSection(profile)
-        }
+        PerformanceMetricsSectionDating(profile)
         Spacer(modifier = Modifier.height(12.dp))
         CollapsibleSection(
             title = "Bio",
@@ -1353,6 +1254,15 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             onToggle = { showVoiceBio = !showVoiceBio }
         ) {
             showVoiceBio(profile = profile)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        CollapsibleSection(
+            title = "Basic Information",
+            icon = Icons.Default.Person,
+            isExpanded = showBasic,
+            onToggle = { showBasic = !showBasic }
+        ) {
+            BasicInfoSection(profile)
         }
         Spacer(modifier = Modifier.height(12.dp))
         CollapsibleSection(
@@ -1434,172 +1344,337 @@ fun runAiMatchCheck(
     otherProfile: Profile,
     onComplete: (AiMatchCheckResult) -> Unit
 ) {
-    val displayHighSchool = if (currentUserProfile.highSchool.isNotBlank())
-        currentUserProfile.highSchool else currentUserProfile.customHighSchool
-    val highSchoolText = "High School: \"$displayHighSchool, graduationYr: ${currentUserProfile.highSchoolGraduationYear}\""
+    // Compute the mathematical compatibility score and insights.
+    val (finalScore, insights) = calculateExhaustiveCompatibilityScore(currentUserProfile, otherProfile)
 
-    val displayCollege = if (currentUserProfile.college.isNotBlank())
-        currentUserProfile.college else currentUserProfile.customCollege
-    val collegeText = "College: \"$displayCollege, graduationYr: ${currentUserProfile.collegeGraduationYear}, ${currentUserProfile.collegeDegree}\""
+    // Join insights into a breakdown string.
+    val breakdownText = insights.joinToString(separator = "\n") { "${it.emoji} ${it.text}" }
 
-    val displayPostGrad = if (!currentUserProfile.postGraduation.isNullOrEmpty())
-        currentUserProfile.postGraduation else currentUserProfile.customPostGraduation
-    val postGradText = "Post Graduation: \"$displayPostGrad, graduationYr: ${currentUserProfile.postGraduationYear}, ${currentUserProfile.postGraduationDegree}\""
-    val interestNames = currentUserProfile.interests.joinToString { it.name }
-    val displayJobRole = if (currentUserProfile.jobRole.isNotBlank()) currentUserProfile.jobRole else currentUserProfile.customJobRole
-    val displayWork = if (currentUserProfile.work.isNotBlank()) currentUserProfile.work else currentUserProfile.customWork
+    // Create a summary text that shows both the percentage and the breakdown details.
+    val summaryText = "Total Match: $finalScore%\nBreakdown:\n$breakdownText"
 
-    val displayOtherHighSchool = if (otherProfile.highSchool.isNotBlank())
-        otherProfile.highSchool else otherProfile.customHighSchool
-    val otherHighSchoolText = "High School: \"$displayOtherHighSchool, graduationYr: ${otherProfile.highSchoolGraduationYear}\""
+    Log.d("runAiMatchCheck", "Calculated compatibility for currentUserId: $currentUserId and otherProfileId: ${otherProfile.userId}")
+    Log.d("runAiMatchCheck", "Compatibility Summary: $summaryText")
 
-    val displayOtherCollege = if (otherProfile.college.isNotBlank())
-        otherProfile.college else otherProfile.customCollege
-    val collegeOtherText = "College: \"$displayOtherCollege, graduationYr: ${otherProfile.collegeGraduationYear}, ${otherProfile.collegeDegree}\""
+    // Create an AiMatchCheckResult instance based solely on the computed values.
+    val result = AiMatchCheckResult(
+        summary = summaryText,
+        totalMatchPercentage = finalScore,
+        compatibilityBreakdown = breakdownText,
+        timestamp = System.currentTimeMillis()
+    )
 
-    val displayOtherPostGrad = if (!otherProfile.postGraduation.isNullOrEmpty())
-        otherProfile.postGraduation else otherProfile.customPostGraduation
-    val otherPostGradText = "Post Graduation: \"$displayOtherPostGrad, graduationYr: ${otherProfile.postGraduationYear}, ${otherProfile.postGraduationDegree}\""
-    val otherInterestNames = otherProfile.interests.joinToString { it.name }
-    val displayOtherJobRole = if (otherProfile.jobRole.isNotBlank()) otherProfile.jobRole else otherProfile.customJobRole
-    val displayOtherWork = if (otherProfile.work.isNotBlank()) otherProfile.work else otherProfile.customWork
+    // Save the result in Firebase.
+    FirebaseDatabase.getInstance()
+        .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
+        .setValue(result)
 
-    val userSnippet = """
-        Name: ${currentUserProfile.name}
-        Gender: ${currentUserProfile.gender}
-        DOB: ${currentUserProfile.dob}
-        Rating by others: ${currentUserProfile.averageRating} by ${currentUserProfile.numberOfRatings} users
-        Community: ${currentUserProfile.community}
-        Locality: ${ if (currentUserProfile.hometown != "") currentUserProfile.hometown else currentUserProfile.customHometown }
-        Lifestyle: ${currentUserProfile.lifestyle}
-        Politics: ${currentUserProfile.politics}
-        Interests: $interestNames
-        Love Language: ${currentUserProfile.loveLanguage}
-        HighSchool: $highSchoolText
-        College: $collegeText
-        PostGrad: $postGradText
-        Work and JobRole: $displayJobRole at $displayWork
-        Social Causes: ${currentUserProfile.socialCauses}
-        Looking For: ${currentUserProfile.lookingFor}
-        Zodiac: ${currentUserProfile.zodiac}
-        West Bengal Ranking: ${currentUserProfile.am24Ranking}
-        ${ if (currentUserProfile.city != "") currentUserProfile.city else currentUserProfile.customCity } Ranking: ${ if (currentUserProfile.city != "") currentUserProfile.am24RankingCity else currentUserProfile.am24RankingCustomCity }
-        ${ if (currentUserProfile.hometown != "") currentUserProfile.hometown else currentUserProfile.customHometown } Ranking: ${ if (currentUserProfile.hometown != "") currentUserProfile.am24RankingHometown else currentUserProfile.am24RankingCustomHometown }
-
-        ...
-    """.trimIndent()
-
-    val otherSnippet = """
-        Name: ${otherProfile.name}
-        Gender: ${otherProfile.gender}
-        DOB: ${otherProfile.dob}
-        Rating by others: ${otherProfile.averageRating} by ${otherProfile.numberOfRatings} users
-        Community: ${otherProfile.community}
-        Locality: ${ if (otherProfile.hometown != "") otherProfile.hometown else otherProfile.customHometown }        
-        Lifestyle: ${otherProfile.lifestyle}
-        Politics: ${otherProfile.politics}
-        Interests: $otherInterestNames
-        Love Language: ${otherProfile.loveLanguage}
-        HighSchool: $otherHighSchoolText
-        College: $collegeOtherText
-        PostGrad: $otherPostGradText
-        Work and JobRole: $displayOtherJobRole at $displayOtherWork
-        Social Causes: ${otherProfile.socialCauses}
-        Looking For: ${otherProfile.lookingFor}
-        Zodiac: ${otherProfile.zodiac}
-        West Bengal Ranking: ${otherProfile.am24Ranking}
-        ${ if (otherProfile.city != "") otherProfile.city else otherProfile.customCity } Ranking: ${ if (otherProfile.city != "") otherProfile.am24RankingCity else otherProfile.am24RankingCustomCity }
-        ${ if (otherProfile.hometown != "") otherProfile.hometown else otherProfile.customHometown } Ranking: ${ if (otherProfile.hometown != "") otherProfile.am24RankingHometown else otherProfile.am24RankingCustomHometown }
-
-        ...
-    """.trimIndent()
-
-    val prompt = """
-       We have 2 profiles:
-       
-       [User Profile]
-       $userSnippet
-       
-       [Potential Match]
-       $otherSnippet
-       
-       Compare shared interests, zodiac compatibility, lifestyle overlap, locality match, education and work match.
-       
-       Provide both short term and long term match prospects using emojis.
-       
-       Then, on a new line, output the total match percentage in the following format:
-       Total Match: [percentage]%
-       
-       On another new line, output a detailed breakdown of the compatibility score in the following format:
-       Breakdown: [detailed breakdown text ending with a full stop - show what affected how much %]
-       
-       Keep your entire output limited to 420 words and limit the breakdown to 120 words.
-    """.trimIndent()
-
-    Log.d("runAiMatchCheck", "Starting runAiMatchCheck for currentUserId: $currentUserId and otherProfileId: ${otherProfile.userId}")
-    Log.d("runAiMatchCheck", "Prompt built: $prompt")
-
-    coroutineScope.launch(Dispatchers.IO) {
-        val messages = listOf(ChatMessage(role = "user", content = prompt))
-        val gptReply = callKupidXApi(messages) ?: return@launch
-
-        val fullText = gptReply.trim()
-        val totalRegex = Regex("Total Match:\\s*(\\d+)%")
-        val breakdownRegex = Regex("Breakdown:\\s*(.+?)(?:\\n|$)")
-        val totalMatchPercentage = totalRegex.find(fullText)?.groupValues?.get(1)?.toInt() ?: 0
-        val compatibilityBreakdown = breakdownRegex.find(fullText)?.groupValues?.get(1) ?: ""
-
-        val result = AiMatchCheckResult(
-            summary = fullText,
-            totalMatchPercentage = totalMatchPercentage,
-            compatibilityBreakdown = compatibilityBreakdown,
-            timestamp = System.currentTimeMillis()
-        )
-
-        FirebaseDatabase.getInstance()
-            .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
-            .setValue(result)
-
-        withContext(Dispatchers.Main) { onComplete(result) }
+    // Invoke the onComplete callback on the Main thread.
+    coroutineScope.launch(Dispatchers.Main) {
+        onComplete(result)
     }
 }
 
-suspend fun callKupidXApi(messages: List<ChatMessage>): String? {
-    val gson = Gson()
-    return withContext(Dispatchers.IO) {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(3000, TimeUnit.SECONDS)
-            .readTimeout(3000, TimeUnit.SECONDS)
-            .writeTimeout(3000, TimeUnit.SECONDS)
-            .build()
+data class MatchInsight(val emoji: String, val text: String, val isPositive: Boolean)
 
-        val railwayUrl = "https://am24.org/openai/chat"
-        val chatRequest = ChatRequest(model = "llama-3.3-70b-versatile", messages = messages, max_tokens = 8000)
-        val jsonBody = gson.toJson(chatRequest)
-        Log.d("FinalRequest", "Sending final request: $jsonBody")
-        val mediaType = "application/json".toMediaType()
-        val reqBody = jsonBody.toRequestBody(mediaType)
-        val req = Request.Builder()
-            .url(railwayUrl)
-            .post(reqBody)
-            .build()
+fun calculateExhaustiveCompatibilityScore(
+    profileA: Profile,
+    profileB: Profile
+): Pair<Int, List<MatchInsight>> {
+    var score = 0.0
+    val maxScore = 100.0
+    val insights = mutableListOf<MatchInsight>()
 
-        try {
-            client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) {
-                    Log.e("FinalResponse", "Request failed with code: ${resp.code}")
-                    return@withContext "Error: ${resp.code}"
-                }
-                val rBody = resp.body?.string() ?: return@withContext null
-                Log.d("FinalResponse", rBody)
-                val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
-                chatResp.choices.firstOrNull()?.message?.content
+    // Helper: Resolve a field with fallback and trim it.
+    fun resolveField(primary: String, fallback: String?): String {
+        return if (primary.trim().isNotEmpty()) primary.trim() else (fallback?.trim() ?: "")
+    }
+
+    // Helper: Compare string fields.
+    // If both fields are empty then add an "etc" note and return 0.
+    fun compareStringField(a: String, b: String, label: String, points: Double): Double {
+        val aTrim = a.orEmpty().trim()
+        val bTrim = b.orEmpty().trim()
+        return when {
+            aTrim.isEmpty() && bTrim.isEmpty() -> {
+                insights += MatchInsight("ℹ️", "$label: not set by both", false)
+                0.0
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            "Error: ${e.message}"
+            aTrim.equals(bTrim, ignoreCase = true) -> {
+                insights += MatchInsight("✅", "$label match: Both are \"$aTrim\"", true)
+                points
+            }
+            else -> {
+                insights += MatchInsight("⚠️", "$label mismatch: \"$aTrim\" vs \"$bTrim\"", false)
+                0.0
+            }
         }
     }
+
+    // 1. Education (Total: 12 points)
+    val collegeA = resolveField(profileA.college, profileA.customCollege)
+    val collegeB = resolveField(profileB.college, profileB.customCollege)
+    score += compareStringField(collegeA, collegeB, "College", 6.0)
+
+    val postGradA = resolveField(profileA.postGraduation ?: "", profileA.customPostGraduation)
+    val postGradB = resolveField(profileB.postGraduation ?: "", profileB.customPostGraduation)
+    score += compareStringField(postGradA, postGradB, "Post-Graduation", 6.0)
+
+    // 2. Work & Job Role (Total: 13 points)
+    score += compareStringField(profileA.work, profileB.work, "Workplace", 8.0)
+    score += compareStringField(profileA.jobRole, profileB.jobRole, "Job Role", 5.0)
+
+    // 3. Love Language (4 points)
+    score += compareStringField(profileA.loveLanguage, profileB.loveLanguage, "Love Language", 4.0)
+
+    // 4. Relationship Intent (6 points)
+    score += compareStringField(profileA.lookingFor, profileB.lookingFor, "Relationship intent", 6.0)
+
+    // 5. Community & Religion (Total: 9 points)
+    score += compareStringField(profileA.community, profileB.community, "Community", 5.0)
+    score += compareStringField(profileA.religion, profileB.religion, "Religion", 4.0)
+
+    // 6. Location: City (4 points)
+    score += compareStringField(profileA.city, profileB.city, "City", 4.0)
+
+    // 7. Preferred Language (3 points)
+    score += compareStringField(profileA.preferredLanguage, profileB.preferredLanguage, "Preferred Language", 3.0)
+
+    // 8. Interests (Up to 8 points)
+    val interestsA = profileA.interests.map { it.name.trim() }.filter { it.isNotEmpty() }.toSet()
+    val interestsB = profileB.interests.map { it.name.trim() }.filter { it.isNotEmpty() }.toSet()
+    val sharedInterests = interestsA.intersect(interestsB)
+    if (sharedInterests.isNotEmpty()) {
+        val bonus = (sharedInterests.size * 2).coerceAtMost(8)
+        score += bonus.toDouble()
+        insights += MatchInsight("✅", "Shared interests: ${sharedInterests.joinToString()}", true)
+    } else {
+        if (interestsA.isEmpty() && interestsB.isEmpty()) {
+            insights += MatchInsight("ℹ️", "Interests: not set by both", false)
+        } else {
+            insights += MatchInsight("⚠️", "No common interests", false)
+        }
+    }
+
+    // 9. Social Causes (Up to 6 points)
+    val causesA = profileA.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    val causesB = profileB.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    val sharedCauses = causesA.intersect(causesB)
+    if (sharedCauses.isNotEmpty()) {
+        val bonus = (sharedCauses.size * 2).coerceAtMost(6)
+        score += bonus.toDouble()
+        insights += MatchInsight("✅", "Shared social causes: ${sharedCauses.joinToString()}", true)
+    } else {
+        if (causesA.isEmpty() && causesB.isEmpty()) {
+            insights += MatchInsight("ℹ️", "Social causes: not set by both", false)
+        } else {
+            insights += MatchInsight("⚠️", "No common social causes", false)
+        }
+    }
+
+    // 10. Zodiac (5 points)
+    val zodiacA = if (!profileA.zodiac.isNullOrBlank()) profileA.zodiac.orEmpty().trim() else deriveZodiac(profileA.dob)
+    val zodiacB = if (!profileB.zodiac.isNullOrBlank()) profileB.zodiac.orEmpty().trim() else deriveZodiac(profileB.dob)
+    if (zodiacA != "Unknown" && zodiacB != "Unknown") {
+        if (isZodiacCompatible(zodiacA, zodiacB)) {
+            score += 5.0
+            insights += MatchInsight("✅", "Zodiac compatibility: $zodiacA + $zodiacB", true)
+        } else {
+            insights += MatchInsight("⚠️", "Zodiac mismatch: $zodiacA vs $zodiacB", false)
+        }
+    } else {
+        insights += MatchInsight("ℹ️", "Zodiac: not set", false)
+    }
+
+    // 11. Matrimony Mode (Total: 6 points)
+    if (profileA.isMatrimonyMode && profileB.isMatrimonyMode) {
+        score += 3.0
+        score += compareStringField(profileA.marriageTimeline.orEmpty(), profileB.marriageTimeline.orEmpty(), "Marriage timeline", 3.0)
+    } else if (profileA.isMatrimonyMode != profileB.isMatrimonyMode) {
+        insights += MatchInsight("⚠️", "Matrimony mismatch: one is in marriage mode, the other is not", false)
+    } else {
+        insights += MatchInsight("ℹ️", "Matrimony mode: not set in both", false)
+    }
+
+    // 12. Relocation Preference (4 points)
+    score += compareStringField(
+        profileA.relocationPreference.orEmpty(),
+        profileB.relocationPreference.orEmpty(),
+        "Relocation",
+        4.0
+    )
+
+    // 13. Post-Marriage Career Plan (3 points)
+    score += compareStringField(
+        profileA.postMarriageCareerPlan.orEmpty(),
+        profileB.postMarriageCareerPlan.orEmpty(),
+        "Post-marriage career plan",
+        3.0
+    )
+
+    // 14. Tradition vs. Liberal (3 points)
+    score += compareStringField(
+        profileA.traditionalVsLiberal.orEmpty(),
+        profileB.traditionalVsLiberal.orEmpty(),
+        "Cultural mindset",
+        3.0
+    )
+
+    // 15. Exhaustive Lifestyle Comparison (10 points)
+    val lifestyleFieldNames = listOf(
+        "Smoking", "Drinking", "Indoor/Outdoor", "Sexual activity", "Sociability",
+        "Social media", "Dietary Preferences", "Sleep", "Work-life balance", "Exercise", "Adventurousness",
+        "Family oriented", "Intellectual curiosity", "Creative expression",
+        "Physical fitness", "Spirituality", "Easy going", "Professional ambition",
+        "Environmental awareness", "Culinary enthusiasm", "Political awareness",
+        "Community engagement", "Sports"
+    )
+    val lifestylePairs = listOf<Pair<Any?, Any?>>(
+        Pair(profileA.lifestyle?.smoking_habit, profileB.lifestyle?.smoking_habit),
+        Pair(profileA.lifestyle?.drinking_habit, profileB.lifestyle?.drinking_habit),
+        Pair(profileA.lifestyle?.indoor_outdoor_orientation, profileB.lifestyle?.indoor_outdoor_orientation),
+        Pair(profileA.lifestyle?.sexual_activity_level, profileB.lifestyle?.sexual_activity_level),
+        Pair(profileA.lifestyle?.sociability, profileB.lifestyle?.sociability),
+        Pair(profileA.lifestyle?.social_media_engagement, profileB.lifestyle?.social_media_engagement),
+        Pair(profileA.lifestyle?.dietary_preferences, profileB.lifestyle?.dietary_preferences),
+        Pair(profileA.lifestyle?.sleep_pattern, profileB.lifestyle?.sleep_pattern),
+        Pair(profileA.lifestyle?.work_life_balance, profileB.lifestyle?.work_life_balance),
+        Pair(profileA.lifestyle?.exercise_frequency, profileB.lifestyle?.exercise_frequency),
+        Pair(profileA.lifestyle?.adventurousness, profileB.lifestyle?.adventurousness),
+        Pair(profileA.lifestyle?.family_orientated, profileB.lifestyle?.family_orientated),
+        Pair(profileA.lifestyle?.intellectual_curiosity, profileB.lifestyle?.intellectual_curiosity),
+        Pair(profileA.lifestyle?.creative_expression, profileB.lifestyle?.creative_expression),
+        Pair(profileA.lifestyle?.physical_fitness, profileB.lifestyle?.physical_fitness),
+        Pair(profileA.lifestyle?.spirituality_mindfulness, profileB.lifestyle?.spirituality_mindfulness),
+        Pair(profileA.lifestyle?.easy_goingness, profileB.lifestyle?.easy_goingness),
+        Pair(profileA.lifestyle?.professional_ambition, profileB.lifestyle?.professional_ambition),
+        Pair(profileA.lifestyle?.environmental_awareness, profileB.lifestyle?.environmental_awareness),
+        Pair(profileA.lifestyle?.culinary_enthusiasm, profileB.lifestyle?.culinary_enthusiasm),
+        Pair(profileA.lifestyle?.political_awareness, profileB.lifestyle?.political_awareness),
+        Pair(profileA.lifestyle?.community_engagement, profileB.lifestyle?.community_engagement),
+        Pair(profileA.lifestyle?.sports_enthusiasm, profileB.lifestyle?.sports_enthusiasm),
+    )
+
+    var lifestyleMatched = 0
+    var lifestyleCompared = 0
+    val lifestyleMatchesList = mutableListOf<String>()
+    val lifestyleMismatchesList = mutableListOf<String>()
+
+    for ((index, pair) in lifestylePairs.withIndex()) {
+        val fieldName = lifestyleFieldNames.getOrElse(index) { "Lifestyle Field" }
+        val a = pair.first
+        val b = pair.second
+        when {
+            a is Int && b is Int -> {
+                if (a == -1 && b == -1) {
+                    // Both not set; list note but do not count
+                    lifestyleMatchesList.add("$fieldName: not set by both")
+                } else if (a == -1 || b == -1) {
+                    lifestyleCompared++
+                    lifestyleMismatchesList.add("$fieldName: one not set")
+                } else {
+                    lifestyleCompared++
+                    val diff = kotlin.math.abs(a - b)
+                    if (diff == 0) {
+                        lifestyleMatched++
+                        lifestyleMatchesList.add(fieldName)
+                    } else {
+                        lifestyleMismatchesList.add("$fieldName: $a vs $b")
+                    }
+                }
+            }
+            a is Boolean && b is Boolean -> {
+                lifestyleCompared++
+                if (a == b) {
+                    lifestyleMatched++
+                    lifestyleMatchesList.add(fieldName)
+                } else {
+                    lifestyleMismatchesList.add("$fieldName: $a vs $b")
+                }
+            }
+            a is String && b is String -> {
+                val aTrim = a.trim()
+                val bTrim = b.trim()
+                if (aTrim.isEmpty() && bTrim.isEmpty()) {
+                    lifestyleMatchesList.add("$fieldName: not set by both")
+                } else if (aTrim.isEmpty() || bTrim.isEmpty()) {
+                    lifestyleCompared++
+                    lifestyleMismatchesList.add("$fieldName: one not set")
+                } else {
+                    lifestyleCompared++
+                    if (aTrim.equals(bTrim, ignoreCase = true)) {
+                        lifestyleMatched++
+                        lifestyleMatchesList.add(fieldName)
+                    } else {
+                        lifestyleMismatchesList.add("$fieldName: '$aTrim' vs '$bTrim'")
+                    }
+                }
+            }
+        }
+    }
+
+    // Create aggregated insight for Lifestyle.
+    if (lifestyleCompared > 0) {
+        if (lifestyleCompared < 5) {
+            if (lifestyleMatched > 0) {
+                // List exactly which traits matched.
+                val matchedTraits = lifestyleMatchesList.filter { !it.contains("not set") }
+                insights += MatchInsight("✅", "Both of you align on these $lifestyleMatched lifestyle traits: ${matchedTraits.joinToString(", ")}", true)
+            } else {
+                insights += MatchInsight("⚠️", "No lifestyle traits sufficiently set to compare", false)
+            }
+        } else {
+            val percentage = (lifestyleMatched.toDouble() / lifestyleCompared.toDouble()) * 100
+            val commonTraits = lifestyleMatchesList.filter { !it.contains("not set") }
+            insights += MatchInsight("✅", "Lifestyle similarity: ${"%.1f".format(percentage)}% match over $lifestyleCompared factors. Common traits: ${if(commonTraits.isNotEmpty()) commonTraits.joinToString(", ") else "None"}", true)
+        }
+    } else {
+        insights += MatchInsight("ℹ️", "Lifestyle: not set in both profiles", false)
+    }
+    if (lifestyleMismatchesList.isNotEmpty()) {
+        insights += MatchInsight("⚠️", "Lifestyle mismatches: ${lifestyleMismatchesList.joinToString("; ")}", false)
+    }
+
+    // 16. Family Details (3 points)
+    var familyBonus = 0.0
+    if (profileA.numberOfSiblings != null && profileB.numberOfSiblings != null) {
+        if (profileA.numberOfSiblings == profileB.numberOfSiblings) {
+            familyBonus += 2.0
+            insights += MatchInsight("✅", "Family size match: Both have ${profileA.numberOfSiblings} siblings", true)
+        } else {
+            insights += MatchInsight("⚠️", "Family size mismatch: ${profileA.numberOfSiblings} vs ${profileB.numberOfSiblings}", false)
+        }
+    } else {
+        insights += MatchInsight("ℹ️", "Family size: not set by both", false)
+    }
+    val relationshipA = profileA.relationship.orEmpty().trim()
+    val relationshipB = profileB.relationship.orEmpty().trim()
+    if (relationshipA.isNotEmpty() && relationshipB.isNotEmpty()) {
+        if (relationshipA.equals(relationshipB, ignoreCase = true)) {
+            familyBonus += 1.0
+            insights += MatchInsight("✅", "Relationship style match: Both are \"$relationshipA\"", true)
+        } else {
+            insights += MatchInsight("⚠️", "Relationship style mismatch: \"$relationshipA\" vs \"$relationshipB\"", false)
+        }
+    } else {
+        insights += MatchInsight("ℹ️", "Relationship style: not set by both", false)
+    }
+    score += familyBonus
+
+    // 17. User Tags (Bonus: up to 2 points)
+    val tagsA = profileA.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    val tagsB = profileB.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    val sharedTags = tagsA.intersect(tagsB)
+    if (sharedTags.isNotEmpty()) {
+        val bonus = (sharedTags.size * 1).coerceAtMost(2)
+        score += bonus.toDouble()
+        insights += MatchInsight("✅", "Shared tags: ${sharedTags.joinToString()}", true)
+    } else {
+        insights += MatchInsight("ℹ️", "User tags: not set or no overlap", false)
+    }
+
+    val finalScore = score.coerceAtMost(maxScore).toInt()
+    return Pair(finalScore, insights)
 }
 
 @Composable

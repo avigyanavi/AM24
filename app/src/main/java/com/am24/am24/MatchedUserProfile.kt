@@ -156,9 +156,6 @@ fun MatchedUserProfileScreen(
                                 PostItemInProfile(post)
                             }
                         }
-                        item {
-                            CollapsedMetricsSection(profile)
-                        }
                         if (remainingPosts.isNotEmpty()) {
                             item {
                                 Spacer(modifier = Modifier.height(8.dp))

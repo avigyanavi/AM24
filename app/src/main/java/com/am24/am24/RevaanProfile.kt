@@ -1,6 +1,6 @@
 package com.am24.am24.profiles
 
-import AI
+
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.am24.am24.AI
 import com.am24.am24.ModelingState
 import com.am24.am24.ui.theme.White
 import com.google.firebase.database.DataSnapshot

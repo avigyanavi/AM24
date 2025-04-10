@@ -101,7 +101,6 @@ fun DMScreenContent(navController: NavController) {
         lifestyle = Lifestyle(
             smoking_habit = 0,
             drinking_habit = 1,
-            cannabis_friendly = false,
             indoor_outdoor_orientation = 2,
             sexual_activity_level = 1,
             sociability = 2,
@@ -111,7 +110,6 @@ fun DMScreenContent(navController: NavController) {
             work_life_balance = 3,
             exercise_frequency = 4,
             adventurousness = 4,
-            pet_affinity = true,
             family_orientated = 3,
             intellectual_curiosity = 3,
             creative_expression = 4,
@@ -124,7 +122,6 @@ fun DMScreenContent(navController: NavController) {
             political_awareness = 3,
             community_engagement = 3,
             sports_enthusiasm = 5,
-            preferred_alcohol_type = "Wine"
         ),
         politics = "Liberal",
         jobRole = "Dating Coach",
@@ -225,7 +222,6 @@ fun DMScreenContent(navController: NavController) {
         lifestyle = Lifestyle(
             smoking_habit = 2,
             drinking_habit = 2,
-            cannabis_friendly = false,
             indoor_outdoor_orientation = 4,
             sexual_activity_level = 2,
             sociability = 2,
@@ -235,7 +231,6 @@ fun DMScreenContent(navController: NavController) {
             work_life_balance = 3,
             exercise_frequency = 5,
             adventurousness = 5,
-            pet_affinity = false,
             family_orientated = 3,
             intellectual_curiosity = 2,
             creative_expression = 2,
@@ -248,7 +243,6 @@ fun DMScreenContent(navController: NavController) {
             political_awareness = 2,
             community_engagement = 2,
             sports_enthusiasm = 5,
-            preferred_alcohol_type = "Beer"
         ),
         politics = "Moderate",
         jobRole = "Approach Mentor",

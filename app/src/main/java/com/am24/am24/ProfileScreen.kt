@@ -158,9 +158,6 @@ fun ProfileLazyScreen(
                     PostItemInProfile(post)
                 }
             }
-            item {
-                CollapsedMetricsSection(profile = profile)
-            }
             if (remainingPosts.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -579,53 +576,6 @@ fun EditVoiceNoteSection(
     }
 }
 
-
-/** Metrics collapsible */
-@Composable
-fun CollapsedMetricsSection(profile: Profile) {
-    var showMetrics by remember { mutableStateOf(false) }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.Black)
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(width = 1.dp, color = Color.White, shape = CircleShape)
-                .background(Color.Black)
-                .clickable { showMetrics = !showMetrics }
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.QueryStats,
-                contentDescription = "Metrics",
-                tint = Color(0xFFFF6F00),
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Stats",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = if (showMetrics) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (showMetrics) "Collapse" else "Expand",
-                tint = Color.White
-            )
-        }
-        if (showMetrics) {
-            Spacer(modifier = Modifier.height(8.dp))
-            MetricsSection(profile)
-        }
-    }
-}
-
 @Composable
 fun BasicInfoSection(profile: Profile) {
     val genderIcon = when (profile.gender.lowercase()) {
@@ -973,179 +923,340 @@ fun PreferencesSection(profile: Profile) {
     ProfileDetailRow("Looking For", lookingForText, Icons.Default.Favorite)
 }
 
+fun isLifestyleEmpty(lifestyle: Lifestyle?): Boolean {
+    if (lifestyle == null) return true
+    return listOf(
+        lifestyle.smoking_habit,
+        lifestyle.drinking_habit,
+        lifestyle.indoor_outdoor_orientation,
+        lifestyle.social_media_engagement,
+        lifestyle.work_life_balance,
+        lifestyle.exercise_frequency,
+        lifestyle.family_orientated,
+        lifestyle.sleep_pattern,
+        lifestyle.adventurousness,
+        lifestyle.intellectual_curiosity,
+        lifestyle.creative_expression,
+        lifestyle.physical_fitness,
+        lifestyle.spirituality_mindfulness,
+        lifestyle.easy_goingness,
+        lifestyle.professional_ambition,
+        lifestyle.environmental_awareness,
+        lifestyle.sports_enthusiasm,
+        lifestyle.sociability,
+        lifestyle.sexual_activity_level
+    ).all { it == -1 }
+}
+
 @Composable
 fun LifestyleSection(profile: Profile) {
     CompositionLocalProvider(LocalTextStyle provides TextStyle(fontSize = 12.sp)) {
         Column {
-            profile.lifestyle?.let { lifestyle ->
-                if (lifestyle.smoking_habit != -1)
-                    LifestyleSlider(
-                        label = "Smoking",
-                        value = lifestyle.smoking_habit,
-                        nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker"),
-                        icon = Icons.Default.SmokingRooms
-                    )
-                if (lifestyle.drinking_habit != -1)
-                    LifestyleSlider(
-                        label = "Drinking",
-                        value = lifestyle.drinking_habit,
-                        nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker"),
-                        icon = Icons.Default.LocalDrink
-                    )
-                if (lifestyle.indoor_outdoor_orientation != -1)
-                    LifestyleSlider(
-                        label = "Going out",
-                        value = lifestyle.indoor_outdoor_orientation,
-                        nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy"),
-                        icon = Icons.Default.DirectionsWalk
-                    )
-                if (lifestyle.social_media_engagement != -1)
-                    LifestyleSlider(
-                        label = "Social Media",
-                        value = lifestyle.social_media_engagement,
-                        nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
-                        icon = Icons.Default.Groups2
-                    )
-                if (lifestyle.work_life_balance != -1)
-                    LifestyleSlider(
-                        label = "Work-Life Balance",
-                        value = lifestyle.work_life_balance,
-                        nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed"),
-                        icon = Icons.Default.WorkOff
-                    )
-                if (lifestyle.exercise_frequency != -1)
-                    LifestyleSlider(
-                        label = "Exercise Frequency",
-                        value = lifestyle.exercise_frequency,
-                        nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active"),
-                        icon = Icons.Default.SportsGymnastics
-                    )
-                if (lifestyle.family_orientated != -1)
-                    LifestyleSlider(
-                        label = "Family-Oriented",
-                        value = lifestyle.family_orientated,
-                        nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented"),
-                        icon = Icons.Default.FamilyRestroom
-                    )
-                if (lifestyle.dietary_preferences.isNotBlank())
-                    LifestyleDropdown("Diet", lifestyle.dietary_preferences, Icons.Default.Restaurant)
-                if (lifestyle.sleep_pattern != -1)
-                    LifestyleSlider(
-                        label = "Sleep Cycle",
-                        value = lifestyle.sleep_pattern,
-                        nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast"),
-                        icon = Icons.Default.Bedtime
-                    )
-                if (lifestyle.adventurousness != -1)
-                    LifestyleSlider(
-                        label = "Adventurous",
-                        value = lifestyle.adventurousness,
-                        nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker"),
-                        icon = Icons.Default.Hiking
-                    )
-                if (lifestyle.social_media_engagement != -1)
-                    LifestyleSlider(
-                        label = "Social Media",
-                        value = lifestyle.social_media_engagement,
-                        nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer"),
-                        icon = Icons.Default.Groups2
-                    )
-                if (lifestyle.pet_affinity)
-                    LifestyleDropdown("Pet Friendly", "Yes", Icons.Default.Pets)
-                if (lifestyle.intellectual_curiosity != -1)
-                    LifestyleSlider(
-                        label = "Intellectual",
-                        value = lifestyle.intellectual_curiosity,
-                        nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher"),
-                        icon = Icons.Default.School
-                    )
-                if (lifestyle.creative_expression != -1)
-                    LifestyleSlider(
-                        label = "Creative/Artistic",
-                        value = lifestyle.creative_expression,
-                        nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius"),
-                        icon = Icons.Default.Palette
-                    )
-                if (lifestyle.physical_fitness != -1)
-                    LifestyleSlider(
-                        label = "Fitness Level",
-                        value = lifestyle.physical_fitness,
-                        nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness"),
-                        icon = Icons.Default.FitnessCenter
-                    )
-                if (lifestyle.spirituality_mindfulness != -1)
-                    LifestyleSlider(
-                        label = "Spiritual/Mindful",
-                        value = lifestyle.spirituality_mindfulness,
-                        nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful"),
-                        icon = Icons.Default.SelfImprovement
-                    )
-                if (lifestyle.easy_goingness != -1)
-                    LifestyleSlider(
-                        label = "Humorous/Easy-Going",
-                        value = lifestyle.easy_goingness,
-                        nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party"),
-                        icon = Icons.Default.SentimentVerySatisfied
-                    )
-                if (lifestyle.professional_ambition != -1)
-                    LifestyleSlider(
-                        label = "Professional/Ambitious",
-                        value = lifestyle.professional_ambition,
-                        nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious"),
-                        icon = Icons.Default.Work
-                    )
-                if (lifestyle.environmental_awareness != -1)
-                    LifestyleSlider(
-                        label = "Environmentally Conscious",
-                        value = lifestyle.environmental_awareness,
-                        nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion"),
-                        icon = Icons.Default.Eco
-                    )
-                if (lifestyle.culinary_enthusiasm != -1)
-                    LifestyleSlider(
-                        label = "Foodie",
-                        value = lifestyle.culinary_enthusiasm,
-                        nouns = listOf("Not a Foodie", "Occasionally Foodie", "Foodie", "Passionate Foodie", "Gourmet"),
-                        icon = Icons.Default.LocalDining
-                    )
-                if (lifestyle.political_awareness != -1)
-                    LifestyleSlider(
-                        label = "Politically Aware",
-                        value = lifestyle.political_awareness,
-                        nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged"),
-                        icon = Icons.Default.Gavel
-                    )
-                if (lifestyle.community_engagement != -1)
-                    LifestyleSlider(
-                        label = "Community Oriented",
-                        value = lifestyle.community_engagement,
-                        nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader"),
-                        icon = Icons.Default.Groups
-                    )
-                if (lifestyle.sports_enthusiasm != -1)
-                    LifestyleSlider(
-                        label = "Sports Enthusiast",
-                        value = lifestyle.sports_enthusiasm,
-                        nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic"),
-                        icon = Icons.Default.SportsSoccer
-                    )
-                if (lifestyle.sociability != -1)
-                    LifestyleSlider(
-                        label = "Introvert Level",
-                        value = lifestyle.sociability,
-                        nouns = listOf("Not Introverted", "Slightly Introverted", "Moderately Introverted", "Very Introverted", "Extremely Introverted"),
-                        icon = Icons.Default.Person
-                    )
-                if (lifestyle.sexual_activity_level != -1)
-                    LifestyleSlider(
-                        label = "Sexual Activity Level",
-                        value = lifestyle.sexual_activity_level,
-                        nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High"),
-                        icon = Icons.Default.Favorite
-                    )
-                LifestyleBooleanField(label = "Pet Friendly", value = lifestyle.pet_affinity)
-                LifestyleBooleanField(label = "Cannabis Friendly", value = lifestyle.cannabis_friendly)
-                LifestyleDropdown(label = "Alcohol Type", value = lifestyle.preferred_alcohol_type, icon = Icons.Default.LocalDrink)
+            val lifestyle = profile.lifestyle
+            if (isLifestyleEmpty(lifestyle)) {
+                Text("No lifestyle specified.", color = Color.Gray, fontSize = 16.sp)
+            } else {
+                profile.lifestyle?.let { lifestyle ->
+                    if (lifestyle.smoking_habit != -1)
+                        LifestyleSlider(
+                            label = "Smoking",
+                            value = lifestyle.smoking_habit,
+                            nouns = listOf(
+                                "Non-Smoker",
+                                "Rare Smoker",
+                                "Social Smoker",
+                                "Frequent Smoker",
+                                "Heavy Smoker"
+                            ),
+                            icon = Icons.Default.SmokingRooms
+                        )
+                    if (lifestyle.drinking_habit != -1)
+                        LifestyleSlider(
+                            label = "Drinking",
+                            value = lifestyle.drinking_habit,
+                            nouns = listOf(
+                                "Non-Drinker",
+                                "Rare Drinker",
+                                "Social Drinker",
+                                "Frequent Drinker",
+                                "Heavy Drinker"
+                            ),
+                            icon = Icons.Default.LocalDrink
+                        )
+                    if (lifestyle.indoor_outdoor_orientation != -1)
+                        LifestyleSlider(
+                            label = "Going out",
+                            value = lifestyle.indoor_outdoor_orientation,
+                            nouns = listOf(
+                                "Very Indoorsy",
+                                "Mostly Indoorsy",
+                                "Balanced",
+                                "Mostly Outdoorsy",
+                                "Very Outdoorsy"
+                            ),
+                            icon = Icons.Default.DirectionsWalk
+                        )
+                    if (lifestyle.social_media_engagement != -1)
+                        LifestyleSlider(
+                            label = "Social Media",
+                            value = lifestyle.social_media_engagement,
+                            nouns = listOf(
+                                "Invisible",
+                                "Watcher",
+                                "Casual Participant",
+                                "Engager",
+                                "Influencer"
+                            ),
+                            icon = Icons.Default.Groups2
+                        )
+                    if (lifestyle.work_life_balance != -1)
+                        LifestyleSlider(
+                            label = "Work-Life Balance",
+                            value = lifestyle.work_life_balance,
+                            nouns = listOf(
+                                "Workaholic",
+                                "More Work-Oriented",
+                                "Balanced",
+                                "More Life-Oriented",
+                                "Relaxed"
+                            ),
+                            icon = Icons.Default.WorkOff
+                        )
+                    if (lifestyle.exercise_frequency != -1)
+                        LifestyleSlider(
+                            label = "Exercise Frequency",
+                            value = lifestyle.exercise_frequency,
+                            nouns = listOf(
+                                "Inactive",
+                                "Rarely Active",
+                                "Moderately Active",
+                                "Active",
+                                "Very Active"
+                            ),
+                            icon = Icons.Default.SportsGymnastics
+                        )
+                    if (lifestyle.family_orientated != -1)
+                        LifestyleSlider(
+                            label = "Family-Oriented",
+                            value = lifestyle.family_orientated,
+                            nouns = listOf(
+                                "Independent",
+                                "Slightly Family-Oriented",
+                                "Balanced",
+                                "Family-Oriented",
+                                "Very Family-Oriented"
+                            ),
+                            icon = Icons.Default.FamilyRestroom
+                        )
+                    if (lifestyle.dietary_preferences.isNotBlank())
+                        LifestyleDropdown(
+                            "Diet",
+                            lifestyle.dietary_preferences,
+                            Icons.Default.Restaurant
+                        )
+                    if (lifestyle.sleep_pattern != -1)
+                        LifestyleSlider(
+                            label = "Sleep Cycle",
+                            value = lifestyle.sleep_pattern,
+                            nouns = listOf(
+                                "Early Riser",
+                                "Morning Person",
+                                "Balanced",
+                                "Night Owl",
+                                "Late Night Enthusiast"
+                            ),
+                            icon = Icons.Default.Bedtime
+                        )
+                    if (lifestyle.adventurousness != -1)
+                        LifestyleSlider(
+                            label = "Adventurous",
+                            value = lifestyle.adventurousness,
+                            nouns = listOf(
+                                "Cautious",
+                                "Slightly Adventurous",
+                                "Moderately Adventurous",
+                                "Adventurous",
+                                "Thrill Seeker"
+                            ),
+                            icon = Icons.Default.Hiking
+                        )
+                    if (lifestyle.social_media_engagement != -1)
+                        LifestyleSlider(
+                            label = "Social Media",
+                            value = lifestyle.social_media_engagement,
+                            nouns = listOf(
+                                "Invisible",
+                                "Watcher",
+                                "Casual Participant",
+                                "Engager",
+                                "Influencer"
+                            ),
+                            icon = Icons.Default.Groups2
+                        )
+                    if (lifestyle.intellectual_curiosity != -1)
+                        LifestyleSlider(
+                            label = "Intellectual",
+                            value = lifestyle.intellectual_curiosity,
+                            nouns = listOf(
+                                "Casual Thinker",
+                                "Inquisitive",
+                                "Knowledge Seeker",
+                                "Intellectual",
+                                "Philosopher"
+                            ),
+                            icon = Icons.Default.School
+                        )
+                    if (lifestyle.creative_expression != -1)
+                        LifestyleSlider(
+                            label = "Creative/Artistic",
+                            value = lifestyle.creative_expression,
+                            nouns = listOf(
+                                "Not Creative",
+                                "Somewhat Creative",
+                                "Creative",
+                                "Very Creative",
+                                "Artistic Genius"
+                            ),
+                            icon = Icons.Default.Palette
+                        )
+                    if (lifestyle.physical_fitness != -1)
+                        LifestyleSlider(
+                            label = "Fitness Level",
+                            value = lifestyle.physical_fitness,
+                            nouns = listOf(
+                                "Sedentary",
+                                "Somewhat Fit",
+                                "Fit",
+                                "Athletic",
+                                "Peak Fitness"
+                            ),
+                            icon = Icons.Default.FitnessCenter
+                        )
+                    if (lifestyle.spirituality_mindfulness != -1)
+                        LifestyleSlider(
+                            label = "Spiritual/Mindful",
+                            value = lifestyle.spirituality_mindfulness,
+                            nouns = listOf(
+                                "Not Spiritual",
+                                "Occasionally Mindful",
+                                "Balanced",
+                                "Spiritual",
+                                "Deeply Mindful"
+                            ),
+                            icon = Icons.Default.SelfImprovement
+                        )
+                    if (lifestyle.easy_goingness != -1)
+                        LifestyleSlider(
+                            label = "Humorous/Easy-Going",
+                            value = lifestyle.easy_goingness,
+                            nouns = listOf(
+                                "Serious",
+                                "Somewhat Easygoing",
+                                "Balanced",
+                                "Humorous",
+                                "Life of the Party"
+                            ),
+                            icon = Icons.Default.SentimentVerySatisfied
+                        )
+                    if (lifestyle.professional_ambition != -1)
+                        LifestyleSlider(
+                            label = "Professional/Ambitious",
+                            value = lifestyle.professional_ambition,
+                            nouns = listOf(
+                                "Relaxed",
+                                "Occasionally Driven",
+                                "Balanced",
+                                "Ambitious",
+                                "Highly Ambitious"
+                            ),
+                            icon = Icons.Default.Work
+                        )
+                    if (lifestyle.environmental_awareness != -1)
+                        LifestyleSlider(
+                            label = "Environmentally Conscious",
+                            value = lifestyle.environmental_awareness,
+                            nouns = listOf(
+                                "Not Conscious",
+                                "Occasionally Conscious",
+                                "Balanced",
+                                "Eco-Friendly",
+                                "Eco-Champion"
+                            ),
+                            icon = Icons.Default.Eco
+                        )
+                    if (lifestyle.culinary_enthusiasm != -1)
+                        LifestyleSlider(
+                            label = "Foodie",
+                            value = lifestyle.culinary_enthusiasm,
+                            nouns = listOf(
+                                "Not a Foodie",
+                                "Occasionally Foodie",
+                                "Foodie",
+                                "Passionate Foodie",
+                                "Gourmet"
+                            ),
+                            icon = Icons.Default.LocalDining
+                        )
+                    if (lifestyle.political_awareness != -1)
+                        LifestyleSlider(
+                            label = "Politically Aware",
+                            value = lifestyle.political_awareness,
+                            nouns = listOf(
+                                "Unaware",
+                                "Occasionally Aware",
+                                "Balanced",
+                                "Aware",
+                                "Politically Engaged"
+                            ),
+                            icon = Icons.Default.Gavel
+                        )
+                    if (lifestyle.community_engagement != -1)
+                        LifestyleSlider(
+                            label = "Community Oriented",
+                            value = lifestyle.community_engagement,
+                            nouns = listOf(
+                                "Individualistic",
+                                "Occasionally Involved",
+                                "Balanced",
+                                "Community-Oriented",
+                                "Community Leader"
+                            ),
+                            icon = Icons.Default.Groups
+                        )
+                    if (lifestyle.sports_enthusiasm != -1)
+                        LifestyleSlider(
+                            label = "Sports Enthusiast",
+                            value = lifestyle.sports_enthusiasm,
+                            nouns = listOf(
+                                "Non-Sports",
+                                "Casual Viewer",
+                                "Occasional Player",
+                                "Sports Enthusiast",
+                                "Sports Fanatic"
+                            ),
+                            icon = Icons.Default.SportsSoccer
+                        )
+                    if (lifestyle.sociability != -1)
+                        LifestyleSlider(
+                            label = "Introvert Level",
+                            value = lifestyle.sociability,
+                            nouns = listOf(
+                                "Not Introverted",
+                                "Slightly Introverted",
+                                "Moderately Introverted",
+                                "Very Introverted",
+                                "Extremely Introverted"
+                            ),
+                            icon = Icons.Default.Person
+                        )
+                    if (lifestyle.sexual_activity_level != -1)
+                        LifestyleSlider(
+                            label = "Sexual Activity Level",
+                            value = lifestyle.sexual_activity_level,
+                            nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High"),
+                            icon = Icons.Default.Favorite
+                        )
+                }
             }
         }
     }
@@ -1503,8 +1614,6 @@ fun LifestyleEditSection(
             value = localLifestyle.adventurousness,
             nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker")
         ) { localLifestyle = localLifestyle.copy(adventurousness = it) }
-        if (localLifestyle.pet_affinity)
-            LifestyleDropdownEdit("Pet Friendly", "Yes") { localLifestyle = localLifestyle.copy(pet_affinity = true) }
         LifestyleSliderEdit(
             label = "Intellectual",
             value = localLifestyle.intellectual_curiosity,
@@ -1567,24 +1676,6 @@ fun LifestyleEditSection(
             nouns = listOf("Inactive", "Low", "Moderate", "High", "Very High")
         ) { localLifestyle = localLifestyle.copy(sexual_activity_level = it) }
         // For pet friendly
-        LifestyleCheckboxEdit(
-            label = "Pet Friendly",
-            checked = localLifestyle.pet_affinity,
-            onCheckedChange = { localLifestyle = localLifestyle.copy(pet_affinity = it) }
-        )
-// For cannabis friendly
-        LifestyleCheckboxEdit(
-            label = "Cannabis Friendly",
-            checked = localLifestyle.cannabis_friendly,
-            onCheckedChange = { localLifestyle = localLifestyle.copy(cannabis_friendly = it) }
-        )
-// For alcohol type
-        LifestyleDropdownEdit(
-            label = "Alcohol Type",
-            value = localLifestyle.preferred_alcohol_type,
-            onValueChange = { localLifestyle = localLifestyle.copy(preferred_alcohol_type = it) }
-        )
-
         Spacer(modifier = Modifier.height(16.dp))
         ButtonRow(
             onSave = {

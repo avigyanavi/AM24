@@ -1,7 +1,6 @@
 package com.am24.am24
 
-import ChatRequest
-import ChatResponse
+
 import android.Manifest
 import android.app.DownloadManager
 import android.content.Context
@@ -334,21 +333,35 @@ Respond with a message that reflects your personality, current mood, and relatio
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
             .build()
-        val railwayUrl = "https://am24.org/openai/chat"
-        val chatRequest = ChatRequest(model = "llama-3.3-70b-versatile", messages = messages, max_tokens = 8000)
+
+        val firebaseUrl = "https://us-central1-am-twentyfour.cloudfunctions.net/chat" // ✅ UPDATE this
+
+        val chatRequest = ChatRequest(
+            model = "llama-3.3-70b-versatile", // ✅ same as before
+            messages = messages,
+            max_tokens = 8000
+        )
+
         val jsonBody = gson.toJson(chatRequest)
-        Log.d("FinalRequest", "Sending final request: $jsonBody")
+        Log.d("FinalRequest", "Sending request: $jsonBody")
+
         val mediaType = "application/json".toMediaType()
         val reqBody = jsonBody.toRequestBody(mediaType)
-        val req = Request.Builder().url(railwayUrl).post(reqBody).build()
+
+        val req = Request.Builder()
+            .url(firebaseUrl)
+            .post(reqBody)
+            .build()
+
         try {
             client.newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) {
-                    Log.e("FinalResponse", "Request failed with code: ${resp.code}")
+                    Log.e("FinalResponse", "Request failed: ${resp.code}")
                     return@withContext "Error: ${resp.code}"
                 }
                 val rBody = resp.body?.string() ?: return@withContext null
                 Log.d("FinalResponse", rBody)
+
                 val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
                 chatResp.choices.firstOrNull()?.message?.content
             }
@@ -357,6 +370,7 @@ Respond with a message that reflects your personality, current mood, and relatio
             "Error: ${e.message}"
         }
     }
+
 
     private suspend fun callClassifierApi(messages: List<ChatMessage>): String? = callKupidXApi(messages)
 

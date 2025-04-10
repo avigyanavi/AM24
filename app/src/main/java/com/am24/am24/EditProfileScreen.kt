@@ -691,33 +691,6 @@ if (showEditInterestsScreen) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-// Alcohol Type Dropdown
-                    DropdownWithSearch(
-                        title = "Preferred Alcohol Type",
-                        options = listOf("Beer", "Wine", "Vodka", "Whiskey", "None"),
-                        selectedOption = lifestyle.preferred_alcohol_type,
-                        onOptionSelected = { lifestyle = lifestyle.copy(preferred_alcohol_type = it) }
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-// Cannabis Friendly Checkbox
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            lifestyle = lifestyle.copy(cannabis_friendly = !lifestyle.cannabis_friendly)
-                        }
-                    ) {
-                        Checkbox(
-                            checked = lifestyle.cannabis_friendly,
-                            onCheckedChange = { lifestyle = lifestyle.copy(cannabis_friendly = it) },
-                            colors = CheckboxDefaults.colors(checkmarkColor = Color(0xFF00bf63))
-                        )
-                        Text("Cannabis Friendly", color = Color.White)
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
 // Indoorsy to Outdoorsy Slider
                     Text("Indoorsy to Outdoorsy", color = Color.White)
                     Slider(
@@ -843,20 +816,6 @@ if (showEditInterestsScreen) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-// Pet Friendly Checkbox
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            lifestyle = lifestyle.copy(pet_affinity = !lifestyle.pet_affinity)
-                        }
-                    ) {
-                        Checkbox(
-                            checked = lifestyle.pet_affinity,
-                            onCheckedChange = { lifestyle = lifestyle.copy(pet_affinity = it) },
-                            colors = CheckboxDefaults.colors(checkmarkColor = Color(0xFF00bf63))
-                        )
-                        Text("Pet Friendly", color = Color.White)
-                    }
                     // Family-Oriented Slider
                     Text("Family Oriented", color = Color.White)
                     Slider(

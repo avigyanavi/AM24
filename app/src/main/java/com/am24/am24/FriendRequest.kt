@@ -21,6 +21,8 @@ class Notification(
 }
 
 // friendrequest.kt
+enum class AI { RHEA, REVAAN, KABIR, SAANVI, CHHOTU, VARDHAN, ZARA }
+//
 
 data class FilterSettings(
     var filterOption: String = "everyone",

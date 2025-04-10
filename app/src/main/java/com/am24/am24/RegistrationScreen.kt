@@ -648,17 +648,6 @@ fun EnterLifestyleScreen(
                     )
                 }
 
-                // Cannabis Friendly Checkbox
-                item {
-                    CheckboxInput(
-                        label = "Cannabis Friendly",
-                        isChecked = registrationViewModel.lifestyle.cannabis_friendly,
-                        onCheckedChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(cannabis_friendly = it)
-                        }
-                    )
-                }
 
                 // Indoorsy to Outdoorsy Slider
                 item {

@@ -193,7 +193,6 @@ data class Interest(
 data class Lifestyle(
     var smoking_habit: Int = -1,
     var drinking_habit: Int = -1,
-    var cannabis_friendly: Boolean = false,
     var indoor_outdoor_orientation: Int = -1,
     var sexual_activity_level: Int = -1,
     var sociability: Int = -1,
@@ -203,7 +202,6 @@ data class Lifestyle(
     var work_life_balance: Int = -1,
     var exercise_frequency: Int = -1,
     var adventurousness: Int = -1,
-    val pet_affinity: Boolean = false,
     var family_orientated: Int = -1,
     val intellectual_curiosity: Int = -1,
     var creative_expression: Int = -1,
@@ -216,15 +214,14 @@ data class Lifestyle(
     val political_awareness: Int = -1,
     val community_engagement: Int = -1,
     var sports_enthusiasm: Int = -1,
-    var preferred_alcohol_type: String = "",
 ) {
     fun isComplete(): Boolean {
         val fields = listOf(
-            smoking_habit, drinking_habit, cannabis_friendly, indoor_outdoor_orientation, social_media_engagement, dietary_preferences, sports_enthusiasm,
-            sleep_pattern, work_life_balance, exercise_frequency, adventurousness, family_orientated, pet_affinity,
+            smoking_habit, drinking_habit, indoor_outdoor_orientation, social_media_engagement, dietary_preferences, sports_enthusiasm,
+            sleep_pattern, work_life_balance, exercise_frequency, adventurousness, family_orientated,
             intellectual_curiosity, creative_expression, physical_fitness, spirituality_mindfulness, sexual_activity_level, sociability,
             easy_goingness, professional_ambition, environmental_awareness,
-            culinary_enthusiasm, political_awareness, community_engagement, preferred_alcohol_type
+            culinary_enthusiasm, political_awareness, community_engagement
         )
         return fields.all {
             when (it) {
