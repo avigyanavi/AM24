@@ -5,6 +5,7 @@ package com.am24.am24
 
 import DatingViewModel
 import EditPicAndVoiceBioScreen
+import GovtIdVerificationScreen
 import android.app.Application
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -176,6 +177,13 @@ fun MainNavGraph(
                 scrollToMemoryLogs = scrollToMemoryLogs
             )
         }
+        composable("govtIdVerification") {
+            GovtIdVerificationScreen(
+                navController     = navController,
+                profileViewModel  = profileViewModel
+            )
+        }
+
 
         // ----- The AI route for KupidXChatScreen -----
         composable("aiProfile/{userId}") { backStackEntry ->

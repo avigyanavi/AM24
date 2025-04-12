@@ -185,9 +185,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     "traditionalVsLiberal"        to profileWithScore.traditionalVsLiberal,
                     "fatherOccupation"            to profileWithScore.fatherOccupation,
                     "motherOccupation"            to profileWithScore.motherOccupation,
-                    "numberOfSiblings"            to profileWithScore.numberOfSiblings,
-                    "elderSiblings"               to profileWithScore.elderSiblings,
-                    "youngerSiblings"             to profileWithScore.youngerSiblings,
                     "isConsultantVerified"        to profileWithScore.isConsultantVerified,
 
                     // data that influences the composite

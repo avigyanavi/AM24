@@ -1694,32 +1694,6 @@ fun calculateExhaustiveCompatibilityScore(
         insights += MatchInsight("⚠️", "Lifestyle mismatches: ${lifestyleMismatchesList.joinToString("; ")}", false)
     }
 
-    // 16. Family Details (3 points)
-    var familyBonus = 0.0
-    if (profileA.numberOfSiblings != null && profileB.numberOfSiblings != null) {
-        if (profileA.numberOfSiblings == profileB.numberOfSiblings) {
-            familyBonus += 2.0
-            insights += MatchInsight("✅", "Family size match: Both have ${profileA.numberOfSiblings} siblings", true)
-        } else {
-            insights += MatchInsight("⚠️", "Family size mismatch: ${profileA.numberOfSiblings} vs ${profileB.numberOfSiblings}", false)
-        }
-    } else {
-        insights += MatchInsight("ℹ️", "Family size: not set by both", false)
-    }
-    val relationshipA = profileA.relationship.orEmpty().trim()
-    val relationshipB = profileB.relationship.orEmpty().trim()
-    if (relationshipA.isNotEmpty() && relationshipB.isNotEmpty()) {
-        if (relationshipA.equals(relationshipB, ignoreCase = true)) {
-            familyBonus += 1.0
-            insights += MatchInsight("✅", "Relationship style match: Both are \"$relationshipA\"", true)
-        } else {
-            insights += MatchInsight("⚠️", "Relationship style mismatch: \"$relationshipA\" vs \"$relationshipB\"", false)
-        }
-    } else {
-        insights += MatchInsight("ℹ️", "Relationship style: not set by both", false)
-    }
-    score += familyBonus
-
     // 17. User Tags (Bonus: up to 2 points)
     val tagsA = profileA.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val tagsB = profileB.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()

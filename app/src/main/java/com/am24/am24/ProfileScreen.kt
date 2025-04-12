@@ -7,6 +7,9 @@ package com.am24.am24
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -20,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -118,6 +122,12 @@ fun ProfileLazyScreen(
     // State to control the visibility of the posts overlay
     var showPostsOverlay by remember { mutableStateOf(false) }
 
+// keep our own mutable copy of the profile we can mutate locally
+    var currentProfile by remember { mutableStateOf(profile) }
+
+    // derive the switch value directly from that mutable copy
+    val matrimonyMode = currentProfile.isMatrimonyMode
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -127,14 +137,34 @@ fun ProfileLazyScreen(
         ) {
             item {
                 PhotoCarouselWithOverlay(
-                    profile = profile,
-                    onEditProfileClick = { navController.navigate("editPicAndVoiceBio") },
-                    onPostsClick = { showPostsOverlay = true } // NEW: trigger posts overlay
+                    profile             = profile,
+                    onEditProfileClick  = { navController.navigate("editPicAndVoiceBio") },
+                    onPostsClick        = { showPostsOverlay = true },
+                    onVerifyClick       = { navController.navigate("govtIdVerification") }   // ➋
                 )
             }
+            // 🔄 OLD completion‑row removed, NEW matrimony toggle added
             item {
-                ProfileCompletionIndicator(profile)
+                MatrimonyToggleRow(
+                    isMatrimony = matrimonyMode,
+                    onToggle = { checked ->
+                        currentProfile = currentProfile.copy(isMatrimonyMode = checked)   // ① local
+                        scope.launch { updateProfileInFirebase(currentProfile) }          // ② remote
+                    }
+                )
             }
+            if (matrimonyMode) {          // <-- use the state we just changed
+                item {
+                    MatrimonyInfoCard(
+                        profile = currentProfile,
+                        onSave = { updated ->
+                            currentProfile = updated          // refresh local copy
+                            scope.launch { updateProfileInFirebase(updated) }
+                        }
+                    )
+                }
+            }
+
             item {
                 ProfileCollapsibleSections(
                     profile = profile,
@@ -186,6 +216,223 @@ fun ProfileLazyScreen(
     }
 }
 
+@Composable
+fun VerificationBadge(
+    verified: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(32.dp)
+            .background(
+                if (verified) Color(0xFF00C853)          // green when verified
+                else Color.Gray.copy(alpha = .55f),       // grey when not
+                shape = CircleShape
+            )
+    ) {
+        Icon(
+            imageVector = if (verified) Icons.Default.Verified else Icons.Default.DoNotDisturbOn,
+            contentDescription = if (verified) "Verified profile" else "Verify profile",
+            tint = Color.White
+        )
+    }
+}
+
+
+@Composable
+fun MatrimonyInfoCard(
+    profile: Profile,
+    onSave: (Profile) -> Unit
+) {
+    // Local state to control whether we are in edit mode
+    var isEditing by remember { mutableStateOf(false) }
+
+    // These are the fields we want to show/edit.
+    // When in edit mode, we work with local copies.
+    var marriageTimeline by remember { mutableStateOf(profile.marriageTimeline ?: "") }
+    var relocationPreference by remember { mutableStateOf(profile.relocationPreference ?: "") }
+    var postMarriageCareerPlan by remember { mutableStateOf(profile.postMarriageCareerPlan ?: "") }
+    var traditionalVsLiberal by remember { mutableStateOf(profile.traditionalVsLiberal ?: "") }
+    var fatherOccupation by remember { mutableStateOf(profile.fatherOccupation ?: "") }
+    var motherOccupation by remember { mutableStateOf(profile.motherOccupation ?: "") }
+
+    // The card has a border with our theme color and black background inside.
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(2.dp, Color(0xFFFF6F00)),
+        colors = CardDefaults.cardColors(containerColor = Color.Black),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        // Use a Box so that we can overlay the edit icon at the top right.
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (isEditing) {
+                // EDIT MODE: show text fields and Save/Cancel buttons.
+                Column(modifier = Modifier.padding(16.dp)) {
+                    OutlinedTextField(
+                        value = marriageTimeline,
+                        onValueChange = { marriageTimeline = it },
+                        label = { Text("Marriage Timeline", color = Color(0xFFFF6F00)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            cursorColor = Color(0xFFFF6F00),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = relocationPreference,
+                        onValueChange = { relocationPreference = it },
+                        label = { Text("Relocation Preference", color = Color(0xFFFF6F00)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            cursorColor = Color(0xFFFF6F00),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = postMarriageCareerPlan,
+                        onValueChange = { postMarriageCareerPlan = it },
+                        label = { Text("Post-Marriage Career Plan", color = Color(0xFFFF6F00)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            cursorColor = Color(0xFFFF6F00),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = traditionalVsLiberal,
+                        onValueChange = { traditionalVsLiberal = it },
+                        label = { Text("Traditional vs. Liberal", color = Color(0xFFFF6F00)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            cursorColor = Color(0xFFFF6F00),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = fatherOccupation,
+                        onValueChange = { fatherOccupation = it },
+                        label = { Text("Father's Occupation", color = Color(0xFFFF6F00)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            cursorColor = Color(0xFFFF6F00),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = motherOccupation,
+                        onValueChange = { motherOccupation = it },
+                        label = { Text("Mother's Occupation", color = Color(0xFFFF6F00)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            cursorColor = Color(0xFFFF6F00),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Save/Cancel row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = {
+                            // When saving, update the profile with the new values.
+                            val updatedProfile = profile.copy(
+                                marriageTimeline = marriageTimeline.ifBlank { null },
+                                relocationPreference = relocationPreference.ifBlank { null },
+                                postMarriageCareerPlan = postMarriageCareerPlan.ifBlank { null },
+                                traditionalVsLiberal = traditionalVsLiberal.ifBlank { null },
+                                fatherOccupation = fatherOccupation.ifBlank { null },
+                                motherOccupation = motherOccupation.ifBlank { null }
+                            )
+                            onSave(updatedProfile)
+                            isEditing = false
+                        }) {
+                            Text("Save", color = Color(0xFF00bf63))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = {
+                            // Reset to original values if cancelled
+                            marriageTimeline = profile.marriageTimeline ?: ""
+                            relocationPreference = profile.relocationPreference ?: ""
+                            postMarriageCareerPlan = profile.postMarriageCareerPlan ?: ""
+                            traditionalVsLiberal = profile.traditionalVsLiberal ?: ""
+                            fatherOccupation = profile.fatherOccupation ?: ""
+                            motherOccupation = profile.motherOccupation ?: ""
+                            isEditing = false
+                        }) {
+                            Text("Cancel", color = Color.Red)
+                        }
+                    }
+                }
+            } else {
+                // READ-ONLY MODE: Show the current matrimony info in a read-only style.
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("Marriage Timeline: ", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+                        Text(text = profile.marriageTimeline ?: "Not set", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("Relocation Preference: ", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+                        Text(text = profile.relocationPreference ?: "Not set", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("Post-Marriage Career Plan: ", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+                        Text(text = profile.postMarriageCareerPlan ?: "Not set", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("Traditional vs. Liberal: ", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+                        Text(text = profile.traditionalVsLiberal ?: "Not set", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("Father's Occupation: ", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+                        Text(text = profile.fatherOccupation ?: "Not set", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("Mother's Occupation: ", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
+                        Text(text = profile.motherOccupation ?: "Not set", color = Color.White)
+                    }
+                }
+            }
+            // The small edit icon in the top right of the card.
+            IconButton(
+                onClick = { isEditing = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(24.dp)
+                    .background(Color.Black.copy(alpha = 0.7f), shape = CircleShape)
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Matrimony Info", tint = Color(0xFFFF6F00))
+            }
+        }
+    }
+}
 
 /**
  * Main LazyColumn structure:
@@ -279,7 +526,8 @@ fun CollapsibleSection(
 fun PhotoCarouselWithOverlay(
     profile: Profile,
     onEditProfileClick: () -> Unit,
-    onPostsClick: () -> Unit
+    onPostsClick: () -> Unit,
+    onVerifyClick: () -> Unit        // ➊ new
 ) {
     val context = LocalContext.current
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
@@ -339,6 +587,31 @@ fun PhotoCarouselWithOverlay(
                     )
                 }
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .align(Alignment.TopStart)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Black.copy(.65f), Color.Transparent)
+                        )
+                    )
+            ) {
+                AnimatedProfileCompletion(
+                    completion = profile.profileCompletionPercentage,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+                VerificationBadge(
+                    verified  = profile.isConsultantVerified,
+                    onClick   = onVerifyClick,
+                    modifier  = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 16.dp, end = 16.dp)   // leaves room for the edit icon
+                )
+            }
         }
 
         // Bottom overlay: name, age, hometown, rating bar, zodiac, posts button
@@ -346,7 +619,6 @@ fun PhotoCarouselWithOverlay(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .background(Color.Black)
                 .padding(16.dp)
         ) {
             Column {
@@ -414,7 +686,7 @@ fun PhotoCarouselWithOverlay(
         IconButton(
             onClick = onEditProfileClick,
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .align(Alignment.BottomEnd)
                 .padding(16.dp)
                 .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
                 .size(32.dp)
@@ -453,26 +725,64 @@ fun CachedProfilePhoto(
 
 /** Display a horizontal progress for completion. */
 @Composable
-fun ProfileCompletionIndicator(profile: Profile) {
-    val completion = profile.profileCompletionPercentage
+fun AnimatedProfileCompletion(
+    completion: Int,
+    modifier: Modifier = Modifier
+) {
+    if (completion >= 100) return   // <-- early‑exit
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Text(text = "Profile Completion: $completion%", color = Color.White)
-        Spacer(modifier = Modifier.height(4.dp))
+    val animated by animateFloatAsState(
+        targetValue = completion / 100f,
+        animationSpec = tween(600, easing = FastOutSlowInEasing)
+    )
+
+    Column(modifier) {
+        Text(
+            text = "Profile $completion%",
+            color = Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
         LinearProgressIndicator(
-            progress = { completion / 100f },
-            color = Color(0xFFFF6F00.toInt()),
-            trackColor = Color.Gray,
+            progress = animated,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
+                .fillMaxWidth(.55f)
+                .height(4.dp),
+            color = Color(0xFFFF6F00),
+            trackColor = Color.White.copy(alpha = .3f)
         )
     }
 }
+
+@Composable
+fun MatrimonyToggleRow(
+    isMatrimony: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Matrimony Mode",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
+        Switch(
+            checked = isMatrimony,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color(0xFFFF6F00),
+                checkedTrackColor = Color(0xFFFF6F00).copy(alpha = .5f)
+            )
+        )
+    }
+}
+
 
 @Composable
 fun EditVoiceNoteSection(
@@ -2543,9 +2853,6 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "traditionalVsLiberal" to updatedProfile.traditionalVsLiberal,
         "fatherOccupation" to updatedProfile.fatherOccupation,
         "motherOccupation" to updatedProfile.motherOccupation,
-        "numberOfSiblings" to updatedProfile.numberOfSiblings,
-        "elderSiblings" to updatedProfile.elderSiblings,
-        "youngerSiblings" to updatedProfile.youngerSiblings,
         "isConsultantVerified" to updatedProfile.isConsultantVerified
     )
 
@@ -2592,27 +2899,6 @@ fun MatrimonyInfoSection(profile: Profile) {
         value = profile.motherOccupation,
         icon = Icons.Default.Person
     )
-    if (profile.numberOfSiblings != null) {
-        ProfileDetailRow(
-            label = "Number of Siblings",
-            value = profile.numberOfSiblings.toString(),
-            icon = Icons.Default.People
-        )
-    }
-    if (profile.elderSiblings != null) {
-        ProfileDetailRow(
-            label = "Elder Siblings",
-            value = profile.elderSiblings.toString(),
-            icon = Icons.Default.People
-        )
-    }
-    if (profile.youngerSiblings != null) {
-        ProfileDetailRow(
-            label = "Younger Siblings",
-            value = profile.youngerSiblings.toString(),
-            icon = Icons.Default.People
-        )
-    }
     ProfileDetailRow(
         label = "Consultant Verified?",
         value = if (profile.isConsultantVerified) "Yes" else "No",
@@ -2633,9 +2919,6 @@ fun MatrimonyInfoEditSection(
     var traditionalVsLiberal by remember { mutableStateOf(tempProfile.traditionalVsLiberal ?: "") }
     var fatherOccupation by remember { mutableStateOf(tempProfile.fatherOccupation ?: "") }
     var motherOccupation by remember { mutableStateOf(tempProfile.motherOccupation ?: "") }
-    var numberOfSiblings by remember { mutableStateOf(tempProfile.numberOfSiblings?.toString() ?: "") }
-    var elderSiblings by remember { mutableStateOf(tempProfile.elderSiblings?.toString() ?: "") }
-    var youngerSiblings by remember { mutableStateOf(tempProfile.youngerSiblings?.toString() ?: "") }
 
     // No direct edit for isConsultantVerified here; you (the consultant) set it manually elsewhere.
 
@@ -2721,44 +3004,6 @@ fun MatrimonyInfoEditSection(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = numberOfSiblings,
-            onValueChange = { numberOfSiblings = it },
-            label = { Text("Number of Siblings", color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                cursorColor = Color(0xFFFF6F00),
-                focusedTextColor = Color.White
-            )
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = elderSiblings,
-            onValueChange = { elderSiblings = it },
-            label = { Text("Elder Siblings", color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                cursorColor = Color(0xFFFF6F00),
-                focusedTextColor = Color.White
-            )
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = youngerSiblings,
-            onValueChange = { youngerSiblings = it },
-            label = { Text("Younger Siblings", color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                cursorColor = Color(0xFFFF6F00),
-                focusedTextColor = Color.White
-            )
-        )
-
         // 5) Save/Cancel Buttons
         Spacer(modifier = Modifier.height(16.dp))
         Row {
@@ -2771,9 +3016,6 @@ fun MatrimonyInfoEditSection(
                         traditionalVsLiberal = traditionalVsLiberal.ifBlank { null },
                         fatherOccupation = fatherOccupation.ifBlank { null },
                         motherOccupation = motherOccupation.ifBlank { null },
-                        numberOfSiblings = numberOfSiblings.toIntOrNull(),
-                        elderSiblings = elderSiblings.toIntOrNull(),
-                        youngerSiblings = youngerSiblings.toIntOrNull(),
                     )
                     onSave(updated)
                 },

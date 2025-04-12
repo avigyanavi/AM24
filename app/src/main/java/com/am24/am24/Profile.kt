@@ -112,11 +112,7 @@ data class Profile(
     // Family details (optional)
     var fatherOccupation: String? = null,
     var motherOccupation: String? = null,
-    var numberOfSiblings: Int? = null,
-    var elderSiblings: Int? = null,
-    var youngerSiblings: Int? = null,
 
-    // Matrimony Verification
     var isConsultantVerified: Boolean = false,  // You will verify the profile manually
 
     // Keep these three for the user's personal dating prefs from registration
