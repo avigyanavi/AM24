@@ -86,6 +86,9 @@ dependencies {
     implementation(libs.gpuimage)
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.exoplayer)
+    implementation("io.coil-kt:coil-video:2.2.2")
+    implementation("io.coil-kt:coil:2.2.2")
+
 
     //geofire
     implementation(libs.firebase.geofire.android) // Check for the latest version

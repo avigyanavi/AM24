@@ -211,3 +211,4 @@ suspend fun fetchAddress(latLng: LatLng, context: Context): String? = withContex
         "Near ${latLng.latitude}, ${latLng.longitude}"
     }
 }
+

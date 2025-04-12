@@ -113,6 +113,7 @@ firebase-geofire-android = { module = "com.firebase:geofire-android", version.re
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimage" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+io-coil-kt-coil2 = { module = "io.coil-kt:coil", version.ref = "coilKtCoilCompose" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

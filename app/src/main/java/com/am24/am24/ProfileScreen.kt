@@ -316,14 +316,9 @@ fun PhotoCarouselWithOverlay(
     ) {
         // Main photo
         if (photoUrls.isNotEmpty()) {
-            AsyncImage(
-                model = photoUrls[currentPhotoIndex],
-                contentDescription = "Profile Photo",
-                placeholder = painterResource(R.drawable.local_placeholder), // your placeholder
-                error = painterResource(R.drawable.local_placeholder),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            if (photoUrls.isNotEmpty()) {
+                CachedProfilePhoto(url = photoUrls[currentPhotoIndex], modifier = Modifier.fillMaxSize())
+            }
 
             // Photo indicators at top
             Row(
@@ -428,6 +423,32 @@ fun PhotoCarouselWithOverlay(
         }
     }
 }
+
+@Composable
+fun CachedProfilePhoto(
+    url: String,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+    contentDescription: String? = "Profile Photo"
+) {
+    // Build and remember your image painter.
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(url)
+            .diskCacheKey(url)   // Use the URL as a stable key
+            .memoryCacheKey(url)
+            .crossfade(true)
+            .build()
+    )
+    // Use the painter in the Image composable.
+    Image(
+        painter = painter,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        contentScale = contentScale
+    )
+}
+
 
 
 /** Display a horizontal progress for completion. */

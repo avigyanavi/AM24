@@ -370,12 +370,17 @@ fun DMScreenContent(navController: NavController) {
     /* ───────── Fetch matched user objects ───────── */
     LaunchedEffect(currentUserId) {
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
+            // Add AI profiles
             zaraProfile?.let { if (matchedUsers.none { it.userId == "zaraAi" }) matchedUsers.add(it) }
             kabirProfile?.let { if (matchedUsers.none { it.userId == "kabirAi" }) matchedUsers.add(it) }
+
+            // Check non-initiated conversations
             checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
                 nonInitiatedMatches.clear()
                 nonInitiatedMatches.addAll(nonInitiated)
             }
+
+            // Preload profile pictures
             matchedUsers.forEach { profile ->
                 profile.profilepicUrl?.let { url ->
                     val request = ImageRequest.Builder(context)
@@ -386,6 +391,37 @@ fun DMScreenContent(navController: NavController) {
                         .build()
                     context.imageLoader.enqueue(request)
                 }
+            }
+
+            // Fetch last messages
+            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@fetchUsersFromNode
+            matchedUsers.forEach { profile ->
+                val chatId = getChatId(currentUserId, profile.userId)
+                messagesRootRef.child(chatId)
+                    .orderByChild("timestamp")
+                    .limitToLast(1)
+                    .addValueEventListener(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            if (!snapshot.exists()) {
+                                lastMessages[profile.userId] = Triple("", false, true)
+                                Log.d("DMScreen", "No messages for ${profile.userId}")
+                                return
+                            }
+                            for (msgSnap in snapshot.children) {
+                                val text = msgSnap.child("text").getValue(String::class.java) ?: ""
+                                val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
+                                val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
+                                val fromCurrentUser = (senderId == currentUserId)
+                                val displayText = if (text.length > 30) "${text.take(30)}..." else text
+                                lastMessages[profile.userId] = Triple(displayText, fromCurrentUser, read)
+                                Log.d("DMScreen", "Last message for ${profile.userId}: $displayText")
+                            }
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e("DMScreen", "Failed to fetch last message for ${profile.userId}: ${error.message}")
+                        }
+                    })
             }
         }
     }
@@ -590,48 +626,6 @@ fun DMScreenContent(navController: NavController) {
     }
 }
 
-// Helper function to show either local resource for Zara/Kabir or the real user's pic
-@Composable
-fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    when (profile.userId) {
-        "zaraAi" -> {
-            Image(
-                painter = painterResource(R.drawable.zara_avatar),
-                contentDescription = "Zara",
-                modifier = modifier,
-                contentScale = ContentScale.Crop
-            )
-        }
-        "kabirAi" -> {
-            Image(
-                painter = painterResource(R.drawable.kabir_avatar),
-                contentDescription = "Kabir",
-                modifier = modifier,
-                contentScale = ContentScale.Crop
-            )
-        }
-        else -> {
-            profile.profilepicUrl?.let { url ->
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(url)
-                        .diskCacheKey(url)
-                        .memoryCacheKey(url)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = profile.username,
-                    modifier = modifier,
-                    contentScale = ContentScale.Crop
-                )
-            } ?: run {
-                // Fallback if URL is null or blank
-                Box(modifier = modifier.background(Color.Gray))
-            }
-        }
-    }
-}
-
 @Composable
 fun DMUserCard(
     profile: Profile,
@@ -766,6 +760,7 @@ private fun fetchUsersFromNode(
     ref.addValueEventListener(object : ValueEventListener {
         override fun onDataChange(snapshot: DataSnapshot) {
             val userIdsToFetch = snapshot.children.mapNotNull { it.key }
+            Log.d("DMScreen", "Fetched user IDs from matches: $userIdsToFetch")
 
             if (userIdsToFetch.isNotEmpty()) {
                 usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
@@ -779,22 +774,24 @@ private fun fetchUsersFromNode(
                         }
                         usersList.clear()
                         usersList.addAll(newUsers)
+                        Log.d("DMScreen", "Populated matchedUsers with ${usersList.size} profiles: ${usersList.map { it.userId }}")
                         onComplete?.invoke()
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        Log.e("DMScreen", "DBError: ${error.message}")
+                        Log.e("DMScreen", "DBError in fetchUsersFromNode: ${error.message}")
                         Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
                     }
                 })
             } else {
                 usersList.clear()
+                Log.d("DMScreen", "No user IDs to fetch, cleared matchedUsers")
                 onComplete?.invoke()
             }
         }
 
         override fun onCancelled(error: DatabaseError) {
-            Log.e("DMScreen", "DatabaseError: ${error.message}")
+            Log.e("DMScreen", "DatabaseError in fetchUsersFromNode: ${error.message}")
             Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
         }
     })
@@ -825,3 +822,4 @@ fun GroupChatChip(
         Text(title, color = Color.White, fontSize = 14.sp)
     }
 }
+

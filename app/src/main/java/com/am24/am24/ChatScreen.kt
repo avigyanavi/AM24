@@ -2,23 +2,21 @@ package com.am24.am24
 
 
 import android.Manifest
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
-import android.os.Environment
 import android.util.Log
-import android.view.ViewGroup
-import android.widget.MediaController
 import android.widget.Toast
 import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -59,17 +57,17 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
-import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import coil.request.videoFrameMillis
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
@@ -408,6 +406,9 @@ fun ChatScreenContent(
     val reportsRef = database.getReference("reports")
     val storageRef = FirebaseStorage.getInstance().reference
 
+    // Typing status for real users
+    var isOtherUserTyping by remember { mutableStateOf(false) }
+    val typingRef = database.getReference("typing/$chatId/$otherUserId")
     val isAiConversation = otherUserId.endsWith("Ai")
 
     var averageRating by remember { mutableStateOf(0.0) }
@@ -448,6 +449,22 @@ fun ChatScreenContent(
     // Media-related state: used for both photo and video
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaType by remember { mutableStateOf<String?>(null) } // "photo" or "video"
+
+    // Listen for typing status (real users only)
+    if (!isAiConversation) {
+        DisposableEffect(typingRef) {
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    isOtherUserTyping = snapshot.getValue(Boolean::class.java) == true
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("ChatScreen", "Error reading typing status: ${error.message}")
+                }
+            }
+            typingRef.addValueEventListener(listener)
+            onDispose { typingRef.removeEventListener(listener) }
+        }
+    }
 
     // Launchers for taking media
     val takePhotoLauncher = rememberLauncherForActivityResult(
@@ -665,8 +682,12 @@ fun ChatScreenContent(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
-                            otherUserProfile?.let {
-                                if (!isAiConversation) navController.navigate("matchedUserProfile/$otherUserId")
+                            if (isAiConversation) {
+                                navController.navigate("aiProfile/$otherUserId")
+                            } else {
+                                otherUserProfile?.let {
+                                    navController.navigate("matchedUserProfile/$otherUserId")
+                                }
                             }
                         }
                     ) {
@@ -685,11 +706,32 @@ fun ChatScreenContent(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
+                            val displayProfile = if (isAiConversation) {
+                                Profile(userId = otherUserId, username = "", name = "")
+                            } else {
+                                otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
+                            }
+                            AIOrProfileImage(
+                                profile = displayProfile,
+                                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)
+                            )
                             Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
                         }
                         Spacer(Modifier.width(8.dp))
-                        Text(otherUserProfile?.name ?: "Chat", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
+                        Text(
+                            text = if (isAiConversation) {
+                                when (otherUserId) {
+                                    "zaraAi" -> "Zara"
+                                    "kabirAi" -> "Kabir"
+                                    else -> "AI"
+                                }
+                            } else {
+                                otherUserProfile?.name ?: "Chat"
+                            },
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )                    }
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
@@ -802,6 +844,13 @@ fun ChatScreenContent(
                         reverseLayout = true,
                         verticalArrangement = Arrangement.Bottom
                     ) {
+                        // Add typing indicator before the message list
+                        if (isOtherUserTyping || (isAiConversation && isSendingMessage)) {
+                            item {
+                                TypingIndicator()
+                            }
+                        }
+
                         items(messages.reversed()) { message ->
                             when (message.mediaType) {
                                 "voice" -> VoiceMessageBubble(message, currentUserId)
@@ -948,7 +997,13 @@ fun ChatScreenContent(
                 ) {
                     TextField(
                         value = messageText,
-                        onValueChange = { messageText = it },
+                        onValueChange = { newText ->
+                            messageText = newText
+                            if (!isAiConversation) {
+                                database.getReference("typing/$chatId/$currentUserId")
+                                    .setValue(newText.isNotEmpty())
+                            }
+                        },
                         placeholder = { Text("Type a message…", color = Color.Gray) },
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).background(Color.DarkGray, RoundedCornerShape(24.dp)),
                         colors = TextFieldDefaults.textFieldColors(
@@ -961,7 +1016,7 @@ fun ChatScreenContent(
                         singleLine = true,
                         shape = RoundedCornerShape(24.dp),
                         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = { /* handeled by the send button */ })
+                        keyboardActions = KeyboardActions(onSend = { /* handled by the send button */ })
                     )
                     Spacer(Modifier.width(8.dp))
                     // The Send button now disables itself if isSendingMessage is true.
@@ -1020,6 +1075,7 @@ fun ChatScreenContent(
                                 } else {
                                     sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
                                     postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                                    database.getReference("typing/$chatId/$currentUserId").setValue(false)
                                 }
                                 messageText = ""
                             }
@@ -1269,6 +1325,119 @@ fun ChatScreenContent(
     )
 }
 
+// Typing Indicator Composable
+@Composable
+fun TypingIndicator() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("Typing", color = Color.Gray, fontSize = 12.sp)
+        Spacer(Modifier.width(4.dp))
+        AnimatedDots()
+    }
+}
+
+// Animated Dots Composable
+@Composable
+fun AnimatedDots() {
+    var dotCount by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            dotCount = (dotCount + 1) % 4
+            delay(300L)
+        }
+    }
+    Text(
+        ".".repeat(dotCount),
+        color = Color.Gray,
+        fontSize = 12.sp
+    )
+}
+
+@Composable
+fun CachedPhotoThumbnail(
+    url: String,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+    placeholderResId: Int? = null,
+    errorResId: Int? = null
+) {
+    val context = LocalContext.current
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data(url)
+            .diskCacheKey(url)
+            .memoryCacheKey(url)
+            .crossfade(true)
+            .apply {
+                placeholderResId?.let { placeholder(it) }
+                errorResId?.let { error(it) }
+            }
+            .build()
+    )
+    Box(
+        modifier = modifier
+            .border(BorderStroke(2.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
+    ) {
+        Image(
+            painter = painter,
+            contentDescription = "Photo Thumbnail",
+            contentScale = contentScale,
+            modifier = Modifier.fillMaxSize()
+        )
+        if (painter.state is AsyncImagePainter.State.Loading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun CachedVideoThumbnail(
+    url: String,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+    placeholderResId: Int? = null,
+    errorResId: Int? = null,
+    // Frame to extract, in microseconds. For example, 1,000,000 µs = 1 second.
+    frameMicros: Long = 1_000_000L
+) {
+    val context = LocalContext.current
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data(url)
+            .diskCacheKey(url)
+            .videoFrameMillis((frameMicros / 1000L).toLong()) // <-- Use videoFrameMillis() here.
+            .memoryCacheKey(url)
+            // Extract a frame at the specified microsecond offset
+            .crossfade(true)
+            .apply {
+                placeholderResId?.let { placeholder(it) }
+                errorResId?.let { error(it) }
+            }
+            .build()
+    )
+    Box(
+        modifier = modifier
+            .border(BorderStroke(2.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
+    ) {
+        Image(
+            painter = painter,
+            contentDescription = "Video Thumbnail",
+            contentScale = contentScale,
+            modifier = Modifier.fillMaxSize()
+        )
+        if (painter.state is AsyncImagePainter.State.Loading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        }
+    }
+}
 // --- Helper Functions and Composables ---
 
 fun freshPhotoUri(context: Context): Uri {
@@ -1472,26 +1641,33 @@ fun MediaMessageBubble(
         if (message.read) "✔✔" else "✔"
     } else ""
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
     ) {
         Column(
-            modifier = Modifier.background(Color.Black, RoundedCornerShape(12.dp)).padding(12.dp)
+            modifier = Modifier
+                .background(Color.Black, RoundedCornerShape(12.dp))
+                .padding(12.dp)
         ) {
             Box(modifier = Modifier.clickable { onFullscreen(message) }) {
                 when (message.mediaType) {
-                    "photo" -> AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(message.mediaUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Photo",
+                    "photo" -> CachedPhotoThumbnail(
+                        url = message.mediaUrl ?: "",
                         modifier = Modifier.size(150.dp),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        // Optionally, pass your placeholder (e.g., R.drawable.local_placeholder)
+                        placeholderResId = R.drawable.local_placeholder,
+                        errorResId = R.drawable.local_placeholder
                     )
-                    "video" -> VideoPreview(
-                        uri = Uri.parse(message.mediaUrl),
-                        modifier = Modifier.size(150.dp)
+                    "video" -> CachedVideoThumbnail(
+                        url = message.mediaUrl ?: "",
+                        modifier = Modifier.size(150.dp),
+                        contentScale = ContentScale.Crop,
+                        // Optionally, pass a placeholder if desired
+                        placeholderResId = R.drawable.local_placeholder,
+                        errorResId = R.drawable.local_placeholder
                     )
                 }
             }
@@ -1506,6 +1682,7 @@ fun MediaMessageBubble(
         }
     }
 }
+
 
 @Composable
 fun MessageBubble(message: Message, currentUserId: String) {
@@ -1742,6 +1919,46 @@ fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit, modifier: Modifier
                     context.startActivity(mapIntent)
                 }) { Text("Directions", color = Color(0xFFFFA500)) }
                 Text("Tap to send", color = Color(0xFFFF4500), fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    when (profile.userId) {
+        "zaraAi" -> {
+            Image(
+                painter = painterResource(R.drawable.zara_avatar),
+                contentDescription = "Zara",
+                modifier = modifier,
+                contentScale = ContentScale.Crop
+            )
+        }
+        "kabirAi" -> {
+            Image(
+                painter = painterResource(R.drawable.kabir_avatar),
+                contentDescription = "Kabir",
+                modifier = modifier,
+                contentScale = ContentScale.Crop
+            )
+        }
+        else -> {
+            profile.profilepicUrl?.let { url ->
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(url)
+                        .diskCacheKey(url)
+                        .memoryCacheKey(url)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = profile.username,
+                    modifier = modifier,
+                    contentScale = ContentScale.Crop
+                )
+            } ?: run {
+                Box(modifier = modifier.background(Color.Gray))
             }
         }
     }
