@@ -1091,17 +1091,48 @@ fun PhotoWithTwoOverlays(
             }
 
             // Top overlay (distance)
-            if (currentPhotoIndex == 0 || currentPhotoIndex == 1 || currentPhotoIndex == 2 || currentPhotoIndex == 3 || currentPhotoIndex == 4) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopStart)
+                    .padding(14.dp, 10.dp)
+            ) {
+                TagBox(
+                    text = "${userDistance.roundToInt()} km away",
+                    modifier = Modifier.align(Alignment.TopStart)
+                )
+            }
+
+            // Interests overlay with fade-to-black gradient on the first photo
+            if (currentPhotoIndex == 0 && profile.interests.isNotEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.TopStart)
-                        .padding(14.dp, 10.dp)
+                        .height(60.dp) // Adjust height as needed
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
+                        )
                 ) {
-                    TagBox(
-                        text = "${userDistance.roundToInt()} km away",
-                        modifier = Modifier.align(Alignment.TopStart)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        val displayedInterests = profile.interests.take(5)
+                        displayedInterests.forEach { interest ->
+                            Text(
+                                text = "${interest.emoji} ${interest.name}",
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                 }
             }
         } else {
@@ -1221,6 +1252,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
     var showAiSection by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
+    var showSocialCauses by rememberSaveable { mutableStateOf(false) } // New state for Social Causes
 
     Column(
         modifier = Modifier
@@ -1262,9 +1294,9 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
                 }
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         PerformanceMetricsSectionDating(profile)
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = "Bio",
             icon = Icons.Default.Mic,
@@ -1273,7 +1305,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         ) {
             showVoiceBio(profile = profile)
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = "Basic Information",
             icon = Icons.Default.Person,
@@ -1282,7 +1314,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         ) {
             BasicInfoSection(profile)
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = "Preferences",
             icon = Icons.Default.Favorite,
@@ -1291,7 +1323,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         ) {
             PreferencesSection(profile)
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = "Lifestyle Attributes",
             icon = Icons.Default.Nature,
@@ -1300,7 +1332,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         ) {
             LifestyleSection(profile)
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = "Interests",
             icon = Icons.Default.Star,
@@ -1308,6 +1340,15 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             onToggle = { showInterests = !showInterests }
         ) {
             InterestsSectionInProfile(profile)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        CollapsibleSection(
+            title = "Social Causes",
+            icon = Icons.Default.Favorite, // Use a suitable icon (VolunteerActivism if available)
+            isExpanded = showSocialCauses,
+            onToggle = { showSocialCauses = !showSocialCauses }
+        ) {
+            SocialCausesSection(profile)
         }
     }
 }

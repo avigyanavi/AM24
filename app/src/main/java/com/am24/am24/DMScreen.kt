@@ -43,6 +43,7 @@ import com.google.firebase.database.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 
@@ -329,7 +330,7 @@ fun DMScreenContent(navController: NavController) {
         }.distinct()
     }
 
-    var showAIChats by remember { mutableStateOf(false) }
+    var showAIChats by rememberSaveable { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var likedCount by remember { mutableStateOf(0) }
     val matchedUsers = remember { mutableStateListOf<Profile>() }
