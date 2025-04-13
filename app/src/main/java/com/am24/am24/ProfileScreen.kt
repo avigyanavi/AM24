@@ -463,15 +463,16 @@ fun CollapsibleSection(
     onToggle: () -> Unit,
     editMode: Boolean = false,
     onEditToggle: () -> Unit = {},
+    editable: Boolean = true,                       // ← NEW
     content: @Composable () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggle() }
-            .border(width = 1.dp, color = Color.White, shape = CircleShape)
-            .background(Color.Black)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .border(2.dp, Color(0xFFFF6F00), RoundedCornerShape(10.dp)) // ← new look
+            .background(Color(0xFF1A1A1A))                              // ← new look
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -480,9 +481,8 @@ fun CollapsibleSection(
             tint = Color(0xFFFF6F00),
             modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(Modifier.width(8.dp))
 
-        // Title
         Text(
             text = title,
             color = Color.White,
@@ -491,19 +491,21 @@ fun CollapsibleSection(
             modifier = Modifier.weight(1f)
         )
 
-        // Pencil icon or close icon
-        IconButton(onClick = onEditToggle) {
-            Icon(
-                imageVector = if (editMode) Icons.Default.Close else Icons.Default.Edit,
-                contentDescription = if (editMode) "Cancel Edit" else "Edit",
-                tint = if (editMode) Color.Red else Color.White
-            )
+        /* edit icon only when editable == true */
+        if (editable) {
+            IconButton(onClick = onEditToggle) {
+                Icon(
+                    imageVector = if (editMode) Icons.Default.Close else Icons.Default.Edit,
+                    contentDescription = if (editMode) "Cancel Edit" else "Edit",
+                    tint = if (editMode) Color.Red else Color.White
+                )
+            }
         }
 
-        // Expand/Collapse icon
         IconButton(onClick = onToggle) {
             Icon(
-                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                imageVector = if (isExpanded)
+                    Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                 contentDescription = if (isExpanded) "Collapse" else "Expand",
                 tint = Color.White
             )
@@ -514,16 +516,14 @@ fun CollapsibleSection(
         Spacer(Modifier.height(8.dp))
 
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            colors  = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
+            shape   = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+                .padding(horizontal = 4.dp)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                content()
-            }
+            Column(Modifier.padding(12.dp)) { content() }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -1193,32 +1193,31 @@ fun BasicInfoEditSection(
 @Composable
 fun PerformanceMetricsSection(profile: Profile) {
     var showPerformance by rememberSaveable { mutableStateOf(true) }
+
     CollapsibleSection(
-        title = "Performance Metrics",
-        icon = Icons.Default.Assessment,
-        isExpanded = showPerformance,
-        onToggle = { showPerformance = !showPerformance },
-        editMode = false
+        title       = "Performance Metrics",
+        icon        = Icons.Default.Assessment,
+        isExpanded  = showPerformance,
+        onToggle    = { showPerformance = !showPerformance },
+        editMode    = false,
+        editable    = false                       // ← no pencil icon
     ) {
         ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
         ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
         ProfileDetailRow(
             label = "Swipe Right Probability",
             value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
-            icon = Icons.Default.Swipe
+            icon  = Icons.Default.Swipe
         )
-        // Overall West Bengal rank (kept from am24Ranking)
         ProfileDetailRow(
             label = "West Bengal Ranking",
             value = profile.am24Ranking.toString(),
             icon  = Icons.Default.Public
         )
 
-        // City‑level rank (handles custom city)
+        /* city‑level rank */
         val cityRank = if (profile.city == "Other")
-            profile.am24RankingCustomCity
-        else
-            profile.am24RankingCity
+            profile.am24RankingCustomCity else profile.am24RankingCity
         if (cityRank > 0) {
             ProfileDetailRow(
                 label = "${profile.city.ifBlank { "City" }} Ranking",
@@ -1227,11 +1226,9 @@ fun PerformanceMetricsSection(profile: Profile) {
             )
         }
 
-        // Locality / hometown rank (handles custom hometown)
+        /* hometown/locality rank */
         val hoodRank = if (profile.hometown == "Other")
-            profile.am24RankingCustomHometown
-        else
-            profile.am24RankingHometown
+            profile.am24RankingCustomHometown else profile.am24RankingHometown
         if (hoodRank > 0) {
             ProfileDetailRow(
                 label = "${profile.hometown.ifBlank { "Locality" }} Ranking",
@@ -1239,6 +1236,7 @@ fun PerformanceMetricsSection(profile: Profile) {
                 icon  = Icons.Default.Home
             )
         }
+
         ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
 
         if (profile.highSchool.isNotBlank()) {
@@ -1248,9 +1246,12 @@ fun PerformanceMetricsSection(profile: Profile) {
                 Icons.Default.School
             )
         }
-
         if (profile.college.isNotBlank()) {
-            ProfileDetailRow("${profile.college} Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
+            ProfileDetailRow(
+                "${profile.college} Ranking",
+                profile.am24RankingCollege.toString(),
+                Icons.Default.Book
+            )
         }
     }
 }
@@ -1598,24 +1599,6 @@ fun LifestyleSection(profile: Profile) {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun LifestyleBooleanField(label: String, value: Boolean) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = if (value) Icons.Default.Check else Icons.Default.Close,
-            contentDescription = label,
-            tint = Color.White,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = "$label: ${if (value) "Yes" else "No"}",
-            color = Color.White,
-            fontSize = 15.sp
-        )
     }
 }
 
@@ -2058,7 +2041,6 @@ fun ProfileCollapsibleSections(
             .background(Color.Black)
             .padding(16.dp)
     ) {
-        PerformanceMetricsSection(profile)
         if (tempProfile.isMatrimonyMode) {
             var showMatrimony by rememberSaveable { mutableStateOf(true) }
             var editMatrimony by rememberSaveable { mutableStateOf(false) }
@@ -2084,6 +2066,8 @@ fun ProfileCollapsibleSections(
                 }
             }
         }
+        PerformanceMetricsSection(profile)
+        Spacer(modifier = Modifier.height(12.dp))
         CollapsibleSection(
             title = "Bio",
             icon = Icons.Default.Info,
