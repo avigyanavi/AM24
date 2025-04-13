@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -38,51 +39,75 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                LoginScreen(
-                    onLoginClick = { email, password ->
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            try {
-                                val trimmedEmail = email.trim()
-                                val result = auth.signInWithEmailAndPassword(trimmedEmail, password).await()
+                LoginScreen { userOrEmail, pwd ->
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val email = if (userOrEmail.contains("@")) {
+                                userOrEmail.trim()
+                            } else {
+                                // ── username flow ────────────────────────────────
+                                val uidSnap = FirebaseDatabase.getInstance()
+                                    .reference.child("usernames")
+                                    .child(userOrEmail.trim())
+                                    .get().await()
 
-                                val currentUser = result.user
-                                if (currentUser != null && currentUser.isEmailVerified) {
-                                    // Navigate to ExploreActivity on successful login
+                                if (!uidSnap.exists()) {
                                     withContext(Dispatchers.Main) {
-                                        startActivity(Intent(this@LoginActivity, KupidXAppActivity::class.java))
-                                        finish()
+                                        toast("Username not found")
                                     }
-                                } else {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(
-                                            this@LoginActivity,
-                                            "Please verify your email before logging in.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        auth.signOut()
-                                    }
+                                    return@launch
                                 }
-                            } catch (e: Exception) {
+
+                                val uid = uidSnap.getValue(String::class.java) ?: ""
+                                val emailSnap = FirebaseDatabase.getInstance()
+                                    .reference.child("users")
+                                    .child(uid)
+                                    .child("email")
+                                    .get().await()
+
+                                emailSnap.getValue(String::class.java)?.trim().orEmpty()
+                            }
+
+                            if (email.isBlank()) {
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(
-                                        this@LoginActivity,
-                                        "Authentication failed: ${e.message}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    toast("Could not resolve email for that username")
+                                }
+                                return@launch
+                            }
+
+                            val result = auth.signInWithEmailAndPassword(email, pwd).await()
+                            val currentUser = result.user
+
+                            if (currentUser != null && currentUser.isEmailVerified) {
+                                withContext(Dispatchers.Main) {
+                                    startActivity(Intent(this@LoginActivity, KupidXAppActivity::class.java))
+                                    finish()
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    toast("Please verify your email before logging in.")
+                                    auth.signOut()
                                 }
                             }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) { toast("Auth failed: ${e.message}") }
                         }
                     }
-                )
+                }
             }
         }
     }
+
+    private fun toast(msg: String) =
+        Toast.makeText(this@LoginActivity, msg, Toast.LENGTH_LONG).show()
 }
 
 @Composable
-fun LoginScreen(onLoginClick: (String, String) -> Unit) {
-    var email by remember { mutableStateOf(TextFieldValue("")) }
-    var password by remember { mutableStateOf(TextFieldValue("")) }
+fun LoginScreen(
+    onLoginClick: (String, String) -> Unit
+) {
+    var userOrEmail by remember { mutableStateOf(TextFieldValue("")) }
+    var password    by remember { mutableStateOf(TextFieldValue("")) }
 
     Box(
         modifier = Modifier
@@ -97,7 +122,6 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Title
             Text(
                 text = "Login",
                 color = Color.White,
@@ -106,72 +130,68 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // Email Input
+            // Username *or* Email
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email", color = Color(0xFF00bf63)) },
+                value = userOrEmail,
+                onValueChange = { userOrEmail = it },
+                label = { Text("Username or Email", color = Color(0xFFFF6600)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color(0xFF00bf63),
-                    focusedBorderColor = Color(0xFF00bf63),
-                    unfocusedBorderColor = Color(0xFF00bf63),
-                    focusedLabelColor = Color(0xFF00bf63),
-                    unfocusedLabelColor = Color(0xFF00bf63)
-                )
+                colors = orangeOutlinedColors()
             )
 
-            // Password Input
+            // Password
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password", color = Color(0xFF00bf63)) },
+                label = { Text("Password", color = Color(0xFFFF6600)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color(0xFF00bf63),
-                    focusedBorderColor = Color(0xFF00bf63),
-                    unfocusedBorderColor = Color(0xFF00bf63),
-                    focusedLabelColor = Color(0xFF00bf63),
-                    unfocusedLabelColor = Color(0xFF00bf63)
-                )
+                colors = orangeOutlinedColors()
             )
 
-            // Login Button
+            // Login button
             Button(
-                onClick = { onLoginClick(email.text, password.text) },
+                onClick = { onLoginClick(userOrEmail.text, password.text) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
                 shape = CircleShape,
                 elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
             ) {
-                Text(
-                    text = "Login",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Login", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextButton(onClick = { /* TODO: Forgot‑username flow */ }) {
+                    Text("Forgot Username?", color = Color.White)
+                }
+                TextButton(onClick = { /* TODO: Firebase password reset */ }) {
+                    Text("Forgot Password?", color = Color.White)
+                }
             }
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun PreviewLoginScreen() {
-    AppTheme {
-        LoginScreen(onLoginClick = { _, _ -> })
-    }
-}
+private fun orangeOutlinedColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color.White,
+    unfocusedTextColor = Color.White,
+    cursorColor = Color(0xFFFF6600),
+    focusedBorderColor = Color(0xFFFF6600),
+    unfocusedBorderColor = Color(0xFFFF6600),
+    focusedLabelColor = Color(0xFFFF6600),
+    unfocusedLabelColor = Color(0xFFFF6600)
+)
