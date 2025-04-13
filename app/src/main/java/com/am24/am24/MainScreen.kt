@@ -30,29 +30,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.*
+import androidx.compose.ui.Alignment.Companion.Center
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
-        BottomNavItem("Map", Icons.Default.Map, "map"), // New map tab
         BottomNavItem("Date", Icons.Default.FavoriteBorder, "dating"),
-        BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
+        BottomNavItem("Map", Icons.Default.Map, "map"),
         BottomNavItem("Chat", Icons.Default.MailOutline, "dms"),
+        BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
         BottomNavItem("Profile", Icons.Default.PersonOutline, "profile")
     )
 
-    // Obtain the current user ID
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-    // Get the current destination
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    // Updated condition to hide TopNavBar on "home", "chat", and "dating" screens
     val isTopNavBarVisible = currentRoute != "chat/{otherUserId}" && currentRoute != "dating" && currentRoute != "home"
-
-    // Obtain the ProfileViewModel instance
     val profileViewModel: ProfileViewModel = viewModel()
 
     Scaffold(
@@ -70,11 +67,10 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             BottomNavigationBar(navController = navController, items = items)
         }
     ) { innerPadding ->
-        // Pass the innerPadding to MainNavGraph via the modifier
         MainNavGraph(
             navController = navController,
             modifier = Modifier.padding(innerPadding),
-            postViewModel = postViewModel // Pass it here
+            postViewModel = postViewModel
         )
     }
 }
@@ -89,7 +85,6 @@ fun TopNavBar(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-
     val currentRoute = currentDestination?.route
 
     val isNotificationsSelected = currentRoute == "notifications"
@@ -97,6 +92,35 @@ fun TopNavBar(
     val isProfileScreen = currentRoute == "profile"
 
     val unreadCount = remember { mutableStateOf(0) }
+    val isPremium = remember { mutableStateOf(false) }
+    var showLocationPrefDialog by remember { mutableStateOf(false) }
+    var allowLocationForMatches by remember { mutableStateOf(false) }
+
+    // Fetch premium status from Firebase
+    DisposableEffect(currentUserId) {
+        val profileRef = FirebaseDatabase.getInstance()
+            .getReference("users")
+            .child(currentUserId)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val profile = snapshot.getValue(Profile::class.java)
+                isPremium.value = profile?.isPremium ?: false
+                // Fetch allowLocationForMatches
+                val savedPref = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java)
+                if (savedPref != null) {
+                    allowLocationForMatches = savedPref
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("TopNavBar", "Failed to fetch profile: ${error.message}")
+            }
+        }
+        profileRef.addValueEventListener(listener)
+        onDispose {
+            profileRef.removeEventListener(listener)
+        }
+    }
 
     // Observe unread notifications count
     DisposableEffect(currentUserId) {
@@ -122,19 +146,11 @@ fun TopNavBar(
         }
     }
 
-    // NEW: Local state for location visibility preferences dialog.
-    var showLocationPrefDialog by remember { mutableStateOf(false) }
-    // For demonstration, default values are fetched from local state.
-    // In a full app you might initialize these from the user's profile.
-    var allowLocationForMatches by remember { mutableStateOf(false) }
-    var allowLocationForPublic by remember { mutableStateOf(false) }
-
     TopAppBar(
         title = {
             Text("Kupidx", color = Color(0xFFFF6F00))
-                },
+        },
         navigationIcon = {
-            // Logo is now in a Box (not clickable)
             Box(
                 modifier = Modifier.size(40.dp)
             ) {
@@ -146,7 +162,7 @@ fun TopNavBar(
             }
         },
         actions = {
-            // NEW: Show location settings icon only when on map screen.
+            // Location settings icon (map screen)
             if (currentRoute == "map") {
                 IconButton(onClick = { showLocationPrefDialog = true }) {
                     Icon(
@@ -157,15 +173,58 @@ fun TopNavBar(
                     )
                 }
             }
-            // User Settings Icon (only on Profile screen)
+            // User Settings Icon (Profile or Settings screen)
             if (isProfileScreen || isUserSettings) {
+                val shouldAnimate = isProfileScreen && !isPremium.value
+                val infiniteTransition = rememberInfiniteTransition()
+                val scale by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = if (shouldAnimate) 1.2f else 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(
+                            durationMillis = 500,
+                            easing = LinearEasing
+                        ),
+                        repeatMode = RepeatMode.Reverse
+                    )
+                )
+
                 IconButton(onClick = {
-                    navController.navigate("settings")
+                    if (isUserSettings) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate("settings")
+                    }
+                }) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                transformOrigin = TransformOrigin.Center
+                            ),
+                        contentAlignment = Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "User Settings",
+                            tint = if (isUserSettings) Color(0xFFFF6F00) else Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+            // Logout Icon (Profile screen only)
+            if (isProfileScreen) {
+                IconButton(onClick = {
+                    FirebaseAuth.getInstance().signOut()
+                    onLogout()
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "User Settings",
-                        tint = if (isUserSettings) Color(0xFFFF6F00) else Color.Gray,
+                        imageVector = Icons.Default.ExitToApp,
+                        contentDescription = "Logout",
+                        tint = Color.Gray,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -207,7 +266,6 @@ fun TopNavBar(
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
 
-    // NEW: Location Preferences Dialog (only for map screen)
     if (showLocationPrefDialog) {
         AlertDialog(
             onDismissRequest = { showLocationPrefDialog = false },
@@ -219,17 +277,28 @@ fun TopNavBar(
                         Spacer(modifier = Modifier.width(8.dp))
                         Switch(
                             checked = allowLocationForMatches,
-                            onCheckedChange = { allowLocationForMatches = it }
+                            onCheckedChange = { allowLocationForMatches = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6F00), // Orange when selected
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color.Gray
+                            )
                         )
                     }
                 }
             },
             confirmButton = {
                 Button(onClick = {
-                    // Update the user's profile in Firebase with these settings.
                     FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
                         .child("allowLocationForMatches").setValue(allowLocationForMatches)
-                    showLocationPrefDialog = false
+                        .addOnSuccessListener {
+                            Log.d("TopNavBar", "Location preference saved: $allowLocationForMatches")
+                            showLocationPrefDialog = false
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("TopNavBar", "Failed to save preference: ${e.message}")
+                        }
                 }) { Text("Save") }
             }
         )
@@ -246,7 +315,6 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
     NavigationBar(containerColor = Color.Black) {
         items.forEach { item ->
             val selected = if (item.route == "dms") {
-                // For DM tab, consider nested routes (e.g., "chat/{otherUserId}" or "matchedUserProfile/{otherUserId}")
                 val route = currentDestination?.route ?: ""
                 route.startsWith("dms") || route.startsWith("chat/") || route.startsWith("matchedUserProfile/")
             } else {

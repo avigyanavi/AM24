@@ -102,12 +102,9 @@ fun MapScreen(
     var showSendOverlay by remember { mutableStateOf(false) }
     var placeDetailsToSend by remember { mutableStateOf<Pair<LatLng, String>?>(null) }
     val matchProfiles = remember { mutableStateListOf<MatchProfile>() }
-    var showLocationPrefOverlay by remember { mutableStateOf(!MapScreen.hasShownLocationPrefThisSession) }
-    var allowLocationForMatches by remember { mutableStateOf(false) }
 
-    // Fetch user location with loading
+    // Fetch user location
     LaunchedEffect(userId) {
-        isLoadingMatches = true
         locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
             if (lat != null && lng != null) {
                 userLatLng = LatLng(lat, lng)
@@ -125,7 +122,7 @@ fun MapScreen(
         }
     }
 
-    // Load Matches with loading
+    // Load Matches
     LaunchedEffect(userId) {
         isLoadingMatches = true
         val matchesRef = FirebaseDatabase.getInstance().getReference("matches").child(userId)
@@ -173,31 +170,6 @@ fun MapScreen(
                 }
             }
         }
-    }
-
-    // Location Preference Overlay
-    if (showLocationPrefOverlay) {
-        AlertDialog(
-            onDismissRequest = { /* Force user to choose */ },
-            title = { Text("Location Visibility Settings") },
-            text = {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Visible to Matches")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(checked = allowLocationForMatches, onCheckedChange = { allowLocationForMatches = it })
-                    }
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    showLocationPrefOverlay = false
-                    MapScreen.hasShownLocationPrefThisSession = true // Mark as shown for this session
-                    val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
-                    userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
-                }) { Text("Save") }
-            }
-        )
     }
 
     // Main Layout
@@ -511,11 +483,6 @@ fun MapScreen(
             }
         }
     }
-}
-
-// Companion object to track session state
-object MapScreen {
-    var hasShownLocationPrefThisSession: Boolean = false
 }
 
 // Rest of the composables and functions remain unchanged

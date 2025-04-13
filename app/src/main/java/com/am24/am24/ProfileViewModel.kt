@@ -40,16 +40,22 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     // Add this function to fetch and store the current user's profile
     fun fetchCurrentUserProfile() {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-        if (currentUserId.isNullOrEmpty()) return
+        if (currentUserId.isNullOrEmpty()) {
+            Log.e(TAG, "No current user ID found")
+            return
+        }
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val snapshot = usersRef.child(currentUserId).get().await()
-                val profile = snapshot.getValue(Profile::class.java)
+                val profile = snapshot.getValue(Profile::class.java)?.copy(
+                    isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
+                )
                 if (profile != null) {
+                    Log.d(TAG, "Fetched profile with isMatrimonyMode: ${profile.isMatrimonyMode}")
                     _currentUserProfile.value = profile
                 } else {
-                    Log.e(TAG, "Failed to fetch current user's profile.")
+                    Log.e(TAG, "Failed to fetch current user's profile: Profile is null")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching current user profile: ${e.message}")
@@ -432,18 +438,26 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     ) {
         usersRef.child(userId).get()
             .addOnSuccessListener { snapshot ->
-                val profile = snapshot.getValue(Profile::class.java)
-                if (profile != null) {
-                    onSuccess(profile)
-                } else {
-                    onFailure("Profile not found")
+                try {
+                    val profile = snapshot.getValue(Profile::class.java)?.copy(
+                        // Ensure isMatrimonyMode has a default of false if not set in Firebase
+                        isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
+                    )
+                    if (profile != null) {
+                        onSuccess(profile)
+                    } else {
+                        onFailure("Profile not found")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing profile for userId $userId: ${e.message}")
+                    onFailure("Failed to parse profile data")
                 }
             }
             .addOnFailureListener { error ->
+                Log.e(TAG, "Failed to fetch profile for userId $userId: ${error.message}")
                 onFailure(error.message ?: "Failed to fetch profile")
             }
     }
-
 
     // Send a match notification
     fun sendMatchNotification(

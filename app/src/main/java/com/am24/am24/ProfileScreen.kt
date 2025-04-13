@@ -52,7 +52,6 @@ import coil.request.ImageRequest
 import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
 
-
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -61,6 +60,14 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
+    val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+    // Fetch profile on screen entry
+    LaunchedEffect(currentUserId) {
+        Log.d("ProfileScreen", "Fetching profile for userId: $currentUserId")
+        profileViewModel.fetchCurrentUserProfile()
+    }
 
     if (!filtersLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -70,42 +77,26 @@ fun ProfileScreen(
     }
 
     val allPosts by postViewModel.filteredPosts.collectAsState()
-    val userProfiles by postViewModel.userProfiles.collectAsState()
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-    var userProfile by remember { mutableStateOf<Profile?>(null) }
-    LaunchedEffect(currentUserId) {
-        val potentialProfile = userProfiles[currentUserId]
-        if (potentialProfile != null) {
-            userProfile = potentialProfile
-        } else {
-            profileViewModel.fetchUserProfile(
-                userId = currentUserId,
-                onSuccess = { fetchedProfile -> userProfile = fetchedProfile },
-                onFailure = { error ->
-                    Log.e("ProfileScreen", "Failed to load profile: $error")
-                }
-            )
-        }
-    }
-
     val myPosts = allPosts.filter { it.userId == currentUserId }
     val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
     val featuredPosts = sortedByUpvotes.take(5)
     val remainingPosts = sortedByUpvotes.drop(5)
 
-    if (userProfile == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading your profile...", color = Color.White)
+    when {
+        currentUserProfile == null -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Loading your profile...", color = Color.White)
+            }
         }
-    } else {
-        ProfileLazyScreen(
-            navController = navController,
-            profile = userProfile!!,
-            featuredPosts = featuredPosts,
-            remainingPosts = remainingPosts,
-            profileViewModel = profileViewModel
-        )
+        else -> {
+            ProfileLazyScreen(
+                navController = navController,
+                profile = currentUserProfile!!,
+                featuredPosts = featuredPosts,
+                remainingPosts = remainingPosts,
+                profileViewModel = profileViewModel
+            )
+        }
     }
 }
 
@@ -119,14 +110,19 @@ fun ProfileLazyScreen(
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    // State to control the visibility of the posts overlay
     var showPostsOverlay by remember { mutableStateOf(false) }
+    val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
-// keep our own mutable copy of the profile we can mutate locally
+    // Use ViewModel's profile if available, otherwise fall back to initial profile
     var currentProfile by remember { mutableStateOf(profile) }
 
-    // derive the switch value directly from that mutable copy
-    val matrimonyMode = currentProfile.isMatrimonyMode
+    // Sync with ViewModel's profile
+    LaunchedEffect(currentUserProfile) {
+        currentUserProfile?.let { updatedProfile ->
+            Log.d("ProfileLazyScreen", "Updating currentProfile with isMatrimonyMode: ${updatedProfile.isMatrimonyMode}")
+            currentProfile = updatedProfile
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -137,40 +133,69 @@ fun ProfileLazyScreen(
         ) {
             item {
                 PhotoCarouselWithOverlay(
-                    profile             = profile,
-                    onEditProfileClick  = { navController.navigate("editPicAndVoiceBio") },
-                    onPostsClick        = { showPostsOverlay = true },
-                    onVerifyClick       = { navController.navigate("govtIdVerification") }   // ➋
+                    profile = currentProfile,
+                    onEditProfileClick = { navController.navigate("editPicAndVoiceBio") },
+                    onPostsClick = { showPostsOverlay = true },
+                    onVerifyClick = { navController.navigate("govtIdVerification") }
                 )
             }
-            // 🔄 OLD completion‑row removed, NEW matrimony toggle added
             item {
                 MatrimonyToggleRow(
-                    isMatrimony = matrimonyMode,
+                    isMatrimony = currentProfile.isMatrimonyMode,
                     onToggle = { checked ->
-                        currentProfile = currentProfile.copy(isMatrimonyMode = checked)   // ① local
-                        scope.launch { updateProfileInFirebase(currentProfile) }          // ② remote
+                        val updatedProfile = currentProfile.copy(isMatrimonyMode = checked)
+                        currentProfile = updatedProfile
+                        scope.launch {
+                            Log.d("ProfileLazyScreen", "Toggling matrimonyMode to: $checked")
+                            profileViewModel.saveProfileUpdated(
+                                updatedProfile = updatedProfile,
+                                onSuccess = {
+                                    Log.d("ProfileLazyScreen", "Profile saved with isMatrimonyMode: $checked")
+                                },
+                                onFailure = { error ->
+                                    Log.e("ProfileLazyScreen", "Failed to save profile: $error")
+                                }
+                            )
+                        }
                     }
                 )
             }
-            if (matrimonyMode) {          // <-- use the state we just changed
+            if (currentProfile.isMatrimonyMode) {
                 item {
                     MatrimonyInfoCard(
                         profile = currentProfile,
                         onSave = { updated ->
-                            currentProfile = updated          // refresh local copy
-                            scope.launch { updateProfileInFirebase(updated) }
+                            currentProfile = updated
+                            scope.launch {
+                                Log.d("ProfileLazyScreen", "Saving matrimony info")
+                                profileViewModel.saveProfileUpdated(
+                                    updatedProfile = updated,
+                                    onSuccess = { Log.d("ProfileLazyScreen", "Matrimony info saved") },
+                                    onFailure = { error ->
+                                        Log.e("ProfileLazyScreen", "Failed to save matrimony info: $error")
+                                    }
+                                )
+                            }
                         }
                     )
                 }
             }
-
             item {
                 ProfileCollapsibleSections(
-                    profile = profile,
+                    profile = currentProfile,
                     profileViewModel = profileViewModel,
                     onProfileUpdated = { updated ->
-                        scope.launch { updateProfileInFirebase(updated) }
+                        currentProfile = updated
+                        scope.launch {
+                            Log.d("ProfileLazyScreen", "Updating collapsible sections")
+                            profileViewModel.saveProfileUpdated(
+                                updatedProfile = updated,
+                                onSuccess = { Log.d("ProfileLazyScreen", "Collapsible sections saved") },
+                                onFailure = { error ->
+                                    Log.e("ProfileLazyScreen", "Failed to save collapsible sections: $error")
+                                }
+                            )
+                        }
                     }
                 )
             }
@@ -193,10 +218,7 @@ fun ProfileLazyScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Button(
-                            onClick = {
-                                Log.d("Profile", "View More Posts clicked!")
-                                // You can also set showPostsOverlay = true here if desired.
-                            },
+                            onClick = { showPostsOverlay = true },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                         ) {
                             Text(text = "View More Posts", color = Color.White)
@@ -206,10 +228,9 @@ fun ProfileLazyScreen(
                 }
             }
         }
-        // Show the posts overlay on top of the profile screen when triggered
         if (showPostsOverlay) {
             PostsOverlay(
-                posts = featuredPosts + remainingPosts, // You can merge both lists or pass as needed
+                posts = featuredPosts + remainingPosts,
                 onDismiss = { showPostsOverlay = false }
             )
         }
@@ -240,17 +261,12 @@ fun VerificationBadge(
     }
 }
 
-
 @Composable
 fun MatrimonyInfoCard(
     profile: Profile,
     onSave: (Profile) -> Unit
 ) {
-    // Local state to control whether we are in edit mode
     var isEditing by remember { mutableStateOf(false) }
-
-    // These are the fields we want to show/edit.
-    // When in edit mode, we work with local copies.
     var marriageTimeline by remember { mutableStateOf(profile.marriageTimeline ?: "") }
     var relocationPreference by remember { mutableStateOf(profile.relocationPreference ?: "") }
     var postMarriageCareerPlan by remember { mutableStateOf(profile.postMarriageCareerPlan ?: "") }
@@ -258,7 +274,6 @@ fun MatrimonyInfoCard(
     var fatherOccupation by remember { mutableStateOf(profile.fatherOccupation ?: "") }
     var motherOccupation by remember { mutableStateOf(profile.motherOccupation ?: "") }
 
-    // The card has a border with our theme color and black background inside.
     Card(
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(2.dp, Color(0xFFFF6F00)),
@@ -267,10 +282,8 @@ fun MatrimonyInfoCard(
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Use a Box so that we can overlay the edit icon at the top right.
         Box(modifier = Modifier.fillMaxWidth()) {
             if (isEditing) {
-                // EDIT MODE: show text fields and Save/Cancel buttons.
                 Column(modifier = Modifier.padding(16.dp)) {
                     OutlinedTextField(
                         value = marriageTimeline,
@@ -350,13 +363,11 @@ fun MatrimonyInfoCard(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    // Save/Cancel row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = {
-                            // When saving, update the profile with the new values.
                             val updatedProfile = profile.copy(
                                 marriageTimeline = marriageTimeline.ifBlank { null },
                                 relocationPreference = relocationPreference.ifBlank { null },
@@ -372,7 +383,6 @@ fun MatrimonyInfoCard(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         TextButton(onClick = {
-                            // Reset to original values if cancelled
                             marriageTimeline = profile.marriageTimeline ?: ""
                             relocationPreference = profile.relocationPreference ?: ""
                             postMarriageCareerPlan = profile.postMarriageCareerPlan ?: ""
@@ -386,7 +396,6 @@ fun MatrimonyInfoCard(
                     }
                 }
             } else {
-                // READ-ONLY MODE: Show the current matrimony info in a read-only style.
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text("Marriage Timeline: ", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
@@ -419,7 +428,6 @@ fun MatrimonyInfoCard(
                     }
                 }
             }
-            // The small edit icon in the top right of the card.
             IconButton(
                 onClick = { isEditing = true },
                 modifier = Modifier
