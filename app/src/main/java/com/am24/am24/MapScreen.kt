@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
@@ -28,11 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -59,7 +64,24 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.min
+import kotlin.math.sin
+
+// Helper function to calculate bearing between two locations.
+fun getBearing(from: LatLng, to: LatLng): Float {
+    val lat1 = Math.toRadians(from.latitude)
+    val lon1 = Math.toRadians(from.longitude)
+    val lat2 = Math.toRadians(to.latitude)
+    val lon2 = Math.toRadians(to.longitude)
+    val dLon = lon2 - lon1
+
+    val y = sin(dLon) * cos(lat2)
+    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+    return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -421,6 +443,26 @@ fun MapScreen(
                     }
                 }
 
+                // Overlay: Directional Arrows are added as a sibling overlay on top of GoogleMap.
+                userLatLng?.let { userLoc ->
+                    // Collect all match locations from your markersState.
+                    val matchLocations = markersState.map { it.position }
+                    DirectionalArrowsOverlay(
+                        userLocation = userLoc,
+                        matchLocations = matchLocations,
+                        modifier = Modifier.fillMaxSize(),
+                        onArrowClick = { matchLoc ->
+                            // Animate the camera to center on the tapped match location (e.g., zoom level 18).
+                            scope.launch {
+                                cameraPositionState.animate(
+                                    update = CameraUpdateFactory.newLatLngZoom(matchLoc, 18f),
+                                    durationMs = 500
+                                )
+                            }
+                        }
+                    )
+                }
+
                 // Popups and Overlays
                 selectedPlaceDetails?.let { (latLng, name) ->
                     PlaceDetailsPopup(
@@ -433,7 +475,6 @@ fun MapScreen(
                         }
                     )
                 }
-
                 selectedUserProfile?.let { profile ->
                     Box(
                         modifier = Modifier
@@ -450,7 +491,6 @@ fun MapScreen(
                         )
                     }
                 }
-
                 if (showSendOverlay) {
                     MatchesListOverlay(
                         matches = matchProfiles,
@@ -485,7 +525,44 @@ fun MapScreen(
     }
 }
 
-// Rest of the composables and functions remain unchanged
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+fun DirectionalArrowsOverlay(
+    userLocation: LatLng,
+    matchLocations: List<LatLng>,
+    onArrowClick: (LatLng) -> Unit, // Callback when an arrow is tapped
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val boxWidth = constraints.maxWidth.toFloat()
+        val boxHeight = constraints.maxHeight.toFloat()
+        val centerX = boxWidth / 2f
+        val centerY = boxHeight / 2f
+
+        // Radius from the center where arrows will be anchored.
+        val radius = (min(boxWidth, boxHeight) / 2f) - with(LocalDensity.current) { 40.dp.toPx() }
+
+        matchLocations.forEach { matchLoc ->
+            val bearing = getBearing(userLocation, matchLoc)
+            val angleRad = Math.toRadians(bearing.toDouble())
+            // Calculate the arrow's x and y coordinates.
+            val arrowX = centerX + (radius * cos(angleRad)).toFloat()
+            val arrowY = centerY - (radius * sin(angleRad)).toFloat()
+
+            Icon(
+                imageVector = Icons.Default.ArrowUpward,
+                contentDescription = "Match Arrow",
+                tint = Color.Red,
+                modifier = Modifier
+                    .size(40.dp)
+                    .offset { IntOffset((arrowX - 20).toInt(), (arrowY - 20).toInt()) }
+                    .graphicsLayer(rotationZ = bearing)
+                    .clickable { onArrowClick(matchLoc) }
+            )
+        }
+    }
+}
+
 @Composable
 fun QuickSearchTags(
     tags: List<String>,
@@ -535,12 +612,17 @@ fun PlaceDetailsPopup(
             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
             Icon(
                 imageVector = Icons.Filled.Close,
                 contentDescription = "Close",
                 tint = Color.Gray,
-                modifier = Modifier.size(24.dp).clickable { onDismiss() }
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onDismiss() }
             )
         }
         Text(text = name, color = Color.Black)
@@ -600,7 +682,9 @@ fun MatchesListOverlay(
                                 Image(
                                     painter = rememberAsyncImagePainter(model = url),
                                     contentDescription = null,
-                                    modifier = Modifier.size(48.dp).clip(CircleShape),
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape),
                                     contentScale = ContentScale.Crop
                                 )
                             }
@@ -629,7 +713,6 @@ fun UserProfilePopup(
     onCloseClick: () -> Unit
 ) {
     val context = LocalContext.current
-
     Column(
         modifier = Modifier
             .background(Color.White, RoundedCornerShape(12.dp))
@@ -703,12 +786,27 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
     val backgroundColor = Color.White
     Row(verticalAlignment = Alignment.CenterVertically) {
         repeat(fullStars) {
-            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = orange, modifier = Modifier.size(starSize))
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = orange,
+                modifier = Modifier.size(starSize)
+            )
         }
         if (fraction > 0) {
             Box(modifier = Modifier.size(starSize)) {
-                Icon(imageVector = Icons.Default.StarBorder, contentDescription = null, tint = orange, modifier = Modifier.fillMaxSize())
-                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = orange, modifier = Modifier.fillMaxSize())
+                Icon(
+                    imageVector = Icons.Default.StarBorder,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = orange,
+                    modifier = Modifier.fillMaxSize()
+                )
                 val fractionUnfilled = 1 - fraction
                 Box(
                     modifier = Modifier
@@ -720,7 +818,12 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
             }
         }
         Spacer(modifier = Modifier.width(4.dp))
-        Text(text = String.format("%.2f (%d)", rating, ratingCount), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(
+            text = String.format("%.2f (%d)", rating, ratingCount),
+            color = Color.Black,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
     }
 }
 
@@ -732,13 +835,10 @@ suspend fun searchPlacesWithOkHttp(query: String, userLocation: LatLng): List<Pa
         .put(
             "locationBias",
             JSONObject()
-                .put("circle",
+                .put(
+                    "circle",
                     JSONObject()
-                        .put("center",
-                            JSONObject()
-                                .put("latitude", userLocation.latitude)
-                                .put("longitude", userLocation.longitude)
-                        )
+                        .put("center", JSONObject().put("latitude", userLocation.latitude).put("longitude", userLocation.longitude))
                         .put("radius", 10000)
                 )
         )
@@ -803,19 +903,23 @@ fun loadUserLocationAndMatches(
                         }
                     }
                 }
+
                 override fun onKeyExited(key: String) {
                     markersState.removeAll { it.userId == key }
                     Log.d("MapScreen", "Key exited: $key. Markers state size: ${markersState.size}")
                 }
+
                 override fun onKeyMoved(key: String, location: GeoLocation) {
                     if (matchesSet.contains(key)) {
                         markersState.replaceAll { if (it.userId == key) it.copy(position = LatLng(location.latitude, location.longitude)) else it }
                         Log.d("MapScreen", "Key moved: $key to ${location.latitude}, ${location.longitude}")
                     }
                 }
+
                 override fun onGeoQueryReady() {
                     Log.d("MapScreen", "GeoQuery ready. Markers state: ${markersState.size}")
                 }
+
                 override fun onGeoQueryError(error: DatabaseError) {
                     Toast.makeText(context, "GeoQuery error: ${error.message}", Toast.LENGTH_SHORT).show()
                     Log.e("MapScreen", "GeoQuery error: ${error.message}")
