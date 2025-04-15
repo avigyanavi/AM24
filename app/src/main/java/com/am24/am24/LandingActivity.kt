@@ -294,7 +294,7 @@ fun SocialSignInButtons(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
             shape = CircleShape,
             elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
         ) {
@@ -320,7 +320,7 @@ fun SocialSignInButtons(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F2)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
             shape = CircleShape,
             elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
         ) {
