@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
@@ -34,6 +36,13 @@ class LoginActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
 
+    // Override attachBaseContext to update the locale
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val languageCode = prefs.getString("language", "en") ?: "en"
+        super.attachBaseContext(updateLocale(newBase, languageCode))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
@@ -42,14 +51,14 @@ class LoginActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 LoginScreen(
-                    onLoginClick     = ::handleLogin,
+                    onLoginClick = ::handleLogin,
                     onForgotPassword = ::handlePasswordReset
                 )
             }
         }
     }
 
-    /* ------------ core helpers ------------ */
+    /* Core Helper Functions */
 
     private fun toast(msg: String) =
         Toast.makeText(this@LoginActivity, msg, Toast.LENGTH_LONG).show()
@@ -95,7 +104,7 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
-    /* username ⇢ email helper */
+    // Helper: convert a username to an email if needed.
     private suspend fun resolveToEmail(userOrEmail: String): String? {
         val trimmed = userOrEmail.trim()
         if (trimmed.contains("@")) return trimmed
@@ -110,6 +119,7 @@ class LoginActivity : ComponentActivity() {
         return emailSnap.getValue(String::class.java)
     }
 }
+
 
 /* ─────────────────────────── UI ─────────────────────────── */
 
@@ -140,8 +150,8 @@ fun LoginScreen(
 
     if (showPwdDialog) {
         SimpleInputDialog(
-            title = "Reset Password",
-            hint  = "Username or Email",
+            title = stringResource(id = R.string.reset_password),
+            hint  = stringResource(id = R.string.username_or_email),
             input = dialogInput,
             onInputChange = { dialogInput = it },
             onDismiss = { showPwdDialog = false },
@@ -155,15 +165,15 @@ fun LoginScreen(
 
     if (showEmailDialog) {
         SimpleInputDialog(
-            title = "Recover Email",
-            hint  = "Username",
+            title = stringResource(id = R.string.recover_email),
+            hint  = stringResource(id = R.string.username),
             input = dialogInput,
             onInputChange = { dialogInput = it },
             onDismiss = { showEmailDialog = false },
             onConfirm = {
                 val username = dialogInput.trim()
                 if (username.isBlank()) {
-                    Toast.makeText(context, "Enter a username", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.enter_username), Toast.LENGTH_LONG).show()
                 } else {
                     scope.launch {
                         val uidSnap = db.reference.child("usernames")
@@ -174,7 +184,7 @@ fun LoginScreen(
                             val uid = uidSnap.getValue(String::class.java) ?: ""
                             val emailSnap = db.reference.child("users")
                                 .child(uid).child("email").get().await()
-                            resultLabel = "Your e‑mail"
+                            resultLabel = context.getString(R.string.your_email)
                             resultValue = emailSnap.getValue(String::class.java) ?: "(none)"
                         }
                     }
@@ -201,13 +211,18 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Text("Login", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = stringResource(id = R.string.login),
+                color = Color.White,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(Modifier.height(24.dp))
 
             OutlinedTextField(
                 value = userOrEmail,
                 onValueChange = { userOrEmail = it },
-                label = { Text("Username or Email", color = Color(0xFFFF6600)) },
+                label = { Text(stringResource(id = R.string.username_or_email), color = Color(0xFFFF6600)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -218,7 +233,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password", color = Color(0xFFFF6600)) },
+                label = { Text(stringResource(id = R.string.password), color = Color(0xFFFF6600)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier
@@ -236,7 +251,12 @@ fun LoginScreen(
                 shape = CircleShape,
                 elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
             ) {
-                Text("Login", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = stringResource(id = R.string.login),
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(Modifier.height(16.dp))
@@ -246,10 +266,10 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TextButton(onClick = { showPwdDialog = true }) {
-                    Text("Forgot Password?", color = Color.White)
+                    Text(stringResource(id = R.string.forgot_password), color = Color.White)
                 }
                 TextButton(onClick = { showEmailDialog = true }) {
-                    Text("Forgot Email?", color = Color.White)
+                    Text(stringResource(id = R.string.forgot_email), color = Color.White)
                 }
             }
 
@@ -281,8 +301,8 @@ private fun SimpleInputDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Submit") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(id = R.string.submit)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.cancel)) } },
         title = { Text(title) },
         text = {
             OutlinedTextField(

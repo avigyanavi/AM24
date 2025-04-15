@@ -1,6 +1,7 @@
 package com.am24.am24
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -20,12 +21,25 @@ import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
+import java.util.Locale
 
 class KupidXAppActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
+
+    // Override attachBaseContext to apply the locale from SharedPreferences
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val languageCode = prefs.getString("language", "en") ?: "en" // Default to "en" if not set
+        val locale = Locale(languageCode)
+        val config = newBase.resources.configuration.apply {
+            setLocale(locale)
+        }
+        val updatedContext = newBase.createConfigurationContext(config)
+        super.attachBaseContext(updatedContext)
+    }
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->

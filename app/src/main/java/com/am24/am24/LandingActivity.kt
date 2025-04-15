@@ -1,32 +1,87 @@
 package com.am24.am24
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.am24.am24.ui.theme.AppTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import java.util.Locale
 
 class LandingActivity : ComponentActivity() {
+
+    // Override attachBaseContext so that the language is applied on activity creation.
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val languageCode = prefs.getString("language", "en") ?: "en"
+        // Call updateLocale and pass the newBase so that the updated configuration is used
+        super.attachBaseContext(updateLocale(newBase, languageCode))
+    }
+
+    private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
+
+    // Launcher for the Google sign-in intent.
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val data = result.data
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                val account: GoogleSignInAccount? = task.getResult(ApiException::class.java)
+                Log.d("LandingActivity", "Google sign in successful: ${account?.email}")
+                firebaseAuthWithGoogle(account?.idToken, account)
+            } catch (e: ApiException) {
+                Log.w("LandingActivity", "Google sign in failed", e)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        firebaseAuth = FirebaseAuth.getInstance()
 
+        // Configure Google sign in options.
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
+        // Use full screen mode.
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+
         setContent {
             AppTheme {
                 LandingScreen(
@@ -35,46 +90,112 @@ class LandingActivity : ComponentActivity() {
                     },
                     onRegisterClick = {
                         startActivity(Intent(this, RegistrationActivity::class.java))
+                    },
+                    onGoogleSignIn = { signInWithGoogle() },
+                    onFacebookSignIn = {
+                        // TODO: Implement Facebook sign in logic later.
                     }
                 )
             }
         }
     }
+
+    // Sign out to force account chooser each time, then launch sign in.
+    private fun signInWithGoogle() {
+        googleSignInClient.signOut().addOnCompleteListener {
+            val signInIntent = googleSignInClient.signInIntent
+            googleSignInLauncher.launch(signInIntent)
+        }
+    }
+
+    private fun firebaseAuthWithGoogle(idToken: String?, account: GoogleSignInAccount?) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        firebaseAuth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    val isNewUser = task.result?.additionalUserInfo?.isNewUser ?: false
+                    Log.d("LandingActivity", "Firebase sign in successful. New user: $isNewUser")
+                    if (isNewUser) {
+                        val intent = Intent(this, RegistrationActivity::class.java)
+                        intent.putExtra("isGoogleSignUp", true)
+                        intent.putExtra("google_email", firebaseAuth.currentUser?.email)
+                        intent.putExtra("google_displayName", firebaseAuth.currentUser?.displayName)
+                        intent.putExtra("google_photoUrl", firebaseAuth.currentUser?.photoUrl?.toString())
+                        startActivity(intent)
+                    } else {
+                        startActivity(Intent(this, MainActivity::class.java))
+                    }
+                    finish()
+                } else {
+                    Log.w("LandingActivity", "Firebase sign in failed", task.exception)
+                }
+            }
+    }
+}
+
+/**
+ * Update the locale by creating a new configuration context.
+ */
+fun updateLocale(context: Context, languageCode: String): Context {
+    val locale = Locale(languageCode)
+    Locale.setDefault(locale)
+    val config = context.resources.configuration
+    config.setLocale(locale)
+    return context.createConfigurationContext(config)
 }
 
 @Composable
-fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
-    Box(
+fun LandingScreen(
+    onLoginClick: () -> Unit,
+    onRegisterClick: () -> Unit,
+    onGoogleSignIn: () -> Unit,
+    onFacebookSignIn: () -> Unit
+) {
+    val context = LocalContext.current
+
+    // Read saved language
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val savedLang = prefs.getString("language", "en") ?: "en"
+    var selectedLanguage by remember { mutableStateOf(savedLang) }
+    var shouldRestart by remember { mutableStateOf(false) }
+
+    if (shouldRestart) {
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(100)
+            (context as? Activity)?.recreate()
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Black,
-                        Color(0xFF1A1A1A)
-                    )
+                    colors = listOf(Color.Black, Color(0xFF1A1A1A))
                 )
             ),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Spacer at the top if needed.
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Main content – app title and auth buttons shifted upward.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(32.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .weight(1f)
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Welcome Text
             Text(
-                text = "Welcome to Kupidx",
+                text = stringResource(id = R.string.welcome_kupidx),
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
-
-            // Register Button
             Button(
                 onClick = onRegisterClick,
                 modifier = Modifier
@@ -86,16 +207,13 @@ fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
                 elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
             ) {
                 Text(
-                    text = "Register",
+                    text = stringResource(id = R.string.register),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Login Button
             Button(
                 onClick = onLoginClick,
                 modifier = Modifier
@@ -107,8 +225,115 @@ fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
                 elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
             ) {
                 Text(
-                    text = "Login",
+                    text = stringResource(id = R.string.login),
                     color = Color.Black,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            SocialSignInButtons(
+                onGoogleSignIn = onGoogleSignIn,
+                onFacebookSignIn = onFacebookSignIn
+            )
+        }
+
+        // Language selection bar placed at the bottom.
+        LanguageSelectionBar(
+            selectedLanguage = selectedLanguage,
+            onLanguageSelected = { lang ->
+                selectedLanguage = lang
+                prefs.edit().putString("language", lang).apply()
+                updateLocale(context, lang)
+                shouldRestart = true
+            }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+fun LanguageSelectionBar(
+    selectedLanguage: String,
+    onLanguageSelected: (String) -> Unit
+) {
+    // Supported languages: adjust labels as needed.
+    val languages = listOf("English" to "en", "বাংলা" to "bn", "हिन्दी" to "hi")
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        languages.forEach { (label, code) ->
+            Button(
+                onClick = { onLanguageSelected(code) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedLanguage == code) Color(0xFFFF6000) else Color.Gray
+                ),
+                modifier = Modifier.padding(horizontal = 4.dp)
+            ) {
+                Text(text = label, color = Color.White, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun SocialSignInButtons(
+    onGoogleSignIn: () -> Unit,
+    onFacebookSignIn: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Google Sign-In Button with logo.
+        Button(
+            onClick = onGoogleSignIn,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4)),
+            shape = CircleShape,
+            elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = painterResource(id = R.drawable.google_logo),
+                    contentDescription = "Google Logo",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(id = R.string.continue_with_google),
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        // Facebook Sign-In Button with logo.
+        Button(
+            onClick = onFacebookSignIn,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F2)),
+            shape = CircleShape,
+            elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = painterResource(id = R.drawable.facebook_logo),
+                    contentDescription = "Facebook Logo",
+                    modifier = Modifier.size(26.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(id = R.string.continue_with_facebook),
+                    color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -121,6 +346,11 @@ fun LandingScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
 @Composable
 fun PreviewLandingScreen() {
     AppTheme {
-        LandingScreen({}, {})
+        LandingScreen(
+            onLoginClick = { },
+            onRegisterClick = { },
+            onGoogleSignIn = { },
+            onFacebookSignIn = { }
+        )
     }
 }

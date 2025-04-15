@@ -87,16 +87,27 @@ class RegistrationActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        // Check if this registration was initiated via Google sign-up.
+        val isGoogleSignUp = intent.getBooleanExtra("isGoogleSignUp", false)
+        val initialStep = if (isGoogleSignUp) 2 else 1
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
 
         setContent {
             AppTheme {
+                val registrationViewModel: RegistrationViewModel = viewModel()
+                // If coming via Google, pre-populate email, name, and profile picture.
+                if (isGoogleSignUp) {
+                    registrationViewModel.email = intent?.getStringExtra("google_email") ?: ""
+                    registrationViewModel.name = intent?.getStringExtra("google_displayName") ?: ""
+                    registrationViewModel.profilePicUrl = intent?.getStringExtra("google_photoUrl")
+                }
                 RegistrationScreen(
                     onRegistrationComplete = {
                         startActivity(Intent(this, LoginActivity::class.java))
                         finish()
                     },
-                    fusedLocationClient = fusedLocationClient
+                    fusedLocationClient = fusedLocationClient,
+                    initialStep = initialStep
                 )
             }
         }
@@ -250,11 +261,12 @@ class RegistrationViewModel : ViewModel() {
 @Composable
 fun RegistrationScreen(
     onRegistrationComplete: () -> Unit,
-    fusedLocationClient: FusedLocationProviderClient
+    fusedLocationClient: FusedLocationProviderClient,
+    initialStep: Int
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel()
-    var currentStep by remember { mutableStateOf(1) }
-    val totalSteps = 12 // Updated to 12 steps
+    var currentStep by remember { mutableStateOf(initialStep) }
+    val totalSteps = 11 // Updated total steps (language screen removed)
     val progress = currentStep.toFloat() / totalSteps.toFloat()
 
     val context = LocalContext.current
@@ -290,104 +302,17 @@ fun RegistrationScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 when (currentStep) {
-                    1 -> ChooseLanguageScreen(registrationViewModel, onNext)
-                    2 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
-                    3 -> EnterNameScreen(registrationViewModel, onNext)
-                    4 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
-                    5 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
-                    6 -> EnterInterestsScreen(registrationViewModel, onNext)
-                    7 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
-                    8 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
-                    9 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    10 -> EnterPersonalDetailsScreen(registrationViewModel, onNext, onBack) // Inserted here
-                    11 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
-                    12 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack) // Final step
-                }
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChooseLanguageScreen(
-    registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit
-) {
-    val context = LocalContext.current
-    val currentLocaleLanguage = Locale.getDefault().language
-
-    var shouldRestart by remember { mutableStateOf(false) }
-    if (shouldRestart) {
-        LanguageRestartScreen()
-        return
-    }
-
-    val options = listOf(
-        "English" to "en",
-        "বাংলা (Bengali)" to "bn",
-        "हिन्दी (Hindi)" to "hi"
-    )
-
-    // Optionally update the locale immediately for preview (won't fully reload the context)
-    LaunchedEffect(registrationViewModel.selectedLanguage) {
-        updateLocale(context, registrationViewModel.selectedLanguage)
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.choose_language_title), color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 32.dp, vertical = 48.dp)
-                    .background(Color(0xFF1A1A1A)),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    stringResource(R.string.select_preferred_language),
-                    color = Color.White,
-                    fontSize = 20.sp
-                )
-                options.forEach { (label, langCode) ->
-                    val isSelected = registrationViewModel.selectedLanguage == langCode
-                    Button(
-                        onClick = {
-                            registrationViewModel.selectedLanguage = langCode
-                            // Save selected language persistently
-                            context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit()
-                                .putString("language", langCode)
-                                .apply()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSelected) Color(0xFFFF6000) else Color.DarkGray
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(label, color = Color.White)
-                    }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = {
-                        if (registrationViewModel.selectedLanguage != currentLocaleLanguage) {
-                            shouldRestart = true
-                        } else {
-                            onNext()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = registrationViewModel.selectedLanguage.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
-                ) {
-                    Text(stringResource(R.string.next_button), color = Color.White)
+                    1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
+                    2 -> EnterNameScreen(registrationViewModel, onNext)
+                    3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
+                    4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
+                    5 -> EnterInterestsScreen(registrationViewModel, onNext)
+                    6 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
+                    7 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
+                    8 -> EnterLifestyleScreen(registrationViewModel, onNext)
+                    9 -> EnterPersonalDetailsScreen(registrationViewModel, onNext, onBack)
+                    10 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
+                    11 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }
@@ -2742,15 +2667,6 @@ private fun fetchLocation(
         }
     }
 }
-
-fun updateLocale(context: Context, languageCode: String): Context {
-    val locale = Locale(languageCode)
-    Locale.setDefault(locale)
-    val config = context.resources.configuration
-    config.setLocale(locale)
-    return context.createConfigurationContext(config)
-}
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

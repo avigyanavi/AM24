@@ -13,7 +13,20 @@
           "package_name": "com.am24.am24"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "412327263-8m0ppcvh631p0le6pql738824bv4ev3a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.am24.am24",
+            "certificate_hash": "107fd1cfe63fdd6d79fd769eb6b1341b0efbe59c"
+          }
+        },
+        {
+          "client_id": "412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBKzG2oVyPWjHMUKBLdxsloMfKDvp4tNBs"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

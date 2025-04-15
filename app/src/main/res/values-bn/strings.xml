@@ -1,10 +1,112 @@
 <resources>
     <string name="app_name">কিউপিডেক্স</string>
 
+        <string name="profile_photo">প্রোফাইল ছবি</string>
+        <string name="no_images">কোনো ছবি নেই</string>
+        <string name="away">দূরে</string>
+        <string name="featured_posts">বৈশিষ্ট্যযুক্ত পোস্টসমূহ</string>
+        <string name="analyzed_on">বিশ্লেষিত: %1$s</string>
+        <string name="run_analysis">বিশ্লেষণ শুরু করুন</string>
+        <string name="no_bio_available">কোনো জীবনী নেই</string>
+        <string name="select_label">নির্বাচন করুন %1$s</string>
+    <string name="name_age">%1$s, %2$d</string>
+
+    <string name="performance_metrics">কর্মক্ষমতা মেট্রিক্স</string>
+    <string name="matches">ম্যাচ</string>
+    <string name="rating">রেটিং</string>
+    <string name="swipe_right_percentage">এই ব্যবহারকারীর উপর ডানদিকে সোয়াইপ করার শতাংশ</string>
+    <string name="west_bengal_ranking">পশ্চিমবঙ্গ র‍্যাঙ্কিং</string>
+    <string name="city_ranking">%s র‍্যাঙ্কিং</string>
+    <string name="locality_ranking">%s র‍্যাঙ্কিং</string>
+    <string name="age_ranking">বয়স র‍্যাঙ্কিং</string>
+    <string name="high_school_ranking">%s র‍্যাঙ্কিং</string>
+    <string name="college_ranking">%s র‍্যাঙ্কিং</string>
+    <string name="high_school_graduation_year">%s থেকে স্নাতক বছর</string>
+    <string name="college_graduation_year">%s থেকে স্নাতক বছর</string>
+    <string name="number">%d</string>
+    <string name="percentage">%d%%</string>
+    <string name="city">শহর</string>
+    <string name="locality">অঞ্চল</string>
+
+    <string name="filters">ফিল্টার</string>
+    <string name="save">সংরক্ষণ</string>
+    <string name="clear_selection">পরিষ্কার নির্বাচন</string>
+    <string name="basic_filters">মূল ফিল্টার</string>
+    <string name="gender_preference">লিঙ্গ পছন্দ:</string>
+    <string name="age_range">বয়স সীমা: %1$d - %2$d</string>
+    <string name="max_distance">সর্বোচ্চ দূরত্ব: %1$dkm</string>
+
+    <!-- Education Section -->
+    <string name="education">শিক্ষা</string>
+    <string name="high_school">হাই স্কুল</string>
+    <string name="college">কলেজ</string>
+    <string name="post_grad">স্নাতকোত্তর</string>
+
+    <!-- Preferences Section -->
+    <string name="preferences">পছন্দসমূহ</string>
+    <string name="community">সম্প্রদায়</string>
+    <string name="religion">ধর্ম</string>
+    <string name="caste">জাতি</string>
+
+    <!-- No profiles / posts -->
+    <string name="no_more_profiles">আর কোনো প্রোফাইল উপলব্ধ নেই।</string>
+    <string name="adjust_filters">অনুগ্রহ করে উপরের - ফিল্টার - বোতামের সাহায্যে আপনার ফিল্টার সমন্বয় করুন।</string>
+    <string name="no_posts">কোনো পোস্ট নেই</string>
+
+    <!-- Dating actions -->
+    <string name="super_swipe">সুপার স্যুইপ</string>
+    <string name="force_match">ফোর্স ম্যাচ</string>
+    <string name="swipe_left">বামে স্যুইপ</string>
+    <string name="swipe_right">ডানে স্যুইপ</string>
+    <string name="swipe">স্যুইপ করুন!</string>
+
+    <!-- Collapsible Section -->
+    <string name="collapse">সংকুচিত</string>
+    <string name="expand">বিস্তৃত</string>
+
+    <!-- Profile Collapsible Sections Titles -->
+    <string name="compatibility_check">সামঞ্জস্য পরীক্ষা</string>
+    <string name="bio">জীবনী</string>
+    <string name="basic_information">মৌলিক তথ্য</string>
+    <string name="lifestyle_attributes">জীবনধারা বৈশিষ্ট্য</string>
+    <string name="interests">রুচি</string>
+    <string name="social_causes">সামাজিক কারণ</string>
+
+    <!-- Posts Overlay -->
+    <string name="posts">পোস্টসমূহ</string>
+    <string name="view_more_posts">আরও পোস্ট দেখুন</string>
+
+    <!-- Match PopUp -->
+    <string name="its_a_match">ম্যাচ হয়েছে!</string>
+    <string name="your_profile_picture">আপনার প্রোফাইল ছবি</string>
+    <string name="matched_profile_picture">ম্যাচ হওয়া প্রোফাইল ছবি</string>
+    <string name="chat_now">এখনই চ্যাট করুন</string>
+    <string name="close">বন্ধ করুন</string>
+
+    <!-- Login Screen -->
+    <string name="username_or_email">ইউজারনেম অথবা ইমেইল</string>
+    <string name="password">পাসওয়ার্ড</string>
+    <string name="forgot_password">পাসওয়ার্ড ভুলে গেছেন?</string>
+    <string name="forgot_email">ইমেইল ভুলে গেছেন?</string>
+    <string name="reset_password">পাসওয়ার্ড রিসেট করুন</string>
+    <string name="recover_email">ইমেইল পুনরুদ্ধার করুন</string>
+    <string name="username">ইউজারনেম</string>
+    <string name="enter_username">একটি ইউজারনেম দিন</string>
+    <string name="your_email">আপনার ইমেইল</string>
+    <string name="submit">জমা দিন</string>
+    <string name="cancel">বাতিল করুন</string>
+
     <!-- Language Selection -->
     <string name="choose_language_title">ভাষা নির্বাচন করুন</string>
     <string name="select_preferred_language">আপনার পছন্দের ভাষা নির্বাচন করুন</string>
     <string name="next_button">পরবর্তী</string>
+
+    <!-- Landing Screen (added for LandingActivity) -->
+    <string name="welcome_kupidx">কিউপিডেক্স-এ আপনাকে স্বাগতম</string>
+    <string name="register">নিবন্ধন করুন</string>
+    <string name="login">লগইন</string>
+    <string name="continue_with_google">গুগল দিয়ে চালু করুন</string>
+    <string name="continue_with_facebook">ফেসবুক দিয়ে চালু করুন</string>
 
     <!-- Create Account -->
     <string name="create_account_title">অ্যাকাউন্ট তৈরি করুন</string>
@@ -80,4 +182,6 @@
     <!-- Common Dropdown/Search -->
     <string name="search_label">অনুসন্ধান</string>
     <string name="select_default">নির্বাচন করুন</string>
+
+    <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
 </resources>

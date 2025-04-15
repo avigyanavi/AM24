@@ -62,7 +62,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.analytics)
-    implementation(libs.firebase.auth)
+//    implementation(libs.firebase.auth)
+    implementation("com.google.android.gms:play-services-auth:20.6.0")
+    implementation("com.google.firebase:firebase-auth-ktx:22.1.1")
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.functions)
@@ -116,7 +118,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation (libs.gson)
 
-    implementation(libs.core) // ARCore
+//    implementation(libs.core) // ARCore
     implementation(libs.picasso)
     implementation(libs.material)
     implementation(libs.androidx.webkit)

@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,25 +16,26 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
 
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val languageCode = prefs.getString("language", "en") ?: "en"
+        super.attachBaseContext(updateLocale(newBase, languageCode))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
-
-        // Launch a coroutine within the lifecycle scope
         lifecycleScope.launch(Dispatchers.IO) {
             val currentUser = auth.currentUser
-
             withContext(Dispatchers.Main) {
                 if (currentUser != null) {
-                    // User is logged in, navigate to ExploreActivity
+                    // Navigate to the main app screen if logged in
                     startActivity(Intent(this@MainActivity, KupidXAppActivity::class.java))
                 } else {
-                    // User is not logged in, navigate to LandingActivity
+                    // Otherwise, go to the landing screen
                     startActivity(Intent(this@MainActivity, LandingActivity::class.java))
                 }
-                finish()  // Finish MainActivity so the user cannot navigate back to it
+                finish()
             }
         }
     }

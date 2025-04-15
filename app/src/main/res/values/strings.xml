@@ -1,5 +1,109 @@
 <resources>
     <string name="app_name">Kupidx</string>
+    <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
+
+    <string name="profile_photo">Profile Photo</string>
+    <string name="no_images">No Images</string>
+    <string name="away">away</string>
+    <string name="featured_posts">Featured Posts</string>
+    <string name="analyzed_on">Analyzed on: %1$s</string>
+    <string name="run_analysis">Run Analysis</string>
+    <string name="no_bio_available">No bio available</string>
+    <string name="select_label">Select %1$s</string>
+
+    <string name="performance_metrics">Performance Metrics</string>
+    <string name="matches">Matches</string>
+    <string name="rating">Rating</string>
+    <string name="swipe_right_percentage">Percentage who swipe right on this user</string>
+    <string name="west_bengal_ranking">West Bengal Ranking</string>
+    <string name="city_ranking">%s Ranking</string>
+    <string name="locality_ranking">%s Ranking</string>
+    <string name="age_ranking">Age Ranking</string>
+    <string name="high_school_ranking">%s Ranking</string>
+    <string name="college_ranking">%s Ranking</string>
+    <string name="high_school_graduation_year">Graduation Year from %s</string>
+    <string name="college_graduation_year">Graduation Year from %s</string>
+    <string name="number">%d</string>
+    <string name="percentage">%d%%</string>
+    <string name="city">City</string>
+    <string name="locality">Locality</string>
+
+    <!-- Dating screen filters -->
+    <string name="filters">Filters</string>
+    <string name="save">Save</string>
+    <string name="clear_selection">Clear Selection</string>
+    <string name="basic_filters">Basic Filters</string>
+    <string name="gender_preference">Gender Preference:</string>
+    <string name="age_range">Age Range: %1$d - %2$d</string>
+    <string name="max_distance">Max Distance: %1$dkm</string>
+
+    <!-- Education Section -->
+    <string name="education">Education</string>
+    <string name="high_school">High School</string>
+    <string name="college">College</string>
+    <string name="post_grad">Post Grad</string>
+
+    <!-- Preferences Section -->
+    <string name="preferences">Preferences</string>
+    <string name="community">Community</string>
+    <string name="religion">Religion</string>
+    <string name="caste">Caste</string>
+
+    <!-- No profiles / posts -->
+    <string name="no_more_profiles">No more profiles available.</string>
+    <string name="adjust_filters">Please adjust your filters using the - Filters - button above.</string>
+    <string name="no_posts">No posts available</string>
+
+    <!-- Dating actions -->
+    <string name="super_swipe">Super Swipe</string>
+    <string name="force_match">Force Match</string>
+    <string name="swipe_left">Swipe Left</string>
+    <string name="swipe_right">Swipe Right</string>
+    <string name="swipe">Swipe!</string>
+    <string name="name_age">%1$s, %2$d</string>
+
+    <!-- Collapsible Section -->
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+
+    <!-- Profile Collapsible Sections Titles -->
+    <string name="compatibility_check">Compatibility Check</string>
+    <string name="bio">Bio</string>
+    <string name="basic_information">Basic Information</string>
+    <string name="lifestyle_attributes">Lifestyle Attributes</string>
+    <string name="interests">Interests</string>
+    <string name="social_causes">Social Causes</string>
+
+    <!-- Posts Overlay -->
+    <string name="posts">Posts</string>
+    <string name="view_more_posts">View More Posts</string>
+
+    <!-- Match PopUp -->
+    <string name="its_a_match">"It's a Match!"</string>
+    <string name="your_profile_picture">Your Profile Picture</string>
+    <string name="matched_profile_picture">Matched Profile Picture</string>
+    <string name="chat_now">Chat Now</string>
+    <string name="close">Close</string>
+
+    <!-- Login Screen -->
+    <string name="username_or_email">Username or Email</string>
+    <string name="password">Password</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="forgot_email">Forgot Email?</string>
+    <string name="reset_password">Reset Password</string>
+    <string name="recover_email">Recover Email</string>
+    <string name="username">Username</string>
+    <string name="enter_username">Enter a username</string>
+    <string name="your_email">Your e‑mail</string>
+    <string name="submit">Submit</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Landing Screen (added for LandingActivity) -->
+    <string name="welcome_kupidx">Welcome to Kupidx</string>
+    <string name="register">Register</string>
+    <string name="login">Login</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="continue_with_facebook">Continue with Facebook</string>
 
     <!-- Language Selection -->
     <string name="choose_language_title">Choose Language</string>

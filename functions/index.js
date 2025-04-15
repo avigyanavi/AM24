@@ -1,6 +1,16 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const axios = require("axios");
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const Busboy = require("busboy");
+const { v4: uuidv4 } = require("uuid");
+const OpenAI = require("openai");
+const fetch = require("node-fetch");
+
+admin.initializeApp();
+const db = admin.firestore();
+const bucket = admin.storage().bucket();
 
 // GroqCloud-compatible OpenAI settings
 const GROQ_API_KEY = "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";
@@ -30,20 +40,19 @@ exports.chat = onRequest(async (req, res) => {
     const messages = cleanMessages(rawMessages);
     logger.debug("Cleaned messages:", messages);
 
-    // Call the Groq-compatible API
     const response = await axios.post(
       `${GROQ_API_BASE}/chat/completions`,
       {
         model,
         messages,
         max_tokens,
-        stream: false // using non-streaming for easier Firebase compatibility
+        stream: false,
       },
       {
         headers: {
-          "Authorization": `Bearer ${GROQ_API_KEY}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
@@ -51,12 +60,91 @@ exports.chat = onRequest(async (req, res) => {
     logger.debug("Final generated text:", result.content);
 
     res.status(200).json({
-      choices: [
-        { message: result }
-      ]
+      choices: [{ message: result }],
     });
   } catch (error) {
     logger.error("An error occurred:", error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Avatar Generator using OpenAI
+const openai = new OpenAI({ apiKey: "YOUR_OPENAI_API_KEY" });
+
+exports.generateGhibliAvatar = functions.https.onRequest(async (req, res) => {
+  if (req.method !== "POST") return res.status(405).send("Only POST allowed");
+
+  const uid = req.headers["uid"];
+  const isPaidUser = req.headers["ispaiduser"] === "true";
+  if (!uid || !isPaidUser) return res.status(403).send("Access denied");
+
+  const imageBuffers = [];
+
+  const busboy = new Busboy({ headers: req.headers });
+
+  busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+    const buffer = [];
+    file.on("data", (data) => buffer.push(data));
+    file.on("end", () => imageBuffers.push(Buffer.concat(buffer)));
+  });
+
+  busboy.on("finish", async () => {
+    try {
+      const base64Images = imageBuffers.map(
+        (buffer) => `data:image/jpeg;base64,${buffer.toString("base64")}`
+      );
+
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: "Create a Studio Ghibli-style portrait based on the provided user images.",
+        n: 1,
+        response_format: "url",
+        image: base64Images,
+      });
+
+      const imageUrl = response.data?.[0]?.url;
+      if (!imageUrl) throw new Error("Avatar generation failed");
+
+      const imageResponse = await fetch(imageUrl);
+      const avatarBuffer = await imageResponse.buffer();
+
+      const filename = `avatars/${uid}/ghibli_${uuidv4()}.png`;
+      const file = bucket.file(filename);
+      const stream = file.createWriteStream({ metadata: { contentType: "image/png" } });
+
+      stream.end(avatarBuffer);
+
+      stream.on("finish", async () => {
+        const downloadURL = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+
+        const userRef = db.collection("users").doc(uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data() || {};
+        const pictures = userData.pictures || [];
+
+        if (pictures.length >= 5) {
+          pictures.push(downloadURL); // Add as 6th picture
+        } else {
+          pictures[0] = downloadURL; // Replace profile pic
+        }
+
+        await userRef.update({
+          profilePic: downloadURL,
+          pictures: pictures,
+        });
+
+        res.status(200).json({ success: true, avatarUrl: downloadURL });
+      });
+
+      stream.on("error", (err) => {
+        console.error("Upload error:", err);
+        res.status(500).send("Failed to upload avatar");
+      });
+    } catch (err) {
+      console.error("Avatar generation error:", err);
+      res.status(500).send("Avatar generation failed");
+    }
+  });
+
+  req.pipe(busboy);
 });

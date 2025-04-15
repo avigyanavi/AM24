@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
@@ -81,17 +82,14 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.*
 
+// Assuming R is imported from your project's resources
+import com.am24.am24.R
+
 data class SwipeData(
     val liked: Boolean = false,
     val timestamp: Long = 0L
 )
 
-/**
- * Main “DatingScreen” with:
- *   - a search bar & refresh button
- *   - listing profiles via a “skip filters if search is non-empty” logic
- *   - match popups
- */
 /**
  * Main DatingScreen with swipe counter and info overlay beside the Filters button.
  */
@@ -132,7 +130,6 @@ fun DatingScreen(
         skipHalfExpanded = true
     )
 
-
     // Load excluded users and swipes
     LaunchedEffect(Unit) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
@@ -145,7 +142,6 @@ fun DatingScreen(
             datingViewModel.refreshFilteredProfiles()
         }
     }
-
 
     LaunchedEffect(initialQuery) {
         if (initialQuery.isNotBlank()) {
@@ -259,7 +255,7 @@ fun DatingScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.FilterList,
-                        contentDescription = "Filters",
+                        contentDescription = stringResource(R.string.filters),
                         tint = Color(0xFFFF6F00), // Orange color
                         modifier = Modifier.size(54.dp)
                     )
@@ -271,7 +267,7 @@ fun DatingScreen(
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Super Swipe", color = Color.White)
+                        Text(stringResource(R.string.super_swipe), color = Color.White)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -279,7 +275,7 @@ fun DatingScreen(
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Force Match", color = Color.White)
+                        Text(stringResource(R.string.force_match), color = Color.White)
                     }
                 }
             }
@@ -331,7 +327,7 @@ fun DatingScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ChevronLeft,
-                            contentDescription = "Swipe Left",
+                            contentDescription = stringResource(R.string.swipe_left),
                             tint = Color.White,
                             modifier = Modifier.size(48.dp)
                         )
@@ -347,7 +343,7 @@ fun DatingScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Swipe Right",
+                            contentDescription = stringResource(R.string.swipe_right),
                             tint = Color.White,
                             modifier = Modifier.size(48.dp)
                         )
@@ -360,7 +356,7 @@ fun DatingScreen(
                         modifier = Modifier.align(Alignment.Center)
                     ) {
                         Text(
-                            text = "Swipe!",
+                            text = stringResource(R.string.swipe),
                             color = Color.White,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
@@ -409,7 +405,6 @@ fun DatingScreen(
         )
     }
 }
-
 
 /**
  * Load swipes from Firebase and reset them to 25 if a new day has started.
@@ -481,36 +476,36 @@ fun FiltersOverlay(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Filters",
+                text = stringResource(R.string.filters),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Button(
                 onClick = {
-                    onSaveFilters() // Persist changes to ViewModel
+                    onSaveFilters()
                 },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier.height(48.dp)
             ) {
-                Text("Save", color = Color.Black)
+                Text(stringResource(R.string.save), color = Color.Black)
             }
         }
 
         LazyColumn {
             // Basic Filters Section
             item {
-                FilterSectionTitle(title = "Basic Filters")
+                FilterSectionTitle(title = stringResource(R.string.basic_filters))
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Gender Selection
-                Text("Gender Preference:", color = Color.White)
+                Text(stringResource(R.string.gender_preference), color = Color.White)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    listOf("Male", "Female").forEach { gender ->
+                    listOf((stringResource(R.string.male_option)), (stringResource(R.string.female_option))).forEach { gender ->
                         Button(
                             onClick = {
                                 val updatedGenders = if (selectedGenders.contains(gender)) {
@@ -537,7 +532,10 @@ fun FiltersOverlay(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Age Range Slider
-                Text("Age Range: ${ageRange.start} - ${ageRange.endInclusive}", color = Color.White)
+                Text(
+                    text = stringResource(R.string.age_range, ageRange.start, ageRange.endInclusive),
+                    color = Color.White
+                )
                 RangeSlider(
                     value = ageRange.start.toFloat()..ageRange.endInclusive.toFloat(),
                     onValueChange = { range ->
@@ -555,7 +553,10 @@ fun FiltersOverlay(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Max Distance Slider
-                Text("Max Distance: ${maxDistance}km", color = Color.White)
+                Text(
+                    text = stringResource(R.string.max_distance, maxDistance),
+                    color = Color.White
+                )
                 Slider(
                     value = maxDistance.toFloat(),
                     onValueChange = { onDistanceChange(it.roundToInt()) },
@@ -572,13 +573,13 @@ fun FiltersOverlay(
             // Section: Education
             item {
                 Spacer(modifier = Modifier.height(24.dp))
-                FilterSectionTitle(title = "Education")
+                FilterSectionTitle(title = stringResource(R.string.education))
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // High School
                 DropdownFilter(
-                    label = "High School",
+                    label = stringResource(R.string.high_school),
                     options = listOf("School A", "School B", "School C"),
                     selectedOption = selectedHighSchool,
                     onOptionChange = onHighSchoolChange
@@ -588,7 +589,7 @@ fun FiltersOverlay(
 
                 // College
                 DropdownFilter(
-                    label = "College",
+                    label = stringResource(R.string.college),
                     options = listOf("College A", "College B", "College C"),
                     selectedOption = selectedCollege,
                     onOptionChange = onCollegeChange
@@ -598,7 +599,7 @@ fun FiltersOverlay(
 
                 // Post Grad
                 DropdownFilter(
-                    label = "Post Grad",
+                    label = stringResource(R.string.post_grad),
                     options = listOf("PostGrad A", "PostGrad B", "PostGrad C"),
                     selectedOption = selectedPostGrad,
                     onOptionChange = onPostGradChange
@@ -608,7 +609,7 @@ fun FiltersOverlay(
             // Section: Preferences
             item {
                 Spacer(modifier = Modifier.height(24.dp))
-                FilterSectionTitle(title = "Preferences")
+                FilterSectionTitle(title = stringResource(R.string.preferences))
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -618,14 +619,14 @@ fun FiltersOverlay(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     DropdownFilter(
-                        label = "Community",
+                        label = stringResource(R.string.community),
                         options = listOf("Community A", "Community B", "Community C"),
                         selectedOption = selectedCommunity,
                         onOptionChange = onCommunityChange
                     )
 
                     DropdownFilter(
-                        label = "Religion",
+                        label = stringResource(R.string.religion),
                         options = listOf("Hindu", "Muslim", "Christian", "Other"),
                         selectedOption = selectedReligion,
                         onOptionChange = onReligionChange
@@ -637,7 +638,7 @@ fun FiltersOverlay(
                 // Caste
                 Row(modifier = Modifier.fillMaxWidth()) {
                     DropdownFilter(
-                        label = "Caste",
+                        label = stringResource(R.string.caste),
                         options = listOf("Caste 1", "Caste 2", "Caste 3"),
                         selectedOption = selectedCaste,
                         onOptionChange = onCasteChange
@@ -666,7 +667,8 @@ fun DropdownFilter(
     onOptionChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val allOptions = listOf("Clear Selection") + options // Add "Clear Selection" option
+    val clearSelectionText = stringResource(R.string.clear_selection) // Resolve string in composable scope
+    val allOptions = listOf(clearSelectionText) + options // Add "Clear Selection" option
 
     Column {
         Text(label, color = Color.White, fontSize = 14.sp)
@@ -683,7 +685,7 @@ fun DropdownFilter(
                     .height(48.dp)
             ) {
                 Text(
-                    text = selectedOption.ifBlank { "Select $label" },
+                    text = selectedOption.ifBlank { stringResource(R.string.select_label, label) },
                     color = Color.White
                 )
             }
@@ -695,7 +697,7 @@ fun DropdownFilter(
                 allOptions.forEach { option ->
                     DropdownMenuItem(
                         onClick = {
-                            if (option == "Clear Selection") {
+                            if (option == clearSelectionText) { // Use the resolved string
                                 onOptionChange("")
                             } else {
                                 onOptionChange(option)
@@ -722,13 +724,13 @@ fun NoMoreProfilesScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "No more profiles available.",
+            text = stringResource(R.string.no_more_profiles),
             color = Color.White,
             fontSize = 18.sp,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "Please adjust your filters using the 'Filters' button above.",
+            text = stringResource(R.string.adjust_filters),
             color = Color.White,
             fontSize = 16.sp,
             textAlign = TextAlign.Center,
@@ -884,7 +886,7 @@ fun DatingProfileCard(
             if (featuredPosts.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Featured Posts",
+                        text = stringResource(R.string.featured_posts),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
@@ -906,7 +908,7 @@ fun DatingProfileCard(
                             onClick = { /* Show more posts screen perhaps */ },
                             colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
                         ) {
-                            Text("View More Posts", color = Color.White)
+                            Text(stringResource(R.string.view_more_posts), color = Color.White)
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -961,7 +963,7 @@ fun DatingProfileHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (age > 0) "${profile.name}, $age" else profile.name,
+                text = if (age > 0) stringResource(R.string.name_age, profile.name, age) else profile.name,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
                 color = Color.White,
@@ -975,7 +977,7 @@ fun DatingProfileHeader(
                 colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00)),
                 modifier = Modifier.height(30.dp)
             ) {
-                Text("Posts", color = Color.White, fontSize = 12.sp)
+                Text(stringResource(R.string.posts), color = Color.White, fontSize = 12.sp)
             }
         }
     }
@@ -995,7 +997,7 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
         title = { Text("", color = Color.Black) },
         text = {
             if (posts.isEmpty()) {
-                Text("No posts available", color = Color.Gray)
+                Text(stringResource(R.string.no_posts), color = Color.Gray)
             } else {
                 LazyColumn {
                     items(posts) { post ->
@@ -1006,14 +1008,13 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = Color(0xFFFF6F00))
+                Text(stringResource(R.string.close), color = Color(0xFFFF6F00))
             }
         },
         backgroundColor = Color.Black,
         contentColor = Color.White
     )
 }
-
 
 @Composable
 fun PhotoWithTwoOverlays(
@@ -1063,7 +1064,7 @@ fun PhotoWithTwoOverlays(
                     .memoryCacheKey(photoUrls[currentPhotoIndex])
                     .crossfade(true)
                     .build(),
-                contentDescription = "Profile Photo",
+                contentDescription = stringResource(R.string.profile_photo),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1098,7 +1099,7 @@ fun PhotoWithTwoOverlays(
                     .padding(14.dp, 10.dp)
             ) {
                 TagBox(
-                    text = "${userDistance.roundToInt()} km away",
+                    text = stringResource(R.string.max_distance, userDistance.roundToInt()),
                     modifier = Modifier.align(Alignment.TopStart)
                 )
             }
@@ -1108,7 +1109,7 @@ fun PhotoWithTwoOverlays(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp) // Adjust height as needed
+                        .height(60.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             brush = Brush.verticalGradient(
@@ -1140,7 +1141,7 @@ fun PhotoWithTwoOverlays(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No Images", color = Color.White)
+                Text(stringResource(R.string.no_images), color = Color.White)
             }
         }
     }
@@ -1168,21 +1169,29 @@ fun TagBox(
 fun PerformanceMetricsSectionDating(profile: Profile) {
     var showPerformance by rememberSaveable { mutableStateOf(false) }
     CollapsibleSection(
-        title = "Performance Metrics",
+        title = stringResource(R.string.performance_metrics),
         icon = Icons.Default.Assessment,
         isExpanded = showPerformance,
         onToggle = { showPerformance = !showPerformance },
     ) {
-        ProfileDetailRow("Matches", profile.matchCount.toString(), Icons.Default.People)
-        ProfileDetailRow("Rating", String.format("%.2f", profile.averageRating), Icons.Default.Star)
         ProfileDetailRow(
-            label = "Percentage who swipe right on this user",
-            value = "${(profile.averageSwipeRightsOnUser * 100).roundToInt()}%",
+            label = stringResource(R.string.matches),
+            value = stringResource(R.string.number, profile.matchCount),
+            icon = Icons.Default.People
+        )
+        ProfileDetailRow(
+            label = stringResource(R.string.rating),
+            value = String.format(LocalContext.current.resources.configuration.locale, "%.2f", profile.averageRating),
+            icon = Icons.Default.Star
+        )
+        ProfileDetailRow(
+            label = stringResource(R.string.swipe_right_percentage),
+            value = stringResource(R.string.percentage, (profile.averageSwipeRightsOnUser * 100).roundToInt()),
             icon = Icons.Default.Swipe
         )
         ProfileDetailRow(
-            label = "West Bengal Ranking",
-            value = profile.am24Ranking.toString(),
+            label = stringResource(R.string.west_bengal_ranking),
+            value = stringResource(R.string.number, profile.am24Ranking),
             icon = Icons.Default.Public
         )
 
@@ -1192,8 +1201,8 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
             profile.am24RankingCity
         if (cityRank > 0) {
             ProfileDetailRow(
-                label = "${profile.city.ifBlank { "City" }} Ranking",
-                value = cityRank.toString(),
+                label = stringResource(R.string.city_ranking, profile.city.ifBlank { stringResource(R.string.city) }),
+                value = stringResource(R.string.number, cityRank),
                 icon = Icons.Default.LocationCity
             )
         }
@@ -1204,41 +1213,48 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
             profile.am24RankingHometown
         if (hoodRank > 0) {
             ProfileDetailRow(
-                label = "${profile.hometown.ifBlank { "Locality" }} Ranking",
-                value = hoodRank.toString(),
+                label = stringResource(R.string.locality_ranking, profile.hometown.ifBlank { stringResource(R.string.locality) }),
+                value = stringResource(R.string.number, hoodRank),
                 icon = Icons.Default.Home
             )
         }
-        ProfileDetailRow("Age Ranking", profile.am24RankingAge.toString(), Icons.Default.Cake)
+        ProfileDetailRow(
+            label = stringResource(R.string.age_ranking),
+            value = stringResource(R.string.number, profile.am24RankingAge),
+            icon = Icons.Default.Cake
+        )
 
         if (profile.highSchool.isNotBlank()) {
             ProfileDetailRow(
-                "${profile.highSchool} Ranking",
-                profile.am24RankingHighSchool.toString(),
-                Icons.Default.School
+                label = stringResource(R.string.high_school_ranking, profile.highSchool),
+                value = stringResource(R.string.number, profile.am24RankingHighSchool),
+                icon = Icons.Default.School
             )
             if (!profile.highSchoolGraduationYear.isNullOrBlank()) {
                 ProfileDetailRow(
-                    "Graduation Year from ${profile.highSchool}",
-                    profile.highSchoolGraduationYear,
-                    Icons.Default.School
+                    label = stringResource(R.string.high_school_graduation_year, profile.highSchool),
+                    value = profile.highSchoolGraduationYear,
+                    icon = Icons.Default.School
                 )
             }
         }
 
         if (profile.college.isNotBlank()) {
-            ProfileDetailRow("${profile.college} Ranking", profile.am24RankingCollege.toString(), Icons.Default.Book)
+            ProfileDetailRow(
+                label = stringResource(R.string.college_ranking, profile.college),
+                value = stringResource(R.string.number, profile.am24RankingCollege),
+                icon = Icons.Default.Book
+            )
             if (!profile.collegeGraduationYear.isNullOrBlank()) {
                 ProfileDetailRow(
-                    "Graduation Year from ${profile.college}",
-                    profile.collegeGraduationYear,
-                    Icons.Default.Book
+                    label = stringResource(R.string.college_graduation_year, profile.college),
+                    value = profile.collegeGraduationYear,
+                    icon = Icons.Default.Book
                 )
             }
         }
     }
 }
-
 /**
  * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests.
  */
@@ -1261,7 +1277,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
             .padding(8.dp)
     ) {
         CollapsibleSection(
-            title = "Compatibility Check",
+            title = stringResource(R.string.compatibility_check),
             icon = Icons.Default.Info,
             isExpanded = showAiSection,
             onToggle = { showAiSection = !showAiSection }
@@ -1270,7 +1286,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
                 if (currentAiMatchResult != null) {
                     ShowAiMatchAnalysis(currentAiMatchResult!!)
                 } else {
-                    Text("Run Analysis", color = Color.White)
+                    Text(stringResource(R.string.run_analysis), color = Color.White)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
@@ -1298,7 +1314,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         PerformanceMetricsSectionDating(profile)
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
-            title = "Bio",
+            title = stringResource(R.string.bio),
             icon = Icons.Default.Mic,
             isExpanded = showVoiceBio,
             onToggle = { showVoiceBio = !showVoiceBio }
@@ -1307,7 +1323,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
-            title = "Basic Information",
+            title = stringResource(R.string.basic_information),
             icon = Icons.Default.Person,
             isExpanded = showBasic,
             onToggle = { showBasic = !showBasic }
@@ -1316,7 +1332,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
-            title = "Preferences",
+            title = stringResource(R.string.preferences),
             icon = Icons.Default.Favorite,
             isExpanded = showPreferences,
             onToggle = { showPreferences = !showPreferences }
@@ -1325,7 +1341,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
-            title = "Lifestyle Attributes",
+            title = stringResource(R.string.lifestyle_attributes),
             icon = Icons.Default.Nature,
             isExpanded = showLifestyle,
             onToggle = { showLifestyle = !showLifestyle }
@@ -1334,7 +1350,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
-            title = "Interests",
+            title = stringResource(R.string.interests),
             icon = Icons.Default.Star,
             isExpanded = showInterests,
             onToggle = { showInterests = !showInterests }
@@ -1343,7 +1359,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
-            title = "Social Causes",
+            title = stringResource(R.string.social_causes),
             icon = Icons.Default.Favorite, // Use a suitable icon (VolunteerActivism if available)
             isExpanded = showSocialCauses,
             onToggle = { showSocialCauses = !showSocialCauses }
@@ -1363,7 +1379,7 @@ fun ShowAiMatchAnalysis(aiResult: AiMatchCheckResult) {
     )
     Spacer(Modifier.height(8.dp))
     Text(
-        text = "Analyzed on: ${formatTime(aiResult.timestamp)}",
+        text = stringResource(R.string.analyzed_on, formatTime(aiResult.timestamp)),
         color = Color.Gray,
         fontSize = 12.sp
     )
@@ -1382,20 +1398,245 @@ fun showVoiceBio(profile: Profile) {
             Spacer(modifier = Modifier.height(8.dp))
         }
         ProfileDetailRow(
-            label = "Bio",
-            value = profile.bio ?: "No bio available",
+            label = stringResource(R.string.bio),
+            value = profile.bio ?: stringResource(R.string.no_bio_available),
             icon = Icons.Default.BlurOn
         )
     }
 }
 
+// ... (Rest of the functions remain unchanged: runAiMatchCheck, calculateExhaustiveCompatibilityScore, etc.)
+
+@Composable
+fun CollapsibleSection(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() }
+            .border(width = 1.dp, color = Color.White, shape = CircleShape)
+            .background(Color.Black)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = title,
+            tint = Color(0xFFFF6F00),
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(7.dp))
+        Text(
+            text = title,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(
+            onClick = onToggle,
+            modifier = Modifier.size(30.dp)
+        ) {
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+
+    if (isExpanded) {
+        Spacer(Modifier.height(4.dp))
+        Card(
+            backgroundColor = Color(0xFF1A1A1A),
+            elevation = 4.dp,
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                content()
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+    }
+}
+
+// ... (Rest of the functions remain unchanged: handleSwipeRight, handleSwipeLeft, fetchExcludedUsers, etc.)
+
+/** Standard “MatchPopUp” */
+@Composable
+fun MatchPopUp(
+    currentUserProfilePic: String,
+    otherUserProfilePic: String,
+    onChatClick: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Card(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(0.9f)
+                .clip(RoundedCornerShape(16.dp)),
+            elevation = 8.dp
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .background(Color.White)
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.its_a_match),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(horizontalArrangement = Arrangement.Center) {
+                    AsyncImage(
+                        model = currentUserProfilePic,
+                        contentDescription = stringResource(R.string.your_profile_picture),
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color(0xFFFF6F00), CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    AsyncImage(
+                        model = otherUserProfilePic,
+                        contentDescription = stringResource(R.string.matched_profile_picture),
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color(0xFFFF6F00), CircleShape)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onChatClick,
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+                ) {
+                    Text(stringResource(R.string.chat_now), color = Color.White)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = onClose) {
+                    Text(stringResource(R.string.close), color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
 /**
- * Updated runAiMatchCheck:
- * - The prompt now instructs the AI to output two extra lines:
- *   1. "Total Match: X%" (for total percentage)
- *   2. "Breakdown: ..." (for a detailed breakdown ending with a full stop)
- * - After receiving the GPT reply, two regexes extract these values.
+ * Updated AiMatchCheckResult with new fields.
  */
+data class AiMatchCheckResult(
+    val summary: String = "",                     // Full text output from the AI
+    val totalMatchPercentage: Int = 0,            // Total match percentage extracted from GPT reply
+    val compatibilityBreakdown: String = "",      // Detailed breakdown of compatibility score
+    val timestamp: Long = 0L                      // When the analysis was done
+)
+
+fun handleSwipeRight(
+    currentUserId: String,
+    otherUserId: String,
+    profileViewModel: ProfileViewModel
+) {
+    val database = FirebaseDatabase.getInstance()
+    val timestamp = System.currentTimeMillis()
+
+    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+    val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
+
+    val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
+    val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
+
+    val swipeData = SwipeData(liked = true, timestamp = timestamp)
+    currentUserSwipesRef.setValue(swipeData)
+    currentUserLikesGivenRef.setValue(timestamp)
+    otherUserLikesReceivedRef.setValue(timestamp)
+
+    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
+    otherUserTotalSwipesRef.setValue(true)
+
+    val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
+    otherUserProfileRef.get().addOnSuccessListener { snapshot ->
+        val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
+        otherUserProfileRef.setValue(currentCount + 1)
+    }
+
+    val otherUserSwipeRightsRef = database.getReference("users/$otherUserId/numberOfSwipeRights")
+    otherUserSwipeRightsRef.get().addOnSuccessListener { snapshot ->
+        val currentSwipeRights = snapshot.getValue(Int::class.java) ?: 0
+        otherUserSwipeRightsRef.setValue(currentSwipeRights + 1)
+    }
+
+    otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
+        val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
+        if (otherUserSwipeData?.liked == true) {
+            val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
+            val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
+            currentUserMatchesRef.setValue(timestamp)
+            otherUserMatchesRef.setValue(timestamp)
+
+            profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
+        }
+    }
+}
+
+fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
+    val database = FirebaseDatabase.getInstance()
+    val timestamp = System.currentTimeMillis()
+
+    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
+    currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
+
+    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
+    otherUserTotalSwipesRef.setValue(true)
+
+    val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
+    otherUserProfileRef.get().addOnSuccessListener { snapshot ->
+        val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
+        otherUserProfileRef.setValue(currentCount + 1)
+    }
+}
+
+/**
+ * fetchExcludedUsers => matched or liked recently
+ */
+suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
+    val database = FirebaseDatabase.getInstance()
+    val matchesRef = database.getReference("matches/$currentUserId")
+    val likesRef = database.getReference("likesGiven/$currentUserId")
+    val oneWeekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
+
+    return withContext(Dispatchers.IO) {
+        val excludedIds = mutableSetOf<String>()
+        matchesRef.get().addOnSuccessListener { snapshot ->
+            snapshot.children.forEach { excludedIds.add(it.key!!) }
+        }.await()
+        likesRef.get().addOnSuccessListener { snapshot ->
+            snapshot.children.forEach { snap ->
+                val ts = snap.getValue(Long::class.java) ?: 0L
+                if (ts >= oneWeekAgo) {
+                    excludedIds.add(snap.key!!)
+                }
+            }
+        }.await()
+        excludedIds
+    }
+}
 fun runAiMatchCheck(
     coroutineScope: CoroutineScope,
     currentUserId: String,
@@ -1433,7 +1674,6 @@ fun runAiMatchCheck(
         onComplete(result)
     }
 }
-
 data class MatchInsight(val emoji: String, val text: String, val isPositive: Boolean)
 
 fun calculateExhaustiveCompatibilityScore(
@@ -1710,158 +1950,6 @@ fun calculateExhaustiveCompatibilityScore(
     return Pair(finalScore, insights)
 }
 
-@Composable
-fun CollapsibleSection(
-    title: String,
-    icon: ImageVector,
-    isExpanded: Boolean,
-    onToggle: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onToggle() }
-            .border(width = 1.dp, color = Color.White, shape = CircleShape)
-            .background(Color.Black)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = title,
-            tint = Color(0xFFFF6F00),
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(7.dp))
-        Text(
-            text = title,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            modifier = Modifier.weight(1f)
-        )
-        IconButton(
-            onClick = onToggle,
-            modifier = Modifier.size(30.dp)
-        ) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-
-    if (isExpanded) {
-        Spacer(Modifier.height(4.dp))
-        Card(
-            backgroundColor = Color(0xFF1A1A1A),
-            elevation = 4.dp,
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                content()
-            }
-        }
-        Spacer(Modifier.height(4.dp))
-    }
-}
-
-fun handleSwipeRight(
-    currentUserId: String,
-    otherUserId: String,
-    profileViewModel: ProfileViewModel
-) {
-    val database = FirebaseDatabase.getInstance()
-    val timestamp = System.currentTimeMillis()
-
-    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
-    val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
-
-    val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
-    val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
-
-    val swipeData = SwipeData(liked = true, timestamp = timestamp)
-    currentUserSwipesRef.setValue(swipeData)
-    currentUserLikesGivenRef.setValue(timestamp)
-    otherUserLikesReceivedRef.setValue(timestamp)
-
-    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
-    otherUserTotalSwipesRef.setValue(true)
-
-    val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
-    otherUserProfileRef.get().addOnSuccessListener { snapshot ->
-        val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
-        otherUserProfileRef.setValue(currentCount + 1)
-    }
-
-    val otherUserSwipeRightsRef = database.getReference("users/$otherUserId/numberOfSwipeRights")
-    otherUserSwipeRightsRef.get().addOnSuccessListener { snapshot ->
-        val currentSwipeRights = snapshot.getValue(Int::class.java) ?: 0
-        otherUserSwipeRightsRef.setValue(currentSwipeRights + 1)
-    }
-
-    otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
-        val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
-        if (otherUserSwipeData?.liked == true) {
-            val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
-            val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
-            currentUserMatchesRef.setValue(timestamp)
-            otherUserMatchesRef.setValue(timestamp)
-
-            profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
-        }
-    }
-}
-
-fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
-    val database = FirebaseDatabase.getInstance()
-    val timestamp = System.currentTimeMillis()
-
-    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
-    currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
-
-    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
-    otherUserTotalSwipesRef.setValue(true)
-
-    val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
-    otherUserProfileRef.get().addOnSuccessListener { snapshot ->
-        val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
-        otherUserProfileRef.setValue(currentCount + 1)
-    }
-}
-
-/**
- * fetchExcludedUsers => matched or liked recently
- */
-suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
-    val database = FirebaseDatabase.getInstance()
-    val matchesRef = database.getReference("matches/$currentUserId")
-    val likesRef = database.getReference("likesGiven/$currentUserId")
-    val oneWeekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
-
-    return withContext(Dispatchers.IO) {
-        val excludedIds = mutableSetOf<String>()
-        matchesRef.get().addOnSuccessListener { snapshot ->
-            snapshot.children.forEach { excludedIds.add(it.key!!) }
-        }.await()
-        likesRef.get().addOnSuccessListener { snapshot ->
-            snapshot.children.forEach { snap ->
-                val ts = snap.getValue(Long::class.java) ?: 0L
-                if (ts >= oneWeekAgo) {
-                    excludedIds.add(snap.key!!)
-                }
-            }
-        }.await()
-        excludedIds
-    }
-}
-
 /** Haversine + getUserLocation */
 fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     val earthRadius = 6371.0
@@ -1893,81 +1981,3 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? =
             }
         })
     }
-
-/** Standard “MatchPopUp” */
-@Composable
-fun MatchPopUp(
-    currentUserProfilePic: String,
-    otherUserProfilePic: String,
-    onChatClick: () -> Unit,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Card(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(0.9f)
-                .clip(RoundedCornerShape(16.dp)),
-            elevation = 8.dp
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .background(Color.White)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "It's a Match!",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(horizontalArrangement = Arrangement.Center) {
-                    AsyncImage(
-                        model = currentUserProfilePic,
-                        contentDescription = "Your Profile Picture",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color(0xFFFF6F00), CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    AsyncImage(
-                        model = otherUserProfilePic,
-                        contentDescription = "Matched Profile Picture",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color(0xFFFF6F00), CircleShape)
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = onChatClick,
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
-                ) {
-                    Text("Chat Now", color = Color.White)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(onClick = onClose) {
-                    Text("Close", color = Color.Gray)
-                }
-            }
-        }
-    }
-}
-
-
-/**
- * Updated AiMatchCheckResult with new fields.
- */
-data class AiMatchCheckResult(
-    val summary: String = "",                     // Full text output from the AI
-    val totalMatchPercentage: Int = 0,            // Total match percentage extracted from GPT reply
-    val compatibilityBreakdown: String = "",      // Detailed breakdown of compatibility score
-    val timestamp: Long = 0L                      // When the analysis was done
-)
