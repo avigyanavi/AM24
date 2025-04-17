@@ -1,7 +1,640 @@
 <resources>
     <string name="app_name">क्यूपिडेक्स</string>
+    <!-- ProfileScreen -->
+    <!-- GENERAL / COMMON -->
+    <string name="edit">संपादित करें</string>
+    <string name="cancel_edit">संपादन रद्द करें</string>
 
-    !-- Dating screen filters -->
+    <string name="not_set">सेट नहीं</string>
+
+    <!-- PROFILE SCREEN TOP‑LEVEL -->
+    <string name="profile_loading">आपकी प्रोफ़ाइल लोड हो रही है…</string>
+
+    <!-- Looking For -->
+    <string name="looking_for_label">क्या खोज रहे हैं</string>
+
+    <!-- Lifestyle -->
+    <string name="family_information">पारिवारिक जानकारी</string>
+    <string name="add">जोड़ें</string>
+    <string name="balanced">संतुलित</string>
+    <string name="select_looking_for">खोजने के लिए चुनें</string>
+    <string name="looking_for_marriage">शादी</string>
+    <string name="looking_for_partner">साझेदार</string>
+    <string name="looking_for_connection">कनेक्शन</string>
+    <string name="looking_for_casual_sex">कैजुअल सेक्स</string>
+    <string name="looking_for_not_selected">चयनित नहीं</string>
+
+    <string name="very_high">बहुत उच्च</string>
+    <string name="high">उच्च</string>
+    <string name="moderate">मध्यम</string>
+    <string name="low">निम्न</string>
+    <string name="inactive">निष्क्रिय</string>
+
+    <string name="extremely_introverted">अत्यधिक अंतर्मुखी</string>
+    <string name="very_introverted">बहुत अंतर्मुखी</string>
+    <string name="moderately_introverted">मध्यम अंतर्मुखी</string>
+    <string name="slightly_introverted">थोड़ा अंतर्मुखी</string>
+    <string name="not_introverted">अंतर्मुखी नहीं</string>
+
+    <string name="sports_fanatic">खेलों का दीवाना</string>
+    <string name="sports_enthusiast">खेल शौकीन</string>
+    <string name="occasional_player">कभी-कभार खिलाड़ी</string>
+    <string name="casual_viewer">कभी-कभार दर्शक</string>
+    <string name="non_sports">खेल नहीं</string>
+    <string name="lifestyle_going_out">बाहर घूमना</string>
+    <string name="community_leader">समुदाय नेता</string>
+    <string name="community_oriented">समुदाय केंद्रित</string>
+    <string name="occasionally_involved">कभी-कभार शामिल</string>
+    <string name="individualistic">व्यक्तिवादी</string>
+
+    <string name="politically_engaged">राजनीतिक रूप से सक्रिय</string>
+    <string name="aware">सचेत</string>
+    <string name="occasionally_aware">कभी-कभार सचेत</string>
+    <string name="unaware">अचेत</string>
+
+    <string name="gourmet">गुरमेट</string>
+    <string name="passionate_foodie">उत्साही फूडी</string>
+    <string name="foodie">फूडी</string>
+    <string name="occasional_foodie">कभी-कभार फूडी</string>
+    <string name="not_a_foodie">फूडी नहीं</string>
+
+    <string name="eco_champion">पर्यावरण चैंपियन</string>
+    <string name="eco_friendly">पर्यावरण मित्र</string>
+    <string name="occasionally_conscious">कभी-कभार सचेत</string>
+    <string name="not_conscious">सचेत नहीं</string>
+
+    <string name="high_ambitious">बहुत महत्वाकांक्षी</string>
+    <string name="ambitious">महत्वाकांक्षी</string>
+    <string name="occasionally_driven">कभी-कभार प्रेरित</string>
+    <string name="relaxed">आरामदायक</string>
+
+    <string name="life_of_the_party">पार्टी की जान</string>
+    <string name="humorous">हास्यप्रिय</string>
+    <string name="somewhat_easygoing">कुछ आसान-स्वभाव</string>
+    <string name="serious">गंभीर</string>
+
+    <string name="lifestyle_humor">घूमने जाना</string>
+
+    <string name="deeply_mindful">गहराई से सजग</string>
+    <string name="spiritual">आध्यात्मिक</string>
+    <string name="occasionally_mindful">कभी-कभार सजग</string>
+    <string name="not_spiritual">आध्यात्मिक नहीं</string>
+
+    <string name="peak_fitness">शिखर फिटनेस</string>
+    <string name="athletic">एथलेटिक</string>
+    <string name="fit">फिट</string>
+    <string name="somewhat_fit">कुछ हद तक फिट</string>
+    <string name="sedentary">निष्क्रिय</string>
+
+    <string name="artistic_genius">कलात्मक प्रतिभा</string>
+    <string name="very_creative">बहुत रचनात्मक</string>
+    <string name="creative">रचनात्मक</string>
+    <string name="somewhat_creative">कुछ रचनात्मक</string>
+    <string name="not_creative">रचनात्मक नहीं</string>
+
+    <string name="philosopher">दार्शनिक</string>
+    <string name="intellectual">बौद्धिक</string>
+    <string name="knowledge_seeker">ज्ञान चाहने वाले</string>
+    <string name="inquisitive">जिज्ञासु</string>
+    <string name="casual_thinker">अनौपचारिक विचारक</string>
+
+    <string name="thrill_seeker">रोमांच चाहने वाला</string>
+    <string name="adventurous">साहसी</string>
+    <string name="moderately_adventurous">मध्यम साहसी</string>
+    <string name="slightly_adventurous">थोड़ा साहसी</string>
+    <string name="cautious">सावधान</string>
+
+    <string name="late_night_enthusiast">देर रात उत्साही</string>
+    <string name="night_owl">निशाचर</string>
+    <string name="morning_person">सुबह का व्यक्ति</string>
+    <string name="early_riser">जल्दी उठने वाला</string>
+
+    <string name="very_family_oriented">बहुत पारिवारिक</string>
+    <string name="more_family_oriented">अधिक पारिवारिक</string>
+    <string name="slightly_family_oriented">कुछ पारिवारिक</string>
+    <string name="independent">स्वतंत्र</string>
+
+    <string name="very_active">बहुत सक्रिय</string>
+    <string name="active">सक्रिय</string>
+    <string name="moderately_active">मध्यम सक्रिय</string>
+    <string name="rarely_active">कभी-कभार सक्रिय</string>
+
+    <string name="more_life_oriented">अधिक जीवन केंद्रित</string>
+    <string name="more_work_oriented">अधिक कार्य केंद्रित</string>
+    <string name="workaholic">कार्यवादी</string>
+
+    <string name="influencer">प्रभावक</string>
+    <string name="engager">शामिल करने वाला</string>
+    <string name="casual_participant">कभी-कभार सहभागी</string>
+    <string name="watcher">दर्शक</string>
+    <string name="invisible">अदृश्य</string>
+
+    <string name="very_outdoorsy">बहुत बहिर्मुखी</string>
+    <string name="mostly_outdoorsy">मुख्यतः बहिर्मुखी</string>
+    <string name="mostly_indoorsy">मुख्यतः अंतर्मुखी</string>
+    <string name="very_indoorsy">बहुत अंतर्मुखी</string>
+
+    <string name="heavy_drinker">भारी पीने वाला</string>
+    <string name="frequent_drinker">बारंबार पीने वाला</string>
+    <string name="social_drinker">सामाजिक पीने वाला</string>
+    <string name="rare_drinker">कभी-कभार पीने वाला</string>
+    <string name="non_drinker">पीता नहीं</string>
+
+    <string name="heavy_smoker">भारी धूम्रपान करने वाला</string>
+    <string name="frequent_smoker">बारंबार धूम्रपान करने वाला</string>
+    <string name="social_smoker">सामाजिक धूम्रपान करने वाला</string>
+    <string name="rare_smoker">कभी-कभार धूम्रपान करने वाला</string>
+    <string name="non_smoker">धूम्रपान नहीं करता</string>
+
+    <string name="record_voice_bio">वॉयस बायो रिकॉर्ड करें</string>
+    <string name="edit_voice_bio">वॉयस बायो संपादित करें</string>
+
+    <!-- VERIFICATION BADGE -->
+    <string name="verified_profile_cd">सत्यापित प्रोफ़ाइल</string>
+    <string name="verify_profile_cd">प्रोफ़ाइल सत्यापित करें</string>
+
+    <!-- MATRIMONY TOGGLE & CARD -->
+    <string name="matrimony_mode">वैवाहिक मोड</string>
+    <string name="matrimony_marriage_timeline">विवाह समयसीमा</string>
+    <string name="matrimony_relocation_preference">स्थानांतरण वरीयता</string>
+    <string name="matrimony_post_marriage_career_plan">विवाह‑बाद करियर योजना</string>
+    <string name="matrimony_traditional_vs_liberal">परंपरागत बनाम उदार</string>
+    <string name="matrimony_father_occupation">पिता का पेशा</string>
+    <string name="matrimony_mother_occupation">माता का पेशा</string>
+    <string name="edit_matrimony_info_cd">मैरिटमोनि जानकारी संपादित करें</string>
+
+    <!-- PHOTO CAROUSEL OVERLAY -->
+    <string name="from_hometown">%1$s से</string>
+    <string name="posts_button">पोस्ट</string>
+    <string name="edit_profile_cd">प्रोफ़ाइल संपादित करें</string>
+
+    <!-- PROFILE COMPLETION -->
+    <string name="profile_percent">प्रोफ़ाइल %1$d%%</string>
+
+    <!-- COLLAPSIBLE SECTION TITLES -->
+    <string name="section_matrimony_info">वैवाहिक जानकारी</string>
+    <string name="section_bio">बायो</string>
+    <string name="section_voice_bio">वॉइस बायो</string>
+    <string name="section_basic_information">मूल जानकारी</string>
+    <string name="section_preferences">प्राथमिकताएँ</string>
+    <string name="section_social_causes">सामाजिक कारण</string>
+    <string name="section_lifestyle_attributes">जीवनशैली गुण</string>
+    <string name="section_interests">रुचियाँ</string>
+
+    <!-- PROFILE DETAIL LABELS -->
+    <string name="label_name">नाम</string>
+    <string name="label_gender">लिंग</string>
+    <string name="label_locality">स्थानीय क्षेत्र</string>
+    <string name="label_love_language">लव लैंग्वेज</string>
+    <string name="label_politics">राजनीति</string>
+    <string name="label_username">यूज़रनेम</string>
+    <string name="label_job_role">कार्य भूमिका</string>
+    <string name="label_work">काम</string>
+    <string name="label_high_school">हाई स्कूल</string>
+    <string name="label_college">कॉलेज</string>
+    <string name="label_college_degree">कॉलेज डिग्री</string>
+    <string name="label_post_graduation">स्नातकोत्तर</string>
+    <string name="label_post_graduation_degree">स्नातकोत्तर डिग्री</string>
+    <string name="label_community">समुदाय</string>
+    <string name="label_religion">धर्म</string>
+    <string name="label_height">ऊँचाई</string>
+    <string name="label_date_joined">शामिल होने की तिथि</string>
+
+    <!-- METRICS & RANKINGS -->
+    <string name="swipe_right_probability">राइट‑स्वाइप संभावना</string>
+
+
+    <!-- BIO & VOICE BIO -->
+    <string name="bio_no_bio">कोई बायो उपलब्ध नहीं</string>
+    <string name="voice_no_voice_bio">कोई वॉइस बायो उपलब्ध नहीं</string>
+
+    <!-- BUTTON TEXTS -->
+    <string name="add_interest">रुचि जोड़ें</string>
+    <string name="add_cause">कारण जोड़ें</string>
+    <string name="remove">हटाएँ</string>
+
+    <!-- DROPDOWN DEFAULTS -->
+    <string name="not_selected">चयनित नहीं</string>
+    <string name="not_specified">निर्दिष्ट नहीं</string>
+
+    <string name="pause_audio">ऑडियो रोकें</string>
+    <string name="tap_to_play">चलाने के लिए टैप करें</string>
+    <string name="playing_seconds">%1$d सेकंड चल रहा है</string>
+
+    <string name="select_love_language">प्रेम भाषा चुनें</string>
+    <string name="love_language_option_not_selected">चयनित नहीं</string>
+    <string name="love_language_option_words_of_affirmation">प्रशंसा के शब्द</string>
+    <string name="love_language_option_acts_of_service">सेवा कार्य</string>
+    <string name="love_language_option_receiving_gifts">उपहार प्राप्त करना</string>
+    <string name="love_language_option_quality_time">गुणवत्ता समय</string>
+    <string name="love_language_option_physical_touch">शारीरिक संपर्क</string>
+    <string name="love_language_option_other">अन्य</string>
+
+    <string name="select_politics">राजनीति चुनें</string>
+    <string name="politics_option_not_selected">चयनित नहीं</string>
+    <string name="politics_option_liberal">उदार</string>
+    <string name="politics_option_moderate">मध्यमवर्ती</string>
+    <string name="politics_option_conservative">रुढ़िवादी</string>
+    <string name="politics_option_other">अन्य</string>
+
+    <string name="select_job_role">नौकरी चुनें</string>
+    <string name="job_role_option_not_selected">चयनित नहीं</string>
+    <string name="job_role_option_engineer">इंजीनियर</string>
+    <string name="job_role_option_teacher">शिक्षक</string>
+    <string name="job_role_option_doctor">चिकित्सक</string>
+    <string name="job_role_option_intern"></string>
+    <string name="job_role_option_entrepreneur">उद्यमी</string>
+    <string name="job_role_option_other">अन्य</string>
+
+    <string name="select_work">काम चुनें</string>
+    <string name="work_option_not_selected">चयनित नहीं</string>
+    <string name="work_option_private_sector">निजी क्षेत्र</string>
+    <string name="work_option_government">सरकारी</string>
+    <string name="work_option_freelance">फ्रीलांसर</string>
+    <string name="work_option_unemployed">बेरोजगार</string>
+    <string name="work_option_other">अन्य</string>
+
+    <string name="label_custom_love_language">कस्टम प्रेम भाषा</string>
+    <string name="label_custom_politics">कस्टम राजनीति</string>
+    <string name="label_custom_job_role">कस्टम नौकरी</string>
+    <string name="label_custom_work">कस्टम काम</string>
+
+    <!-- INTEREST / CAUSE PLACEHOLDERS -->
+    <string name="no_interests">कोई रुचियाँ निर्दिष्ट नहीं।</string>
+    <string name="no_social_causes">कोई सामाजिक कारण निर्दिष्ट नहीं।</string>
+
+    <!-- DatingScreen -->
+    <string name="no_more_swipes_available">कोई और स्वाइप उपलब्ध नहीं है</string>
+
+    <string name="college_mismatch_format">कॉलेज में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="post_graduation_mismatch_format">स्नातकोत्तर में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="workplace_mismatch_format">कार्यस्थल में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="job_role_mismatch_format">नौकरी की भूमिका में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="love_language_mismatch_format">प्रेम की भाषा में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="relationship_intent_mismatch_format">संबंध के इरादे में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="community_match_format">सामुदायिक मेल: दोनों "%1$s" हैं</string>
+    <string name="religion_match_format">धर्म का मेल: दोनों "%1$s" हैं</string>
+    <string name="city_mismatch_format">शहर में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="relocation_mismatch_format">स्थानांतरण में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="career_plan_mismatch_format">विवाहोपरांत करियर योजना में असमानता: "%1$s" बनाम "%2$s"</string>
+    <string name="cultural_mindset_mismatch_format">सांस्कृतिक दृष्टिकोण में असमानता: "%1$s" बनाम "%2$s"</string>
+
+    <!-- calculateExhaustiveCompatibilityScore -->
+    <string name="workplace_label">कार्यस्थल</string>
+    <string name="job_role_label">नौकरी की भूमिका</string>
+    <string name="love_language_label">प्रेम की भाषा</string>
+    <string name="relationship_intent_label">रिश्ते का उद्देश्य</string>
+    <string name="preferred_language_label">पसंदीदा भाषा</string>
+    <string name="shared_interests_prefix">साझा रुचियाँ: %1$s</string>
+    <string name="no_common_interests">कोई साझा रुचियाँ नहीं</string>
+    <string name="interests_not_set">रुचियाँ: दोनों द्वारा सेट नहीं की गई</string>
+    <string name="shared_social_causes_prefix">साझा सामाजिक कारण: %1$s</string>
+    <string name="no_common_social_causes">कोई साझा सामाजिक कारण नहीं</string>
+    <string name="social_causes_not_set">सामाजिक कारण: दोनों द्वारा सेट नहीं किए गए</string>
+    <string name="zodiac_compatibility_prefix">राशि संगतता: %1$s + %2$s</string>
+    <string name="zodiac_mismatch_prefix">राशि असंगति: %1$s बनाम %2$s</string>
+    <string name="zodiac_not_set">राशि: सेट नहीं की गई</string>
+    <string name="matrimony_mismatch">विवाह असंगति: एक विवाह मोड में है, दूसरा नहीं</string>
+    <string name="matrimony_not_set">विवाह मोड: दोनों में सेट नहीं किया गया</string>
+    <string name="marriage_timeline_label">विवाह समयरेखा</string>
+    <string name="relocation_label">स्थानांतरण</string>
+    <string name="post_marriage_career_plan_label">विवाह के बाद करियर योजना</string>
+    <string name="cultural_mindset_label">सांस्कृतिक मानसिकता</string>
+    <string name="lifestyle_smoking">धूम्रपान</string>
+    <string name="lifestyle_drinking">शराब पीना</string>
+    <string name="lifestyle_indoor_outdoor">इनडोर/आउटडोर</string>
+    <string name="lifestyle_sexual_activity">यौन गतिविधि</string>
+    <string name="lifestyle_sociability">सामाजिकता</string>
+    <string name="lifestyle_social_media">सोशल मीडिया</string>
+    <string name="lifestyle_dietary_preferences">खानपान की प्राथमिकताएँ</string>
+    <string name="lifestyle_sleep">नींद</string>
+    <string name="lifestyle_work_life_balance">काम-जीवन संतुलन</string>
+    <string name="lifestyle_exercise">व्यायाम</string>
+    <string name="lifestyle_adventurousness">साहसिकता</string>
+    <string name="lifestyle_family_oriented">परिवार उन्मुख</string>
+    <string name="lifestyle_intellectual_curiosity">बौद्धिक जिज्ञासा</string>
+    <string name="lifestyle_creative_expression">रचनात्मक अभिव्यक्ति</string>
+    <string name="lifestyle_physical_fitness">शारीरिक फिटनेस</string>
+    <string name="lifestyle_spirituality">आध्यात्मिकता</string>
+    <string name="lifestyle_professional_ambition">पेशेवर महत्वाकांक्षा</string>
+    <string name="lifestyle_environmental_awareness">पर्यावरण जागरूकता</string>
+    <string name="lifestyle_culinary_enthusiasm">रसोई उत्साह</string>
+    <string name="lifestyle_political_awareness">राजनीतिक जागरूकता</string>
+    <string name="lifestyle_community_engagement">समुदाय सहभागिता</string>
+    <string name="lifestyle_sports">खेल</string>
+    <string name="lifestyle_field_default">जीवनशैली क्षेत्र</string>
+    <string name="lifestyle_not_set_suffix">%1$s: दोनों द्वारा सेट नहीं किया गया</string>
+    <string name="lifestyle_one_not_set_suffix">%1$s: एक द्वारा सेट नहीं किया गया</string>
+    <string name="lifestyle_match_format">आप दोनों इन %1$d जीवनशैली विशेषताओं पर संरेखित हैं: %2$s</string>
+    <string name="lifestyle_no_traits_to_compare">तुलना के लिए कोई जीवनशैली विशेषताएँ पर्याप्त रूप unavailable</string>
+    <string name="lifestyle_similarity_format">जीवनशैली समानता: %2$d कारकों पर %1$s%% मिलान। साझा विशेषताएँ: %3$s</string>
+    <string name="lifestyle_none_common">कोई नहीं</string>
+    <string name="lifestyle_not_set_in_profiles">जीवनशैली: दोनों प्रोफाइल में सेट नहीं की गई</string>
+    <string name="lifestyle_mismatches_format">जीवनशैली असंगतियाँ: %1$s</string>
+    <string name="shared_tags_prefix">साझा टैग: %1$s</string>
+    <string name="tags_not_set_or_no_overlap">उपयोगकर्ता टैग: सेट नहीं किए गए या कोई ओवरलैप नहीं</string>
+
+    <!-- High school options for dropdown -->
+    <!-- High Schools in West Bengal -->
+    <string name="high_school_andrews_high_school">एंड्रयूज हाई स्कूल</string>
+    <string name="high_school_assembly_of_god_church_school">असेंबली ऑफ गॉड चर्च स्कूल</string>
+    <string name="high_school_bdm_international">बी.डी.एम. इंटरनेशनल</string>
+    <string name="high_school_ballygunge_government_high_school">बालिगंज गवर्नमेंट हाई स्कूल</string>
+    <string name="high_school_baranagar_ramakrishna_mission">बरानगर रामकृष्ण मिशन आश्रम हाई स्कूल</string>
+    <string name="high_school_barasat_mgm_high_school">बरासात महात्मा गांधी मेमोरियल हाई स्कूल</string>
+    <string name="high_school_barasat_peary_charan">बरासात पीयरी चरण सरकार गवर्नमेंट हाई स्कूल</string>
+    <string name="high_school_barrackpore_government_high_school">बैरकपुर गवर्नमेंट हाई स्कूल</string>
+    <string name="high_school_bethune_collegiate">बेथ्यून कॉलेजिएट स्कूल</string>
+    <string name="high_school_bidhannagar_government_high_school">बिधाननगर गवर्नमेंट हाई स्कूल</string>
+    <string name="high_school_birla_high_school">बिरला हाई स्कूल</string>
+    <string name="high_school_burdwan_cms_high_school">बर्दवान सी.एम.एस. हाई स्कूल</string>
+    <string name="high_school_calcutta_boys_school">कलकत्ता बॉयज स्कूल</string>
+    <string name="high_school_calcutta_girls_high_school">कलकत्ता गर्ल्स हाई स्कूल</string>
+    <string name="high_school_darjeeling_government_high_school">दार्जिलिंग गवर्नमेंट हाई स्कूल</string>
+    <string name="high_school_dps_durgapur">दिल्ली पब्लिक स्कूल, दुर्गापुर</string>
+    <string name="high_school_dps_newtown">दिल्ली पब्लिक स्कूल, न्यूटाउन</string>
+    <string name="high_school_dps_ruby_park">दिल्ली पब्लिक स्कूल, रूबी पार्क</string>
+    <string name="high_school_don_bosco_park_circus">डॉन बोस्को स्कूल, पार्क सर्कस</string>
+    <string name="high_school_goethals_memorial">गोएथल्स मेमोरियल स्कूल</string>
+    <string name="high_school_hare_school">हेयर स्कूल</string>
+    <string name="high_school_hindu_school">हिंदू स्कूल</string>
+    <string name="high_school_howrah_zilla_school">हावड़ा जिला स्कूल</string>
+    <string name="high_school_jadavpur_vidyapith">जादवपुर विद्यापीठ</string>
+    <string name="high_school_jenkins_school">जेनकिन्स स्कूल</string>
+    <string name="high_school_kalyani_university_experimental">कल्याणी विश्वविद्यालय प्रायोगिक हाई स्कूल</string>
+    <string name="high_school_kendriya_vidyalaya_ballygunge">केंद्रीय विद्यालय, बालिगंज</string>
+    <string name="high_school_la_martiniere_boys">ला मार्टिनियर फॉर बॉयज</string>
+    <string name="high_school_la_martiniere_girls">ला मार्टिनियर फॉर गर्ल्स</string>
+    <string name="high_school_loreto_house">लोरेटो हाउस</string>
+    <string name="high_school_mahadevi_birla_world_academy">महादेवी बिरला वर्ल्ड अकादमी</string>
+    <string name="high_school_mitra_institution_main">मित्रा इंस्टीट्यूशन (मुख्य)</string>
+    <string name="high_school_modern_high_school_girls">मॉडर्न हाई स्कूल फॉर गर्ल्स</string>
+    <string name="high_school_nava_nalanda_high_school">नवा नालंदा हाई स्कूल</string>
+    <string name="high_school_north_point_darjeeling">नॉर्थ पॉइंट सीनियर सेकेंडरी बोर्डिंग स्कूल</string>
+    <string name="high_school_patha_bhavan">पथा भवन</string>
+    <string name="high_school_purwanchal_vidya_mandir">पूर्वांचल विद्या मंदिर</string>
+    <string name="high_school_rahara_ramakrishna_mission">रहड़ा रामकृष्ण मिशन बॉयज होम हाई स्कूल</string>
+    <string name="high_school_ramakrishna_mission_narendrapur">रामकृष्ण मिशन विद्यालय, नरेंद्रपुर</string>
+    <string name="high_school_rani_birla_girls_school">रानी बिरला गर्ल्स स्कूल</string>
+    <string name="high_school_sakhawat_memorial_girls">सखावत मेमोरियल गवर्नमेंट गर्ल्स हाई स्कूल</string>
+    <string name="high_school_scottish_church_collegiate">स्कॉटिश चर्च कॉलेजिएट स्कूल</string>
+    <string name="high_school_siliguri_boys_high_school">सिलीगुड़ी बॉयज हाई स्कूल</string>
+    <string name="high_school_south_point_high_school">साउथ पॉइंट हाई स्कूल</string>
+    <string name="high_school_st_james_school">सेंट जेम्स स्कूल</string>
+    <string name="high_school_st_josephs_north_point">सेंट जोसेफ्स कॉलेज, नॉर्थ पॉइंट</string>
+    <string name="high_school_st_lawrence_high_school">सेंट लॉरेंस हाई स्कूल</string>
+    <string name="high_school_st_pauls_mission_school">सेंट पॉल्स मिशन स्कूल</string>
+    <string name="high_school_st_thomas_kidderpore">सेंट थॉमस स्कूल, किडरपोर</string>
+    <string name="high_school_st_xaviers_collegiate">सेंट जेवियर्स कॉलेजिएट स्कूल</string>
+    <string name="high_school_the_heritage_school">द हेरिटेज स्कूल</string>
+    <string name="high_school_uttarpara_government_high_school">उत्तरपाड़ा गवर्नमेंट हाई स्कूल</string>
+    <string name="high_school_asansol_st_anthonys">आसनसोल सेंट एंथनीज स्कूल</string>
+    <string name="high_school_bankura_christian_school">बांकुड़ा क्रिश्चियन स्कूल</string>
+    <string name="high_school_berhampore_girls_high_school">बहरमपुर गर्ल्स हाई स्कूल</string>
+    <string name="high_school_contai_high_school">कॉन्टाई हाई स्कूल</string>
+    <string name="high_school_hooghly_collegiate_school">हुगली कॉलेजिएट स्कूल</string>
+    <string name="high_school_krishnanagar_collegiate_school">कृष्णनगर कॉलेजिएट स्कूल</string>
+    <string name="high_school_malda_zilla_school">मालदा जिला स्कूल</string>
+    <string name="high_school_midnapore_collegiate_school">मेदिनीपुर कॉलेजिएट स्कूल</string>
+    <string name="high_school_ashok_hall">अशोक हॉल गर्ल्स हायर सेकेंडरी स्कूल</string>
+    <string name="high_school_mahadevi_birla_shishu_vihar">महादेवी बिरला शिशु विहार</string>
+    <string name="high_school_jewish_girls">यहूदी गर्ल्स स्कूल</string>
+
+    <!-- Popular High Schools in India -->
+    <string name="high_school_cathedral_john_connon">कैथेड्रल एंड जॉन कॉनन स्कूल</string>
+    <string name="high_school_dhirubhai_ambani">धीरूभाई अंबानी इंटरनेशनल स्कूल</string>
+    <string name="high_school_doon_school">डून स्कूल</string>
+    <string name="high_school_mayo_college">मेयो कॉलेज</string>
+    <string name="high_school_modern_school_barakhamba">मॉडर्न स्कूल, बराखंभा रोड</string>
+    <string name="high_school_rishi_valley">ऋषि वैली स्कूल</string>
+    <string name="high_school_scindia_school">सिंधिया स्कूल</string>
+    <string name="high_school_shri_ram_vasant_vihar">श्री राम स्कूल, वसंत विहार</string>
+    <string name="high_school_lawrence_sanawar">द लॉरेंस स्कूल, सनावर</string>
+    <string name="high_school_welham_girls">वेलहम गर्ल्स स्कूल</string>
+
+    <!-- Catch-all for other high schools -->
+    <string name="high_school_other">अन्य</string>
+    <!-- Undergraduate college options for dropdown -->
+    <!-- Colleges in West Bengal -->
+    <string name="college_acharya_jagadish_chandra_bose_college">आचार्य जगदीश चंद्र बोस कॉलेज</string>
+    <string name="college_asutosh_college">आसुतोष कॉलेज</string>
+    <string name="college_bangabasi_college">बंगबासी कॉलेज</string>
+    <string name="college_barasat_government_college">बारासात गवर्नमेंट कॉलेज</string>
+    <string name="college_barrackpore_rastraguru_surendranath_college">बैरकपुर राष्ट्रीय गुरु सुरेंद्रनाथ कॉलेज</string>
+    <string name="college_behala_college">बेहाला कॉलेज</string>
+    <string name="college_bethune_college">बेथ्यून कॉलेज</string>
+    <string name="college_bidhannagar_college">बिधाननगर कॉलेज</string>
+    <string name="college_city_college">सिटी कॉलेज</string>
+    <string name="college_derozio_memorial_college">देरोजियो मेमोरियल कॉलेज</string>
+    <string name="college_dinabandhu_andrews_college">दीनबंधु एंड्रयूज कॉलेज</string>
+    <string name="college_dum_dum_motijheel_college">दमदम मोतीझील कॉलेज</string>
+    <string name="college_goenka_college">गोएंका कॉलेज ऑफ कॉमर्स एंड बिजनेस एडमिनिस्ट्रेशन</string>
+    <string name="college_heramba_chandra_college">हेरंबचंद्र कॉलेज</string>
+    <string name="college_hooghly_mohsin_college">हुगली मोहसिन कॉलेज</string>
+    <string name="college_iit_kharagpur">भारतीय प्रौद्योगिकी संस्थान खड़गपुर</string>
+    <string name="college_iem_kolkata">इंस्टीट्यूट ऑफ इंजीनियरिंग एंड मैनेजमेंट</string>
+    <string name="college_jadavpur_university">जादवपुर विश्वविद्यालय</string>
+    <string name="college_jogamaya_devi_college">जोगमाया देवी कॉलेज</string>
+    <string name="college_kalyani_mahavidyalaya">कल्याणी महाविद्यालय</string>
+    <string name="college_kazi_nazrul_islam_mahavidyalaya">काजी नजरूल इस्लाम महाविद्यालय</string>
+    <string name="college_krishnanagar_government_college">कृष्णनगर गवर्नमेंट कॉलेज</string>
+    <string name="college_lady_brabourne_college">लेडी ब्रैबोर्न कॉलेज</string>
+    <string name="college_loreto_college">लोरेटो कॉलेज</string>
+    <string name="college_maulana_azad_college">मौलाना आजाद कॉलेज</string>
+    <string name="college_nit_durgapur">राष्ट्रीय प्रौद्योगिकी संस्थान दुर्गापुर</string>
+    <string name="college_presidency_university">प्रेसीडेंसी विश्वविद्यालय</string>
+    <string name="college_ramakrishna_mission_narendrapur">रामकृष्ण मिशन रेजिडेंशियल कॉलेज, नरेंद्रपुर</string>
+    <string name="college_ramakrishna_mission_vidyamandira">रामकृष्ण मिशन विद्यामंदिर</string>
+    <string name="college_rishi_bankim_chandra_college">ऋषि बंकिमचंद्र कॉलेज</string>
+    <string name="college_techno_india">टेकनो इंडिया कॉलेज</string>
+    <string name="college_scottish_church_college">स्कॉटिश चर्च कॉलेज</string>
+    <string name="college_serampore_college">सेरामपुर कॉलेज</string>
+    <string name="college_seth_anandram_jaipuria_college">सेठ आनंदराम जयपुरिया कॉलेज</string>
+    <string name="college_shri_shikshayatan_college">श्री शिक्षायन कॉलेज</string>
+    <string name="college_siliguri_college">सिलीगुड़ी कॉलेज</string>
+    <string name="college_southfield_college">साउथफील्ड कॉलेज</string>
+    <string name="college_st_xaviers_college">सेंट जेवियर्स कॉलेज</string>
+    <string name="college_surendranath_college">सुरेंद्रनाथ कॉलेज</string>
+    <string name="college_university_of_calcutta">कोलकाता विश्वविद्यालय</string>
+    <string name="college_vidyasagar_college">विद्यासागर कॉलेज</string>
+    <string name="college_west_bengal_state_university">पश्चिम बंगाल राज्य विश्वविद्यालय</string>
+    <string name="college_basanti_devi_college">बासंती देवी कॉलेज</string>
+    <string name="college_gokhale_memorial_girls_college">गोखले मेमोरियल गर्ल्स कॉलेज</string>
+    <string name="college_gurudas_college">गुरुदास कॉलेज</string>
+    <string name="college_narasinha_dutt_college">नरसिंह दत्त कॉलेज</string>
+    <string name="college_sivanath_sastri_college">शिवनाथ शास्त्री कॉलेज</string>
+
+    <!-- Popular Colleges in India -->
+    <string name="college_christ_university">क्राइस्ट यूनिवर्सिटी</string>
+    <string name="college_fergusson_college">फर्ग्यूसन कॉलेज</string>
+    <string name="college_hindu_college">हिंदू कॉलेज</string>
+    <string name="college_iisc_bangalore">भारतीय विज्ञान संस्थान बैंगलोर</string>
+    <string name="college_iit_kanpur">भारतीय प्रौद्योगिकी संस्थान कानपुर</string>
+    <string name="college_iit_roorkee">भारतीय प्रौद्योगिकी संस्थान रुड़की</string>
+    <string name="college_lady_shri_ram_college">लेडी श्री राम कॉलेज फॉर वुमन</string>
+    <string name="college_loyola_college">लोयोला कॉलेज</string>
+    <string name="college_miranda_house">मिरांडा हाउस</string>
+    <string name="college_st_stephens_college">सेंट स्टीफंस कॉलेज</string>
+    <string name="college_hansraj_college">हंसराज कॉलेज</string>
+    <string name="college_mount_carmel_college">माउंट कार्मेल कॉलेज</string>
+
+    <!-- Popular Colleges in the World -->
+    <string name="college_australian_national_university">ऑस्ट्रेलियाई राष्ट्रीय विश्वविद्यालय</string>
+    <string name="college_carnegie_mellon_university">कार्नेगी मेलन विश्वविद्यालय</string>
+    <string name="college_eth_zurich">ईटीएच ज्यूरिख</string>
+    <string name="college_harvard_university">हार्वर्ड विश्वविद्यालय</string>
+    <string name="college_imperial_college_london">इंपीरियल कॉलेज लंदन</string>
+    <string name="college_london_school_of_economics">लंदन स्कूल ऑफ इकोनॉमिक्स</string>
+    <string name="college_mcgill_university">मैकगिल विश्वविद्यालय</string>
+    <string name="college_mit">मैसाचुसेट्स प्रौद्योगिकी संस्थान</string>
+    <string name="college_national_university_singapore">सिंगापुर राष्ट्रीय विश्वविद्यालय</string>
+    <string name="college_purdue_university">पर्ड्यू विश्वविद्यालय</string>
+    <string name="college_sorbonne_university">सॉर्बोन विश्वविद्यालय</string>
+    <string name="college_stanford_university">स्टैनफोर्ड विश्वविद्यालय</string>
+    <string name="college_tu_delft">डेल्फ्ट प्रौद्योगिकी विश्वविद्यालय</string>
+    <string name="college_university_college_london">यूनिवर्सिटी कॉलेज लंदन</string>
+    <string name="college_university_of_amsterdam">एम्स्टर्डम विश्वविद्यालय</string>
+    <string name="college_university_of_british_columbia">ब्रिटिश कोलंबिया विश्वविद्यालय</string>
+    <string name="college_university_of_california_berkeley">कैलिफोर्निया विश्वविद्यालय, बर्कले</string>
+    <string name="college_university_of_california_san_diego">कैलिफोर्निया विश्वविद्यालय, सैन डिएगो</string>
+    <string name="college_university_of_cambridge">कैंब्रिज विश्वविद्यालय</string>
+    <string name="college_university_of_edinburgh">एडिनबर्ग विश्वविद्यालय</string>
+    <string name="college_university_of_melbourne">मेलबर्न विश्वविद्यालय</string>
+    <string name="college_university_of_michigan">मिशिगन विश्वविद्यालय, एन आर्बर</string>
+    <string name="college_university_of_oxford">ऑक्सफोर्ड विश्वविद्यालय</string>
+    <string name="college_university_of_queensland">क्वींसलैंड विश्वविद्यालय</string>
+    <string name="college_university_of_sydney">सिडनी विश्वविद्यालय</string>
+    <string name="college_university_of_toronto">टोरंटो विश्वविद्यालय</string>
+
+    <!-- Catch-all for other colleges -->
+    <string name="college_other">अन्य</string>
+    <!-- Postgraduate college options for dropdown -->
+    <!-- Universities in West Bengal -->
+    <string name="postgrad_adamas_university">आदमास विश्वविद्यालय</string>
+    <string name="postgrad_aliah_university">अलिया विश्वविद्यालय</string>
+    <string name="postgrad_amity_university_kolkata">एमिटी विश्वविद्यालय, कोलकाता</string>
+    <string name="postgrad_bankura_university">बांकुड़ा विश्वविद्यालय</string>
+    <string name="postgrad_bidhan_chandra_krishi_viswavidyalaya">बिधान चंद्र कृषि विश्वविद्यालय</string>
+    <string name="postgrad_brainware_university">ब्रेनवेयर विश्वविद्यालय</string>
+    <string name="postgrad_cooch_behar_panchanan_barma_university">कूचबिहार पंचानन बर्मा विश्वविद्यालय</string>
+    <string name="postgrad_darjeeling_hills_university">दार्जिलिंग हिल्स विश्वविद्यालय</string>
+    <string name="postgrad_diamond_harbour_womens_university">डायमंड हार्बर महिला विश्वविद्यालय</string>
+    <string name="postgrad_iacs">इंडियन एसोसिएशन फॉर द कल्टिवेशन ऑफ साइंस</string>
+    <string name="postgrad_jadavpur_university">जादवपुर विश्वविद्यालय</string>
+    <string name="postgrad_jis_university">जेआईएस विश्वविद्यालय</string>
+    <string name="postgrad_kazi_nazrul_university">काजी नजरूल विश्वविद्यालय</string>
+    <string name="postgrad_maulana_abul_kalam_azad_university_of_technology">मौलाना अबुल कलाम आजाद प्रौद्योगिकी विश्वविद्यालय</string>
+    <string name="postgrad_netaji_subhash_open_university">नेताजी सुभास ओपन विश्वविद्यालय</string>
+    <string name="postgrad_north_bengal_university">उत्तर बंगाल विश्वविद्यालय</string>
+    <string name="postgrad_presidency_university">प्रेसीडेंसी विश्वविद्यालय</string>
+    <string name="postgrad_rabindra_bharati_university">रवींद्रभारती विश्वविद्यालय</string>
+    <string name="postgrad_raiganj_university">रायगंज विश्वविद्यालय</string>
+    <string name="postgrad_ramakrishna_mission_vivekananda">रामकृष्ण मिशन विवेकानंद शैक्षिक और अनुसंधान संस्थान</string>
+    <string name="postgrad_techno_india">टेकनो इंडिया विश्वविद्यालय</string>
+    <string name="postgrad_seacom_skills_university">सीकॉम स्किल्स विश्वविद्यालय</string>
+    <string name="postgrad_sidho_kanho_birsha_university">सिधो-कान्हो-बिरसा विश्वविद्यालय</string>
+    <string name="postgrad_sister_nivedita_university">सिस्टर निवेदिता विश्वविद्यालय</string>
+    <string name="postgrad_university_of_burdwan">बर्द्धमान विश्वविद्यालय</string>
+    <string name="postgrad_university_of_calcutta">कोलकाता विश्वविद्यालय</string>
+    <string name="postgrad_university_of_engineering_and_management">इंजीनियरिंग और प्रबंधन विश्वविद्यालय</string>
+    <string name="postgrad_university_of_kalyani">कल्याणी विश्वविद्यालय</string>
+    <string name="postgrad_uttar_banga_krishi_vishwavidyalaya">उत्तर बंगा कृषि विश्वविद्यालय</string>
+    <string name="postgrad_vidyasagar_university">विद्यासागर विश्वविद्यालय</string>
+    <string name="postgrad_visva_bharati_university">विश्वभारती विश्वविद्यालय</string>
+    <string name="postgrad_west_bengal_state_university">पश्चिम बंगाल राज्य विश्वविद्यालय</string>
+    <string name="postgrad_west_bengal_university_of_animal_and_fishery_sciences">पश्चिम बंगाल पशु और मत्स्य विज्ञान विश्वविद्यालय</string>
+    <string name="postgrad_west_bengal_university_of_health_sciences">पश्चिम बंगाल स्वास्थ्य विज्ञान विश्वविद्यालय</string>
+    <string name="postgrad_west_bengal_university_of_teachers_training">पश्चिम बंगाल शिक्षक प्रशिक्षण, शिक्षा योजना और प्रशासन विश्वविद्यालय</string>
+
+    <!-- Popular Universities in India -->
+    <string name="postgrad_iit_bombay">भारतीय प्रौद्योगिकी संस्थान बॉम्बे</string>
+    <string name="postgrad_iit_delhi">भारतीय प्रौद्योगिकी संस्थान दिल्ली</string>
+    <string name="postgrad_iit_kanpur">भारतीय प्रौद्योगिकी संस्थान कानपुर</string>
+    <string name="postgrad_iit_kharagpur">भारतीय प्रौद्योगिकी संस्थान खड़गपुर</string>
+    <string name="postgrad_iit_madras">भारतीय प्रौद्योगिकी संस्थान मद्रास</string>
+    <string name="postgrad_iim_ahmedabad">भारतीय प्रबंधन संस्थान अहमदाबाद</string>
+    <string name="postgrad_iim_bangalore">भारतीय प्रबंधन संस्थान बैंगलोर</string>
+    <string name="postgrad_iim_calcutta">भारतीय प्रबंधन संस्थान कोलकाता</string>
+    <string name="postgrad_iisc_bangalore">भारतीय विज्ञान संस्थान बैंगलोर</string>
+    <string name="postgrad_jnu">जवाहरलाल नेहरू विश्वविद्यालय</string>
+    <string name="postgrad_university_of_delhi">दिल्ली विश्वविद्यालय</string>
+
+    <!-- Popular Universities in the World -->
+    <string name="postgrad_harvard_university">हार्वर्ड विश्वविद्यालय</string>
+    <string name="postgrad_stanford_university">स्टैनफोर्ड विश्वविद्यालय</string>
+    <string name="postgrad_mit">मैसाचुसेट्स प्रौद्योगिकी संस्थान</string>
+    <string name="postgrad_ucsd">कैलिफोर्निया विश्वविद्यालय, सैन डिएगो</string>
+    <string name="postgrad_purdue_university">पर्ड्यू विश्वविद्यालय</string>
+    <string name="postgrad_uc_berkeley">कैलिफोर्निया विश्वविद्यालय, बर्कले</string>
+    <string name="postgrad_university_of_michigan">मिशिगन विश्वविद्यालय, एन आर्बर</string>
+    <string name="postgrad_university_of_oxford">ऑक्सफोर्ड विश्वविद्यालय</string>
+    <string name="postgrad_university_of_cambridge">कैंब्रिज विश्वविद्यालय</string>
+    <string name="postgrad_imperial_college_london">इंपीरियल कॉलेज लंदन</string>
+    <string name="postgrad_london_school_of_economics">लंदन स्कूल ऑफ इकोनॉमिक्स</string>
+    <string name="postgrad_university_of_toronto">टोरंटो विश्वविद्यालय</string>
+    <string name="postgrad_university_of_british_columbia">ब्रिटिश कोलंबिया विश्वविद्यालय</string>
+    <string name="postgrad_mcgill_university">मैकगिल विश्वविद्यालय</string>
+    <string name="postgrad_university_of_melbourne">मेलबर्न विश्वविद्यालय</string>
+    <string name="postgrad_university_of_sydney">सिडनी विश्वविद्यालय</string>
+    <string name="postgrad_australian_national_university">ऑस्ट्रेलियाई राष्ट्रीय विश्वविद्यालय</string>
+    <string name="postgrad_tu_delft">डेल्फ्ट प्रौद्योगिकी विश्वविद्यालय</string>
+    <string name="postgrad_eth_zurich">ईटीएच ज्यूरिख</string>
+    <string name="postgrad_university_college_london">यूनिवर्सिटी कॉलेज लंदन</string>
+    <string name="postgrad_university_of_amsterdam">एम्स्टर्डम विश्वविद्यालय</string>
+    <string name="postgrad_sorbonne_university">सॉर्बोन विश्वविद्यालय</string>
+
+    <!-- Catch-all for other universities -->
+    <string name="postgrad_other">अन्य</string>
+
+    <!-- Community options for dropdown -->
+    <string name="community_bengali">बंगाली</string>
+    <string name="community_santhal">संताल</string>
+    <string name="community_oraon">उरांव</string>
+    <string name="community_munda">मुंडा</string>
+    <string name="community_punjabi">पंजाबी</string>
+    <string name="community_tamil">तमिल</string>
+    <string name="community_gujarati">गुजराती</string>
+    <string name="community_marwari">मारवाड़ी</string>
+    <string name="community_bihari">बिहारी</string>
+    <string name="community_odia">उड़िया</string>
+    <string name="community_assamese">असमिया</string>
+    <string name="community_telugu">तेलुगु</string>
+    <string name="community_kannadiga">कन्नड़</string>
+    <string name="community_malayali">मलयाली</string>
+    <string name="community_nepali">नेपाली</string>
+    <string name="community_bangal">बांगाल</string>
+    <string name="community_ghoti">घोटी</string>
+    <string name="community_other">अन्य</string>
+
+    <!-- Religion -->
+    <string name="religion_hindu">हिंदू</string>
+    <string name="religion_muslim">मुस्लिम</string>
+    <string name="religion_christian">ईसाई</string>
+    <string name="religion_buddhist">बौद्ध</string>
+    <string name="religion_jain">जैन</string>
+    <string name="religion_sikh">सिख</string>
+    <string name="religion_indigenous_tribal">आदिवासी/जनजातीय</string>
+    <string name="religion_no_religion">कोई धर्म नहीं</string>
+    <string name="religion_other">अन्य</string>
+
+    <!-- caste -->
+    <string name="caste_kulin_brahmin">कुलीन ब्राह्मण</string>
+    <string name="caste_non_kulin_brahmin">गैर-कुलीन ब्राह्मण</string>
+    <string name="caste_kulin_kayastha">कुलीन कायस्थ</string>
+    <string name="caste_non_kulin_kayastha">गैर-कुलीन कायस्थ</string>
+    <string name="caste_baidya">वैद्य</string>
+    <string name="caste_kshatriya">क्षत्रिय</string>
+    <string name="caste_vaishya">वैश्य</string>
+    <string name="caste_rajbonshi">राजवंशी</string>
+    <string name="caste_sadgop">सदगोप</string>
+    <string name="caste_mahishya">महिष्य</string>
+    <string name="caste_scheduled_caste">अनुसूचित जाति (एससी)</string>
+    <string name="caste_scheduled_tribe">अनुसूचित जनजाति (एसटी)</string>
+    <string name="caste_obc">अन्य पिछड़ा वर्ग (ओबीसी)</string>
+    <string name="caste_general">सामान्य</string>
+    <string name="caste_other">अन्य</string>
+
+    <!--- Dating -->
     <string name="filters">फ़िल्टर</string>
     <string name="save">सहेजें</string>
     <string name="clear_selection">चुनाव साफ़ करें</string>

@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +38,7 @@ fun MatchedUserProfileScreen(
     val allPosts by postViewModel.profilePosts.collectAsState() // Changed to profilePosts
     val isLoading by postViewModel.isLoading.collectAsState()
     var postsLoaded by remember { mutableStateOf(false) }
+    val context = LocalContext.current // ✅ declare at the top of the Composable
 
     var userDistance by remember { mutableStateOf<Float?>(null) }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
@@ -80,6 +82,7 @@ fun MatchedUserProfileScreen(
             } else if (currentUserProfile != null) {
                 println("Running AI match check since no existing result found")
                 runAiMatchCheck(
+                    context = context, // ← ADD THIS
                     coroutineScope = coroutineScope,
                     currentUserId = currentUserId,
                     currentUserProfile = currentUserProfile!!,

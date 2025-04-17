@@ -1,10 +1,12 @@
-@file:OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialApi::class,
+@file:OptIn(
+    ExperimentalMaterialApi::class, ExperimentalMaterialApi::class,
     ExperimentalLayoutApi::class
 )
 
 package com.am24.am24
 
 import DatingViewModel
+import android.content.Context
 import androidx.compose.material.icons.filled.FilterList
 import android.util.Log
 import androidx.compose.foundation.*
@@ -170,7 +172,10 @@ fun DatingScreen(
                 handleSwipeRight(currentUserId, displayedProfiles.first().userId, profileViewModel)
                 remainingSwipes.value--
                 updateSwipesInFirebase(remainingSwipes.value)
-                Log.d("DatingScreen", "Super Swipe performed on ${displayedProfiles.first().userId}")
+                Log.d(
+                    "DatingScreen",
+                    "Super Swipe performed on ${displayedProfiles.first().userId}"
+                )
             }
         }
     }
@@ -208,15 +213,39 @@ fun DatingScreen(
                     datingViewModel.updateDatingFilters(filters.copy(gender = genders.joinToString(",")))
                 },
                 selectedCommunity = filters.community,
-                onCommunityChange = { community -> datingViewModel.updateDatingFilters(filters.copy(community = community)) },
+                onCommunityChange = { community ->
+                    datingViewModel.updateDatingFilters(
+                        filters.copy(
+                            community = community
+                        )
+                    )
+                },
                 selectedReligion = filters.religion,
-                onReligionChange = { religion -> datingViewModel.updateDatingFilters(filters.copy(religion = religion)) },
+                onReligionChange = { religion ->
+                    datingViewModel.updateDatingFilters(
+                        filters.copy(
+                            religion = religion
+                        )
+                    )
+                },
                 selectedCaste = filters.caste,
                 onCasteChange = { caste -> datingViewModel.updateDatingFilters(filters.copy(caste = caste)) },
                 selectedHighSchool = filters.highSchool,
-                onHighSchoolChange = { hs -> datingViewModel.updateDatingFilters(filters.copy(highSchool = hs)) },
+                onHighSchoolChange = { hs ->
+                    datingViewModel.updateDatingFilters(
+                        filters.copy(
+                            highSchool = hs
+                        )
+                    )
+                },
                 selectedCollege = filters.college,
-                onCollegeChange = { college -> datingViewModel.updateDatingFilters(filters.copy(college = college)) },
+                onCollegeChange = { college ->
+                    datingViewModel.updateDatingFilters(
+                        filters.copy(
+                            college = college
+                        )
+                    )
+                },
                 selectedPostGrad = filters.postGrad,
                 onPostGradChange = { pg -> datingViewModel.updateDatingFilters(filters.copy(postGrad = pg)) },
                 onSaveFilters = {
@@ -381,7 +410,7 @@ fun DatingScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "No more swipes available",
+                text = stringResource(R.string.no_more_swipes_available),
                 color = Color.White,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
@@ -505,7 +534,10 @@ fun FiltersOverlay(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    listOf((stringResource(R.string.male_option)), (stringResource(R.string.female_option))).forEach { gender ->
+                    listOf(
+                        (stringResource(R.string.male_option)),
+                        (stringResource(R.string.female_option))
+                    ).forEach { gender ->
                         Button(
                             onClick = {
                                 val updatedGenders = if (selectedGenders.contains(gender)) {
@@ -516,9 +548,14 @@ fun FiltersOverlay(
                                 onGenderChange(updatedGenders)
                             },
                             colors = ButtonDefaults.buttonColors(
-                                backgroundColor = if (selectedGenders.contains(gender)) Color(0xFFFF6000) else Color(0xFF1A1A1A)
+                                backgroundColor = if (selectedGenders.contains(gender)) Color(
+                                    0xFFFF6000
+                                ) else Color(0xFF1A1A1A)
                             ),
-                            border = BorderStroke(2.dp, if (selectedGenders.contains(gender)) Color(0xFFFF6000) else Color.Gray),
+                            border = BorderStroke(
+                                2.dp,
+                                if (selectedGenders.contains(gender)) Color(0xFFFF6000) else Color.Gray
+                            ),
                             shape = RoundedCornerShape(50),
                             modifier = Modifier
                                 .padding(vertical = 4.dp)
@@ -533,7 +570,11 @@ fun FiltersOverlay(
 
                 // Age Range Slider
                 Text(
-                    text = stringResource(R.string.age_range, ageRange.start, ageRange.endInclusive),
+                    text = stringResource(
+                        R.string.age_range,
+                        ageRange.start,
+                        ageRange.endInclusive
+                    ),
                     color = Color.White
                 )
                 RangeSlider(
@@ -580,7 +621,82 @@ fun FiltersOverlay(
                 // High School
                 DropdownFilter(
                     label = stringResource(R.string.high_school),
-                    options = listOf("School A", "School B", "School C"),
+                    options = listOf(
+                        stringResource(R.string.high_school_andrews_high_school),
+                        stringResource(R.string.high_school_ashok_hall),
+                        stringResource(R.string.high_school_assembly_of_god_church_school),
+                        stringResource(R.string.high_school_bdm_international),
+                        stringResource(R.string.high_school_ballygunge_government_high_school),
+                        stringResource(R.string.high_school_baranagar_ramakrishna_mission),
+                        stringResource(R.string.high_school_barasat_mgm_high_school),
+                        stringResource(R.string.high_school_barasat_peary_charan),
+                        stringResource(R.string.high_school_barrackpore_government_high_school),
+                        stringResource(R.string.high_school_bethune_collegiate),
+                        stringResource(R.string.high_school_bidhannagar_government_high_school),
+                        stringResource(R.string.high_school_birla_high_school),
+                        stringResource(R.string.high_school_burdwan_cms_high_school),
+                        stringResource(R.string.high_school_calcutta_boys_school),
+                        stringResource(R.string.high_school_calcutta_girls_high_school),
+                        stringResource(R.string.high_school_darjeeling_government_high_school),
+                        stringResource(R.string.high_school_dps_durgapur),
+                        stringResource(R.string.high_school_dps_newtown),
+                        stringResource(R.string.high_school_dps_ruby_park),
+                        stringResource(R.string.high_school_don_bosco_park_circus),
+                        stringResource(R.string.high_school_goethals_memorial),
+                        stringResource(R.string.high_school_hare_school),
+                        stringResource(R.string.high_school_hindu_school),
+                        stringResource(R.string.high_school_howrah_zilla_school),
+                        stringResource(R.string.high_school_jadavpur_vidyapith),
+                        stringResource(R.string.high_school_jenkins_school),
+                        stringResource(R.string.high_school_jewish_girls),
+                        stringResource(R.string.high_school_kalyani_university_experimental),
+                        stringResource(R.string.high_school_kendriya_vidyalaya_ballygunge),
+                        stringResource(R.string.high_school_la_martiniere_boys),
+                        stringResource(R.string.high_school_la_martiniere_girls),
+                        stringResource(R.string.high_school_loreto_house),
+                        stringResource(R.string.high_school_mahadevi_birla_world_academy),
+                        stringResource(R.string.high_school_mahadevi_birla_shishu_vihar),
+                        stringResource(R.string.high_school_mitra_institution_main),
+                        stringResource(R.string.high_school_modern_high_school_girls),
+                        stringResource(R.string.high_school_nava_nalanda_high_school),
+                        stringResource(R.string.high_school_north_point_darjeeling),
+                        stringResource(R.string.high_school_patha_bhavan),
+                        stringResource(R.string.high_school_purwanchal_vidya_mandir),
+                        stringResource(R.string.high_school_rahara_ramakrishna_mission),
+                        stringResource(R.string.high_school_ramakrishna_mission_narendrapur),
+                        stringResource(R.string.high_school_rani_birla_girls_school),
+                        stringResource(R.string.high_school_sakhawat_memorial_girls),
+                        stringResource(R.string.high_school_scottish_church_collegiate),
+                        stringResource(R.string.high_school_siliguri_boys_high_school),
+                        stringResource(R.string.high_school_south_point_high_school),
+                        stringResource(R.string.high_school_st_james_school),
+                        stringResource(R.string.high_school_st_josephs_north_point),
+                        stringResource(R.string.high_school_st_lawrence_high_school),
+                        stringResource(R.string.high_school_st_pauls_mission_school),
+                        stringResource(R.string.high_school_st_thomas_kidderpore),
+                        stringResource(R.string.high_school_st_xaviers_collegiate),
+                        stringResource(R.string.high_school_the_heritage_school),
+                        stringResource(R.string.high_school_uttarpara_government_high_school),
+                        stringResource(R.string.high_school_asansol_st_anthonys),
+                        stringResource(R.string.high_school_bankura_christian_school),
+                        stringResource(R.string.high_school_berhampore_girls_high_school),
+                        stringResource(R.string.high_school_contai_high_school),
+                        stringResource(R.string.high_school_hooghly_collegiate_school),
+                        stringResource(R.string.high_school_krishnanagar_collegiate_school),
+                        stringResource(R.string.high_school_malda_zilla_school),
+                        stringResource(R.string.high_school_midnapore_collegiate_school),
+                        stringResource(R.string.high_school_cathedral_john_connon),
+                        stringResource(R.string.high_school_dhirubhai_ambani),
+                        stringResource(R.string.high_school_doon_school),
+                        stringResource(R.string.high_school_mayo_college),
+                        stringResource(R.string.high_school_modern_school_barakhamba),
+                        stringResource(R.string.high_school_rishi_valley),
+                        stringResource(R.string.high_school_scindia_school),
+                        stringResource(R.string.high_school_shri_ram_vasant_vihar),
+                        stringResource(R.string.high_school_lawrence_sanawar),
+                        stringResource(R.string.high_school_welham_girls),
+                        stringResource(R.string.high_school_other)
+                    ),
                     selectedOption = selectedHighSchool,
                     onOptionChange = onHighSchoolChange
                 )
@@ -590,17 +706,173 @@ fun FiltersOverlay(
                 // College
                 DropdownFilter(
                     label = stringResource(R.string.college),
-                    options = listOf("College A", "College B", "College C"),
+                    options = listOf(
+                        stringResource(R.string.college_acharya_jagadish_chandra_bose_college),
+                        stringResource(R.string.college_asutosh_college),
+                        stringResource(R.string.college_bangabasi_college),
+                        stringResource(R.string.college_barasat_government_college),
+                        stringResource(R.string.college_barrackpore_rastraguru_surendranath_college),
+                        stringResource(R.string.college_behala_college),
+                        stringResource(R.string.college_bethune_college),
+                        stringResource(R.string.college_bidhannagar_college),
+                        stringResource(R.string.college_city_college),
+                        stringResource(R.string.college_derozio_memorial_college),
+                        stringResource(R.string.college_dinabandhu_andrews_college),
+                        stringResource(R.string.college_dum_dum_motijheel_college),
+                        stringResource(R.string.college_goenka_college),
+                        stringResource(R.string.college_heramba_chandra_college),
+                        stringResource(R.string.college_hooghly_mohsin_college),
+                        stringResource(R.string.college_iit_kharagpur),
+                        stringResource(R.string.college_iem_kolkata),
+                        stringResource(R.string.college_jadavpur_university),
+                        stringResource(R.string.college_jogamaya_devi_college),
+                        stringResource(R.string.college_kalyani_mahavidyalaya),
+                        stringResource(R.string.college_kazi_nazrul_islam_mahavidyalaya),
+                        stringResource(R.string.college_krishnanagar_government_college),
+                        stringResource(R.string.college_lady_brabourne_college),
+                        stringResource(R.string.college_loreto_college),
+                        stringResource(R.string.college_maulana_azad_college),
+                        stringResource(R.string.college_nit_durgapur),
+                        stringResource(R.string.college_presidency_university),
+                        stringResource(R.string.college_ramakrishna_mission_narendrapur),
+                        stringResource(R.string.college_ramakrishna_mission_vidyamandira),
+                        stringResource(R.string.college_rishi_bankim_chandra_college),
+                        stringResource(R.string.college_techno_india),
+                        stringResource(R.string.college_scottish_church_college),
+                        stringResource(R.string.college_serampore_college),
+                        stringResource(R.string.college_seth_anandram_jaipuria_college),
+                        stringResource(R.string.college_shri_shikshayatan_college),
+                        stringResource(R.string.college_siliguri_college),
+                        stringResource(R.string.college_southfield_college),
+                        stringResource(R.string.college_st_xaviers_college),
+                        stringResource(R.string.college_surendranath_college),
+                        stringResource(R.string.college_university_of_calcutta),
+                        stringResource(R.string.college_vidyasagar_college),
+                        stringResource(R.string.college_west_bengal_state_university),
+                        stringResource(R.string.college_basanti_devi_college),
+                        stringResource(R.string.college_gokhale_memorial_girls_college),
+                        stringResource(R.string.college_gurudas_college),
+                        stringResource(R.string.college_narasinha_dutt_college),
+                        stringResource(R.string.college_sivanath_sastri_college),
+                        stringResource(R.string.college_christ_university),
+                        stringResource(R.string.college_fergusson_college),
+                        stringResource(R.string.college_hindu_college),
+                        stringResource(R.string.college_iisc_bangalore),
+                        stringResource(R.string.college_iit_kanpur),
+                        stringResource(R.string.college_iit_roorkee),
+                        stringResource(R.string.college_lady_shri_ram_college),
+                        stringResource(R.string.college_loyola_college),
+                        stringResource(R.string.college_miranda_house),
+                        stringResource(R.string.college_st_stephens_college),
+                        stringResource(R.string.college_hansraj_college),
+                        stringResource(R.string.college_mount_carmel_college),
+                        stringResource(R.string.college_australian_national_university),
+                        stringResource(R.string.college_carnegie_mellon_university),
+                        stringResource(R.string.college_eth_zurich),
+                        stringResource(R.string.college_harvard_university),
+                        stringResource(R.string.college_imperial_college_london),
+                        stringResource(R.string.college_london_school_of_economics),
+                        stringResource(R.string.college_mcgill_university),
+                        stringResource(R.string.college_mit),
+                        stringResource(R.string.college_national_university_singapore),
+                        stringResource(R.string.college_purdue_university),
+                        stringResource(R.string.college_sorbonne_university),
+                        stringResource(R.string.college_stanford_university),
+                        stringResource(R.string.college_tu_delft),
+                        stringResource(R.string.college_university_college_london),
+                        stringResource(R.string.college_university_of_amsterdam),
+                        stringResource(R.string.college_university_of_british_columbia),
+                        stringResource(R.string.college_university_of_california_berkeley),
+                        stringResource(R.string.college_university_of_california_san_diego),
+                        stringResource(R.string.college_university_of_cambridge),
+                        stringResource(R.string.college_university_of_edinburgh),
+                        stringResource(R.string.college_university_of_melbourne),
+                        stringResource(R.string.college_university_of_michigan),
+                        stringResource(R.string.college_university_of_oxford),
+                        stringResource(R.string.college_university_of_queensland),
+                        stringResource(R.string.college_university_of_sydney),
+                        stringResource(R.string.college_university_of_toronto),
+                        stringResource(R.string.college_other)
+                    ),
                     selectedOption = selectedCollege,
                     onOptionChange = onCollegeChange
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Post Grad
+                //Post Grad
                 DropdownFilter(
                     label = stringResource(R.string.post_grad),
-                    options = listOf("PostGrad A", "PostGrad B", "PostGrad C"),
+                    options = listOf(
+                        stringResource(R.string.postgrad_adamas_university),
+                        stringResource(R.string.postgrad_aliah_university),
+                        stringResource(R.string.postgrad_amity_university_kolkata),
+                        stringResource(R.string.postgrad_bankura_university),
+                        stringResource(R.string.postgrad_bidhan_chandra_krishi_viswavidyalaya),
+                        stringResource(R.string.postgrad_brainware_university),
+                        stringResource(R.string.postgrad_cooch_behar_panchanan_barma_university),
+                        stringResource(R.string.postgrad_darjeeling_hills_university),
+                        stringResource(R.string.postgrad_diamond_harbour_womens_university),
+                        stringResource(R.string.postgrad_iacs),
+                        stringResource(R.string.postgrad_jadavpur_university),
+                        stringResource(R.string.postgrad_jis_university),
+                        stringResource(R.string.postgrad_kazi_nazrul_university),
+                        stringResource(R.string.postgrad_maulana_abul_kalam_azad_university_of_technology),
+                        stringResource(R.string.postgrad_netaji_subhash_open_university),
+                        stringResource(R.string.postgrad_north_bengal_university),
+                        stringResource(R.string.postgrad_presidency_university),
+                        stringResource(R.string.postgrad_rabindra_bharati_university),
+                        stringResource(R.string.postgrad_raiganj_university),
+                        stringResource(R.string.postgrad_ramakrishna_mission_vivekananda),
+                        stringResource(R.string.postgrad_seacom_skills_university),
+                        stringResource(R.string.postgrad_sidho_kanho_birsha_university),
+                        stringResource(R.string.postgrad_sister_nivedita_university),
+                        stringResource(R.string.postgrad_university_of_burdwan),
+                        stringResource(R.string.postgrad_university_of_calcutta),
+                        stringResource(R.string.postgrad_university_of_engineering_and_management),
+                        stringResource(R.string.postgrad_university_of_kalyani),
+                        stringResource(R.string.postgrad_uttar_banga_krishi_vishwavidyalaya),
+                        stringResource(R.string.postgrad_vidyasagar_university),
+                        stringResource(R.string.postgrad_visva_bharati_university),
+                        stringResource(R.string.postgrad_west_bengal_state_university),
+                        stringResource(R.string.postgrad_west_bengal_university_of_animal_and_fishery_sciences),
+                        stringResource(R.string.postgrad_west_bengal_university_of_health_sciences),
+                        stringResource(R.string.postgrad_west_bengal_university_of_teachers_training),
+                        stringResource(R.string.postgrad_iit_bombay),
+                        stringResource(R.string.postgrad_iit_delhi),
+                        stringResource(R.string.postgrad_iit_kanpur),
+                        stringResource(R.string.postgrad_iit_kharagpur),
+                        stringResource(R.string.postgrad_iit_madras),
+                        stringResource(R.string.postgrad_iim_ahmedabad),
+                        stringResource(R.string.postgrad_iim_bangalore),
+                        stringResource(R.string.postgrad_iim_calcutta),
+                        stringResource(R.string.postgrad_iisc_bangalore),
+                        stringResource(R.string.postgrad_jnu),
+                        stringResource(R.string.postgrad_university_of_delhi),
+                        stringResource(R.string.postgrad_harvard_university),
+                        stringResource(R.string.postgrad_stanford_university),
+                        stringResource(R.string.postgrad_mit),
+                        stringResource(R.string.postgrad_ucsd),
+                        stringResource(R.string.postgrad_purdue_university),
+                        stringResource(R.string.postgrad_uc_berkeley),
+                        stringResource(R.string.postgrad_university_of_michigan),
+                        stringResource(R.string.postgrad_university_of_oxford),
+                        stringResource(R.string.postgrad_university_of_cambridge),
+                        stringResource(R.string.postgrad_imperial_college_london),
+                        stringResource(R.string.postgrad_london_school_of_economics),
+                        stringResource(R.string.postgrad_university_of_toronto),
+                        stringResource(R.string.postgrad_university_of_british_columbia),
+                        stringResource(R.string.postgrad_mcgill_university),
+                        stringResource(R.string.postgrad_university_of_melbourne),
+                        stringResource(R.string.postgrad_university_of_sydney),
+                        stringResource(R.string.postgrad_australian_national_university),
+                        stringResource(R.string.postgrad_tu_delft),
+                        stringResource(R.string.postgrad_eth_zurich),
+                        stringResource(R.string.postgrad_university_college_london),
+                        stringResource(R.string.postgrad_university_of_amsterdam),
+                        stringResource(R.string.postgrad_sorbonne_university),
+                        stringResource(R.string.postgrad_other)
+                    ),
                     selectedOption = selectedPostGrad,
                     onOptionChange = onPostGradChange
                 )
@@ -620,14 +892,43 @@ fun FiltersOverlay(
                 ) {
                     DropdownFilter(
                         label = stringResource(R.string.community),
-                        options = listOf("Community A", "Community B", "Community C"),
+                        options = listOf(
+                            stringResource(R.string.community_bengali),
+                            stringResource(R.string.community_santhal),
+                            stringResource(R.string.community_oraon),
+                            stringResource(R.string.community_munda),
+                            stringResource(R.string.community_punjabi),
+                            stringResource(R.string.community_tamil),
+                            stringResource(R.string.community_gujarati),
+                            stringResource(R.string.community_marwari),
+                            stringResource(R.string.community_bihari),
+                            stringResource(R.string.community_odia),
+                            stringResource(R.string.community_assamese),
+                            stringResource(R.string.community_telugu),
+                            stringResource(R.string.community_kannadiga),
+                            stringResource(R.string.community_malayali),
+                            stringResource(R.string.community_nepali),
+                            stringResource(R.string.community_bangal),
+                            stringResource(R.string.community_ghoti),
+                            stringResource(R.string.community_other)
+                        ),
                         selectedOption = selectedCommunity,
                         onOptionChange = onCommunityChange
                     )
 
                     DropdownFilter(
                         label = stringResource(R.string.religion),
-                        options = listOf("Hindu", "Muslim", "Christian", "Other"),
+                        options = listOf(
+                            stringResource(R.string.religion_hindu),
+                            stringResource(R.string.religion_muslim),
+                            stringResource(R.string.religion_christian),
+                            stringResource(R.string.religion_buddhist),
+                            stringResource(R.string.religion_jain),
+                            stringResource(R.string.religion_sikh),
+                            stringResource(R.string.religion_indigenous_tribal),
+                            stringResource(R.string.religion_no_religion),
+                            stringResource(R.string.religion_other)
+                        ),
                         selectedOption = selectedReligion,
                         onOptionChange = onReligionChange
                     )
@@ -639,7 +940,23 @@ fun FiltersOverlay(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     DropdownFilter(
                         label = stringResource(R.string.caste),
-                        options = listOf("Caste 1", "Caste 2", "Caste 3"),
+                        options = listOf(
+                            stringResource(R.string.caste_kulin_brahmin),
+                            stringResource(R.string.caste_non_kulin_brahmin),
+                            stringResource(R.string.caste_kulin_kayastha),
+                            stringResource(R.string.caste_non_kulin_kayastha),
+                            stringResource(R.string.caste_baidya),
+                            stringResource(R.string.caste_kshatriya),
+                            stringResource(R.string.caste_vaishya),
+                            stringResource(R.string.caste_rajbonshi),
+                            stringResource(R.string.caste_sadgop),
+                            stringResource(R.string.caste_mahishya),
+                            stringResource(R.string.caste_scheduled_caste),
+                            stringResource(R.string.caste_scheduled_tribe),
+                            stringResource(R.string.caste_obc),
+                            stringResource(R.string.caste_general),
+                            stringResource(R.string.caste_other)
+                        ),
                         selectedOption = selectedCaste,
                         onOptionChange = onCasteChange
                     )
@@ -667,7 +984,8 @@ fun DropdownFilter(
     onOptionChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val clearSelectionText = stringResource(R.string.clear_selection) // Resolve string in composable scope
+    val clearSelectionText =
+        stringResource(R.string.clear_selection) // Resolve string in composable scope
     val allOptions = listOf(clearSelectionText) + options // Add "Clear Selection" option
 
     Column {
@@ -676,7 +994,9 @@ fun DropdownFilter(
             Button(
                 onClick = { expanded = !expanded },
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = if (selectedOption.isNotBlank()) Color(0xFFFF6000) else Color(0xFF1A1A1A)
+                    backgroundColor = if (selectedOption.isNotBlank()) Color(0xFFFF6000) else Color(
+                        0xFF1A1A1A
+                    )
                 ),
                 border = BorderStroke(2.dp, Color(0xFFFF6000)),
                 shape = RoundedCornerShape(50), // Rounded button
@@ -765,16 +1085,19 @@ fun DatingScreenContent(
 
         var userDistance by remember { mutableStateOf<Float?>(null) }
         var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+        val context = LocalContext.current // ✅ declare at the top of the Composable
 
         LaunchedEffect(currentProfile.userId) {
             userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-            val ref = FirebaseDatabase.getInstance().getReference("aiMatchCheck/$currentUserId/${currentProfile.userId}")
+            val ref = FirebaseDatabase.getInstance()
+                .getReference("aiMatchCheck/$currentUserId/${currentProfile.userId}")
             val snap = ref.get().await()
             val existing = snap.getValue(AiMatchCheckResult::class.java)
             if (existing != null) {
                 aiMatchResult = existing
             } else {
                 runAiMatchCheck(
+                    context = context, // ← ADD THIS
                     coroutineScope = this,
                     currentUserId = currentUserId,
                     currentUserProfile = currentUserProfile!!,
@@ -792,12 +1115,14 @@ fun DatingScreenContent(
                 onSwipeRight = {
                     onSwipeRight()
                     handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
-                    if (currentProfileIndex + 1 < profiles.size) currentProfileIndex++ else currentProfileIndex = profiles.size
+                    if (currentProfileIndex + 1 < profiles.size) currentProfileIndex++ else currentProfileIndex =
+                        profiles.size
                 },
                 onSwipeLeft = {
                     onSwipeLeft()
                     handleSwipeLeft(currentUserId, currentProfile.userId)
-                    if (currentProfileIndex + 1 < profiles.size) currentProfileIndex++ else currentProfileIndex = profiles.size
+                    if (currentProfileIndex + 1 < profiles.size) currentProfileIndex++ else currentProfileIndex =
+                        profiles.size
                 },
                 navController = navController,
                 userDistance = distance,
@@ -963,7 +1288,11 @@ fun DatingProfileHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (age > 0) stringResource(R.string.name_age, profile.name, age) else profile.name,
+                text = if (age > 0) stringResource(
+                    R.string.name_age,
+                    profile.name,
+                    age
+                ) else profile.name,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
                 color = Color.White,
@@ -1181,12 +1510,19 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
         )
         ProfileDetailRow(
             label = stringResource(R.string.rating),
-            value = String.format(LocalContext.current.resources.configuration.locale, "%.2f", profile.averageRating),
+            value = String.format(
+                LocalContext.current.resources.configuration.locale,
+                "%.2f",
+                profile.averageRating
+            ),
             icon = Icons.Default.Star
         )
         ProfileDetailRow(
             label = stringResource(R.string.swipe_right_percentage),
-            value = stringResource(R.string.percentage, (profile.averageSwipeRightsOnUser * 100).roundToInt()),
+            value = stringResource(
+                R.string.percentage,
+                (profile.averageSwipeRightsOnUser * 100).roundToInt()
+            ),
             icon = Icons.Default.Swipe
         )
         ProfileDetailRow(
@@ -1201,7 +1537,9 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
             profile.am24RankingCity
         if (cityRank > 0) {
             ProfileDetailRow(
-                label = stringResource(R.string.city_ranking, profile.city.ifBlank { stringResource(R.string.city) }),
+                label = stringResource(
+                    R.string.city_ranking,
+                    profile.city.ifBlank { stringResource(R.string.city) }),
                 value = stringResource(R.string.number, cityRank),
                 icon = Icons.Default.LocationCity
             )
@@ -1213,7 +1551,9 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
             profile.am24RankingHometown
         if (hoodRank > 0) {
             ProfileDetailRow(
-                label = stringResource(R.string.locality_ranking, profile.hometown.ifBlank { stringResource(R.string.locality) }),
+                label = stringResource(
+                    R.string.locality_ranking,
+                    profile.hometown.ifBlank { stringResource(R.string.locality) }),
                 value = stringResource(R.string.number, hoodRank),
                 icon = Icons.Default.Home
             )
@@ -1232,7 +1572,10 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
             )
             if (!profile.highSchoolGraduationYear.isNullOrBlank()) {
                 ProfileDetailRow(
-                    label = stringResource(R.string.high_school_graduation_year, profile.highSchool),
+                    label = stringResource(
+                        R.string.high_school_graduation_year,
+                        profile.highSchool
+                    ),
                     value = profile.highSchoolGraduationYear,
                     icon = Icons.Default.School
                 )
@@ -1255,11 +1598,16 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
         }
     }
 }
+
 /**
  * The collapsible sections: Basic Info, Preferences, Lifestyle, Interests.
  */
 @Composable
-fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?, aiMatchResult: AiMatchCheckResult?) {
+fun ProfileCollapsibleSectionsAll(
+    profile: Profile,
+    currentUserProfile: Profile?,
+    aiMatchResult: AiMatchCheckResult?
+) {
     var showVoiceBio by rememberSaveable { mutableStateOf(false) }
     var showBasic by rememberSaveable { mutableStateOf(false) }
     var showPreferences by rememberSaveable { mutableStateOf(false) }
@@ -1269,6 +1617,7 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
     val coroutineScope = rememberCoroutineScope()
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
     var showSocialCauses by rememberSaveable { mutableStateOf(false) } // New state for Social Causes
+    val context = LocalContext.current // ✅ declare at the top of the Composable
 
     Column(
         modifier = Modifier
@@ -1293,8 +1642,10 @@ fun ProfileCollapsibleSectionsAll(profile: Profile, currentUserProfile: Profile?
                     onClick = {
                         if (currentUserProfile != null) {
                             runAiMatchCheck(
+                                context = context, // ← ADD THIS
                                 coroutineScope = coroutineScope,
-                                currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button,
+                                currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                                    ?: return@Button,
                                 currentUserProfile = currentUserProfile,
                                 otherProfile = profile
                             ) { newResult ->
@@ -1444,7 +1795,9 @@ fun CollapsibleSection(
         ) {
             Icon(
                 imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
+                contentDescription = if (isExpanded) stringResource(R.string.collapse) else stringResource(
+                    R.string.expand
+                ),
                 tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
@@ -1560,14 +1913,16 @@ fun handleSwipeRight(
     val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
 
     val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
-    val otherUserLikesReceivedRef = database.getReference("likesReceived/$otherUserId/$currentUserId")
+    val otherUserLikesReceivedRef =
+        database.getReference("likesReceived/$otherUserId/$currentUserId")
 
     val swipeData = SwipeData(liked = true, timestamp = timestamp)
     currentUserSwipesRef.setValue(swipeData)
     currentUserLikesGivenRef.setValue(timestamp)
     otherUserLikesReceivedRef.setValue(timestamp)
 
-    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
+    val otherUserTotalSwipesRef =
+        database.getReference("swipesReceived/$otherUserId/$currentUserId")
     otherUserTotalSwipesRef.setValue(true)
 
     val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
@@ -1602,7 +1957,8 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
 
-    val otherUserTotalSwipesRef = database.getReference("swipesReceived/$otherUserId/$currentUserId")
+    val otherUserTotalSwipesRef =
+        database.getReference("swipesReceived/$otherUserId/$currentUserId")
     otherUserTotalSwipesRef.setValue(true)
 
     val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
@@ -1637,26 +1993,27 @@ suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
         excludedIds
     }
 }
+
 fun runAiMatchCheck(
+    context: Context,
     coroutineScope: CoroutineScope,
     currentUserId: String,
     currentUserProfile: Profile,
     otherProfile: Profile,
     onComplete: (AiMatchCheckResult) -> Unit
 ) {
-    // Compute the mathematical compatibility score and insights.
-    val (finalScore, insights) = calculateExhaustiveCompatibilityScore(currentUserProfile, otherProfile)
+    val (finalScore, insights) = calculateExhaustiveCompatibilityScore(
+        context,
+        currentUserProfile,
+        otherProfile
+    )
 
-    // Join insights into a breakdown string.
     val breakdownText = insights.joinToString(separator = "\n") { "${it.emoji} ${it.text}" }
 
-    // Create a summary text that shows both the percentage and the breakdown details.
     val summaryText = "Total Match: $finalScore%\nBreakdown:\n$breakdownText"
 
-    Log.d("runAiMatchCheck", "Calculated compatibility for currentUserId: $currentUserId and otherProfileId: ${otherProfile.userId}")
     Log.d("runAiMatchCheck", "Compatibility Summary: $summaryText")
 
-    // Create an AiMatchCheckResult instance based solely on the computed values.
     val result = AiMatchCheckResult(
         summary = summaryText,
         totalMatchPercentage = finalScore,
@@ -1664,19 +2021,20 @@ fun runAiMatchCheck(
         timestamp = System.currentTimeMillis()
     )
 
-    // Save the result in Firebase.
     FirebaseDatabase.getInstance()
         .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
         .setValue(result)
 
-    // Invoke the onComplete callback on the Main thread.
     coroutineScope.launch(Dispatchers.Main) {
         onComplete(result)
     }
 }
+
+
 data class MatchInsight(val emoji: String, val text: String, val isPositive: Boolean)
 
 fun calculateExhaustiveCompatibilityScore(
+    context: Context,
     profileA: Profile,
     profileB: Profile
 ): Pair<Int, List<MatchInsight>> {
@@ -1684,25 +2042,24 @@ fun calculateExhaustiveCompatibilityScore(
     val maxScore = 100.0
     val insights = mutableListOf<MatchInsight>()
 
-    // Helper: Resolve a field with fallback and trim it.
     fun resolveField(primary: String, fallback: String?): String {
         return if (primary.trim().isNotEmpty()) primary.trim() else (fallback?.trim() ?: "")
     }
 
-    // Helper: Compare string fields.
-    // If both fields are empty then add an "etc" note and return 0.
     fun compareStringField(a: String, b: String, label: String, points: Double): Double {
         val aTrim = a.orEmpty().trim()
         val bTrim = b.orEmpty().trim()
         return when {
             aTrim.isEmpty() && bTrim.isEmpty() -> {
-                insights += MatchInsight("ℹ️", "$label: not set by both", false)
+                insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_not_set_suffix, label), false)
                 0.0
             }
+
             aTrim.equals(bTrim, ignoreCase = true) -> {
                 insights += MatchInsight("✅", "$label match: Both are \"$aTrim\"", true)
                 points
             }
+
             else -> {
                 insights += MatchInsight("⚠️", "$label mismatch: \"$aTrim\" vs \"$bTrim\"", false)
                 0.0
@@ -1710,148 +2067,207 @@ fun calculateExhaustiveCompatibilityScore(
         }
     }
 
-    // 1. Education (Total: 12 points)
+    // 1. Education
     val collegeA = resolveField(profileA.college, profileA.customCollege)
     val collegeB = resolveField(profileB.college, profileB.customCollege)
-    score += compareStringField(collegeA, collegeB, "College", 6.0)
+    if (collegeA.isNotBlank() && collegeA.equals(collegeB, true)) {
+        score += 6.0
+    } else {
+        insights += MatchInsight(
+            "⚠️",
+            context.getString(R.string.college_mismatch_format, collegeA, collegeB),
+            false
+        )
+    }
 
-    val postGradA = resolveField(profileA.postGraduation ?: "", profileA.customPostGraduation)
-    val postGradB = resolveField(profileB.postGraduation ?: "", profileB.customPostGraduation)
-    score += compareStringField(postGradA, postGradB, "Post-Graduation", 6.0)
+    val pgA = resolveField(profileA.postGraduation ?: "", profileA.customPostGraduation)
+    val pgB = resolveField(profileB.postGraduation ?: "", profileB.customPostGraduation)
+    if (pgA.isNotBlank() && pgA.equals(pgB, true)) {
+        score += 6.0
+    } else {
+        insights += MatchInsight(
+            "⚠️",
+            context.getString(R.string.post_graduation_mismatch_format, pgA, pgB),
+            false
+        )
+    }
 
-    // 2. Work & Job Role (Total: 13 points)
-    score += compareStringField(profileA.work, profileB.work, "Workplace", 8.0)
-    score += compareStringField(profileA.jobRole, profileB.jobRole, "Job Role", 5.0)
+    // 2. Work & Job Role
+    score += compareStringField(profileA.work, profileB.work, context.getString(R.string.workplace_label), 8.0)
+    score += compareStringField(profileA.jobRole, profileB.jobRole, context.getString(R.string.job_role_label), 5.0)
 
-    // 3. Love Language (4 points)
-    score += compareStringField(profileA.loveLanguage, profileB.loveLanguage, "Love Language", 4.0)
+    // 3. Love Language
+    score += compareStringField(profileA.loveLanguage, profileB.loveLanguage, context.getString(R.string.love_language_label), 4.0)
 
-    // 4. Relationship Intent (6 points)
-    score += compareStringField(profileA.lookingFor, profileB.lookingFor, "Relationship intent", 6.0)
+    // 4. Relationship Intent
+    score += compareStringField(profileA.lookingFor, profileB.lookingFor, context.getString(R.string.relationship_intent_label), 6.0)
 
-    // 5. Community & Religion (Total: 9 points)
-    score += compareStringField(profileA.community, profileB.community, "Community", 5.0)
-    score += compareStringField(profileA.religion, profileB.religion, "Religion", 4.0)
+    // 5. Community & Religion
+    val communityA = profileA.community.trim()
+    val communityB = profileB.community.trim()
+    if (communityA.equals(communityB, true) && communityA.isNotBlank()) {
+        score += 5.0
+        insights += MatchInsight("✅", context.getString(R.string.community_match_format, communityA), true)
+    } else {
+        insights += MatchInsight("⚠️", context.getString(R.string.community_match_format, "$communityA vs $communityB"), false)
+    }
 
-    // 6. Location: City (4 points)
-    score += compareStringField(profileA.city, profileB.city, "City", 4.0)
+    val religionA = profileA.religion.trim()
+    val religionB = profileB.religion.trim()
+    if (religionA.equals(religionB, true) && religionA.isNotBlank()) {
+        score += 4.0
+        insights += MatchInsight("✅", context.getString(R.string.religion_match_format, religionA), true)
+    } else {
+        insights += MatchInsight("⚠️", context.getString(R.string.religion_match_format, "$religionA vs $religionB"), false)
+    }
 
-    // 7. Preferred Language (3 points)
-    score += compareStringField(profileA.preferredLanguage, profileB.preferredLanguage, "Preferred Language", 3.0)
+    // 6. City
+    val cityA = profileA.city.trim()
+    val cityB = profileB.city.trim()
+    if (cityA.equals(cityB, true) && cityA.isNotBlank()) {
+        score += 4.0
+    } else {
+        insights += MatchInsight("⚠️", context.getString(R.string.city_mismatch_format, cityA, cityB), false)
+    }
 
-    // 8. Interests (Up to 8 points)
+
+    // 7. Preferred Language
+    score += compareStringField(profileA.preferredLanguage, profileB.preferredLanguage, context.getString(R.string.preferred_language_label), 3.0)
+
+    // 8. Interests
     val interestsA = profileA.interests.map { it.name.trim() }.filter { it.isNotEmpty() }.toSet()
     val interestsB = profileB.interests.map { it.name.trim() }.filter { it.isNotEmpty() }.toSet()
     val sharedInterests = interestsA.intersect(interestsB)
     if (sharedInterests.isNotEmpty()) {
         val bonus = (sharedInterests.size * 2).coerceAtMost(8)
         score += bonus.toDouble()
-        insights += MatchInsight("✅", "Shared interests: ${sharedInterests.joinToString()}", true)
+        insights += MatchInsight("✅", context.getString(R.string.shared_interests_prefix, sharedInterests.joinToString()), true)
     } else {
         if (interestsA.isEmpty() && interestsB.isEmpty()) {
-            insights += MatchInsight("ℹ️", "Interests: not set by both", false)
+            insights += MatchInsight("ℹ️", context.getString(R.string.interests_not_set), false)
         } else {
-            insights += MatchInsight("⚠️", "No common interests", false)
+            insights += MatchInsight("⚠️", context.getString(R.string.no_common_interests), false)
         }
     }
 
-    // 9. Social Causes (Up to 6 points)
+    // 9. Social Causes
     val causesA = profileA.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val causesB = profileB.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val sharedCauses = causesA.intersect(causesB)
     if (sharedCauses.isNotEmpty()) {
         val bonus = (sharedCauses.size * 2).coerceAtMost(6)
         score += bonus.toDouble()
-        insights += MatchInsight("✅", "Shared social causes: ${sharedCauses.joinToString()}", true)
+        insights += MatchInsight("✅", context.getString(R.string.shared_social_causes_prefix, sharedCauses.joinToString()), true)
     } else {
         if (causesA.isEmpty() && causesB.isEmpty()) {
-            insights += MatchInsight("ℹ️", "Social causes: not set by both", false)
+            insights += MatchInsight("ℹ️", context.getString(R.string.social_causes_not_set), false)
         } else {
-            insights += MatchInsight("⚠️", "No common social causes", false)
+            insights += MatchInsight("⚠️", context.getString(R.string.no_common_social_causes), false)
         }
     }
 
-    // 10. Zodiac (5 points)
-    val zodiacA = if (!profileA.zodiac.isNullOrBlank()) profileA.zodiac.orEmpty().trim() else deriveZodiac(profileA.dob)
-    val zodiacB = if (!profileB.zodiac.isNullOrBlank()) profileB.zodiac.orEmpty().trim() else deriveZodiac(profileB.dob)
+    // 10. Zodiac
+    val zodiacA = if (!profileA.zodiac.isNullOrBlank()) profileA.zodiac!! else deriveZodiac(profileA.dob)
+    val zodiacB = if (!profileB.zodiac.isNullOrBlank()) profileB.zodiac!! else deriveZodiac(profileB.dob)
     if (zodiacA != "Unknown" && zodiacB != "Unknown") {
         if (isZodiacCompatible(zodiacA, zodiacB)) {
             score += 5.0
-            insights += MatchInsight("✅", "Zodiac compatibility: $zodiacA + $zodiacB", true)
+            insights += MatchInsight("✅", context.getString(R.string.zodiac_compatibility_prefix, zodiacA, zodiacB), true)
         } else {
-            insights += MatchInsight("⚠️", "Zodiac mismatch: $zodiacA vs $zodiacB", false)
+            insights += MatchInsight("⚠️", context.getString(R.string.zodiac_mismatch_prefix, zodiacA, zodiacB), false)
         }
     } else {
-        insights += MatchInsight("ℹ️", "Zodiac: not set", false)
+        insights += MatchInsight("ℹ️", context.getString(R.string.zodiac_not_set), false)
     }
 
-    // 11. Matrimony Mode (Total: 6 points)
+    // 11. Matrimony Mode
     if (profileA.isMatrimonyMode && profileB.isMatrimonyMode) {
         score += 3.0
-        score += compareStringField(profileA.marriageTimeline.orEmpty(), profileB.marriageTimeline.orEmpty(), "Marriage timeline", 3.0)
+        score += compareStringField(profileA.marriageTimeline.orEmpty(), profileB.marriageTimeline.orEmpty(), context.getString(R.string.marriage_timeline_label), 3.0)
     } else if (profileA.isMatrimonyMode != profileB.isMatrimonyMode) {
-        insights += MatchInsight("⚠️", "Matrimony mismatch: one is in marriage mode, the other is not", false)
+        insights += MatchInsight("⚠️", context.getString(R.string.matrimony_mismatch), false)
     } else {
-        insights += MatchInsight("ℹ️", "Matrimony mode: not set in both", false)
+        insights += MatchInsight("ℹ️", context.getString(R.string.matrimony_not_set), false)
     }
 
-    // 12. Relocation Preference (4 points)
-    score += compareStringField(
-        profileA.relocationPreference.orEmpty(),
-        profileB.relocationPreference.orEmpty(),
-        "Relocation",
-        4.0
-    )
+    // 12. Relocation
+    val relocA = profileA.relocationPreference.orEmpty().trim()
+    val relocB = profileB.relocationPreference.orEmpty().trim()
+    if (relocA.equals(relocB, true) && relocA.isNotBlank()) {
+        score += 4.0
+    } else {
+        insights += MatchInsight("⚠️", context.getString(R.string.relocation_mismatch_format, relocA, relocB), false)
+    }
 
-    // 13. Post-Marriage Career Plan (3 points)
-    score += compareStringField(
-        profileA.postMarriageCareerPlan.orEmpty(),
-        profileB.postMarriageCareerPlan.orEmpty(),
-        "Post-marriage career plan",
-        3.0
-    )
+    // 13. Post-Marriage Career
+    val careerA = profileA.postMarriageCareerPlan.orEmpty().trim()
+    val careerB = profileB.postMarriageCareerPlan.orEmpty().trim()
+    if (careerA.equals(careerB, true) && careerA.isNotBlank()) {
+        score += 3.0
+    } else {
+        insights += MatchInsight("⚠️", context.getString(R.string.career_plan_mismatch_format, careerA, careerB), false)
+    }
 
-    // 14. Tradition vs. Liberal (3 points)
-    score += compareStringField(
-        profileA.traditionalVsLiberal.orEmpty(),
-        profileB.traditionalVsLiberal.orEmpty(),
-        "Cultural mindset",
-        3.0
-    )
+    // 14. Cultural Mindset
+    val cultureA = profileA.traditionalVsLiberal.orEmpty().trim()
+    val cultureB = profileB.traditionalVsLiberal.orEmpty().trim()
+    if (cultureA.equals(cultureB, true) && cultureA.isNotBlank()) {
+        score += 3.0
+    } else {
+        insights += MatchInsight("⚠️", context.getString(R.string.cultural_mindset_mismatch_format, cultureA, cultureB), false)
+    }
 
-    // 15. Exhaustive Lifestyle Comparison (10 points)
+    // 15. Lifestyle
     val lifestyleFieldNames = listOf(
-        "Smoking", "Drinking", "Indoor/Outdoor", "Sexual activity", "Sociability",
-        "Social media", "Dietary Preferences", "Sleep", "Work-life balance", "Exercise", "Adventurousness",
-        "Family oriented", "Intellectual curiosity", "Creative expression",
-        "Physical fitness", "Spirituality", "Easy going", "Professional ambition",
-        "Environmental awareness", "Culinary enthusiasm", "Political awareness",
-        "Community engagement", "Sports"
+        context.getString(R.string.lifestyle_smoking),
+        context.getString(R.string.lifestyle_drinking),
+        context.getString(R.string.lifestyle_indoor_outdoor),
+        context.getString(R.string.lifestyle_sexual_activity),
+        context.getString(R.string.lifestyle_sociability),
+        context.getString(R.string.lifestyle_social_media),
+        context.getString(R.string.lifestyle_dietary_preferences),
+        context.getString(R.string.lifestyle_sleep),
+        context.getString(R.string.lifestyle_work_life_balance),
+        context.getString(R.string.lifestyle_exercise),
+        context.getString(R.string.lifestyle_adventurousness),
+        context.getString(R.string.lifestyle_family_oriented),
+        context.getString(R.string.lifestyle_intellectual_curiosity),
+        context.getString(R.string.lifestyle_creative_expression),
+        context.getString(R.string.lifestyle_physical_fitness),
+        context.getString(R.string.lifestyle_spirituality),
+        context.getString(R.string.lifestyle_humor),
+        context.getString(R.string.lifestyle_professional_ambition),
+        context.getString(R.string.lifestyle_environmental_awareness),
+        context.getString(R.string.lifestyle_culinary_enthusiasm),
+        context.getString(R.string.lifestyle_political_awareness),
+        context.getString(R.string.lifestyle_community_engagement),
+        context.getString(R.string.lifestyle_sports),
     )
-    val lifestylePairs = listOf<Pair<Any?, Any?>>(
-        Pair(profileA.lifestyle?.smoking_habit, profileB.lifestyle?.smoking_habit),
-        Pair(profileA.lifestyle?.drinking_habit, profileB.lifestyle?.drinking_habit),
-        Pair(profileA.lifestyle?.indoor_outdoor_orientation, profileB.lifestyle?.indoor_outdoor_orientation),
-        Pair(profileA.lifestyle?.sexual_activity_level, profileB.lifestyle?.sexual_activity_level),
-        Pair(profileA.lifestyle?.sociability, profileB.lifestyle?.sociability),
-        Pair(profileA.lifestyle?.social_media_engagement, profileB.lifestyle?.social_media_engagement),
-        Pair(profileA.lifestyle?.dietary_preferences, profileB.lifestyle?.dietary_preferences),
-        Pair(profileA.lifestyle?.sleep_pattern, profileB.lifestyle?.sleep_pattern),
-        Pair(profileA.lifestyle?.work_life_balance, profileB.lifestyle?.work_life_balance),
-        Pair(profileA.lifestyle?.exercise_frequency, profileB.lifestyle?.exercise_frequency),
-        Pair(profileA.lifestyle?.adventurousness, profileB.lifestyle?.adventurousness),
-        Pair(profileA.lifestyle?.family_orientated, profileB.lifestyle?.family_orientated),
-        Pair(profileA.lifestyle?.intellectual_curiosity, profileB.lifestyle?.intellectual_curiosity),
-        Pair(profileA.lifestyle?.creative_expression, profileB.lifestyle?.creative_expression),
-        Pair(profileA.lifestyle?.physical_fitness, profileB.lifestyle?.physical_fitness),
-        Pair(profileA.lifestyle?.spirituality_mindfulness, profileB.lifestyle?.spirituality_mindfulness),
-        Pair(profileA.lifestyle?.easy_goingness, profileB.lifestyle?.easy_goingness),
-        Pair(profileA.lifestyle?.professional_ambition, profileB.lifestyle?.professional_ambition),
-        Pair(profileA.lifestyle?.environmental_awareness, profileB.lifestyle?.environmental_awareness),
-        Pair(profileA.lifestyle?.culinary_enthusiasm, profileB.lifestyle?.culinary_enthusiasm),
-        Pair(profileA.lifestyle?.political_awareness, profileB.lifestyle?.political_awareness),
-        Pair(profileA.lifestyle?.community_engagement, profileB.lifestyle?.community_engagement),
-        Pair(profileA.lifestyle?.sports_enthusiasm, profileB.lifestyle?.sports_enthusiasm),
+
+    val lifestylePairs = listOf(
+        profileA.lifestyle?.smoking_habit to profileB.lifestyle?.smoking_habit,
+        profileA.lifestyle?.drinking_habit to profileB.lifestyle?.drinking_habit,
+        profileA.lifestyle?.indoor_outdoor_orientation to profileB.lifestyle?.indoor_outdoor_orientation,
+        profileA.lifestyle?.sexual_activity_level to profileB.lifestyle?.sexual_activity_level,
+        profileA.lifestyle?.sociability to profileB.lifestyle?.sociability,
+        profileA.lifestyle?.social_media_engagement to profileB.lifestyle?.social_media_engagement,
+        profileA.lifestyle?.dietary_preferences to profileB.lifestyle?.dietary_preferences,
+        profileA.lifestyle?.sleep_pattern to profileB.lifestyle?.sleep_pattern,
+        profileA.lifestyle?.work_life_balance to profileB.lifestyle?.work_life_balance,
+        profileA.lifestyle?.exercise_frequency to profileB.lifestyle?.exercise_frequency,
+        profileA.lifestyle?.adventurousness to profileB.lifestyle?.adventurousness,
+        profileA.lifestyle?.family_orientated to profileB.lifestyle?.family_orientated,
+        profileA.lifestyle?.intellectual_curiosity to profileB.lifestyle?.intellectual_curiosity,
+        profileA.lifestyle?.creative_expression to profileB.lifestyle?.creative_expression,
+        profileA.lifestyle?.physical_fitness to profileB.lifestyle?.physical_fitness,
+        profileA.lifestyle?.spirituality_mindfulness to profileB.lifestyle?.spirituality_mindfulness,
+        profileA.lifestyle?.easy_goingness to profileB.lifestyle?.easy_goingness,
+        profileA.lifestyle?.professional_ambition to profileB.lifestyle?.professional_ambition,
+        profileA.lifestyle?.environmental_awareness to profileB.lifestyle?.environmental_awareness,
+        profileA.lifestyle?.culinary_enthusiasm to profileB.lifestyle?.culinary_enthusiasm,
+        profileA.lifestyle?.political_awareness to profileB.lifestyle?.political_awareness,
+        profileA.lifestyle?.community_engagement to profileB.lifestyle?.community_engagement,
+        profileA.lifestyle?.sports_enthusiasm to profileB.lifestyle?.sports_enthusiasm,
     )
 
     var lifestyleMatched = 0
@@ -1860,94 +2276,93 @@ fun calculateExhaustiveCompatibilityScore(
     val lifestyleMismatchesList = mutableListOf<String>()
 
     for ((index, pair) in lifestylePairs.withIndex()) {
-        val fieldName = lifestyleFieldNames.getOrElse(index) { "Lifestyle Field" }
+        val label = lifestyleFieldNames.getOrElse(index) { context.getString(R.string.lifestyle_field_default) }
         val a = pair.first
         val b = pair.second
         when {
             a is Int && b is Int -> {
                 if (a == -1 && b == -1) {
-                    // Both not set; list note but do not count
-                    lifestyleMatchesList.add("$fieldName: not set by both")
+                    lifestyleMatchesList.add(context.getString(R.string.lifestyle_not_set_suffix, label))
                 } else if (a == -1 || b == -1) {
                     lifestyleCompared++
-                    lifestyleMismatchesList.add("$fieldName: one not set")
+                    lifestyleMismatchesList.add(context.getString(R.string.lifestyle_one_not_set_suffix, label))
                 } else {
                     lifestyleCompared++
-                    val diff = kotlin.math.abs(a - b)
-                    if (diff == 0) {
+                    if (a == b) {
                         lifestyleMatched++
-                        lifestyleMatchesList.add(fieldName)
+                        lifestyleMatchesList.add(label)
                     } else {
-                        lifestyleMismatchesList.add("$fieldName: $a vs $b")
+                        lifestyleMismatchesList.add("$label: $a vs $b")
                     }
                 }
             }
+
             a is Boolean && b is Boolean -> {
                 lifestyleCompared++
                 if (a == b) {
                     lifestyleMatched++
-                    lifestyleMatchesList.add(fieldName)
+                    lifestyleMatchesList.add(label)
                 } else {
-                    lifestyleMismatchesList.add("$fieldName: $a vs $b")
+                    lifestyleMismatchesList.add("$label: $a vs $b")
                 }
             }
+
             a is String && b is String -> {
-                val aTrim = a.trim()
-                val bTrim = b.trim()
-                if (aTrim.isEmpty() && bTrim.isEmpty()) {
-                    lifestyleMatchesList.add("$fieldName: not set by both")
-                } else if (aTrim.isEmpty() || bTrim.isEmpty()) {
+                if (a.isBlank() && b.isBlank()) {
+                    lifestyleMatchesList.add(context.getString(R.string.lifestyle_not_set_suffix, label))
+                } else if (a.isBlank() || b.isBlank()) {
                     lifestyleCompared++
-                    lifestyleMismatchesList.add("$fieldName: one not set")
+                    lifestyleMismatchesList.add(context.getString(R.string.lifestyle_one_not_set_suffix, label))
                 } else {
                     lifestyleCompared++
-                    if (aTrim.equals(bTrim, ignoreCase = true)) {
+                    if (a.equals(b, ignoreCase = true)) {
                         lifestyleMatched++
-                        lifestyleMatchesList.add(fieldName)
+                        lifestyleMatchesList.add(label)
                     } else {
-                        lifestyleMismatchesList.add("$fieldName: '$aTrim' vs '$bTrim'")
+                        lifestyleMismatchesList.add("$label: '$a' vs '$b'")
                     }
                 }
             }
         }
     }
 
-    // Create aggregated insight for Lifestyle.
     if (lifestyleCompared > 0) {
         if (lifestyleCompared < 5) {
             if (lifestyleMatched > 0) {
-                // List exactly which traits matched.
-                val matchedTraits = lifestyleMatchesList.filter { !it.contains("not set") }
-                insights += MatchInsight("✅", "Both of you align on these $lifestyleMatched lifestyle traits: ${matchedTraits.joinToString(", ")}", true)
+                insights += MatchInsight("✅", context.getString(R.string.lifestyle_match_format, lifestyleMatched, lifestyleMatchesList.joinToString(", ")), true)
             } else {
-                insights += MatchInsight("⚠️", "No lifestyle traits sufficiently set to compare", false)
+                insights += MatchInsight("⚠️", context.getString(R.string.lifestyle_no_traits_to_compare), false)
             }
         } else {
             val percentage = (lifestyleMatched.toDouble() / lifestyleCompared.toDouble()) * 100
-            val commonTraits = lifestyleMatchesList.filter { !it.contains("not set") }
-            insights += MatchInsight("✅", "Lifestyle similarity: ${"%.1f".format(percentage)}% match over $lifestyleCompared factors. Common traits: ${if(commonTraits.isNotEmpty()) commonTraits.joinToString(", ") else "None"}", true)
+            insights += MatchInsight(
+                "✅",
+                context.getString(R.string.lifestyle_similarity_format, "%.1f".format(percentage), lifestyleCompared, lifestyleMatchesList.joinToString(", ").ifEmpty { context.getString(R.string.lifestyle_none_common) }),
+                true
+            )
         }
     } else {
-        insights += MatchInsight("ℹ️", "Lifestyle: not set in both profiles", false)
-    }
-    if (lifestyleMismatchesList.isNotEmpty()) {
-        insights += MatchInsight("⚠️", "Lifestyle mismatches: ${lifestyleMismatchesList.joinToString("; ")}", false)
+        insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_not_set_in_profiles), false)
     }
 
-    // 17. User Tags (Bonus: up to 2 points)
+    if (lifestyleMismatchesList.isNotEmpty()) {
+        insights += MatchInsight("⚠️", context.getString(R.string.lifestyle_mismatches_format, lifestyleMismatchesList.joinToString("; ")), false)
+    }
+
+    // 16. Tags
     val tagsA = profileA.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val tagsB = profileB.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val sharedTags = tagsA.intersect(tagsB)
     if (sharedTags.isNotEmpty()) {
-        val bonus = (sharedTags.size * 1).coerceAtMost(2)
+        val bonus = (sharedTags.size).coerceAtMost(2)
         score += bonus.toDouble()
-        insights += MatchInsight("✅", "Shared tags: ${sharedTags.joinToString()}", true)
+        insights += MatchInsight("✅", context.getString(R.string.shared_tags_prefix, sharedTags.joinToString()), true)
     } else {
-        insights += MatchInsight("ℹ️", "User tags: not set or no overlap", false)
+        insights += MatchInsight("ℹ️", context.getString(R.string.tags_not_set_or_no_overlap), false)
     }
 
     val finalScore = score.coerceAtMost(maxScore).toInt()
-    return Pair(finalScore, insights)
+    return finalScore to insights
 }
 
 /** Haversine + getUserLocation */
@@ -1962,13 +2377,14 @@ fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     return (earthRadius * c).toFloat()
 }
 
-suspend fun calculateDistance(userId1: String, userId2: String, geoFire: GeoFire): Float? = withContext(Dispatchers.Default) {
-    val loc1 = getUserLocation(userId1, geoFire)
-    val loc2 = getUserLocation(userId2, geoFire)
-    if (loc1 != null && loc2 != null) {
-        haversine(loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude)
-    } else null
-}
+suspend fun calculateDistance(userId1: String, userId2: String, geoFire: GeoFire): Float? =
+    withContext(Dispatchers.Default) {
+        val loc1 = getUserLocation(userId1, geoFire)
+        val loc2 = getUserLocation(userId2, geoFire)
+        if (loc1 != null && loc2 != null) {
+            haversine(loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude)
+        } else null
+    }
 
 suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? =
     suspendCancellableCoroutine { continuation ->
@@ -1976,6 +2392,7 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? =
             override fun onLocationResult(key: String?, location: GeoLocation?) {
                 continuation.resume(location)
             }
+
             override fun onCancelled(databaseError: DatabaseError) {
                 continuation.resumeWithException(databaseError.toException())
             }

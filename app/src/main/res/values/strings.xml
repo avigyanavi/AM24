@@ -1,7 +1,641 @@
 <resources>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
+    <!-- ProfileScreen -->
+    <!-- GENERAL / COMMON -->
+    <string name="edit">Edit</string>
+    <string name="cancel_edit">Cancel Edit</string>
+    <string name="not_set">Not set</string>
 
+    <!-- PROFILE SCREEN TOP‑LEVEL -->
+    <string name="profile_loading">Loading your profile…</string>
+    <string name="looking_for_label">Looking For</string>
+
+
+    <!-- VERIFICATION BADGE -->
+    <string name="verified_profile_cd">Verified profile</string>
+    <string name="verify_profile_cd">Verify profile</string>
+
+    <!-- Lifestyle -->
+    <string name="family_information">Family Information</string>
+    <string name="add">Add</string>
+
+    <string name="select_looking_for">Select Looking For</string>
+    <string name="looking_for_marriage">Marriage</string>
+    <string name="looking_for_partner">Partner</string>
+    <string name="looking_for_connection">Connection</string>
+    <string name="looking_for_casual_sex">Casual Sex</string>
+    <string name="looking_for_not_selected">Not Selected</string>
+
+    <string name="very_high">Very High</string>
+    <string name="high">High</string>
+    <string name="moderate">Moderate</string>
+    <string name="low">Low</string>
+    <string name="inactive">Inactive</string>
+
+    <string name="extremely_introverted">Extremely Introverted</string>
+    <string name="very_introverted">Very Introverted</string>
+    <string name="moderately_introverted">Moderately Introverted</string>
+    <string name="slightly_introverted">Slightly Introverted</string>
+    <string name="not_introverted">Not Introverted</string>
+
+    <string name="sports_fanatic">Sports Fanatic</string>
+    <string name="sports_enthusiast">Sports Enthusiast</string>
+    <string name="occasional_player">Occasional Player</string>
+    <string name="casual_viewer">Casual Viewer</string>
+    <string name="non_sports">Non‑Sports</string>
+
+    <string name="community_leader">Community Leader</string>
+    <string name="community_oriented">Community Oriented</string>
+    <string name="occasionally_involved">Occasionally Involved</string>
+    <string name="individualistic">Individualistic</string>
+
+    <string name="politically_engaged">Politically Engaged</string>
+    <string name="aware">Aware</string>
+    <string name="occasionally_aware">Occasionally Aware</string>
+    <string name="unaware">Unaware</string>
+
+    <string name="gourmet">Gourmet</string>
+    <string name="passionate_foodie">Passionate Foodie</string>
+    <string name="foodie">Foodie</string>
+    <string name="occasional_foodie">Occasional Foodie</string>
+    <string name="not_a_foodie">Not a Foodie</string>
+
+    <string name="eco_champion">Eco‑Champion</string>
+    <string name="eco_friendly">Eco‑Friendly</string>
+    <string name="occasionally_conscious">Occasionally Conscious</string>
+    <string name="not_conscious">Not Conscious</string>
+
+    <string name="high_ambitious">Highly Ambitious</string>
+    <string name="ambitious">Ambitious</string>
+    <string name="occasionally_driven">Occasionally Driven</string>
+    <string name="relaxed">Relaxed</string>
+
+    <string name="life_of_the_party">Life of the Party</string>
+    <string name="humorous">Humorous</string>
+    <string name="somewhat_easygoing">Somewhat Easygoing</string>
+    <string name="serious">Serious</string>
+
+    <string name="lifestyle_humor">Going Out</string>
+
+    <string name="deeply_mindful">Deeply Mindful</string>
+    <string name="spiritual">Spiritual</string>
+    <string name="occasionally_mindful">Occasionally Mindful</string>
+    <string name="not_spiritual">Not Spiritual</string>
+
+    <string name="peak_fitness">Peak Fitness</string>
+    <string name="athletic">Athletic</string>
+    <string name="fit">Fit</string>
+    <string name="somewhat_fit">Somewhat Fit</string>
+    <string name="sedentary">Sedentary</string>
+
+    <string name="artistic_genius">Artistic Genius</string>
+    <string name="very_creative">Very Creative</string>
+    <string name="creative">Creative</string>
+    <string name="somewhat_creative">Somewhat Creative</string>
+    <string name="not_creative">Not Creative</string>
+
+    <string name="philosopher">Philosopher</string>
+    <string name="intellectual">Intellectual</string>
+    <string name="knowledge_seeker">Knowledge Seeker</string>
+    <string name="inquisitive">Inquisitive</string>
+    <string name="casual_thinker">Casual Thinker</string>
+
+    <string name="thrill_seeker">Thrill Seeker</string>
+    <string name="adventurous">Adventurous</string>
+    <string name="moderately_adventurous">Moderately Adventurous</string>
+    <string name="slightly_adventurous">Slightly Adventurous</string>
+    <string name="cautious">Cautious</string>
+
+    <string name="late_night_enthusiast">Late Night Enthusiast</string>
+    <string name="night_owl">Night Owl</string>
+    <string name="morning_person">Morning Person</string>
+    <string name="early_riser">Early Riser</string>
+
+    <string name="very_family_oriented">Very Family‑Oriented</string>
+    <string name="more_family_oriented">More Family‑Oriented</string>
+    <string name="slightly_family_oriented">Slightly Family‑Oriented</string>
+    <string name="independent">Independent</string>
+
+    <string name="very_active">Very Active</string>
+    <string name="active">Active</string>
+    <string name="moderately_active">Moderately Active</string>
+    <string name="rarely_active">Rarely Active</string>
+
+    <string name="more_life_oriented">More Life‑Oriented</string>
+    <string name="more_work_oriented">More Work‑Oriented</string>
+    <string name="workaholic">Workaholic</string>
+
+    <string name="influencer">Influencer</string>
+    <string name="engager">Engager</string>
+    <string name="casual_participant">Casual Participant</string>
+    <string name="watcher">Watcher</string>
+    <string name="invisible">Invisible</string>
+
+    <string name="very_outdoorsy">Very Outdoorsy</string>
+    <string name="mostly_outdoorsy">Mostly Outdoorsy</string>
+    <string name="mostly_indoorsy">Mostly Indoorsy</string>
+    <string name="very_indoorsy">Very Indoorsy</string>
+
+    <string name="heavy_drinker">Heavy Drinker</string>
+    <string name="frequent_drinker">Frequent Drinker</string>
+    <string name="social_drinker">Social Drinker</string>
+    <string name="rare_drinker">Rare Drinker</string>
+    <string name="non_drinker">Non‑Drinker</string>
+
+    <string name="heavy_smoker">Heavy Smoker</string>
+    <string name="frequent_smoker">Frequent Smoker</string>
+    <string name="social_smoker">Social Smoker</string>
+    <string name="rare_smoker">Rare Smoker</string>
+    <string name="non_smoker">Non‑Smoker</string>
+
+    <string name="record_voice_bio">Record Voice Bio</string>
+    <string name="edit_voice_bio">Edit Voice Bio</string>
+
+    <!-- MATRIMONY TOGGLE & CARD -->
+    <string name="matrimony_mode">Matrimony Mode</string>
+    <string name="matrimony_marriage_timeline">Marriage Timeline</string>
+    <string name="matrimony_relocation_preference">Relocation Preference</string>
+    <string name="matrimony_post_marriage_career_plan">Post‑Marriage Career Plan</string>
+    <string name="matrimony_traditional_vs_liberal">Traditional vs. Liberal</string>
+    <string name="matrimony_father_occupation">Father Occupation</string>
+    <string name="matrimony_mother_occupation">Mother Occupation</string>
+    <string name="edit_matrimony_info_cd">Edit Matrimony Info</string>
+
+    <!-- PHOTO CAROUSEL OVERLAY -->
+    <string name="from_hometown">From %1$s</string>
+    <string name="posts_button">Posts</string>
+    <string name="edit_profile_cd">Edit Profile</string>
+
+    <!-- PROFILE COMPLETION -->
+    <string name="profile_percent">Profile %1$d%%</string>
+
+    <!-- COLLAPSIBLE SECTION TITLES -->
+    <string name="section_matrimony_info">Matrimony Info</string>
+    <string name="section_bio">Bio</string>
+    <string name="section_voice_bio">Voice Bio</string>
+    <string name="section_basic_information">Basic Information</string>
+    <string name="section_preferences">Preferences</string>
+    <string name="section_social_causes">Social Causes</string>
+    <string name="section_lifestyle_attributes">Lifestyle Attributes</string>
+    <string name="section_interests">Interests</string>
+
+    <!-- PROFILE DETAIL LABELS -->
+    <string name="label_name">Name</string>
+    <string name="label_gender">Gender</string>
+    <string name="label_locality">Locality</string>
+    <string name="label_love_language">Love language</string>
+    <string name="label_politics">Politics</string>
+    <string name="label_username">Username</string>
+    <string name="label_job_role">Job role</string>
+    <string name="label_work">Work</string>
+    <string name="label_high_school">High school</string>
+    <string name="label_college">College</string>
+    <string name="label_college_degree">College degree</string>
+    <string name="label_post_graduation">Post‑graduation</string>
+    <string name="label_post_graduation_degree">Post‑grad degree</string>
+    <string name="label_community">Community</string>
+    <string name="label_religion">Religion</string>
+    <string name="label_height">Height</string>
+    <string name="label_date_joined">Date joined</string>
+
+    <!-- METRICS & RANKINGS -->
+    <string name="swipe_right_probability">Swipe Right Probability</string>
+
+    <!-- BIO & VOICE BIO -->
+    <string name="bio_no_bio">No bio available</string>
+    <string name="voice_no_voice_bio">No voice bio available</string>
+
+    <!-- BUTTON TEXTS -->
+    <string name="add_interest">Add Interest</string>
+    <string name="add_cause">Add a cause</string>
+    <string name="remove">Remove</string>
+
+    <!-- DROPDOWN DEFAULTS -->
+    <string name="not_selected">Not Selected</string>
+    <string name="not_specified">Not specified</string>
+
+    <string name="pause_audio">Pause audio</string>
+    <string name="tap_to_play">Tap to play</string>
+    <string name="playing_seconds">Playing %1$d seconds</string>
+
+    <string name="select_love_language">Select love language</string>
+    <string name="love_language_option_not_selected">Not selected</string>
+    <string name="love_language_option_words_of_affirmation">Words of affirmation</string>
+    <string name="love_language_option_acts_of_service">Acts of service</string>
+    <string name="love_language_option_receiving_gifts">Receiving gifts</string>
+    <string name="love_language_option_quality_time">Quality time</string>
+    <string name="love_language_option_physical_touch">Physical touch</string>
+    <string name="love_language_option_other">Other</string>
+
+    <string name="select_politics">Select politics</string>
+    <string name="politics_option_not_selected">Not selected</string>
+    <string name="politics_option_liberal">Liberal</string>
+    <string name="politics_option_moderate">Moderate</string>
+    <string name="politics_option_conservative">Conservative</string>
+    <string name="politics_option_other">Other</string>
+
+    <string name="select_job_role">Select job role</string>
+    <string name="job_role_option_not_selected">Not selected</string>
+    <string name="job_role_option_engineer">Engineer</string>
+    <string name="job_role_option_teacher">Teacher</string>
+    <string name="job_role_option_doctor">Doctor</string>
+    <string name="job_role_option_intern">Intern</string>
+    <string name="job_role_option_entrepreneur">Entrepreneur</string>
+    <string name="job_role_option_other">Other</string>
+
+    <string name="select_work">Select work</string>
+    <string name="work_option_not_selected">Not selected</string>
+    <string name="work_option_private_sector">Private sector</string>
+    <string name="work_option_government">Government</string>
+    <string name="work_option_freelance">Freelance</string>
+    <string name="work_option_unemployed">Unemployed</string>
+    <string name="work_option_other">Other</string>
+
+    <string name="label_custom_love_language">Custom love language</string>
+    <string name="label_custom_politics">Custom politics</string>
+    <string name="label_custom_job_role">Custom job role</string>
+    <string name="label_custom_work">Custom work</string>
+
+    <!-- INTEREST / CAUSE PLACEHOLDERS -->
+    <string name="no_interests">No interests specified.</string>
+    <string name="no_social_causes">No social causes specified.</string>
+
+    <!-- DatingScreen -->
+    <string name="no_more_swipes_available">No more swipes available</string>
+
+    <string name="college_mismatch_format">College mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="post_graduation_mismatch_format">Post-Graduation mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="workplace_mismatch_format">Workplace mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="job_role_mismatch_format">Job Role mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="love_language_mismatch_format">Love Language mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="relationship_intent_mismatch_format">Relationship intent mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="community_match_format">Community match: Both are \"%1$s\"</string>
+    <string name="religion_match_format">Religion match: Both are \"%1$s\"</string>
+    <string name="city_mismatch_format">City mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="relocation_mismatch_format">Relocation mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="career_plan_mismatch_format">Post-marriage career plan mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="cultural_mindset_mismatch_format">Cultural mindset mismatch: \"%1$s\" vs \"%2$s\"</string>
+
+    <!-- calculateExhaustiveCompatibilityScore -->
+    <string name="workplace_label">Workplace</string>
+    <string name="job_role_label">Job Role</string>
+    <string name="love_language_label">Love Language</string>
+    <string name="relationship_intent_label">Relationship intent</string>
+    <string name="preferred_language_label">Preferred Language</string>
+    <string name="shared_interests_prefix">Shared interests: %1$s</string>
+    <string name="no_common_interests">No common interests</string>
+    <string name="interests_not_set">Interests: not set by both</string>
+    <string name="shared_social_causes_prefix">Shared social causes: %1$s</string>
+    <string name="no_common_social_causes">No common social causes</string>
+    <string name="social_causes_not_set">Social causes: not set by both</string>
+    <string name="zodiac_compatibility_prefix">Zodiac compatibility: %1$s + %2$s</string>
+    <string name="zodiac_mismatch_prefix">Zodiac mismatch: %1$s vs %2$s</string>
+    <string name="zodiac_not_set">Zodiac: not set</string>
+    <string name="matrimony_mismatch">Matrimony mismatch: one is in marriage mode, the other is not</string>
+    <string name="matrimony_not_set">Matrimony mode: not set in both</string>
+    <string name="marriage_timeline_label">Marriage timeline</string>
+    <string name="relocation_label">Relocation</string>
+    <string name="post_marriage_career_plan_label">Post-marriage career plan</string>
+    <string name="cultural_mindset_label">Cultural mindset</string>
+    <string name="lifestyle_smoking">Smoking</string>
+    <string name="lifestyle_drinking">Drinking</string>
+    <string name="lifestyle_indoor_outdoor">Indoor/Outdoor</string>
+    <string name="lifestyle_sexual_activity">Sexual activity</string>
+    <string name="lifestyle_sociability">Sociability</string>
+    <string name="lifestyle_social_media">Social media</string>
+    <string name="lifestyle_dietary_preferences">Dietary Preferences</string>
+    <string name="lifestyle_sleep">Sleep</string>
+    <string name="lifestyle_work_life_balance">Work-life balance</string>
+    <string name="balanced">Balanced</string>
+    <string name="lifestyle_going_out">Going out</string>
+    <string name="lifestyle_exercise">Exercise</string>
+    <string name="lifestyle_adventurousness">Adventurousness</string>
+    <string name="lifestyle_family_oriented">Family oriented</string>
+    <string name="lifestyle_intellectual_curiosity">Intellectual curiosity</string>
+    <string name="lifestyle_creative_expression">Creative expression</string>
+    <string name="lifestyle_physical_fitness">Physical fitness</string>
+    <string name="lifestyle_spirituality">Spirituality</string>
+    <string name="lifestyle_professional_ambition">Professional ambition</string>
+    <string name="lifestyle_environmental_awareness">Environmental awareness</string>
+    <string name="lifestyle_culinary_enthusiasm">Culinary enthusiasm</string>
+    <string name="lifestyle_political_awareness">Political awareness</string>
+    <string name="lifestyle_community_engagement">Community engagement</string>
+    <string name="lifestyle_sports">Sports</string>
+    <string name="lifestyle_field_default">Lifestyle Field</string>
+    <string name="lifestyle_not_set_suffix">%1$s: not set by both</string>
+    <string name="lifestyle_one_not_set_suffix">%1$s: one not set</string>
+    <string name="lifestyle_match_format">Both of you align on these %1$d lifestyle traits: %2$s</string>
+    <string name="lifestyle_no_traits_to_compare">No lifestyle traits sufficiently set to compare</string>
+    <string name="lifestyle_similarity_format">Lifestyle similarity: %1$s%% match over %2$d factors. Common traits: %3$s</string>
+    <string name="lifestyle_none_common">None</string>
+    <string name="lifestyle_not_set_in_profiles">Lifestyle: not set in both profiles</string>
+    <string name="lifestyle_mismatches_format">Lifestyle mismatches: %1$s</string>
+    <string name="shared_tags_prefix">Shared tags: %1$s</string>
+    <string name="tags_not_set_or_no_overlap">User tags: not set or no overlap</string>
+
+    <!-- High school options for dropdown -->
+    <!-- High Schools in West Bengal -->
+    <string name="high_school_andrews_high_school">Andrews High School</string>
+    <string name="high_school_assembly_of_god_church_school">Assembly of God Church School</string>
+    <string name="high_school_bdm_international">B.D.M. International</string>
+    <string name="high_school_ballygunge_government_high_school">Ballygunge Government High School</string>
+    <string name="high_school_baranagar_ramakrishna_mission">Baranagar Ramakrishna Mission Ashrama High School</string>
+    <string name="high_school_barasat_mgm_high_school">Barasat Mahatma Gandhi Memorial High School</string>
+    <string name="high_school_barasat_peary_charan">Barasat Peary Charan Sarkar Government High School</string>
+    <string name="high_school_barrackpore_government_high_school">Barrackpore Government High School</string>
+    <string name="high_school_bethune_collegiate">Bethune Collegiate School</string>
+    <string name="high_school_bidhannagar_government_high_school">Bidhannagar Government High School</string>
+    <string name="high_school_birla_high_school">Birla High School</string>
+    <string name="high_school_burdwan_cms_high_school">Burdwan C.M.S. High School</string>
+    <string name="high_school_calcutta_boys_school">Calcutta Boys’ School</string>
+    <string name="high_school_calcutta_girls_high_school">Calcutta Girls’ High School</string>
+    <string name="high_school_darjeeling_government_high_school">Darjeeling Government High School</string>
+    <string name="high_school_dps_durgapur">Delhi Public School, Durgapur</string>
+    <string name="high_school_dps_newtown">Delhi Public School, Newtown</string>
+    <string name="high_school_dps_ruby_park">Delhi Public School, Ruby Park</string>
+    <string name="high_school_don_bosco_park_circus">Don Bosco School, Park Circus</string>
+    <string name="high_school_goethals_memorial">Goethals Memorial School</string>
+    <string name="high_school_hare_school">Hare School</string>
+    <string name="high_school_hindu_school">Hindu School</string>
+    <string name="high_school_howrah_zilla_school">Howrah Zilla School</string>
+    <string name="high_school_jadavpur_vidyapith">Jadavpur Vidyapith</string>
+    <string name="high_school_jenkins_school">Jenkins School</string>
+    <string name="high_school_kalyani_university_experimental">Kalyani University Experimental High School</string>
+    <string name="high_school_kendriya_vidyalaya_ballygunge">Kendriya Vidyalaya, Ballygunge</string>
+    <string name="high_school_la_martiniere_boys">La Martiniere for Boys</string>
+    <string name="high_school_la_martiniere_girls">La Martiniere for Girls</string>
+    <string name="high_school_loreto_house">Loreto House</string>
+    <string name="high_school_mahadevi_birla_world_academy">Mahadevi Birla World Academy</string>
+    <string name="high_school_mitra_institution_main">Mitra Institution (Main)</string>
+    <string name="high_school_modern_high_school_girls">Modern High School for Girls</string>
+    <string name="high_school_nava_nalanda_high_school">Nava Nalanda High School</string>
+    <string name="high_school_north_point_darjeeling">North Point Senior Secondary Boarding School</string>
+    <string name="high_school_patha_bhavan">Patha Bhavan</string>
+    <string name="high_school_purwanchal_vidya_mandir">Purwanchal Vidya Mandir</string>
+    <string name="high_school_rahara_ramakrishna_mission">Rahara Ramakrishna Mission Boys’ Home High School</string>
+    <string name="high_school_ramakrishna_mission_narendrapur">Ramakrishna Mission Vidyalaya, Narendrapur</string>
+    <string name="high_school_rani_birla_girls_school">Rani Birla Girls’ School</string>
+    <string name="high_school_sakhawat_memorial_girls">Sakhawat Memorial Govt. Girls’ High School</string>
+    <string name="high_school_scottish_church_collegiate">Scottish Church Collegiate School</string>
+    <string name="high_school_siliguri_boys_high_school">Siliguri Boys’ High School</string>
+    <string name="high_school_south_point_high_school">South Point High School</string>
+    <string name="high_school_st_james_school">St. James’ School</string>
+    <string name="high_school_st_josephs_north_point">St. Joseph’s College, North Point</string>
+    <string name="high_school_st_lawrence_high_school">St. Lawrence High School</string>
+    <string name="high_school_st_pauls_mission_school">St. Paul’s Mission School</string>
+    <string name="high_school_st_thomas_kidderpore">St. Thomas’ School, Kidderpore</string>
+    <string name="high_school_st_xaviers_collegiate">St. Xavier’s Collegiate School</string>
+    <string name="high_school_the_heritage_school">The Heritage School</string>
+    <string name="high_school_uttarpara_government_high_school">Uttarpara Government High School</string>
+    <string name="high_school_asansol_st_anthonys">Asansol St. Anthony’s School</string>
+    <string name="high_school_bankura_christian_school">Bankura Christian School</string>
+    <string name="high_school_berhampore_girls_high_school">Berhampore Girls’ High School</string>
+    <string name="high_school_contai_high_school">Contai High School</string>
+    <string name="high_school_hooghly_collegiate_school">Hooghly Collegiate School</string>
+    <string name="high_school_krishnanagar_collegiate_school">Krishnanagar Collegiate School</string>
+    <string name="high_school_malda_zilla_school">Malda Zilla School</string>
+    <string name="high_school_midnapore_collegiate_school">Midnapore Collegiate School</string>
+    <string name="high_school_ashok_hall">Ashok Hall Girls’ Higher Secondary School</string>
+    <string name="high_school_mahadevi_birla_shishu_vihar">Mahadevi Birla Shishu Vihar</string>
+    <string name="high_school_jewish_girls">Jewish Girls’ School</string>
+
+    <!-- Popular High Schools in India -->
+    <string name="high_school_cathedral_john_connon">Cathedral and John Connon School</string>
+    <string name="high_school_dhirubhai_ambani">Dhirubhai Ambani International School</string>
+    <string name="high_school_doon_school">Doon School</string>
+    <string name="high_school_mayo_college">Mayo College</string>
+    <string name="high_school_modern_school_barakhamba">Modern School, Barakhamba Road</string>
+    <string name="high_school_rishi_valley">Rishi Valley School</string>
+    <string name="high_school_scindia_school">Scindia School</string>
+    <string name="high_school_shri_ram_vasant_vihar">Shri Ram School, Vasant Vihar</string>
+    <string name="high_school_lawrence_sanawar">The Lawrence School, Sanawar</string>
+    <string name="high_school_welham_girls">Welham Girls’ School</string>
+
+    <!-- Catch-all for other high schools -->
+    <string name="high_school_other">Other</string>
+
+    <!-- Undergraduate college options for dropdown -->
+    <!-- Colleges in West Bengal -->
+    <string name="college_acharya_jagadish_chandra_bose_college">Acharya Jagadish Chandra Bose College</string>
+    <string name="college_asutosh_college">Asutosh College</string>
+    <string name="college_bangabasi_college">Bangabasi College</string>
+    <string name="college_barasat_government_college">Barasat Government College</string>
+    <string name="college_barrackpore_rastraguru_surendranath_college">Barrackpore Rastraguru Surendranath College</string>
+    <string name="college_behala_college">Behala College</string>
+    <string name="college_bethune_college">Bethune College</string>
+    <string name="college_bidhannagar_college">Bidhannagar College</string>
+    <string name="college_city_college">City College</string>
+    <string name="college_derozio_memorial_college">Derozio Memorial College</string>
+    <string name="college_dinabandhu_andrews_college">Dinabandhu Andrews College</string>
+    <string name="college_dum_dum_motijheel_college">Dum Dum Motijheel College</string>
+    <string name="college_goenka_college">Goenka College of Commerce and Business Administration</string>
+    <string name="college_heramba_chandra_college">Heramba Chandra College</string>
+    <string name="college_hooghly_mohsin_college">Hooghly Mohsin College</string>
+    <string name="college_iit_kharagpur">Indian Institute of Technology Kharagpur</string>
+    <string name="college_iem_kolkata">Institute of Engineering and Management</string>
+    <string name="college_jadavpur_university">Jadavpur University</string>
+    <string name="college_jogamaya_devi_college">Jogamaya Devi College</string>
+    <string name="college_kalyani_mahavidyalaya">Kalyani Mahavidyalaya</string>
+    <string name="college_kazi_nazrul_islam_mahavidyalaya">Kazi Nazrul Islam Mahavidyalaya</string>
+    <string name="college_krishnanagar_government_college">Krishnanagar Government College</string>
+    <string name="college_lady_brabourne_college">Lady Brabourne College</string>
+    <string name="college_loreto_college">Loreto College</string>
+    <string name="college_maulana_azad_college">Maulana Azad College</string>
+    <string name="college_nit_durgapur">National Institute of Technology Durgapur</string>
+    <string name="college_presidency_university">Presidency University</string>
+    <string name="college_ramakrishna_mission_narendrapur">Ramakrishna Mission Residential College, Narendrapur</string>
+    <string name="college_ramakrishna_mission_vidyamandira">Ramakrishna Mission Vidyamandira</string>
+    <string name="college_rishi_bankim_chandra_college">Rishi Bankim Chandra College</string>
+    <string name="college_techno_india">Techno India College</string>
+    <string name="college_scottish_church_college">Scottish Church College</string>
+    <string name="college_serampore_college">Serampore College</string>
+    <string name="college_seth_anandram_jaipuria_college">Seth Anandram Jaipuria College</string>
+    <string name="college_shri_shikshayatan_college">Shri Shikshayatan College</string>
+    <string name="college_siliguri_college">Siliguri College</string>
+    <string name="college_southfield_college">Southfield College</string>
+    <string name="college_st_xaviers_college">St. Xavier’s College</string>
+    <string name="college_surendranath_college">Surendranath College</string>
+    <string name="college_university_of_calcutta">University of Calcutta</string>
+    <string name="college_vidyasagar_college">Vidyasagar College</string>
+    <string name="college_west_bengal_state_university">West Bengal State University</string>
+    <string name="college_basanti_devi_college">Basanti Devi College</string>
+    <string name="college_gokhale_memorial_girls_college">Gokhale Memorial Girls’ College</string>
+    <string name="college_gurudas_college">Gurudas College</string>
+    <string name="college_narasinha_dutt_college">Narasinha Dutt College</string>
+    <string name="college_sivanath_sastri_college">Sivanath Sastri College</string>
+
+    <!-- Popular Colleges in India -->
+    <string name="college_christ_university">Christ University</string>
+    <string name="college_fergusson_college">Fergusson College</string>
+    <string name="college_hindu_college">Hindu College</string>
+    <string name="college_iisc_bangalore">Indian Institute of Science Bangalore</string>
+    <string name="college_iit_kanpur">Indian Institute of Technology Kanpur</string>
+    <string name="college_iit_roorkee">Indian Institute of Technology Roorkee</string>
+    <string name="college_lady_shri_ram_college">Lady Shri Ram College for Women</string>
+    <string name="college_loyola_college">Loyola College</string>
+    <string name="college_miranda_house">Miranda House</string>
+    <string name="college_st_stephens_college">St. Stephen’s College</string>
+    <string name="college_hansraj_college">Hansraj College</string>
+    <string name="college_mount_carmel_college">Mount Carmel College</string>
+
+    <!-- Popular Colleges in the World -->
+    <string name="college_australian_national_university">Australian National University</string>
+    <string name="college_carnegie_mellon_university">Carnegie Mellon University</string>
+    <string name="college_eth_zurich">ETH Zurich</string>
+    <string name="college_harvard_university">Harvard University</string>
+    <string name="college_imperial_college_london">Imperial College London</string>
+    <string name="college_london_school_of_economics">London School of Economics</string>
+    <string name="college_mcgill_university">McGill University</string>
+    <string name="college_mit">Massachusetts Institute of Technology</string>
+    <string name="college_national_university_singapore">National University of Singapore</string>
+    <string name="college_purdue_university">Purdue University</string>
+    <string name="college_sorbonne_university">Sorbonne University</string>
+    <string name="college_stanford_university">Stanford University</string>
+    <string name="college_tu_delft">Delft University of Technology</string>
+    <string name="college_university_college_london">University College London</string>
+    <string name="college_university_of_amsterdam">University of Amsterdam</string>
+    <string name="college_university_of_british_columbia">University of British Columbia</string>
+    <string name="college_university_of_california_berkeley">University of California, Berkeley</string>
+    <string name="college_university_of_california_san_diego">University of California, San Diego</string>
+    <string name="college_university_of_cambridge">University of Cambridge</string>
+    <string name="college_university_of_edinburgh">University of Edinburgh</string>
+    <string name="college_university_of_melbourne">University of Melbourne</string>
+    <string name="college_university_of_michigan">University of Michigan, Ann Arbor</string>
+    <string name="college_university_of_oxford">University of Oxford</string>
+    <string name="college_university_of_queensland">University of Queensland</string>
+    <string name="college_university_of_sydney">University of Sydney</string>
+    <string name="college_university_of_toronto">University of Toronto</string>
+
+    <!-- Catch-all for other colleges -->
+    <string name="college_other">Other</string>
+
+    <!-- Postgraduate college options for dropdown -->
+    <!-- Universities in West Bengal -->
+    <string name="postgrad_adamas_university">Adamas University</string>
+    <string name="postgrad_aliah_university">Aliah University</string>
+    <string name="postgrad_amity_university_kolkata">Amity University, Kolkata</string>
+    <string name="postgrad_bankura_university">Bankura University</string>
+    <string name="postgrad_bidhan_chandra_krishi_viswavidyalaya">Bidhan Chandra Krishi Viswavidyalaya</string>
+    <string name="postgrad_brainware_university">Brainware University</string>
+    <string name="postgrad_cooch_behar_panchanan_barma_university">Cooch Behar Panchanan Barma University</string>
+    <string name="postgrad_darjeeling_hills_university">Darjeeling Hills University</string>
+    <string name="postgrad_diamond_harbour_womens_university">Diamond Harbour Women’s University</string>
+    <string name="postgrad_iacs">Indian Association for the Cultivation of Science</string>
+    <string name="postgrad_jadavpur_university">Jadavpur University</string>
+    <string name="postgrad_jis_university">JIS University</string>
+    <string name="postgrad_kazi_nazrul_university">Kazi Nazrul University</string>
+    <string name="postgrad_maulana_abul_kalam_azad_university_of_technology">Maulana Abul Kalam Azad University of Technology</string>
+    <string name="postgrad_netaji_subhash_open_university">Netaji Subhas Open University</string>
+    <string name="postgrad_north_bengal_university">North Bengal University</string>
+    <string name="postgrad_presidency_university">Presidency University</string>
+    <string name="postgrad_rabindra_bharati_university">Rabindra Bharati University</string>
+    <string name="postgrad_raiganj_university">Raiganj University</string>
+    <string name="postgrad_ramakrishna_mission_vivekananda">Ramakrishna Mission Vivekananda Educational and Research Institute</string>
+    <string name="postgrad_techno_india">Techno India University</string>
+    <string name="postgrad_seacom_skills_university">Seacom Skills University</string>
+    <string name="postgrad_sidho_kanho_birsha_university">Sidho-Kanho-Birsha University</string>
+    <string name="postgrad_sister_nivedita_university">Sister Nivedita University</string>
+    <string name="postgrad_university_of_burdwan">University of Burdwan</string>
+    <string name="postgrad_university_of_calcutta">University of Calcutta</string>
+    <string name="postgrad_university_of_engineering_and_management">University of Engineering and Management</string>
+    <string name="postgrad_university_of_kalyani">University of Kalyani</string>
+    <string name="postgrad_uttar_banga_krishi_vishwavidyalaya">Uttar Banga Krishi Vishwavidyalaya</string>
+    <string name="postgrad_vidyasagar_university">Vidyasagar University</string>
+    <string name="postgrad_visva_bharati_university">Visva-Bharati University</string>
+    <string name="postgrad_west_bengal_state_university">West Bengal State University</string>
+    <string name="postgrad_west_bengal_university_of_animal_and_fishery_sciences">West Bengal University of Animal and Fishery Sciences</string>
+    <string name="postgrad_west_bengal_university_of_health_sciences">West Bengal University of Health Sciences</string>
+    <string name="postgrad_west_bengal_university_of_teachers_training">West Bengal University of Teachers’ Training, Education Planning and Administration</string>
+
+    <!-- Popular Universities in India -->
+    <string name="postgrad_iit_bombay">Indian Institute of Technology Bombay</string>
+    <string name="postgrad_iit_delhi">Indian Institute of Technology Delhi</string>
+    <string name="postgrad_iit_kanpur">Indian Institute of Technology Kanpur</string>
+    <string name="postgrad_iit_kharagpur">Indian Institute of Technology Kharagpur</string>
+    <string name="postgrad_iit_madras">Indian Institute of Technology Madras</string>
+    <string name="postgrad_iim_ahmedabad">Indian Institute of Management Ahmedabad</string>
+    <string name="postgrad_iim_bangalore">Indian Institute of Management Bangalore</string>
+    <string name="postgrad_iim_calcutta">Indian Institute of Management Calcutta</string>
+    <string name="postgrad_iisc_bangalore">Indian Institute of Science Bangalore</string>
+    <string name="postgrad_jnu">Jawaharlal Nehru University</string>
+    <string name="postgrad_university_of_delhi">University of Delhi</string>
+
+    <!-- Popular Universities in the World -->
+    <string name="postgrad_harvard_university">Harvard University</string>
+    <string name="postgrad_stanford_university">Stanford University</string>
+    <string name="postgrad_mit">Massachusetts Institute of Technology</string>
+    <string name="postgrad_ucsd">University of California, San Diego</string>
+    <string name="postgrad_purdue_university">Purdue University</string>
+    <string name="postgrad_uc_berkeley">University of California, Berkeley</string>
+    <string name="postgrad_university_of_michigan">University of Michigan, Ann Arbor</string>
+    <string name="postgrad_university_of_oxford">University of Oxford</string>
+    <string name="postgrad_university_of_cambridge">University of Cambridge</string>
+    <string name="postgrad_imperial_college_london">Imperial College London</string>
+    <string name="postgrad_london_school_of_economics">London School of Economics</string>
+    <string name="postgrad_university_of_toronto">University of Toronto</string>
+    <string name="postgrad_university_of_british_columbia">University of British Columbia</string>
+    <string name="postgrad_mcgill_university">McGill University</string>
+    <string name="postgrad_university_of_melbourne">University of Melbourne</string>
+    <string name="postgrad_university_of_sydney">University of Sydney</string>
+    <string name="postgrad_australian_national_university">Australian National University</string>
+    <string name="postgrad_tu_delft">Delft University of Technology</string>
+    <string name="postgrad_eth_zurich">ETH Zurich</string>
+    <string name="postgrad_university_college_london">University College London</string>
+    <string name="postgrad_university_of_amsterdam">University of Amsterdam</string>
+    <string name="postgrad_sorbonne_university">Sorbonne University</string>
+
+    <!-- Catch-all for other universities -->
+    <string name="postgrad_other">Other</string>
+
+    <!-- Community options for dropdown -->
+    <string name="community_bengali">Bengali</string>
+    <string name="community_santhal">Santhal</string>
+    <string name="community_oraon">Oraon</string>
+    <string name="community_munda">Munda</string>
+    <string name="community_punjabi">Punjabi</string>
+    <string name="community_tamil">Tamil</string>
+    <string name="community_gujarati">Gujarati</string>
+    <string name="community_marwari">Marwari</string>
+    <string name="community_bihari">Bihari</string>
+    <string name="community_odia">Odia</string>
+    <string name="community_assamese">Assamese</string>
+    <string name="community_telugu">Telugu</string>
+    <string name="community_kannadiga">Kannadiga</string>
+    <string name="community_malayali">Malayali</string>
+    <string name="community_nepali">Nepali</string>
+    <string name="community_bangal">Bangal</string>
+    <string name="community_ghoti">Ghoti</string>
+    <string name="community_other">Other</string>
+
+    <!-- Religion -->
+    <string name="religion_hindu">Hindu</string>
+    <string name="religion_muslim">Muslim</string>
+    <string name="religion_christian">Christian</string>
+    <string name="religion_buddhist">Buddhist</string>
+    <string name="religion_jain">Jain</string>
+    <string name="religion_sikh">Sikh</string>
+    <string name="religion_indigenous_tribal">Indigenous/Tribal</string>
+    <string name="religion_no_religion">No Religion</string>
+    <string name="religion_other">Other</string>
+    <!-- caste -->
+    <string name="caste_kulin_brahmin">Kulin Brahmin</string>
+    <string name="caste_non_kulin_brahmin">Non-Kulin Brahmin</string>
+    <string name="caste_kulin_kayastha">Kulin Kayastha</string>
+    <string name="caste_non_kulin_kayastha">Non-Kulin Kayastha</string>
+    <string name="caste_baidya">Baidya</string>
+    <string name="caste_kshatriya">Kshatriya</string>
+    <string name="caste_vaishya">Vaishya</string>
+    <string name="caste_rajbonshi">Rajbonshi</string>
+    <string name="caste_sadgop">Sadgop</string>
+    <string name="caste_mahishya">Mahishya</string>
+    <string name="caste_scheduled_caste">Scheduled Caste (SC)</string>
+    <string name="caste_scheduled_tribe">Scheduled Tribe (ST)</string>
+    <string name="caste_obc">Other Backward Class (OBC)</string>
+    <string name="caste_general">General</string>
+    <string name="caste_other">Other</string>
+
+    <!--- Dating -->
     <string name="profile_photo">Profile Photo</string>
     <string name="no_images">No Images</string>
     <string name="away">away</string>
