@@ -1,10 +1,310 @@
 <resources>
     <string name="app_name">क्यूपिडेक्स</string>
+
+    <string name="match_summary_format">
+        कुल मिलान: %1$d%%\nविवरण:\n%2$s
+    </string>
+    <!-- Interests -->
+
+    <!-- ───── Himalayan neighbours ───── -->
+    <string name="community_bhutanese">भूटानी</string>
+    <string name="community_sikkimese">सिक्कीमी</string>
+    <string name="community_arunachali">अरुणाचली</string>
+    <!-- Nagaland -->
+    <string name="community_naga">नागा</string>
+    <string name="community_ao">आओ</string>
+    <string name="community_angami">अंगामी</string>
+    <string name="community_lotha">लोथा</string>
+    <string name="community_sema">सेमा (सुमी)</string>
+    <string name="community_chakhesang">चाखेसांग</string>
+    <string name="community_konyak">कोन्याक</string>
+    <string name="community_phom">फोम</string>
+    <string name="community_chang">चांग</string>
+    <string name="community_rengma">रेंगमा</string>
+    <string name="community_yimkhiung">यिमखियुंग</string>
+    <string name="community_khiamniungan">खियामनिउंगान</string>
+    <string name="community_zeliang">ज़ेलियांग</string>
+
+    <!-- Arunachal Pradesh -->
+    <string name="community_apatani">अपातानी</string>
+    <string name="community_adi">आदि</string>
+    <string name="community_nyishi">न्यीशी</string>
+    <string name="community_galo">गालो</string>
+    <string name="community_tagin">तागिन</string>
+    <string name="community_mishmi">मिश्मी</string>
+    <string name="community_monpa">मोनपा</string>
+    <string name="community_sherdukpen">शेरदुक्पेन</string>
+    <string name="community_bugun">बुगुन</string>
+    <string name="community_aka">आका (ह्रुस्सो)</string>
+
+    <!-- Manipur -->
+    <string name="community_meitei">मैतेई</string>
+    <string name="community_tangkhul">तांगखुल</string>
+    <string name="community_poumai">पोउमाइ</string>
+    <string name="community_mao">माओ</string>
+    <string name="community_thadou">थाडू</string>
+    <string name="community_paite">पैते</string>
+    <string name="community_zou">ज़ोउ</string>
+    <string name="community_anal">अनाल</string>
+    <string name="community_hmar">हमार</string>
+    <string name="community_maring">मारींग</string>
+
+    <!-- Mizoram -->
+    <string name="community_mizo">मिज़ो</string>
+    <string name="community_lai">लाई</string>
+    <string name="community_mara">मारा</string>
+
+    <!-- Tripura -->
+    <string name="community_tripuri">त्रिपुरी</string>
+    <string name="community_reang">रियांग</string>
+    <string name="community_chakma">चकमा</string>
+    <string name="community_halam">हालाम</string>
+
+    <!-- Meghalaya -->
+    <string name="community_khasi">खासी</string>
+    <string name="community_garo">गारो</string>
+    <string name="community_jaintia">जयंतिया</string>
+
+    <!-- Assam -->
+    <string name="community_bodo">बोडो</string>
+    <string name="community_mishing">मिशिंग</string>
+    <string name="community_karbi">कारबी</string>
+    <string name="community_dimasa">दिमासा</string>
+    <string name="community_rabha">राभा</string>
+    <string name="community_tiwa">तिवा</string>
+    <string name="community_deori">देओरी</string>
+    <string name="community_sonowal_kachari">सोनवाल कछारी</string>
+
+    <!-- Engineering Colleges -->
+    <string name="college_srm_institute_of_science_and_technology">एसआरएम विज्ञान एवं प्रौद्योगिकी संस्थान</string>
+    <string name="college_vellore_institute_of_technology">वेलोर विज्ञान एवं प्रौद्योगिकी संस्थान</string>
+    <string name="college_bits_pilani">बीआईटीएस पिलानी</string>
+    <string name="college_manipal_institute_of_technology">मणिपाल प्रौद्योगिकी संस्थान</string>
+    <string name="college_iiit_hyderabad">भारतीय सूचना प्रौद्योगिकी संस्थान, हैदराबाद</string>
+
+    <!-- Private Arts/Science Colleges -->
+    <string name="college_op_jindal_global_university">ओ.पी. जिंदल ग्लोबल यूनिवर्सिटी</string>
+    <string name="college_ashoka_university">अशोक विश्वविद्यालय</string>
+
+    <!-- Design Colleges -->
+    <string name="college_nid_ahmedabad">राष्ट्रीय डिज़ाइन संस्थान, अहमदाबाद</string>
+    <string name="college_nid_kurukshetra">राष्ट्रीय डिज़ाइन संस्थान, कुरुक्षेत्र</string>
+    <string name="college_nid_gandhinagar">राष्ट्रीय डिज़ाइन संस्थान, गांधीनगर</string>
+    <string name="college_nid_bengaluru">राष्ट्रीय डिज़ाइन संस्थान, बेंगलुरु</string>
+    <string name="college_nid_bhopal">राष्ट्रीय डिज़ाइन संस्थान, भोपाल</string>
+    <string name="college_nid_jorhat">राष्ट्रीय डिज़ाइन संस्थान, जोरहाट</string>
+    <string name="college_nid_vijayawada">राष्ट्रीय डिज़ाइन संस्थान, विजयवाड़ा</string>
+    <string name="college_nift">राष्ट्रीय फैशन प्रौद्योगिकी संस्थान</string>
+    <string name="college_srishti_manipal">सृष्टि मणिपाल कला, डिज़ाइन एवं प्रौद्योगिकी संस्थान</string>
+    <string name="college_pearl_academy">पर्ल अकादमी</string>
+    <string name="college_symbiosis_institute_of_design">सिंबायोसिस डिज़ाइन संस्थान</string>
+    <string name="college_mit_institute_of_design">एमआइटी डिज़ाइन संस्थान</string>
+    <string name="college_iiad">भारतीय कला एवं डिज़ाइन संस्थान</string>
+    <string name="college_world_university_of_design">वर्ल्ड यूनिवर्सिटी ऑफ डिज़ाइन</string>
+    <string name="college_amity_school_of_fashion_technology">एमिटी फैशन प्रौद्योगिकी स्कूल</string>
+    <string name="college_jd_institute_of_fashion_technology">जे.डी. फैशन प्रौद्योगिकी संस्थान</string>
+    <string name="college_arch_academy_of_design">आर्च डिज़ाइन अकादमी</string>
+    <string name="college_daiict">डीए‑आईआईसीटी, गांधीनगर</string>
+
+    <!-- Law Colleges -->
+    <string name="college_nlsiu_bangalore">राष्ट्रीय विधि स्कूल ऑफ़ इंडिया विश्वविद्यालय, बेंगलुरु</string>
+    <string name="college_nalsar_hyderabad">नलसर विश्वविद्यालय ऑफ लॉ, हैदराबाद</string>
+    <string name="college_nlu_delhi">राष्ट्रीय विधि विश्वविद्यालय, दिल्ली</string>
+    <string name="college_wbnujs_kolkata">पश्चिम बंगाल राष्ट्रीय विधि विज्ञान विश्वविद्यालय, कोलकाता</string>
+    <string name="college_nliu_bhopal">राष्ट्रीय विधि संस्थान विश्वविद्यालय, भोपाल</string>
+    <string name="college_gnlu_gandhinagar">गुजरात राष्ट्रीय विधि विश्वविद्यालय, गांधीनगर</string>
+    <string name="college_hnlu_raipur">हिदायतउल्लाह राष्ट्रीय विधि विश्वविद्यालय, रायपुर</string>
+    <string name="college_rmlnlu_lucknow">डॉ. राम मनोहर लोहिया राष्ट्रीय विधि विश्वविद्यालय, लखनऊ</string>
+    <string name="college_rgnul_patiala">राजीव गांधी राष्ट्रीय विधि विश्वविद्यालय, पटियाला</string>
+    <string name="college_cnlu_patna">चाणक्य राष्ट्रीय विधि विश्वविद्यालय, पटना</string>
+    <string name="college_nuals_kochi">राष्ट्रीय उन्नत विधिक अध्ययन विश्वविद्यालय, कोच्चि</string>
+    <string name="college_nluo_cuttack">राष्ट्रीय विधि विश्वविद्यालय उड़ीसा, कटक</string>
+    <string name="college_nusr_law_ranchi">राष्ट्रीय विधि अध्ययन एवं अनुसंधान विश्वविद्यालय, रांची</string>
+    <string name="college_nluja_guwahati">राष्ट्रीय विधि विश्वविद्यालय एवं न्यायिक अकादमी, गुवाहाटी</string>
+    <string name="college_tnnlu_tiruchirappalli">तमिल नाडु राष्ट्रीय विधि विश्वविद्यालय, त्रिची</string>
+    <string name="college_mnlu_mumbai">महाराष्ट्र राष्ट्रीय विधि विश्वविद्यालय, मुंबई</string>
+    <string name="college_mnlu_nagpur">महाराष्ट्र राष्ट्रीय विधि विश्वविद्यालय, नागपुर</string>
+    <string name="college_mnlu_aurangabad">महाराष्ट्र राष्ट्रीय विधि विश्वविद्यालय, औरंगाबाद</string>
+    <string name="college_hpnlu_shimla">हिमाचल प्रदेश राष्ट्रीय विधि विश्वविद्यालय, शिमला</string>
+    <string name="college_dnlu_jabalpur">धर्मशास्त्र राष्ट्रीय विधि विश्वविद्यालय, जबलपुर</string>
+    <string name="college_dbranlu_sonipat">डॉ. बी.आर. अम्बेडकर राष्ट्रीय विधि विश्वविद्यालय, सोनीपत</string>
+    <string name="college_faculty_of_law_du">विधि संकाय, दिल्ली विश्वविद्यालय</string>
+    <string name="college_symbiosis_law_school">सिंबायोसिस विधि स्कूल</string>
+    <string name="college_glc_mumbai">सरकारी विधि कॉलेज, मुंबई</string>
+    <string name="college_ils_law_pune">आईएलएस विधि कॉलेज, पुणे</string>
+    <string name="college_amity_law_school_noida">एमिटी विधि स्कूल, नोएडा</string>
+    <string name="college_christ_univ_law">क्राइस्ट यूनिवर्सिटी विधि स्कूल</string>
+    <string name="college_bhu_faculty_of_law">बीएचयू विधि संकाय</string>
+    <string name="college_amu_faculty_of_law">एएमयू विधि संकाय</string>
+    <string name="college_jamia_law">जामिया मिल्लिया इस्लामिया विधि संकाय</string>
+    <string name="college_op_jindal_law_school">ओ.पी. जिंदल ग्लोबल विधि स्कूल</string>
+    <string name="college_army_institute_of_law_mohali">आर्मी इंस्टीट्यूट ऑफ लॉ, मोहाली</string>
+    <string name="college_kerala_law_academy">केरल विधि अकादमी, तिरुवनंतपुरम</string>
+    <string name="college_school_of_law_calcutta">विधि स्कूल, कलकत्ता विश्वविद्यालय</string>
+
+    <!-- Arts Colleges -->
+    <string name="college_college_of_art_du">आर्ट कॉलेज, दिल्ली विश्वविद्यालय</string>
+    <string name="college_sir_jj_school_of_art">सर जे.जे. आर्ट स्कूल, मुंबई</string>
+    <string name="college_faculty_visual_arts_bhu">दृश्य कला संकाय, बीएचयू</string>
+    <string name="college_msu_fine_arts_vadodara">एमएसयू फाइन आर्ट्स संकाय, वडोदरा</string>
+    <string name="college_govt_college_art_craft_kolkata">सरकारी कला एवं शिल्प कॉलेज, कोलकाता</string>
+    <string name="college_visva_bharati_kala_bhavana">विश्वभारती विश्वविद्यालय (कला भवन)</string>
+    <string name="college_chennai_govt_fine_arts">चेन्नई सरकारी फाइन आर्ट्स कॉलेज</string>
+    <string name="college_rachana_sansad">रचना संसद एकेडमी ऑफ फाइन आर्ट्स एवं क्राफ्ट्स</string>
+    <string name="college_goa_college_of_art">गोवा कला कॉलेज</string>
+    <string name="college_amity_school_fine_arts">एमिटी फाइन आर्ट्स स्कूल</string>
+    <string name="college_kalakshetra_foundation">कलाक्षेत्र फाउंडेशन</string>
+    <string name="college_bharatiya_kala_kendra">भारतीय कला केंद्र</string>
+    <string name="college_gandharva_mahavidyalaya">गंधर्व महाविद्यालय</string>
+    <string name="college_nsd">राष्ट्रीय नाटक स्कूल</string>
+    <string name="college_ftii_pune">फिल्म एवं टेलीविजन संस्थान, पुणे</string>
+    <string name="college_srfti_kolkata">सत्यजीत राय फिल्म एवं टेलीविजन संस्थान, कोलकाता</string>
+    <string name="college_kathak_kendra">कथक केंद्र</string>
+    <string name="college_drama_thrissur">नाट्य एवं फाइन आर्ट्स स्कूल, त्रिस्सूर</string>
+    <string name="college_st_stephens">सेंट स्टेफन’स कॉलेज, दिल्ली</string>
+    <string name="college_lsr_college">लेडी श्री राम कॉलेज, दिल्ली</string>
+    <string name="college_loyola_chennai">लोयोला कॉलेज, चेन्नई</string>
+    <string name="college_christ_univ">क्राइस्ट यूनिवर्सिटी, बेंगलुरु</string>
+    <string name="college_flame_university">फ्लेम यूनिवर्सिटी, पुणे</string>
+    <string name="college_symbiosis_liberal_arts">सिंबायोसिस स्कूल ऑफ लिबरल आर्ट्स, पुणे</string>
+    <string name="college_krea_university">क्रीया यूनिवर्सिटी, श्री सिटी</string>
+    <string name="college_ramjas_college">रामजस कॉलेज, दिल्ली</string>
+    <string name="college_st_xaviers_mumbai">सेंट जेवियर्स कॉलेज, मुंबई</string>
+    <string name="college_mcc_chennai">मद्रास क्रिश्चियन कॉलेज, चेन्नई</string>
+
+    <!-- ─── Global interests ─── -->
+        <string name="interest_cooking">खाना बनाना</string>
+        <string name="interest_dancing">नृत्य</string>
+        <string name="interest_gardening">बागवानी</string>
+        <string name="interest_volunteering">स्वयंसेवा</string>
+
+        <!-- ─── Kolkata cluster ─── -->
+        <string name="interest_airport_area">एयरपोर्ट क्षेत्र</string>
+        <string name="interest_local_market">स्थानीय बाज़ार</string>
+        <string name="interest_old_market">पुराना बाज़ार</string>
+        <string name="interest_local_eateries">स्थानीय भोजनालय</string>
+        <string name="interest_nightlife">नाइट‑लाइफ़</string>
+        <string name="interest_park_street_cafes">पार्क स्ट्रीट कैफ़े</string>
+
+        <!-- ─── Hooghly / Chandannagar ─── -->
+        <string name="interest_chandannagar_strand">चंदननगर स्ट्रैंड</string>
+        <string name="interest_french_heritage">फ़्रांसीसी विरासत</string>
+        <string name="interest_riverside_ghats">नदी किनारे घाट</string>
+        <string name="interest_heritage_walks">हेरिटेज वॉक</string>
+
+        <!-- ─── Howrah ─── -->
+        <string name="interest_avani_mall">अवानी मॉल</string>
+
+        <!-- ─── Durgapur / Asansol belt ─── -->
+        <string name="interest_city_centre_plaza">सिटी सेंटर प्लाज़ा</string>
+        <string name="interest_steel_plant_tour">स्टील‑प्लांट टूर</string>
+        <string name="interest_burnpur_riverside">बर्नपुर रिवरसाइड</string>
+        <string name="interest_chittaranjan_park">चित्तरंजन पार्क</string>
+
+        <!-- ─── North‑Bengal cluster ─── -->
+        <string name="interest_hongkong_market">हॉन्गकॉंग मार्केट</string>
+        <string name="interest_mahananda_wls">महानंदा वन्यजीव अभयारण्य</string>
+        <string name="interest_toy_train">टॉय ट्रेन</string>
+        <string name="interest_tea_estate_walks">चाय बागान भ्रमण</string>
+        <string name="interest_gorumara_safari">गोरूमारा सफ़ारी</string>
+        <string name="interest_rafting_teesta">तीस्ता राफ्टिंग</string>
+        <string name="interest_rajbari_palace">राजबाड़ी महल</string>
+        <string name="interest_sagar_dighi">सागर‑दिघी</string>
+        <string name="interest_buxa_fort_trek">बक्सा क़िला ट्रेक</string>
+        <string name="interest_jayanti_picnic">जयंती नदी पिकनिक</string>
+
+        <!-- ─── South‑West cluster ─── -->
+        <string name="interest_iit_campus_walk">आईआईटी कैंपस वॉक</string>
+        <string name="interest_gol_bazaar_food">गोल बाज़ार भोजन</string>
+        <string name="interest_vidyasagar_lake">विद्यासागर विश्वविद्यालय झील</string>
+        <string name="interest_khudiram_park">खुदीराम पार्क</string>
+        <string name="interest_river_cruise">रिवर क्रूज़</string>
+        <string name="interest_marine_drive">मरीन ड्राइव</string>
+
+        <!-- ─── Central WB ─── -->
+        <string name="interest_curzon_gate_photo">करज़न गेट फ़ोटो‑ऑप</string>
+        <string name="interest_sitabhog_mihidana">सिताभोग और मिहिदाना चखना</string>
+        <string name="interest_terracotta_art">टेराकोटा कला</string>
+        <string name="interest_susunia_trek">सुसुनिया ट्रेक</string>
+        <string name="interest_ayodhya_hills">अयोध्या हिल्स</string>
+        <string name="interest_chhau_dance">छऊ नृत्य</string>
+
+        <!-- ─── Nadia zone ─── -->
+        <string name="interest_clay_doll_lane">मिट्टी की गुड़िया गली</string>
+        <string name="interest_ghurni_artists">घूर्णी कलाकार</string>
+        <string name="interest_university_campus_walk">विश्वविद्यालय कैंपस वॉक</string>
+        <string name="interest_kalyani_lake">कल्याणी झील</string>
+        <string name="interest_boutique_sarees">बुटीक साड़ियाँ</string>
+        <string name="interest_churni_riverbank">चूर्णी नदी तट</string>
+
+        <!-- ─── North‑centre / Murshidabad ─── -->
+        <string name="interest_mango_festival">आम महोत्सव</string>
+        <string name="interest_gour_ruins">गौर के खंडहर</string>
+        <string name="interest_hazar_duari_museum">हज़ारद्वारी संग्रहालय</string>
+        <string name="interest_khusbagh_gardens">खुशबाग गार्डन</string>
+        <string name="interest_berhampore_silk">बहरमपुर रेशम ख़रीदारी</string>
+        <string name="interest_cossimbazar_rajbari">कूसीमबाज़ार राजबाड़ी</string>
+
+    <string name="enter_your_personal_details">अपना व्यक्तिगत विवरण दर्ज करें</string>
+
+    <!-- GLOBAL interests -->
+    <string name="interest_music">संगीत</string>
+    <string name="interest_movies">फ़िल्में</string>
+    <string name="interest_sports">खेल</string>
+    <string name="interest_books">किताबें</string>
+    <string name="interest_travel">यात्रा</string>
+    <string name="interest_fitness">फ़िटनेस</string>
+    <string name="interest_art">कला</string>
+    <string name="interest_gaming">गेमिंग</string>
+    <string name="interest_food">भोजन</string>
+    <string name="interest_photography">फ़ोटोग्राफी</string>
+    <string name="interest_technology">प्रौद्योगिकी</string>
+    <string name="interest_nature">प्रकृति</string>
+    <string name="interest_pets">पालतू जानवर</string>
+    <string name="interest_fashion">फ़ैशन</string>
+    <string name="interest_dance">नृत्य</string>
+
+    <!-- West‑Bengal locality interests -->
+    <string name="interest_eco_park">इको पार्क</string>
+    <string name="interest_cc_block_market">सीसी ब्लॉक मार्केट</string>
+    <string name="interest_sector_v_it_hub">सेक्टर V आईटी हब</string>
+    <string name="interest_city_centre_2">सिटी सेंटर 2</string>
+    <string name="interest_victoria_memorial">विक्टोरिया मेमोरियल</string>
+    <string name="interest_princep_ghat">प्रिंसप घाट</string>
+    <string name="interest_nicco_park">निक्को पार्क</string>
+    <string name="interest_science_city">साइंस सिटी</string>
+    <string name="interest_dakshineswar_temple">दक्षिणेश्वर मंदिर</string>
+    <string name="interest_belur_math">बेलूर मठ</string>
+    <string name="interest_howrah_bridge">हावड़ा ब्रिज</string>
+    <string name="interest_iit_kharagpur_campus">आईआईटी खड़गपुर कैंपस</string>
+    <string name="interest_digha_beach">दीघा बीच</string>
+    <string name="interest_tiger_hill">टाइगर हिल</string>
+    <string name="interest_mall_road">मॉल रोड (दार्जिलिंग)</string>
+    <string name="interest_hazarduari_palace">हज़ारद्वारी पैलेस</string>
+    <string name="interest_shantiniketan">शांतिनिकेतन</string>
+
+
+    <string name="tell_us_more_about_yourself">अपने बारे में और बताएँ</string>
+    <string name="enter_custom_value">कस्टम मान दर्ज करें</string>
+
+    <string name="jan">जनवरी</string>
+    <string name="feb">फ़रवरी</string>
+    <string name="mar">मार्च</string>
+    <string name="apr">अप्रैल</string>
+    <string name="may">मई</string>
+    <string name="jun">जून</string>
+    <string name="jul">जुलाई</string>
+    <string name="aug">अगस्त</string>
+    <string name="sep">सितंबर</string>
+    <string name="oct">अक्टूबर</string>
+    <string name="nov">नवंबर</string>
+    <string name="dec">दिसंबर</string>
+
     <!-- ProfileScreen -->
     <!-- GENERAL / COMMON -->
     <string name="edit">संपादित करें</string>
     <string name="cancel_edit">संपादन रद्द करें</string>
-
+    <string name="locate">लोकेट करें</string>
     <string name="not_set">सेट नहीं</string>
 
     <!-- PROFILE SCREEN TOP‑LEVEL -->
@@ -242,7 +542,7 @@
     <string name="job_role_option_engineer">इंजीनियर</string>
     <string name="job_role_option_teacher">शिक्षक</string>
     <string name="job_role_option_doctor">चिकित्सक</string>
-    <string name="job_role_option_intern"></string>
+    <string name="job_role_option_intern">इंटर्न</string>
     <string name="job_role_option_entrepreneur">उद्यमी</string>
     <string name="job_role_option_other">अन्य</string>
 
@@ -821,4 +1121,242 @@
     <string name="select_default">चुनें</string>
 
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
+
+    <!-- शहर -->
+    <string name="city_kolkata">कोलकाता</string>
+    <string name="city_howrah">हावड़ा</string>
+    <string name="city_durgapur">दुर्गापुर</string>
+    <string name="city_asansol">असनसोल</string>
+    <string name="city_siliguri">सिलिगुड़ी</string>
+    <string name="city_darjeeling">दार्जिलिंग</string>
+    <string name="city_malda">मालदा</string>
+    <string name="city_jalpaiguri">जलपाईगुड़ी</string>
+    <string name="city_cooch_behar">कूच बिहार</string>
+    <string name="city_alipurduar">अलीपुरद्वार</string>
+    <string name="city_bankura">बांकुड़ा</string>
+    <string name="city_purulia">पुरुलिया</string>
+    <string name="city_kharagpur">खड़गपुर</string>
+    <string name="city_midnapore">मिदनापुर</string>
+    <string name="city_bardhaman">बर्द्धमान</string>
+    <string name="city_hooghly">हुगली</string>
+    <string name="city_nadia">नादिया</string>
+    <string name="city_murshidabad">मुर्शिदाबाद</string>
+    <string name="city_baharampur">बहरमपुर</string>
+    <string name="city_haldia">हल्दिया</string>
+    <string name="city_ranaghat">रानाघाट</string>
+    <string name="city_kalyani">कल्याणी</string>
+    <string name="city_chandannagar">चंदननगर</string>
+    <string name="city_other">अन्य</string>
+
+    <!-- कोलकाता की स्थानीयताएँ -->
+    <string name="kolkata_salt_lake_sector_1">सॉल्ट लेक (बिधाननगर) ‑ सेक्टर १</string>
+    <string name="kolkata_salt_lake_sector_2">सॉल्ट लेक (बिधाननगर) ‑ सेक्टर २</string>
+    <string name="kolkata_salt_lake_sector_3">सॉल्ट लेक (बिधाननगर) ‑ सेक्टर ३</string>
+    <string name="kolkata_salt_lake_sector_5">सॉल्ट लेक (बिधाननगर) ‑ सेक्टर ५</string>
+    <string name="kolkata_newtown_action_area_1">न्यूटाउन ‑ एक्शन एरिया १</string>
+    <string name="kolkata_newtown_action_area_2">न्यूटाउन ‑ एक्शन एरिया २</string>
+    <string name="kolkata_newtown_action_area_3">न्यूटाउन ‑ एक्शन एरिया ३</string>
+    <string name="kolkata_rajarhat_chinar_park">राजरहाट ‑ चिनार पार्क</string>
+    <string name="kolkata_rajarhat_baguiati">राजरहाट ‑ बागुईआटी</string>
+    <string name="kolkata_rajarhat_teghoria">राजरहाट ‑ तेगोरिया</string>
+    <string name="kolkata_dum_dum">डम डम</string>
+    <string name="kolkata_behala">बहाला</string>
+    <string name="kolkata_park_street">पार्क स्ट्रीट</string>
+    <string name="kolkata_ballygunge">बालिगंज</string>
+    <string name="kolkata_jadavpur">जादवपुर</string>
+    <string name="kolkata_southern_avenue">दक्षिण एवेन्यू</string>
+    <string name="kolkata_gariahat">गरियाहाट</string>
+    <string name="kolkata_tollygunge">टॉलीगंज</string>
+    <string name="kolkata_shyambazar">श्यामबाजार</string>
+    <string name="kolkata_esplanade">एस्प्लेनेड</string>
+    <string name="kolkata_alipore">अलीपुर</string>
+    <string name="kolkata_kasba">कसबा</string>
+    <string name="kolkata_garia">गरिया</string>
+    <string name="kolkata_baranagar">बरानगर</string>
+    <string name="kolkata_kankurgachi">कांकुड़गाछी</string>
+    <string name="kolkata_lake_town">लेक टाउन</string>
+    <string name="kolkata_phoolbagan">फूल बागान</string>
+    <string name="kolkata_other">अन्य</string>
+
+    <!-- हावड़ा की स्थानीयताएँ -->
+    <string name="howrah_station_area">हावड़ा स्टेशन क्षेत्र</string>
+    <string name="howrah_shibpur">शिवपुर</string>
+    <string name="howrah_liluah">लिलुआ</string>
+    <string name="howrah_belur">बेलुर</string>
+    <string name="howrah_salkia">सालकिया</string>
+    <string name="howrah_ghusuri">घुसुरी</string>
+    <string name="howrah_andul">अंडुल</string>
+    <string name="howrah_santragachi">संतरागाछी</string>
+    <string name="howrah_other">अन्य</string>
+
+    <!-- दुर्गापुर की स्थानीयताएँ -->
+    <string name="durgapur_city_centre">सिटी सेंटर</string>
+    <string name="durgapur_bidhannagar">बिधाननगर</string>
+    <string name="durgapur_nit_durgapur_area">एनआईटी दुर्गापुर क्षेत्र</string>
+    <string name="durgapur_benachity">बेनाचिटी</string>
+    <string name="durgapur_muchipara">मुचिपारा</string>
+    <string name="durgapur_industrial_area">औद्योगिक क्षेत्र</string>
+    <string name="durgapur_fuljhore">फुलझोर</string>
+    <string name="durgapur_other">अन्य</string>
+
+    <!-- असनसोल की स्थानीयताएँ -->
+    <string name="asansol_asansol_proper">असनसोल प्रॉपर</string>
+    <string name="asansol_chittaranjan">चितरंजन</string>
+    <string name="asansol_jamuria">जमुरिया</string>
+    <string name="asansol_raniganj">रानीगंज</string>
+    <string name="asansol_kulti">कुल्टी</string>
+    <string name="asansol_burnpur">बर्नपुर</string>
+    <string name="asansol_other">अन्य</string>
+
+    <!-- सिलिगुड़ी की स्थानीयताएँ -->
+    <string name="siliguri_siliguri_town">सिलिगुड़ी टाउन</string>
+    <string name="siliguri_pradhan_nagar">प्रधान नगर</string>
+    <string name="siliguri_sevoke_road">सेवक रोड</string>
+    <string name="siliguri_hill_cart_road">हिल कार्ट रोड</string>
+    <string name="siliguri_matigara">माटीगाड़ा</string>
+    <string name="siliguri_champasari">चम्पासारी</string>
+    <string name="siliguri_salugara">सालुगारा</string>
+    <string name="siliguri_other">अन्य</string>
+
+    <!-- दार्जिलिंग की स्थानीयताएँ -->
+    <string name="darjeeling_darjeeling_town">दार्जिलिंग टाउन</string>
+    <string name="darjeeling_kurseong">कुर्सियांग</string>
+    <string name="darjeeling_ghum">घूम</string>
+    <string name="darjeeling_mirik">मिरिक</string>
+    <string name="darjeeling_sonada">सोनादा</string>
+    <string name="darjeeling_kalimpong">कालिम्पोंग</string>
+    <string name="darjeeling_other">अन्य</string>
+
+    <!-- मालदा की स्थानीयताएँ -->
+    <string name="malda_english_bazar">इंग्लिश बाजार</string>
+    <string name="malda_old_malda">पुराना मालदा</string>
+    <string name="malda_rathbari">रथबाड़ी</string>
+    <string name="malda_gazole">गजोल</string>
+    <string name="malda_malda_town">मालदा टाउन</string>
+    <string name="malda_other">अन्य</string>
+
+    <!-- जलपाईगुड़ी की स्थानीयताएँ -->
+    <string name="jalpaiguri_jalpaiguri_town">जलपाईगुड़ी टाउन</string>
+    <string name="jalpaiguri_dhupguri">धूपगुड़ी</string>
+    <string name="jalpaiguri_mainaguri">मयनागुड़ी</string>
+    <string name="jalpaiguri_malbazar">मालबाजार</string>
+    <string name="jalpaiguri_lataguri">लटागुड़ी</string>
+    <string name="jalpaiguri_other">अन्य</string>
+
+    <!-- कूच बिहार की स्थानीयताएँ -->
+    <string name="cooch_behar_cooch_behar_town">कूच बिहार टाउन</string>
+    <string name="cooch_behar_dinhata">दिनहाटा</string>
+    <string name="cooch_behar_tufanganj">तुफानगंज</string>
+    <string name="cooch_behar_mathabhanga">मथाभंगा</string>
+    <string name="cooch_behar_mekhliganj">मेखलीगंज</string>
+    <string name="cooch_behar_other">अन्य</string>
+
+    <!-- अलीपुरद्वार की स्थानीयताएँ -->
+    <string name="alipurduar_alipurduar_town">अलीपुरद्वार टाउन</string>
+    <string name="alipurduar_falakata">फालाकाटा</string>
+    <string name="alipurduar_jaigaon">जयगांव</string>
+    <string name="alipurduar_birpara">बीरपारा</string>
+    <string name="alipurduar_madarihat">मदारीहाट</string>
+    <string name="alipurduar_other">अन्य</string>
+
+    <!-- बांकुड़ा की स्थानीयताएँ -->
+    <string name="bankura_bankura_town">बांकुड़ा टाउन</string>
+    <string name="bankura_bishnupur">बिष्णुपुर</string>
+    <string name="bankura_khatra">खत्रा</string>
+    <string name="bankura_sonamukhi">सोनामुखी</string>
+    <string name="bankura_barjora">बरजोड़ा</string>
+    <string name="bankura_other">अन्य</string>
+
+    <!-- पुरुलिया की स्थानीयताएँ -->
+    <string name="purulia_purulia_town">पुरुलिया टाउन</string>
+    <string name="purulia_jhalda">झालदा</string>
+    <string name="purulia_raghunathpur">रघुनाथपुर</string>
+    <string name="purulia_adra">आद्रा</string>
+    <string name="purulia_balarampur">बलरामपुर</string>
+    <string name="purulia_other">अन्य</string>
+
+    <!-- खड़गपुर की स्थानीयताएँ -->
+    <string name="kharagpur_iit_kharagpur_campus">आईआईटी खड़गपुर कैंपस</string>
+    <string name="kharagpur_kharagpur_town">खड़गपुर टाउन</string>
+    <string name="kharagpur_salua">सालुआ</string>
+    <string name="kharagpur_golbazar">गोल बाजार</string>
+    <string name="kharagpur_malancha">मलंचा</string>
+    <string name="kharagpur_nimpura">निमपुरा</string>
+    <string name="kharagpur_other">अन्य</string>
+
+    <!-- मिदनापुर की स्थानीयताएँ -->
+    <string name="midnapore_midnapore_town">मिदनापुर टाउन</string>
+    <string name="midnapore_vidyasagar_university_area">विद्यासागर विश्वविद्यालय क्षेत्र</string>
+    <string name="midnapore_rangamati">रंगमाटी</string>
+    <string name="midnapore_keranichati">केरानीचट्टी</string>
+    <string name="midnapore_tamluk">तमलूक</string>
+    <string name="midnapore_other">अन्य</string>
+
+    <!-- बर्द्धमान की स्थानीयताएँ -->
+    <string name="bardhaman_bardhaman_town">बर्द्धमान टाउन</string>
+    <string name="bardhaman_katwa">कटवा</string>
+    <string name="bardhaman_kalna">कालना</string>
+    <string name="bardhaman_dhatrigram">धात्रीग्राम</string>
+    <string name="bardhaman_memari">मेमारी</string>
+    <string name="bardhaman_other">अन्य</string>
+
+    <!-- हुगली की स्थानीयताएँ -->
+    <string name="hooghly_chinsurah">चिनसुराह</string>
+    <string name="hooghly_serampore">सेरामपुर</string>
+    <string name="hooghly_arambagh">आरामबाग</string>
+    <string name="hooghly_kon_nagar">कोन नगर</string>
+    <string name="hooghly_uttarpara">उत्तरपारा</string>
+    <string name="hooghly_other">अन्य</string>
+
+    <!-- नादिया की स्थानीयताएँ -->
+    <string name="nadia_krishnanagar">कृष्णनगर</string>
+    <string name="nadia_nabadwip">नवद्वीप</string>
+    <string name="nadia_shantipur">शांतिपुर</string>
+    <string name="nadia_karimpur">करीमपुर</string>
+    <string name="nadia_other">अन्य</string>
+
+    <!-- मुर्शिदाबाद की स्थानीयताएँ -->
+    <string name="murshidabad_murshidabad_town">मुर्शिदाबाद टाउन</string>
+    <string name="murshidabad_lalbagh">लालबाग</string>
+    <string name="murshidabad_jiaganj">जियागंज</string>
+    <string name="murshidabad_azimganj">अजिमगंज</string>
+    <string name="murshidabad_other">अन्य</string>
+
+    <!-- बहरमपुर की स्थानीयताएँ -->
+    <string name="baharampur_baharampur_town">बहरमपुर टाउन</string>
+    <string name="baharampur_gorabazar">गोराबाजार</string>
+    <string name="baharampur_khagra">खागड़ा</string>
+    <string name="baharampur_panchanantala">पंचनंताला</string>
+    <string name="baharampur_kashimnagar">काशिमनगर</string>
+    <string name="baharampur_other">अन्य</string>
+
+    <!-- हल्दिया की स्थानीयताएँ -->
+    <string name="haldia_haldia_township">हल्दिया टाउनशिप</string>
+    <string name="haldia_hit_campus_area">एचआईटी कैंपस क्षेत्र</string>
+    <string name="haldia_durgachak">दुर्गाचक</string>
+    <string name="haldia_brajalalchak">ब्रजलालचक</string>
+    <string name="haldia_hatiberia">हातीबेरिया</string>
+    <string name="haldia_other">अन्य</string>
+
+    <!-- रानाघाट की स्थानीयताएँ -->
+    <string name="ranaghat_ranaghat_town">रानाघाट टाउन</string>
+    <string name="ranaghat_coopers_camp">कूपर्स कैंप</string>
+    <string name="ranaghat_taherpur">ताहिरपुर</string>
+    <string name="ranaghat_habibpur">हबीबपुर</string>
+    <string name="ranaghat_other">अन्य</string>
+
+    <!-- कल्याणी की स्थानीयताएँ -->
+    <string name="kalyani_kalyani_university_area">कल्याणी विश्वविद्यालय क्षेत्र</string>
+    <string name="kalyani_kalyani_town">कल्याणी टाउन</string>
+    <string name="kalyani_gayespur">गायेशपुर</string>
+    <string name="kalyani_chakdaha">चकदहा</string>
+    <string name="kalyani_other">अन्य</string>
+
+    <!-- चंदननगर की स्थानीयताएँ -->
+    <string name="chandannagar_chandannagar_strand">चंदननगर स्ट्रैंड</string>
+    <string name="chandannagar_mankundu">मानकुंडु</string>
+    <string name="chandannagar_bhadreswar">भद्रेश्वर</string>
+    <string name="chandannagar_khalisani">खालिसानी</string>
+    <string name="chandannagar_other">अन्य</string>
+
 </resources>

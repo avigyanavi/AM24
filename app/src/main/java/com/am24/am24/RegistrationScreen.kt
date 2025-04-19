@@ -326,12 +326,49 @@ fun EnterPersonalDetailsScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val lookingForOptions = listOf("Friendship", "Dating", "Relationship", "Marriage")
-    val loveLanguageOptions = listOf("Words of Affirmation", "Acts of Service", "Receiving Gifts", "Quality Time", "Physical Touch")
-    val politicsOptions = listOf("Liberal", "Moderate", "Conservative", "Other")
-    val jobRoleOptions = listOf("Engineer", "Teacher", "Doctor", "Student", "Entrepreneur", "Other")
-    val workOptions = listOf("Private Sector", "Government", "Freelance", "Unemployed")
+    val lookingForOptions = listOf(
+        stringResource(R.string.looking_for_not_selected),
+        stringResource(R.string.looking_for_casual_sex),
+        stringResource(R.string.looking_for_connection),
+        stringResource(R.string.looking_for_partner),
+        stringResource(R.string.looking_for_marriage)
+    )
+    val loveLanguageOptions = listOf(
+        stringResource(R.string.love_language_option_not_selected),
+        stringResource(R.string.love_language_option_words_of_affirmation),
+        stringResource(R.string.love_language_option_acts_of_service),
+        stringResource(R.string.love_language_option_receiving_gifts),
+        stringResource(R.string.love_language_option_quality_time),
+        stringResource(R.string.love_language_option_physical_touch),
+        stringResource(R.string.love_language_option_other),
+    )
 
+    val politicsOptions = listOf(
+        stringResource(R.string.politics_option_not_selected),
+        stringResource(R.string.politics_option_liberal),
+        stringResource(R.string.politics_option_moderate),
+        stringResource(R.string.politics_option_conservative),
+        stringResource(R.string.politics_option_other),
+    )
+
+    val jobRoleOptions = listOf(
+        stringResource(R.string.job_role_option_not_selected),
+        stringResource(R.string.job_role_option_engineer),
+        stringResource(R.string.job_role_option_teacher),
+        stringResource(R.string.job_role_option_doctor),
+        stringResource(R.string.job_role_option_intern),
+        stringResource(R.string.job_role_option_entrepreneur),
+        stringResource(R.string.job_role_option_other),
+    )
+
+    val workOptions = listOf(
+        stringResource(R.string.work_option_not_selected),
+        stringResource(R.string.work_option_private_sector),
+        stringResource(R.string.work_option_government),
+        stringResource(R.string.work_option_freelance),
+        stringResource(R.string.work_option_unemployed),
+        stringResource(R.string.work_option_other),
+    )
     var lookingFor by remember { mutableStateOf(viewModel.lookingFor) }
     var loveLanguage by remember { mutableStateOf(viewModel.loveLanguage) }
     var politics by remember { mutableStateOf(viewModel.politics) }
@@ -349,7 +386,7 @@ fun EnterPersonalDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Personal Details", color = Color.White) },
+                title = { Text(stringResource(R.string.enter_your_personal_details), color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -368,12 +405,12 @@ fun EnterPersonalDetailsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    Text("Tell us more about yourself", color = Color.White, fontSize = 20.sp)
+                    Text(stringResource(R.string.tell_us_more_about_yourself), color = Color.White, fontSize = 20.sp)
                 }
 
                 item {
                     DropdownWithStaticOptions(
-                        label = "Looking For",
+                        label = stringResource(R.string.looking_for_label),
                         options = lookingForOptions,
                         selectedOption = lookingFor,
                         onOptionSelected = {
@@ -385,7 +422,7 @@ fun EnterPersonalDetailsScreen(
 
                 item {
                     DropdownWithStaticOptions(
-                        label = "Love Language",
+                        label = stringResource(R.string.love_language_label),
                         options = loveLanguageOptions,
                         selectedOption = loveLanguage,
                         onOptionSelected = {
@@ -397,7 +434,7 @@ fun EnterPersonalDetailsScreen(
 
                 item {
                     DropdownWithStaticOptions(
-                        label = "Political Views",
+                        label = stringResource(R.string.label_politics),
                         options = politicsOptions,
                         selectedOption = politics,
                         onOptionSelected = {
@@ -409,11 +446,11 @@ fun EnterPersonalDetailsScreen(
 
                 item {
                     Column {
-                        Text("Social Causes", color = Color.White, fontSize = 16.sp)
+                        Text(stringResource(R.string.social_causes), color = Color.White, fontSize = 16.sp)
                         OutlinedTextField(
                             value = newSocialCause,
                             onValueChange = { newSocialCause = it },
-                            label = { Text("Add a cause", color = Color.White) },
+                            label = { Text(stringResource(R.string.add_cause), color = Color.White) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                 focusedTextColor = Color.White,
@@ -431,7 +468,7 @@ fun EnterPersonalDetailsScreen(
                                         viewModel.socialCauses.add(newSocialCause)
                                         newSocialCause = ""
                                     }) {
-                                        Icon(Icons.Default.Add, "Add", tint = Color.White)
+                                        Icon(Icons.Default.Add, stringResource(R.string.add), tint = Color.White)
                                     }
                                 }
                             }
@@ -457,7 +494,7 @@ fun EnterPersonalDetailsScreen(
 
                 item {
                     DropdownWithStaticOptions(
-                        label = "Job Role",
+                        label = stringResource(R.string.job_role_label),
                         options = jobRoleOptions,
                         selectedOption = jobRole,
                         onOptionSelected = {
@@ -469,7 +506,7 @@ fun EnterPersonalDetailsScreen(
 
                 item {
                     DropdownWithStaticOptions(
-                        label = "Work Type",
+                        label = stringResource(R.string.workplace_label),
                         options = workOptions,
                         selectedOption = work,
                         onOptionSelected = {
@@ -485,39 +522,13 @@ fun EnterPersonalDetailsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
                     ) {
-                        Text("Next", color = Color.White)
+                        Text(stringResource(R.string.next_button), color = Color.White)
                     }
                 }
             }
         }
     )
 }
-
-// Add this new composable for restarting the activity
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LanguageRestartScreen() {
-    // Get the current context as an Activity.
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        delay(2000) // Wait 2 seconds before restarting.
-        (context as? ComponentActivity)?.recreate()
-    }
-    // Display a simple pause UI.
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = Color(0xFFFF6000))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Restarting to apply language changes...", color = Color.White, fontSize = 18.sp)
-        }
-    }
-}
-
 
 @Composable
 fun EnterLifestyleScreen(
@@ -536,7 +547,7 @@ fun EnterLifestyleScreen(
             ) {
                 item {
                     Text(
-                        text = "Lifestyle Preferences",
+                        text = stringResource(R.string.section_lifestyle_attributes),
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
@@ -546,7 +557,7 @@ fun EnterLifestyleScreen(
                 // Smoking Slider
                 item {
                     LifestyleSlider(
-                        label = "Smoking",
+                        label = stringResource(R.string.lifestyle_smoking),
                         value = registrationViewModel.lifestyle.smoking_habit,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -554,14 +565,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(smoking_habit = it)
                         },
-                        nouns = listOf("Non-Smoker", "Rare Smoker", "Social Smoker", "Frequent Smoker", "Heavy Smoker")
+                        nouns = listOf(stringResource(R.string.non_smoker), stringResource(R.string.rare_smoker), stringResource(R.string.social_smoker), stringResource(R.string.frequent_smoker), stringResource(R.string.heavy_smoker))
                     )
                 }
 
                 // Drinking Slider
                 item {
                     LifestyleSlider(
-                        label = "Drinking",
+                        label = stringResource(R.string.lifestyle_drinking),
                         value = registrationViewModel.lifestyle.drinking_habit,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -569,7 +580,7 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(drinking_habit = it)
                         },
-                        nouns = listOf("Non-Drinker", "Rare Drinker", "Social Drinker", "Frequent Drinker", "Heavy Drinker")
+                        nouns = listOf(stringResource(R.string.non_drinker), stringResource(R.string.rare_drinker), stringResource(R.string.social_drinker), stringResource(R.string.frequent_drinker), stringResource(R.string.heavy_drinker))
                     )
                 }
 
@@ -577,7 +588,7 @@ fun EnterLifestyleScreen(
                 // Indoorsy to Outdoorsy Slider
                 item {
                     LifestyleSlider(
-                        label = "Indoor<->Outdoor",
+                        label = stringResource(R.string.lifestyle_indoor_outdoor),
                         value = registrationViewModel.lifestyle.indoor_outdoor_orientation,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -585,14 +596,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(indoor_outdoor_orientation = it)
                         },
-                        nouns = listOf("Very Indoorsy", "Mostly Indoorsy", "Balanced", "Mostly Outdoorsy", "Very Outdoorsy")
+                        nouns = listOf(stringResource(R.string.very_indoorsy), stringResource(R.string.mostly_indoorsy), stringResource(R.string.balanced), stringResource(R.string.mostly_outdoorsy), stringResource(R.string.very_outdoorsy))
                     )
                 }
 
                 // Social Media Slider
                 item {
                     LifestyleSlider(
-                        label = "Social Media",
+                        label = stringResource(R.string.lifestyle_social_media),
                         value = registrationViewModel.lifestyle.social_media_engagement,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -600,30 +611,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(social_media_engagement = it)
                         },
-                        nouns = listOf("Invisible", "Watcher", "Casual Participant", "Engager", "Influencer")
-                    )
-                }
-
-                // Diet Dropdown
-                item {
-                    DropdownWithStaticOptions(
-                        label = "Diet",
-                        options = listOf(
-                            "Vegetarian", "Non-Veg", "Vegan", "Keto",
-                            "Eggetarian", "Paleo", "Fruitarian", "Carnivore"
-                        ),
-                        selectedOption = registrationViewModel.lifestyle.dietary_preferences,
-                        onOptionSelected = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(dietary_preferences = it)
-                        }
+                        nouns = listOf(stringResource(R.string.invisible), stringResource(R.string.watcher), stringResource(R.string.casual_participant), stringResource(R.string.engager), stringResource(R.string.influencer))
                     )
                 }
 
                 // Sleep Cycle Slider
                 item {
                     LifestyleSlider(
-                        label = "Sleep Cycle",
+                        label = stringResource(R.string.lifestyle_sleep),
                         value = registrationViewModel.lifestyle.sleep_pattern,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -631,14 +626,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(sleep_pattern = it)
                         },
-                        nouns = listOf("Early Riser", "Morning Person", "Balanced", "Night Owl", "Late Night Enthusiast")
+                        nouns = listOf(stringResource(R.string.early_riser), stringResource(R.string.morning_person), stringResource(R.string.balanced), stringResource(R.string.night_owl), stringResource(R.string.late_night_enthusiast))
                     )
                 }
 
                 // Work-Life Balance Slider
                 item {
                     LifestyleSlider(
-                        label = "Work-Life Balance",
+                        label = stringResource(R.string.lifestyle_work_life_balance),
                         value = registrationViewModel.lifestyle.work_life_balance,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -646,14 +641,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(work_life_balance = it)
                         },
-                        nouns = listOf("Workaholic", "More Work-Oriented", "Balanced", "More Life-Oriented", "Relaxed")
+                        nouns = listOf(stringResource(R.string.workaholic), stringResource(R.string.more_work_oriented), stringResource(R.string.balanced), stringResource(R.string.more_life_oriented), stringResource(R.string.relaxed))
                     )
                 }
 
                 // Exercise Frequency Slider
                 item {
                     LifestyleSlider(
-                        label = "Exercise Frequency",
+                        label = stringResource(R.string.lifestyle_exercise),
                         value = registrationViewModel.lifestyle.exercise_frequency,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -661,14 +656,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(exercise_frequency = it)
                         },
-                        nouns = listOf("Inactive", "Rarely Active", "Moderately Active", "Active", "Very Active")
+                        nouns = listOf(stringResource(R.string.inactive), stringResource(R.string.rarely_active), stringResource(R.string.moderately_active), stringResource(R.string.active), stringResource(R.string.very_active))
                     )
                 }
 
                 // Family-Oriented Slider
                 item {
                     LifestyleSlider(
-                        label = "Family-Oriented",
+                        label = stringResource(R.string.lifestyle_family_oriented),
                         value = registrationViewModel.lifestyle.family_orientated,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -676,14 +671,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(family_orientated = it)
                         },
-                        nouns = listOf("Independent", "Slightly Family-Oriented", "Balanced", "Family-Oriented", "Very Family-Oriented")
+                        nouns = listOf(stringResource(R.string.independent), stringResource(R.string.slightly_family_oriented), stringResource(R.string.balanced), stringResource(R.string.more_family_oriented), stringResource(R.string.very_family_oriented))
                     )
                 }
 
                 // Adventurous Slider
                 item {
                     LifestyleSlider(
-                        label = "Adventurous",
+                        label = stringResource(R.string.lifestyle_adventurousness),
                         value = registrationViewModel.lifestyle.adventurousness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -691,14 +686,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(adventurousness = it)
                         },
-                        nouns = listOf("Cautious", "Slightly Adventurous", "Moderately Adventurous", "Adventurous", "Thrill Seeker")
+                        nouns = listOf(stringResource(R.string.cautious), stringResource(R.string.slightly_adventurous), stringResource(R.string.moderately_adventurous), stringResource(R.string.adventurous), stringResource(R.string.thrill_seeker))
                     )
                 }
 
                 // Intellectual Slider
                 item {
                     LifestyleSlider(
-                        label = "Intellectual",
+                        label = stringResource(R.string.lifestyle_intellectual_curiosity),
                         value = registrationViewModel.lifestyle.intellectual_curiosity,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -706,14 +701,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(intellectual_curiosity = it)
                         },
-                        nouns = listOf("Casual Thinker", "Inquisitive", "Knowledge Seeker", "Intellectual", "Philosopher")
+                        nouns = listOf(stringResource(R.string.casual_thinker), stringResource(R.string.inquisitive), stringResource(R.string.knowledge_seeker), stringResource(R.string.intellectual), stringResource(R.string.philosopher))
                     )
                 }
 
                 // Creative/Artistic Slider
                 item {
                     LifestyleSlider(
-                        label = "Creative/Artistic",
+                        label = stringResource(R.string.lifestyle_creative_expression),
                         value = registrationViewModel.lifestyle.creative_expression,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -721,14 +716,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(creative_expression = it)
                         },
-                        nouns = listOf("Not Creative", "Somewhat Creative", "Creative", "Very Creative", "Artistic Genius")
+                        nouns = listOf(stringResource(R.string.not_creative), stringResource(R.string.somewhat_creative), stringResource(R.string.creative), stringResource(R.string.very_creative), stringResource(R.string.artistic_genius))
                     )
                 }
 
                 // Fitness Level Slider
                 item {
                     LifestyleSlider(
-                        label = "Fitness Level",
+                        label = stringResource(R.string.lifestyle_physical_fitness),
                         value = registrationViewModel.lifestyle.physical_fitness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -736,14 +731,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(physical_fitness = it)
                         },
-                        nouns = listOf("Sedentary", "Somewhat Fit", "Fit", "Athletic", "Peak Fitness")
+                        nouns = listOf(stringResource(R.string.sedentary), stringResource(R.string.somewhat_fit), stringResource(R.string.fit), stringResource(R.string.athletic), stringResource(R.string.peak_fitness))
                     )
                 }
 
                 // Spiritual/Mindful Slider
                 item {
                     LifestyleSlider(
-                        label = "Spiritual/Mindful",
+                        label = stringResource(R.string.lifestyle_spirituality),
                         value = registrationViewModel.lifestyle.spirituality_mindfulness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -751,14 +746,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(spirituality_mindfulness = it)
                         },
-                        nouns = listOf("Not Spiritual", "Occasionally Mindful", "Balanced", "Spiritual", "Deeply Mindful")
+                        nouns = listOf(stringResource(R.string.not_spiritual), stringResource(R.string.occasionally_mindful), stringResource(R.string.balanced), stringResource(R.string.spiritual), stringResource(R.string.deeply_mindful))
                     )
                 }
 
                 // Humorous/Easygoing Slider
                 item {
                     LifestyleSlider(
-                        label = "Humorous/Easygoing",
+                        label = stringResource(R.string.lifestyle_humor),
                         value = registrationViewModel.lifestyle.easy_goingness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -766,14 +761,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(easy_goingness = it)
                         },
-                        nouns = listOf("Serious", "Somewhat Easygoing", "Balanced", "Humorous", "Life of the Party")
+                        nouns = listOf(stringResource(R.string.serious), stringResource(R.string.somewhat_easygoing), stringResource(R.string.balanced), stringResource(R.string.humorous), stringResource(R.string.life_of_the_party))
                     )
                 }
 
                 // Professional/Ambitious Slider
                 item {
                     LifestyleSlider(
-                        label = "Professional/Ambitious",
+                        label = stringResource(R.string.lifestyle_professional_ambition),
                         value = registrationViewModel.lifestyle.professional_ambition,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -781,14 +776,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(professional_ambition = it)
                         },
-                        nouns = listOf("Relaxed", "Occasionally Driven", "Balanced", "Ambitious", "Highly Ambitious")
+                        nouns = listOf(stringResource(R.string.relaxed), stringResource(R.string.occasionally_driven), stringResource(R.string.balanced), stringResource(R.string.ambitious), stringResource(R.string.high_ambitious))
                     )
                 }
 
                 // Environmentally Conscious Slider
                 item {
                     LifestyleSlider(
-                        label = "Environmentally Conscious",
+                        label = stringResource(R.string.lifestyle_environmental_awareness),
                         value = registrationViewModel.lifestyle.environmental_awareness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -796,14 +791,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(environmental_awareness = it)
                         },
-                        nouns = listOf("Not Conscious", "Occasionally Conscious", "Balanced", "Eco-Friendly", "Eco-Champion")
+                        nouns = listOf(stringResource(R.string.not_conscious), stringResource(R.string.occasionally_conscious), stringResource(R.string.balanced), stringResource(R.string.eco_friendly), stringResource(R.string.eco_champion))
                     )
                 }
 
                 // Foodie/Culinary Enthusiast Slider
                 item {
                     LifestyleSlider(
-                        label = "Foodie/Culinary Enthusiast",
+                        label = stringResource(R.string.lifestyle_culinary_enthusiasm),
                         value = registrationViewModel.lifestyle.culinary_enthusiasm,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -811,14 +806,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(culinary_enthusiasm = it)
                         },
-                        nouns = listOf("Non Foodie", "Occasional Foodie", "Balanced", "Food Enthusiast", "Culinary Expert")
+                        nouns = listOf(stringResource(R.string.not_a_foodie), stringResource(R.string.occasional_foodie), stringResource(R.string.balanced), stringResource(R.string.foodie), stringResource(R.string.passionate_foodie))
                     )
                 }
 
                 // Sports Enthusiast Slider
                 item {
                     LifestyleSlider(
-                        label = "Sports Enthusiast",
+                        label = stringResource(R.string.sports_enthusiast),
                         value = registrationViewModel.lifestyle.sports_enthusiasm,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -826,14 +821,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(sports_enthusiasm = it)
                         },
-                        nouns = listOf("Non-Sports", "Casual Viewer", "Occasional Player", "Sports Enthusiast", "Sports Fanatic")
+                        nouns = listOf(stringResource(R.string.non_sports), stringResource(R.string.casual_viewer), stringResource(R.string.occasional_player), stringResource(R.string.sports_enthusiast), stringResource(R.string.sports_fanatic))
                     )
                 }
 
                 // Sexual Activity Level Slider
                 item {
                     LifestyleSlider(
-                        label = "Sexual Activity Level",
+                        label = stringResource(R.string.lifestyle_sexual_activity),
                         value = registrationViewModel.lifestyle.sexual_activity_level,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -841,14 +836,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(sexual_activity_level = it)
                         },
-                        nouns = listOf("Abstinent", "Rarely Active", "Moderately Active", "Active", "Highly Active")
+                        nouns = listOf(stringResource(R.string.inactive), stringResource(R.string.rarely_active), stringResource(R.string.moderately_active), stringResource(R.string.active), stringResource(R.string.very_active))
                     )
                 }
 
                 // Politically Aware Slider
                 item {
                     LifestyleSlider(
-                        label = "Politically Aware",
+                        label = stringResource(R.string.lifestyle_political_awareness),
                         value = registrationViewModel.lifestyle.political_awareness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -856,14 +851,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(political_awareness = it)
                         },
-                        nouns = listOf("Unaware", "Occasionally Aware", "Balanced", "Aware", "Politically Engaged")
+                        nouns = listOf(stringResource(R.string.unaware), stringResource(R.string.occasionally_aware), stringResource(R.string.balanced), stringResource(R.string.aware), stringResource(R.string.politically_engaged))
                     )
                 }
 
                 // Introvert to Extrovert Slider
                 item {
                     LifestyleSlider(
-                        label = "Introvert to Extrovert",
+                        label = stringResource(R.string.lifestyle_sociability),
                         value = registrationViewModel.lifestyle.sociability,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -871,14 +866,14 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(sociability = it)
                         },
-                        nouns = listOf("Highly Introverted", "Somewhat Introverted", "Ambivert", "Somewhat Extroverted", "Highly Extroverted")
+                        nouns = listOf(stringResource(R.string.extremely_introverted), stringResource(R.string.very_introverted), stringResource(R.string.moderately_introverted), stringResource(R.string.slightly_introverted), stringResource(R.string.not_introverted))
                     )
                 }
 
                 // Community-Oriented Slider
                 item {
                     LifestyleSlider(
-                        label = "Community-Oriented",
+                        label = stringResource(R.string.lifestyle_community_engagement),
                         value = registrationViewModel.lifestyle.community_engagement,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
@@ -886,7 +881,7 @@ fun EnterLifestyleScreen(
                             registrationViewModel.lifestyle =
                                 registrationViewModel.lifestyle.copy(community_engagement = it)
                         },
-                        nouns = listOf("Individualistic", "Occasionally Involved", "Balanced", "Community-Oriented", "Community Leader")
+                        nouns = listOf(stringResource(R.string.individualistic), stringResource(R.string.occasionally_involved), stringResource(R.string.balanced), stringResource(R.string.community_oriented), stringResource(R.string.community_leader))
                     )
                 }
 
@@ -939,7 +934,7 @@ fun LifestyleSlider(
         )
         // Display the corresponding noun or "Not Selected"
         Text(
-            text = if (adjustedValue == -1) "Not Selected" else nouns.getOrElse(adjustedValue) { "Unknown" },
+            text = if (adjustedValue == -1) stringResource(R.string.not_selected) else nouns.getOrElse(adjustedValue) { "Unknown" },
             color = Color.Gray,
             fontSize = 14.sp,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -987,31 +982,6 @@ fun DropdownWithStaticOptions(
     }
 }
 
-@Composable
-fun CheckboxInput(
-    label: String,
-    isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = label, color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
-        Checkbox(
-            checked = isChecked,
-            onCheckedChange = onCheckedChange,
-            colors = CheckboxDefaults.colors(
-                checkmarkColor = Color(0xFF1A1A1A),
-                checkedColor = Color(0xFFFF6000),
-                uncheckedColor = Color.Gray
-            )
-        )
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterLocationAndSchoolScreen(
@@ -1019,10 +989,448 @@ fun EnterLocationAndSchoolScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val educationLevels = listOf("High School", "College", "Post-Graduation")
-    val highSchoolOptions = listOf("St. Xavier's", "La Martinière", "Other")
-    val collegeOptions = listOf("IIT Kharagpur", "Jadavpur University", "Other")
-    val postGraduationOptions = listOf("IIM Calcutta", "ISB Hyderabad", "Other")
+    val educationLevels = listOf(stringResource(R.string.high_school_label), stringResource(R.string.college_label), stringResource(R.string.post_graduation_label))
+    val highSchoolOptions = listOf(
+        stringResource(R.string.high_school_andrews_high_school),
+        stringResource(R.string.high_school_assembly_of_god_church_school),
+        stringResource(R.string.high_school_bdm_international),
+        stringResource(R.string.high_school_ballygunge_government_high_school),
+        stringResource(R.string.high_school_baranagar_ramakrishna_mission),
+        stringResource(R.string.high_school_barasat_mgm_high_school),
+        stringResource(R.string.high_school_barasat_peary_charan),
+        stringResource(R.string.high_school_barrackpore_government_high_school),
+        stringResource(R.string.high_school_bethune_collegiate),
+        stringResource(R.string.high_school_bidhannagar_government_high_school),
+        stringResource(R.string.high_school_birla_high_school),
+        stringResource(R.string.high_school_burdwan_cms_high_school),
+        stringResource(R.string.high_school_calcutta_boys_school),
+        stringResource(R.string.high_school_calcutta_girls_high_school),
+        stringResource(R.string.high_school_darjeeling_government_high_school),
+        stringResource(R.string.high_school_dps_durgapur),
+        stringResource(R.string.high_school_dps_newtown),
+        stringResource(R.string.high_school_dps_ruby_park),
+        stringResource(R.string.high_school_don_bosco_park_circus),
+        stringResource(R.string.high_school_goethals_memorial),
+        stringResource(R.string.high_school_hare_school),
+        stringResource(R.string.high_school_hindu_school),
+        stringResource(R.string.high_school_howrah_zilla_school),
+        stringResource(R.string.high_school_jadavpur_vidyapith),
+        stringResource(R.string.high_school_jenkins_school),
+        stringResource(R.string.high_school_kalyani_university_experimental),
+        stringResource(R.string.high_school_kendriya_vidyalaya_ballygunge),
+        stringResource(R.string.high_school_la_martiniere_boys),
+        stringResource(R.string.high_school_la_martiniere_girls),
+        stringResource(R.string.high_school_loreto_house),
+        stringResource(R.string.high_school_mahadevi_birla_world_academy),
+        stringResource(R.string.high_school_mitra_institution_main),
+        stringResource(R.string.high_school_modern_high_school_girls),
+        stringResource(R.string.high_school_nava_nalanda_high_school),
+        stringResource(R.string.high_school_north_point_darjeeling),
+        stringResource(R.string.high_school_patha_bhavan),
+        stringResource(R.string.high_school_purwanchal_vidya_mandir),
+        stringResource(R.string.high_school_rahara_ramakrishna_mission),
+        stringResource(R.string.high_school_ramakrishna_mission_narendrapur),
+        stringResource(R.string.high_school_rani_birla_girls_school),
+        stringResource(R.string.high_school_sakhawat_memorial_girls),
+        stringResource(R.string.high_school_scottish_church_collegiate),
+        stringResource(R.string.high_school_siliguri_boys_high_school),
+        stringResource(R.string.high_school_south_point_high_school),
+        stringResource(R.string.high_school_st_james_school),
+        stringResource(R.string.high_school_st_josephs_north_point),
+        stringResource(R.string.high_school_st_lawrence_high_school),
+        stringResource(R.string.high_school_st_pauls_mission_school),
+        stringResource(R.string.high_school_st_thomas_kidderpore),
+        stringResource(R.string.high_school_st_xaviers_collegiate),
+        stringResource(R.string.high_school_the_heritage_school),
+        stringResource(R.string.high_school_uttarpara_government_high_school),
+        stringResource(R.string.high_school_asansol_st_anthonys),
+        stringResource(R.string.high_school_bankura_christian_school),
+        stringResource(R.string.high_school_berhampore_girls_high_school),
+        stringResource(R.string.high_school_contai_high_school),
+        stringResource(R.string.high_school_hooghly_collegiate_school),
+        stringResource(R.string.high_school_krishnanagar_collegiate_school),
+        stringResource(R.string.high_school_malda_zilla_school),
+        stringResource(R.string.high_school_midnapore_collegiate_school),
+        stringResource(R.string.high_school_ashok_hall),
+        stringResource(R.string.high_school_mahadevi_birla_shishu_vihar),
+        stringResource(R.string.high_school_jewish_girls),
+        stringResource(R.string.high_school_cathedral_john_connon),
+        stringResource(R.string.high_school_dhirubhai_ambani),
+        stringResource(R.string.high_school_doon_school),
+        stringResource(R.string.high_school_mayo_college),
+        stringResource(R.string.high_school_modern_school_barakhamba),
+        stringResource(R.string.high_school_rishi_valley),
+        stringResource(R.string.high_school_scindia_school),
+        stringResource(R.string.high_school_shri_ram_vasant_vihar),
+        stringResource(R.string.high_school_lawrence_sanawar),
+        stringResource(R.string.high_school_welham_girls),
+        stringResource(R.string.high_school_other)
+    )
+
+    val collegeOptions = listOf(
+        stringResource(R.string.college_other),
+        stringResource(R.string.college_acharya_jagadish_chandra_bose_college),
+        stringResource(R.string.college_asutosh_college),
+        stringResource(R.string.college_bangabasi_college),
+        stringResource(R.string.college_barasat_government_college),
+        stringResource(R.string.college_barrackpore_rastraguru_surendranath_college),
+        stringResource(R.string.college_behala_college),
+        stringResource(R.string.college_bethune_college),
+        stringResource(R.string.college_bidhannagar_college),
+        stringResource(R.string.college_city_college),
+        stringResource(R.string.college_derozio_memorial_college),
+        stringResource(R.string.college_dinabandhu_andrews_college),
+        stringResource(R.string.college_dum_dum_motijheel_college),
+        stringResource(R.string.college_goenka_college),
+        stringResource(R.string.college_heramba_chandra_college),
+        stringResource(R.string.college_hooghly_mohsin_college),
+        stringResource(R.string.college_iit_kharagpur),
+        stringResource(R.string.college_iem_kolkata),
+        stringResource(R.string.college_jadavpur_university),
+        stringResource(R.string.college_jogamaya_devi_college),
+        stringResource(R.string.college_kalyani_mahavidyalaya),
+        stringResource(R.string.college_kazi_nazrul_islam_mahavidyalaya),
+        stringResource(R.string.college_krishnanagar_government_college),
+        stringResource(R.string.college_lady_brabourne_college),
+        stringResource(R.string.college_loreto_college),
+        stringResource(R.string.college_maulana_azad_college),
+        stringResource(R.string.college_nit_durgapur),
+        stringResource(R.string.college_presidency_university),
+        stringResource(R.string.college_ramakrishna_mission_narendrapur),
+        stringResource(R.string.college_ramakrishna_mission_vidyamandira),
+        stringResource(R.string.college_rishi_bankim_chandra_college),
+        stringResource(R.string.college_techno_india),
+        stringResource(R.string.college_scottish_church_college),
+        stringResource(R.string.college_serampore_college),
+        stringResource(R.string.college_seth_anandram_jaipuria_college),
+        stringResource(R.string.college_shri_shikshayatan_college),
+        stringResource(R.string.college_siliguri_college),
+        stringResource(R.string.college_southfield_college),
+        stringResource(R.string.college_st_xaviers_college),
+        stringResource(R.string.college_surendranath_college),
+        stringResource(R.string.college_university_of_calcutta),
+        stringResource(R.string.college_vidyasagar_college),
+        stringResource(R.string.college_west_bengal_state_university),
+        stringResource(R.string.college_basanti_devi_college),
+        stringResource(R.string.college_gokhale_memorial_girls_college),
+        stringResource(R.string.college_gurudas_college),
+        stringResource(R.string.college_narasinha_dutt_college),
+        stringResource(R.string.college_sivanath_sastri_college),
+        stringResource(R.string.college_christ_university),
+        stringResource(R.string.college_fergusson_college),
+        stringResource(R.string.college_hindu_college),
+        stringResource(R.string.college_iisc_bangalore),
+        stringResource(R.string.college_iit_kanpur),
+        stringResource(R.string.college_iit_roorkee),
+        stringResource(R.string.college_lady_shri_ram_college),
+        stringResource(R.string.college_loyola_college),
+        stringResource(R.string.college_miranda_house),
+        stringResource(R.string.college_st_stephens_college),
+        stringResource(R.string.college_hansraj_college),
+        stringResource(R.string.college_mount_carmel_college),
+        stringResource(R.string.college_australian_national_university),
+        stringResource(R.string.college_carnegie_mellon_university),
+        stringResource(R.string.college_eth_zurich),
+        stringResource(R.string.college_harvard_university),
+        stringResource(R.string.college_imperial_college_london),
+        stringResource(R.string.college_london_school_of_economics),
+        stringResource(R.string.college_mcgill_university),
+        stringResource(R.string.college_mit),
+        stringResource(R.string.college_national_university_singapore),
+        stringResource(R.string.college_purdue_university),
+        stringResource(R.string.college_sorbonne_university),
+        stringResource(R.string.college_stanford_university),
+        stringResource(R.string.college_tu_delft),
+        stringResource(R.string.college_university_college_london),
+        stringResource(R.string.college_university_of_amsterdam),
+        stringResource(R.string.college_university_of_british_columbia),
+        stringResource(R.string.college_university_of_california_berkeley),
+        stringResource(R.string.college_university_of_california_san_diego),
+        stringResource(R.string.college_university_of_cambridge),
+        stringResource(R.string.college_university_of_edinburgh),
+        stringResource(R.string.college_university_of_melbourne),
+        stringResource(R.string.college_university_of_michigan),
+        stringResource(R.string.college_university_of_oxford),
+        stringResource(R.string.college_university_of_queensland),
+        stringResource(R.string.college_university_of_sydney),
+        stringResource(R.string.college_university_of_toronto),
+        // — New engineering colleges —
+        stringResource(R.string.college_srm_institute_of_science_and_technology),
+        stringResource(R.string.college_vellore_institute_of_technology),
+        stringResource(R.string.college_bits_pilani),
+        stringResource(R.string.college_manipal_institute_of_technology),
+        stringResource(R.string.college_iiit_hyderabad),
+
+        // — New private Arts/Science —
+        stringResource(R.string.college_op_jindal_global_university),
+        stringResource(R.string.college_ashoka_university),
+
+        // — New Design institutes —
+        stringResource(R.string.college_nid_ahmedabad),
+        stringResource(R.string.college_nid_kurukshetra),
+        stringResource(R.string.college_nid_gandhinagar),
+        stringResource(R.string.college_nid_bengaluru),
+        stringResource(R.string.college_nid_bhopal),
+        stringResource(R.string.college_nid_jorhat),
+        stringResource(R.string.college_nid_vijayawada),
+        stringResource(R.string.college_nift),
+        stringResource(R.string.college_srishti_manipal),
+        stringResource(R.string.college_pearl_academy),
+        stringResource(R.string.college_symbiosis_institute_of_design),
+        stringResource(R.string.college_mit_institute_of_design),
+        stringResource(R.string.college_iiad),
+        stringResource(R.string.college_world_university_of_design),
+        stringResource(R.string.college_amity_school_of_fashion_technology),
+        stringResource(R.string.college_jd_institute_of_fashion_technology),
+        stringResource(R.string.college_arch_academy_of_design),
+        stringResource(R.string.college_daiict),
+
+        // — New Law schools —
+        stringResource(R.string.college_nlsiu_bangalore),
+        stringResource(R.string.college_nalsar_hyderabad),
+        stringResource(R.string.college_nlu_delhi),
+        stringResource(R.string.college_wbnujs_kolkata),
+        stringResource(R.string.college_nliu_bhopal),
+        stringResource(R.string.college_gnlu_gandhinagar),
+        stringResource(R.string.college_hnlu_raipur),
+        stringResource(R.string.college_rmlnlu_lucknow),
+        stringResource(R.string.college_rgnul_patiala),
+        stringResource(R.string.college_cnlu_patna),
+        stringResource(R.string.college_nuals_kochi),
+        stringResource(R.string.college_nluo_cuttack),
+        stringResource(R.string.college_nusr_law_ranchi),
+        stringResource(R.string.college_nluja_guwahati),
+        stringResource(R.string.college_tnnlu_tiruchirappalli),
+        stringResource(R.string.college_mnlu_mumbai),
+        stringResource(R.string.college_mnlu_nagpur),
+        stringResource(R.string.college_mnlu_aurangabad),
+        stringResource(R.string.college_hpnlu_shimla),
+        stringResource(R.string.college_dnlu_jabalpur),
+        stringResource(R.string.college_dbranlu_sonipat),
+        stringResource(R.string.college_faculty_of_law_du),
+        stringResource(R.string.college_symbiosis_law_school),
+        stringResource(R.string.college_glc_mumbai),
+        stringResource(R.string.college_ils_law_pune),
+        stringResource(R.string.college_amity_law_school_noida),
+        stringResource(R.string.college_christ_univ_law),
+        stringResource(R.string.college_bhu_faculty_of_law),
+        stringResource(R.string.college_amu_faculty_of_law),
+        stringResource(R.string.college_jamia_law),
+        stringResource(R.string.college_op_jindal_law_school),
+        stringResource(R.string.college_army_institute_of_law_mohali),
+        stringResource(R.string.college_kerala_law_academy),
+        stringResource(R.string.college_school_of_law_calcutta),
+
+        // — New Arts colleges —
+        stringResource(R.string.college_college_of_art_du),
+        stringResource(R.string.college_sir_jj_school_of_art),
+        stringResource(R.string.college_faculty_visual_arts_bhu),
+        stringResource(R.string.college_msu_fine_arts_vadodara),
+        stringResource(R.string.college_govt_college_art_craft_kolkata),
+        stringResource(R.string.college_visva_bharati_kala_bhavana),
+        stringResource(R.string.college_chennai_govt_fine_arts),
+        stringResource(R.string.college_rachana_sansad),
+        stringResource(R.string.college_goa_college_of_art),
+        stringResource(R.string.college_amity_school_fine_arts),
+        stringResource(R.string.college_kalakshetra_foundation),
+        stringResource(R.string.college_bharatiya_kala_kendra),
+        stringResource(R.string.college_gandharva_mahavidyalaya),
+        stringResource(R.string.college_nsd),
+        stringResource(R.string.college_ftii_pune),
+        stringResource(R.string.college_srfti_kolkata),
+        stringResource(R.string.college_kathak_kendra),
+        stringResource(R.string.college_drama_thrissur),
+        stringResource(R.string.college_st_stephens),
+        stringResource(R.string.college_lsr_college),
+        stringResource(R.string.college_loyola_chennai),
+        stringResource(R.string.college_christ_univ),
+        stringResource(R.string.college_miranda_house),
+        stringResource(R.string.college_presidency_university),
+        stringResource(R.string.college_jadavpur_university),
+        stringResource(R.string.college_ashoka_university),
+        stringResource(R.string.college_flame_university),
+        stringResource(R.string.college_symbiosis_liberal_arts),
+        stringResource(R.string.college_krea_university),
+        stringResource(R.string.college_hindu_college),
+        stringResource(R.string.college_ramjas_college),
+        stringResource(R.string.college_fergusson_college),
+        stringResource(R.string.college_st_xaviers_mumbai),
+        stringResource(R.string.college_mcc_chennai)
+    )
+
+    val postGraduationOptions = listOf(
+        stringResource(R.string.postgrad_other),
+        stringResource(R.string.postgrad_adamas_university),
+        stringResource(R.string.postgrad_aliah_university),
+        stringResource(R.string.postgrad_amity_university_kolkata),
+        stringResource(R.string.postgrad_bankura_university),
+        stringResource(R.string.postgrad_bidhan_chandra_krishi_viswavidyalaya),
+        stringResource(R.string.postgrad_brainware_university),
+        stringResource(R.string.postgrad_cooch_behar_panchanan_barma_university),
+        stringResource(R.string.postgrad_darjeeling_hills_university),
+        stringResource(R.string.postgrad_diamond_harbour_womens_university),
+        stringResource(R.string.postgrad_iacs),
+        stringResource(R.string.postgrad_jadavpur_university),
+        stringResource(R.string.postgrad_jis_university),
+        stringResource(R.string.postgrad_kazi_nazrul_university),
+        stringResource(R.string.postgrad_maulana_abul_kalam_azad_university_of_technology),
+        stringResource(R.string.postgrad_netaji_subhash_open_university),
+        stringResource(R.string.postgrad_north_bengal_university),
+        stringResource(R.string.postgrad_presidency_university),
+        stringResource(R.string.postgrad_rabindra_bharati_university),
+        stringResource(R.string.postgrad_raiganj_university),
+        stringResource(R.string.postgrad_ramakrishna_mission_vivekananda),
+        stringResource(R.string.postgrad_techno_india),
+        stringResource(R.string.postgrad_seacom_skills_university),
+        stringResource(R.string.postgrad_sidho_kanho_birsha_university),
+        stringResource(R.string.postgrad_sister_nivedita_university),
+        stringResource(R.string.postgrad_university_of_burdwan),
+        stringResource(R.string.postgrad_university_of_calcutta),
+        stringResource(R.string.postgrad_university_of_engineering_and_management),
+        stringResource(R.string.postgrad_university_of_kalyani),
+        stringResource(R.string.postgrad_uttar_banga_krishi_vishwavidyalaya),
+        stringResource(R.string.postgrad_vidyasagar_university),
+        stringResource(R.string.postgrad_visva_bharati_university),
+        stringResource(R.string.postgrad_west_bengal_state_university),
+        stringResource(R.string.postgrad_west_bengal_university_of_animal_and_fishery_sciences),
+        stringResource(R.string.postgrad_west_bengal_university_of_health_sciences),
+        stringResource(R.string.postgrad_west_bengal_university_of_teachers_training),
+        stringResource(R.string.postgrad_iit_bombay),
+        stringResource(R.string.postgrad_iit_delhi),
+        stringResource(R.string.postgrad_iit_kanpur),
+        stringResource(R.string.postgrad_iit_kharagpur),
+        stringResource(R.string.postgrad_iit_madras),
+        stringResource(R.string.postgrad_iim_ahmedabad),
+        stringResource(R.string.postgrad_iim_bangalore),
+        stringResource(R.string.postgrad_iim_calcutta),
+        stringResource(R.string.postgrad_iisc_bangalore),
+        stringResource(R.string.postgrad_jnu),
+        stringResource(R.string.postgrad_university_of_delhi),
+        stringResource(R.string.postgrad_harvard_university),
+        stringResource(R.string.postgrad_stanford_university),
+        stringResource(R.string.postgrad_mit),
+        stringResource(R.string.postgrad_ucsd),
+        stringResource(R.string.postgrad_purdue_university),
+        stringResource(R.string.postgrad_uc_berkeley),
+        stringResource(R.string.postgrad_university_of_michigan),
+        stringResource(R.string.postgrad_university_of_oxford),
+        stringResource(R.string.postgrad_university_of_cambridge),
+        stringResource(R.string.postgrad_imperial_college_london),
+        stringResource(R.string.postgrad_london_school_of_economics),
+        stringResource(R.string.postgrad_university_of_toronto),
+        stringResource(R.string.postgrad_university_of_british_columbia),
+        stringResource(R.string.postgrad_mcgill_university),
+        stringResource(R.string.postgrad_university_of_melbourne),
+        stringResource(R.string.postgrad_university_of_sydney),
+        stringResource(R.string.postgrad_australian_national_university),
+        stringResource(R.string.postgrad_tu_delft),
+        stringResource(R.string.postgrad_eth_zurich),
+        stringResource(R.string.postgrad_university_college_london),
+        stringResource(R.string.postgrad_university_of_amsterdam),
+        stringResource(R.string.postgrad_sorbonne_university),
+                // — New engineering colleges —
+        stringResource(R.string.college_srm_institute_of_science_and_technology),
+        stringResource(R.string.college_vellore_institute_of_technology),
+        stringResource(R.string.college_bits_pilani),
+        stringResource(R.string.college_manipal_institute_of_technology),
+        stringResource(R.string.college_iiit_hyderabad),
+
+        // — New private Arts/Science —
+        stringResource(R.string.college_op_jindal_global_university),
+        stringResource(R.string.college_ashoka_university),
+
+        // — New Design institutes —
+        stringResource(R.string.college_nid_ahmedabad),
+        stringResource(R.string.college_nid_kurukshetra),
+        stringResource(R.string.college_nid_gandhinagar),
+        stringResource(R.string.college_nid_bengaluru),
+        stringResource(R.string.college_nid_bhopal),
+        stringResource(R.string.college_nid_jorhat),
+        stringResource(R.string.college_nid_vijayawada),
+        stringResource(R.string.college_nift),
+        stringResource(R.string.college_srishti_manipal),
+        stringResource(R.string.college_pearl_academy),
+        stringResource(R.string.college_symbiosis_institute_of_design),
+        stringResource(R.string.college_mit_institute_of_design),
+        stringResource(R.string.college_iiad),
+        stringResource(R.string.college_world_university_of_design),
+        stringResource(R.string.college_amity_school_of_fashion_technology),
+        stringResource(R.string.college_jd_institute_of_fashion_technology),
+        stringResource(R.string.college_arch_academy_of_design),
+        stringResource(R.string.college_daiict),
+
+        // — New Law schools —
+        stringResource(R.string.college_nlsiu_bangalore),
+        stringResource(R.string.college_nalsar_hyderabad),
+        stringResource(R.string.college_nlu_delhi),
+        stringResource(R.string.college_wbnujs_kolkata),
+        stringResource(R.string.college_nliu_bhopal),
+        stringResource(R.string.college_gnlu_gandhinagar),
+        stringResource(R.string.college_hnlu_raipur),
+        stringResource(R.string.college_rmlnlu_lucknow),
+        stringResource(R.string.college_rgnul_patiala),
+        stringResource(R.string.college_cnlu_patna),
+        stringResource(R.string.college_nuals_kochi),
+        stringResource(R.string.college_nluo_cuttack),
+        stringResource(R.string.college_nusr_law_ranchi),
+        stringResource(R.string.college_nluja_guwahati),
+        stringResource(R.string.college_tnnlu_tiruchirappalli),
+        stringResource(R.string.college_mnlu_mumbai),
+        stringResource(R.string.college_mnlu_nagpur),
+        stringResource(R.string.college_mnlu_aurangabad),
+        stringResource(R.string.college_hpnlu_shimla),
+        stringResource(R.string.college_dnlu_jabalpur),
+        stringResource(R.string.college_dbranlu_sonipat),
+        stringResource(R.string.college_faculty_of_law_du),
+        stringResource(R.string.college_symbiosis_law_school),
+        stringResource(R.string.college_glc_mumbai),
+        stringResource(R.string.college_ils_law_pune),
+        stringResource(R.string.college_amity_law_school_noida),
+        stringResource(R.string.college_christ_univ_law),
+        stringResource(R.string.college_bhu_faculty_of_law),
+        stringResource(R.string.college_amu_faculty_of_law),
+        stringResource(R.string.college_jamia_law),
+        stringResource(R.string.college_op_jindal_law_school),
+        stringResource(R.string.college_army_institute_of_law_mohali),
+        stringResource(R.string.college_kerala_law_academy),
+        stringResource(R.string.college_school_of_law_calcutta),
+
+        // — New Arts colleges —
+        stringResource(R.string.college_college_of_art_du),
+        stringResource(R.string.college_sir_jj_school_of_art),
+        stringResource(R.string.college_faculty_visual_arts_bhu),
+        stringResource(R.string.college_msu_fine_arts_vadodara),
+        stringResource(R.string.college_govt_college_art_craft_kolkata),
+        stringResource(R.string.college_visva_bharati_kala_bhavana),
+        stringResource(R.string.college_chennai_govt_fine_arts),
+        stringResource(R.string.college_rachana_sansad),
+        stringResource(R.string.college_goa_college_of_art),
+        stringResource(R.string.college_amity_school_fine_arts),
+        stringResource(R.string.college_kalakshetra_foundation),
+        stringResource(R.string.college_bharatiya_kala_kendra),
+        stringResource(R.string.college_gandharva_mahavidyalaya),
+        stringResource(R.string.college_nsd),
+        stringResource(R.string.college_ftii_pune),
+        stringResource(R.string.college_srfti_kolkata),
+        stringResource(R.string.college_kathak_kendra),
+        stringResource(R.string.college_drama_thrissur),
+        stringResource(R.string.college_st_stephens),
+        stringResource(R.string.college_lsr_college),
+        stringResource(R.string.college_loyola_chennai),
+        stringResource(R.string.college_christ_univ),
+        stringResource(R.string.college_miranda_house),
+        stringResource(R.string.college_presidency_university),
+        stringResource(R.string.college_jadavpur_university),
+        stringResource(R.string.college_ashoka_university),
+        stringResource(R.string.college_flame_university),
+        stringResource(R.string.college_symbiosis_liberal_arts),
+        stringResource(R.string.college_krea_university),
+        stringResource(R.string.college_hindu_college),
+        stringResource(R.string.college_ramjas_college),
+        stringResource(R.string.college_fergusson_college),
+        stringResource(R.string.college_st_xaviers_mumbai),
+        stringResource(R.string.college_mcc_chennai)
+    )
 
     val isNextEnabled = registrationViewModel.educationLevel.isNotEmpty()
 
@@ -1068,7 +1476,7 @@ fun EnterLocationAndSchoolScreen(
                 )
 
                 // High School Section
-                if (registrationViewModel.educationLevel in listOf("High School", "College", "Post-Graduation")) {
+                if (registrationViewModel.educationLevel in listOf(stringResource(R.string.high_school), stringResource(R.string.college), stringResource(R.string.post_graduation_label))) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = stringResource(R.string.high_school_label),
@@ -1266,10 +1674,10 @@ fun SearchableDropdownWithCustomOption(
     customInput: String,
     onCustomInputChange: (String) -> Unit
 ) {
+    var other = stringResource(R.string.college_other)
     var expanded by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
-    var showCustomInput by remember { mutableStateOf(selectedOption == "Other") }
-
+    var showCustomInput by remember { mutableStateOf(selectedOption == other) }
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(text = title, color = Color.White, fontSize = 18.sp)
 
@@ -1317,7 +1725,7 @@ fun SearchableDropdownWithCustomOption(
                         onClick = {
                             onOptionSelected(option)
                             expanded = false
-                            showCustomInput = option == "Other"
+                            showCustomInput = option == other
                         }
                     )
                 }
@@ -1330,9 +1738,9 @@ fun SearchableDropdownWithCustomOption(
                 value = customInput,
                 onValueChange = {
                     onCustomInputChange(it)
-                    onOptionSelected("Other")
+                    onOptionSelected(other)
                 },
-                label = { Text("Enter custom value", color = Color.White) },
+                label = { Text(stringResource(R.string.enter_custom_value), color = Color.White) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
@@ -1581,10 +1989,102 @@ fun EnterGenderCommunityReligionScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
+    var other = stringResource(R.string.college_other)
     // Predefined lists for dropdown options
-    val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), "Other")
-    val communityOptions = listOf("Marwari", "Bengali", "Punjabi", "Tamil", "Other")
-    val religionOptions = listOf("Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Other")
+    val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), other)
+    val communityOptions = listOf(
+        /* ——— Fallback / custom entry ——— */
+        other,
+        /* ——— Mainstream Bengal & pan‑India ——— */
+        stringResource(R.string.community_bengali),
+        stringResource(R.string.community_marwari),
+        stringResource(R.string.community_bihari),
+        stringResource(R.string.community_punjabi),
+        stringResource(R.string.community_santhal),
+        stringResource(R.string.community_bangal),
+        stringResource(R.string.community_ghoti),
+        stringResource(R.string.community_gujarati),
+        stringResource(R.string.community_kannadiga),
+        stringResource(R.string.community_tamil),
+        stringResource(R.string.community_malayali),
+        stringResource(R.string.community_odia),
+        stringResource(R.string.community_telugu),
+        stringResource(R.string.community_nepali),
+        stringResource(R.string.community_munda),
+        stringResource(R.string.community_oraon),
+
+        /* ——— Himalayan neighbours ——— */
+        stringResource(R.string.community_bhutanese),
+        stringResource(R.string.community_sikkimese),
+
+        /* ——— Nagaland ——— */
+        stringResource(R.string.community_naga),
+        stringResource(R.string.community_ao),
+        stringResource(R.string.community_angami),
+        stringResource(R.string.community_lotha),
+        stringResource(R.string.community_sema),
+        stringResource(R.string.community_chakhesang),
+        stringResource(R.string.community_konyak),
+        stringResource(R.string.community_phom),
+        stringResource(R.string.community_chang),
+        stringResource(R.string.community_rengma),
+        stringResource(R.string.community_yimkhiung),
+        stringResource(R.string.community_khiamniungan),
+        stringResource(R.string.community_zeliang),
+
+        /* ——— Arunachal Pradesh ——— */
+        stringResource(R.string.community_arunachali),   // ← NEW
+        stringResource(R.string.community_apatani),
+        stringResource(R.string.community_adi),
+        stringResource(R.string.community_nyishi),
+        stringResource(R.string.community_galo),
+        stringResource(R.string.community_tagin),
+        stringResource(R.string.community_mishmi),
+        stringResource(R.string.community_monpa),
+        stringResource(R.string.community_sherdukpen),
+        stringResource(R.string.community_bugun),
+        stringResource(R.string.community_aka),
+
+        /* ——— Manipur ——— */
+        stringResource(R.string.community_meitei),
+        stringResource(R.string.community_tangkhul),
+        stringResource(R.string.community_poumai),
+        stringResource(R.string.community_mao),
+        stringResource(R.string.community_thadou),
+        stringResource(R.string.community_paite),
+        stringResource(R.string.community_zou),
+        stringResource(R.string.community_anal),
+        stringResource(R.string.community_hmar),
+        stringResource(R.string.community_maring),
+
+        /* ——— Mizoram ——— */
+        stringResource(R.string.community_mizo),
+        stringResource(R.string.community_lai),
+        stringResource(R.string.community_mara),
+
+        /* ——— Tripura ——— */
+        stringResource(R.string.community_tripuri),
+        stringResource(R.string.community_reang),
+        stringResource(R.string.community_chakma),
+        stringResource(R.string.community_halam),
+
+        /* ——— Meghalaya ——— */
+        stringResource(R.string.community_khasi),
+        stringResource(R.string.community_garo),
+        stringResource(R.string.community_jaintia),
+
+        /* ——— Assam plains tribes ——— */
+        stringResource(R.string.community_assamese),
+        stringResource(R.string.community_bodo),
+        stringResource(R.string.community_mishing),
+        stringResource(R.string.community_karbi),
+        stringResource(R.string.community_dimasa),
+        stringResource(R.string.community_rabha),
+        stringResource(R.string.community_tiwa),
+        stringResource(R.string.community_deori),
+        stringResource(R.string.community_sonowal_kachari)
+    )
+    val religionOptions = listOf(stringResource(R.string.religion_hindu), stringResource(R.string.religion_muslim), stringResource(R.string.religion_christian), stringResource(R.string.religion_sikh), stringResource(R.string.religion_buddhist), stringResource(R.string.religion_jain), stringResource(R.string.religion_no_religion), stringResource(R.string.religion_indigenous_tribal), stringResource(R.string.religion_other))
 
     // Validation for enabling the "Next" button
     val isNextEnabled = registrationViewModel.gender.isNotEmpty() &&
@@ -1820,7 +2320,8 @@ fun EnterUsernameScreen(
                             unfocusedBorderColor = Color(0xFFFFDB00)
                         )
                     )
-
+                    var usernameempty = stringResource(R.string.username_empty_error)
+                    var other = stringResource(R.string.college_other)
                     // Finish Button
                     Button(
                         onClick = {
@@ -1828,10 +2329,11 @@ fun EnterUsernameScreen(
                             val trimmedUsername = username.text.trim()
                             if (trimmedUsername.isEmpty()) {
                                 isUsernameValid = false
-                                usernameErrorMessage = "Username cannot be empty"
+                                usernameErrorMessage = usernameempty
                                 return@Button
                             }
                             val currentUser = auth.currentUser
+
                             if (currentUser != null) {
                                 val userId = currentUser.uid
                                 // 1) Store username in both the user's node and in the "usernames" node.
@@ -1844,7 +2346,7 @@ fun EnterUsernameScreen(
                                             // 2) Save the full profile in background.
                                             scope.launch {
                                                 try {
-                                                    saveProfileToFirebase(registrationViewModel) {
+                                                    saveProfileToFirebase(registrationViewModel, other) {
                                                         onRegistrationComplete()
                                                     }
                                                 } catch (e: Exception) {
@@ -1882,6 +2384,7 @@ fun EnterUsernameScreen(
 
 suspend fun saveProfileToFirebase(
     registrationViewModel: RegistrationViewModel,
+    other: String,
     onRegistrationComplete: () -> Unit
 ) {
     try {
@@ -1898,13 +2401,13 @@ suspend fun saveProfileToFirebase(
             gender = registrationViewModel.gender,
             interests = registrationViewModel.interests.toList(),
             // Save the city using customCity if "Other" is selected
-            city = if (registrationViewModel.city == "Other") registrationViewModel.customCity else registrationViewModel.city,
+            city = if (registrationViewModel.city == other) registrationViewModel.customCity else registrationViewModel.city,
             // Hometown represents locality; if empty, fallback to a custom value if provided
             hometown = registrationViewModel.hometown.ifEmpty { registrationViewModel.customHometown },
-            highSchool = if (registrationViewModel.highSchool == "Other") registrationViewModel.customHighSchool else registrationViewModel.highSchool,
-            college = if (registrationViewModel.college == "Other") registrationViewModel.customCollege else registrationViewModel.college,
-            postGraduation = if (registrationViewModel.postGraduation == "Other") registrationViewModel.customPostGraduation else registrationViewModel.postGraduation,
-            work = if (registrationViewModel.work == "Other") registrationViewModel.customWork else registrationViewModel.work,
+            highSchool = if (registrationViewModel.highSchool == other) registrationViewModel.customHighSchool else registrationViewModel.highSchool,
+            college = if (registrationViewModel.college == other) registrationViewModel.customCollege else registrationViewModel.college,
+            postGraduation = if (registrationViewModel.postGraduation == other) registrationViewModel.customPostGraduation else registrationViewModel.postGraduation,
+            work = if (registrationViewModel.work == other) registrationViewModel.customWork else registrationViewModel.work,
             profilepicUrl = registrationViewModel.profilePicUrl,
             optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
             religion = registrationViewModel.religion,
@@ -1982,7 +2485,7 @@ fun EnterNameScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
-    val interestedOptions = listOf("Male", "Female")
+    val interestedOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option))
 
     // State to determine if the "Next" button can be enabled
     val canProceed = registrationViewModel.name.isNotEmpty() &&
@@ -2104,14 +2607,15 @@ fun EnterNameScreen(
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
+                        var other = stringResource(R.string.college_other)
 
                         // Caste Input using SearchableDropdownWithCustomOption
                         SearchableDropdownWithCustomOption(
                             title = stringResource(R.string.caste_title),
-                            options = listOf("Brahmin", "Kshatriya", "Vaishya", "Shudra"),
+                            options = listOf(stringResource(R.string.caste_kulin_brahmin), stringResource(R.string.caste_non_kulin_brahmin), stringResource(R.string.caste_kulin_kayastha), stringResource(R.string.caste_non_kulin_kayastha), stringResource(R.string.caste_baidya), stringResource(R.string.caste_mahishya), stringResource(R.string.caste_sadgop), stringResource(R.string.caste_vaishya), stringResource(R.string.caste_obc), stringResource(R.string.caste_scheduled_caste), stringResource(R.string.caste_scheduled_tribe), stringResource(R.string.caste_rajbonshi), stringResource(R.string.caste_general), stringResource(R.string.caste_other)),
                             selectedOption = registrationViewModel.caste,
                             onOptionSelected = { selectedOption ->
-                                if (selectedOption != "Other") {
+                                if (selectedOption != other) {
                                     registrationViewModel.caste = selectedOption
                                 }
                             },
@@ -2210,7 +2714,8 @@ fun EnterBirthdateCityHometownScreen(
     val dayRange = (1..31).toList()
     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
     val yearRange = (1950..currentYear).map { it.toString() }.reversed()
-    val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    val monthNames = listOf(stringResource(R.string.jan), stringResource(R.string.feb), stringResource(R.string.mar), stringResource(R.string.apr), stringResource(R.string.may), stringResource(R.string.jun), stringResource(R.string.jul), stringResource(R.string.aug), stringResource(R.string.sep), stringResource(R.string.oct), stringResource(R.string.nov), stringResource(R.string.dec))
+    var other = stringResource(R.string.college_other)
 
     var selectedDay by remember { mutableStateOf(dayRange.first()) }
     var selectedMonthIndex by remember { mutableStateOf(0) }
@@ -2242,33 +2747,57 @@ fun EnterBirthdateCityHometownScreen(
     var customCity by remember { mutableStateOf(registrationViewModel.customCity) }
     var isLocating by remember { mutableStateOf(false) }
 
+    var kolkata = stringResource(R.string.city_kolkata)
+    var howrah = stringResource(R.string.city_howrah)
+    var durgapur = stringResource(R.string.city_durgapur)
+    var asansol = stringResource(R.string.city_asansol)
+    var siliguri = stringResource(R.string.city_siliguri)
+    var darjeeling = stringResource(R.string.city_darjeeling)
+    var malda = stringResource(R.string.city_malda)
+    var jalpaiguri = stringResource(R.string.city_jalpaiguri)
+    var coochbehar = stringResource(R.string.city_cooch_behar)
+    var alipurduar = stringResource(R.string.city_alipurduar)
+    var bankura = stringResource(R.string.city_bankura)
+    var purulia = stringResource(R.string.city_purulia)
+    var kharagpur = stringResource(R.string.city_kharagpur)
+    var midnapore = stringResource(R.string.city_midnapore)
+    var bardhaman = stringResource(R.string.city_bardhaman)
+    var hooghly = stringResource(R.string.city_hooghly)
+    var nadia = stringResource(R.string.city_nadia)
+    var murshidabad = stringResource(R.string.city_murshidabad)
+    var baharampur = stringResource(R.string.city_baharampur)
+    var haldia = stringResource(R.string.city_haldia)
+    var ranaghat = stringResource(R.string.city_ranaghat)
+    var kalyani = stringResource(R.string.city_kalyani)
+    var chandannagar = stringResource(R.string.city_chandannagar)
+
     // Locality Selection
     val localities = remember(selectedCity) {
         when (selectedCity) {
-            "Kolkata" -> resources.getStringArray(R.array.localities_kolkata).toList()
-            "Howrah" -> resources.getStringArray(R.array.localities_howrah).toList()
-            "Durgapur" -> resources.getStringArray(R.array.localities_durgapur).toList()
-            "Asansol" -> resources.getStringArray(R.array.localities_asansol).toList()
-            "Siliguri" -> resources.getStringArray(R.array.localities_siliguri).toList()
-            "Darjeeling" -> resources.getStringArray(R.array.localities_darjeeling).toList()
-            "Malda" -> resources.getStringArray(R.array.localities_malda).toList()
-            "Jalpaiguri" -> resources.getStringArray(R.array.localities_jalpaiguri).toList()
-            "Cooch Behar" -> resources.getStringArray(R.array.localities_cooch_behar).toList()
-            "Alipurduar" -> resources.getStringArray(R.array.localities_alipurduar).toList()
-            "Bankura" -> resources.getStringArray(R.array.localities_bankura).toList()
-            "Purulia" -> resources.getStringArray(R.array.localities_purulia).toList()
-            "Kharagpur" -> resources.getStringArray(R.array.localities_kharagpur).toList()
-            "Midnapore" -> resources.getStringArray(R.array.localities_midnapore).toList()
-            "Bardhaman" -> resources.getStringArray(R.array.localities_bardhaman).toList()
-            "Hooghly" -> resources.getStringArray(R.array.localities_hooghly).toList()
-            "Nadia" -> resources.getStringArray(R.array.localities_nadia).toList()
-            "Murshidabad" -> resources.getStringArray(R.array.localities_murshidabad).toList()
-            "Baharampur" -> resources.getStringArray(R.array.localities_baharampur).toList()
-            "Haldia" -> resources.getStringArray(R.array.localities_haldia).toList()
-            "Ranaghat" -> resources.getStringArray(R.array.localities_ranaghat).toList()
-            "Kalyani" -> resources.getStringArray(R.array.localities_kalyani).toList()
-            "Chandannagar" -> resources.getStringArray(R.array.localities_chandannagar).toList()
-            "Other" -> resources.getStringArray(R.array.localities_other).toList()
+            kolkata -> resources.getStringArray(R.array.localities_kolkata).toList()
+            howrah -> resources.getStringArray(R.array.localities_howrah).toList()
+            durgapur -> resources.getStringArray(R.array.localities_durgapur).toList()
+            asansol -> resources.getStringArray(R.array.localities_asansol).toList()
+            siliguri -> resources.getStringArray(R.array.localities_siliguri).toList()
+            darjeeling -> resources.getStringArray(R.array.localities_darjeeling).toList()
+            malda -> resources.getStringArray(R.array.localities_malda).toList()
+            jalpaiguri -> resources.getStringArray(R.array.localities_jalpaiguri).toList()
+            coochbehar -> resources.getStringArray(R.array.localities_cooch_behar).toList()
+            alipurduar -> resources.getStringArray(R.array.localities_alipurduar).toList()
+            bankura -> resources.getStringArray(R.array.localities_bankura).toList()
+            purulia -> resources.getStringArray(R.array.localities_purulia).toList()
+            kharagpur -> resources.getStringArray(R.array.localities_kharagpur).toList()
+            midnapore -> resources.getStringArray(R.array.localities_midnapore).toList()
+            bardhaman -> resources.getStringArray(R.array.localities_bardhaman).toList()
+            hooghly -> resources.getStringArray(R.array.localities_hooghly).toList()
+            nadia -> resources.getStringArray(R.array.localities_nadia).toList()
+            murshidabad -> resources.getStringArray(R.array.localities_murshidabad).toList()
+            baharampur -> resources.getStringArray(R.array.localities_baharampur).toList()
+            haldia -> resources.getStringArray(R.array.localities_haldia).toList()
+            ranaghat -> resources.getStringArray(R.array.localities_ranaghat).toList()
+            kalyani -> resources.getStringArray(R.array.localities_kalyani).toList()
+            chandannagar -> resources.getStringArray(R.array.localities_chandannagar).toList()
+            other -> resources.getStringArray(R.array.localities_other).toList()
             else -> emptyList()
         }
     }
@@ -2287,11 +2816,11 @@ fun EnterBirthdateCityHometownScreen(
         val allGranted = permissionsResult.values.all { it }
         if (allGranted) {
             isLocating = true
-            fetchLocation(fusedLocationClient, context) { city, locality ->
+            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, nadia, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
                 selectedCity = city
                 selectedLocality = locality
-                registrationViewModel.city = if (city == "Other") customCity else city
-                registrationViewModel.hometown = if (locality == "Other") customLocality else locality
+                registrationViewModel.city = if (city == other) customCity else city
+                registrationViewModel.hometown = if (locality == other) customLocality else locality
                 isLocating = false
             }
         } else {
@@ -2304,19 +2833,19 @@ fun EnterBirthdateCityHometownScreen(
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             isLocating = true
-            fetchLocation(fusedLocationClient, context) { city, locality ->
+            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, nadia, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
                 selectedCity = city
                 selectedLocality = locality
-                registrationViewModel.city = if (city == "Other") customCity else city
-                registrationViewModel.hometown = if (locality == "Other") customLocality else locality
+                registrationViewModel.city = if (city == other) customCity else city
+                registrationViewModel.hometown = if (locality == other) customLocality else locality
                 isLocating = false
             }
         }
     }
 
     // Validation
-    val isCityOther = selectedCity == "Other"
-    val isLocalityOther = selectedLocality == "Other"
+    val isCityOther = selectedCity == other
+    val isLocalityOther = selectedLocality == other
     val isNextEnabled = registrationViewModel.dob.isNotBlank() &&
             ((isCityOther && customCity.isNotBlank()) || (!isCityOther && selectedCity.isNotBlank())) &&
             ((isLocalityOther && customLocality.isNotBlank()) || (!isLocalityOther && selectedLocality.isNotBlank()))
@@ -2451,7 +2980,7 @@ fun EnterBirthdateCityHometownScreen(
                                     text = { Text(cityName, color = Color.White) },
                                     onClick = {
                                         selectedCity = cityName
-                                        registrationViewModel.city = if (cityName == "Other") customCity else cityName
+                                        registrationViewModel.city = if (cityName == other) customCity else cityName
                                         cityExpanded = false
                                         selectedLocality = if (localities.isNotEmpty()) localities.first() else ""
                                     }
@@ -2471,11 +3000,11 @@ fun EnterBirthdateCityHometownScreen(
                         if (isLocating) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                         } else {
-                            Text("Locate", color = Color.White)
+                            Text(stringResource(R.string.locate), color = Color.White)
                         }
                     }
                 }
-                if (selectedCity == "Other") {
+                if (selectedCity == other) {
                     OutlinedTextField(
                         value = customCity,
                         onValueChange = {
@@ -2522,14 +3051,14 @@ fun EnterBirthdateCityHometownScreen(
                                 text = { Text(loc, color = Color.White) },
                                 onClick = {
                                     selectedLocality = loc
-                                    registrationViewModel.hometown = if (loc == "Other") customLocality else loc
+                                    registrationViewModel.hometown = if (loc == other) customLocality else loc
                                     localityExpanded = false
                                 }
                             )
                         }
                     }
                 }
-                if (selectedLocality == "Other") {
+                if (selectedLocality == other) {
                     OutlinedTextField(
                         value = customLocality,
                         onValueChange = {
@@ -2575,6 +3104,8 @@ fun EnterBirthdateCityHometownScreen(
 private fun fetchLocation(
     fusedLocationClient: FusedLocationProviderClient,
     context: Context,
+    other: String,
+    kolkata: String, howrah: String, durgapur: String, asansol: String, siliguri: String, darjeeling: String, malda: String, jalpaiguri: String, coochbehar: String, alipurduar: String, bankura: String, purulia: String, kharagpur: String, midnapore: String, bardhaman: String, hooghly: String, nadia: String, murshidabad: String, baharampur: String, haldia: String, ranaghat: String, kalyani: String, chandannagar: String,
     onLocationFound: (String, String) -> Unit
 ) {
     val scope = (context as? ComponentActivity)?.lifecycleScope ?: return
@@ -2592,10 +3123,11 @@ private fun fetchLocation(
             ) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Location permission not granted", Toast.LENGTH_SHORT).show()
-                    onLocationFound("Other", "Other")
+                    onLocationFound(other, other)
                 }
                 return@launch
             }
+
 
             val location = fusedLocationClient.lastLocation.await()
             if (location != null) {
@@ -2603,39 +3135,39 @@ private fun fetchLocation(
                 val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                 if (addresses?.isNotEmpty() == true) {
                     val address = addresses[0]
-                    val detectedCity = address.locality ?: address.subAdminArea ?: "Other"
-                    val detectedLocality = address.subLocality ?: "Other"
+                    val detectedCity = address.locality ?: address.subAdminArea ?: other
+                    val detectedLocality = address.subLocality ?: other
 
                     val cities = context.resources.getStringArray(R.array.city_names).toList()
-                    val matchedCity = cities.find { it.equals(detectedCity, ignoreCase = true) } ?: "Other"
+                    val matchedCity = cities.find { it.equals(detectedCity, ignoreCase = true) } ?: other
                     val localities = when (matchedCity) {
-                        "Kolkata" -> context.resources.getStringArray(R.array.localities_kolkata).toList()
-                        "Howrah" -> context.resources.getStringArray(R.array.localities_howrah).toList()
-                        "Durgapur" -> context.resources.getStringArray(R.array.localities_durgapur).toList()
-                        "Asansol" -> context.resources.getStringArray(R.array.localities_asansol).toList()
-                        "Siliguri" -> context.resources.getStringArray(R.array.localities_siliguri).toList()
-                        "Darjeeling" -> context.resources.getStringArray(R.array.localities_darjeeling).toList()
-                        "Malda" -> context.resources.getStringArray(R.array.localities_malda).toList()
-                        "Jalpaiguri" -> context.resources.getStringArray(R.array.localities_jalpaiguri).toList()
-                        "Cooch Behar" -> context.resources.getStringArray(R.array.localities_cooch_behar).toList()
-                        "Alipurduar" -> context.resources.getStringArray(R.array.localities_alipurduar).toList()
-                        "Bankura" -> context.resources.getStringArray(R.array.localities_bankura).toList()
-                        "Purulia" -> context.resources.getStringArray(R.array.localities_purulia).toList()
-                        "Kharagpur" -> context.resources.getStringArray(R.array.localities_kharagpur).toList()
-                        "Midnapore" -> context.resources.getStringArray(R.array.localities_midnapore).toList()
-                        "Bardhaman" -> context.resources.getStringArray(R.array.localities_bardhaman).toList()
-                        "Hooghly" -> context.resources.getStringArray(R.array.localities_hooghly).toList()
-                        "Nadia" -> context.resources.getStringArray(R.array.localities_nadia).toList()
-                        "Murshidabad" -> context.resources.getStringArray(R.array.localities_murshidabad).toList()
-                        "Baharampur" -> context.resources.getStringArray(R.array.localities_baharampur).toList()
-                        "Haldia" -> context.resources.getStringArray(R.array.localities_haldia).toList()
-                        "Ranaghat" -> context.resources.getStringArray(R.array.localities_ranaghat).toList()
-                        "Kalyani" -> context.resources.getStringArray(R.array.localities_kalyani).toList()
-                        "Chandannagar" -> context.resources.getStringArray(R.array.localities_chandannagar).toList()
-                        "Other" -> context.resources.getStringArray(R.array.localities_other).toList()
+                        kolkata -> context.resources.getStringArray(R.array.localities_kolkata).toList()
+                        howrah -> context.resources.getStringArray(R.array.localities_howrah).toList()
+                        durgapur -> context.resources.getStringArray(R.array.localities_durgapur).toList()
+                        asansol -> context.resources.getStringArray(R.array.localities_asansol).toList()
+                        siliguri -> context.resources.getStringArray(R.array.localities_siliguri).toList()
+                        darjeeling -> context.resources.getStringArray(R.array.localities_darjeeling).toList()
+                        malda -> context.resources.getStringArray(R.array.localities_malda).toList()
+                        jalpaiguri -> context.resources.getStringArray(R.array.localities_jalpaiguri).toList()
+                        coochbehar -> context.resources.getStringArray(R.array.localities_cooch_behar).toList()
+                        alipurduar -> context.resources.getStringArray(R.array.localities_alipurduar).toList()
+                        bankura -> context.resources.getStringArray(R.array.localities_bankura).toList()
+                        purulia -> context.resources.getStringArray(R.array.localities_purulia).toList()
+                        kharagpur -> context.resources.getStringArray(R.array.localities_kharagpur).toList()
+                        midnapore -> context.resources.getStringArray(R.array.localities_midnapore).toList()
+                        bardhaman -> context.resources.getStringArray(R.array.localities_bardhaman).toList()
+                        hooghly -> context.resources.getStringArray(R.array.localities_hooghly).toList()
+                        nadia -> context.resources.getStringArray(R.array.localities_nadia).toList()
+                        murshidabad -> context.resources.getStringArray(R.array.localities_murshidabad).toList()
+                        baharampur -> context.resources.getStringArray(R.array.localities_baharampur).toList()
+                        haldia -> context.resources.getStringArray(R.array.localities_haldia).toList()
+                        ranaghat -> context.resources.getStringArray(R.array.localities_ranaghat).toList()
+                        kalyani -> context.resources.getStringArray(R.array.localities_kalyani).toList()
+                        chandannagar -> context.resources.getStringArray(R.array.localities_chandannagar).toList()
+                        other -> context.resources.getStringArray(R.array.localities_other).toList()
                         else -> emptyList()
                     }
-                    val matchedLocality = localities.find { it.equals(detectedLocality, ignoreCase = true) } ?: "Other"
+                    val matchedLocality = localities.find { it.equals(detectedLocality, ignoreCase = true) } ?: other
 
                     withContext(Dispatchers.Main) {
                         onLocationFound(matchedCity, matchedLocality)
@@ -2643,26 +3175,26 @@ private fun fetchLocation(
                 } else {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Unable to determine location", Toast.LENGTH_SHORT).show()
-                        onLocationFound("Other", "Other")
+                        onLocationFound(other, other)
                     }
                 }
             } else {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Location not available", Toast.LENGTH_SHORT).show()
-                    onLocationFound("Other", "Other")
+                    onLocationFound(other, other)
                 }
             }
         } catch (e: SecurityException) {
             Log.e("Location", "SecurityException: ${e.message}")
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "Location access denied", Toast.LENGTH_SHORT).show()
-                onLocationFound("Other", "Other")
+                onLocationFound(other, other)
             }
         } catch (e: Exception) {
             Log.e("Location", "Error fetching location: ${e.message}")
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "Error fetching location", Toast.LENGTH_SHORT).show()
-                onLocationFound("Other", "Other")
+                onLocationFound(other, other)
             }
         }
     }
@@ -2676,39 +3208,105 @@ fun EnterInterestsScreen(
 ) {
     // Global interests (static list)
     val globalInterests = listOf(
-        Interest("Music", "🎵"),
-        Interest("Movies", "🎥"),
-        Interest("Sports", "⚽"),
-        Interest("Books", "📚"),
-        Interest("Travel", "✈️"),
-        Interest("Fitness", "💪"),
-        Interest("Art", "🎨"),
-        Interest("Gaming", "🎮")
+        Interest(stringResource(R.string.interest_music), "🎵"),
+        Interest(stringResource(R.string.interest_movies), "🎥"),
+        Interest(stringResource(R.string.interest_sports), "⚽"),
+        Interest(stringResource(R.string.interest_books), "📚"),
+        Interest(stringResource(R.string.interest_travel), "✈️"),
+        Interest(stringResource(R.string.interest_fitness), "💪"),
+        Interest(stringResource(R.string.interest_art), "🎨"),
+        Interest(stringResource(R.string.interest_gaming), "🎮"),
+        Interest(stringResource(R.string.interest_photography), "📷"),
+        Interest(stringResource(R.string.interest_cooking), "🍳"),
+        Interest(stringResource(R.string.interest_dancing), "💃"),
+        Interest(stringResource(R.string.interest_gardening), "🌱"),
+        Interest(stringResource(R.string.interest_technology), "💻"),
+        Interest(stringResource(R.string.interest_fashion), "👗"),
+        Interest(stringResource(R.string.interest_volunteering), "🤝"),
+        Interest(stringResource(R.string.interest_pets), "🐾")
     )
 
     // Locality-based interests for all localities (union of all values)
     val localityInterestsMap = mapOf(
         "Salt Lake" to listOf(
-            Interest("CC Block Market", "🛒"),
-            Interest("Sector V IT Hub", "💻")
+            Interest(stringResource(R.string.interest_cc_block_market), "🛒"),
+            Interest(stringResource(R.string.interest_sector_v_it_hub), "💻")
         ),
         "New Town" to listOf(
-            Interest("Eco Park", "🌳"),
-            Interest("City Centre 2", "🛍️")
+            Interest(stringResource(R.string.interest_eco_park), "🌳"),
+            Interest(stringResource(R.string.interest_city_centre_2), "🛍️")
+        ),
+        "Park Street"     to listOf(
+            Interest(stringResource(R.string.interest_nightlife),"🌃"),
+            Interest(stringResource(R.string.interest_park_street_cafes),"☕")
         ),
         "Dum Dum" to listOf(
-            Interest("Airport Area", "✈️"),
-            Interest("Local Market", "🛍️")
+            Interest(stringResource(R.string.interest_airport_area), "✈️"),
+            Interest(stringResource(R.string.interest_local_market), "🛍️")
         ),
         "Behala" to listOf(
-            Interest("Old Market", "🏪"),
-            Interest("Local Eateries", "🍴")
-        ),
-        "Park Street" to listOf(
-            Interest("Nightlife", "🌃"),
-            Interest("Park Street Cafes", "☕")
-        )
-        // Add additional mappings as needed.
+            Interest(stringResource(R.string.interest_old_market), "🏪"),
+            Interest(stringResource(R.string.interest_local_eateries), "🍴"),
+            ),
+        // Hooghly district
+        "Chandannagar"    to listOf( Interest(stringResource(R.string.interest_chandannagar_strand),"🌉"),
+            Interest(stringResource(R.string.interest_french_heritage),"🏛️") ),
+        "Serampore"       to listOf( Interest(stringResource(R.string.interest_riverside_ghats),"🚣"),
+            Interest(stringResource(R.string.interest_heritage_walks),"🚶") ),
+
+        // Howrah
+        "Howrah"          to listOf( Interest(stringResource(R.string.interest_belur_math),"🕌"),
+            Interest(stringResource(R.string.interest_avani_mall),"🛍️") ),
+
+        // Industrial belt
+        "Durgapur"        to listOf( Interest(stringResource(R.string.interest_city_centre_plaza),"🛍️"),
+            Interest(stringResource(R.string.interest_steel_plant_tour),"🏭") ),
+        "Asansol"         to listOf( Interest(stringResource(R.string.interest_burnpur_riverside),"🌅"),
+            Interest(stringResource(R.string.interest_chittaranjan_park),"🌳") ),
+
+        // North‑Bengal
+        "Siliguri"        to listOf( Interest(stringResource(R.string.interest_hongkong_market),"🛍️"),
+            Interest(stringResource(R.string.interest_mahananda_wls),"🐘") ),
+        "Darjeeling"      to listOf( Interest(stringResource(R.string.interest_toy_train),"🚂"),
+            Interest(stringResource(R.string.interest_tea_estate_walks),"🍃") ),
+        "Jalpaiguri"      to listOf( Interest(stringResource(R.string.interest_gorumara_safari),"🦏"),
+            Interest(stringResource(R.string.interest_rafting_teesta),"🚣") ),
+        "Cooch Behar"     to listOf( Interest(stringResource(R.string.interest_rajbari_palace),"🏰"),
+            Interest(stringResource(R.string.interest_sagar_dighi),"🦆") ),
+        "Alipurduar"      to listOf( Interest(stringResource(R.string.interest_buxa_fort_trek),"🥾"),
+            Interest(stringResource(R.string.interest_jayanti_picnic),"🏞️") ),
+
+        // South‑West
+        "Kharagpur"       to listOf( Interest(stringResource(R.string.interest_iit_campus_walk),"🎓"),
+            Interest(stringResource(R.string.interest_gol_bazaar_food),"🍲") ),
+        "Midnapore"       to listOf( Interest(stringResource(R.string.interest_vidyasagar_lake),"🌳"),
+            Interest(stringResource(R.string.interest_khudiram_park),"🌺") ),
+        "Haldia"          to listOf( Interest(stringResource(R.string.interest_river_cruise),"🚢"),
+            Interest(stringResource(R.string.interest_marine_drive),"🌊") ),
+
+        // Central WB
+        "Bardhaman"       to listOf( Interest(stringResource(R.string.interest_curzon_gate_photo),"📸"),
+            Interest(stringResource(R.string.interest_sitabhog_mihidana),"🍮") ),
+        "Bankura"         to listOf( Interest(stringResource(R.string.interest_terracotta_art),"🏺"),
+            Interest(stringResource(R.string.interest_susunia_trek),"🥾") ),
+        "Purulia"         to listOf( Interest(stringResource(R.string.interest_ayodhya_hills),"⛰️"),
+            Interest(stringResource(R.string.interest_chhau_dance),"🕺") ),
+
+        // Nadia zone
+        "Krishnanagar"    to listOf( Interest(stringResource(R.string.interest_clay_doll_lane),"🪆"),
+            Interest(stringResource(R.string.interest_ghurni_artists),"🎭") ),
+        "Kalyani"         to listOf( Interest(stringResource(R.string.interest_university_campus_walk),"🎓"),
+            Interest(stringResource(R.string.interest_kalyani_lake),"🚣") ),
+        "Ranaghat"        to listOf( Interest(stringResource(R.string.interest_boutique_sarees),"👗"),
+            Interest(stringResource(R.string.interest_churni_riverbank),"🏞️") ),
+
+        // Others
+        "Malda"           to listOf( Interest(stringResource(R.string.interest_mango_festival),"🥭"),
+            Interest(stringResource(R.string.interest_gour_ruins),"🏯") ),
+        "Murshidabad"     to listOf( Interest(stringResource(R.string.interest_hazar_duari_museum),"🏰"),
+            Interest(stringResource(R.string.interest_khusbagh_gardens),"🌳") ),
+        "Baharampur"      to listOf( Interest(stringResource(R.string.interest_berhampore_silk),"🧣"),
+            Interest(stringResource(R.string.interest_cossimbazar_rajbari),"🏛️") )
     )
     // Instead of showing only the interests corresponding to the selected hometown,
     // we now take the union of all locality interests.
@@ -2807,7 +3405,6 @@ fun EnterInterestsScreen(
         }
     )
 }
-
 
 data class InterestSubcategory(val name: String, val emoji: String)
 data class InterestCategory(val category: String, val emoji: String, val subcategories: List<InterestSubcategory>)

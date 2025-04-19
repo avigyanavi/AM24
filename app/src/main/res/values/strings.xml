@@ -1,6 +1,235 @@
 <resources>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
+
+    <!-- more education -->
+    <!-- ─── Engineering Colleges ────────────────────────────────── -->
+    <string name="college_srm_institute_of_science_and_technology">SRM Institute of Science and Technology</string>
+    <string name="college_vellore_institute_of_technology">Vellore Institute of Technology</string>
+    <string name="college_bits_pilani">BITS Pilani</string>
+    <string name="college_manipal_institute_of_technology">Manipal Institute of Technology</string>
+    <string name="college_iiit_hyderabad">IIIT Hyderabad</string>
+
+    <!-- ─── Private Arts/Science Colleges ──────────────────────── -->
+    <string name="college_op_jindal_global_university">O.P. Jindal Global University</string>
+    <string name="college_ashoka_university">Ashoka University</string>
+
+    <!-- ─── Design Colleges in India ───────────────────────────── -->
+    <string name="college_nid_ahmedabad">National Institute of Design, Ahmedabad</string>
+    <string name="college_nid_kurukshetra">National Institute of Design, Kurukshetra</string>
+    <string name="college_nid_gandhinagar">National Institute of Design, Gandhinagar</string>
+    <string name="college_nid_bengaluru">National Institute of Design, Bengaluru</string>
+    <string name="college_nid_bhopal">National Institute of Design, Bhopal</string>
+    <string name="college_nid_jorhat">National Institute of Design, Jorhat</string>
+    <string name="college_nid_vijayawada">National Institute of Design, Vijayawada</string>
+    <string name="college_nift">National Institute of Fashion Technology</string>
+    <string name="college_srishti_manipal">Srishti Manipal Institute of Art, Design &amp; Technology</string>
+    <string name="college_pearl_academy">Pearl Academy</string>
+    <string name="college_symbiosis_institute_of_design">Symbiosis Institute of Design</string>
+    <string name="college_mit_institute_of_design">MIT Institute of Design</string>
+    <string name="college_iiad">Indian Institute of Art and Design (IIAD)</string>
+    <string name="college_world_university_of_design">World University of Design</string>
+    <string name="college_amity_school_of_fashion_technology">Amity School of Fashion Technology</string>
+    <string name="college_jd_institute_of_fashion_technology">JD Institute of Fashion Technology</string>
+    <string name="college_arch_academy_of_design">Arch Academy of Design</string>
+    <string name="college_daiict">DA‑IICT, Gandhinagar</string>
+
+    <!-- ─── Law Colleges in India ──────────────────────────────── -->
+    <string name="college_nlsiu_bangalore">National Law School of India University, Bangalore</string>
+    <string name="college_nalsar_hyderabad">NALSAR University of Law, Hyderabad</string>
+    <string name="college_nlu_delhi">National Law University, Delhi</string>
+    <string name="college_wbnujs_kolkata">WB National University of Juridical Sciences, Kolkata</string>
+    <string name="college_nliu_bhopal">National Law Institute University, Bhopal</string>
+    <string name="college_gnlu_gandhinagar">Gujarat National Law University, Gandhinagar</string>
+    <string name="college_hnlu_raipur">Hidayatullah National Law University, Raipur</string>
+    <string name="college_rmlnlu_lucknow">RML National Law University, Lucknow</string>
+    <string name="college_rgnul_patiala">Rajiv Gandhi National University of Law, Patiala</string>
+    <string name="college_cnlu_patna">Chanakya National Law University, Patna</string>
+    <string name="college_nuals_kochi">National University of Advanced Legal Studies, Kochi</string>
+    <string name="college_nluo_cuttack">National Law University Odisha, Cuttack</string>
+    <string name="college_nusr_law_ranchi">National University of Study &amp; Research in Law, Ranchi</string>
+    <string name="college_nluja_guwahati">NLU &amp; Judicial Academy, Guwahati</string>
+    <string name="college_tnnlu_tiruchirappalli">Tamil Nadu National Law University, Tiruchirappalli</string>
+    <string name="college_mnlu_mumbai">Maharashtra National Law University, Mumbai</string>
+    <string name="college_mnlu_nagpur">Maharashtra National Law University, Nagpur</string>
+    <string name="college_mnlu_aurangabad">Maharashtra National Law University, Aurangabad</string>
+    <string name="college_hpnlu_shimla">Himachal Pradesh National Law University, Shimla</string>
+    <string name="college_dnlu_jabalpur">Dharmashastra National Law University, Jabalpur</string>
+    <string name="college_dbranlu_sonipat">Dr. B.R. Ambedkar National Law University, Sonipat</string>
+    <string name="college_faculty_of_law_du">Faculty of Law, University of Delhi</string>
+    <string name="college_symbiosis_law_school">Symbiosis Law School</string>
+    <string name="college_glc_mumbai">Government Law College, Mumbai</string>
+    <string name="college_ils_law_pune">ILS Law College, Pune</string>
+    <string name="college_amity_law_school_noida">Amity Law School, Noida</string>
+    <string name="college_christ_univ_law">Christ University, School of Law</string>
+    <string name="college_bhu_faculty_of_law">Faculty of Law, BHU</string>
+    <string name="college_amu_faculty_of_law">Faculty of Law, AMU</string>
+    <string name="college_jamia_law">Faculty of Law, Jamia Millia Islamia</string>
+    <string name="college_op_jindal_law_school">O.P. Jindal Global Law School</string>
+    <string name="college_army_institute_of_law_mohali">Army Institute of Law, Mohali</string>
+    <string name="college_kerala_law_academy">Kerala Law Academy, Thiruvananthapuram</string>
+    <string name="college_school_of_law_calcutta">School of Law, University of Calcutta</string>
+
+    <!-- ─── Arts Colleges in India ─────────────────────────────── -->
+    <string name="college_college_of_art_du">College of Art, University of Delhi</string>
+    <string name="college_sir_jj_school_of_art">Sir J.J. School of Art, Mumbai</string>
+    <string name="college_faculty_visual_arts_bhu">Faculty of Visual Arts, BHU</string>
+    <string name="college_msu_fine_arts_vadodara">MSU Faculty of Fine Arts, Vadodara</string>
+    <string name="college_govt_college_art_craft_kolkata">Govt. College of Art &amp; Craft, Kolkata</string>
+    <string name="college_visva_bharati_kala_bhavana">Visva‑Bharati University (Kala Bhavana)</string>
+    <string name="college_chennai_govt_fine_arts">Chennai Govt. College of Fine Arts</string>
+    <string name="college_rachana_sansad">Rachana Sansad Academy of Fine Arts &amp; Crafts</string>
+    <string name="college_goa_college_of_art">Goa College of Art</string>
+    <string name="college_amity_school_fine_arts">Amity School of Fine Arts</string>
+    <string name="college_kalakshetra_foundation">Kalakshetra Foundation</string>
+    <string name="college_bharatiya_kala_kendra">Bharatiya Kala Kendra</string>
+    <string name="college_gandharva_mahavidyalaya">Gandharva Mahavidyalaya</string>
+    <string name="college_nsd">National School of Drama</string>
+    <string name="college_ftii_pune">FTII, Pune</string>
+    <string name="college_srfti_kolkata">SRFTI, Kolkata</string>
+    <string name="college_kathak_kendra">Kathak Kendra</string>
+    <string name="college_drama_thrissur">School of Drama &amp; Fine Arts, Thrissur</string>
+    <string name="college_st_stephens">St. Stephen’s College, Delhi</string>
+    <string name="college_lsr_college">Lady Shri Ram College for Women, Delhi</string>
+    <string name="college_loyola_chennai">Loyola College, Chennai</string>
+    <string name="college_christ_univ">Christ University, Bangalore</string>
+    <string name="college_flame_university">FLAME University, Pune</string>
+    <string name="college_symbiosis_liberal_arts">Symbiosis School of Liberal Arts, Pune</string>
+    <string name="college_krea_university">KREA University, Sri City</string>
+    <string name="college_ramjas_college">Ramjas College, Delhi</string>
+    <string name="college_st_xaviers_mumbai">St. Xavier’s College, Mumbai</string>
+    <string name="college_mcc_chennai">Madras Christian College, Chennai</string>
+
+    <!-- Interests -->
+    <!-- ───── Global interests ───── -->
+    <string name="interest_music">Music</string>
+    <string name="interest_movies">Movies</string>
+    <string name="interest_sports">Sports</string>
+    <string name="interest_books">Books</string>
+    <string name="interest_travel">Travel</string>
+    <string name="interest_fitness">Fitness</string>
+    <string name="interest_art">Art</string>
+    <string name="interest_gaming">Gaming</string>
+    <string name="interest_photography">Photography</string>
+    <string name="interest_cooking">Cooking</string>
+    <string name="interest_dancing">Dancing</string>
+    <string name="interest_gardening">Gardening</string>
+    <string name="interest_technology">Technology</string>
+    <string name="interest_fashion">Fashion</string>
+    <string name="interest_volunteering">Volunteering</string>
+    <string name="interest_pets">Pets &amp; Animals</string>
+
+    <!-- ───── Kolkata cluster ───── -->
+    <string name="interest_cc_block_market">CC Block Market</string>
+    <string name="interest_sector_v_it_hub">Sector V IT Hub</string>
+    <string name="interest_eco_park">Eco Park</string>
+    <string name="interest_city_centre_2">City Centre 2</string>
+    <string name="interest_airport_area">Airport Area</string>
+    <string name="interest_local_market">Local Market</string>
+    <string name="interest_old_market">Old Market</string>
+    <string name="interest_local_eateries">Local Eateries</string>
+    <string name="interest_nightlife">Night‑life</string>
+    <string name="interest_park_street_cafes">Park Street Cafés</string>
+
+    <!-- ───── Hooghly / Chandannagar ───── -->
+    <string name="interest_chandannagar_strand">Chandannagar Strand</string>
+    <string name="interest_french_heritage">French Heritage</string>
+    <string name="interest_riverside_ghats">Riverside Ghats</string>
+    <string name="interest_heritage_walks">Heritage Walks</string>
+
+    <!-- ───── Howrah ───── -->
+    <string name="interest_belur_math">Belur Math</string>
+    <string name="interest_avani_mall">Avani Mall</string>
+
+    <!-- ───── Durgapur / Asansol belt ───── -->
+    <string name="interest_city_centre_plaza">City Centre Plaza</string>
+    <string name="interest_steel_plant_tour">Steel‑Plant Tour</string>
+    <string name="interest_burnpur_riverside">Burnpur Riverside</string>
+    <string name="interest_chittaranjan_park">Chittaranjan Park</string>
+
+    <!-- ───── North‑Bengal cluster ───── -->
+    <string name="interest_hongkong_market">Hongkong Market</string>
+    <string name="interest_mahananda_wls">Mahananda Wildlife Sanctuary</string>
+    <string name="interest_toy_train">Toy‑Train</string>
+    <string name="interest_tea_estate_walks">Tea‑Estate Walks</string>
+    <string name="interest_gorumara_safari">Gorumara Safari</string>
+    <string name="interest_rafting_teesta">Rafting on Teesta</string>
+    <string name="interest_rajbari_palace">Rajbari Palace</string>
+    <string name="interest_sagar_dighi">Sagar‑Dighi</string>
+    <string name="interest_buxa_fort_trek">Buxa Fort Trek</string>
+    <string name="interest_jayanti_picnic">Jayanti River Picnic</string>
+
+    <!-- ───── South‑West cluster ───── -->
+    <string name="interest_iit_campus_walk">IIT Campus Walk</string>
+    <string name="interest_gol_bazaar_food">Gol Bazaar Food</string>
+    <string name="interest_vidyasagar_lake">Vidyasagar Uni Lake</string>
+    <string name="interest_khudiram_park">Khudiram Park</string>
+    <string name="interest_river_cruise">River Cruise</string>
+    <string name="interest_marine_drive">Marine Drive</string>
+
+    <!-- ───── Central WB ───── -->
+    <string name="interest_curzon_gate_photo">Curzon Gate Photo‑Op</string>
+    <string name="interest_sitabhog_mihidana">Sitabhog &amp; Mihidana Tasting</string>
+    <string name="interest_terracotta_art">Terracotta Art</string>
+    <string name="interest_susunia_trek">Susunia Trek</string>
+    <string name="interest_ayodhya_hills">Ayodhya Hills</string>
+    <string name="interest_chhau_dance">Chhau Dance</string>
+
+    <!-- ───── Nadia zone ───── -->
+    <string name="interest_clay_doll_lane">Clay‑Doll Lane</string>
+    <string name="interest_ghurni_artists">Ghurni Artists</string>
+    <string name="interest_university_campus_walk">University Campus Walk</string>
+    <string name="interest_kalyani_lake">Kalyani Lake</string>
+    <string name="interest_boutique_sarees">Boutique Sarees</string>
+    <string name="interest_churni_riverbank">Churni Riverbank</string>
+
+    <!-- ───── North‑centre / Murshidabad ───── -->
+    <string name="interest_mango_festival">Mango Festival</string>
+    <string name="interest_gour_ruins">Gour Ruins</string>
+    <string name="interest_hazar_duari_museum">Hazarduari Museum</string>
+    <string name="interest_khusbagh_gardens">Khusbagh Gardens</string>
+    <string name="interest_berhampore_silk">Berhampore Silk Shopping</string>
+    <string name="interest_cossimbazar_rajbari">Cossimbazar Rajbari</string>
+
+    <string name="match_summary_format">
+        Total Match: %1$d%%\nBreakdown:\n%2$s
+    </string>
+
+    <string name="enter_your_personal_details">Enter your personal details</string>
+
+    <!-- GLOBAL interests -->
+    <string name="interest_food">Food</string>
+    <string name="interest_nature">Nature</string>
+    <string name="interest_dance">Dance</string>
+
+    <!-- West‑Bengal locality interests -->
+    <string name="interest_victoria_memorial">Victoria Memorial</string>
+    <string name="interest_princep_ghat">Princep Ghat</string>
+    <string name="interest_nicco_park">Nicco Park</string>
+    <string name="interest_science_city">Science City</string>
+    <string name="interest_dakshineswar_temple">Dakshineswar Temple</string>
+    <string name="interest_howrah_bridge">Howrah Bridge</string>
+    <string name="interest_iit_kharagpur_campus">IIT Kharagpur Campus</string>
+    <string name="interest_digha_beach">Digha Beach</string>
+    <string name="interest_tiger_hill">Tiger Hill</string>
+    <string name="interest_mall_road">Mall Road (Darjeeling)</string>
+    <string name="interest_hazarduari_palace">Hazarduari Palace</string>
+    <string name="interest_shantiniketan">Shantiniketan</string>
+
+
+    <string name="jan">January</string>
+    <string name="feb">February</string>
+    <string name="mar">March</string>
+    <string name="apr">April</string>
+    <string name="may">May</string>
+    <string name="jun">June</string>
+    <string name="jul">July</string>
+    <string name="aug">August</string>
+    <string name="sep">September</string>
+    <string name="oct">October</string>
+    <string name="nov">November</string>
+    <string name="dec">December</string>
+
     <!-- ProfileScreen -->
     <!-- GENERAL / COMMON -->
     <string name="edit">Edit</string>
@@ -54,6 +283,9 @@
     <string name="aware">Aware</string>
     <string name="occasionally_aware">Occasionally Aware</string>
     <string name="unaware">Unaware</string>
+
+    <string name="tell_us_more_about_yourself">Tell us more about yourself</string>
+    <string name="enter_custom_value">Enter custom value</string>
 
     <string name="gourmet">Gourmet</string>
     <string name="passionate_foodie">Passionate Foodie</string>
@@ -589,6 +821,77 @@
     <string name="postgrad_other">Other</string>
 
     <!-- Community options for dropdown -->
+    <!-- ───── Himalayan neighbours ───── -->
+    <string name="community_bhutanese">Bhutanese</string>
+    <string name="community_sikkimese">Sikkimese</string>
+    <string name="community_arunachali">Arunachali</string>
+
+    <!-- ───── North‑East India | State‑wise tribe & community keys ───── -->
+
+    <!-- Nagaland -->
+    <string name="community_naga">Naga (generic)</string>
+    <string name="community_ao">Ao</string>
+    <string name="community_angami">Angami</string>
+    <string name="community_lotha">Lotha</string>
+    <string name="community_sema">Sema (Sumi)</string>
+    <string name="community_chakhesang">Chakhesang</string>
+    <string name="community_konyak">Konyak</string>
+    <string name="community_phom">Phom</string>
+    <string name="community_chang">Chang</string>
+    <string name="community_rengma">Rengma</string>
+    <string name="community_yimkhiung">Yimkhiung (Yimchunger)</string>
+    <string name="community_khiamniungan">Khiamniungan</string>
+    <string name="community_zeliang">Zeliang</string>
+
+    <!-- Arunachal Pradesh -->
+    <string name="community_apatani">Apatani</string>
+    <string name="community_adi">Adi</string>
+    <string name="community_nyishi">Nyishi</string>
+    <string name="community_galo">Galo</string>
+    <string name="community_tagin">Tagin</string>
+    <string name="community_mishmi">Mishmi (Idu / Digaru / Miju)</string>
+    <string name="community_monpa">Monpa</string>
+    <string name="community_sherdukpen">Sherdukpen</string>
+    <string name="community_bugun">Bugun (Khowa)</string>
+    <string name="community_aka">Aka (Hrusso)</string>
+
+    <!-- Manipur -->
+    <string name="community_meitei">Meitei (Manipuri)</string>
+    <string name="community_tangkhul">Tangkhul</string>
+    <string name="community_poumai">Poumai</string>
+    <string name="community_mao">Mao</string>
+    <string name="community_thadou">Thadou (Kuki)</string>
+    <string name="community_paite">Paite</string>
+    <string name="community_zou">Zou</string>
+    <string name="community_anal">Anal</string>
+    <string name="community_hmar">Hmar</string>
+    <string name="community_maring">Maring</string>
+
+    <!-- Mizoram -->
+    <string name="community_mizo">Mizo (Lushai)</string>
+    <string name="community_lai">Lai</string>
+    <string name="community_mara">Mara</string>
+
+    <!-- Tripura -->
+    <string name="community_tripuri">Tripuri / Debbarma</string>
+    <string name="community_reang">Reang (Bru)</string>
+    <string name="community_chakma">Chakma</string>
+    <string name="community_halam">Halam</string>
+
+    <!-- Meghalaya -->
+    <string name="community_khasi">Khasi</string>
+    <string name="community_garo">Garo</string>
+    <string name="community_jaintia">Jaintia (Pnar)</string>
+
+    <!-- Assam -->
+    <string name="community_bodo">Bodo</string>
+    <string name="community_mishing">Mishing (Miri)</string>
+    <string name="community_karbi">Karbi</string>
+    <string name="community_dimasa">Dimasa</string>
+    <string name="community_rabha">Rabha</string>
+    <string name="community_tiwa">Tiwa (Lalung)</string>
+    <string name="community_deori">Deori</string>
+    <string name="community_sonowal_kachari">Sonowal Kachari</string>
     <string name="community_bengali">Bengali</string>
     <string name="community_santhal">Santhal</string>
     <string name="community_oraon">Oraon</string>
@@ -815,8 +1118,246 @@
     <string name="username_label">Username</string>
     <string name="username_empty_error">Username cannot be empty</string>
     <string name="finish_button">Finish</string>
+    <string name="locate">Locate</string>
 
     <!-- Common Dropdown/Search -->
     <string name="search_label">Search</string>
     <string name="select_default">Select</string>
+
+    <!-- ─── Cities ───────────────────────────────────────────── -->
+    <string name="city_kolkata">Kolkata</string>
+    <string name="city_howrah">Howrah</string>
+    <string name="city_durgapur">Durgapur</string>
+    <string name="city_asansol">Asansol</string>
+    <string name="city_siliguri">Siliguri</string>
+    <string name="city_darjeeling">Darjeeling</string>
+    <string name="city_malda">Malda</string>
+    <string name="city_jalpaiguri">Jalpaiguri</string>
+    <string name="city_cooch_behar">Cooch Behar</string>
+    <string name="city_alipurduar">Alipurduar</string>
+    <string name="city_bankura">Bankura</string>
+    <string name="city_purulia">Purulia</string>
+    <string name="city_kharagpur">Kharagpur</string>
+    <string name="city_midnapore">Midnapore</string>
+    <string name="city_bardhaman">Bardhaman</string>
+    <string name="city_hooghly">Hooghly</string>
+    <string name="city_nadia">Nadia</string>
+    <string name="city_murshidabad">Murshidabad</string>
+    <string name="city_baharampur">Baharampur</string>
+    <string name="city_haldia">Haldia</string>
+    <string name="city_ranaghat">Ranaghat</string>
+    <string name="city_kalyani">Kalyani</string>
+    <string name="city_chandannagar">Chandannagar</string>
+    <string name="city_other">Other</string>
+
+    <!-- ─── Kolkata localities ───────────────────────────────── -->
+    <string name="kolkata_salt_lake_sector_1">Salt Lake (Bidhannagar) – Sector I</string>
+    <string name="kolkata_salt_lake_sector_2">Salt Lake (Bidhannagar) – Sector II</string>
+    <string name="kolkata_salt_lake_sector_3">Salt Lake (Bidhannagar) – Sector III</string>
+    <string name="kolkata_salt_lake_sector_5">Salt Lake (Bidhannagar) – Sector V</string>
+    <string name="kolkata_newtown_action_area_1">Newtown – Action Area I</string>
+    <string name="kolkata_newtown_action_area_2">Newtown – Action Area II</string>
+    <string name="kolkata_newtown_action_area_3">Newtown – Action Area III</string>
+    <string name="kolkata_rajarhat_chinar_park">Rajarhat – Chinar Park</string>
+    <string name="kolkata_rajarhat_baguiati">Rajarhat – Baguiati</string>
+    <string name="kolkata_rajarhat_teghoria">Rajarhat – Teghoria</string>
+    <string name="kolkata_dum_dum">Dum Dum</string>
+    <string name="kolkata_behala">Behala</string>
+    <string name="kolkata_park_street">Park Street</string>
+    <string name="kolkata_ballygunge">Ballygunge</string>
+    <string name="kolkata_jadavpur">Jadavpur</string>
+    <string name="kolkata_southern_avenue">Southern Avenue</string>
+    <string name="kolkata_gariahat">Gariahat</string>
+    <string name="kolkata_tollygunge">Tollygunge</string>
+    <string name="kolkata_shyambazar">Shyambazar</string>
+    <string name="kolkata_esplanade">Esplanade</string>
+    <string name="kolkata_alipore">Alipore</string>
+    <string name="kolkata_kasba">Kasba</string>
+    <string name="kolkata_garia">Garia</string>
+    <string name="kolkata_baranagar">Baranagar</string>
+    <string name="kolkata_kankurgachi">Kankurgachi</string>
+    <string name="kolkata_lake_town">Lake Town</string>
+    <string name="kolkata_phoolbagan">Phoolbagan</string>
+    <string name="kolkata_other">Other</string>
+
+    <!-- ─── Howrah localities ────────────────────────────────── -->
+    <string name="howrah_station_area">Howrah Station Area</string>
+    <string name="howrah_shibpur">Shibpur</string>
+    <string name="howrah_liluah">Liluah</string>
+    <string name="howrah_belur">Belur</string>
+    <string name="howrah_salkia">Salkia</string>
+    <string name="howrah_ghusuri">Ghusuri</string>
+    <string name="howrah_andul">Andul</string>
+    <string name="howrah_santragachi">Santragachi</string>
+    <string name="howrah_other">Other</string>
+
+    <!-- ─── Durgapur localities ──────────────────────────────── -->
+    <string name="durgapur_city_centre">City Centre</string>
+    <string name="durgapur_bidhannagar">Bidhannagar</string>
+    <string name="durgapur_nit_durgapur_area">NIT Durgapur Area</string>
+    <string name="durgapur_benachity">Benachity</string>
+    <string name="durgapur_muchipara">Muchipara</string>
+    <string name="durgapur_industrial_area">Industrial Area</string>
+    <string name="durgapur_fuljhore">Fuljhore</string>
+    <string name="durgapur_other">Other</string>
+
+    <!-- ─── Asansol localities ───────────────────────────────── -->
+    <string name="asansol_asansol_proper">Asansol Proper</string>
+    <string name="asansol_chittaranjan">Chittaranjan</string>
+    <string name="asansol_jamuria">Jamuria</string>
+    <string name="asansol_raniganj">Raniganj</string>
+    <string name="asansol_kulti">Kulti</string>
+    <string name="asansol_burnpur">Burnpur</string>
+    <string name="asansol_other">Other</string>
+
+    <!-- ─── Siliguri localities ──────────────────────────────── -->
+    <string name="siliguri_siliguri_town">Siliguri Town</string>
+    <string name="siliguri_pradhan_nagar">Pradhan Nagar</string>
+    <string name="siliguri_sevoke_road">Sevoke Road</string>
+    <string name="siliguri_hill_cart_road">Hill Cart Road</string>
+    <string name="siliguri_matigara">Matigara</string>
+    <string name="siliguri_champasari">Champasari</string>
+    <string name="siliguri_salugara">Salugara</string>
+    <string name="siliguri_other">Other</string>
+
+    <!-- ─── Darjeeling localities ────────────────────────────── -->
+    <string name="darjeeling_darjeeling_town">Darjeeling Town</string>
+    <string name="darjeeling_kurseong">Kurseong</string>
+    <string name="darjeeling_ghum">Ghum</string>
+    <string name="darjeeling_mirik">Mirik</string>
+    <string name="darjeeling_sonada">Sonada</string>
+    <string name="darjeeling_kalimpong">Kalimpong</string>
+    <string name="darjeeling_other">Other</string>
+
+    <!-- ─── Malda localities ─────────────────────────────────── -->
+    <string name="malda_english_bazar">English Bazar</string>
+    <string name="malda_old_malda">Old Malda</string>
+    <string name="malda_rathbari">Rathbari</string>
+    <string name="malda_gazole">Gazole</string>
+    <string name="malda_malda_town">Malda Town</string>
+    <string name="malda_other">Other</string>
+
+    <!-- ─── Jalpaiguri localities ────────────────────────────── -->
+    <string name="jalpaiguri_jalpaiguri_town">Jalpaiguri Town</string>
+    <string name="jalpaiguri_dhupguri">Dhupguri</string>
+    <string name="jalpaiguri_mainaguri">Mainaguri</string>
+    <string name="jalpaiguri_malbazar">Malbazar</string>
+    <string name="jalpaiguri_lataguri">Lataguri</string>
+    <string name="jalpaiguri_other">Other</string>
+
+    <!-- ─── Cooch Behar localities ───────────────────────────── -->
+    <string name="cooch_behar_cooch_behar_town">Cooch Behar Town</string>
+    <string name="cooch_behar_dinhata">Dinhata</string>
+    <string name="cooch_behar_tufanganj">Tufanganj</string>
+    <string name="cooch_behar_mathabhanga">Mathabhanga</string>
+    <string name="cooch_behar_mekhliganj">Mekhliganj</string>
+    <string name="cooch_behar_other">Other</string>
+
+    <!-- ─── Alipurduar localities ────────────────────────────── -->
+    <string name="alipurduar_alipurduar_town">Alipurduar Town</string>
+    <string name="alipurduar_falakata">Falakata</string>
+    <string name="alipurduar_jaigaon">Jaigaon</string>
+    <string name="alipurduar_birpara">Birpara</string>
+    <string name="alipurduar_madarihat">Madarihat</string>
+    <string name="alipurduar_other">Other</string>
+
+    <!-- ─── Bankura localities ───────────────────────────────── -->
+    <string name="bankura_bankura_town">Bankura Town</string>
+    <string name="bankura_bishnupur">Bishnupur</string>
+    <string name="bankura_khatra">Khatra</string>
+    <string name="bankura_sonamukhi">Sonamukhi</string>
+    <string name="bankura_barjora">Barjora</string>
+    <string name="bankura_other">Other</string>
+
+    <!-- ─── Purulia localities ───────────────────────────────── -->
+    <string name="purulia_purulia_town">Purulia Town</string>
+    <string name="purulia_jhalda">Jhalda</string>
+    <string name="purulia_raghunathpur">Raghunathpur</string>
+    <string name="purulia_adra">Adra</string>
+    <string name="purulia_balarampur">Balarampur</string>
+    <string name="purulia_other">Other</string>
+
+    <!-- ─── Kharagpur localities ─────────────────────────────── -->
+    <string name="kharagpur_iit_kharagpur_campus">IIT Kharagpur Campus</string>
+    <string name="kharagpur_kharagpur_town">Kharagpur Town</string>
+    <string name="kharagpur_salua">Salua</string>
+    <string name="kharagpur_golbazar">Golbazar</string>
+    <string name="kharagpur_malancha">Malancha</string>
+    <string name="kharagpur_nimpura">Nimpura</string>
+    <string name="kharagpur_other">Other</string>
+
+    <!-- ─── Midnapore localities ─────────────────────────────── -->
+    <string name="midnapore_midnapore_town">Midnapore Town</string>
+    <string name="midnapore_vidyasagar_university_area">Vidyasagar University Area</string>
+    <string name="midnapore_rangamati">Rangamati</string>
+    <string name="midnapore_keranichati">Keranichati</string>
+    <string name="midnapore_tamluk">Tamluk</string>
+    <string name="midnapore_other">Other</string>
+
+    <!-- ─── Bardhaman localities ─────────────────────────────── -->
+    <string name="bardhaman_bardhaman_town">Bardhaman Town</string>
+    <string name="bardhaman_katwa">Katwa</string>
+    <string name="bardhaman_kalna">Kalna</string>
+    <string name="bardhaman_dhatrigram">Dhatrigram</string>
+    <string name="bardhaman_memari">Memari</string>
+    <string name="bardhaman_other">Other</string>
+
+    <!-- ─── Hooghly localities ───────────────────────────────── -->
+    <string name="hooghly_chinsurah">Chinsurah</string>
+    <string name="hooghly_serampore">Serampore</string>
+    <string name="hooghly_arambagh">Arambagh</string>
+    <string name="hooghly_kon_nagar">Kon Nagar</string>
+    <string name="hooghly_uttarpara">Uttarpara</string>
+    <string name="hooghly_other">Other</string>
+
+    <!-- ─── Nadia localities ─────────────────────────────────── -->
+    <string name="nadia_krishnanagar">Krishnanagar</string>
+    <string name="nadia_nabadwip">Nabadwip</string>
+    <string name="nadia_shantipur">Shantipur</string>
+    <string name="nadia_karimpur">Karimpur</string>
+    <string name="nadia_other">Other</string>
+
+    <!-- ─── Murshidabad localities ───────────────────────────── -->
+    <string name="murshidabad_murshidabad_town">Murshidabad Town</string>
+    <string name="murshidabad_lalbagh">Lalbagh</string>
+    <string name="murshidabad_jiaganj">Jiaganj</string>
+    <string name="murshidabad_azimganj">Azimganj</string>
+    <string name="murshidabad_other">Other</string>
+
+    <!-- ─── Baharampur localities ────────────────────────────── -->
+    <string name="baharampur_baharampur_town">Baharampur Town</string>
+    <string name="baharampur_gorabazar">Gorabazar</string>
+    <string name="baharampur_khagra">Khagra</string>
+    <string name="baharampur_panchanantala">Panchanantala</string>
+    <string name="baharampur_kashimnagar">Kashimnagar</string>
+    <string name="baharampur_other">Other</string>
+
+    <!-- ─── Haldia localities ────────────────────────────────── -->
+    <string name="haldia_haldia_township">Haldia Township</string>
+    <string name="haldia_hit_campus_area">HIT Campus Area</string>
+    <string name="haldia_durgachak">Durgachak</string>
+    <string name="haldia_brajalalchak">Brajalalchak</string>
+    <string name="haldia_hatiberia">Hatiberia</string>
+    <string name="haldia_other">Other</string>
+
+    <!-- ─── Ranaghat localities ──────────────────────────────── -->
+    <string name="ranaghat_ranaghat_town">Ranaghat Town</string>
+    <string name="ranaghat_coopers_camp">Coopers Camp</string>
+    <string name="ranaghat_taherpur">Taherpur</string>
+    <string name="ranaghat_habibpur">Habibpur</string>
+    <string name="ranaghat_other">Other</string>
+
+    <!-- ─── Kalyani localities ───────────────────────────────── -->
+    <string name="kalyani_kalyani_university_area">Kalyani University Area</string>
+    <string name="kalyani_kalyani_town">Kalyani Town</string>
+    <string name="kalyani_gayespur">Gayespur</string>
+    <string name="kalyani_chakdaha">Chakdaha</string>
+    <string name="kalyani_other">Other</string>
+
+    <!-- ─── Chandannagar localities ──────────────────────────── -->
+    <string name="chandannagar_chandannagar_strand">Chandannagar Strand</string>
+    <string name="chandannagar_mankundu">Mankundu</string>
+    <string name="chandannagar_bhadreswar">Bhadreswar</string>
+    <string name="chandannagar_khalisani">Khalisani</string>
+    <string name="chandannagar_other">Other</string>
 </resources>

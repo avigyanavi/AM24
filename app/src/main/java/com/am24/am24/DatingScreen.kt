@@ -2010,7 +2010,11 @@ fun runAiMatchCheck(
 
     val breakdownText = insights.joinToString(separator = "\n") { "${it.emoji} ${it.text}" }
 
-    val summaryText = "Total Match: $finalScore%\nBreakdown:\n$breakdownText"
+    val summaryText = context.getString(
+        R.string.match_summary_format,
+        finalScore,
+        breakdownText
+    )
 
     Log.d("runAiMatchCheck", "Compatibility Summary: $summaryText")
 
