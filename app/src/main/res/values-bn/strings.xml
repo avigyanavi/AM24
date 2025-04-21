@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">কিউপিডেক্স</string>
 
+    <string name="section_bio_and_voice">বায়ো ও ভয়েস</string>
     <!-- interests -->
 
     <!-- ───── Himalayan neighbours ───── -->
@@ -946,10 +947,10 @@
     <string name="no_images">কোনো ছবি নেই</string>
     <string name="away">দূরে</string>
     <string name="featured_posts">বৈশিষ্ট্যযুক্ত পোস্টসমূহ</string>
-    <string name="analyzed_on">বিশ্লেষিত: %1$s</string>
+    <string name="analyzed_on">বিশ্লেষিত: </string>
     <string name="run_analysis">বিশ্লেষণ শুরু করুন</string>
     <string name="no_bio_available">কোনো জীবনী নেই</string>
-    <string name="select_label">নির্বাচন করুন %1$s</string>
+    <string name="select_label">নির্বাচন করুন</string>
     <string name="name_age">%1$s, %2$d</string>
 
     <string name="performance_metrics">কর্মক্ষমতা মেট্রিক্স</string>
@@ -957,13 +958,13 @@
     <string name="rating">রেটিং</string>
     <string name="swipe_right_percentage">এই ব্যবহারকারীর উপর ডানদিকে সোয়াইপ করার শতাংশ</string>
     <string name="west_bengal_ranking">পশ্চিমবঙ্গ র‍্যাঙ্কিং</string>
-    <string name="city_ranking">%s র‍্যাঙ্কিং</string>
-    <string name="locality_ranking">%s র‍্যাঙ্কিং</string>
+    <string name="city_ranking">শহর র‍্যাঙ্কিং</string>
+    <string name="locality_ranking">অঞ্চল র‍্যাঙ্কিং</string>
     <string name="age_ranking">বয়স র‍্যাঙ্কিং</string>
-    <string name="high_school_ranking">%s র‍্যাঙ্কিং</string>
-    <string name="college_ranking">%s র‍্যাঙ্কিং</string>
-    <string name="high_school_graduation_year">%s থেকে স্নাতক বছর</string>
-    <string name="college_graduation_year">%s থেকে স্নাতক বছর</string>
+    <string name="high_school_ranking">হাই স্কুল র‍্যাঙ্কিং</string>
+    <string name="college_ranking">কলেজ র‍্যাঙ্কিং</string>
+    <string name="high_school_graduation_year">হাই স্কুল থেকে স্নাতক বছর</string>
+    <string name="college_graduation_year">কলেজ থেকে স্নাতক বছর</string>
     <string name="number">%d</string>
     <string name="percentage">%d%%</string>
     <string name="city">শহর</string>
@@ -981,7 +982,7 @@
     <string name="education">শিক্ষা</string>
     <string name="high_school">হাই স্কুল</string>
     <string name="college">কলেজ</string>
-    <string name="post_grad">স্নাতকোত্তর</string>
+    <string name="post_grad">পোস্ট-গ্র্যাজুয়েশন</string>
 
     <!-- Preferences Section -->
     <string name="preferences">পছন্দসমূহ</string>
@@ -1086,11 +1087,11 @@
     <string name="select_city_default">শহর নির্বাচন করুন</string>
     <string name="locality_label">লোকালিটি</string>
     <string name="select_locality_default">লোকালিটি নির্বাচন করুন</string>
-
+    <string name="select_city">-- শহর নির্বাচন করুন --</string>
     <!-- Interests -->
     <string name="enter_interests_title">আপনার শখ নির্বাচন করুন</string>
     <string name="global_interests_label">সাধারণ শখ</string>
-    <string name="local_interests_label">%1$s-এ শখ</string>
+    <string name="local_interests_label">লোকালিটি-এ শখ</string>
     <string name="max_interests_error">আপনি সর্বোচ্চ ১৫টি শখ নির্বাচন করতে পারবেন</string>
 
     <!-- Education and Location -->

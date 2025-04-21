@@ -2,6 +2,8 @@
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
 
+    <string name="section_bio_and_voice">Bio &amp; Voice</string>
+
     <!-- more education -->
     <!-- ─── Engineering Colleges ────────────────────────────────── -->
     <string name="college_srm_institute_of_science_and_technology">SRM Institute of Science and Technology</string>
@@ -953,13 +955,13 @@
     <string name="rating">Rating</string>
     <string name="swipe_right_percentage">Percentage who swipe right on this user</string>
     <string name="west_bengal_ranking">West Bengal Ranking</string>
-    <string name="city_ranking">%s Ranking</string>
-    <string name="locality_ranking">%s Ranking</string>
+    <string name="city_ranking">City Ranking</string>
+    <string name="locality_ranking">Locality Ranking</string>
     <string name="age_ranking">Age Ranking</string>
-    <string name="high_school_ranking">%s Ranking</string>
-    <string name="college_ranking">%s Ranking</string>
-    <string name="high_school_graduation_year">Graduation Year from %s</string>
-    <string name="college_graduation_year">Graduation Year from %s</string>
+    <string name="high_school_ranking">High School Ranking</string>
+    <string name="college_ranking">College Ranking</string>
+    <string name="high_school_graduation_year">Graduation Year from High School</string>
+    <string name="college_graduation_year">Graduation Year from College</string>
     <string name="number">%d</string>
     <string name="percentage">%d%%</string>
     <string name="city">City</string>
@@ -1084,12 +1086,13 @@
     <string name="select_city_default">Select City</string>
     <string name="locality_label">Locality</string>
     <string name="select_locality_default">Select Locality</string>
+    <string name="select_city">-- Select City --</string>
 
     <!-- Interests -->
     <string name="enter_interests_title">Select Your Interests</string>
     <string name="global_interests_label">Global Interests</string>
     <!-- The %1$s placeholder can be used to inject the locality name -->
-    <string name="local_interests_label">Local Interests in %1$s</string>
+    <string name="local_interests_label">Local Interests in locality</string>
     <string name="max_interests_error">You can select up to 15 interests only.</string>
 
     <!-- Education and Location -->

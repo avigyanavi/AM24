@@ -154,24 +154,31 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     // from your partial code + the "score" fields
                     "profilepicUrl"               to profileWithScore.profilepicUrl,
                     "optionalPhotoUrls"           to profileWithScore.optionalPhotoUrls,
-                    "voiceNoteUrl"                to profileWithScore.voiceNoteUrl,
-
+                    "voiceNoteUrl"             to profileWithScore.voiceNoteUrl,
+                    "bio"                      to profileWithScore.bio,
                     "email"                       to profileWithScore.email,
                     "name"                        to profileWithScore.name,
-                    "bio"                         to profileWithScore.bio,
                     "gender"                      to profileWithScore.gender,
                     "hometown"                    to profileWithScore.hometown,
+                    "customHometown"              to profileWithScore.customHometown,
                     "highSchool"                  to profileWithScore.highSchool,
                     "highSchoolGraduationYear"    to profileWithScore.highSchoolGraduationYear,
+                    "height"                      to profileWithScore.height,
+                    "height2"                     to profileWithScore.height2,
                     "college"                     to profileWithScore.college,
                     "collegeGraduationYear"       to profileWithScore.collegeGraduationYear,
                     "collegeDegree"               to profileWithScore.collegeDegree,
                     "postGraduation"              to profileWithScore.postGraduation,
                     "postGraduationYear"          to profileWithScore.postGraduationYear,
                     "postGraduationDegree"        to profileWithScore.postGraduationDegree,
+                    "politics"                    to profileWithScore.politics,
                     "community"                   to profileWithScore.community,
+                    "caste"                       to profileWithScore.caste,
+                    "city"                        to profileWithScore.city,
+                    "customCity"                  to profileWithScore.customCity,
                     "religion"                    to profileWithScore.religion,
                     "lookingFor"                  to profileWithScore.lookingFor,
+                    "loveLanguage"                  to profileWithScore.loveLanguage,
                     "interests"                   to profileWithScore.interests.map {
                         mapOf("name" to it.name, "emoji" to it.emoji)
                     },
@@ -267,15 +274,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun uploadVoiceToRealtime(storageRef: StorageReference, uri: Uri) {
+    fun uploadVoiceToRealtime(storageRef: StorageReference, uri: Uri, onUploaded: (downloadUrl: String) -> Unit
+    ) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val voiceNoteRef = storageRef.child("users/$userId/voice_note.mp3") // Adjust file extension if needed
         voiceNoteRef.putFile(uri)
-            .addOnSuccessListener {
-                voiceNoteRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    voiceNoteUrl = downloadUri.toString()
-                    Log.d(TAG, "Voice note uploaded successfully: $downloadUri")
-                }
+            .continueWithTask { it.result!!.storage.downloadUrl }
+            .addOnSuccessListener { downloadUri ->
+                voiceNoteUrl = downloadUri.toString()
+                onUploaded(voiceNoteUrl!!)
             }
             .addOnFailureListener { exception ->
                 Log.e(TAG, "Failed to upload voice note: ${exception.message}")

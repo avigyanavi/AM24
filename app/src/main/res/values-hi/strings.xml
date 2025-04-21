@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">क्यूपिडेक्स</string>
 
+    <string name="section_bio_and_voice">बायो और वॉयस</string>
+
     <string name="match_summary_format">
         कुल मिलान: %1$d%%\nविवरण:\n%2$s
     </string>
@@ -462,7 +464,7 @@
     <string name="matrimony_father_occupation">पिता का पेशा</string>
     <string name="matrimony_mother_occupation">माता का पेशा</string>
     <string name="edit_matrimony_info_cd">मैरिटमोनि जानकारी संपादित करें</string>
-
+    <string name="select_city">-- शहर चुनें --</string>
     <!-- PHOTO CAROUSEL OVERLAY -->
     <string name="from_hometown">%1$s से</string>
     <string name="posts_button">पोस्ट</string>
@@ -947,13 +949,13 @@
     <string name="rating">रेटिंग</string>
     <string name="swipe_right_percentage">इस उपयोगकर्ता पर दाईं ओर स्वाइप करने का प्रतिशत</string>
     <string name="west_bengal_ranking">पश्चिम बंगाल रैंकिंग</string>
-    <string name="city_ranking">%s रैंकिंग</string>
-    <string name="locality_ranking">%s रैंकिंग</string>
+    <string name="city_ranking">शहर रैंकिंग</string>
+    <string name="locality_ranking">इलाका रैंकिंग</string>
     <string name="age_ranking">आयु रैंकिंग</string>
-    <string name="high_school_ranking">%s रैंकिंग</string>
-    <string name="college_ranking">%s रैंकिंग</string>
-    <string name="high_school_graduation_year">%s से स्नातक वर्ष</string>
-    <string name="college_graduation_year">%s से स्नातक वर्ष</string>
+    <string name="high_school_ranking">हाई स्कूल रैंकिंग</string>
+    <string name="college_ranking">कॉलेज रैंकिंग</string>
+    <string name="high_school_graduation_year">हाई स्कूल से स्नातक वर्ष</string>
+    <string name="college_graduation_year">कॉलेज से स्नातक वर्ष</string>
     <string name="number">%d</string>
     <string name="percentage">%d%%</string>
     <string name="city">शहर</string>
@@ -969,10 +971,10 @@
         <string name="no_images">कोई तस्वीरें नहीं</string>
         <string name="away">दूर</string>
         <string name="featured_posts">विशेष पोस्ट</string>
-        <string name="analyzed_on">विश्लेषित: %1$s</string>
+        <string name="analyzed_on">विश्लेषित: </string>
         <string name="run_analysis">विश्लेषण शुरू करें</string>
         <string name="no_bio_available">कोई जीवनी उपलब्ध नहीं</string>
-        <string name="select_label">चुनें %1$s</string>
+        <string name="select_label">चुनें</string>
     <string name="name_age">%1$s, %2$d</string>
 
     <!-- values-hi/strings.xml -->
@@ -1086,7 +1088,7 @@
     <!-- Interests -->
     <string name="enter_interests_title">अपनी रुचियाँ चुनें</string>
     <string name="global_interests_label">वैश्विक रुचियाँ</string>
-    <string name="local_interests_label">स्थानीय रुचियाँ in %1$s</string>
+    <string name="local_interests_label">स्थानीय रुचियाँ in इलाका</string>
     <string name="max_interests_error">आप अधिकतम 15 रुचियाँ ही चुन सकते हैं</string>
 
     <!-- Education and Location -->

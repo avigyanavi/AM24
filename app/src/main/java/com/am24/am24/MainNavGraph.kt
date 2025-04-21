@@ -102,9 +102,6 @@ fun MainNavGraph(
         composable("home") {
             HomeScreen(navController = navController, postViewModel = postViewModel)
         }
-        composable("editProfile") {
-            EditProfileScreen(navController = navController)
-        }
         composable("create_post") {
             CreatePostScreen(navController = navController, postViewModel = postViewModel)
         }
