@@ -166,26 +166,6 @@ fun ProfileLazyScreen(
                     }
                 )
             }
-            if (currentProfile.isMatrimonyMode) {
-                item {
-                    MatrimonyInfoCard(
-                        profile = currentProfile,
-                        onSave = { updated ->
-                            currentProfile = updated
-                            scope.launch {
-                                Log.d("ProfileLazyScreen", "Saving matrimony info")
-                                profileViewModel.saveProfileUpdated(
-                                    updatedProfile = updated,
-                                    onSuccess = { Log.d("ProfileLazyScreen", "Matrimony info saved") },
-                                    onFailure = { error ->
-                                        Log.e("ProfileLazyScreen", "Failed to save matrimony info: $error")
-                                    }
-                                )
-                            }
-                        }
-                    )
-                }
-            }
             item {
                 ProfileCollapsibleSections(
                     profile = currentProfile,
@@ -267,187 +247,6 @@ fun VerificationBadge(
                 stringResource(R.string.verify_profile_cd),
             tint = Color.White
         )
-    }
-}
-
-@Composable
-fun MatrimonyInfoCard(
-    profile: Profile,
-    onSave: (Profile) -> Unit
-) {
-    var isEditing by remember { mutableStateOf(false) }
-    var marriageTimeline by remember { mutableStateOf(profile.marriageTimeline ?: "") }
-    var relocationPreference by remember { mutableStateOf(profile.relocationPreference ?: "") }
-    var postMarriageCareerPlan by remember { mutableStateOf(profile.postMarriageCareerPlan ?: "") }
-    var traditionalVsLiberal by remember { mutableStateOf(profile.traditionalVsLiberal ?: "") }
-    var fatherOccupation by remember { mutableStateOf(profile.fatherOccupation ?: "") }
-    var motherOccupation by remember { mutableStateOf(profile.motherOccupation ?: "") }
-
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(2.dp, Color(0xFFFF6F00)),
-        colors = CardDefaults.cardColors(containerColor = Color.Black),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            if (isEditing) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    OutlinedTextField(
-                        value = marriageTimeline,
-                        onValueChange = { marriageTimeline = it },
-                        label = { Text(stringResource(R.string.matrimony_marriage_timeline), color = Color(0xFFFF6F00)) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            cursorColor = Color(0xFFFF6F00),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = relocationPreference,
-                        onValueChange = { relocationPreference = it },
-                        label = { Text(stringResource(R.string.matrimony_relocation_preference), color = Color(0xFFFF6F00)) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            cursorColor = Color(0xFFFF6F00),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = postMarriageCareerPlan,
-                        onValueChange = { postMarriageCareerPlan = it },
-                        label = { Text(stringResource(R.string.matrimony_post_marriage_career_plan), color = Color(0xFFFF6F00)) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            cursorColor = Color(0xFFFF6F00),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = traditionalVsLiberal,
-                        onValueChange = { traditionalVsLiberal = it },
-                        label = { Text(stringResource(R.string.matrimony_traditional_vs_liberal), color = Color(0xFFFF6F00)) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            cursorColor = Color(0xFFFF6F00),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = fatherOccupation,
-                        onValueChange = { fatherOccupation = it },
-                        label = { Text(stringResource(R.string.matrimony_father_occupation), color = Color(0xFFFF6F00)) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            cursorColor = Color(0xFFFF6F00),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = motherOccupation,
-                        onValueChange = { motherOccupation = it },
-                        label = { Text(stringResource(R.string.matrimony_mother_occupation), color = Color(0xFFFF6F00)) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            cursorColor = Color(0xFFFF6F00),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = {
-                            val updatedProfile = profile.copy(
-                                marriageTimeline = marriageTimeline.ifBlank { null },
-                                relocationPreference = relocationPreference.ifBlank { null },
-                                postMarriageCareerPlan = postMarriageCareerPlan.ifBlank { null },
-                                traditionalVsLiberal = traditionalVsLiberal.ifBlank { null },
-                                fatherOccupation = fatherOccupation.ifBlank { null },
-                                motherOccupation = motherOccupation.ifBlank { null }
-                            )
-                            onSave(updatedProfile)
-                            isEditing = false
-                        }) {
-                            Text(stringResource(R.string.save), color = Color(0xFF00bf63))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(onClick = {
-                            marriageTimeline = profile.marriageTimeline ?: ""
-                            relocationPreference = profile.relocationPreference ?: ""
-                            postMarriageCareerPlan = profile.postMarriageCareerPlan ?: ""
-                            traditionalVsLiberal = profile.traditionalVsLiberal ?: ""
-                            fatherOccupation = profile.fatherOccupation ?: ""
-                            motherOccupation = profile.motherOccupation ?: ""
-                            isEditing = false
-                        }) {
-                            Text(stringResource(R.string.cancel), color = Color.Red)
-                        }
-                    }
-                }
-            } else {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.matrimony_marriage_timeline), color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                        Text(text = profile.marriageTimeline ?: stringResource(R.string.not_set), color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.matrimony_relocation_preference), color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                        Text(text = profile.relocationPreference ?: stringResource(R.string.not_set), color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.matrimony_post_marriage_career_plan), color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                        Text(text = profile.postMarriageCareerPlan ?: stringResource(R.string.not_set), color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.matrimony_traditional_vs_liberal), color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                        Text(text = profile.traditionalVsLiberal ?: stringResource(R.string.not_set), color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.matrimony_father_occupation), color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                        Text(text = profile.fatherOccupation ?: stringResource(R.string.not_set), color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.matrimony_mother_occupation), color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-                        Text(text = profile.motherOccupation ?: stringResource(R.string.not_set), color = Color.White)
-                    }
-                }
-            }
-            IconButton(
-                onClick = { isEditing = true },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(24.dp)
-                    .background(Color.Black.copy(alpha = 0.7f), shape = CircleShape)
-            ) {
-                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_matrimony_info_cd), tint = Color(0xFFFF6F00))
-            }
-        }
     }
 }
 
@@ -1414,56 +1213,40 @@ fun BasicInfoEditSection(
         }
 
         // ─── Save / Cancel ───────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = {
-                    // build your updated Profile and hand it back:
-                    val updated = tempProfile.copy(
-                        name = name,
-                        gender = selectedGender,
-                        city = city,
-                        hometown = locality,
-                        highSchool = highSchool,
-                        highSchoolGraduationYear = highSchoolGradYear,
-                        college = college,
-                        collegeGraduationYear = collegeGradYear,
-                        collegeDegree = collegeDegree.ifBlank { null },
-                        postGraduation = postGrad.ifBlank { null },
-                        postGraduationYear = postGradYear,
-                        postGraduationDegree = postGraduationDegree.ifBlank { null },
-                        community = community,
-                        religion = religion,
-                        height   = heightCm,
-                        height2  = if (isHeightInFeet) listOf(feet, inches) else emptyList(),
-                        jobRole = selectedJobRole,
-                        customJobRole = (selectedJobRole.takeIf { it == jobRoleOptions.last() }?.let { customJobRole } ?: null),
-                        work = selectedWork,
-                        customWork = (selectedWork.takeIf { it == workOptions.last() }?.let { customWork } ?: null)
-                    )
-                    onSave(updated)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BF63)),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(stringResource(R.string.save), color = Color.White)
-            }
-            Button(
-                onClick = onCancel,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(stringResource(R.string.cancel), color = Color.White)
-            }
+        ButtonRow(
+            onSave = {
+                val updated = tempProfile.copy(
+                    name = name,
+                    gender = selectedGender,
+                    city = city,
+                    hometown = locality,
+                    highSchool = highSchool,
+                    highSchoolGraduationYear = highSchoolGradYear,
+                    college = college,
+                    collegeGraduationYear = collegeGradYear,
+                    collegeDegree = collegeDegree.ifBlank { null },
+                    postGraduation = postGrad.ifBlank { null },
+                    postGraduationYear = postGradYear,
+                    postGraduationDegree = postGraduationDegree.ifBlank { null },
+                    community = community,
+                    religion = religion,
+                    height = heightCm,
+                    height2 = if (isHeightInFeet) listOf(feet, inches) else emptyList(),
+                    jobRole = selectedJobRole,
+                    customJobRole = (selectedJobRole.takeIf { it == jobRoleOptions.last() }?.let { customJobRole } ?: null),
+                    work = selectedWork,
+                    customWork = (selectedWork.takeIf { it == workOptions.last() }?.let { customWork } ?: null)
+                )
+                onSave(updated)
+            },
+            onCancel = onCancel
+        )
         }
     }
-}
 
 @Composable
 fun PerformanceMetricsSection(profile: Profile) {
-    var showPerformance by rememberSaveable { mutableStateOf(true) }
+    var showPerformance by rememberSaveable { mutableStateOf(false) }
 
     CollapsibleSection(
         title       = stringResource(R.string.performance_metrics),
@@ -2318,18 +2101,11 @@ fun CombinedBioVoiceEditSection(
         Spacer(Modifier.height(16.dp))
 
         // — Save / Cancel —
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel) {
-                Text(stringResource(R.string.cancel), color = Color.Red)
-            }
-            Spacer(Modifier.width(8.dp))
-            TextButton(
-                onClick = { onSave(bio, newVoiceUrl) },
-                enabled = isVoiceValid && !isUploading
-            ) {
-                Text(stringResource(R.string.save), color = Color.Green)
-            }
-        }
+        ButtonRow(
+            onSave    = { onSave(bio, newVoiceUrl) },
+            onCancel  = onCancel,
+            modifier  = Modifier.padding(top = 16.dp)
+        )
     }
 }
 
@@ -2464,33 +2240,17 @@ fun PreferencesEditSection(
             }
         }
 
-        // --- Save / Cancel ---
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = {
-                    val updated = tempProfile.copy(
-                        lookingFor   = selectedLookingFor.takeIf { it != notSelected } ?: "",
-                        loveLanguage = selectedLoveLanguage.takeIf { it != notSelected } ?: "",
-                        politics     = selectedPolitics.takeIf { it != notSelected } ?: ""
-                    )
-                    onSave(updated)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BF63)),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(stringResource(R.string.save), color = Color.White)
-            }
-            Button(
-                onClick = onCancel,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(stringResource(R.string.cancel), color = Color.White)
-            }
-        }
+        ButtonRow(
+            onSave = {
+                val updated = tempProfile.copy(
+                    lookingFor = selectedLookingFor.takeIf { it != notSelected } ?: "",
+                    loveLanguage = selectedLoveLanguage.takeIf { it != notSelected } ?: "",
+                    politics = selectedPolitics.takeIf { it != notSelected } ?: ""
+                )
+                onSave(updated)
+            },
+            onCancel = onCancel
+        )
     }
 }
 
@@ -2581,17 +2341,12 @@ fun SocialCausesEditSection(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Row {
-            Button(onClick = {
+        ButtonRow(
+            onSave = {
                 onSave(tempProfile.copy(socialCauses = socialCauses.toList()))
-            }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))) {
-                Text(stringResource(R.string.save), color = Color.White)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = onCancel, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
-                Text(stringResource(R.string.cancel), color = Color.White)
-            }
-        }
+            },
+            onCancel = onCancel
+        )
     }
 }
 
@@ -2737,13 +2492,13 @@ fun ProfileCollapsibleSections(
     profileViewModel: ProfileViewModel,
     onProfileUpdated: (Profile) -> Unit
 ) {
-    var showBioVoice by rememberSaveable { mutableStateOf(true) }
+    var showBioVoice by rememberSaveable { mutableStateOf(false) }
     var editBioVoice by rememberSaveable { mutableStateOf(false) }
-    var showBasic by rememberSaveable { mutableStateOf(true) }
-    var showPreferences by rememberSaveable { mutableStateOf(true) }
-    var showSocialCauses by rememberSaveable { mutableStateOf(true) } // New
-    var showLifestyle by rememberSaveable { mutableStateOf(true) }
-    var showInterests by rememberSaveable { mutableStateOf(true) }
+    var showBasic by rememberSaveable { mutableStateOf(false) }
+    var showPreferences by rememberSaveable { mutableStateOf(false) }
+    var showSocialCauses by rememberSaveable { mutableStateOf(false) } // New
+    var showLifestyle by rememberSaveable { mutableStateOf(false) }
+    var showInterests by rememberSaveable { mutableStateOf(false) }
     var editBasic by rememberSaveable { mutableStateOf(false) }
     var editPreferences by rememberSaveable { mutableStateOf(false) }
     var editSocialCauses by rememberSaveable { mutableStateOf(false) } // New
@@ -2781,6 +2536,7 @@ fun ProfileCollapsibleSections(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(12.dp))
         PerformanceMetricsSection(profile)
         Spacer(modifier = Modifier.height(12.dp))
         CollapsibleSection(
@@ -2958,7 +2714,6 @@ fun ProfileCollapsibleSections(
     }
 }
 
-/** Interests Edit */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun InterestsEditSection(
@@ -2966,79 +2721,342 @@ fun InterestsEditSection(
     onSave: (Profile) -> Unit,
     onCancel: () -> Unit
 ) {
+    // Reuse the same mapping from raw interest name → stringResource(id)
+    val interestNameToResource = mapOf(
+        // Global Interests
+        "Music" to R.string.interest_music,
+        "সঙ্গীত" to R.string.interest_music, // Bengali
+        "संगीत" to R.string.interest_music, // Hindi
+        "Movies" to R.string.interest_movies,
+        "সিনেমা" to R.string.interest_movies, // Bengali
+        "फ़िल्में" to R.string.interest_movies, // Hindi
+        "Sports" to R.string.interest_sports,
+        "খেলাধুলা" to R.string.interest_sports, // Bengali
+        "खेल" to R.string.interest_sports, // Hindi
+        "Books" to R.string.interest_books,
+        "বই" to R.string.interest_books, // Bengali
+        "किताबें" to R.string.interest_books, // Hindi
+        "Travel" to R.string.interest_travel,
+        "ভ্রমণ" to R.string.interest_travel, // Bengali
+        "यात्रा" to R.string.interest_travel, // Hindi
+        "Fitness" to R.string.interest_fitness,
+        "ফিটনেস" to R.string.interest_fitness, // Bengali
+        "फ़िटनेस" to R.string.interest_fitness, // Hindi
+        "Art" to R.string.interest_art,
+        "শিল্প" to R.string.interest_art, // Bengali
+        "कला" to R.string.interest_art, // Hindi
+        "Gaming" to R.string.interest_gaming,
+        "গেমিং" to R.string.interest_gaming, // Bengali
+        "गेमिंग" to R.string.interest_gaming, // Hindi
+        "Photography" to R.string.interest_photography,
+        "ফটোগ্রাফি" to R.string.interest_photography, // Bengali
+        "फ़ोटोग्राफी" to R.string.interest_photography, // Hindi
+        "Cooking" to R.string.interest_cooking,
+        "রান্না" to R.string.interest_cooking, // Bengali
+        "खाना बनाना" to R.string.interest_cooking, // Hindi
+        "Dancing" to R.string.interest_dancing,
+        "নাচ" to R.string.interest_dancing, // Bengali
+        "नृत्य" to R.string.interest_dancing, // Hindi
+        "Gardening" to R.string.interest_gardening,
+        "বাগান করা" to R.string.interest_gardening, // Bengali
+        "बागवानी" to R.string.interest_gardening, // Hindi
+        "Technology" to R.string.interest_technology,
+        "প্রযুক্তি" to R.string.interest_technology, // Bengali
+        "प्रौद्योगिकी" to R.string.interest_technology, // Hindi
+        "Fashion" to R.string.interest_fashion,
+        "ফ্যাশন" to R.string.interest_fashion, // Bengali
+        "फ़ैशन" to R.string.interest_fashion, // Hindi
+        "Volunteering" to R.string.interest_volunteering,
+        "স্বেচ্ছাসেবা" to R.string.interest_volunteering, // Bengali
+        "स्वयंसेवा" to R.string.interest_volunteering, // Hindi
+        "Pets & Animals" to R.string.interest_pets,
+        "পোষ্য" to R.string.interest_pets, // Bengali
+        "पालतू जानवर" to R.string.interest_pets, // Hindi
+        "Food" to R.string.interest_food,
+        "খাবার" to R.string.interest_food, // Bengali
+        "भोजन" to R.string.interest_food, // Hindi
+        "Nature" to R.string.interest_nature,
+        "প্রকৃতি" to R.string.interest_nature, // Bengali
+        "प्रकृति" to R.string.interest_nature, // Hindi
+        "Dance" to R.string.interest_dance,
+        "নাচ" to R.string.interest_dance, // Bengali (same as Dancing)
+        "नृत्य" to R.string.interest_dance, // Hindi (same as Dancing)
+        // West-Bengal Locality Interests
+        "Victoria Memorial" to R.string.interest_victoria_memorial,
+        "ভিক্টোরিয়া মেমোরিয়াল" to R.string.interest_victoria_memorial, // Bengali
+        "विक्टोरिया मेमोरियल" to R.string.interest_victoria_memorial, // Hindi
+        "Princep Ghat" to R.string.interest_princep_ghat,
+        "প্রিন্সেপ ঘাট" to R.string.interest_princep_ghat, // Bengali
+        "प्रिंसप घाट" to R.string.interest_princep_ghat, // Hindi
+        "Nicco Park" to R.string.interest_nicco_park,
+        "নিক্কো পার্ক" to R.string.interest_nicco_park, // Bengali
+        "निक्को पार्क" to R.string.interest_nicco_park, // Hindi
+        "Science City" to R.string.interest_science_city,
+        "সায়েন্স সিটি" to R.string.interest_science_city, // Bengali
+        "साइंस सिटी" to R.string.interest_science_city, // Hindi
+        "Dakshineswar Temple" to R.string.interest_dakshineswar_temple,
+        "দক্ষিণেশ্বর মন্দির" to R.string.interest_dakshineswar_temple, // Bengali
+        "दक्षिणेश्वर मंदिर" to R.string.interest_dakshineswar_temple, // Hindi
+        "Howrah Bridge" to R.string.interest_howrah_bridge,
+        "হাওড়া ব্রিজ" to R.string.interest_howrah_bridge, // Bengali
+        "हावड़ा ब्रिज" to R.string.interest_howrah_bridge, // Hindi
+        "IIT Kharagpur Campus" to R.string.interest_iit_kharagpur_campus,
+        "আইআইটি খড়গপুর ক্যাম্পাস" to R.string.interest_iit_kharagpur_campus, // Bengali
+        "आईआईटी खड़गपुर कैंपस" to R.string.interest_iit_kharagpur_campus, // Hindi
+        "Digha Beach" to R.string.interest_digha_beach,
+        "দীঘা বিচ" to R.string.interest_digha_beach, // Bengali
+        "दीघा बीच" to R.string.interest_digha_beach, // Hindi
+        "Tiger Hill" to R.string.interest_tiger_hill,
+        "টাইগার হিল" to R.string.interest_tiger_hill, // Bengali
+        "टाइगर हिल" to R.string.interest_tiger_hill, // Hindi
+        "Mall Road (Darjeeling)" to R.string.interest_mall_road,
+        "মল রোড (দার্জিলিং)" to R.string.interest_mall_road, // Bengali
+        "मॉल रोड (दार्जिलिंग)" to R.string.interest_mall_road, // Hindi
+        "Hazarduari Palace" to R.string.interest_hazarduari_palace,
+        "হাজারদুয়ারি প্যালেস" to R.string.interest_hazarduari_palace, // Bengali
+        "हज़ारद्वारी पैलेस" to R.string.interest_hazarduari_palace, // Hindi
+        "Shantiniketan" to R.string.interest_shantiniketan,
+        "শান্তিনিকেতন" to R.string.interest_shantiniketan, // Bengali
+        "शांतिनिकेतन" to R.string.interest_shantiniketan, // Hindi
+        // Kolkata Cluster
+        "CC Block Market" to R.string.interest_cc_block_market,
+        "সিসি ব্লক মার্কেট" to R.string.interest_cc_block_market, // Bengali
+        "सीसी ब्लॉक मार्केट" to R.string.interest_cc_block_market, // Hindi
+        "Sector V IT Hub" to R.string.interest_sector_v_it_hub,
+        "সেক্টর ৫ আইটি হাব" to R.string.interest_sector_v_it_hub, // Bengali
+        "सेक्टर V आईटी हब" to R.string.interest_sector_v_it_hub, // Hindi
+        "Eco Park" to R.string.interest_eco_park,
+        "ইকো পার্ক" to R.string.interest_eco_park, // Bengali
+        "इको पार्क" to R.string.interest_eco_park, // Hindi
+        "City Centre 2" to R.string.interest_city_centre_2,
+        "সিটি সেন্টার ২" to R.string.interest_city_centre_2, // Bengali
+        "सिटी सेंटर 2" to R.string.interest_city_centre_2, // Hindi
+        "Airport Area" to R.string.interest_airport_area,
+        "বিমানবন্দর এলাকা" to R.string.interest_airport_area, // Bengali
+        "एयरपोर्ट क्षेत्र" to R.string.interest_airport_area, // Hindi
+        "Local Market" to R.string.interest_local_market,
+        "স্থানীয় বাজার" to R.string.interest_local_market, // Bengali
+        "स्थानीय बाज़ार" to R.string.interest_local_market, // Hindi
+        "Old Market" to R.string.interest_old_market,
+        "পুরনো বাজার" to R.string.interest_old_market, // Bengali
+        "पुराना बाज़ार" to R.string.interest_old_market, // Hindi
+        "Local Eateries" to R.string.interest_local_eateries,
+        "স্থানীয় খাবার দোকান" to R.string.interest_local_eateries, // Bengali
+        "स्थानीय भोजनालय" to R.string.interest_local_eateries, // Hindi
+        "Night-life" to R.string.interest_nightlife,
+        "নাইটলাইফ" to R.string.interest_nightlife, // Bengali
+        "नाइट-लाइफ़" to R.string.interest_nightlife, // Hindi
+        "Park Street Cafés" to R.string.interest_park_street_cafes,
+        "পার্ক স্ট্রিট ক্যাফে" to R.string.interest_park_street_cafes, // Bengali
+        "पार्क स्ट्रीट कैफ़े" to R.string.interest_park_street_cafes, // Hindi
+        // Hooghly / Chandannagar
+        "Chandannagar Strand" to R.string.interest_chandannagar_strand,
+        "চন্দননগর স্ট্র্যান্ড" to R.string.interest_chandannagar_strand, // Bengali
+        "चंदननगर स्ट्रैंड" to R.string.interest_chandannagar_strand, // Hindi
+        "French Heritage" to R.string.interest_french_heritage,
+        "ফরাসি ঐতিহ্য" to R.string.interest_french_heritage, // Bengali
+        "फ़्रांसीसी विरासत" to R.string.interest_french_heritage, // Hindi
+        "Riverside Ghats" to R.string.interest_riverside_ghats,
+        "নদীপাড়ের ঘাট" to R.string.interest_riverside_ghats, // Bengali
+        "नदी किनारे घाट" to R.string.interest_riverside_ghats, // Hindi
+        "Heritage Walks" to R.string.interest_heritage_walks,
+        "ঐতিহ্য ভ্রমণ" to R.string.interest_heritage_walks, // Bengali
+        "हेरिटेज वॉक" to R.string.interest_heritage_walks, // Hindi
+        // Howrah
+        "Belur Math" to R.string.interest_belur_math,
+        "বেলুড় মঠ" to R.string.interest_belur_math, // Bengali
+        "बेलूर मठ" to R.string.interest_belur_math, // Hindi
+        "Avani Mall" to R.string.interest_avani_mall,
+        "আভানি মল" to R.string.interest_avani_mall, // Bengali
+        "अवानी मॉल" to R.string.interest_avani_mall, // Hindi
+        // Durgapur / Asansol Belt
+        "City Centre Plaza" to R.string.interest_city_centre_plaza,
+        "সিটি সেন্টার প্লাজা" to R.string.interest_city_centre_plaza, // Bengali
+        "सिटी सेंटर प्लाज़ा" to R.string.interest_city_centre_plaza, // Hindi
+        "Steel-Plant Tour" to R.string.interest_steel_plant_tour,
+        "স্টিল প্ল্যান্ট ভ্রমণ" to R.string.interest_steel_plant_tour, // Bengali
+        "स्टील-प्लांट टूर" to R.string.interest_steel_plant_tour, // Hindi
+        "Burnpur Riverside" to R.string.interest_burnpur_riverside,
+        "বার্নপুর নদীপাড়" to R.string.interest_burnpur_riverside, // Bengali
+        "बर्नपुर रिवरसाइड" to R.string.interest_burnpur_riverside, // Hindi
+        "Chittaranjan Park" to R.string.interest_chittaranjan_park,
+        "চিত্তরঞ্জন পার্ক" to R.string.interest_chittaranjan_park, // Bengali
+        "चित्तरंजन पार्क" to R.string.interest_chittaranjan_park, // Hindi
+        // North-Bengal Cluster
+        "Hongkong Market" to R.string.interest_hongkong_market,
+        "হংকং মার্কেট" to R.string.interest_hongkong_market, // Bengali
+        "हॉन्गकॉन्ग मार्केट" to R.string.interest_hongkong_market, // Hindi
+        "Mahananda Wildlife Sanctuary" to R.string.interest_mahananda_wls,
+        "মহানন্দা বন্যপ্রাণী অভয়ারণ্য" to R.string.interest_mahananda_wls, // Bengali
+        "महानंदा वन्यजीव अभयारण्य" to R.string.interest_mahananda_wls, // Hindi
+        "Toy-Train" to R.string.interest_toy_train,
+        "টয় ট্রেন" to R.string.interest_toy_train, // Bengali
+        "टॉय ट्रेन" to R.string.interest_toy_train, // Hindi
+        "Tea-Estate Walks" to R.string.interest_tea_estate_walks,
+        "চা বাগান ভ্রমণ" to R.string.interest_tea_estate_walks, // Bengali
+        "चाय बागान भ्रमण" to R.string.interest_tea_estate_walks, // Hindi
+        "Gorumara Safari" to R.string.interest_gorumara_safari,
+        "গরুমারা সাফারি" to R.string.interest_gorumara_safari, // Bengali
+        "गोरूमारा सफ़ारी" to R.string.interest_gorumara_safari, // Hindi
+        "Rafting on Teesta" to R.string.interest_rafting_teesta,
+        "তিস্তা র্যাফটিং" to R.string.interest_rafting_teesta, // Bengali
+        "तीस्ता राफ्टिंग" to R.string.interest_rafting_teesta, // Hindi
+        "Rajbari Palace" to R.string.interest_rajbari_palace,
+        "রাজবাড়ি প্রাসাদ" to R.string.interest_rajbari_palace, // Bengali
+        "राजबाड़ी महल" to R.string.interest_rajbari_palace, // Hindi
+        "Sagar-Dighi" to R.string.interest_sagar_dighi,
+        "সাগর-দিঘি" to R.string.interest_sagar_dighi, // Bengali
+        "सागर-दिघी" to R.string.interest_sagar_dighi, // Hindi
+        "Buxa Fort Trek" to R.string.interest_buxa_fort_trek,
+        "বক্সা দুর্গ ট্রেক" to R.string.interest_buxa_fort_trek, // Bengali
+        "बक्सा क़िला ट्रेक" to R.string.interest_buxa_fort_trek, // Hindi
+        "Jayanti River Picnic" to R.string.interest_jayanti_picnic,
+        "জয়ন্তী নদী পিকনিক" to R.string.interest_jayanti_picnic, // Bengali
+        "जयंती नदी पिकनिक" to R.string.interest_jayanti_picnic, // Hindi
+        // South-West Cluster
+        "IIT Campus Walk" to R.string.interest_iit_campus_walk,
+        "আইআইটি ক্যাম্পাস হাঁটা" to R.string.interest_iit_campus_walk, // Bengali
+        "आईआईटी कैंपस वॉक" to R.string.interest_iit_campus_walk, // Hindi
+        "Gol Bazaar Food" to R.string.interest_gol_bazaar_food,
+        "গোল বাজার খাবার" to R.string.interest_gol_bazaar_food, // Bengali
+        "गोल बाज़ार भोजन" to R.string.interest_gol_bazaar_food, // Hindi
+        "Vidyasagar Uni Lake" to R.string.interest_vidyasagar_lake,
+        "বিদ্যাসাগর বিশ্ববিদ্যালয় লেক" to R.string.interest_vidyasagar_lake, // Bengali
+        "विद्यासागर विश्वविद्यालय झील" to R.string.interest_vidyasagar_lake, // Hindi
+        "Khudiram Park" to R.string.interest_khudiram_park,
+        "ক্ষুদিরাম পার্ক" to R.string.interest_khudiram_park, // Bengali
+        "खुदीराम पार्क" to R.string.interest_khudiram_park, // Hindi
+        "River Cruise" to R.string.interest_river_cruise,
+        "নৌ ভ্রমণ" to R.string.interest_river_cruise, // Bengali
+        "रिवर क्रूज़" to R.string.interest_river_cruise, // Hindi
+        "Marine Drive" to R.string.interest_marine_drive,
+        "মেরিন ড্রাইভ" to R.string.interest_marine_drive, // Bengali
+        "मरीन ड्राइव" to R.string.interest_marine_drive, // Hindi
+        // Central WB
+        "Curzon Gate Photo-Op" to R.string.interest_curzon_gate_photo,
+        "কার্জন গেট ছবি" to R.string.interest_curzon_gate_photo, // Bengali
+        "करज़न गेट फ़ोटो-ऑप" to R.string.interest_curzon_gate_photo, // Hindi
+        "Sitabhog & Mihidana Tasting" to R.string.interest_sitabhog_mihidana,
+        "সিতাভোগ ও মিহিদানা টেস্টিং" to R.string.interest_sitabhog_mihidana, // Bengali
+        "सिताभोग और मिहिदाना चखना" to R.string.interest_sitabhog_mihidana, // Hindi
+        "Terracotta Art" to R.string.interest_terracotta_art,
+        "টেরাকোটা শিল্প" to R.string.interest_terracotta_art, // Bengali
+        "टेराकोटा कला" to R.string.interest_terracotta_art, // Hindi
+        "Susunia Trek" to R.string.interest_susunia_trek,
+        "সুসুনিয়া ট্রেক" to R.string.interest_susunia_trek, // Bengali
+        "सुसुनिया ट्रेक" to R.string.interest_susunia_trek, // Hindi
+        "Ayodhya Hills" to R.string.interest_ayodhya_hills,
+        "অযোধ্যা পাহাড়" to R.string.interest_ayodhya_hills, // Bengali
+        "अयोध्या हिल्स" to R.string.interest_ayodhya_hills, // Hindi
+        "Chhau Dance" to R.string.interest_chhau_dance,
+        "ছাউ নৃত্য" to R.string.interest_chhau_dance, // Bengali
+        "छऊ नृत्य" to R.string.interest_chhau_dance, // Hindi
+        // Nadia Zone
+        "Clay-Doll Lane" to R.string.interest_clay_doll_lane,
+        "মাটির পুতুল গলি" to R.string.interest_clay_doll_lane, // Bengali
+        "मिट्टी की गुड़िया गली" to R.string.interest_clay_doll_lane, // Hindi
+        "Ghurni Artists" to R.string.interest_ghurni_artists,
+        "ঘূর্ণি শিল্পী" to R.string.interest_ghurni_artists, // Bengali
+        "घूर्णी कलाकार" to R.string.interest_ghurni_artists, // Hindi
+        "University Campus Walk" to R.string.interest_university_campus_walk,
+        "বিশ্ববিদ্যালয় ক্যাম্পাস হাঁটা" to R.string.interest_university_campus_walk, // Bengali
+        "विश्वविद्यालय कैंपस वॉक" to R.string.interest_university_campus_walk, // Hindi
+        "Kalyani Lake" to R.string.interest_kalyani_lake,
+        "কল্যাণী লেক" to R.string.interest_kalyani_lake, // Bengali
+        "कल्याणी झील" to R.string.interest_kalyani_lake, // Hindi
+        "Boutique Sarees" to R.string.interest_boutique_sarees,
+        "বুটিক শাড়ি" to R.string.interest_boutique_sarees, // Bengali
+        "बुटीक साड़ियाँ" to R.string.interest_boutique_sarees, // Hindi
+        "Churni Riverbank" to R.string.interest_churni_riverbank,
+        "চূর্ণি নদীপাড়" to R.string.interest_churni_riverbank, // Bengali
+        "चूर्णी नदी तट" to R.string.interest_churni_riverbank, // Hindi
+        // North-Centre / Murshidabad
+        "Mango Festival" to R.string.interest_mango_festival,
+        "আম উৎসব" to R.string.interest_mango_festival, // Bengali
+        "आम महोत्सव" to R.string.interest_mango_festival, // Hindi
+        "Gour Ruins" to R.string.interest_gour_ruins,
+        "গৌড় ধ্বংসাবশেষ" to R.string.interest_gour_ruins, // Bengali
+        "गौर के खंडहर" to R.string.interest_gour_ruins, // Hindi
+        "Hazarduari Museum" to R.string.interest_hazar_duari_museum,
+        "হাজারদুয়ারি জাদুঘর" to R.string.interest_hazar_duari_museum, // Bengali
+        "हज़ारद्वारी संग्रहालय" to R.string.interest_hazar_duari_museum, // Hindi
+        "Khusbagh Gardens" to R.string.interest_khusbagh_gardens,
+        "খুশবাগ উদ্যান" to R.string.interest_khusbagh_gardens, // Bengali
+        "खुशबाग गार्डन" to R.string.interest_khusbagh_gardens, // Hindi
+        "Berhampore Silk Shopping" to R.string.interest_berhampore_silk,
+        "বহরমপুর সিল্ক শপিং" to R.string.interest_berhampore_silk, // Bengali
+        "बहरमपुर रेशम ख़रीदारी" to R.string.interest_berhampore_silk, // Hindi
+        "Cossimbazar Rajbari" to R.string.interest_cossimbazar_rajbari,
+        "কসিমবাজার রাজবাড়ি" to R.string.interest_cossimbazar_rajbari, // Bengali
+        "कूसीमबाज़ार राजबाड़ी" to R.string.interest_cossimbazar_rajbari // Hindi
+    )
+
+    // 2) Group by resId, pick one rawName per interest
+    val availableInterests = remember {
+        interestNameToResource
+            .entries
+            .groupBy({ it.value }, { it.key })    // Map<resId, List<rawNames>>
+            .map { (_, rawNames) -> rawNames.first() }
+    }
+
+    // Track which are selected
     val localInterests = remember {
         mutableStateListOf<Interest>().apply { addAll(tempProfile.interests) }
     }
-    var newInterest by remember { mutableStateOf("") }
+    val maxSelections = 9
 
-    Column {
-        // Existing interests
-        FlowRow {
-            localInterests.forEach { interest ->
-                Box(
-                    modifier = Modifier
-                        .padding(4.dp)
-                        .background(Color(0xFFFF6F00), shape = CircleShape)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable { localInterests.remove(interest) },
-                ) {
-                    Text(text = "${interest.emoji} ${interest.name}", color = Color.White)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Add new interest
-        OutlinedTextField(
-            value = newInterest,
-            onValueChange = { newInterest = it },
-            label = { Text(stringResource(R.string.add_interest), color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                cursorColor = Color(0xFFFF6F00),
-                focusedTextColor = Color.White
-            )
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.section_interests),
+            color = Color(0xFFFF6F00),
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
 
-        Button(
-            onClick = {
-                val splitted = newInterest.trim().split(" ", limit = 2)
-                val emojiPart = if (splitted.size > 1) splitted[0] else ""
-                val namePart = if (splitted.size > 1) splitted[1] else splitted[0]
-
-                if (namePart.isNotBlank()) {
-                    localInterests.add(Interest(name = namePart, emoji = emojiPart))
-                }
-                newInterest = ""
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(stringResource(R.string.add_interest), color = Color.White)
+            availableInterests.forEach { rawName ->
+                val resId = interestNameToResource.getValue(rawName)
+                val label = stringResource(resId)
+                val isSelected = localInterests.any { it.name == rawName }
+                val canToggleOn = localInterests.size < maxSelections
+
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        if (isSelected) {
+                            localInterests.removeAll { it.name == rawName }
+                        } else if (canToggleOn) {
+                            localInterests.add(Interest(name = rawName, emoji = ""))
+                        }
+                    },
+                    enabled = isSelected || canToggleOn,
+                    label = { Text(label) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White,
+                        disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
+                        disabledLabelColor     = Color.LightGray
+                    )
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Row {
-            Button(
-                onClick = {
-                    onSave(tempProfile.copy(interests = localInterests.toList()))
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-            ) {
-                Text(stringResource(R.string.save), color = Color.White)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-                onClick = onCancel,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-            ) {
-                Text(stringResource(R.string.cancel), color = Color.White)
-            }
-        }
+        Spacer(Modifier.height(16.dp))
+
+        ButtonRow(
+            onSave   = { onSave(tempProfile.copy(interests = localInterests.toList())) },
+            onCancel = onCancel
+        )
     }
 }
+
 
 /** Reusable UI elements */
 @Composable
@@ -3504,32 +3522,32 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
 fun MatrimonyInfoSection(profile: Profile) {
     // Show these fields only if they have values
     ProfileDetailRow(
-        label = stringResource(R.string.marriage_timeline_label),
+        label = stringResource(R.string.marriage_timeline_label) + " ",
         value = profile.marriageTimeline,
         icon = Icons.Default.Schedule
     )
     ProfileDetailRow(
-        label = stringResource(R.string.matrimony_relocation_preference),
+        label = stringResource(R.string.matrimony_relocation_preference) + " ",
         value = profile.relocationPreference,
         icon = Icons.Default.Map
     )
     ProfileDetailRow(
-        label = stringResource(R.string.post_marriage_career_plan_label),
+        label = stringResource(R.string.post_marriage_career_plan_label) + " ",
         value = profile.postMarriageCareerPlan,
         icon = Icons.Default.Work
     )
     ProfileDetailRow(
-        label = stringResource(R.string.matrimony_traditional_vs_liberal),
+        label = stringResource(R.string.matrimony_traditional_vs_liberal) + " ",
         value = profile.traditionalVsLiberal,
         icon = Icons.Default.HowToVote // or some suitable icon
     )
     ProfileDetailRow(
-        label = stringResource(R.string.matrimony_father_occupation),
+        label = stringResource(R.string.matrimony_father_occupation) + " ",
         value = profile.fatherOccupation,
         icon = Icons.Default.Person
     )
     ProfileDetailRow(
-        label = stringResource(R.string.matrimony_mother_occupation),
+        label = stringResource(R.string.matrimony_mother_occupation) + " ",
         value = profile.motherOccupation,
         icon = Icons.Default.Person
     )

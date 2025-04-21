@@ -3315,7 +3315,7 @@ fun EnterInterestsScreen(
     // Combine global and locality-based interests and remove duplicates (by name)
     val allInterests = (globalInterests + localityInterests).distinctBy { it.name }
 
-    val maxInterests = 15
+    val maxInterests = 9
     val interestsOverLimit = registrationViewModel.interests.size > maxInterests
 
     Scaffold(
@@ -3405,9 +3405,6 @@ fun EnterInterestsScreen(
         }
     )
 }
-
-data class InterestSubcategory(val name: String, val emoji: String)
-data class InterestCategory(val category: String, val emoji: String, val subcategories: List<InterestSubcategory>)
 
 @Composable
 fun UploadMediaComposable(
