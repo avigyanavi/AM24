@@ -1,5 +1,104 @@
 <resources>
     <string name="app_name">কিউপিডেক্স</string>
+    <!-- res/values‑bn/strings.xml (Bengali) -->
+    <string name="max_social_causes_error">
+    আপনি শুধুমাত্র %1$dটি সামাজিক কারণ নির্বাচন করতে পারেন।
+</string>
+
+    <!-- res/values‑bn/arrays.xml (Bengali) -->
+    <string-array name="social_causes_list">
+        <!-- Environment & Public Health -->
+        <item>বায়ু গুণমান ও AQI উন্নয়ন</item>
+        <item>প্লাস্টিক ও একবার ব্যবহারের বর্জ্য হ্রাস</item>
+        <item>নদীর দূষণ নিয়ন্ত্রণ ও হুগলি পরিস্কার</item>
+        <item>সুন্দরবন ম্যাঙ্গ্রোভ ও ডেল্টা সংরক্ষণ</item>
+        <item>বন্যা ত্রাণ ও জলবায়ু সহনশীলতা</item>
+        <item>ভূগর্ভস্থ জল স্তর হ্রাস</item>
+        <item>শহুরে সবুজ ক্ষেত্র হ্রাস</item>
+        <item>শিল্প দূষণ</item>
+
+        <!-- Agrarian & Rural Welfare -->
+        <item>কৃষকের অধিকার ও MSP নিশ্চয়তা</item>
+        <item>চা বাগান শ্রমিকদের কল্যাণ (উত্তরবঙ্গ)</item>
+        <item>গ্রামীণ উন্নয়ন ও স্বনির্ভর সমিতি</item>
+        <item>সেচ অবকাঠামো</item>
+        <item>জমি অধিগ্রহণ বিরোধ</item>
+        <item>গ্রামীণ বিদ্যুতায়নের ফাঁকফোকর</item>
+        <item>কৃষি বিপণন ব্যর্থতা</item>
+
+        <!-- Migration & Refugees -->
+        <item>বাংলাদেশি অভিবাসী ও শরণার্থীর অধিকার</item>
+        <item>রোহিঙ্গা শরণার্থীর একীভূতকরণ</item>
+        <item>অভ্যন্তরীণ স্থানান্তর</item>
+        <item>সীমান্ত পেরিয়ে চোরাচালান</item>
+
+        <!-- Social Justice & Governance -->
+        <item>CAA/NRC-প্রভাবিতদের ন্যায়বিচার</item>
+        <item>সাম্প্রদায়িক সম্প্রীতি ও ধর্মনিরপেক্ষতা</item>
+        <item>সংখ্যালঘু অধিকার ও অন্তর্ভুক্তি</item>
+        <item>শ্রমিক অধিকার ও ন্যায্য মজুরি</item>
+        <item>বর্ণভিত্তিক বৈষম্য</item>
+        <item>দুর্নীতি কেলেঙ্কারি</item>
+        <item>রাজনৈতিক সহিংসতা</item>
+        <item>প্রশাসনিক অদক্ষতা</item>
+        <item>ভোট ব্যাংক রাজনীতি</item>
+
+        <!-- Health, Safety & Welfare -->
+        <item>স্বাস্থ্যসেবা অ্যাক্সেস ও COVID-19 ত্রাণ</item>
+        <item>মানসিক স্বাস্থ্য সচেতনতা ও সহায়তা</item>
+        <item>শিশু পুষ্টি ও আঙ্গনওয়াড়ি শক্তিশালীকরণ</item>
+        <item>নারীর নিরাপত্তা ও লিঙ্গ সমতা</item>
+        <item>প্রবীণদের কল্যাণ</item>
+        <item>মাদক অপব্যবহার</item>
+        <item>স্বাস্থ্যকর পরিচ্ছন্নতা অ্যাক্সেস</item>
+
+        <!-- Education & Digital Access -->
+        <item>সার্বজনীন প্রাথমিক শিক্ষা</item>
+        <item>ডিজিটাল সাক্ষরতা ও ইন্টারনেট অ্যাক্সেস</item>
+        <item>উচ্চশিক্ষার মান</item>
+        <item>শিক্ষক নিয়োগ কেলেঙ্কারি</item>
+        <item>বৃত্তিমূলক প্রশিক্ষণের ফাঁকফোকর</item>
+
+        <!-- Civil Liberties -->
+        <item>বাক স্বাধীনতা ও সংবাদমাধ্যম স্বাধীনতা</item>
+        <item>ডিজিটাল গোপনীয়তা ও তথ্য সুরক্ষা</item>
+        <item>LGBTQ+ অধিকার ও অন্তর্ভুক্তি</item>
+        <item>প্রতিবাদ করার অধিকার</item>
+        <item>বিচারিক বিলম্ব</item>
+
+        <!-- Urban & Heritage -->
+        <item>শহুরে বস্তি পুনর্বাসন (কলকাতা)</item>
+        <item>জনপরিবহন ও ট্রাফিক নিরাপত্তা</item>
+        <item>ঐতিহাসিক ভবন সংরক্ষণ (কলকাতা)</item>
+        <item>শহুরে বন্যা</item>
+        <item>পথচারী ব্যবসায়ীর অবৈধ দখল</item>
+
+        <!-- Economic & Employment Issues -->
+        <item>যুব বেকারত্ব</item>
+        <item>শিল্প স্থবিরতা</item>
+        <item>অনানুষ্ঠানিক অর্থনীতির ওপর নির্ভরতা</item>
+        <item>মুদ্রাস্ফীতি প্রভাব</item>
+        <item>ক্ষুদ্র ও মাঝারি উদ্যোগের চ্যালেঞ্জ</item>
+
+        <!-- Political Dynamics -->
+        <item>TMC-র আধিপত্য</item>
+        <item>BJP-র উত্থান</item>
+        <item>বামের পতন</item>
+        <item>বিরোধী বিভাজন</item>
+        <item>কেন্দ্র-রাজ্য উত্তেজনা</item>
+        <item>বংশপরিচালিত রাজনীতি</item>
+        <item>ভোটার বিভাজন</item>
+
+        <!-- Emerging & Miscellaneous Issues -->
+        <item>জলবায়ু স্থানান্তর</item>
+        <item>সীমান্ত উত্তেজনা</item>
+        <item>সাংস্কৃতিক পরিচয়</item>
+        <item>শিক্ষার্থী আন্দোলন</item>
+        <item>সাইবার অপরাধের বৃদ্ধি</item>
+        <item>পর্যটন অবহেলা</item>
+        <item>মানব-প্রাণী সংঘর্ষ</item>
+        <item>ক্রীড়া অবকাঠামো</item>
+    </string-array>
 
     <string name="section_bio_and_voice">বায়ো ও ভয়েস</string>
     <!-- interests -->

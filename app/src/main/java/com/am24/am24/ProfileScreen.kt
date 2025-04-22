@@ -8,8 +8,8 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -53,7 +53,6 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
-import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
@@ -326,7 +325,6 @@ fun CollapsibleSection(
         Card(
             colors  = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
             shape   = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp)
@@ -2110,8 +2108,7 @@ fun CombinedBioVoiceEditSection(
 }
 
 
-/** Preferences Edit */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PreferencesEditSection(
     tempProfile: Profile,
@@ -2122,16 +2119,14 @@ fun PreferencesEditSection(
 
     // Looking For
     val lookingForOptions = listOf(
-        stringResource(R.string.looking_for_not_selected),
         stringResource(R.string.looking_for_casual_sex),
         stringResource(R.string.looking_for_connection),
         stringResource(R.string.looking_for_partner),
         stringResource(R.string.looking_for_marriage)
     )
     var selectedLookingFor by remember { mutableStateOf(tempProfile.lookingFor.ifBlank { notSelected }) }
-    var lookingForExpanded by remember { mutableStateOf(false) }
 
-    // Love Language (no custom/Other)
+    // Love Language
     val loveLanguageOptions = listOf(
         stringResource(R.string.love_language_option_words_of_affirmation),
         stringResource(R.string.love_language_option_acts_of_service),
@@ -2140,16 +2135,14 @@ fun PreferencesEditSection(
         stringResource(R.string.love_language_option_physical_touch)
     )
     var selectedLoveLanguage by remember { mutableStateOf(tempProfile.loveLanguage.ifBlank { notSelected }) }
-    var loveLanguageExpanded by remember { mutableStateOf(false) }
 
-    // Politics (no custom/Other)
+    // Politics
     val politicsOptions = listOf(
         stringResource(R.string.politics_option_liberal),
         stringResource(R.string.politics_option_moderate),
         stringResource(R.string.politics_option_conservative)
     )
     var selectedPolitics by remember { mutableStateOf(tempProfile.politics.ifBlank { notSelected }) }
-    var politicsExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -2159,93 +2152,60 @@ fun PreferencesEditSection(
     ) {
         // --- Looking For ---
         Text(stringResource(R.string.looking_for_label), fontWeight = FontWeight.Bold)
-        Button(
-            onClick = { lookingForExpanded = true },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(
-                text = if (selectedLookingFor == notSelected)
-                    stringResource(R.string.select_looking_for)
-                else
-                    selectedLookingFor,
-                color = Color.White
-            )
-        }
-        DropdownMenu(
-            expanded = lookingForExpanded,
-            onDismissRequest = { lookingForExpanded = false }
-        ) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             lookingForOptions.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        selectedLookingFor = option
-                        lookingForExpanded = false
-                    }
+                FilterChip(
+                    selected = selectedLookingFor == option,
+                    onClick = { selectedLookingFor = option },
+                    label = { Text(option) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
                 )
             }
         }
 
         // --- Love Language ---
         Text(stringResource(R.string.love_language_label), fontWeight = FontWeight.Bold)
-        Button(onClick = { loveLanguageExpanded = true }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(
-                text = if (selectedLoveLanguage == notSelected)
-                    stringResource(R.string.select_love_language)
-                else
-                    selectedLoveLanguage,
-                color = Color.White
-            )
-        }
-        DropdownMenu(
-            expanded = loveLanguageExpanded,
-            onDismissRequest = { loveLanguageExpanded = false }
-        ) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             loveLanguageOptions.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        selectedLoveLanguage = option
-                        loveLanguageExpanded = false
-                    }
+                FilterChip(
+                    selected = selectedLoveLanguage == option,
+                    onClick = { selectedLoveLanguage = option },
+                    label = { Text(option) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
                 )
             }
         }
 
         // --- Politics ---
         Text(stringResource(R.string.label_politics), fontWeight = FontWeight.Bold)
-        Button(onClick = { politicsExpanded = true }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(
-                text = if (selectedPolitics == notSelected)
-                    stringResource(R.string.select_politics)
-                else
-                    selectedPolitics,
-                color = Color.White
-            )
-        }
-        DropdownMenu(
-            expanded = politicsExpanded,
-            onDismissRequest = { politicsExpanded = false }
-        ) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             politicsOptions.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        selectedPolitics = option
-                        politicsExpanded = false
-                    }
+                FilterChip(
+                    selected = selectedPolitics == option,
+                    onClick = { selectedPolitics = option },
+                    label = { Text(option) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
                 )
             }
         }
 
+        Spacer(Modifier.height(8.dp))
+
         ButtonRow(
             onSave = {
                 val updated = tempProfile.copy(
-                    lookingFor = selectedLookingFor.takeIf { it != notSelected } ?: "",
+                    lookingFor   = selectedLookingFor.takeIf { it != notSelected } ?: "",
                     loveLanguage = selectedLoveLanguage.takeIf { it != notSelected } ?: "",
-                    politics = selectedPolitics.takeIf { it != notSelected } ?: ""
+                    politics     = selectedPolitics.takeIf { it != notSelected } ?: ""
                 )
                 onSave(updated)
             },
@@ -2290,61 +2250,69 @@ fun SocialCausesEditSection(
     onSave: (Profile) -> Unit,
     onCancel: () -> Unit
 ) {
-    val socialCauses = remember { mutableStateListOf<String>().apply { addAll(tempProfile.socialCauses) } }
-    var newCause by remember { mutableStateOf("") }
+    // Load your predefined list from resources:
+    val allCauses = stringArrayResource(R.array.social_causes_list).toList()
 
-    Column {
-        Text(stringResource(R.string.social_causes), color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = newCause,
-            onValueChange = { newCause = it },
-            label = { Text(stringResource(R.string.add_cause), color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                cursorColor = Color(0xFFFF6F00),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedLabelColor = Color(0xFFFF6F00),
-                unfocusedLabelColor = Color.White
-            ),
-            trailingIcon = {
-                if (newCause.isNotEmpty()) {
-                    IconButton(onClick = {
-                        socialCauses.add(newCause)
-                        newCause = ""
-                    }) {
-                        Icon(Icons.Default.Add, stringResource(R.string.add), tint = Color.White)
-                    }
-                }
-            }
+    // Track which causes are selected:
+    val selectedCauses = remember {
+        mutableStateListOf<String>().apply { addAll(tempProfile.socialCauses) }
+    }
+
+    val maxSelections = 5
+
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.social_causes),
+            color = Color(0xFFFF6F00),
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            socialCauses.forEach { cause ->
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color(0xFFFF6F00)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = cause, color = Color.White, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        IconButton(onClick = { socialCauses.remove(cause) }, modifier = Modifier.size(16.dp)) {
-                            Icon(Icons.Default.Close, stringResource(R.string.remove), tint = Color.White)
+        Spacer(Modifier.height(8.dp))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            allCauses.forEach { cause ->
+                val isSelected = selectedCauses.contains(cause)
+                val canSelectMore = selectedCauses.size < maxSelections
+
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        if (isSelected) {
+                            selectedCauses.remove(cause)
+                        } else if (canSelectMore) {
+                            selectedCauses.add(cause)
                         }
-                    }
-                }
+                    },
+                    enabled = isSelected || canSelectMore,
+                    label = { Text(cause) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White,
+                        disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
+                        disabledLabelColor     = Color.LightGray
+                    )
+                )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+
+        if (selectedCauses.size > maxSelections) {
+            Text(
+                text = stringResource(R.string.max_social_causes_error, maxSelections),
+                color = Color.Red,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         ButtonRow(
-            onSave = {
-                onSave(tempProfile.copy(socialCauses = socialCauses.toList()))
-            },
+            onSave   = { onSave(tempProfile.copy(socialCauses = selectedCauses.toList())) },
             onCancel = onCancel
         )
     }
@@ -2492,6 +2460,12 @@ fun ProfileCollapsibleSections(
     profileViewModel: ProfileViewModel,
     onProfileUpdated: (Profile) -> Unit
 ) {
+    // keep a local tempProfile and re-sync whenever the parent `profile` updates
+    var tempProfile by remember { mutableStateOf(profile) }
+    LaunchedEffect(profile) {
+        tempProfile = profile
+    }
+
     var showBioVoice by rememberSaveable { mutableStateOf(false) }
     var editBioVoice by rememberSaveable { mutableStateOf(false) }
     var showBasic by rememberSaveable { mutableStateOf(false) }
@@ -2504,7 +2478,6 @@ fun ProfileCollapsibleSections(
     var editSocialCauses by rememberSaveable { mutableStateOf(false) } // New
     var editLifestyle by rememberSaveable { mutableStateOf(false) }
     var editInterests by rememberSaveable { mutableStateOf(false) }
-    var tempProfile by remember { mutableStateOf(profile) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2512,7 +2485,7 @@ fun ProfileCollapsibleSections(
             .padding(16.dp)
     ) {
         if (tempProfile.isMatrimonyMode) {
-            var showMatrimony by rememberSaveable { mutableStateOf(true) }
+            var showMatrimony by rememberSaveable { mutableStateOf(false) }
             var editMatrimony by rememberSaveable { mutableStateOf(false) }
             CollapsibleSection(
                 title = stringResource(R.string.section_matrimony_info),
@@ -2635,32 +2608,6 @@ fun ProfileCollapsibleSections(
         }
         Spacer(modifier = Modifier.height(12.dp))
         CollapsibleSection(
-            title = stringResource(R.string.section_social_causes),
-            icon = Icons.Default.VolunteerActivism, // New section
-            isExpanded = showSocialCauses,
-            onToggle = { showSocialCauses = !showSocialCauses },
-            editMode = editSocialCauses,
-            onEditToggle = { editSocialCauses = !editSocialCauses }
-        ) {
-            if (editSocialCauses) {
-                SocialCausesEditSection(
-                    tempProfile = tempProfile,
-                    onSave = { updated ->
-                        tempProfile = updated
-                        onProfileUpdated(tempProfile)
-                        editSocialCauses = false
-                    },
-                    onCancel = {
-                        tempProfile = profile
-                        editSocialCauses = false
-                    }
-                )
-            } else {
-                SocialCausesSection(tempProfile)
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        CollapsibleSection(
             title = stringResource(R.string.section_lifestyle_attributes),
             icon = Icons.Default.Nature,
             isExpanded = showLifestyle,
@@ -2709,6 +2656,32 @@ fun ProfileCollapsibleSections(
                 )
             } else {
                 InterestsSectionInProfile(tempProfile)
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        CollapsibleSection(
+            title = stringResource(R.string.section_social_causes),
+            icon = Icons.Default.VolunteerActivism, // New section
+            isExpanded = showSocialCauses,
+            onToggle = { showSocialCauses = !showSocialCauses },
+            editMode = editSocialCauses,
+            onEditToggle = { editSocialCauses = !editSocialCauses }
+        ) {
+            if (editSocialCauses) {
+                SocialCausesEditSection(
+                    tempProfile = tempProfile,
+                    onSave = { updated ->
+                        tempProfile = updated
+                        onProfileUpdated(tempProfile)
+                        editSocialCauses = false
+                    },
+                    onCancel = {
+                        tempProfile = profile
+                        editSocialCauses = false
+                    }
+                )
+            } else {
+                SocialCausesSection(tempProfile)
             }
         }
     }

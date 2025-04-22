@@ -288,4 +288,99 @@
     <string-array name="localities_other">
         <item>Other</item>
     </string-array>
+
+    <string-array name="social_causes_list">
+        <!-- Environment & Public Health -->
+        <item>Air Quality and AQI Improvement</item>
+        <item>Plastic and Single-Use Waste Reduction</item>
+        <item>River Pollution Control and Hooghly Cleanup</item>
+        <item>Sundarbans Mangrove and Delta Preservation</item>
+        <item>Flood Relief and Climate Resilience</item>
+        <item>Groundwater Depletion</item>
+        <item>Urban Green Space Loss</item>
+        <item>Industrial Pollution</item>
+
+        <!-- Agrarian & Rural Welfare -->
+        <item>Farmers’ Rights and MSP Guarantee</item>
+        <item>Tea Garden Worker Welfare (North Bengal)</item>
+        <item>Rural Development and Self-Help Groups</item>
+        <item>Irrigation Infrastructure</item>
+        <item>Land Acquisition Disputes</item>
+        <item>Rural Electrification Gaps</item>
+        <item>Agri-Marketing Failures</item>
+
+        <!-- Migration & Refugees -->
+        <item>Bangladeshi Immigrant and Refugee Rights</item>
+        <item>Rohingya Refugee Integration</item>
+        <item>Internal Migration</item>
+        <item>Cross-Border Smuggling</item>
+
+        <!-- Social Justice & Governance -->
+        <item>CAA/NRC Justice for Affected</item>
+        <item>Communal Harmony and Secularism</item>
+        <item>Minority Rights and Inclusion</item>
+        <item>Labor Rights and Fair Wages</item>
+        <item>Caste-Based Discrimination</item>
+        <item>Corruption Scandals</item>
+        <item>Political Violence</item>
+        <item>Bureaucratic Inefficiency</item>
+        <item>Vote-Bank Politics</item>
+
+        <!-- Health, Safety & Welfare -->
+        <item>Healthcare Access and COVID-19 Relief</item>
+        <item>Mental Health Awareness and Support</item>
+        <item>Child Nutrition and Anganwadi Strengthening</item>
+        <item>Women’s Safety and Gender Equality</item>
+        <item>Elderly Welfare</item>
+        <item>Drug Abuse</item>
+        <item>Sanitation Access</item>
+
+        <!-- Education & Digital Access -->
+        <item>Universal Primary Education</item>
+        <item>Digital Literacy and Internet Access</item>
+        <item>Higher Education Quality</item>
+        <item>Teacher Recruitment Scandals</item>
+        <item>Vocational Training Gaps</item>
+
+        <!-- Civil Liberties -->
+        <item>Free Speech and Press Freedom</item>
+        <item>Digital Privacy and Data Protection</item>
+        <item>LGBTQ+ Rights and Inclusion</item>
+        <item>Right to Protest</item>
+        <item>Judicial Delays</item>
+
+        <!-- Urban & Heritage -->
+        <item>Urban Slum Rehabilitation (Kolkata)</item>
+        <item>Public Transport and Traffic Safety</item>
+        <item>Heritage Building Conservation (Kolkata)</item>
+        <item>Urban Flooding</item>
+        <item>Street Vendor Encroachment</item>
+
+        <!-- Economic & Employment Issues -->
+        <item>Youth Unemployment</item>
+        <item>Industrial Stagnation</item>
+        <item>Informal Economy Dependence</item>
+        <item>Inflation Impact</item>
+        <item>MSME Challenges</item>
+
+        <!-- Political Dynamics -->
+        <item>TMC’s Dominance</item>
+        <item>BJP’s Rise</item>
+        <item>Decline of the Left</item>
+        <item>Opposition Fragmentation</item>
+        <item>Federal Tensions</item>
+        <item>Dynastic Politics</item>
+        <item>Voter Polarization</item>
+
+        <!-- Emerging & Miscellaneous Issues -->
+        <item>Climate Migration</item>
+        <item>Cross-Border Tensions</item>
+        <item>Cultural Identity</item>
+        <item>Student Activism</item>
+        <item>Cybercrime Surge</item>
+        <item>Tourism Neglect</item>
+        <item>Human-Wildlife Conflict</item>
+        <item>Sports Infrastructure</item>
+    </string-array>
+
 </resources>
