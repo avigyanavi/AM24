@@ -3775,7 +3775,6 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "loveLanguage" to updatedProfile.loveLanguage, // New
         "politics" to updatedProfile.politics, // New
         "socialCauses" to updatedProfile.socialCauses,
-        "caste" to updatedProfile.caste,
 
         // NEW: For the college degree
         "collegeDegree" to updatedProfile.collegeDegree,
