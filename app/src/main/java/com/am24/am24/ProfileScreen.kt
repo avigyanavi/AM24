@@ -9,7 +9,6 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -19,12 +18,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -38,6 +37,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -730,46 +730,307 @@ fun BasicInfoEditSection(
     onCancel: () -> Unit
 ) {
     // ─── State for all fields ───────────────────────────
-    var name by remember { mutableStateOf(tempProfile.name) }
-    var city by remember { mutableStateOf(tempProfile.city) }
-    var cityDropdownExpanded by remember { mutableStateOf(false) }
-    var locality by remember { mutableStateOf(tempProfile.hometown) }
-    var localityDropdownExpanded by remember { mutableStateOf(false) }
+    var name               by remember { mutableStateOf(tempProfile.name) }
+    var city               by remember { mutableStateOf(tempProfile.city) }
+    var cityExpanded       by remember { mutableStateOf(false) }
+    var locality           by remember { mutableStateOf(tempProfile.hometown) }
+    var localityExpanded   by remember { mutableStateOf(false) }
 
-    var highSchool by remember { mutableStateOf(tempProfile.highSchool) }
-    var highSchoolGradYear by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
+    // ─── High-School dropdown + year ────────────────────
+    val highSchoolOptions     = listOf(
+        stringResource(R.string.high_school_andrews_high_school),
+        stringResource(R.string.high_school_assembly_of_god_church_school),
+        stringResource(R.string.high_school_bdm_international),
+        stringResource(R.string.high_school_ballygunge_government_high_school),
+        stringResource(R.string.high_school_baranagar_ramakrishna_mission),
+        stringResource(R.string.high_school_barasat_mgm_high_school),
+        stringResource(R.string.high_school_barasat_peary_charan),
+        stringResource(R.string.high_school_barrackpore_government_high_school),
+        stringResource(R.string.high_school_bethune_collegiate),
+        stringResource(R.string.high_school_bidhannagar_government_high_school),
+        stringResource(R.string.high_school_birla_high_school),
+        stringResource(R.string.high_school_burdwan_cms_high_school),
+        stringResource(R.string.high_school_calcutta_boys_school),
+        stringResource(R.string.high_school_calcutta_girls_high_school),
+        stringResource(R.string.high_school_darjeeling_government_high_school),
+        stringResource(R.string.high_school_dps_durgapur),
+        stringResource(R.string.high_school_dps_newtown),
+        stringResource(R.string.high_school_dps_ruby_park),
+        stringResource(R.string.high_school_don_bosco_park_circus),
+        stringResource(R.string.high_school_goethals_memorial),
+        stringResource(R.string.high_school_hare_school),
+        stringResource(R.string.high_school_hindu_school),
+        stringResource(R.string.high_school_howrah_zilla_school),
+        stringResource(R.string.high_school_jadavpur_vidyapith),
+        stringResource(R.string.high_school_jenkins_school),
+        stringResource(R.string.high_school_kalyani_university_experimental),
+        stringResource(R.string.high_school_kendriya_vidyalaya_ballygunge),
+        stringResource(R.string.high_school_la_martiniere_boys),
+        stringResource(R.string.high_school_la_martiniere_girls),
+        stringResource(R.string.high_school_loreto_house),
+        stringResource(R.string.high_school_mahadevi_birla_world_academy),
+        stringResource(R.string.high_school_mitra_institution_main),
+        stringResource(R.string.high_school_modern_high_school_girls),
+        stringResource(R.string.high_school_nava_nalanda_high_school),
+        stringResource(R.string.high_school_north_point_darjeeling),
+        stringResource(R.string.high_school_patha_bhavan),
+        stringResource(R.string.high_school_purwanchal_vidya_mandir),
+        stringResource(R.string.high_school_rahara_ramakrishna_mission),
+        stringResource(R.string.high_school_ramakrishna_mission_narendrapur),
+        stringResource(R.string.high_school_rani_birla_girls_school),
+        stringResource(R.string.high_school_sakhawat_memorial_girls),
+        stringResource(R.string.high_school_scottish_church_collegiate),
+        stringResource(R.string.high_school_siliguri_boys_high_school),
+        stringResource(R.string.high_school_south_point_high_school),
+        stringResource(R.string.high_school_st_james_school),
+        stringResource(R.string.high_school_st_josephs_north_point),
+        stringResource(R.string.high_school_st_lawrence_high_school),
+        stringResource(R.string.high_school_st_pauls_mission_school),
+        stringResource(R.string.high_school_st_thomas_kidderpore),
+        stringResource(R.string.high_school_st_xaviers_collegiate),
+        stringResource(R.string.high_school_the_heritage_school),
+        stringResource(R.string.high_school_uttarpara_government_high_school),
+        stringResource(R.string.high_school_asansol_st_anthonys),
+        stringResource(R.string.high_school_bankura_christian_school),
+        stringResource(R.string.high_school_berhampore_girls_high_school),
+        stringResource(R.string.high_school_contai_high_school),
+        stringResource(R.string.high_school_hooghly_collegiate_school),
+        stringResource(R.string.high_school_krishnanagar_collegiate_school),
+        stringResource(R.string.high_school_malda_zilla_school),
+        stringResource(R.string.high_school_midnapore_collegiate_school),
+        stringResource(R.string.high_school_ashok_hall),
+        stringResource(R.string.high_school_mahadevi_birla_shishu_vihar),
+        stringResource(R.string.high_school_jewish_girls),
+        stringResource(R.string.high_school_cathedral_john_connon),
+        stringResource(R.string.high_school_dhirubhai_ambani),
+        stringResource(R.string.high_school_doon_school),
+        stringResource(R.string.high_school_mayo_college),
+        stringResource(R.string.high_school_modern_school_barakhamba),
+        stringResource(R.string.high_school_rishi_valley),
+        stringResource(R.string.high_school_scindia_school),
+        stringResource(R.string.high_school_shri_ram_vasant_vihar),
+        stringResource(R.string.high_school_lawrence_sanawar),
+        stringResource(R.string.high_school_welham_girls),
+        stringResource(R.string.high_school_other)
+    )
+    var highSchool            by remember { mutableStateOf(tempProfile.highSchool) }
+    var highSchoolExpanded    by remember { mutableStateOf(false) }
+    var highSchoolYear        by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
 
-    var college by remember { mutableStateOf(tempProfile.college) }
-    var collegeGradYear by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
-    var collegeDegree by remember { mutableStateOf(tempProfile.collegeDegree.orEmpty()) }
+    // ─── College dropdown + year + degree w/ limit ─────
+    val collegeOptions        = listOf(
+        stringResource(R.string.college_acharya_jagadish_chandra_bose_college),
+        stringResource(R.string.college_asutosh_college),
+        stringResource(R.string.college_bangabasi_college),
+        stringResource(R.string.college_barasat_government_college),
+        stringResource(R.string.college_barrackpore_rastraguru_surendranath_college),
+        stringResource(R.string.college_behala_college),
+        stringResource(R.string.college_bethune_college),
+        stringResource(R.string.college_bidhannagar_college),
+        stringResource(R.string.college_city_college),
+        stringResource(R.string.college_derozio_memorial_college),
+        stringResource(R.string.college_dinabandhu_andrews_college),
+        stringResource(R.string.college_dum_dum_motijheel_college),
+        stringResource(R.string.college_goenka_college),
+        stringResource(R.string.college_heramba_chandra_college),
+        stringResource(R.string.college_hooghly_mohsin_college),
+        stringResource(R.string.college_iit_kharagpur),
+        stringResource(R.string.college_iem_kolkata),
+        stringResource(R.string.college_jadavpur_university),
+        stringResource(R.string.college_jogamaya_devi_college),
+        stringResource(R.string.college_kalyani_mahavidyalaya),
+        stringResource(R.string.college_kazi_nazrul_islam_mahavidyalaya),
+        stringResource(R.string.college_krishnanagar_government_college),
+        stringResource(R.string.college_lady_brabourne_college),
+        stringResource(R.string.college_loreto_college),
+        stringResource(R.string.college_maulana_azad_college),
+        stringResource(R.string.college_nit_durgapur),
+        stringResource(R.string.college_presidency_university),
+        stringResource(R.string.college_ramakrishna_mission_narendrapur),
+        stringResource(R.string.college_ramakrishna_mission_vidyamandira),
+        stringResource(R.string.college_rishi_bankim_chandra_college),
+        stringResource(R.string.college_techno_india),
+        stringResource(R.string.college_scottish_church_college),
+        stringResource(R.string.college_serampore_college),
+        stringResource(R.string.college_seth_anandram_jaipuria_college),
+        stringResource(R.string.college_shri_shikshayatan_college),
+        stringResource(R.string.college_siliguri_college),
+        stringResource(R.string.college_southfield_college),
+        stringResource(R.string.college_st_xaviers_college),
+        stringResource(R.string.college_surendranath_college),
+        stringResource(R.string.college_university_of_calcutta),
+        stringResource(R.string.college_vidyasagar_college),
+        stringResource(R.string.college_west_bengal_state_university),
+        stringResource(R.string.college_basanti_devi_college),
+        stringResource(R.string.college_gokhale_memorial_girls_college),
+        stringResource(R.string.college_gurudas_college),
+        stringResource(R.string.college_narasinha_dutt_college),
+        stringResource(R.string.college_sivanath_sastri_college),
+        stringResource(R.string.college_christ_university),
+        stringResource(R.string.college_fergusson_college),
+        stringResource(R.string.college_hindu_college),
+        stringResource(R.string.college_iisc_bangalore),
+        stringResource(R.string.college_iit_kanpur),
+        stringResource(R.string.college_iit_roorkee),
+        stringResource(R.string.college_lady_shri_ram_college),
+        stringResource(R.string.college_loyola_college),
+        stringResource(R.string.college_miranda_house),
+        stringResource(R.string.college_st_stephens_college),
+        stringResource(R.string.college_hansraj_college),
+        stringResource(R.string.college_mount_carmel_college),
+        stringResource(R.string.college_australian_national_university),
+        stringResource(R.string.college_carnegie_mellon_university),
+        stringResource(R.string.college_eth_zurich),
+        stringResource(R.string.college_harvard_university),
+        stringResource(R.string.college_imperial_college_london),
+        stringResource(R.string.college_london_school_of_economics),
+        stringResource(R.string.college_mcgill_university),
+        stringResource(R.string.college_mit),
+        stringResource(R.string.college_national_university_singapore),
+        stringResource(R.string.college_purdue_university),
+        stringResource(R.string.college_sorbonne_university),
+        stringResource(R.string.college_stanford_university),
+        stringResource(R.string.college_tu_delft),
+        stringResource(R.string.college_university_college_london),
+        stringResource(R.string.college_university_of_amsterdam),
+        stringResource(R.string.college_university_of_british_columbia),
+        stringResource(R.string.college_university_of_california_berkeley),
+        stringResource(R.string.college_university_of_california_san_diego),
+        stringResource(R.string.college_university_of_cambridge),
+        stringResource(R.string.college_university_of_edinburgh),
+        stringResource(R.string.college_university_of_melbourne),
+        stringResource(R.string.college_university_of_michigan),
+        stringResource(R.string.college_university_of_oxford),
+        stringResource(R.string.college_university_of_queensland),
+        stringResource(R.string.college_university_of_sydney),
+        stringResource(R.string.college_university_of_toronto),
+        stringResource(R.string.college_other)
+    )
+    var college               by remember { mutableStateOf(tempProfile.college) }
+    var collegeExpanded       by remember { mutableStateOf(false) }
+    var collegeYear           by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
+    var collegeDegree         by remember { mutableStateOf(tempProfile.collegeDegree.orEmpty()) }
 
-    var postGrad by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
-    var postGradYear by remember { mutableStateOf(tempProfile.postGraduationYear) }
-    var postGraduationDegree by remember { mutableStateOf(tempProfile.postGraduationDegree.orEmpty()) }
+    // ─── Post-Grad dropdown + year + degree w/ limit ────
+    val postGradOptions       = listOf(
+        stringResource(R.string.postgrad_adamas_university),
+        stringResource(R.string.postgrad_aliah_university),
+        stringResource(R.string.postgrad_amity_university_kolkata),
+        stringResource(R.string.postgrad_bankura_university),
+        stringResource(R.string.postgrad_bidhan_chandra_krishi_viswavidyalaya),
+        stringResource(R.string.postgrad_brainware_university),
+        stringResource(R.string.postgrad_cooch_behar_panchanan_barma_university),
+        stringResource(R.string.postgrad_darjeeling_hills_university),
+        stringResource(R.string.postgrad_diamond_harbour_womens_university),
+        stringResource(R.string.postgrad_iacs),
+        stringResource(R.string.postgrad_jadavpur_university),
+        stringResource(R.string.postgrad_jis_university),
+        stringResource(R.string.postgrad_kazi_nazrul_university),
+        stringResource(R.string.postgrad_maulana_abul_kalam_azad_university_of_technology),
+        stringResource(R.string.postgrad_netaji_subhash_open_university),
+        stringResource(R.string.postgrad_north_bengal_university),
+        stringResource(R.string.postgrad_presidency_university),
+        stringResource(R.string.postgrad_rabindra_bharati_university),
+        stringResource(R.string.postgrad_raiganj_university),
+        stringResource(R.string.postgrad_ramakrishna_mission_vivekananda),
+        stringResource(R.string.postgrad_techno_india),
+        stringResource(R.string.postgrad_seacom_skills_university),
+        stringResource(R.string.postgrad_sidho_kanho_birsha_university),
+        stringResource(R.string.postgrad_sister_nivedita_university),
+        stringResource(R.string.postgrad_university_of_burdwan),
+        stringResource(R.string.postgrad_university_of_calcutta),
+        stringResource(R.string.postgrad_university_of_engineering_and_management),
+        stringResource(R.string.postgrad_university_of_kalyani),
+        stringResource(R.string.postgrad_uttar_banga_krishi_vishwavidyalaya),
+        stringResource(R.string.postgrad_vidyasagar_university),
+        stringResource(R.string.postgrad_visva_bharati_university),
+        stringResource(R.string.postgrad_west_bengal_state_university),
+        stringResource(R.string.postgrad_west_bengal_university_of_animal_and_fishery_sciences),
+        stringResource(R.string.postgrad_west_bengal_university_of_health_sciences),
+        stringResource(R.string.postgrad_west_bengal_university_of_teachers_training),
+        stringResource(R.string.postgrad_iit_bombay),
+        stringResource(R.string.postgrad_iit_delhi),
+        stringResource(R.string.postgrad_iit_kanpur),
+        stringResource(R.string.postgrad_iit_kharagpur),
+        stringResource(R.string.postgrad_iit_madras),
+        stringResource(R.string.postgrad_iim_ahmedabad),
+        stringResource(R.string.postgrad_iim_bangalore),
+        stringResource(R.string.postgrad_iim_calcutta),
+        stringResource(R.string.postgrad_iisc_bangalore),
+        stringResource(R.string.postgrad_jnu),
+        stringResource(R.string.postgrad_university_of_delhi),
+        stringResource(R.string.postgrad_harvard_university),
+        stringResource(R.string.postgrad_stanford_university),
+        stringResource(R.string.postgrad_mit),
+        stringResource(R.string.postgrad_ucsd),
+        stringResource(R.string.postgrad_purdue_university),
+        stringResource(R.string.postgrad_uc_berkeley),
+        stringResource(R.string.postgrad_university_of_michigan),
+        stringResource(R.string.postgrad_university_of_oxford),
+        stringResource(R.string.postgrad_university_of_cambridge),
+        stringResource(R.string.postgrad_imperial_college_london),
+        stringResource(R.string.postgrad_london_school_of_economics),
+        stringResource(R.string.postgrad_university_of_toronto),
+        stringResource(R.string.postgrad_university_of_british_columbia),
+        stringResource(R.string.postgrad_mcgill_university),
+        stringResource(R.string.postgrad_university_of_melbourne),
+        stringResource(R.string.postgrad_university_of_sydney),
+        stringResource(R.string.postgrad_australian_national_university),
+        stringResource(R.string.postgrad_tu_delft),
+        stringResource(R.string.postgrad_eth_zurich),
+        stringResource(R.string.postgrad_university_college_london),
+        stringResource(R.string.postgrad_university_of_amsterdam),
+        stringResource(R.string.postgrad_sorbonne_university),
+        stringResource(R.string.postgrad_other)
+    )
+    var postGrad              by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
+    var postGradExpanded      by remember { mutableStateOf(false) }
+    var postGradYear          by remember { mutableStateOf(tempProfile.postGraduationYear) }
+    var postGradDegree        by remember { mutableStateOf(tempProfile.postGraduationDegree.orEmpty()) }
 
-    var community by remember { mutableStateOf(tempProfile.community) }
-    var religion by remember { mutableStateOf(tempProfile.religion) }
+    // ─── Religion & Community ────────────────────────────
+    var religion             by remember { mutableStateOf(tempProfile.religion) }
+    var community            by remember { mutableStateOf(tempProfile.community) }
 
-    // ─── other state above ─────────────────────────────
-    var isHeightInFeet by remember { mutableStateOf(tempProfile.height2.isNotEmpty()) }
-    var feet          by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
-    var inches        by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
-    var heightCm      by remember { mutableStateOf(tempProfile.height) }
+    // ─── Caste ───────────────────────────────────────────
+    var caste                by remember { mutableStateOf(tempProfile.caste) }
+    val casteOptions         = listOf(
+        stringResource(R.string.caste_kulin_brahmin),
+        stringResource(R.string.caste_non_kulin_brahmin),
+        stringResource(R.string.caste_kulin_kayastha),
+        stringResource(R.string.caste_non_kulin_kayastha),
+        stringResource(R.string.caste_baidya),
+        stringResource(R.string.caste_kshatriya),
+        stringResource(R.string.caste_vaishya),
+        stringResource(R.string.caste_rajbonshi),
+        stringResource(R.string.caste_sadgop),
+        stringResource(R.string.caste_mahishya),
+        stringResource(R.string.caste_scheduled_caste),
+        stringResource(R.string.caste_scheduled_tribe),
+        stringResource(R.string.caste_obc),
+        stringResource(R.string.caste_general),
+        stringResource(R.string.caste_other)
+    )
 
-    // ─── Chip‐based gender ───────────────────────────────
-    val genderOptions = listOf(
+    // ─── Height ──────────────────────────────────────────
+    var isFeet               by remember { mutableStateOf(tempProfile.height2.isNotEmpty()) }
+    var feet                 by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
+    var inches               by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
+    var heightCm             by remember { mutableStateOf(tempProfile.height) }
+
+    // ─── Gender ──────────────────────────────────────────
+    val genderOptions        = listOf(
         stringResource(R.string.male_option),
         stringResource(R.string.female_option),
         stringResource(R.string.college_other)
     )
-    var selectedGender by remember {
-        mutableStateOf(
-            genderOptions.find { it == tempProfile.gender } ?: genderOptions.first()
-        )
+    var selectedGender       by remember {
+        mutableStateOf(genderOptions.find { it==tempProfile.gender }
+            ?: genderOptions.first())
     }
 
-    // ─── Job & Work ────────────────────────────────────
-    val jobRoleOptions = listOf(
+    // ─── Job & Work ──────────────────────────────────────
+    val jobRoleOptions       = listOf(
         stringResource(R.string.job_role_option_engineer),
         stringResource(R.string.job_role_option_teacher),
         stringResource(R.string.job_role_option_doctor),
@@ -777,107 +1038,93 @@ fun BasicInfoEditSection(
         stringResource(R.string.job_role_option_entrepreneur),
         stringResource(R.string.job_role_option_other)
     )
-    var selectedJobRole by remember {
-        mutableStateOf(
-            jobRoleOptions.find { it == tempProfile.jobRole } ?: jobRoleOptions.first()
-        )
+    var selectedJobRole      by remember {
+        mutableStateOf(jobRoleOptions.find { it==tempProfile.jobRole }
+            ?: jobRoleOptions.first())
     }
-    var customJobRole by remember {
-        mutableStateOf(if (selectedJobRole == jobRoleOptions.last()) tempProfile.customJobRole.orEmpty() else "")
+    var customJobRole        by remember {
+        mutableStateOf(if (selectedJobRole==jobRoleOptions.last())
+            tempProfile.customJobRole.orEmpty() else "")
     }
 
-    val workOptions = listOf(
+    val workOptions          = listOf(
         stringResource(R.string.work_option_private_sector),
         stringResource(R.string.work_option_government),
         stringResource(R.string.work_option_freelance),
         stringResource(R.string.work_option_unemployed),
         stringResource(R.string.work_option_other)
     )
-    var selectedWork by remember {
-        mutableStateOf(
-            workOptions.find { it == tempProfile.work } ?: workOptions.first()
-        )
+    var selectedWork         by remember {
+        mutableStateOf(workOptions.find { it==tempProfile.work }
+            ?: workOptions.first())
     }
-    var customWork by remember {
-        mutableStateOf(if (selectedWork == workOptions.last()) tempProfile.customWork.orEmpty() else "")
+    var customWork           by remember {
+        mutableStateOf(if (selectedWork==workOptions.last())
+            tempProfile.customWork.orEmpty() else "")
     }
 
-    // ─── City + Locality ────────────────────────────────
-    val cityOptions = stringArrayResource(id = R.array.city_names).toList()
-
-    // Load the right array for the selected city.
-    val localityOptions = when (city) {
-        stringResource(R.string.city_kolkata)     -> stringArrayResource(id = R.array.localities_kolkata).toList()
-        stringResource(R.string.city_howrah)      -> stringArrayResource(id = R.array.localities_howrah).toList()
-        stringResource(R.string.city_durgapur)    -> stringArrayResource(id = R.array.localities_durgapur).toList()
-        stringResource(R.string.city_asansol)     -> stringArrayResource(id = R.array.localities_asansol).toList()
-        // …add all your other cities here…
-        else                                 -> emptyList()
+    // ─── City & Locality arrays ──────────────────────────
+    val cityOptionsList      = stringArrayResource(id = R.array.city_names).toList()
+    val localityOptionsList  = when(city) {
+        stringResource(R.string.city_kolkata)  -> stringArrayResource(id = R.array.localities_kolkata).toList()
+        stringResource(R.string.city_howrah)   -> stringArrayResource(id = R.array.localities_howrah).toList()
+        stringResource(R.string.city_durgapur) -> stringArrayResource(id = R.array.localities_durgapur).toList()
+        stringResource(R.string.city_asansol)  -> stringArrayResource(id = R.array.localities_asansol).toList()
+        else -> emptyList()
     }
 
     Column(
-        modifier = Modifier
+        modifier            = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Name
         OutlinedTextField(
-            value = name,
+            value       = name,
             onValueChange = { name = it },
-            label = { Text(stringResource(R.string.label_name), color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth()
+            label       = { Text(stringResource(R.string.label_name), color = Color(0xFFFF6F00)) },
+            modifier    = Modifier.fillMaxWidth()
         )
 
-        // Height label + toggle
+        // Height toggle & fields…
         Text(stringResource(R.string.height_label), fontWeight = FontWeight.Bold)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(
-                checked = isHeightInFeet,
-                onCheckedChange = { isHeightInFeet = it }
-            )
+            Switch(checked = isFeet, onCheckedChange = { isFeet = it })
             Spacer(Modifier.width(8.dp))
-            Text(
-                text = if (isHeightInFeet)
-                    stringResource(R.string.feet_inches_label)
-                else
-                    stringResource(R.string.centimeters_label)
-            )
+            Text(if (isFeet) stringResource(R.string.feet_inches_label)
+            else stringResource(R.string.centimeters_label))
         }
-
-        if (isHeightInFeet) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        if (isFeet) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
-                    value = feet.toString(),
-                    onValueChange = { feet = it.toIntOrNull() ?: 0 },
-                    label = { Text(stringResource(R.string.feet_label)) },
-                    modifier = Modifier.weight(1f)
+                    value           = feet.toString(),
+                    onValueChange   = { feet = it.toIntOrNull() ?: 0 },
+                    label           = { Text(stringResource(R.string.feet_label)) },
+                    modifier        = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
-                    value = inches.toString(),
-                    onValueChange = { inches = it.toIntOrNull() ?: 0 },
-                    label = { Text(stringResource(R.string.inches_label)) },
-                    modifier = Modifier.weight(1f)
+                    value           = inches.toString(),
+                    onValueChange   = { inches = it.toIntOrNull() ?: 0 },
+                    label           = { Text(stringResource(R.string.inches_label)) },
+                    modifier        = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
         } else {
             OutlinedTextField(
-                value = heightCm.toString(),
-                onValueChange = { heightCm = it.toIntOrNull() ?: 0 },
-                label = { Text(stringResource(R.string.centimeters_label)) },
-                modifier = Modifier.fillMaxWidth()
+                value           = heightCm.toString(),
+                onValueChange   = { heightCm = it.toIntOrNull() ?: 0 },
+                label           = { Text(stringResource(R.string.centimeters_label)) },
+                modifier        = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         }
 
-// ─── Community as single‑select chips ───────────────────
-        Text(
-            text = stringResource(R.string.religion_label),
-            fontWeight = FontWeight.Bold
-        )
-        val communityOptions = listOf(
+        // Religion chips
+        Text(stringResource(R.string.religion_label), fontWeight = FontWeight.Bold)
+        val religionOpts = listOf(
             stringResource(R.string.religion_other),
             stringResource(R.string.religion_no_religion),
             stringResource(R.string.religion_hindu),
@@ -889,17 +1136,17 @@ fun BasicInfoEditSection(
             stringResource(R.string.religion_indigenous_tribal),
         )
         Row(
-            modifier = Modifier
+            Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            communityOptions.forEach { option ->
+            religionOpts.forEach { option ->
                 FilterChip(
-                    selected = religion == option,
-                    onClick = { religion = option },
-                    label = { Text(option) },
-                    colors  = FilterChipDefaults.filterChipColors(
+                    selected = religion==option,
+                    onClick  = { religion = option },
+                    label    = { Text(option) },
+                    colors   = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -907,115 +1154,110 @@ fun BasicInfoEditSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-// ─── Religion as single‑select chips ────────────────────
-        Text(
-            text = stringResource(R.string.community_label),
-            fontWeight = FontWeight.Bold
-        )
-        val religionOptions = listOf(
-            stringResource(R.string.religion_other),
-            stringResource(R.string.community_bengali),
-            stringResource(R.string.community_marwari),
-            stringResource(R.string.community_bihari),
-            stringResource(R.string.community_punjabi),
-            stringResource(R.string.community_santhal),
-            stringResource(R.string.community_bangal),
-            stringResource(R.string.community_ghoti),
-            stringResource(R.string.community_gujarati),
-            stringResource(R.string.community_kannadiga),
-            stringResource(R.string.community_tamil),
-            stringResource(R.string.community_malayali),
-            stringResource(R.string.community_odia),
-            stringResource(R.string.community_telugu),
-            stringResource(R.string.community_nepali),
-            stringResource(R.string.community_munda),
-            stringResource(R.string.community_oraon),
-
-            /* ——— Himalayan neighbours ——— */
-            stringResource(R.string.community_bhutanese),
-            stringResource(R.string.community_sikkimese),
-
-            /* ——— Nagaland ——— */
-            stringResource(R.string.community_naga),
-            stringResource(R.string.community_ao),
-            stringResource(R.string.community_angami),
-            stringResource(R.string.community_lotha),
-            stringResource(R.string.community_sema),
-            stringResource(R.string.community_chakhesang),
-            stringResource(R.string.community_konyak),
-            stringResource(R.string.community_phom),
-            stringResource(R.string.community_chang),
-            stringResource(R.string.community_rengma),
-            stringResource(R.string.community_yimkhiung),
-            stringResource(R.string.community_khiamniungan),
-            stringResource(R.string.community_zeliang),
-
-            /* ——— Arunachal Pradesh ——— */
-            stringResource(R.string.community_arunachali),   // ← NEW
-            stringResource(R.string.community_apatani),
-            stringResource(R.string.community_adi),
-            stringResource(R.string.community_nyishi),
-            stringResource(R.string.community_galo),
-            stringResource(R.string.community_tagin),
-            stringResource(R.string.community_mishmi),
-            stringResource(R.string.community_monpa),
-            stringResource(R.string.community_sherdukpen),
-            stringResource(R.string.community_bugun),
-            stringResource(R.string.community_aka),
-
-            /* ——— Manipur ——— */
-            stringResource(R.string.community_meitei),
-            stringResource(R.string.community_tangkhul),
-            stringResource(R.string.community_poumai),
-            stringResource(R.string.community_mao),
-            stringResource(R.string.community_thadou),
-            stringResource(R.string.community_paite),
-            stringResource(R.string.community_zou),
-            stringResource(R.string.community_anal),
-            stringResource(R.string.community_hmar),
-            stringResource(R.string.community_maring),
-
-            /* ——— Mizoram ——— */
-            stringResource(R.string.community_mizo),
-            stringResource(R.string.community_lai),
-            stringResource(R.string.community_mara),
-
-            /* ——— Tripura ——— */
-            stringResource(R.string.community_tripuri),
-            stringResource(R.string.community_reang),
-            stringResource(R.string.community_chakma),
-            stringResource(R.string.community_halam),
-
-            /* ——— Meghalaya ——— */
-            stringResource(R.string.community_khasi),
-            stringResource(R.string.community_garo),
-            stringResource(R.string.community_jaintia),
-
-            /* ——— Assam plains tribes ——— */
-            stringResource(R.string.community_assamese),
-            stringResource(R.string.community_bodo),
-            stringResource(R.string.community_mishing),
-            stringResource(R.string.community_karbi),
-            stringResource(R.string.community_dimasa),
-            stringResource(R.string.community_rabha),
-            stringResource(R.string.community_tiwa),
-            stringResource(R.string.community_deori),
-            stringResource(R.string.community_sonowal_kachari)
-        )
+        // Community chips
+        Text(stringResource(R.string.community_label), fontWeight = FontWeight.Bold)
         Row(
-            modifier = Modifier
+            Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            religionOptions.forEach { option ->
+            val commOpts = listOf(
+                stringResource(R.string.community_other),
+                stringResource(R.string.community_bengali),
+                stringResource(R.string.community_marwari),
+                stringResource(R.string.community_bihari),
+                stringResource(R.string.community_punjabi),
+                stringResource(R.string.community_santhal),
+                stringResource(R.string.community_bangal),
+                stringResource(R.string.community_ghoti),
+                stringResource(R.string.community_gujarati),
+                stringResource(R.string.community_kannadiga),
+                stringResource(R.string.community_tamil),
+                stringResource(R.string.community_malayali),
+                stringResource(R.string.community_odia),
+                stringResource(R.string.community_telugu),
+                stringResource(R.string.community_nepali),
+                stringResource(R.string.community_munda),
+                stringResource(R.string.community_oraon),
+
+                /* ——— Himalayan neighbours ——— */
+                stringResource(R.string.community_bhutanese),
+                stringResource(R.string.community_sikkimese),
+
+                /* ——— Nagaland ——— */
+                stringResource(R.string.community_naga),
+                stringResource(R.string.community_ao),
+                stringResource(R.string.community_angami),
+                stringResource(R.string.community_lotha),
+                stringResource(R.string.community_sema),
+                stringResource(R.string.community_chakhesang),
+                stringResource(R.string.community_konyak),
+                stringResource(R.string.community_phom),
+                stringResource(R.string.community_chang),
+                stringResource(R.string.community_rengma),
+                stringResource(R.string.community_yimkhiung),
+                stringResource(R.string.community_khiamniungan),
+                stringResource(R.string.community_zeliang),
+
+                /* ——— Arunachal Pradesh ——— */
+                stringResource(R.string.community_arunachali),   // ← NEW
+                stringResource(R.string.community_apatani),
+                stringResource(R.string.community_adi),
+                stringResource(R.string.community_nyishi),
+                stringResource(R.string.community_galo),
+                stringResource(R.string.community_tagin),
+                stringResource(R.string.community_mishmi),
+                stringResource(R.string.community_monpa),
+                stringResource(R.string.community_sherdukpen),
+                stringResource(R.string.community_bugun),
+                stringResource(R.string.community_aka),
+
+                /* ——— Manipur ——— */
+                stringResource(R.string.community_meitei),
+                stringResource(R.string.community_tangkhul),
+                stringResource(R.string.community_poumai),
+                stringResource(R.string.community_mao),
+                stringResource(R.string.community_thadou),
+                stringResource(R.string.community_paite),
+                stringResource(R.string.community_zou),
+                stringResource(R.string.community_anal),
+                stringResource(R.string.community_hmar),
+                stringResource(R.string.community_maring),
+
+                /* ——— Mizoram ——— */
+                stringResource(R.string.community_mizo),
+                stringResource(R.string.community_lai),
+                stringResource(R.string.community_mara),
+
+                /* ——— Tripura ——— */
+                stringResource(R.string.community_tripuri),
+                stringResource(R.string.community_reang),
+                stringResource(R.string.community_chakma),
+                stringResource(R.string.community_halam),
+
+                /* ——— Meghalaya ——— */
+                stringResource(R.string.community_khasi),
+                stringResource(R.string.community_garo),
+                stringResource(R.string.community_jaintia),
+
+                /* ——— Assam plains tribes ——— */
+                stringResource(R.string.community_assamese),
+                stringResource(R.string.community_bodo),
+                stringResource(R.string.community_mishing),
+                stringResource(R.string.community_karbi),
+                stringResource(R.string.community_dimasa),
+                stringResource(R.string.community_rabha),
+                stringResource(R.string.community_tiwa),
+                stringResource(R.string.community_deori),
+                stringResource(R.string.community_sonowal_kachari)
+            )
+            commOpts.forEach { option ->
                 FilterChip(
-                    selected = community == option,
-                    onClick = { community = option },
-                    label = { Text(option) },
-                    colors  = FilterChipDefaults.filterChipColors(
+                    selected = community==option,
+                    onClick  = { community = option },
+                    label    = { Text(option) },
+                    colors   = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1023,20 +1265,41 @@ fun BasicInfoEditSection(
             }
         }
 
-        // Gender Chips
+        // **Caste chips**
+        Text(stringResource(R.string.caste_title), fontWeight = FontWeight.Bold)
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            casteOptions.forEach { option ->
+                FilterChip(
+                    selected = caste==option,
+                    onClick  = { caste = option },
+                    label    = { Text(option) },
+                    colors   = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
+                )
+            }
+        }
+
+        // Gender chips
         Text(stringResource(R.string.gender_label), fontWeight = FontWeight.Bold)
         Row(
-            modifier = Modifier
+            Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             genderOptions.forEach { option ->
                 FilterChip(
-                    selected = selectedGender == option,
-                    onClick = { selectedGender = option },
-                    label = { Text(option) },
-                    colors  = FilterChipDefaults.filterChipColors(
+                    selected = selectedGender==option,
+                    onClick  = { selectedGender = option },
+                    label    = { Text(option) },
+                    colors   = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1044,203 +1307,269 @@ fun BasicInfoEditSection(
             }
         }
 
-        // City dropdown
+        // City dropdown…
         Text(stringResource(R.string.city_label), fontWeight = FontWeight.Bold)
-        Button(onClick = { cityDropdownExpanded = true }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        Button(
+            onClick = { cityExpanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
         ) {
             Text(if (city.isBlank()) stringResource(R.string.select_city) else city)
         }
         DropdownMenu(
-            expanded = cityDropdownExpanded,
-            onDismissRequest = { cityDropdownExpanded = false }
+            expanded = cityExpanded,
+            onDismissRequest = { cityExpanded = false }
         ) {
-            cityOptions.forEach { option ->
+            cityOptionsList.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text    = { Text(option) },
                     onClick = {
                         city = option
-                        cityDropdownExpanded = false
-                        // reset locality when city changes
+                        cityExpanded = false
                         locality = ""
                     }
                 )
             }
         }
 
-        // Locality dropdown
+        // Locality dropdown…
         Text(stringResource(R.string.label_locality), fontWeight = FontWeight.Bold)
-        Button(onClick = { localityDropdownExpanded = true }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        Button(
+            onClick = { localityExpanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
         ) {
             Text(if (locality.isBlank()) stringResource(R.string.locality) else locality)
         }
         DropdownMenu(
-            expanded = localityDropdownExpanded,
-            onDismissRequest = { localityDropdownExpanded = false }
+            expanded = localityExpanded,
+            onDismissRequest = { localityExpanded = false }
         ) {
-            localityOptions.forEach { option ->
+            localityOptionsList.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text    = { Text(option) },
                     onClick = {
                         locality = option
-                        localityDropdownExpanded = false
+                        localityExpanded = false
                     }
                 )
             }
         }
 
-        // Job Role chips + optional custom
+        // Job-Role & Work chips + optional customs…
         Text(stringResource(R.string.job_role_label), fontWeight = FontWeight.Bold)
         Row(
-            modifier = Modifier
+            Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             jobRoleOptions.forEach { option ->
                 FilterChip(
-                    selected = selectedJobRole == option,
-                    onClick = {
+                    selected = selectedJobRole==option,
+                    onClick  = {
                         selectedJobRole = option
-                        if (option != jobRoleOptions.last()) customJobRole = ""
+                        if (option!=jobRoleOptions.last()) customJobRole = ""
                     },
-                    label = { Text(option) },
-                    colors  = FilterChipDefaults.filterChipColors(
+                    label    = { Text(option) },
+                    colors   = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
                 )
             }
         }
-        if (selectedJobRole == jobRoleOptions.last()) {
+        if (selectedJobRole==jobRoleOptions.last()) {
             OutlinedTextField(
-                value = customJobRole,
+                value       = customJobRole,
                 onValueChange = { customJobRole = it },
-                label = { Text(stringResource(R.string.label_custom_job_role), color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth()
+                label       = { Text(stringResource(R.string.label_custom_job_role), color = Color(0xFFFF6F00)) },
+                modifier    = Modifier.fillMaxWidth()
             )
         }
 
-        // Work chips + optional custom
         Text(stringResource(R.string.label_work), fontWeight = FontWeight.Bold)
         Row(
-            modifier = Modifier
+            Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             workOptions.forEach { option ->
                 FilterChip(
-                    selected = selectedWork == option,
-                    onClick = {
+                    selected = selectedWork==option,
+                    onClick  = {
                         selectedWork = option
-                        if (option != workOptions.last()) customWork = ""
+                        if (option!=workOptions.last()) customWork = ""
                     },
-                    label = { Text(option) },
-                    colors  = FilterChipDefaults.filterChipColors(
+                    label    = { Text(option) },
+                    colors   = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
                 )
             }
         }
-        if (selectedWork == workOptions.last()) {
+        if (selectedWork==workOptions.last()) {
             OutlinedTextField(
-                value = customWork,
+                value       = customWork,
                 onValueChange = { customWork = it },
-                label = { Text(stringResource(R.string.label_custom_work), color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth()
+                label       = { Text(stringResource(R.string.label_custom_work), color = Color(0xFFFF6F00)) },
+                modifier    = Modifier.fillMaxWidth()
             )
         }
 
-        // Education fields…
-        OutlinedTextField(
-            value = highSchool,
-            onValueChange = { highSchool = it },
-            label = { Text(stringResource(R.string.label_high_school), color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth()
-        )
+        // High-School dropdown + Year…
+        Text(stringResource(R.string.label_high_school), fontWeight = FontWeight.Bold)
+        Button(
+            onClick   = { highSchoolExpanded = true },
+            modifier  = Modifier.fillMaxWidth(),
+            colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text(if (highSchool.isBlank())
+                stringResource(R.string.select_or_type_high_school)
+            else highSchool)
+        }
+        DropdownMenu(
+            expanded = highSchoolExpanded,
+            onDismissRequest = { highSchoolExpanded = false }
+        ) {
+            highSchoolOptions.forEach { option ->
+                DropdownMenuItem(
+                    text    = { Text(option) },
+                    onClick = {
+                        highSchool = option
+                        highSchoolExpanded = false
+                    }
+                )
+            }
+        }
         if (highSchool.isNotBlank()) {
             OutlinedTextField(
-                value = highSchoolGradYear,
-                onValueChange = { highSchoolGradYear = it },
-                label = { Text(stringResource(R.string.high_school_graduation_year), color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth()
+                value           = highSchoolYear,
+                onValueChange   = { highSchoolYear = it.filter { c -> c.isDigit() }.take(4) },
+                label           = { Text(stringResource(R.string.high_school_graduation_year), color = Color(0xFFFF6F00)) },
+                modifier        = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         }
 
-        OutlinedTextField(
-            value = college,
-            onValueChange = { college = it },
-            label = { Text(stringResource(R.string.college_label), color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth()
-        )
+        // College dropdown + Year + Degree…
+        Text(stringResource(R.string.college_label), fontWeight = FontWeight.Bold)
+        Button(
+            onClick   = { collegeExpanded = true },
+            modifier  = Modifier.fillMaxWidth(),
+            colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text(if (college.isBlank())
+                stringResource(R.string.select_or_type_college)
+            else college)
+        }
+        DropdownMenu(
+            expanded = collegeExpanded,
+            onDismissRequest = { collegeExpanded = false }
+        ) {
+            collegeOptions.forEach { option ->
+                DropdownMenuItem(
+                    text    = { Text(option) },
+                    onClick = {
+                        college = option
+                        collegeExpanded = false
+                    }
+                )
+            }
+        }
         if (college.isNotBlank()) {
             OutlinedTextField(
-                value = collegeGradYear,
-                onValueChange = { collegeGradYear = it },
-                label = { Text(stringResource(R.string.college_graduation_year), color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth()
+                value           = collegeYear,
+                onValueChange   = { collegeYear = it.filter { c -> c.isDigit() }.take(4) },
+                label           = { Text(stringResource(R.string.college_graduation_year), color = Color(0xFFFF6F00)) },
+                modifier        = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             OutlinedTextField(
-                value = collegeDegree,
-                onValueChange = { collegeDegree = it },
-                label = { Text(stringResource(R.string.label_college_degree), color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth()
+                value           = collegeDegree,
+                onValueChange   = { if (it.length <= 50) collegeDegree = it },
+                label           = { Text(stringResource(R.string.label_college_degree), color = Color(0xFFFF6F00)) },
+                modifier        = Modifier.fillMaxWidth(),
+                singleLine      = true
             )
         }
 
-        OutlinedTextField(
-            value = postGrad,
-            onValueChange = { postGrad = it },
-            label = { Text(stringResource(R.string.post_graduation_label), color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth()
-        )
+        // Post-Grad dropdown + Year + Degree…
+        Text(stringResource(R.string.post_graduation_label), fontWeight = FontWeight.Bold)
+        Button(
+            onClick   = { postGradExpanded = true },
+            modifier  = Modifier.fillMaxWidth(),
+            colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text(if (postGrad.isBlank())
+                stringResource(R.string.select_or_type_post_grad)
+            else postGrad)
+        }
+        DropdownMenu(
+            expanded = postGradExpanded,
+            onDismissRequest = { postGradExpanded = false }
+        ) {
+            postGradOptions.forEach { option ->
+                DropdownMenuItem(
+                    text    = { Text(option) },
+                    onClick = {
+                        postGrad = option
+                        postGradExpanded = false
+                    }
+                )
+            }
+        }
         if (postGrad.isNotBlank()) {
             OutlinedTextField(
-                value = postGradYear,
-                onValueChange = { postGradYear = it },
-                label = { Text(stringResource(R.string.select_graduation_year_label), color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth()
+                value           = postGradYear,
+                onValueChange   = { postGradYear = it.filter { c -> c.isDigit() }.take(4) },
+                label           = { Text(stringResource(R.string.select_graduation_year_label), color = Color(0xFFFF6F00)) },
+                modifier        = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             OutlinedTextField(
-                value = postGraduationDegree,
-                onValueChange = { postGraduationDegree = it },
-                label = { Text(stringResource(R.string.label_post_graduation_degree), color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth()
+                value           = postGradDegree,
+                onValueChange   = { if (it.length <= 50) postGradDegree = it },
+                label           = { Text(stringResource(R.string.label_post_graduation_degree), color = Color(0xFFFF6F00)) },
+                modifier        = Modifier.fillMaxWidth(),
+                singleLine      = true
             )
         }
 
-        // ─── Save / Cancel ───────────────────────────────
+        // ─── Save / Cancel ───────────────────────────────────
         ButtonRow(
             onSave = {
-                val updated = tempProfile.copy(
-                    name = name,
-                    gender = selectedGender,
-                    city = city,
-                    hometown = locality,
-                    highSchool = highSchool,
-                    highSchoolGraduationYear = highSchoolGradYear,
-                    college = college,
-                    collegeGraduationYear = collegeGradYear,
-                    collegeDegree = collegeDegree.ifBlank { null },
-                    postGraduation = postGrad.ifBlank { null },
-                    postGraduationYear = postGradYear,
-                    postGraduationDegree = postGraduationDegree.ifBlank { null },
-                    community = community,
-                    religion = religion,
-                    height = heightCm,
-                    height2 = if (isHeightInFeet) listOf(feet, inches) else emptyList(),
-                    jobRole = selectedJobRole,
-                    customJobRole = (selectedJobRole.takeIf { it == jobRoleOptions.last() }?.let { customJobRole } ?: null),
-                    work = selectedWork,
-                    customWork = (selectedWork.takeIf { it == workOptions.last() }?.let { customWork } ?: null)
-                )
-                onSave(updated)
+                onSave(tempProfile.copy(
+                    name                     = name,
+                    city                     = city,
+                    hometown                 = locality,
+                    highSchool               = highSchool,
+                    highSchoolGraduationYear = highSchoolYear,
+                    college                  = college,
+                    collegeGraduationYear    = collegeYear,
+                    collegeDegree            = collegeDegree.ifBlank { null },
+                    postGraduation           = postGrad.ifBlank { null },
+                    postGraduationYear       = postGradYear,
+                    postGraduationDegree     = postGradDegree.ifBlank { null },
+                    religion                 = religion,
+                    community                = community,
+                    caste                    = caste,
+                    height                   = heightCm,
+                    height2                  = if (isFeet) listOf(feet, inches) else emptyList(),
+                    gender                   = selectedGender,
+                    jobRole                  = selectedJobRole,
+                    customJobRole            = selectedJobRole.takeIf { it==jobRoleOptions.last() }?.let { customJobRole },
+                    work                     = selectedWork,
+                    customWork               = selectedWork.takeIf    { it==workOptions.last() }?.let { customWork }
+                ))
             },
             onCancel = onCancel
         )
-        }
     }
+}
+
 
 @Composable
 fun PerformanceMetricsSection(profile: Profile) {
