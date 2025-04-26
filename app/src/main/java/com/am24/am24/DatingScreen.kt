@@ -7,6 +7,8 @@ package com.am24.am24
 
 import DatingViewModel
 import android.content.Context
+import android.media.MediaRecorder
+import android.net.Uri
 import androidx.compose.material.icons.filled.FilterList
 import android.util.Log
 import androidx.compose.foundation.*
@@ -27,7 +29,8 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.HowToVote
+import androidx.compose.material.icons.filled.EmojiEmotions  // or whichever icon you prefer for “Compliment”
+import androidx.compose.material.icons.filled.FlashOn         // for “Boost”
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -67,7 +70,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -78,14 +80,22 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.AttachEmail
+import androidx.compose.material.icons.filled.OnlinePrediction
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.net.toUri
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.*
-
-// Assuming R is imported from your project's resources
-import com.am24.am24.R
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import java.io.File
 
 data class SwipeData(
     val liked: Boolean = false,
@@ -110,329 +120,186 @@ fun DatingScreen(
     val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
     val isLoading by datingViewModel.isLoading.collectAsState()
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
+    val boostedUsers by datingViewModel.boostedUsers.collectAsState()
+    val userDistanceMap by datingViewModel.userDistanceMap.collectAsState()
+
+    // ← NEW: collect the map of compliments that others have sent you
+    val complimentsReceived by datingViewModel.complimentsReceived.collectAsState()
+    val complimenters       = complimentsReceived.keys.toList()
 
     var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
     val remainingSwipes = remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var forcedProfile by remember { mutableStateOf<Profile?>(null) }
-
-    // State to control overlay visibility (e.g. for the swipe direction overlays)
-    var visible by remember { mutableStateOf(true) }
-
-    // Show overlays when first visited
-    LaunchedEffect(Unit) {
-        visible = true
-        delay(5000) // Showing for 5 seconds (adjust as needed)
-        visible = false
-    }
+    var showBoostedOverlay by rememberSaveable { mutableStateOf(false) }
 
     val bottomSheetState = rememberModalBottomSheetState(
         initialValue = ModalBottomSheetValue.Hidden,
         skipHalfExpanded = true
     )
 
-    // Load excluded users and swipes
+    var showComplimentDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-        if (currentUserId != null) {
-            excludedUserIds = fetchExcludedUsers(currentUserId)
+        FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+            excludedUserIds     = fetchExcludedUsers(uid)
             profileViewModel.fetchCurrentUserProfile()
-            val loadedSwipes = loadAndResetSwipesDaily(currentUserId)
-            remainingSwipes.value = loadedSwipes
-            swipesLoaded = true  // Mark that swipes are loaded
+            remainingSwipes.value = loadAndResetSwipesDaily(uid)
+            swipesLoaded        = true
             datingViewModel.refreshFilteredProfiles()
         }
     }
 
-    LaunchedEffect(initialQuery) {
-        if (initialQuery.isNotBlank()) {
-            val snapshot = FirebaseDatabase.getInstance()
-                .getReference("users")
-                .child(initialQuery)
-                .get()
-                .await()
-            forcedProfile = snapshot.getValue(Profile::class.java)
-        }
-    }
-
-    // Choose profiles to display (forced profile if query provided, otherwise filtered)
-    val displayedProfiles = if (initialQuery.isNotBlank()) {
+    val base = if (initialQuery.isNotBlank()) {
         forcedProfile?.let { listOf(it) } ?: emptyList()
     } else {
         filteredProfiles.filter { it.userId !in excludedUserIds }
     }
 
-    // Local lambdas for the new buttons. Here we’re using the first profile in the list as the “current” one.
-    val handleSuperSwipe = {
-        if (remainingSwipes.value > 0 && displayedProfiles.isNotEmpty()) {
-            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-            if (currentUserId != null) {
-                // Example: perform a “right swipe” action with extra logic (e.g. boosted match)
-                handleSwipeRight(currentUserId, displayedProfiles.first().userId, profileViewModel)
-                remainingSwipes.value--
-                updateSwipesInFirebase(remainingSwipes.value)
-                Log.d(
-                    "DatingScreen",
-                    "Super Swipe performed on ${displayedProfiles.first().userId}"
-                )
-            }
-        }
-    }
-
-    val handleForceMatch = {
-        if (remainingSwipes.value > 0 && displayedProfiles.isNotEmpty()) {
-            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-            val targetUser = displayedProfiles.first()
-            if (currentUserId != null) {
-                // Example: directly trigger a match popup bypassing the usual swipe logic
-                profileViewModel.triggerMatchPopUp(currentUserId, targetUser.userId)
-                remainingSwipes.value--
-                updateSwipesInFirebase(remainingSwipes.value)
-                Log.d("DatingScreen", "Force Match triggered for ${targetUser.userId}")
-            }
-        }
-    }
+    // 2) put everyone who has complimented you up front
+    val displayedProfiles = complimenters
+        .mapNotNull { id -> base.find { it.userId == id } }
+        .plus(base.filter    { it.userId !in complimenters })
 
     ModalBottomSheetLayout(
-        sheetState = bottomSheetState,
+        sheetState   = bottomSheetState,
         sheetContent = {
             FiltersOverlay(
-                ageRange = filters.ageStart..filters.ageEnd,
-                onAgeRangeChange = { range ->
-                    datingViewModel.updateDatingFilters(
-                        filters.copy(ageStart = range.start, ageEnd = range.endInclusive)
-                    )
-                },
-                maxDistance = filters.distance,
-                onDistanceChange = { distance ->
-                    datingViewModel.updateDatingFilters(filters.copy(distance = distance))
-                },
-                selectedGenders = filters.gender.split(",").toSet(),
-                onGenderChange = { genders ->
-                    datingViewModel.updateDatingFilters(filters.copy(gender = genders.joinToString(",")))
-                },
-                selectedCommunity = filters.community,
-                onCommunityChange = { community ->
-                    datingViewModel.updateDatingFilters(
-                        filters.copy(
-                            community = community
-                        )
-                    )
-                },
-                selectedReligion = filters.religion,
-                onReligionChange = { religion ->
-                    datingViewModel.updateDatingFilters(
-                        filters.copy(
-                            religion = religion
-                        )
-                    )
-                },
-                selectedCaste = filters.caste,
-                onCasteChange = { caste -> datingViewModel.updateDatingFilters(filters.copy(caste = caste)) },
+                ageRange           = filters.ageStart..filters.ageEnd,
+                onAgeRangeChange   = { datingViewModel.updateDatingFilters(filters.copy(ageStart = it.start, ageEnd = it.endInclusive)) },
+                maxDistance        = filters.distance,
+                onDistanceChange   = { datingViewModel.updateDatingFilters(filters.copy(distance = it)) },
+                selectedGenders    = filters.gender.split(",").toSet(),
+                onGenderChange     = { datingViewModel.updateDatingFilters(filters.copy(gender = it.joinToString(","))) },
+                selectedCommunity  = filters.community,
+                onCommunityChange  = { datingViewModel.updateDatingFilters(filters.copy(community = it)) },
+                selectedReligion   = filters.religion,
+                onReligionChange   = { datingViewModel.updateDatingFilters(filters.copy(religion = it)) },
+                selectedCaste      = filters.caste,
+                onCasteChange      = { datingViewModel.updateDatingFilters(filters.copy(caste = it)) },
                 selectedHighSchool = filters.highSchool,
-                onHighSchoolChange = { hs ->
-                    datingViewModel.updateDatingFilters(
-                        filters.copy(
-                            highSchool = hs
-                        )
-                    )
-                },
-                selectedCollege = filters.college,
-                onCollegeChange = { college ->
-                    datingViewModel.updateDatingFilters(
-                        filters.copy(
-                            college = college
-                        )
-                    )
-                },
-                selectedPostGrad = filters.postGrad,
-                onPostGradChange = { pg -> datingViewModel.updateDatingFilters(filters.copy(postGrad = pg)) },
-                onSaveFilters = {
-                    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-                    datingViewModel.updateDatingFilters(filters)
-                    datingViewModel.refreshFilteredProfiles()
-                    if (currentUserId != null) {
-                        coroutineScope.launch {
-                            excludedUserIds = fetchExcludedUsers(currentUserId)
-                        }
+                onHighSchoolChange = { datingViewModel.updateDatingFilters(filters.copy(highSchool = it)) },
+                selectedCollege    = filters.college,
+                onCollegeChange    = { datingViewModel.updateDatingFilters(filters.copy(college = it)) },
+                selectedPostGrad   = filters.postGrad,
+                onPostGradChange   = { datingViewModel.updateDatingFilters(filters.copy(postGrad = it)) },
+                onSaveFilters      = {
+                    coroutineScope.launch {
+                        bottomSheetState.hide()
+                        datingViewModel.refreshFilteredProfiles()
                     }
-                    coroutineScope.launch { bottomSheetState.hide() }
                 },
                 onCancel = { coroutineScope.launch { bottomSheetState.hide() } }
             )
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-        ) {
-            // --- Top App Bar Row Modified ---
-            // Removed the SwipeCounter and added two new buttons for Super Swipe and Force Match.
+        Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
+                modifier           = Modifier.fillMaxWidth().padding(8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(
-                    onClick = { coroutineScope.launch { bottomSheetState.show() } },
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .size(20.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = stringResource(R.string.filters),
-                        tint = Color(0xFFFF6F00), // Orange color
-                        modifier = Modifier.size(54.dp)
-                    )
+                IconButton(onClick = { coroutineScope.launch { bottomSheetState.show() } }) {
+                    Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filters), tint = Color(0xFFFF6F00))
                 }
-                // New buttons for extra swipe actions
+
                 Row {
                     Button(
-                        onClick = { handleSuperSwipe() },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                        modifier = Modifier.height(36.dp)
+                        onClick = { if (remainingSwipes.value > 0) showComplimentDialog = true },
+                        colors  = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                     ) {
-                        Text(stringResource(R.string.super_swipe), color = Color.White)
+                        Icon(Icons.Default.AttachEmail, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.compliment), color = Color.White)
                     }
+
                     Spacer(modifier = Modifier.width(8.dp))
+
                     Button(
-                        onClick = { handleForceMatch() },
+                        onClick = {
+                            if (remainingSwipes.value > 0 && displayedProfiles.isNotEmpty()) {
+                                handleBoost(displayedProfiles.first(), profileViewModel)
+                                remainingSwipes.value--
+                                updateSwipesInFirebase(remainingSwipes.value)
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                        modifier = Modifier.height(36.dp)
                     ) {
-                        Text(stringResource(R.string.force_match), color = Color.White)
+                        Icon(Icons.Default.FlashOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.boost), color = Color.White)
                     }
                 }
             }
-            // -------------------------------------------------
 
             Box(modifier = Modifier.fillMaxSize()) {
-                if (isLoading) {
+                when {
+                    isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFFFF6F00))
+                    displayedProfiles.isEmpty() -> NoMoreProfilesScreen()
+                    else -> DatingScreenContent(
+                        navController, geoFire, profileViewModel, postViewModel, displayedProfiles,
+                        onSwipeRight = { if (remainingSwipes.value > 0) remainingSwipes.value-- },
+                        onSwipeLeft  = { if (remainingSwipes.value > 0) remainingSwipes.value-- }
+                    )
+                }
+
+                if (swipesLoaded && remainingSwipes.value <= 0) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.8f))
+                            .pointerInput(Unit) { detectTapGestures {} },
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Color(0xFFFF6F00))
-                    }
-                } else {
-                    if (displayedProfiles.isEmpty()) {
-                        NoMoreProfilesScreen()
-                    } else {
-                        DatingScreenContent(
-                            navController = navController,
-                            geoFire = geoFire,
-                            profiles = displayedProfiles,
-                            profileViewModel = profileViewModel,
-                            postViewModel = postViewModel,
-                            onSwipeRight = {
-                                if (remainingSwipes.value > 0) {
-                                    remainingSwipes.value--
-                                    updateSwipesInFirebase(remainingSwipes.value)
-                                }
-                            },
-                            onSwipeLeft = {
-                                if (remainingSwipes.value > 0) {
-                                    remainingSwipes.value--
-                                    updateSwipesInFirebase(remainingSwipes.value)
-                                }
-                            }
-                        )
-                    }
-                }
-                // Existing swipe direction overlays (if still needed)
-                if (visible) {
-                    // Left arrow overlay
-                    Surface(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .align(Alignment.CenterStart),
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Red.copy(alpha = 0.2f),
-                        elevation = 4.dp
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ChevronLeft,
-                            contentDescription = stringResource(R.string.swipe_left),
-                            tint = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-                    // Right arrow overlay
-                    Surface(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .align(Alignment.CenterEnd),
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Green.copy(alpha = 0.2f),
-                        elevation = 4.dp
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = stringResource(R.string.swipe_right),
-                            tint = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-                    // Animated "Swipe!" text overlay
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-                        exit = fadeOut(animationSpec = tween(durationMillis = 500)),
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
                         Text(
-                            text = stringResource(R.string.swipe),
-                            color = Color.White,
-                            fontSize = 32.sp,
+                            stringResource(R.string.no_more_swipes_available),
+                            color    = Color.White,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
         }
-    }
 
-    // --- Overlay for When Swipes Are Over ---
-    // This overlay covers the screen if remainingSwipes reaches zero,
-    // intercepts all touches, and displays a "No more swipes available" message.
-    if (swipesLoaded && remainingSwipes.value <= 0) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.7f))
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = { /* Consume all touches to disallow swipes */ })
+        // standard match popup
+        matchPopUpState?.let { (currentUser, matchedUser) ->
+            MatchPopUp(
+                currentUser.profilepicUrl.orEmpty(),
+                matchedUser.profilepicUrl.orEmpty(),
+                onChatClick = { navController.navigate("chat/${matchedUser.userId}") },
+                onClose    = { profileViewModel.clearMatchPopUp() }
+            )
+        }
+
+        // ← CHANGED: route through ViewModel.sendCompliment(...)
+        if (showComplimentDialog && displayedProfiles.isNotEmpty()) {
+            ComplimentDialog(
+                onSend = { text, voiceUri ->
+                    coroutineScope.launch {
+                        val justComplimented = displayedProfiles.first()
+                        datingViewModel.sendCompliment(
+                            receiverId       = justComplimented.userId,
+                            textMessage      = text,
+                            voiceUri         = voiceUri,
+                            profileViewModel = profileViewModel
+                        )
+                        remainingSwipes.value--
+                        updateSwipesInFirebase(remainingSwipes.value)
+                        excludedUserIds = excludedUserIds + justComplimented.userId
+                        showComplimentDialog = false
+                    }
                 },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.no_more_swipes_available),
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                onDismiss = { showComplimentDialog = false }
             )
         }
     }
+}
 
-    // Existing MatchPopUp code, etc.
-    matchPopUpState?.let { (currentUserProfile, matchedUserProfile) ->
-        MatchPopUp(
-            currentUserProfilePic = currentUserProfile.profilepicUrl.orEmpty(),
-            otherUserProfilePic = matchedUserProfile.profilepicUrl.orEmpty(),
-            onChatClick = {
-                navController.navigate("chat/${matchedUserProfile.userId}")
-                profileViewModel.clearMatchPopUp()
-            },
-            onClose = { profileViewModel.clearMatchPopUp() },
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.8f))
-        )
-    }
+
+fun handleBoost(profile: Profile, profileViewModel: ProfileViewModel) {
+    Firebase.database.reference.child("users/${profile.userId}/isBoosted").setValue(true)
+    profileViewModel.triggerMatchPopUp(FirebaseAuth.getInstance().uid!!, profile.userId)
 }
 
 /**
@@ -1355,52 +1222,67 @@ fun PhotoWithTwoOverlays(
     var currentPhotoIndex by remember { mutableStateOf(0) }
     val context = LocalContext.current
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    val datingViewModel: DatingViewModel = viewModel()
+    val compliments by datingViewModel.complimentsReceived.collectAsState()
+    val compliment = compliments[profile.userId]
 
-    // Prefetch images with caching
+    // Prefetch
     LaunchedEffect(photoUrls) {
         photoUrls.forEach { url ->
-            val request = ImageRequest.Builder(context)
-                .data(url)
-                .diskCacheKey(url)
-                .memoryCacheKey(url)
-                .build()
-            context.imageLoader.enqueue(request)
+            context.imageLoader.enqueue(
+                ImageRequest.Builder(context)
+                    .data(url)
+                    .diskCacheKey(url)
+                    .memoryCacheKey(url)
+                    .build()
+            )
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.75f)
-            .background(Color.Black)
-            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-            .pointerInput(photoUrls) {
-                detectTapGestures(onTap = { offset ->
-                    if (photoUrls.size > 1) {
-                        currentPhotoIndex = if (offset.x > size.width / 2)
-                            (currentPhotoIndex + 1) % photoUrls.size
-                        else
-                            (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // ─── PHOTO + OVERLAYS ────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.75f)
+                .background(Color.Black)
+                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                .pointerInput(photoUrls) {
+                    detectTapGestures { offset ->
+                        if (photoUrls.size > 1) {
+                            currentPhotoIndex = if (offset.x > size.width / 2)
+                                (currentPhotoIndex + 1) % photoUrls.size
+                            else
+                                (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                        }
                     }
-                })
+                }
+        ) {
+            // 1) main photo
+            if (photoUrls.isNotEmpty()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(photoUrls[currentPhotoIndex])
+                        .diskCacheKey(photoUrls[currentPhotoIndex])
+                        .memoryCacheKey(photoUrls[currentPhotoIndex])
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = stringResource(R.string.profile_photo),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 300.dp)
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(R.string.no_images), color = Color.White)
+                }
             }
-    ) {
-        if (photoUrls.isNotEmpty()) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(photoUrls[currentPhotoIndex])
-                    .diskCacheKey(photoUrls[currentPhotoIndex])
-                    .memoryCacheKey(photoUrls[currentPhotoIndex])
-                    .crossfade(true)
-                    .build(),
-                contentDescription = stringResource(R.string.profile_photo),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 300.dp)
-            )
 
-            // Photo indicators
+            // 2) photo‐position indicators
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1408,32 +1290,19 @@ fun PhotoWithTwoOverlays(
                     .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                photoUrls.forEachIndexed { index, _ ->
+                photoUrls.forEachIndexed { idx, _ ->
                     Box(
                         modifier = Modifier
-                            .width(if (index == currentPhotoIndex) 30.dp else 10.dp)
+                            .width(if (idx == currentPhotoIndex) 30.dp else 10.dp)
                             .height(4.dp)
                             .padding(horizontal = 2.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(if (index == currentPhotoIndex) Color.White else Color.Gray)
+                            .background(if (idx == currentPhotoIndex) Color.White else Color.Gray)
                     )
                 }
             }
 
-            // Top overlay (distance)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopStart)
-                    .padding(14.dp, 10.dp)
-            ) {
-                TagBox(
-                    text = stringResource(R.string.max_distance, userDistance.roundToInt()),
-                    modifier = Modifier.align(Alignment.TopStart)
-                )
-            }
-
-            // Interests overlay with fade-to-black gradient on the first photo
+            // 3) interests gradient overlay (only on first photo)
             if (currentPhotoIndex == 0 && profile.interests.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -1443,8 +1312,7 @@ fun PhotoWithTwoOverlays(
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(Color.Transparent, Color.Black),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
+                                startY = 0f, endY = Float.POSITIVE_INFINITY
                             )
                         )
                 ) {
@@ -1454,8 +1322,7 @@ fun PhotoWithTwoOverlays(
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        val displayedInterests = profile.interests.take(5)
-                        displayedInterests.forEach { interest ->
+                        profile.interests.take(5).forEach { interest ->
                             Text(
                                 text = "${interest.emoji} ${interest.name}",
                                 color = Color.White,
@@ -1465,14 +1332,42 @@ fun PhotoWithTwoOverlays(
                     }
                 }
             }
-        } else {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.no_images), color = Color.White)
+
+            // 4) Super-swipe compliment badge
+            compliment?.let { c ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .background(Color(0xFFE91E63), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.EmojiEmotions,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = c.text,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
         }
+
+        // ─── DISTANCE TAG (moved *below* the photo) ────────────────────────────
+        TagBox(
+            text = stringResource(R.string.max_distance, userDistance.roundToInt()),
+            modifier = Modifier
+                .padding(start = 14.dp, top = 8.dp)
+        )
     }
 }
 
@@ -1756,8 +1651,6 @@ fun showVoiceBio(profile: Profile) {
     }
 }
 
-// ... (Rest of the functions remain unchanged: runAiMatchCheck, calculateExhaustiveCompatibilityScore, etc.)
-
 @Composable
 fun CollapsibleSection(
     title: String,
@@ -1821,8 +1714,6 @@ fun CollapsibleSection(
         Spacer(Modifier.height(4.dp))
     }
 }
-
-// ... (Rest of the functions remain unchanged: handleSwipeRight, handleSwipeLeft, fetchExcludedUsers, etc.)
 
 /** Standard “MatchPopUp” */
 @Composable
@@ -1909,45 +1800,75 @@ fun handleSwipeRight(
     val database = FirebaseDatabase.getInstance()
     val timestamp = System.currentTimeMillis()
 
-    val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
-    val otherUserSwipesRef = database.getReference("swipes/$otherUserId/$currentUserId")
-
-    val currentUserLikesGivenRef = database.getReference("likesGiven/$currentUserId/$otherUserId")
-    val otherUserLikesReceivedRef =
-        database.getReference("likesReceived/$otherUserId/$currentUserId")
-
+    // 1) Record your swipe-right
     val swipeData = SwipeData(liked = true, timestamp = timestamp)
-    currentUserSwipesRef.setValue(swipeData)
-    currentUserLikesGivenRef.setValue(timestamp)
-    otherUserLikesReceivedRef.setValue(timestamp)
+    database.getReference("swipes/$currentUserId/$otherUserId").setValue(swipeData)
+    database.getReference("likesGiven/$currentUserId/$otherUserId").setValue(timestamp)
+    database.getReference("likesReceived/$otherUserId/$currentUserId").setValue(timestamp)
+    database.getReference("swipesReceived/$otherUserId/$currentUserId").setValue(true)
 
-    val otherUserTotalSwipesRef =
-        database.getReference("swipesReceived/$otherUserId/$currentUserId")
-    otherUserTotalSwipesRef.setValue(true)
-
-    val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
-    otherUserProfileRef.get().addOnSuccessListener { snapshot ->
-        val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
-        otherUserProfileRef.setValue(currentCount + 1)
-    }
-
-    val otherUserSwipeRightsRef = database.getReference("users/$otherUserId/numberOfSwipeRights")
-    otherUserSwipeRightsRef.get().addOnSuccessListener { snapshot ->
-        val currentSwipeRights = snapshot.getValue(Int::class.java) ?: 0
-        otherUserSwipeRightsRef.setValue(currentSwipeRights + 1)
-    }
-
-    otherUserSwipesRef.get().addOnSuccessListener { snapshot ->
-        val otherUserSwipeData = snapshot.getValue(SwipeData::class.java)
-        if (otherUserSwipeData?.liked == true) {
-            val currentUserMatchesRef = database.getReference("matches/$currentUserId/$otherUserId")
-            val otherUserMatchesRef = database.getReference("matches/$otherUserId/$currentUserId")
-            currentUserMatchesRef.setValue(timestamp)
-            otherUserMatchesRef.setValue(timestamp)
-
-            profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
+    // 2) Increment their counters
+    database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
+        .get().addOnSuccessListener { snap ->
+            val cnt = snap.getValue(Double::class.java) ?: 0.0
+            database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
+                .setValue(cnt + 1)
         }
-    }
+    database.getReference("users/$otherUserId/numberOfSwipeRights")
+        .get().addOnSuccessListener { snap ->
+            val cnt = snap.getValue(Int::class.java) ?: 0
+            database.getReference("users/$otherUserId/numberOfSwipeRights")
+                .setValue(cnt + 1)
+        }
+
+    // 3) Check if they already liked you
+    database.getReference("swipes/$otherUserId/$currentUserId")
+        .get().addOnSuccessListener { snap ->
+            val theyLikedYou = snap.getValue(SwipeData::class.java)?.liked == true
+            if (theyLikedYou) {
+                // a) Write match entries
+                database.getReference("matches/$currentUserId/$otherUserId")
+                    .setValue(timestamp)
+                database.getReference("matches/$otherUserId/$currentUserId")
+                    .setValue(timestamp)
+
+                // b) Fire the in-app “It’s a Match!” popup
+                profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
+
+                // c) Fetch your compliment and inject it as the first chat message
+                database.getReference("compliments/$currentUserId/$otherUserId")
+                    .get().addOnSuccessListener { cSnap ->
+                        val text     = cSnap.child("text").getValue(String::class.java) ?: ""
+                        val voiceUrl = cSnap.child("voiceUrl").getValue(String::class.java)
+                        if (text.isNotBlank() || voiceUrl != null) {
+                            // generate a push key for the message ID
+                            val pushKey = database
+                                .reference
+                                .child("messages/$currentUserId/$otherUserId")
+                                .push().key
+                                ?: return@addOnSuccessListener
+
+                            val msg = Message(
+                                id         = pushKey,
+                                senderId   = currentUserId,
+                                receiverId = otherUserId,
+                                text       = text,
+                                timestamp  = timestamp,
+                                read       = false,
+                                mediaType  = if (voiceUrl != null) "voice" else null,
+                                mediaUrl   = voiceUrl,
+                                processed  = false
+                            )
+
+                            // write under both users’ message threads
+                            database.getReference("messages/$currentUserId/$otherUserId/$pushKey")
+                                .setValue(msg)
+                            database.getReference("messages/$otherUserId/$currentUserId/$pushKey")
+                                .setValue(msg)
+                        }
+                    }
+            }
+        }
 }
 
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
@@ -2402,3 +2323,120 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? =
             }
         })
     }
+
+@Composable
+fun ComplimentDialog(
+    onSend: (String?, Uri?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var complimentText by remember { mutableStateOf("") }
+    var isRecording by remember { mutableStateOf(false) }
+    var audioFileUri by remember { mutableStateOf<Uri?>(null) }
+    var recorder: MediaRecorder? by remember { mutableStateOf(null) }
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = {
+            if (isRecording) {
+                recorder?.stop()
+                recorder?.release()
+                isRecording = false
+            }
+            onDismiss()
+        },
+        title = {
+            Text(text = "Send a Compliment", color = Color.White)
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = complimentText,
+                    onValueChange = { complimentText = it },
+                    label = { Text("Your message (optional)", color = Color.White.copy(alpha = 0.7f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        textColor = Color.White
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (isRecording) {
+                                recorder?.stop()
+                                recorder?.release()
+                                recorder = null
+                                isRecording = false
+                            } else {
+                                val audioFile = File.createTempFile("compliment_", ".aac", context.cacheDir)
+                                recorder = MediaRecorder().apply {
+                                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                                    setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
+                                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                    setOutputFile(audioFile.absolutePath)
+                                    prepare()
+                                    start()
+                                }
+                                audioFileUri = audioFile.toUri()
+                                isRecording = true
+                            }
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = null,
+                            tint = if (isRecording) Color.Red else Color(0xFFFF6F00),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = if (isRecording) "Recording..." else "Tap to record",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                }
+
+                if (audioFileUri != null && !isRecording) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Voice compliment ready!",
+                        color = Color.Green,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = complimentText.isNotBlank() || audioFileUri != null,
+                onClick = {
+                    onSend(complimentText.trim().takeIf { it.isNotEmpty() }, audioFileUri)
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+            ) {
+                Text("Send", color = Color.White)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.Gray)
+            }
+        },
+        backgroundColor = Color(0xFF1A1A1A),
+        contentColor = Color.White
+    )
+}

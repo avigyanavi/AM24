@@ -1,6 +1,7 @@
 package com.am24.am24
 
 
+import DatingViewModel
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -393,9 +394,13 @@ fun ChatScreenContent(
     profileViewModel: ProfileViewModel,
     chatAIViewModel: ChatAIViewModel
 ) {
+    val datingViewModel: DatingViewModel = viewModel()
     var isSendingMessage by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    // — pull in any Super-Swipe compliments this user sent you —
+    val compliments by datingViewModel.complimentsReceived.collectAsState()
+    val compliment  = compliments[otherUserId]
     var fullScreenTarget by remember { mutableStateOf<Message?>(null) }
     val database = FirebaseDatabase.getInstance()
     val usersRef = database.getReference("users")
@@ -844,20 +849,57 @@ fun ChatScreenContent(
                         reverseLayout = true,
                         verticalArrangement = Arrangement.Bottom
                     ) {
-                        // Add typing indicator before the message list
+                                // 1) Typing indicator stays as its own `item {}`:
                         if (isOtherUserTyping || (isAiConversation && isSendingMessage)) {
-                            item {
-                                TypingIndicator()
-                            }
+                            item { TypingIndicator() }
+
                         }
 
+                                // 2) Your Super-Swipe compliment goes as its own `item {}` here:
+                        compliment?.let { c ->
+                            item {
+                                            // build a fake Message for the superswipe
+
+                                val m = Message(
+                                    id = "superswipe_${c.timestamp}",
+                                    senderId = otherUserId,
+                                    receiverId = currentUserId,
+                                    text = c.text,
+                                    timestamp = c.timestamp,
+                                    mediaType = if (c.voiceUrl != null) "voice" else null,
+                                    mediaUrl = c.voiceUrl,
+                                    read = true
+
+                                )
+                                MessageBubble(
+                                    message = m,
+                                    currentUserId = currentUserId,
+                                    isSuperswipe = true
+
+                                )
+
+                            }
+
+                        }
+
+                                // 3) Finally, list out your real messages:
                         items(messages.reversed()) { message ->
                             when (message.mediaType) {
                                 "voice" -> VoiceMessageBubble(message, currentUserId)
-                                "photo" -> MediaMessageBubble(message = message, currentUserId = currentUserId, onFullscreen = { fullScreenTarget = it })
-                                "video" -> MediaMessageBubble(message = message, currentUserId = currentUserId, onFullscreen = { fullScreenTarget = it })
+                                "photo" -> MediaMessageBubble(
+                                    message,
+                                    currentUserId,
+                                    onFullscreen = { fullScreenTarget = it })
+
+                                "video" -> MediaMessageBubble(
+                                    message,
+                                    currentUserId,
+                                    onFullscreen = { fullScreenTarget = it })
+
                                 else -> MessageBubble(message, currentUserId)
+
                             }
+
                         }
                     }
                 }
@@ -1685,9 +1727,14 @@ fun MediaMessageBubble(
 
 
 @Composable
-fun MessageBubble(message: Message, currentUserId: String) {
+fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean = false    // ← new optional flag
+) {
     val isCurrentUser = message.senderId == currentUserId
-    val bubbleColor = if (isCurrentUser) Color(0xFFFFDB00) else Color(0xFFFF6F00)
+    val bubbleColor =   when {
+        isSuperswipe             -> Color(0xFFE91E63)  // hot-pink pill for superswipe
+        message.senderId == currentUserId -> Color(0xFFFFDB00)
+        else                      -> Color(0xFFFF6F00)
+    }
     val textColor = if (isCurrentUser) Color.Black else Color.White
     val context = LocalContext.current
     val annotatedText = remember(message.text) { createAnnotatedString(message.text) }
@@ -1701,6 +1748,17 @@ fun MessageBubble(message: Message, currentUserId: String) {
         Column(
             modifier = Modifier.background(bubbleColor, RoundedCornerShape(12.dp)).padding(12.dp)
         ) {
+            if (isSuperswipe) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.EmojiEmotions,
+                        contentDescription = "SuperSwipe",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Super-Swipe!", color = Color.White, fontSize = 12.sp)
+                }
+                Spacer(Modifier.height(4.dp))
+            }
             ClickableText(
                 text = annotatedText,
                 style = TextStyle(color = textColor, fontSize = 16.sp),

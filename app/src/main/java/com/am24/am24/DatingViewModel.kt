@@ -1,17 +1,19 @@
 import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.am24.DatingFilterSettings
 import com.am24.am24.Profile
+import com.am24.am24.ProfileViewModel
 import com.am24.am24.calculateAge
 import com.am24.am24.calculateDistance
+import com.am24.am24.handleSwipeRight
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +22,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
+
+// ─── NEW: data class for holding incoming compliment ───
+data class ComplimentData(
+    val text: String = "",
+    val voiceUrl: String? = null,
+    val timestamp: Long = 0L
+) // ← NEW
 
 class DatingViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "DatingViewModel"
@@ -43,8 +53,23 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     private var profilesListener: ValueEventListener? = null
 
+    // ─── NEW: track compliments sent *to* me ─────────────
+    private val _complimentsReceived = MutableStateFlow<Map<String, ComplimentData>>(emptyMap()) // ← NEW
+    val complimentsReceived: StateFlow<Map<String, ComplimentData>> get() = _complimentsReceived // ← NEW
+
+
+    private val _boostedUsers      = MutableStateFlow<List<Profile>>(emptyList())
+    val boostedUsers: StateFlow<List<Profile>>      get() = _boostedUsers
+
+    private val _userDistanceMap   = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val userDistanceMap: StateFlow<Map<String, Float>> get() = _userDistanceMap
+
     init {
         loadFilters()
+        FirebaseAuth.getInstance().currentUser?.uid?.let { me ->
+            updateBoostedUsers(me)
+            loadCompliments(me) // ← NEW
+        }
     }
 
     /**
@@ -54,7 +79,10 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
             try {
-                val snapshot = usersRef.child(userId).child("datingFilters").get().await()
+                val snapshot = usersRef.child(userId)
+                    .child("datingFilters")
+                    .get()
+                    .await()
                 snapshot.getValue(DatingFilterSettings::class.java)?.let {
                     _datingFilters.value = it
                 }
@@ -63,6 +91,70 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
+
+    fun sendCompliment(
+        receiverId: String,
+        textMessage: String?,
+        voiceUri: Uri?,
+        profileViewModel: ProfileViewModel
+    ) {
+        viewModelScope.launch {
+            val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            val timestamp = System.currentTimeMillis()
+
+            val complimentRef =
+                database.getReference("compliments/$senderId/$receiverId")
+            val complimentReceivedRef =
+                database.getReference("complimentsReceived/$receiverId/$senderId")
+
+            val complimentData = hashMapOf<String, Any>(
+                "timestamp" to timestamp,
+                "text" to textMessage.orEmpty()
+            )
+
+            // Upload voice if present
+            if (voiceUri != null) {
+                val storageRef = FirebaseStorage.getInstance()
+                    .getReference("complimentsVoices/$senderId/${UUID.randomUUID()}.aac")
+                val uploadResult = storageRef.putFile(voiceUri).await()
+                val voiceUrl = uploadResult.storage.downloadUrl.await().toString()
+                complimentData["voiceUrl"] = voiceUrl
+            }
+
+            // write both trees
+            complimentRef.setValue(complimentData)
+            complimentReceivedRef.setValue(complimentData)
+
+            // refresh what compliments we have received
+            loadCompliments(senderId) // ← NEW
+
+            // then perform your swipeRight/match logic
+            handleSwipeRight(senderId, receiverId, profileViewModel)
+        }
+    }
+
+    // ─── NEW: load complimentsReceived/$me into _complimentsReceived ───────────
+    private fun loadCompliments(receiverId: String) { // ← NEW
+        viewModelScope.launch {
+            try {
+                val snap = database
+                    .getReference("complimentsReceived/$receiverId")
+                    .get()
+                    .await()
+
+                val map = snap.children.associate { child ->
+                    val fromId = child.key!!
+                    val ts = child.child("timestamp").getValue(Long::class.java) ?: 0L
+                    val text = child.child("text").getValue(String::class.java).orEmpty()
+                    val voice = child.child("voiceUrl").getValue(String::class.java)
+                    fromId to ComplimentData(text = text, voiceUrl = voice, timestamp = ts)
+                }
+                _complimentsReceived.value = map
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading compliments: ${e.message}")
+            }
+        }
+    } // ← NEW
 
     /**
      * Update and save filters in Firebase
@@ -81,39 +173,42 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Start real-time profile updates
-     */
-    fun startRealTimeProfileUpdates(currentUserId: String) {
-        if (profilesListener == null) {
-            profilesListener = object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val profiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
-                    _allProfiles.value = profiles.filter { it.userId != currentUserId }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Error listening for profile updates: ${error.message}")
-                }
-            }
-            usersRef.addValueEventListener(profilesListener!!)
-        }
-    }
-
-    /**
      * Refresh profiles manually
      */
     fun refreshFilteredProfiles() {
         viewModelScope.launch {
             _isLoading.value = true
+            val me = FirebaseAuth.getInstance().currentUser?.uid
             try {
                 val snapshot = usersRef.get().await()
                 val profiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
-                _allProfiles.value = profiles.filter { it.userId != FirebaseAuth.getInstance().currentUser?.uid }
+                _allProfiles.value = profiles.filter { it.userId != me }
+                me?.let {
+                    updateBoostedUsers(it)
+                    loadCompliments(it) // ← NEW: also re-load when refreshing
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error refreshing profiles: ${e.message}")
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**  Re-builds _boostedUsers & _userDistanceMap  */
+    private fun updateBoostedUsers(currentUserId: String) {
+        viewModelScope.launch {
+            val boosted = _allProfiles.value.filter { it.isBoosted }
+
+            // distance look-ups in parallel
+            val distPairs = boosted.mapNotNull { prof ->
+                calculateDistance(currentUserId, prof.userId, geoFire)
+                    ?.let { prof.userId to it }
+            }.toMap()
+
+            _userDistanceMap.value = distPairs
+            _boostedUsers.value    =
+                boosted.sortedBy { distPairs[it.userId] ?: Float.MAX_VALUE }
         }
     }
 

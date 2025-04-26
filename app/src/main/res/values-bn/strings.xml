@@ -1075,7 +1075,7 @@
     <string name="basic_filters">মূল ফিল্টার</string>
     <string name="gender_preference">লিঙ্গ পছন্দ:</string>
     <string name="age_range">বয়স সীমা: %1$d - %2$d</string>
-    <string name="max_distance">সর্বোচ্চ দূরত্ব: %1$dkm</string>
+    <string name="max_distance">দূরত্ব: %1$dkm</string>
 
     <!-- Education Section -->
     <string name="education">শিক্ষা</string>
@@ -1462,4 +1462,12 @@
     <string name="chandannagar_bhadreswar">ভদ্রেশ্বর</string>
     <string name="chandannagar_khalisani">খালিসানি</string>
     <string name="chandannagar_other">অন্যান্য</string>
+
+    <!-- values-bn/strings.xml -->
+        <string name="compliment">প্রশংসা</string>
+        <string name="boost">বুস্ট</string>
+        <string name="show_boosted">বুস্ট করা ব্যবহারকারীরা দেখান</string>
+        <string name="boosted_users">কাছের বুস্ট করা ব্যবহারকারীরা</string>
+
+
 </resources>

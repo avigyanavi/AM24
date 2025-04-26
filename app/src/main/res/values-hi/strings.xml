@@ -1078,7 +1078,7 @@
 
     <!-- values-hi/strings.xml -->
     <string name="age_range">आयु सीमा: %1$d-%2$d वर्ष</string>
-    <string name="max_distance">अधिकतम दूरी: %d किमी</string>
+    <string name="max_distance">दूरी: %d किमी</string>
 
     <!-- Preferences Section -->
     <string name="preferences">पसंदीदा</string>
@@ -1459,5 +1459,11 @@
     <string name="chandannagar_bhadreswar">भद्रेश्वर</string>
     <string name="chandannagar_khalisani">खालिसानी</string>
     <string name="chandannagar_other">अन्य</string>
+
+    <!-- values-hi/strings.xml -->
+        <string name="compliment">प्रशंसा</string>
+        <string name="boost">बूस्ट</string>
+        <string name="show_boosted">बूस्ट किए गए उपयोगकर्ता दिखाएं</string>
+        <string name="boosted_users">पास के बूस्ट किए गए उपयोगकर्ता</string>
 
 </resources>

@@ -978,7 +978,7 @@
     <string name="basic_filters">Basic Filters</string>
     <string name="gender_preference">Gender Preference:</string>
     <string name="age_range">Age Range: %1$d - %2$d</string>
-    <string name="max_distance">Max Distance: %1$dkm</string>
+    <string name="max_distance">Distance: %1$dkm</string>
 
     <!-- Education Section -->
     <string name="education">Education</string>
@@ -1367,4 +1367,10 @@
     <string name="chandannagar_bhadreswar">Bhadreswar</string>
     <string name="chandannagar_khalisani">Khalisani</string>
     <string name="chandannagar_other">Other</string>
+
+    <string name="compliment">Compliment</string>
+    <string name="boost">Boost</string>
+    <string name="show_boosted">Show Boosted Users</string>
+    <string name="boosted_users">Boosted Users Nearby</string>
+
 </resources>
