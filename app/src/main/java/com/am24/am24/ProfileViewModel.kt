@@ -15,6 +15,7 @@ import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
 import com.google.firebase.storage.StorageReference
+import kotlinx.coroutines.flow.update
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -258,6 +259,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             voiceNoteFilePath = filePath
         } catch (e: Exception) {
             Log.e(TAG, "Error starting voice recording: ${e.message}")
+        }
+    }
+
+    /** Call this right after you know a boost has succeeded. */
+    fun decrementBoostsLocal() {
+        _currentUserProfile.update { prof ->
+            prof?.copy(
+                availableBoosts = (prof.availableBoosts - 1).coerceAtLeast(0)
+            )
         }
     }
 

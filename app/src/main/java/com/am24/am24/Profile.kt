@@ -63,8 +63,17 @@ data class Profile(
     val numberOfUsersWhoSwiped: Double = 0.0,
     val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
     var isBoosted: Boolean = false,
+    /** when that profile was boosted (ms since epoch) */
+    var boostedAt: Long? = null,
+
+    /** only on *your* own profile: how many boosts you have left */
+    var availableBoosts: Int = 0,
+    /** when *you* last hit “Boost” (ms since epoch) */
+    var lastBoostTimestamp: Long? = null,
     var isPremium: Boolean = false,
     var isPrivate: Boolean = false,
+    var availableCompliments: Int = 10,          // resets daily
+    var lastComplimentResetDayOfYear: Int? = null,
 
     // NEW: New variables for location preferences
     var allowLocationForMatches: Boolean = false,

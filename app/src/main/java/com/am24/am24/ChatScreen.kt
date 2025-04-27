@@ -855,10 +855,29 @@ fun ChatScreenContent(
 
                         }
 
-                                // 2) Your Super-Swipe compliment goes as its own `item {}` here:
+                                // 3) Finally, list out your real messages:
+                        items(messages.reversed()) { message ->
+                            when (message.mediaType) {
+                                "voice" -> VoiceMessageBubble(message, currentUserId)
+                                "photo" -> MediaMessageBubble(
+                                    message,
+                                    currentUserId,
+                                    onFullscreen = { fullScreenTarget = it })
+
+                                "video" -> MediaMessageBubble(
+                                    message,
+                                    currentUserId,
+                                    onFullscreen = { fullScreenTarget = it })
+
+                                else -> MessageBubble(message, currentUserId)
+
+                            }
+
+                        }
+                        // 2) Your Super-Swipe compliment goes as its own `item {}` here:
                         compliment?.let { c ->
                             item {
-                                            // build a fake Message for the superswipe
+                                // build a fake Message for the superswipe
 
                                 val m = Message(
                                     id = "superswipe_${c.timestamp}",
@@ -882,25 +901,6 @@ fun ChatScreenContent(
 
                         }
 
-                                // 3) Finally, list out your real messages:
-                        items(messages.reversed()) { message ->
-                            when (message.mediaType) {
-                                "voice" -> VoiceMessageBubble(message, currentUserId)
-                                "photo" -> MediaMessageBubble(
-                                    message,
-                                    currentUserId,
-                                    onFullscreen = { fullScreenTarget = it })
-
-                                "video" -> MediaMessageBubble(
-                                    message,
-                                    currentUserId,
-                                    onFullscreen = { fullScreenTarget = it })
-
-                                else -> MessageBubble(message, currentUserId)
-
-                            }
-
-                        }
                     }
                 }
                 if (!isAiConversation && isRecording) {

@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.Calendar
 import java.util.UUID
 
 // ─── NEW: data class for holding incoming compliment ───
@@ -32,6 +33,11 @@ data class ComplimentData(
 ) // ← NEW
 
 class DatingViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
+        internal const val COMPLIMENT_DAILY_QUOTA = 10
+    }
+
     private val TAG = "DatingViewModel"
     private val database = FirebaseDatabase.getInstance()
     private val usersRef = database.getReference("users")
@@ -40,6 +46,9 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     // StateFlows
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
     val allProfiles: StateFlow<List<Profile>> get() = _allProfiles
+
+    private val _complimentsLeft = MutableStateFlow(COMPLIMENT_DAILY_QUOTA)
+    val complimentsLeft: StateFlow<Int> get() = _complimentsLeft
 
     private val _datingFilters = MutableStateFlow(DatingFilterSettings())
     val datingFilters: StateFlow<DatingFilterSettings> get() = _datingFilters
@@ -66,9 +75,16 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         loadFilters()
+
         FirebaseAuth.getInstance().currentUser?.uid?.let { me ->
+            // 1) first make sure we fetch today’s compliment quota ----------------
+            viewModelScope.launch {
+                _complimentsLeft.value = loadAndResetComplimentsDaily(me)
+            }
+
+            // the two lines you already had
             updateBoostedUsers(me)
-            loadCompliments(me) // ← NEW
+            loadCompliments(me)
         }
     }
 
@@ -121,16 +137,42 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 complimentData["voiceUrl"] = voiceUrl
             }
 
-            // write both trees
+// write both trees ----------------------------------------------------------
             complimentRef.setValue(complimentData)
             complimentReceivedRef.setValue(complimentData)
 
-            // refresh what compliments we have received
-            loadCompliments(senderId) // ← NEW
+            /* ▼▼▼ 2-d: burn one compliment quota & update the StateFlow ▼▼▼ */
+            val leftNow = (_complimentsLeft.value - 1).coerceAtLeast(0)
+            database.getReference("users/$senderId")
+                .child("availableCompliments")
+                .setValue(leftNow)
+            _complimentsLeft.value = leftNow
+            /* ▲▲▲ --------------------------------------------------------------------- */
 
-            // then perform your swipeRight/match logic
+            // refresh the map of compliments received (optional but nice)
+            loadCompliments(senderId)
+
+// continue with your existing swipe-right logic
             handleSwipeRight(senderId, receiverId, profileViewModel)
         }
+    }
+    suspend fun loadAndResetComplimentsDaily(userId: String): Int {
+        val ref   = database.getReference("users/$userId")
+        val snap  = ref.get().await()
+
+        var left  = snap.child("availableCompliments")
+            .getValue(Int::class.java) ?: COMPLIMENT_DAILY_QUOTA
+        var day   = snap.child("lastComplimentResetDayOfYear")
+            .getValue(Int::class.java) ?: -1
+
+        val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+        if (today != day) {
+            left = COMPLIMENT_DAILY_QUOTA
+            day  = today
+            ref.child("availableCompliments").setValue(left)
+            ref.child("lastComplimentResetDayOfYear").setValue(day)
+        }
+        return left
     }
 
     // ─── NEW: load complimentsReceived/$me into _complimentsReceived ───────────
@@ -195,20 +237,60 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**  Re-builds _boostedUsers & _userDistanceMap  */
+    /** call this when the user presses “Boost” */
+    fun boostUser(
+        targetUserId: String,
+        onFinished: () -> Unit = {}
+    ) {
+        val me = FirebaseAuth.getInstance().uid ?: return
+        val now = System.currentTimeMillis()
+        viewModelScope.launch {
+            // 1) decrement my boost-count and record my lastBoostTimestamp
+            usersRef.child(me).apply {
+                child("availableBoosts").get().await().getValue(Long::class.java)?.let { current ->
+                    child("availableBoosts").setValue((current - 1).coerceAtLeast(0L)).await()
+                }
+                child("lastBoostTimestamp").setValue(now).await()
+            }
+
+            // 2) set the other user’s isBoosted + boostedAt
+            usersRef.child(targetUserId).apply {
+                child("isBoosted").setValue(true).await()
+                child("boostedAt").setValue(now).await()
+            }
+
+            // 3) refresh your boosted list
+            updateBoostedUsers(me)
+            refreshFilteredProfiles()               // <-- add this
+            onFinished()
+        }
+    }
+
+    /** rebuilds `_boostedUsers`, dropping any >6h old */
     private fun updateBoostedUsers(currentUserId: String) {
         viewModelScope.launch {
-            val boosted = _allProfiles.value.filter { it.isBoosted }
+            val now = System.currentTimeMillis()
 
-            // distance look-ups in parallel
-            val distPairs = boosted.mapNotNull { prof ->
-                calculateDistance(currentUserId, prof.userId, geoFire)
-                    ?.let { prof.userId to it }
+            // clean out expired boosts in Firebase too (optional)
+            _allProfiles.value
+                .filter { it.isBoosted && (it.boostedAt == null || now - it.boostedAt!! > BOOST_DURATION_MS) }
+                .forEach {
+                    usersRef.child(it.userId).child("isBoosted").setValue(false)
+                }
+
+            // only keep the fresh ones
+            val boosted = _allProfiles.value.filter {
+                it.isBoosted && it.boostedAt != null && now - it.boostedAt!! <= BOOST_DURATION_MS
+            }
+
+            // compute distances…
+            val distMap = boosted.mapNotNull { p ->
+                calculateDistance(currentUserId, p.userId, geoFire)
+                    ?.let { p.userId to it }
             }.toMap()
 
-            _userDistanceMap.value = distPairs
-            _boostedUsers.value    =
-                boosted.sortedBy { distPairs[it.userId] ?: Float.MAX_VALUE }
+            _userDistanceMap.value = distMap
+            _boostedUsers.value    = boosted.sortedBy { distMap[it.userId] ?: Float.MAX_VALUE }
         }
     }
 

@@ -102,6 +102,7 @@ fun MatchedUserProfileScreen(
     val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
     val featuredPosts = sortedByUpvotes.take(5)
     val remainingPosts = sortedByUpvotes.drop(5)
+    val isBoosted = false
 
     // Main layout
     Box(modifier = modifier.fillMaxSize()) {
@@ -130,6 +131,7 @@ fun MatchedUserProfileScreen(
                         item {
                             PhotoWithTwoOverlays(
                                 profile = profile,
+                                isBoosted = false,
                                 userDistance = userDistance!!,
                                 aiMatchResult = aiMatchResult,
                                 currentProfile = currentUserProfile

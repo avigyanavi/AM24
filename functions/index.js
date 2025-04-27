@@ -206,3 +206,35 @@ exports.generateAICharacterAvatar = functions.https.onRequest(async (req, res) =
     res.status(500).send("AI character image generation failed");
   }
 });
+
+exports.initProfile = functions.auth.user().onCreate(user => {
+  return admin.database().ref(`users/${user.uid}`).update({
+    availableBoosts: 5,
+    availableCompliments: 5,
+    lastBoostTimestamp: null,
+    isBoosted: false,
+    boostedAt: null
+  });
+});
+
+// One-time back-fill for old accounts – remove after you run it
+//exports.backfillBoosts = functions.https.onRequest(async (req, res) => {
+//  try {
+//    const snap = await admin.database().ref('users').once('value');
+//    const updates = {};
+//
+//    snap.forEach(child => {
+//      if (!child.hasChild('availableBoosts')) {
+//        // add default values only if missing
+//        updates[`${child.key}/availableBoosts`]     = 5;
+//        updates[`${child.key}/availableCompliments`] = 5;
+//      }
+//    });
+//
+//    await admin.database().ref('users').update(updates);
+//    res.send('Back-fill complete – updated ' + Object.keys(updates).length / 2 + ' users.');
+//  } catch (err) {
+//    console.error(err);
+//    res.status(500).send(err.message);
+//  }
+//});
