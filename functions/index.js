@@ -238,3 +238,31 @@ exports.initProfile = functions.auth.user().onCreate(user => {
 //    res.status(500).send(err.message);
 //  }
 //});
+
+const functions = require('firebase-functions');
+const Razorpay = require('razorpay');
+
+// Initialize Razorpay with your key ID and secret
+const razorpay = new Razorpay({
+    key_id: 'rzp_test_PEBgJvcT9jIT7O',
+    key_secret: 'HM0OOCqESrzteQG1oRO7Lplz'
+});
+
+exports.verifyPayment = functions.https.onCall(async (data, context) => {
+    try {
+        const paymentId = data.paymentId;
+        if (!paymentId) {
+            throw new functions.https.HttpsError('invalid-argument', 'Payment ID is required.');
+        }
+
+        // Fetch payment details from Razorpay
+        const payment = await razorpay.payments.fetch(paymentId);
+        const isValid = payment.status === 'captured';
+
+        console.log(`Payment verification for paymentId ${paymentId}: status=${payment.status}, isValid=${isValid}`);
+        return isValid;
+    } catch (error) {
+        console.error(`Error verifying payment: ${error.message}`);
+        throw new functions.https.HttpsError('internal', `Payment verification failed: ${error.message}`);
+    }
+});

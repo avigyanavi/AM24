@@ -19,15 +19,21 @@ import coil.memory.MemoryCache
 import coil.Coil
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.razorpay.PaymentResultListener
 import androidx.compose.runtime.Composable
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import java.util.Locale
 
-class KupidXAppActivity : ComponentActivity() {
-
+class KupidXAppActivity : ComponentActivity(), PaymentResultListener {
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
+
+    // Payment callbacks
+    private var paymentSuccessCallback: ((String) -> Unit)? = null
+    private var paymentErrorCallback: ((String) -> Unit)? = null
 
     // Override attachBaseContext to apply the locale from SharedPreferences
     override fun attachBaseContext(newBase: Context) {
@@ -117,6 +123,24 @@ class KupidXAppActivity : ComponentActivity() {
                 )
             )
         }
+    }
+
+    // Set payment callbacks from SubscriptionScreen
+    fun setPaymentCallbacks(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
+        paymentSuccessCallback = onSuccess
+        paymentErrorCallback = onError
+    }
+
+    override fun onPaymentSuccess(paymentId: String?) {
+        if (paymentId != null) {
+            paymentSuccessCallback?.invoke(paymentId)
+        } else {
+            paymentErrorCallback?.invoke("Payment succeeded but no payment ID received.")
+        }
+    }
+
+    override fun onPaymentError(code: Int, response: String?) {
+        paymentErrorCallback?.invoke("Payment failed: $response")
     }
 }
 

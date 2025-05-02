@@ -117,6 +117,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation (libs.gson)
+    implementation("com.razorpay:checkout:1.6.41")
 
 //    implementation(libs.core) // ARCore
     implementation(libs.picasso)

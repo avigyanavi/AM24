@@ -126,6 +126,9 @@ fun MainNavGraph(
                 initialQuery = initialQuery
             )
         }
+        composable("subscription") {
+            SubscriptionScreen(navController)
+        }
         composable("dating") {
             DatingScreen(navController = navController, geoFire = geoFire)
         }

@@ -10,13 +10,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +32,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// Main Settings Screen
 @Composable
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
@@ -43,31 +39,22 @@ fun SettingsScreen(navController: NavController) {
     val currentUserId = currentUser.uid
     val userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
 
-    // -----------------------
-    // Existing Premium & Account States
-    // -----------------------
-    var isPremiumUser by remember { mutableStateOf(false) }
+    // Premium & Account States
+    var isPremiumUser by remember { mutableStateOf(false) } // Initially false
     var premiumExpiryDate by remember { mutableStateOf("") }
     var isBoosted by remember { mutableStateOf(false) }
-
-    // -----------------------
-    // New Global Preferences
-    // -----------------------
-    // Option (1): Show "name" or "username" on profile screen
-    var displayPreference by remember { mutableStateOf("name") } // "name" or "username"
-    // Option (6): Preferred language; default English
+    // Other states (unchanged)
+    var displayPreference by remember { mutableStateOf("name") }
     var preferredLanguage by remember { mutableStateOf("English") }
-    // Option (7): Allow location for matches
     var allowLocationForMatches by remember { mutableStateOf(true) }
-    // Option (8): Matrimony mode toggle
     var isMatrimonyMode by remember { mutableStateOf(false) }
-
-    // New: Blocked users list (assumed to be a list of user IDs or usernames)
     var blockedUsers by remember { mutableStateOf(listOf<String>()) }
 
-    // Load all global settings from Firebase when the screen launches
-    LaunchedEffect(Unit) {
-        // Load payment details
+    // Key to force refresh of premium status
+    var refreshKey by remember { mutableStateOf(0) }
+
+    // Load settings from Firebase
+    LaunchedEffect(Unit, refreshKey) {
         userRef.child("premiumStatus").get().addOnSuccessListener { snap ->
             isPremiumUser = snap.child("isPremium").getValue(Boolean::class.java) ?: false
             premiumExpiryDate = snap.child("expiryDate").getValue(String::class.java) ?: "N/A"
@@ -75,18 +62,27 @@ fun SettingsScreen(navController: NavController) {
         userRef.child("isBoosted").get().addOnSuccessListener { snap ->
             isBoosted = snap.getValue(Boolean::class.java) ?: false
         }
-        // Load global preferences from user record
         userRef.get().addOnSuccessListener { snapshot ->
             displayPreference = snapshot.child("displayPreference").getValue(String::class.java) ?: "name"
             preferredLanguage = snapshot.child("preferredLanguage").getValue(String::class.java) ?: "English"
             allowLocationForMatches = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java) ?: true
             isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
-            // Blocked users list saved as a list in Firebase (or as a Map whose keys are user IDs)
             blockedUsers = snapshot.child("blockedUsers").children.mapNotNull { it.value as? String }
         }
     }
 
-    // Scaffold wrapping all sections
+    // Listen for navigation back from SubscriptionScreen
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("premiumUpdated")?.observe(
+            navController.currentBackStackEntry!!
+        ) { updated ->
+            if (updated == true) { // Explicitly check for true
+                refreshKey++ // Trigger refresh only on successful payment
+            }
+        }
+    }
+
+    // Rest of SettingsScreen (unchanged)
     Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -96,11 +92,8 @@ fun SettingsScreen(navController: NavController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Premium Status Section (existing)
             item { PremiumStatusSection(navController, isPremiumUser, premiumExpiryDate, isBoosted) }
-            // Account Settings Section (existing)
             item { AccountSettingsSection(navController) }
-            // Global Preferences Section (new)
             item {
                 GlobalPreferencesSection(
                     displayPreference = displayPreference,
@@ -113,11 +106,8 @@ fun SettingsScreen(navController: NavController) {
                     onMatrimonyModeChange = { isMatrimonyMode = it }
                 )
             }
-            // Purchase Options Section (new)
             item { PurchaseOptionsSection(navController) }
-            // Blocked Users Section (new)
             item { BlockedUsersSection(userRef, blockedUsers) }
-            // Save Button for Global Preferences
             item {
                 val scope = rememberCoroutineScope()
                 Button(
@@ -169,7 +159,6 @@ fun PremiumStatusSection(
                 .background(Color.Black, shape = RoundedCornerShape(8.dp))
                 .padding(16.dp)
         ) {
-            // Show plan type – you can extend to include "Super plan" if needed
             Text(
                 text = if (isPremiumUser) "Premium Member" else "Free User",
                 color = if (isPremiumUser) Color(0xFFFFD700) else Color.Gray,
@@ -183,7 +172,6 @@ fun PremiumStatusSection(
                 fontSize = 16.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
-            // Subscription management/upgrading
             Button(
                 onClick = { navController.navigate("subscription") },
                 modifier = Modifier.width(160.dp),
@@ -198,7 +186,6 @@ fun PremiumStatusSection(
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-            // Buy Boost (existing behavior)
             Button(
                 onClick = {
                     if (!isBoosted) {
@@ -220,14 +207,10 @@ fun PremiumStatusSection(
     }
 }
 
-/** ACCOUNT SETTINGS SECTION (existing) **/
+/** ACCOUNT SETTINGS SECTION **/
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSettingsSection(navController: NavController) {
-    // Use your existing AccountSettingsSection code here.
-    // For brevity, the code below is the same as your provided code.
-    // (See your original SettingsPage code for account editing, password changes, private toggle, etc.)
-    // ──────────────
     val context = LocalContext.current
     val currentUser = FirebaseAuth.getInstance().currentUser ?: return
     val currentUserId = currentUser.uid
@@ -477,7 +460,6 @@ fun GlobalPreferencesSection(
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        // (1) Display preference: name vs username
         Text("Display on Profile:", color = Color.White, fontSize = 16.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(
@@ -495,7 +477,6 @@ fun GlobalPreferencesSection(
             Text("Username", color = Color.White)
         }
         Spacer(modifier = Modifier.height(16.dp))
-        // (6) Preferred Language dropdown
         Text("Preferred Language:", color = Color.White, fontSize = 16.sp)
         var languageExpanded by remember { mutableStateOf(false) }
         Box {
@@ -515,7 +496,6 @@ fun GlobalPreferencesSection(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        // (7) Allow Location for Matches toggle
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Allow Location for Matches", color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
             Switch(
@@ -528,7 +508,6 @@ fun GlobalPreferencesSection(
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
-        // (8) Matrimony Mode toggle
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Matrimony Mode", color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
             Switch(
@@ -559,7 +538,6 @@ fun PurchaseOptionsSection(navController: NavController) {
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        // Add buttons for various in-app purchases:
         Button(
             onClick = { navController.navigate("buySwipes") },
             modifier = Modifier.fillMaxWidth(),
@@ -583,8 +561,6 @@ fun PurchaseOptionsSection(navController: NavController) {
         ) {
             Text("Buy Super Swipes", color = Color.White)
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        // The "Buy Boost" option is already in PremiumStatusSection.
     }
 }
 
@@ -594,7 +570,6 @@ fun BlockedUsersSection(userRef: com.google.firebase.database.DatabaseReference,
     var showBlockedOverlay by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    // Button to view blocked users
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -612,13 +587,11 @@ fun BlockedUsersSection(userRef: com.google.firebase.database.DatabaseReference,
         if (blockedUsers.isEmpty()) {
             Text("No users are blocked.", color = Color.White, fontSize = 16.sp)
         } else {
-            // Show up to 3 blocked users as preview
             blockedUsers.take(3).forEach { user ->
                 Text(user, color = Color.White, fontSize = 16.sp)
             }
         }
     }
-    // Overlay: an AlertDialog listing blocked users with an unblock option
     if (showBlockedOverlay) {
         AlertDialog(
             onDismissRequest = { showBlockedOverlay = false },
@@ -636,7 +609,6 @@ fun BlockedUsersSection(userRef: com.google.firebase.database.DatabaseReference,
                                 Text(user, color = Color.White, modifier = Modifier.weight(1f))
                                 TextButton(onClick = {
                                     scope.launch {
-                                        // Remove user from blocked list in Firebase
                                         userRef.child("blockedUsers").child(user).removeValue().await()
                                         Toast.makeText(context, "Unblocked $user", Toast.LENGTH_SHORT).show()
                                     }
@@ -674,7 +646,7 @@ suspend fun updateGlobalSettings(
     userRef.updateChildren(updates).await()
 }
 
-/** UPDATE ACCOUNT SETTINGS (Same as your current implementation) **/
+/** UPDATE ACCOUNT SETTINGS FUNCTION **/
 suspend fun updateAccountSettingsNoEmail(
     newPassword: String,
     newUsername: String,
