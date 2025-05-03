@@ -1019,11 +1019,30 @@ fun ChatScreenContent(
                     }
                 }
                 if (!isAiConversation && isRecording) {
-                    Text(
-                        "Recording... Time left: ${recordingTimeLeft / 1000}s",
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            "Recording... Time left: ${recordingTimeLeft / 1000}s",
+                            color = Color.White,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = onToggleRecord,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFFB71C1C), CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.Stop,
+                                contentDescription = "Stop recording",
+                                tint = Color.White
+                            )
+                        }
+                    }
                 }
                 if (!isAiConversation && recordedVoiceUri != null) {
                     VoiceMessagePlayer(
