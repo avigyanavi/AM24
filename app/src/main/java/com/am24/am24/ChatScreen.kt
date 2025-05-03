@@ -7,6 +7,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
@@ -72,7 +73,6 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
-import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
 import com.google.firebase.auth.FirebaseAuth
@@ -400,6 +400,7 @@ fun ChatScreenContent(
     profileViewModel: ProfileViewModel,
     chatAIViewModel: ChatAIViewModel
 ) {
+    var previewRefresh by remember { mutableStateOf(0) }
     var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
     // keep track of which Uri we’re editing
     var pendingEditUri by remember { mutableStateOf<Uri?>(null) }
@@ -465,18 +466,15 @@ fun ChatScreenContent(
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaType by remember { mutableStateOf<String?>(null) } // "photo" or "video"
 
-    // register a launcher for “startActivityForResult” on ACTION_EDIT
+// then define your editLauncher like this:
     val editLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK && pendingEditUri != null) {
-            // stash locally
-            val newUri = pendingEditUri!!
+            // clear out the pending URI
             pendingEditUri = null
-
-            // force Compose to see “change” by clearing & then re-setting
-            selectedMediaUri = null
-            selectedMediaUri = newUri
+            // bump the key so MediaPreviewBox re-loads the image
+            previewRefresh++
         }
     }
 
@@ -1081,7 +1079,8 @@ fun ChatScreenContent(
                                 )
                             }
                             editLauncher.launch(editIntent)
-                        }
+                        },
+                        refreshKey = previewRefresh
                     )
                 }
                 // 2) then *immediately* after it, show the full-screen dialog:
@@ -1538,22 +1537,6 @@ fun sendMediaMessage(
             onSuccess()
         }.addOnFailureListener { Toast.makeText(context, "Failed to get $mediaType URL", Toast.LENGTH_SHORT).show() }
     }.addOnFailureListener { Toast.makeText(context, "Failed to upload $mediaType", Toast.LENGTH_SHORT).show() }
-}
-
-// Video preview using VideoView without ExoPlayer
-@Composable
-fun VideoPreview(uri: Uri, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    AndroidView(
-        factory = { ctx ->
-            VideoView(ctx).apply {
-                setVideoURI(uri)
-                // For a thumbnail, seek to 1ms (or call seekTo(1)) to get the first frame.
-                seekTo(1)
-            }
-        },
-        modifier = modifier
-    )
 }
 
 // FullscreenMediaViewer that supports photo and video
@@ -2030,11 +2013,13 @@ fun MediaPreviewBox(
     mediaType: String?,
     onCancel: () -> Unit,
     onFull: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    refreshKey: Int
 ) {
-    Column(Modifier
-        .padding(8.dp)
-        .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(8.dp))
+    Column(
+        Modifier
+            .padding(8.dp)
+            .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(8.dp))
     ) {
         Box(
             Modifier
@@ -2042,16 +2027,35 @@ fun MediaPreviewBox(
                 .fillMaxWidth()
                 .clickable { onFull() }
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(uri)
-                    .diskCachePolicy(CachePolicy.DISABLED)
-                    .memoryCachePolicy(CachePolicy.DISABLED)
-                    .build(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+            key(refreshKey) {
+                if (mediaType == "video") {
+                    AndroidView(
+                        factory = { ctx ->
+                            VideoView(ctx).apply {
+                                setVideoURI(uri)
+                                // show first frame without autoplay
+                                setOnPreparedListener { it.isLooping = false; seekTo(1) }
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AndroidView(
+                        factory = { ctx ->
+                            AppCompatImageView(ctx).apply {
+                                scaleType = ImageView.ScaleType.FIT_CENTER
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        update = { view ->
+                            view.context.contentResolver.openInputStream(uri)?.use { stream ->
+                                val bmp = BitmapFactory.decodeStream(stream)
+                                view.setImageBitmap(bmp)
+                            }
+                        }
+                    )
+                }
+            }
         }
 
         Row(
