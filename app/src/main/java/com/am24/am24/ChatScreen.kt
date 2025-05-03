@@ -26,10 +26,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
@@ -799,6 +801,21 @@ fun ChatScreenContent(
         topBar = {
             TopAppBar(
                 title = {
+                    // 1) remember a ScrollState
+                    val scrollState = rememberScrollState()
+                    // 2) whenever the name changes, kick off an infinite marquee loop
+                    LaunchedEffect(otherUserProfile?.name ?: "Chat") {
+                        // brief delay so you can actually see the start
+                        delay(500)
+                        while (true) {
+                            // scroll to end
+                            scrollState.animateScrollTo(scrollState.maxValue)
+                            delay(1500)
+                            // scroll back to start
+                            scrollState.animateScrollTo(0)
+                            delay(1500)
+                        }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
@@ -838,20 +855,28 @@ fun ChatScreenContent(
                             Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
                         }
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = if (isAiConversation) {
-                                when (otherUserId) {
-                                    "zaraAi" -> "Zara"
-                                    "kabirAi" -> "Kabir"
-                                    else -> "AI"
-                                }
-                            } else {
-                                otherUserProfile?.name ?: "Chat"
-                            },
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )                    }
+                        // ← Replace your Text(...) with this Box
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)                        // take up remaining space
+                                .horizontalScroll(scrollState, true)
+                        ) {
+                            Text(
+                                text = if (isAiConversation) {
+                                    when (otherUserId) {
+                                        "zaraAi" -> "Zara"
+                                        "kabirAi" -> "Kabir"
+                                        else -> "AI"
+                                    }
+                                } else {
+                                    otherUserProfile?.name ?: "Chat"
+                                },
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        }
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
