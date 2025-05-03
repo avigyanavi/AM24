@@ -29,10 +29,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     private var isFeedPaused = false
     // Firebase Realtime Database reference to "posts"
-    private val postsRef = FirebaseDatabase.getInstance().getReference("posts")
+    private val postsRef = FirebaseRefs.db.getReference("posts")
 
     // Firebase Storage reference
-    private val storageRef = FirebaseStorage.getInstance().reference
+    private val storageRef = FirebaseRefs.storage.reference
 
     // Define media size limits (in bytes)
     private val VOICE_MAX_SIZE = 5 * 1024 * 1024      // 5 MB
@@ -44,10 +44,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "PostViewModel"
 
     // Firebase Realtime Database reference to "notifications"
-    private val notificationsRef = FirebaseDatabase.getInstance().getReference("notifications")
+    private val notificationsRef = FirebaseRefs.db.getReference("notifications")
 
     // Firebase Realtime Database reference to "friends" and "matches"
-    private val matchesRef = FirebaseDatabase.getInstance().getReference("matches")
+    private val matchesRef = FirebaseRefs.db.getReference("matches")
 
     /**
      * StateFlow holding the list of posts.
@@ -126,7 +126,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             Log.d("PostViewModel", "Starting fetchPosts")
             _isLoading.value = true
             _profilePosts.value = emptyList() // Reset to avoid stale data
-            val database = FirebaseDatabase.getInstance()
+            val database = FirebaseRefs.db
             val postsRef = database.getReference("posts")
 
             postsRef.addListenerForSingleValueEvent(object : ValueEventListener {
@@ -222,7 +222,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     fun pauseFeed() {
         isFeedPaused = true
         postsListener?.let {
-            FirebaseDatabase.getInstance().getReference("posts").removeEventListener(it)
+            FirebaseRefs.db.getReference("posts").removeEventListener(it)
         }
     }
     // Resume observing posts
@@ -272,7 +272,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     // Helper function to fetch a username by user ID
     private suspend fun fetchUsernameById(userId: String): String {
         return try {
-            val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+            val userRef = FirebaseRefs.db.getReference("users").child(userId)
             val snapshot = userRef.child("username").get().await()
             snapshot.getValue(String::class.java) ?: "Unknown"
         } catch (e: Exception) {
@@ -927,7 +927,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Example: Create a share entry in each match's "sharedPosts" node
-                val sharedPostsRef = FirebaseDatabase.getInstance().getReference("sharedPosts")
+                val sharedPostsRef = FirebaseRefs.db.getReference("sharedPosts")
                 matches.forEach { matchId ->
                     sharedPostsRef.child(matchId).child(postId).setValue(true).await()
                 }
@@ -1084,7 +1084,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
 
     fun loadFiltersFromFirebase(userId: String) {
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("feedFilters")
+        val userRef = FirebaseRefs.db.getReference("users").child(userId).child("feedFilters")
         userRef.get().addOnSuccessListener { snapshot ->
             val feedFilters = snapshot.getValue(FeedFilterSettings::class.java)
             if (feedFilters != null) {
@@ -1137,7 +1137,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         val profiles = mutableMapOf<String, Profile>()
         val deferreds = userIds.map { userId ->
             async {
-                val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+                val userRef = FirebaseRefs.db.getReference("users").child(userId)
                 val snapshot = userRef.get().await()
                 snapshot.getValue(Profile::class.java)?.let { profile ->
                     // Set relationship to "match" if userId is in matches
@@ -1173,7 +1173,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val postRef = FirebaseDatabase.getInstance().getReference("posts").child(postId)
+                val postRef = FirebaseRefs.db.getReference("posts").child(postId)
                 postRef.removeValue().await()
                 onSuccess()
             } catch (e: Exception) {
@@ -1197,7 +1197,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Reference to the "savedPosts" node for the user
-                val savedPostsRef = FirebaseDatabase.getInstance()
+                val savedPostsRef = FirebaseRefs.db
                     .getReference("savedPosts")
                     .child(userId)
                     .child(postId)
@@ -1229,7 +1229,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val reportsRef = FirebaseDatabase.getInstance().getReference("reportedPosts").child(postId)
+                val reportsRef = FirebaseRefs.db.getReference("reportedPosts").child(postId)
                 val reportId = reportsRef.push().key
                 if (reportId == null) {
                     onFailure("Unable to generate report ID.")

@@ -98,7 +98,7 @@ fun TopNavBar(
 
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
-        val profileRef = FirebaseDatabase.getInstance()
+        val profileRef = FirebaseRefs.db
             .getReference("users")
             .child(currentUserId)
         val listener = object : ValueEventListener {
@@ -124,7 +124,7 @@ fun TopNavBar(
 
     // Observe unread notifications count
     DisposableEffect(currentUserId) {
-        val notificationsRef = FirebaseDatabase.getInstance()
+        val notificationsRef = FirebaseRefs.db
             .getReference("notifications")
             .child(currentUserId)
         val listener = object : ValueEventListener {
@@ -290,7 +290,7 @@ fun TopNavBar(
             },
             confirmButton = {
                 Button(onClick = {
-                    FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+                    FirebaseRefs.db.getReference("users").child(currentUserId)
                         .child("allowLocationForMatches").setValue(allowLocationForMatches)
                         .addOnSuccessListener {
                             Log.d("TopNavBar", "Location preference saved: $allowLocationForMatches")

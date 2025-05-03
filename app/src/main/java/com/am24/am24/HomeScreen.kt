@@ -108,7 +108,7 @@ fun HomeScreen(
         LaunchedEffect(userId) {
             if (userId != null) {
                 withContext(Dispatchers.IO) {
-                    val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+                    val userRef = FirebaseRefs.db.getReference("users").child(userId)
                     userRef.addListenerForSingleValueEvent(object : ValueEventListener {
                         override fun onDataChange(snapshot: DataSnapshot) {
                             snapshot.getValue(Profile::class.java)?.let { fetchedProfile ->
@@ -1712,7 +1712,7 @@ fun handleAddVoiceComment(
     voiceUri: Uri,
     userId: String,
     username: String,
-    database: DatabaseReference = FirebaseDatabase.getInstance().getReference("posts"),
+    database: DatabaseReference = FirebaseRefs.db.getReference("posts"),
     storage: FirebaseStorage = FirebaseStorage.getInstance(),
     onSuccess: () -> Unit,
     onFailure: (String) -> Unit

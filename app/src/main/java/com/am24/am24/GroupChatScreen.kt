@@ -45,7 +45,7 @@ fun GroupChatScreen(
 ) {
     /* ---------- Firebase handles ---------- */
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val database      = FirebaseDatabase.getInstance()
+    val database      = FirebaseRefs.db
     val usersRef      = database.getReference("users")
     val messagesRef   = database.getReference("messages").child(groupId)
 

@@ -37,7 +37,7 @@ fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val currentUser = FirebaseAuth.getInstance().currentUser ?: return
     val currentUserId = currentUser.uid
-    val userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
 
     // Premium & Account States
     var isPremiumUser by remember { mutableStateOf(false) } // Initially false
@@ -214,7 +214,7 @@ fun AccountSettingsSection(navController: NavController) {
     val context = LocalContext.current
     val currentUser = FirebaseAuth.getInstance().currentUser ?: return
     val currentUserId = currentUser.uid
-    val database = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+    val database = FirebaseRefs.db.getReference("users").child(currentUserId)
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -245,7 +245,7 @@ fun AccountSettingsSection(navController: NavController) {
         if (isEditingUsername && username.isNotBlank()) {
             usernameStatus = "checking"
             delay(500)
-            val dbUsernames = FirebaseDatabase.getInstance().getReference("usernames")
+            val dbUsernames = FirebaseRefs.db.getReference("usernames")
             dbUsernames.child(username).get()
                 .addOnSuccessListener { snap ->
                     if (snap.exists() && snap.value != currentUserId) {
@@ -274,7 +274,7 @@ fun AccountSettingsSection(navController: NavController) {
             return
         }
         val userId = usr.uid
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+        val userRef = FirebaseRefs.db.getReference("users").child(userId)
         userRef.removeValue().addOnCompleteListener { rmTask ->
             if (rmTask.isSuccessful) {
                 usr.delete().addOnCompleteListener { delTask ->
@@ -655,7 +655,7 @@ suspend fun updateAccountSettingsNoEmail(
 ) {
     val user = FirebaseAuth.getInstance().currentUser ?: throw Exception("No user is signed in.")
     val userId = user.uid
-    val db = FirebaseDatabase.getInstance().getReference("users").child(userId)
+    val db = FirebaseRefs.db.getReference("users").child(userId)
 
     if (newPassword.isNotBlank()) {
         user.updatePassword(newPassword).await()
@@ -669,7 +669,7 @@ suspend fun checkAndUpdateUsernameAwait(
     oldUsername: String?,
     userId: String
 ) {
-    val db = FirebaseDatabase.getInstance().reference
+    val db = FirebaseRefs.db.reference
     val usernamesRef = db.child("usernames")
     if (!oldUsername.isNullOrBlank() && oldUsername != newUsername) {
         val oldSnap = usernamesRef.child(oldUsername).get().await()

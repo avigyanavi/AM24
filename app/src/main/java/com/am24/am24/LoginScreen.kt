@@ -109,12 +109,12 @@ class LoginActivity : ComponentActivity() {
         val trimmed = userOrEmail.trim()
         if (trimmed.contains("@")) return trimmed
 
-        val uidSnap = FirebaseDatabase.getInstance()
+        val uidSnap = FirebaseRefs.db
             .reference.child("usernames").child(trimmed).get().await()
         if (!uidSnap.exists()) return null
         val uid = uidSnap.getValue(String::class.java) ?: return null
 
-        val emailSnap = FirebaseDatabase.getInstance()
+        val emailSnap = FirebaseRefs.db
             .reference.child("users").child(uid).child("email").get().await()
         return emailSnap.getValue(String::class.java)
     }
@@ -143,7 +143,7 @@ fun LoginScreen(
     var resultLabel by remember { mutableStateOf("") }
     var resultValue by remember { mutableStateOf("") }
 
-    val db    = FirebaseDatabase.getInstance()
+    val db    = FirebaseRefs.db
     val scope = rememberCoroutineScope()
 
     /* ---------- Dialog builders ---------- */

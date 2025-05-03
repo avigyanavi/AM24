@@ -44,7 +44,7 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.tasks.await
 
 // Initialize GeoFire instance globally
-val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
+val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
@@ -64,7 +64,7 @@ fun MainNavGraph(
     // Read in the current user's matches from Firebase
     val matchesSet = remember { mutableStateListOf<String>() }
     LaunchedEffect(userId) {
-        val matchesRef = FirebaseDatabase.getInstance().getReference("matches").child(userId)
+        val matchesRef = FirebaseRefs.db.getReference("matches").child(userId)
         matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 matchesSet.clear()
@@ -225,7 +225,7 @@ fun MainNavGraph(
             MapScreen(
                 userId = userId,
                 locationManager = locationManager,        // Or create it via DI
-                geoFireDatabaseRef = FirebaseDatabase.getInstance()
+                geoFireDatabaseRef = FirebaseRefs.db
                     .getReference("geoFireLocations"),
                 navController = navController, // NEW parameter
                 onProfileMarkerClicked = { profileId ->
@@ -260,7 +260,7 @@ fun MainNavGraph(
                 profileViewModel.fetchCurrentUserProfile() // Ensure current profile is fetched
                 try {
                     println("Fetching profile for userId: $userId")
-                    val snapshot = FirebaseDatabase.getInstance()
+                    val snapshot = FirebaseRefs.db
                         .getReference("users")
                         .child(userId)
                         .get()

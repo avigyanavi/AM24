@@ -18,10 +18,10 @@ class LocationManager(private val context: Context) {
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
-    private val database: DatabaseReference = FirebaseDatabase.getInstance().getReference("users")
+    private val database: DatabaseReference = FirebaseRefs.db.getReference("users")
 
     // GeoFire reference under "geoFireLocations"
-    private val geoFireDatabaseRef = FirebaseDatabase.getInstance().getReference("geoFireLocations")
+    private val geoFireDatabaseRef = FirebaseRefs.db.getReference("geoFireLocations")
     private val geoFire = GeoFire(geoFireDatabaseRef)
 
     private val locationRequest: LocationRequest = LocationRequest.create().apply {

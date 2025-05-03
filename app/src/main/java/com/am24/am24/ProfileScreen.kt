@@ -2274,7 +2274,7 @@ fun CombinedBioVoiceEditSection(
     onCancel: () -> Unit
 ) {
     val context    = LocalContext.current
-    val storageRef = FirebaseStorage.getInstance().reference
+    val storageRef = FirebaseRefs.storage.reference
     val filePath   = remember { File(context.filesDir, "voice_note_edit.mp3").absolutePath }
 
     // ——— Bio text —————————————————————————
@@ -3756,7 +3756,7 @@ fun ButtonRow(
 
 suspend fun updateProfileInFirebase(updatedProfile: Profile) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
 
     val updates = mapOf(
         "email" to updatedProfile.email,

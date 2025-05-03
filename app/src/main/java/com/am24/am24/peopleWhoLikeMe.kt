@@ -25,12 +25,12 @@ fun PeopleWhoLikeMeScreen(
     navController: NavController,
     currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 ) {
-    val likesReceivedRef = FirebaseDatabase.getInstance()
+    val likesReceivedRef = FirebaseRefs.db
         .getReference("likesReceived/$currentUserId")
-    val usersRef = FirebaseDatabase.getInstance().getReference("users")
+    val usersRef = FirebaseRefs.db.getReference("users")
 
     // We also fetch the current user's matches so we can exclude them
-    val matchesRef = FirebaseDatabase.getInstance()
+    val matchesRef = FirebaseRefs.db
         .getReference("matches/$currentUserId")
 
     // Will hold the final list of profiles who liked me

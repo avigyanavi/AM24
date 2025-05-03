@@ -20,8 +20,8 @@ import kotlinx.coroutines.flow.update
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
     private val TAG = "ProfileViewModel"
-    private val usersRef = FirebaseDatabase.getInstance().getReference("users")
-    private val database = FirebaseDatabase.getInstance()
+    private val usersRef = FirebaseRefs.db.getReference("users")
+    private val database = FirebaseRefs.db
     private val notificationsRef = database.getReference("notifications")
     private val chatRef = database.getReference("chats") // New chat reference for DM creation
 
@@ -65,7 +65,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun fetchProfilesByCity(cityName: String, onResult: (List<Profile>) -> Unit) {
-        val dbRef = FirebaseDatabase.getInstance().getReference("profiles")
+        val dbRef = FirebaseRefs.db.getReference("profiles")
         dbRef.orderByChild("city").equalTo(cityName)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(dataSnapshot: DataSnapshot) {
@@ -83,7 +83,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun fetchProfilesByHometown(hometown: String, onResult: (List<Profile>) -> Unit) {
-        val dbRef = FirebaseDatabase.getInstance().getReference("profiles")
+        val dbRef = FirebaseRefs.db.getReference("profiles")
         dbRef.orderByChild("hometown").equalTo(hometown)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -101,7 +101,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun fetchUsernameById(userId: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+        val userRef = FirebaseRefs.db.getReference("users").child(userId)
         userRef.child("username").get().addOnSuccessListener { snapshot ->
             val username = snapshot.getValue(String::class.java)
             if (username != null) {
@@ -378,7 +378,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val reportRef = FirebaseDatabase.getInstance().getReference("reportedProfiles").child(profileId)
+                val reportRef = FirebaseRefs.db.getReference("reportedProfiles").child(profileId)
                 val reportId = reportRef.push().key ?: throw Exception("Unable to generate report ID.")
 
                 val reportData = mapOf(

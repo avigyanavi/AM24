@@ -57,7 +57,7 @@ fun DMScreen(navController: NavController) {
 fun DMScreenContent(navController: NavController) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
-    val database = FirebaseDatabase.getInstance()
+    val database = FirebaseRefs.db
     val matchesRef = database.getReference("matches/$currentUserId")
     val likesRef = database.getReference("likesReceived/$currentUserId") // Added for likes
     val usersRef = database.getReference("users")

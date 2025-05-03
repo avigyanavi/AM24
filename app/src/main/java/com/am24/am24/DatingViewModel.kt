@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.am24.DatingFilterSettings
+import com.am24.am24.FirebaseRefs
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
 import com.am24.am24.calculateAge
@@ -39,7 +40,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private val TAG = "DatingViewModel"
-    private val database = FirebaseDatabase.getInstance()
+    private val database = FirebaseRefs.db
     private val usersRef = database.getReference("users")
     private val geoFire = GeoFire(database.getReference("geoFireLocations"))
 
@@ -369,7 +370,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     private suspend fun filterByDistance(profiles: List<Profile>, maxDistance: Int): List<Profile> = coroutineScope {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@coroutineScope profiles
-        val geoFire = GeoFire(FirebaseDatabase.getInstance().getReference("geoFireLocations"))
+        val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
 
         val filteredProfiles = mutableListOf<Profile>()
 

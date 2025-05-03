@@ -413,7 +413,7 @@ fun IconWithQuota(
  * Load swipes from Firebase and reset them to 25 if a new day has started.
  */
 suspend fun loadAndResetSwipesDaily(userId: String): Int {
-    val swipesRef = FirebaseDatabase.getInstance().getReference("users/$userId/swipesInfo")
+    val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
     val snapshot = swipesRef.get().await()
     var remainingSwipes = 25
     var lastResetDayOfYear = -1
@@ -437,7 +437,7 @@ suspend fun loadAndResetSwipesDaily(userId: String): Int {
 /** Updates the user's remainingSwipes in Firebase. */
 fun updateSwipesInFirebase(newSwipesCount: Int) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val swipesRef = FirebaseDatabase.getInstance().getReference("users/$userId/swipesInfo")
+    val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
     swipesRef.child("remainingSwipes").setValue(newSwipesCount)
 }
 
@@ -1065,7 +1065,7 @@ fun DatingScreenContent(
     /* --- distance + optional AI check (unchanged) --- */
     LaunchedEffect(currentProfile.userId) {
         userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-        val ref  = FirebaseDatabase.getInstance()
+        val ref  = FirebaseRefs.db
             .getReference("aiMatchCheck/$currentUserId/${currentProfile.userId}")
         val snap = ref.get().await()
         val existing = snap.getValue(AiMatchCheckResult::class.java)
@@ -1922,7 +1922,7 @@ fun handleSwipeRight(
     otherUserId: String,
     profileViewModel: ProfileViewModel
 ) {
-    val database = FirebaseDatabase.getInstance()
+    val database = FirebaseRefs.db
     val timestamp = System.currentTimeMillis()
 
     // 1) Record your swipe-right
@@ -1997,7 +1997,7 @@ fun handleSwipeRight(
 }
 
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
-    val database = FirebaseDatabase.getInstance()
+    val database = FirebaseRefs.db
     val timestamp = System.currentTimeMillis()
 
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
@@ -2018,7 +2018,7 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
  * fetchExcludedUsers => matched or liked recently
  */
 suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
-    val database = FirebaseDatabase.getInstance()
+    val database = FirebaseRefs.db
     val matchesRef = database.getReference("matches/$currentUserId")
     val likesRef = database.getReference("likesGiven/$currentUserId")
     val oneWeekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
@@ -2071,7 +2071,7 @@ fun runAiMatchCheck(
         timestamp = System.currentTimeMillis()
     )
 
-    FirebaseDatabase.getInstance()
+    FirebaseRefs.db
         .getReference("aiMatchCheck/$currentUserId/${otherProfile.userId}")
         .setValue(result)
 

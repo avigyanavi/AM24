@@ -147,7 +147,7 @@ fun MapScreen(
     // Load Matches
     LaunchedEffect(userId) {
         isLoadingMatches = true
-        val matchesRef = FirebaseDatabase.getInstance().getReference("matches").child(userId)
+        val matchesRef = FirebaseRefs.db.getReference("matches").child(userId)
         matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 matchesSet.clear()
@@ -175,7 +175,7 @@ fun MapScreen(
     LaunchedEffect(showSendOverlay) {
         if (showSendOverlay && matchProfiles.isEmpty()) {
             matchesSet.forEach { matchUid ->
-                val dbRef = FirebaseDatabase.getInstance().getReference("users").child(matchUid)
+                val dbRef = FirebaseRefs.db.getReference("users").child(matchUid)
                 dbRef.get().addOnSuccessListener { snapshot ->
                     val profile = snapshot.getValue(Profile::class.java)
                     if (profile != null) {
@@ -416,7 +416,7 @@ fun MapScreen(
                             icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
                             onClick = {
                                 scope.launch {
-                                    FirebaseDatabase.getInstance().getReference("users").child(markerData.userId)
+                                    FirebaseRefs.db.getReference("users").child(markerData.userId)
                                         .get().addOnSuccessListener { snapshot ->
                                             val profile = snapshot.getValue(Profile::class.java)
                                             if (profile != null && matchesSet.contains(markerData.userId) && profile.allowLocationForMatches) {
@@ -499,7 +499,7 @@ fun MapScreen(
                             placeDetailsToSend?.let { (latLng, placeName) ->
                                 val messageText = "Check out this place: $placeName. Directions: https://maps.google.com/?q=${latLng.latitude},${latLng.longitude}"
                                 val chatId = getChatId2(userId, selectedMatch.userId)
-                                val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$chatId")
+                                val messagesRef = FirebaseRefs.db.getReference("messages/$chatId")
                                 sendMessage2(userId, selectedMatch.userId, chatId, messageText, messagesRef)
                                 Toast.makeText(context, "Sent place details to ${selectedMatch.name}", Toast.LENGTH_LONG).show()
                                 showSendOverlay = false
@@ -895,7 +895,7 @@ fun loadUserLocationAndMatches(
             query.addGeoQueryEventListener(object : GeoQueryEventListener {
                 override fun onKeyEntered(key: String, location: GeoLocation) {
                     Log.d("MapScreen", "GeoFire key entered: $key at ${location.latitude}, ${location.longitude}")
-                    FirebaseDatabase.getInstance().getReference("users").child(key).get().addOnSuccessListener { snapshot ->
+                    FirebaseRefs.db.getReference("users").child(key).get().addOnSuccessListener { snapshot ->
                         val profile = snapshot.getValue(Profile::class.java)
                         if (profile != null && matchesSet.contains(key) && profile.allowLocationForMatches) {
                             markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))

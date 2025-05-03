@@ -72,7 +72,7 @@ fun MatchedUserProfileScreen(
             userDistance = null
         }
 
-        val ref = FirebaseDatabase.getInstance().getReference("aiMatchCheck/$currentUserId/${profile.userId}")
+        val ref = FirebaseRefs.db.getReference("aiMatchCheck/$currentUserId/${profile.userId}")
         try {
             val snap = ref.get().await()
             val existing = snap.getValue(AiMatchCheckResult::class.java)

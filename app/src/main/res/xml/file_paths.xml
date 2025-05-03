@@ -11,10 +11,5 @@
         name="external_cache"
         path="." />
 
-    <!-- uncomment if you ever save to external files dir -->
-    <!--
-    <external-files-path
-        name="external_files"
-        path="Pictures/" />
-    -->
+    <cache-path name="media" path="media/" />
 </paths>

@@ -36,7 +36,7 @@ fun SubscriptionScreen(navController: NavController) {
     val context = LocalContext.current
     val activity = context as? Activity ?: return
     val currentUser = FirebaseAuth.getInstance().currentUser ?: return
-    val userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUser.uid)
+    val userRef = FirebaseRefs.db.getReference("users").child(currentUser.uid)
     val scope = rememberCoroutineScope()
 
     var isPaymentInitiated by remember { mutableStateOf(false) }

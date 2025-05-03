@@ -120,7 +120,7 @@ fun PostTypeButton(
 // Add the fetchUsernameById function
 suspend fun fetchUsernameById(userId: String): String? {
     return try {
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+        val userRef = FirebaseRefs.db.getReference("users").child(userId)
         val snapshot = userRef.child("username").get().await()
         snapshot.getValue(String::class.java)
     } catch (e: Exception) {

@@ -132,7 +132,7 @@ class RegistrationActivity : ComponentActivity() {
         // Check if the user exists and has not completed the registration
         if (currentUser != null) {
             val userId = currentUser.uid
-            FirebaseDatabase.getInstance().reference
+            FirebaseRefs.db.reference
                 .child("users")
                 .child(userId)
                 .child("username")
@@ -1778,7 +1778,7 @@ fun EnterEmailAndPasswordScreen(
         val userId = currentUser.uid
 
         try {
-            val snapshot = FirebaseDatabase.getInstance()
+            val snapshot = FirebaseRefs.db
                 .getReference("users")
                 .child(userId)
                 .child("username")
@@ -2260,7 +2260,7 @@ fun EnterUsernameScreen(
 ) {
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
-    val database = FirebaseDatabase.getInstance().reference
+    val database = FirebaseRefs.db.reference
 
     val scope = rememberCoroutineScope()
 
@@ -2388,7 +2388,7 @@ suspend fun saveProfileToFirebase(
     onRegistrationComplete: () -> Unit
 ) {
     try {
-        val database = FirebaseDatabase.getInstance().reference
+        val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         val profile = Profile(
@@ -3413,7 +3413,7 @@ fun UploadMediaComposable(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val storageRef = FirebaseStorage.getInstance().reference
+    val storageRef = FirebaseRefs.storage.reference
 
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
@@ -3708,7 +3708,7 @@ fun checkAndStoreUsernameForRegistration(
         onFailure("Username cannot be empty.")
         return
     }
-    val db = FirebaseDatabase.getInstance().reference
+    val db = FirebaseRefs.db.reference
     val usernamesRef = db.child("usernames")
     // Check if the username already exists.
     usernamesRef.child(newUsername).get().addOnSuccessListener { snapshot ->

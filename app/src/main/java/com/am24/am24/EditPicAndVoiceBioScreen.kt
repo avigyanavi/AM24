@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.am24.am24.FirebaseRefs
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -406,7 +407,7 @@ private fun uploadImageToFirebase(
     onFailure: (String) -> Unit
 ) {
     val fileName = "${System.currentTimeMillis()}.jpg"
-    val userImageRef = FirebaseStorage.getInstance().reference.child("users/$userId/$fileName")
+    val userImageRef = FirebaseRefs.storage.reference.child("users/$userId/$fileName")
 
     userImageRef.putFile(imageUri)
         .addOnSuccessListener { snapshot ->
@@ -431,7 +432,7 @@ private fun uploadVoiceToFirebase(
     onFailure: (String) -> Unit
 ) {
     val fileName = "voice_${System.currentTimeMillis()}.mp3"
-    val voiceRef = FirebaseStorage.getInstance().reference.child("users/$userId/$fileName")
+    val voiceRef = FirebaseRefs.storage.reference.child("users/$userId/$fileName")
 
     voiceRef.putFile(voiceUri)
         .addOnSuccessListener { task ->

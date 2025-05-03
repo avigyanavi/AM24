@@ -3,17 +3,22 @@ package com.am24.am24
 
 import DatingViewModel
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
+import android.widget.ImageView
 import android.widget.Toast
 import android.widget.VideoView
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -67,6 +72,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
 import com.google.firebase.auth.FirebaseAuth
@@ -108,7 +114,7 @@ data class Message(
 
 // ChatAIViewModel (unchanged)
 class ChatAIViewModel : ViewModel() {
-    private val database = FirebaseDatabase.getInstance()
+    private val database = FirebaseRefs.db
     private val gson = Gson()
     private val aiStates = mutableMapOf<String, ModelingState>()
     val memoryLogs = mutableMapOf<String, MutableList<String>>()
@@ -394,6 +400,10 @@ fun ChatScreenContent(
     profileViewModel: ProfileViewModel,
     chatAIViewModel: ChatAIViewModel
 ) {
+    var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
+    // keep track of which Uri we’re editing
+    var pendingEditUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
     val datingViewModel: DatingViewModel = viewModel()
     var isSendingMessage by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -402,14 +412,14 @@ fun ChatScreenContent(
     val compliments by datingViewModel.complimentsReceived.collectAsState()
     val compliment  = compliments[otherUserId]
     var fullScreenTarget by remember { mutableStateOf<Message?>(null) }
-    val database = FirebaseDatabase.getInstance()
+    val database = FirebaseRefs.db
     val usersRef = database.getReference("users")
     val chatId = getChatId(currentUserId, otherUserId)
     val messagesRef = database.getReference("messages/$chatId")
     val notificationsRef = database.getReference("notifications")
     val ratingsRef = database.getReference("ratings")
     val reportsRef = database.getReference("reports")
-    val storageRef = FirebaseStorage.getInstance().reference
+    val storageRef = FirebaseRefs.storage.reference
 
     // Typing status for real users
     var isOtherUserTyping by remember { mutableStateOf(false) }
@@ -455,6 +465,30 @@ fun ChatScreenContent(
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaType by remember { mutableStateOf<String?>(null) } // "photo" or "video"
 
+    // register a launcher for “startActivityForResult” on ACTION_EDIT
+    val editLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && pendingEditUri != null) {
+            // stash locally
+            val newUri = pendingEditUri!!
+            pendingEditUri = null
+
+            // force Compose to see “change” by clearing & then re-setting
+            selectedMediaUri = null
+            selectedMediaUri = newUri
+        }
+    }
+
+    LaunchedEffect(selectedMediaUri, selectedMediaType) {
+        if (selectedMediaUri != null && selectedMediaType != null) {
+            Log.d("ChatScreen", "Media preview shown: uri=$selectedMediaUri, type=$selectedMediaType")
+        } else {
+            Log.d("ChatScreen", "Media preview cleared")
+        }
+    }
+
+
     // Listen for typing status (real users only)
     if (!isAiConversation) {
         DisposableEffect(typingRef) {
@@ -471,55 +505,26 @@ fun ChatScreenContent(
         }
     }
 
-    // Launchers for taking media
-    val takePhotoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success && selectedMediaUri != null) {
-            isUploadingMedia = true
-            sendMediaMessage(
-                currentUserId = currentUserId,
-                otherUserId = otherUserId,
-                chatId = chatId,
-                uri = selectedMediaUri!!,
-                mediaType = "photo",
-                messagesRef = messagesRef,
-                context = context
-            ) {
-                postNotification(notificationsRef, otherUserId, currentUserId, "[Photo Message]")
-                selectedMediaUri = null
-                selectedMediaType = null
-                isUploadingMedia = false
+    // ─── replace your current takePhotoLauncher with this ───
+    val takePhotoLauncher: ManagedActivityResultLauncher<Uri, Boolean> =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success && pendingPhotoUri != null) {
+                selectedMediaUri = pendingPhotoUri
+                selectedMediaType = "photo"
             }
-        } else {
-            Toast.makeText(context, "Photo capture failed", Toast.LENGTH_SHORT).show()
+            pendingPhotoUri = null
             isUploadingMedia = false
         }
-    }
-    val takeVideoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CaptureVideo()
-    ) { success ->
-        if (success && selectedMediaUri != null) {
-            isUploadingMedia = true
-            sendMediaMessage(
-                currentUserId = currentUserId,
-                otherUserId = otherUserId,
-                chatId = chatId,
-                uri = selectedMediaUri!!,
-                mediaType = "video",
-                messagesRef = messagesRef,
-                context = context
-            ) {
-                postNotification(notificationsRef, otherUserId, currentUserId, "[Video Message]")
-                selectedMediaUri = null
-                selectedMediaType = null
-                isUploadingMedia = false
+
+    val takeVideoLauncher: ManagedActivityResultLauncher<Uri, Boolean> =
+        rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
+            if (success && pendingVideoUri != null) {
+                selectedMediaUri  = pendingVideoUri
+                selectedMediaType = "video"
             }
-        } else {
-            Toast.makeText(context, "Video capture failed", Toast.LENGTH_SHORT).show()
+            pendingVideoUri = null
             isUploadingMedia = false
         }
-    }
 
     // Permission launchers
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -556,21 +561,133 @@ fun ChatScreenContent(
             Toast.makeText(context, "Camera permission required", Toast.LENGTH_SHORT).show()
         }
     }
+
+    /* ─── microphone start / stop toggle ─── */
+    val onToggleRecord: () -> Unit = {
+        if (isRecording) {            // stop
+            recorder?.stop()
+            recorder?.release()
+            recorder = null
+            isRecording = false
+            recordedVoiceUri = Uri.fromFile(recordFile)
+        } else {                      // start
+            if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED
+            ) {
+                isRecording = true
+                messageText = ""
+                recordedVoiceUri = null
+                recordFile = File(context.filesDir, "voice_message.aac")
+                recorder = MediaRecorder().apply {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                    setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    setOutputFile(recordFile?.absolutePath)
+                    prepare(); start()
+                }
+                recordingTimeLeft = maxDurationMs
+            } else {
+                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
     // Launchers for picking media from gallery
+// Media pickers
     val pickPhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
             selectedMediaUri = it
             selectedMediaType = "photo"
+            Log.d("ChatScreen", "Photo picked: $uri")
         }
     }
+
     val pickVideoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
             selectedMediaUri = it
             selectedMediaType = "video"
+            Log.d("ChatScreen", "Video picked: $uri")
+        }
+    }
+
+    // Updated sendHandler with explicit logging
+    val sendHandler: () -> Unit = mySend@{
+        if (isSendingMessage || isUploadingMedia) {
+            Log.d("ChatScreen", "Send blocked: isSendingMessage=$isSendingMessage, isUploadingMedia=$isUploadingMedia")
+            return@mySend
+        }
+        Log.d("ChatScreen", "Send initiated: mediaUri=$selectedMediaUri, mediaType=$selectedMediaType, text=$messageText")
+        isSendingMessage = true
+
+        fun done() {
+            isSendingMessage = false
+        }
+
+        if (selectedMediaUri != null && selectedMediaType != null) {
+            isUploadingMedia = true
+            sendMediaMessage(
+                currentUserId, otherUserId, chatId,
+                selectedMediaUri!!, selectedMediaType!!,
+                messagesRef, context
+            ) {
+                postNotification(
+                    notificationsRef, otherUserId, currentUserId,
+                    "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
+                )
+                selectedMediaUri = null
+                selectedMediaType = null
+                isUploadingMedia = false
+                done()
+                Log.d("ChatScreen", "Media sent successfully")
+            }
+            return@mySend
+        }
+
+        if (recordedVoiceUri != null) {
+            sendVoiceMessage(
+                currentUserId, otherUserId, chatId,
+                recordedVoiceUri!!, messagesRef, context
+            )
+            postNotification(notificationsRef, otherUserId, currentUserId, "[Voice Message]")
+            recordedVoiceUri = null
+            recordFile = null
+            done()
+            Log.d("ChatScreen", "Voice message sent")
+            return@mySend
+        }
+
+        if (messageText.isNotBlank()) {
+            if (isAiConversation) {
+                scope.launch {
+                    chatAIViewModel.sendMessageToAI(
+                        otherUserId, messageText, currentUserId,
+                        messagesRef, context, messages,
+                        currentUserProfile?.name ?: "User"
+                    )
+                    done()
+                    Log.d("ChatScreen", "AI text message sent")
+                }
+            } else {
+                val newId = messagesRef.push().key ?: return@mySend
+                val msg = Message(
+                    id = newId,
+                    senderId = currentUserId,
+                    receiverId = otherUserId,
+                    text = messageText,
+                    timestamp = System.currentTimeMillis()
+                )
+                messagesRef.child(newId).setValue(msg).addOnCompleteListener { done() }
+                postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                database.getReference("typing/$chatId/$currentUserId").setValue(false)
+                Log.d("ChatScreen", "Text message sent")
+            }
+            messageText = ""
+        } else {
+            done()
+            Log.d("ChatScreen", "No content to send")
         }
     }
 
@@ -937,202 +1054,87 @@ fun ChatScreenContent(
                         }
                     }
                 }
-                // Media preview for photo or video (without checkbox)
-                if (!isAiConversation && selectedMediaUri != null) {
-                    if (selectedMediaType == "photo") {
-                        Box(Modifier.padding(8.dp)) {
-                            AsyncImage(
-                                model = selectedMediaUri,
-                                contentDescription = "Photo Preview",
-                                modifier = Modifier.height(200.dp).fillMaxWidth(),
-                                contentScale = ContentScale.Fit
-                            )
-                            IconButton(
-                                onClick = { selectedMediaUri = null; selectedMediaType = null },
-                                modifier = Modifier.align(Alignment.TopEnd)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = null, tint = Color.Red)
-                            }
-                        }
-                    } else if (selectedMediaType == "video") {
-                        Box(Modifier.padding(8.dp)) {
-                            VideoPreview(uri = selectedMediaUri!!, modifier = Modifier.height(200.dp).fillMaxWidth())
-                            IconButton(
-                                onClick = { selectedMediaUri = null; selectedMediaType = null },
-                                modifier = Modifier.align(Alignment.TopEnd)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = null, tint = Color.Red)
-                            }
-                        }
-                    }
-                }
-                // Media Buttons Row
-                if (!isAiConversation) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.Start),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Mic/Stop button for voice recording
-                        IconButton(onClick = {
-                            if (isRecording) {
-                                recorder?.stop()
-                                recorder?.release()
-                                recorder = null
-                                isRecording = false
-                                recordedVoiceUri = Uri.fromFile(recordFile)
-                            } else {
-                                if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                    isRecording = true
-                                    messageText = ""
-                                    recordedVoiceUri = null
-                                    recordFile = File(context.filesDir, "voice_message.aac")
-                                    recorder = MediaRecorder().apply {
-                                        setAudioSource(MediaRecorder.AudioSource.MIC)
-                                        setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
-                                        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                                        setOutputFile(recordFile?.absolutePath)
-                                        prepare(); start()
-                                    }
-                                    recordingTimeLeft = maxDurationMs
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
-                            }
-                        }) {
-                            Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, contentDescription = null, tint = Color(0xFFFFA500))
-                        }
-                        // Photo picker from gallery
-                        IconButton(onClick = { pickPhotoLauncher.launch("image/*") }) {
-                            Icon(Icons.Default.Photo, contentDescription = null, tint = Color(0xFFFFA500))
-                        }
-                        // Video picker from gallery
-                        IconButton(onClick = { pickVideoLauncher.launch("video/*") }) {
-                            Icon(Icons.Default.Videocam, contentDescription = null, tint = Color(0xFFFFA500))
-                        }
-                        // Camera: for Photo
-                        IconButton(onClick = {
-                            selectedMediaType = "photo"
-                            if (context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                selectedMediaUri = freshPhotoUri(context)
-                                takePhotoLauncher.launch(selectedMediaUri!!)
-                            } else {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        }) { Icon(Icons.Default.Camera, contentDescription = null, tint = Color(0xFFFFA500)) }
-                        // Camera: for Video
-                        IconButton(onClick = {
-                            selectedMediaType = "video"
-                            if (context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                selectedMediaUri = freshVideoUri(context)
-                                takeVideoLauncher.launch(selectedMediaUri!!)
-                            } else {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        }) { Icon(Icons.Default.Videocam, contentDescription = null, tint = Color(0xFFFFA500)) }
-                    }
-                }
-                // Input Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextField(
-                        value = messageText,
-                        onValueChange = { newText ->
-                            messageText = newText
-                            if (!isAiConversation) {
-                                database.getReference("typing/$chatId/$currentUserId")
-                                    .setValue(newText.isNotEmpty())
-                            }
+                var fullScreenLocal by remember { mutableStateOf(false) }
+                /* ------------------ live  media preview before sending ------------------ */
+
+                selectedMediaUri?.let { localUri ->
+                    MediaPreviewBox(
+                        uri       = localUri,
+                        mediaType = selectedMediaType,
+                        onCancel  = {
+                            selectedMediaUri = null
+                            selectedMediaType = null
+                            fullScreenLocal = false
                         },
-                        placeholder = { Text("Type a message…", color = Color.Gray) },
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).background(Color.DarkGray, RoundedCornerShape(24.dp)),
-                        colors = TextFieldDefaults.textFieldColors(
-                            containerColor = Color.DarkGray,
-                            focusedTextColor = Color.White,
-                            focusedPlaceholderColor = Color.Gray,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        singleLine = true,
-                        shape = RoundedCornerShape(24.dp),
-                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = { /* handled by the send button */ })
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    // The Send button now disables itself if isSendingMessage is true.
-                    IconButton(
-                        onClick = {
-                            if (isSendingMessage) return@IconButton
-                            isSendingMessage = true
-                            // 1) If a photo is selected, send photo
-                            if (selectedMediaUri != null && selectedMediaType == "photo") {
-                                sendMediaMessage(
-                                    currentUserId, otherUserId, chatId,
-                                    selectedMediaUri!!, "photo",
-                                    messagesRef, context
-                                ) {
-                                    postNotification(notificationsRef, otherUserId, currentUserId, "[Photo Message]")
-                                    selectedMediaUri = null
-                                    selectedMediaType = null
-                                    isSendingMessage = false
-                                }
-                                return@IconButton
-                            }
-                            // 2) If a video is selected, send video
-                            if (selectedMediaUri != null && selectedMediaType == "video") {
-                                sendMediaMessage(
-                                    currentUserId, otherUserId, chatId,
-                                    selectedMediaUri!!, "video",
-                                    messagesRef, context
-                                ) {
-                                    postNotification(notificationsRef, otherUserId, currentUserId, "[Video Message]")
-                                    selectedMediaUri = null
-                                    selectedMediaType = null
-                                    isSendingMessage = false
-                                }
-                                return@IconButton
-                            }
-                            // 3) If a voice note is recorded
-                            if (recordedVoiceUri != null) {
-                                sendVoiceMessage(
-                                    currentUserId, otherUserId, chatId,
-                                    recordedVoiceUri!!, messagesRef, context
+                        onFull    = { fullScreenLocal = true },
+                        onEdit    = {
+                            // stash for the callback:
+                            pendingEditUri = localUri
+
+                            // build an ACTION_EDIT intent that writes back to the same URI
+                            val editIntent = Intent(Intent.ACTION_EDIT).apply {
+                                setDataAndType(localUri, if (selectedMediaType == "photo") "image/*" else "video/*")
+                                putExtra(MediaStore.EXTRA_OUTPUT, localUri)
+                                addFlags(
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                                 )
-                                postNotification(notificationsRef, otherUserId, currentUserId, "[Voice Message]")
-                                recordedVoiceUri = null
-                                recordFile = null
-                                isSendingMessage = false
-                                return@IconButton
                             }
-                            // 4) Otherwise, send plain text
-                            if (messageText.isNotBlank()) {
-                                if (isAiConversation) {
-                                    chatAIViewModel.sendMessageToAI(
-                                        otherUserId, messageText, currentUserId,
-                                        messagesRef, context, messages,
-                                        currentUserProfile?.name ?: "User"
-                                    )
-                                } else {
-                                    sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
-                                    postNotification(notificationsRef, otherUserId, currentUserId, messageText)
-                                    database.getReference("typing/$chatId/$currentUserId").setValue(false)
-                                }
-                                messageText = ""
-                            }
-                            isSendingMessage = false
-                        },
-                        enabled = !isSendingMessage,
-                        modifier = Modifier.size(48.dp).background(Color(0xFFFF4500), CircleShape)
-                    ) {
-                        if (isSendingMessage) {
-                            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp), color = Color.White)
-                        } else {
-                            Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+                            editLauncher.launch(editIntent)
                         }
-                    }
+                    )
                 }
+                // 2) then *immediately* after it, show the full-screen dialog:
+                if (fullScreenLocal && selectedMediaUri != null && selectedMediaType != null) {
+                    SelectedMediaFullScreen(
+                        uri       = selectedMediaUri!!,
+                        mediaType = selectedMediaType,
+                        onDismiss = { fullScreenLocal = false }
+                    )
+                }
+
+                ChatInputBar(
+                    messageText = messageText,
+                    onTextChange = { newText ->
+                        messageText = newText
+                        if (!isAiConversation) {
+                            database.getReference("typing/$chatId/$currentUserId")
+                                .setValue(newText.isNotEmpty())
+                        }
+                    },
+                    onSend       = sendHandler,
+                    sendEnabled  = !isSendingMessage && !isUploadingMedia,
+                    sending      = isSendingMessage,          //  ← pass the flag
+                    isRecording  = isRecording,
+                    onToggleRecord = onToggleRecord,
+                    onPickPhoto  = { pickPhotoLauncher.launch("image/*") },
+                    onPickVideo  = { pickVideoLauncher.launch("video/*") },
+                    onCapturePhoto = {
+                        selectedMediaType = "photo"
+                        captureWithPermission(
+                            context,
+                            cameraPermissionLauncher,
+                            ::freshPhotoUri,
+                            takePhotoLauncher
+                        ) {
+                                uri ->
+                            // don’t preview it yet – stash it and let the launcher callback do the rest
+                            pendingPhotoUri = uri
+                            isUploadingMedia = true }
+                    },
+                    onCaptureVideo = {
+                        selectedMediaType = "video"
+                        captureWithPermission(
+                            context,
+                            cameraPermissionLauncher,
+                            ::freshVideoUri,
+                            takeVideoLauncher
+                        ) { uri ->
+                            // don’t preview it yet – stash it and let the launcher callback do the rest
+                            pendingVideoUri = uri
+                            isUploadingMedia = true }
+                    }
+                )
             }
             // Suggestions Dropdown (preserved)
             if (!isAiConversation && suggestionsExpanded) {
@@ -1437,7 +1439,6 @@ fun CachedPhotoThumbnail(
         }
     }
 }
-
 @Composable
 fun CachedVideoThumbnail(
     url: String,
@@ -1445,41 +1446,42 @@ fun CachedVideoThumbnail(
     contentScale: ContentScale = ContentScale.Crop,
     placeholderResId: Int? = null,
     errorResId: Int? = null,
-    // Frame to extract, in microseconds. For example, 1,000,000 µs = 1 second.
-    frameMicros: Long = 1_000_000L
+    frameMillis: Long = 1_000L      // grab frame at 1 s
 ) {
     val context = LocalContext.current
+
     val painter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(context)
             .data(url)
-            .diskCacheKey(url)
-            .videoFrameMillis((frameMicros / 1000L).toLong()) // <-- Use videoFrameMillis() here.
-            .memoryCacheKey(url)
-            // Extract a frame at the specified microsecond offset
+            // ▶ enable built-in video decoder
+            .decoderFactory(coil.decode.VideoFrameDecoder.Factory())
+            .videoFrameMillis(frameMillis)
             .crossfade(true)
             .apply {
-                placeholderResId?.let { placeholder(it) }
-                errorResId?.let { error(it) }
+                placeholderResId?.let(::placeholder)
+                errorResId?.let(::error)
             }
             .build()
     )
+
     Box(
         modifier = modifier
             .border(BorderStroke(2.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
     ) {
         Image(
-            painter = painter,
-            contentDescription = "Video Thumbnail",
+            painter,
+            contentDescription = "Video thumbnail",
             contentScale = contentScale,
             modifier = Modifier.fillMaxSize()
         )
         if (painter.state is AsyncImagePainter.State.Loading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color.White)
             }
         }
     }
 }
+
 // --- Helper Functions and Composables ---
 
 fun freshPhotoUri(context: Context): Uri {
@@ -2021,3 +2023,311 @@ fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
         }
     }
 }
+
+@Composable
+fun MediaPreviewBox(
+    uri: Uri,
+    mediaType: String?,
+    onCancel: () -> Unit,
+    onFull: () -> Unit,
+    onEdit: () -> Unit
+) {
+    Column(Modifier
+        .padding(8.dp)
+        .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(8.dp))
+    ) {
+        Box(
+            Modifier
+                .height(200.dp)
+                .fillMaxWidth()
+                .clickable { onFull() }
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(uri)
+                    .diskCachePolicy(CachePolicy.DISABLED)
+                    .memoryCachePolicy(CachePolicy.DISABLED)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.55f)),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onEdit) { Text("✏️ Edit", color = Color.White, fontSize = 12.sp) }
+            TextButton(onClick = onCancel) { Text("❌ Cancel", color = Color.Red, fontSize = 12.sp) }
+        }
+    }
+}
+
+
+@Composable
+fun MediaToolsMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    isRecording: Boolean,
+    onToggleRecord: () -> Unit,
+    onPickPhoto: () -> Unit,
+    onPickVideo: () -> Unit,
+    onCapturePhoto: () -> Unit,
+    onCaptureVideo: () -> Unit
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+
+        /* voice-note toggle */
+        DropdownMenuItem(
+            leadingIcon = {
+                Icon(
+                    if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                    contentDescription = null
+                )
+            },
+            text = { Text(if (isRecording) "Stop recording" else "Record voice") },
+            onClick = { onDismiss(); onToggleRecord() }
+        )
+
+        /* pick from gallery */
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Default.Photo, null) },
+            text = { Text("Pick photo") },
+            onClick = { onDismiss(); onPickPhoto() }
+        )
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Default.VideoLibrary, null) },
+            text = { Text("Pick video") },
+            onClick = { onDismiss(); onPickVideo() }
+        )
+
+        /* capture with camera */
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Default.CameraAlt, null) },
+            text = { Text("Capture photo") },
+            onClick = { onDismiss(); onCapturePhoto() }
+        )
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Default.Videocam, null) },
+            text = { Text("Capture video") },
+            onClick = { onDismiss(); onCaptureVideo() }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatInputBar(
+    messageText: String,
+    onTextChange: (String) -> Unit,
+    onSend: () -> Unit,
+    sendEnabled: Boolean,
+    sending: Boolean,                      //  ← new
+    isRecording: Boolean,
+    onToggleRecord: () -> Unit,
+    onPickPhoto: () -> Unit,
+    onPickVideo: () -> Unit,
+    onCapturePhoto: () -> Unit,
+    onCaptureVideo: () -> Unit
+) {
+    var mediaMenu by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        /* text entry */
+        TextField(
+            value = messageText,
+            onValueChange = onTextChange,
+            placeholder = { Text("Type a message…", color = Color.Gray) },
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp)
+                .background(Color.DarkGray, RoundedCornerShape(24.dp)),
+            colors = TextFieldDefaults.textFieldColors(
+                containerColor = Color.DarkGray,
+                focusedTextColor = Color.White,
+                focusedPlaceholderColor = Color.Gray,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            singleLine = true
+        )
+
+        Spacer(Modifier.width(4.dp))
+
+        /* “⋮” media–tools button */
+        IconButton(onClick = { mediaMenu = true }) {
+            Icon(Icons.Default.MoreVert, null, tint = Color(0xFFFFA500))
+        }
+
+        MediaToolsMenu(
+            expanded = mediaMenu,
+            onDismiss = { mediaMenu = false },
+            isRecording = isRecording,
+            onToggleRecord = onToggleRecord,
+            onPickPhoto = onPickPhoto,
+            onPickVideo = onPickVideo,
+            onCapturePhoto = onCapturePhoto,
+            onCaptureVideo = onCaptureVideo
+        )
+
+        Spacer(Modifier.width(4.dp))
+
+        /* SEND */
+        IconButton(
+            enabled = sendEnabled,
+            onClick = onSend,
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color(0xFFFF4500), CircleShape)
+        ) {
+            if (sending) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White
+                )
+            } else {
+                Icon(Icons.Default.Send, null, tint = Color.White)
+            }
+        }
+    }
+}
+
+
+
+fun captureWithPermission(
+    context: Context,
+    permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
+    uriProvider: (Context) -> Uri,
+    captureLauncher: ManagedActivityResultLauncher<Uri, Boolean>,
+    onUriReady: (Uri) -> Unit
+) {
+    if (context.checkSelfPermission(Manifest.permission.CAMERA) ==
+        PackageManager.PERMISSION_GRANTED) {
+        val uri = uriProvider(context)
+        onUriReady(uri)
+        captureLauncher.launch(uri)
+    } else {
+        permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+}
+
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@Composable
+fun SelectedMediaFullScreen(
+    uri: Uri,
+    mediaType: String?,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var videoReady by remember { mutableStateOf(mediaType != "video") }   // photo → ready instantly
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
+
+            when (mediaType) {
+                "photo" ->                               /* show local photo quickly with ImageView */
+                    AndroidView(
+                        factory = { ctx ->
+                            androidx.appcompat.widget.AppCompatImageView(ctx).apply {
+                                setImageURI(uri)
+                                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                "video" -> {                             /* use ExoPlayer so it *always* plays */
+                    val player = remember(uri) {
+                        ExoPlayer.Builder(context).build().apply {
+                            setMediaItem(MediaItem.fromUri(uri))
+                            prepare()
+                            playWhenReady = true
+                            addListener(object : Player.Listener {
+                                override fun onPlaybackStateChanged(state: Int) {
+                                    videoReady = state == Player.STATE_READY
+                                }
+                            })
+                        }
+                    }
+                    DisposableEffect(uri) { onDispose { player.release() } }
+
+                    AndroidView(
+                        factory = { PlayerView(it).apply { this.player = player } },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            if (!videoReady) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.White
+                )
+            }
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+            ) { Icon(Icons.Default.Close, null, tint = Color.White) }
+        }
+    }
+}
+
+
+/* ------------ open the best editor the device offers (photo & video) ------------- */
+fun launchMediaEditor(context: Context, uri: Uri, mediaType: String?) {
+
+    /* we’ll try several well-known intents until one works */
+    val candidates = buildList {
+        // Google / AOSP photo-crop-edit
+        if (mediaType == "photo") add(Intent(Intent.ACTION_EDIT)
+            .setDataAndType(uri, "image/*")
+            .putExtra(Intent.EXTRA_TITLE, "Edit photo"))
+
+        // generic ACTION_EDIT (many gallery apps register for it)
+        add(Intent(Intent.ACTION_EDIT)
+            .setDataAndType(uri, if (mediaType == "photo") "image/*" else "video/*"))
+
+        // Samsung / Google Photos video-trim
+        if (mediaType == "video") add(Intent("com.android.gallery3d.action.TRIM")
+            .setDataAndType(uri, "video/*"))
+    }
+
+    /* grant temporary read + write access so the external editor can touch the file */
+    candidates.forEach {
+        it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+    }
+
+    /* pick the first intent that has a resolver */
+    val target = candidates.firstOrNull { it.resolveActivity(context.packageManager) != null }
+
+    if (target != null) {
+        context.startActivity(target)
+    } else {
+        Toast.makeText(context, "No editor available for this file", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun buildEditIntent(uri: Uri, mediaType: String): Intent {
+    return Intent(Intent.ACTION_EDIT).apply {
+        setDataAndType(uri, if (mediaType == "photo") "image/*" else "video/*")
+        putExtra(Intent.EXTRA_TITLE, "Edit media")
+        putExtra(MediaStore.EXTRA_OUTPUT, uri)                       // ← tell it “write here”
+        addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        )
+    }
+}
+

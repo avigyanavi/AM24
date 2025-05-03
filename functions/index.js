@@ -238,8 +238,6 @@ exports.initProfile = functions.auth.user().onCreate(user => {
 //    res.status(500).send(err.message);
 //  }
 //});
-
-const functions = require('firebase-functions');
 const Razorpay = require('razorpay');
 
 // Initialize Razorpay with your key ID and secret
