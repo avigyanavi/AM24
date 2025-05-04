@@ -1,4 +1,38 @@
 <resources>
+        <string-array name="high_school_list">
+            <item>St. Xavier’s</item>
+            <item>La Martinière Boys’ School</item>
+            <item>La Martinière Girls’ School</item>
+            <item>Modern High School for Girls</item>
+            <item>South Point High School</item>
+            <item>Other</item>
+        </string-array>
+
+        <string-array name="college_list">
+            <item>Jadavpur University</item>
+            <item>Presidency University</item>
+            <item>St. Xavier’s College</item>
+            <item>Scottish Church College</item>
+            <item>City College</item>
+            <item>Other</item>
+        </string-array>
+
+        <string-array name="post_grad_list">
+            <item>IIM Calcutta</item>
+            <item>Jadavpur University</item>
+            <item>Indian Institute of Science</item>
+            <item>Presidency University</item>
+            <item>Other</item>
+        </string-array>
+
+        <string-array name="work_list">
+            <item>Google</item>
+            <item>TCS</item>
+            <item>Wipro</item>
+            <item>Infosys</item>
+            <item>Other</item>
+        </string-array>
+
     <!-- Cities -->
     <string-array name="city_names">
         <item>Kolkata</item>

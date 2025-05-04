@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.exoplayer)
     implementation("io.coil-kt:coil-video:2.2.2")
     implementation("io.coil-kt:coil:2.2.2")
+    implementation("androidx.compose.ui:ui-text:1.8.0")
 
 
     //geofire

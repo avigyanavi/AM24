@@ -1143,7 +1143,7 @@ fun DatingProfileCard(
         }
     }
 
-    val allPosts by postViewModel.filteredPosts.collectAsState()
+    val allPosts by postViewModel.posts.collectAsState()
     val myPosts = allPosts.filter { it.userId == profile.userId }
     val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
     val featuredPosts = sortedByUpvotes.take(5)
@@ -1531,7 +1531,6 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
         ProfileDetailRow(
             label = stringResource(R.string.rating),
             value = String.format(
-                LocalContext.current.resources.configuration.locale,
                 "%.2f",
                 profile.averageRating
             ),

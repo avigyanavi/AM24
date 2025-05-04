@@ -18,6 +18,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -46,7 +47,10 @@ import kotlinx.coroutines.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -59,6 +63,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -176,50 +181,6 @@ fun HomeScreenContent(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Black,
-        floatingActionButton = {
-            // Use a Box with precise padding for FAB placement
-            Row(
-                modifier = Modifier
-                    .wrapContentSize() // Only take the size needed for FABs
-                    .padding(bottom = 0.dp) // Consistent bottom padding
-            ) {
-                // "+" FAB (bottom-left) with padding from the left edge
-                FloatingActionButton(
-                    onClick = {
-                        Log.d("FAB", "Create Post FAB clicked") // Debug log
-                        navController.navigate("create_post")
-                    },
-                    containerColor = Color(0xFFFF6F00),
-                    contentColor = Color.White,
-                    modifier = Modifier
-                        .padding(end = 235.dp, bottom = 0.dp) // 16.dp from left edge, no bottom padding (handled by Box)
-                        .zIndex(1f) // Ensure it’s on top
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Create Post",
-                        tint = Color.White
-                    )
-                }
-
-                // Scroll Up FAB (bottom-right) with padding from the right edge
-                FloatingActionButton(
-                    onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
-                    containerColor = Color(0xFFFF4500),
-                    modifier = Modifier
-                        .padding(end = 16.dp, bottom = 0.dp) // 16.dp from right edge, no bottom padding (handled by Box)
-                        .zIndex(1f) // Ensure it’s on top
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Scroll to Top",
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
-        }
     ) {
         Column(
             modifier = Modifier

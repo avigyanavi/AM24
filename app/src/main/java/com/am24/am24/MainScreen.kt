@@ -18,7 +18,6 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
@@ -31,6 +30,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -49,28 +49,36 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val isTopNavBarVisible = currentRoute != "chat/{otherUserId}" && currentRoute != "dating" && currentRoute != "home"
+
+    // ➋ only show the global Top/Bottom bars if NOT on leaderboard
+    val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
+            currentRoute != "leaderboard"
+
     val profileViewModel: ProfileViewModel = viewModel()
 
     Scaffold(
         topBar = {
-            if (isTopNavBarVisible) {
+            if (showGlobalBars) {
                 TopNavBar(
                     navController = navController,
                     profileViewModel = profileViewModel,
                     currentUserId = currentUserId,
+                    postViewModel = postViewModel,   // ← pass it
                     onLogout = onLogout
                 )
             }
         },
         bottomBar = {
-            BottomNavigationBar(navController = navController, items = items)
+            if (showGlobalBars) {
+                BottomNavigationBar(navController = navController, items = items)
+            }
         }
     ) { innerPadding ->
+        val paddingValues = if (showGlobalBars) innerPadding else PaddingValues(0.dp)
         MainNavGraph(
-            navController = navController,
-            modifier = Modifier.padding(innerPadding),
-            postViewModel = postViewModel
+            navController   = navController,
+            modifier        = Modifier.padding(paddingValues),
+            postViewModel   = postViewModel
         )
     }
 }
@@ -81,6 +89,7 @@ fun TopNavBar(
     navController: NavController,
     profileViewModel: ProfileViewModel,
     currentUserId: String,
+    postViewModel: PostViewModel,   // ← pass it
     onLogout: () -> Unit
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -145,6 +154,12 @@ fun TopNavBar(
             notificationsRef.removeEventListener(listener)
         }
     }
+    var showForYouDialog by remember { mutableStateOf(false) }
+
+    // anywhere before TopAppBar:
+    val isOnHome = currentDestination
+        ?.hierarchy
+        ?.any { it.route == "home" } == true
 
     TopAppBar(
         title = {
@@ -162,6 +177,17 @@ fun TopNavBar(
             }
         },
         actions = {
+
+            if (currentRoute == "dating" || currentRoute == "profile") {
+                IconButton(onClick = { navController.navigate("leaderboard") }) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = "Leaderboard",
+                        tint = Color(0xFFFF6F00),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
             // Location settings icon (map screen)
             if (currentRoute == "map") {
                 IconButton(onClick = { showLocationPrefDialog = true }) {
@@ -170,6 +196,25 @@ fun TopNavBar(
                         contentDescription = "Location Settings",
                         tint = Color.Gray,
                         modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            if (isOnHome) {
+                if (!isPremium.value) {
+                    IconButton(onClick = { showForYouDialog = true }) {
+                        Icon(
+                            Icons.Outlined.Home,
+                            contentDescription = "For You",
+                            tint = Color(0xFFFF6F00)
+                        )
+                    }
+                }
+                // Create Post
+                IconButton(onClick = { navController.navigate("create_post") }) {
+                    Icon(
+                        imageVector    = Icons.Default.Add,
+                        contentDescription = "Create Post",
+                        tint           = Color(0xFFFF6F00)
                     )
                 }
             }
@@ -263,9 +308,9 @@ fun TopNavBar(
                 }
             }
         },
+
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
-
     if (showLocationPrefDialog) {
         AlertDialog(
             onDismissRequest = { showLocationPrefDialog = false },

@@ -34,7 +34,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.am24.am24.profiles.GenericProfileScreen
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -99,6 +98,9 @@ fun MainNavGraph(
         composable("dms") {
             DMScreen(navController = navController)
         }
+        composable("leaderboard") {
+            LeaderboardScreen(navController)
+        }
         composable("home") {
             HomeScreen(navController = navController, postViewModel = postViewModel)
         }
@@ -141,73 +143,10 @@ fun MainNavGraph(
         composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(navController = navController)
         }
-
-        composable(
-            route = "aiProfile/{aiId}?scrollToMemoryLogs={scrollToMemoryLogs}",
-            arguments = listOf(
-                navArgument("aiId") { type = NavType.StringType },
-                navArgument("scrollToMemoryLogs") {
-                    type = NavType.BoolType
-                    defaultValue = false
-                }
-            )
-        ) { backStackEntry ->
-            val aiId = backStackEntry.arguments?.getString("aiId") ?: return@composable
-            val scrollToMemoryLogs =
-                backStackEntry.arguments?.getBoolean("scrollToMemoryLogs") ?: false
-            val chatAIViewModel: ChatAIViewModel = viewModel()
-            val ai = when (aiId) {
-                "zaraAi" -> AI.ZARA
-                "kabirAi" -> AI.KABIR
-                else -> return@composable
-            }
-            val avatarRes = when (ai) {
-                AI.ZARA -> R.drawable.zara_avatar
-                AI.KABIR -> R.drawable.kabir_avatar
-                else -> R.drawable.zara_avatar // Fallback
-            }
-            GenericProfileScreen(
-                title = ai.name,
-                modelingState = chatAIViewModel.getModelingState(aiId),
-                avatarRes = avatarRes,
-                onNavigateBack = { navController.popBackStack() },
-                ai = ai,
-                userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
-                messageCount = chatAIViewModel.getMessageCount(aiId),
-                scrollToMemoryLogs = scrollToMemoryLogs
-            )
-        }
         composable("govtIdVerification") {
             GovtIdVerificationScreen(
                 navController     = navController,
                 profileViewModel  = profileViewModel
-            )
-        }
-
-
-        // ----- The AI route for KupidXChatScreen -----
-        composable("aiProfile/{userId}") { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
-            val chatAIViewModel: ChatAIViewModel = viewModel()
-            val modelingState = chatAIViewModel.getModelingState(userId)
-            val aiEnum = when (userId) {
-                "zaraAi" -> AI.ZARA
-                "kabirAi" -> AI.KABIR
-                else -> return@composable
-            }
-            val avatarRes = when (aiEnum) {
-                AI.ZARA -> R.drawable.zara_avatar
-                AI.KABIR -> R.drawable.kabir_avatar
-                else -> R.drawable.zara_avatar // Fallback
-            }
-            GenericProfileScreen(
-                title = aiEnum.name,
-                modelingState = modelingState,
-                avatarRes = avatarRes,
-                onNavigateBack = { navController.popBackStack() },
-                ai = aiEnum,
-                userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
-                messageCount = chatAIViewModel.getMessageCount(userId)
             )
         }
         composable("notifications") {

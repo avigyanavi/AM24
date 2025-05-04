@@ -20,9 +20,6 @@ class Notification(
     var isRead by mutableStateOf(isRead)
 }
 
-// friendrequest.kt
-enum class AI { RHEA, REVAAN, KABIR, SAANVI, CHHOTU, VARDHAN, ZARA }
-//
 
 data class FilterSettings(
     var filterOption: String = "everyone",
@@ -43,7 +40,7 @@ data class DatingFilterSettings(
     val work: String = "",
     val ageStart: Int = 18,
     val ageEnd: Int = 100,
-    val distance: Int = 10,
+    val distance: Int = 1000,
     val gender: String = "",
     val rating: String = "",
     val community: String = "",

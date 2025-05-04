@@ -53,6 +53,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * StateFlow holding the list of posts.
      */
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
+    val posts: StateFlow<List<Post>> get() = _posts.asStateFlow()
 
     private val _userProfiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
     val userProfiles: StateFlow<Map<String, Profile>> get() = _userProfiles
@@ -164,6 +165,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshPosts() {
         Log.d(TAG, "Refreshing posts...")
+        clearAllFilters()
         observePosts() // Re-attach listener
     }
 
@@ -1254,4 +1256,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Call from UI when you want a totally un-filtered feed. */
+    fun clearAllFilters() {
+        // Wipe the Home-screen filter settings
+        _filterSettings.value = FilterSettings()           // == everything default
+
+        // Wipe the deeper feed filters (gender, locality, etc.)
+        _feedFilters.value   = FilterSettings()            // likewise
+
+        // -- If you cache the user’s saved filters in Firebase, also wipe them there
+        _currentUserId.value?.let { uid ->
+            FirebaseRefs.db.getReference("users")
+                .child(uid)
+                .child("feedFilters")
+                .removeValue()        //  ← delete the saved copy so it can’t re-apply
+        }
+    }
 }

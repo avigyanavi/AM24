@@ -68,244 +68,6 @@ fun DMScreenContent(navController: NavController) {
     var profileToRate by remember { mutableStateOf<Profile?>(null) }
     var tempRating by remember { mutableStateOf(-1.0) }
 
-
-    /* ───────── Profiles for AI coaches (unchanged) ───────── */
-    val zaraProfile = Profile(
-        email = "zara@am24.org",
-        password = "ZaraPassword123!",
-        interestedIn = listOf("Male"),
-        preferredLanguage = "English",
-        userId = "zaraAi",
-        username = "ZaraAI",
-        name = "Zara",
-        dob = "12/04/1999",
-        bio = "Kolkata sports star turned dating coach, once a jock in high school!",
-        gender = "Female",
-        lastActive = System.currentTimeMillis(),
-        badges = listOf("CricketChampion", "SchoolJock"),
-        profilepicUrl = "",
-        voiceNoteUrl = "",
-        loveLanguage = "Words of Affirmation",
-        optionalPhotoUrls = emptyList(),
-        matches = emptyList(),
-        religion = "Hindu",
-        community = "Bengali",
-        city = "Kolkata",
-        customCity = null,
-        hometown = "Kolkata",
-        customHometown = null,
-        educationLevel = "Masters",
-        highSchool = "Kolkata HS",
-        customHighSchool = null,
-        highSchoolGraduationYear = "2014",
-        college = "Kolkata University",
-        customCollege = null,
-        collegeGraduationYear = "2018",
-        collegeDegree = "B.A. in Sociology",
-        postGraduation = "Kolkata University PG",
-        customPostGraduation = null,
-        postGraduationYear = "2020",
-        postGraduationDegree = "M.A. in Psychology",
-        lifestyle = Lifestyle(
-            smoking_habit = 0,
-            drinking_habit = 1,
-            indoor_outdoor_orientation = 2,
-            sexual_activity_level = 1,
-            sociability = 2,
-            social_media_engagement = 2,
-            dietary_preferences = "Non-Veg",
-            sleep_pattern = 2,
-            work_life_balance = 3,
-            exercise_frequency = 4,
-            adventurousness = 4,
-            family_orientated = 3,
-            intellectual_curiosity = 3,
-            creative_expression = 4,
-            physical_fitness = 4,
-            spirituality_mindfulness = 2,
-            easy_goingness = 3,
-            professional_ambition = 3,
-            environmental_awareness = 2,
-            culinary_enthusiasm = 3,
-            political_awareness = 3,
-            community_engagement = 3,
-            sports_enthusiasm = 5,
-        ),
-        politics = "Liberal",
-        jobRole = "Dating Coach",
-        customJobRole = null,
-        work = "Self-Employed",
-        customWork = null,
-        socialCauses = listOf("Women Empowerment"),
-        lookingFor = "Connections",
-        likedUsers = mutableMapOf(),
-        numberOfUsersWhoSwiped = 0.0,
-        UsersWhoLikeMe = mutableMapOf(),
-        isBoosted = false,
-        isPremium = false,
-        isPrivate = false,
-        am24RankingAge = 5,
-        am24RankingHighSchool = 5,
-        am24RankingCollege = 5,
-        am24RankingHometown = 5,
-        am24Ranking = 20,
-        numberOfRatings = 35,
-        numberOfSwipeRights = 0,
-        matchCount = 0,
-        matchCountPerSwipeRight = 0.0,
-        cumulativeUpvotes = 0,
-        cumulativeDownvotes = 0,
-        averageUpvoteCount = 0.0,
-        averageDownvoteCount = 0.0,
-        reportUsers = mutableMapOf(),
-        blockedUsers = mutableMapOf(),
-        upvoteCount = 0,
-        downvoteCount = 0,
-        userTags = emptyList(),
-        zodiac = null,
-        dateOfJoin = System.currentTimeMillis(),
-        am24RankingCompositeScore = 100.0,
-        latitude = 0.0,
-        longitude = 0.0,
-        averageRating = 4.2,
-        isMatrimonyMode = false,
-        marriageTimeline = null,
-        relocationPreference = null,
-        postMarriageCareerPlan = null,
-        traditionalVsLiberal = null,
-        fatherOccupation = null,
-        motherOccupation = null,
-        isConsultantVerified = false,
-        datingAgeStart = 18,
-        datingAgeEnd = 30,
-        datingDistancePreference = 10,
-        height = 163,
-        height2 = emptyList(),
-        caste = "",
-        relationship = null,
-        averageSwipeRightsOnUser = 0.0,
-        ratingsGiven = emptyMap(),
-        ratingsReceived = emptyMap()
-    )
-
-    val kabirProfile = Profile(
-        email = "kabir@am24.org",
-        password = "KabirPassword456!",
-        interestedIn = listOf("Female"),
-        preferredLanguage = "English",
-        userId = "kabirAi",
-        username = "KabirAI",
-        name = "Kabir",
-        dob = "07/02/1998",
-        bio = "Ex-college athlete turned edgy approach mentor, jock vibes all the way!",
-        gender = "Male",
-        lastActive = System.currentTimeMillis(),
-        badges = listOf("SchoolJock", "FootballStar"),
-        profilepicUrl = "",
-        voiceNoteUrl = "",
-        loveLanguage = "Physical Touch",
-        optionalPhotoUrls = emptyList(),
-        matches = emptyList(),
-        religion = "Muslim",
-        community = "Bengali",
-        city = "Kolkata",
-        customCity = null,
-        hometown = "Kolkata",
-        customHometown = null,
-        educationLevel = "Bachelors",
-        highSchool = "Kolkata HS",
-        customHighSchool = null,
-        highSchoolGraduationYear = "2013",
-        college = "Kolkata College",
-        customCollege = null,
-        collegeGraduationYear = "2017",
-        collegeDegree = "B.Com",
-        postGraduation = "",
-        customPostGraduation = null,
-        postGraduationYear = "",
-        postGraduationDegree = null,
-        lifestyle = Lifestyle(
-            smoking_habit = 2,
-            drinking_habit = 2,
-            indoor_outdoor_orientation = 4,
-            sexual_activity_level = 2,
-            sociability = 2,
-            social_media_engagement = 3,
-            dietary_preferences = "Non-Veg",
-            sleep_pattern = 2,
-            work_life_balance = 3,
-            exercise_frequency = 5,
-            adventurousness = 5,
-            family_orientated = 3,
-            intellectual_curiosity = 2,
-            creative_expression = 2,
-            physical_fitness = 5,
-            spirituality_mindfulness = 2,
-            easy_goingness = 3,
-            professional_ambition = 2,
-            environmental_awareness = 2,
-            culinary_enthusiasm = 2,
-            political_awareness = 2,
-            community_engagement = 2,
-            sports_enthusiasm = 5,
-        ),
-        politics = "Moderate",
-        jobRole = "Approach Mentor",
-        customJobRole = null,
-        work = "Freelancer",
-        customWork = null,
-        socialCauses = listOf("Youth Empowerment"),
-        lookingFor = "Fun & Flirting",
-        likedUsers = mutableMapOf(),
-        numberOfUsersWhoSwiped = 0.0,
-        UsersWhoLikeMe = mutableMapOf(),
-        isBoosted = false,
-        isPremium = false,
-        isPrivate = false,
-        am24RankingAge = 5,
-        am24RankingHighSchool = 5,
-        am24RankingCollege = 3,
-        am24RankingHometown = 5,
-        am24Ranking = 18,
-        numberOfRatings = 20,
-        numberOfSwipeRights = 0,
-        matchCount = 0,
-        matchCountPerSwipeRight = 0.0,
-        cumulativeUpvotes = 0,
-        cumulativeDownvotes = 0,
-        averageUpvoteCount = 0.0,
-        averageDownvoteCount = 0.0,
-        reportUsers = mutableMapOf(),
-        blockedUsers = mutableMapOf(),
-        upvoteCount = 0,
-        downvoteCount = 0,
-        userTags = emptyList(),
-        zodiac = null,
-        dateOfJoin = System.currentTimeMillis(),
-        am24RankingCompositeScore = 80.0,
-        latitude = 0.0,
-        longitude = 0.0,
-        averageRating = 3.8,
-        isMatrimonyMode = false,
-        marriageTimeline = null,
-        relocationPreference = null,
-        postMarriageCareerPlan = null,
-        traditionalVsLiberal = null,
-        fatherOccupation = null,
-        motherOccupation = null,
-        isConsultantVerified = false,
-        datingAgeStart = 18,
-        datingAgeEnd = 30,
-        datingDistancePreference = 10,
-        height = 178,
-        height2 = emptyList(),
-        caste = "",
-        relationship = null,
-        averageSwipeRightsOnUser = 0.0,
-        ratingsGiven = emptyMap(),
-        ratingsReceived = emptyMap()
-    )
-
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     LaunchedEffect(currentUserId) {
         usersRef.child(currentUserId).get()
@@ -324,7 +86,6 @@ fun DMScreenContent(navController: NavController) {
         }.distinct()
     }
 
-    var showAIChats by rememberSaveable { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var likedCount by remember { mutableStateOf(0) }
     val matchedUsers = remember { mutableStateListOf<Profile>() }
@@ -365,10 +126,6 @@ fun DMScreenContent(navController: NavController) {
     /* ───────── Fetch matched user objects ───────── */
     LaunchedEffect(currentUserId) {
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
-            // Add AI profiles
-            zaraProfile?.let { if (matchedUsers.none { it.userId == "zaraAi" }) matchedUsers.add(it) }
-            kabirProfile?.let { if (matchedUsers.none { it.userId == "kabirAi" }) matchedUsers.add(it) }
-
             // Check non-initiated conversations
             checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
                 nonInitiatedMatches.clear()
@@ -461,22 +218,6 @@ fun DMScreenContent(navController: NavController) {
                         Spacer(Modifier.width(6.dp))
                     }
                 }
-
-                // "Show AI Chats" toggle
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("AI Chats", color = Color.White, fontSize = 14.sp)
-                    Spacer(Modifier.width(4.dp))
-                    Switch(
-                        checked = showAIChats,
-                        onCheckedChange = { showAIChats = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xFFFF4500),
-                            uncheckedThumbColor = Color.Gray
-                        )
-                    )
-                }
             }
 
             OutlinedTextField(
@@ -516,7 +257,6 @@ fun DMScreenContent(navController: NavController) {
                 }
                 Spacer(Modifier.width(6.dp))
                 nonInitiatedMatches
-                    .filter { showAIChats || !it.userId.endsWith("Ai") }
                     .forEach { profile ->
                         AIOrProfileImage(
                             profile,
@@ -530,10 +270,7 @@ fun DMScreenContent(navController: NavController) {
                     }
             }
 
-            val displayedUsers = matchedUsers.filter {
-                (showAIChats || !it.userId.endsWith("Ai")) &&
-                        (it.username.contains(searchQuery, true) || it.name.contains(searchQuery, true))
-            }
+            val displayedUsers = matchedUsers
 
             if (displayedUsers.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -794,11 +531,11 @@ private fun fetchUsersFromNode(
 
 fun getLevelBorderColor(rating: Double): Color {
     return when {
-        rating in 0.0..1.0 -> Color(0xFF444444)
-        rating in 1.1..2.1 -> Color(0xFF555555)
-        rating in 2.1..3.6 -> Color(0xFF886633)
-        rating in 3.6..4.7 -> Color(0xFFAA6633)
-        rating in 4.7..5.0 -> Color(0xFFFF6F00)
+        rating in 0.0..1.0 -> Color(0xFF1A1A1A)
+        rating in 1.1..2.1 -> Color(0x88FFFF00)
+        rating in 2.1..3.6 -> Color.White
+        rating in 3.6..4.7 -> Color(0xFFFF6F00)
+        rating in 4.7..5.0 -> Color(0xFFE91E63)
         else -> Color.Gray
     }
 }

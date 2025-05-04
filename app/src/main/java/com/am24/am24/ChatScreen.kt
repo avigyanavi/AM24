@@ -25,7 +25,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -35,8 +34,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -48,8 +45,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -61,8 +56,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -80,26 +73,12 @@ import coil.request.videoFrameMillis
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
-import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
-import java.util.concurrent.TimeUnit
-import com.google.android.gms.maps.model.LatLng
-
-// Data classes
-data class MoodLevels(val trust: Int = 0, val jealousy: Int = 0, val romantic_passion: Int = 0, val satisfaction: Int = 0)
-data class RelationshipHistory(val attachment: Int = 50, val confidence: Int = 50, val emotionalDepth: Int = 50)
-data class ModelingState(val relationshipHistory: RelationshipHistory = RelationshipHistory(), val moodLevels: MoodLevels = MoodLevels(), val relationshipStage: String = "Friend")
-data class EmotionDeltas(val trustDelta: Int = 0, val jealousyDelta: Int = 0, val romanticPassionDelta: Int = 0, val satisfactionDelta: Int = 0)
-data class MessageImpact(val impactScore: Int, val emotionDeltas: EmotionDeltas, val snippetToStore: String = "", val explanation: String = "")
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 
 // Updated Message data class (without viewed field)
 data class Message(
@@ -114,284 +93,10 @@ data class Message(
     val processed: Boolean = false,
 )
 
-// ChatAIViewModel (unchanged)
-class ChatAIViewModel : ViewModel() {
-    private val database = FirebaseRefs.db
-    private val gson = Gson()
-    private val aiStates = mutableMapOf<String, ModelingState>()
-    val memoryLogs = mutableMapOf<String, MutableList<String>>()
-    private val messageCounts = mutableMapOf<String, Int>()
-
-    private val statesRef = database.getReference("aiStates")
-    val memoryRef = database.getReference("aiMemoryLogs")
-    private val messageCountRef = database.getReference("aiMessageCounts")
-
-    init {
-        listOf("zaraAi", "kabirAi").forEach { aiId ->
-            statesRef.child(aiId).addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val stateJson = snapshot.getValue(String::class.java)
-                    aiStates[aiId] = stateJson?.let { gson.fromJson(it, ModelingState::class.java) } ?: ModelingState()
-                }
-                override fun onCancelled(error: DatabaseError) {}
-            })
-            memoryRef.child(aiId).addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val logs = snapshot.children.mapNotNull { it.getValue(String::class.java) }.toMutableList()
-                    memoryLogs[aiId] = logs
-                }
-                override fun onCancelled(error: DatabaseError) {}
-            })
-            messageCountRef.child(aiId).addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    messageCounts[aiId] = snapshot.getValue(Int::class.java) ?: 0
-                }
-                override fun onCancelled(error: DatabaseError) {}
-            })
-        }
-    }
-
-    fun getModelingState(aiId: String): ModelingState = aiStates[aiId] ?: ModelingState()
-    fun getMemoryLog(aiId: String): List<String> = memoryLogs[aiId] ?: mutableListOf()
-    fun getMessageCount(aiId: String): Int = messageCounts[aiId] ?: 0
-
-    private fun convertMessages(msgs: List<Message>): List<ChatMessage> {
-        return msgs.map { ChatMessage(it.senderId, it.text, it.timestamp) }
-    }
-
-    suspend fun classifyMessageImpact(aiId: String, userText: String, recentMessages: List<Message>): MessageImpact {
-        val state = getModelingState(aiId)
-        val conv = convertMessages(recentMessages).takeLast(7)
-        val mem = getMemoryLog(aiId).joinToString(" | ")
-        val systemPrompt = """
-You are an "Impact Classifier" for interactive conversations.
-
-Given the AI character's current emotional state:
-  - Trust: ${state.moodLevels.trust}
-  - Jealousy: ${state.moodLevels.jealousy}
-  - Romantic Passion: ${state.moodLevels.romantic_passion}
-  - Satisfaction: ${state.moodLevels.satisfaction}
-
-Memory log: [$mem]
-LAST 7 MSGS: ${conv.joinToString(" | ") { "${it.role}: ${it.content}" }}
-NEW MSG: $userText
-
-Assign an "impactScore" (0–100) and distribute this impact across emotional deltas.
-Only store messages with impactScore ≥ 50.
-Return exactly this JSON:
-{
-  "impactScore": Int,
-  "emotionDeltas": {
-    "trustDelta": Int,
-    "jealousyDelta": Int,
-    "romanticPassionDelta": Int,
-    "satisfactionDelta": Int
-  },
-  "snippetToStore": "<exact user message>",
-  "explanation": "<brief explanation>"
-}
-""".trimIndent()
-
-        val raw = callClassifierApi(listOf(ChatMessage("system", systemPrompt)))
-        return raw?.let {
-            try {
-                val jsonPart = it.substring(it.indexOf('{'), it.lastIndexOf('}') + 1)
-                gson.fromJson(jsonPart, MessageImpact::class.java)
-            } catch (e: Exception) {
-                MessageImpact(0, EmotionDeltas())
-            }
-        } ?: MessageImpact(0, EmotionDeltas())
-    }
-
-    private fun computeRelationshipStage(points: Int): String {
-        return when {
-            points < 50 -> "Friend"
-            points < 100 -> "Casual Flirt"
-            points < 200 -> "Romantic Partner"
-            points < 400 -> "Spouse"
-            else -> "Soulmate+"
-        }
-    }
-
-    private fun applyMessageImpact(aiId: String, impact: MessageImpact) {
-        val oldState = getModelingState(aiId)
-        if (impact.impactScore >= 50) {
-            memoryLogs.getOrPut(aiId) { mutableListOf() }.add(impact.snippetToStore)
-            memoryRef.child(aiId).setValue(memoryLogs[aiId])
-        }
-        val updatedMood = oldState.moodLevels.copy(
-            trust = (oldState.moodLevels.trust + impact.emotionDeltas.trustDelta).coerceIn(0, 100),
-            jealousy = (oldState.moodLevels.jealousy + impact.emotionDeltas.jealousyDelta).coerceIn(0, 100),
-            romantic_passion = (oldState.moodLevels.romantic_passion + impact.emotionDeltas.romanticPassionDelta).coerceIn(0, 100),
-            satisfaction = (oldState.moodLevels.satisfaction + impact.emotionDeltas.satisfactionDelta).coerceIn(0, 100)
-        )
-        val attachmentDelta = (impact.emotionDeltas.trustDelta - impact.emotionDeltas.jealousyDelta) / 2
-        val confidenceDelta = (impact.emotionDeltas.trustDelta + impact.emotionDeltas.satisfactionDelta) / 2
-        val emotionalDepthDelta = (impact.emotionDeltas.romanticPassionDelta + impact.emotionDeltas.satisfactionDelta) / 2
-
-        val updatedHistory = oldState.relationshipHistory.copy(
-            attachment = (oldState.relationshipHistory.attachment + attachmentDelta).coerceIn(0, 100),
-            confidence = (oldState.relationshipHistory.confidence + confidenceDelta).coerceIn(0, 100),
-            emotionalDepth = (oldState.relationshipHistory.emotionalDepth + emotionalDepthDelta).coerceIn(0, 100)
-        )
-        val currentPoints = (updatedHistory.attachment + updatedHistory.confidence + updatedHistory.emotionalDepth) / 3
-        val pointsEarned = impact.impactScore / 10
-        val newPoints = currentPoints + pointsEarned
-        val newStage = computeRelationshipStage(newPoints)
-        val newState = oldState.copy(moodLevels = updatedMood, relationshipHistory = updatedHistory, relationshipStage = newStage)
-        aiStates[aiId] = newState
-        statesRef.child(aiId).setValue(gson.toJson(newState))
-    }
-
-    private fun buildMasterPrompt(aiId: String, state: ModelingState, userName: String): ChatMessage {
-        val mem = getMemoryLog(aiId).joinToString(" | ")
-        val currentPoints = (state.relationshipHistory.attachment + state.relationshipHistory.confidence + state.relationshipHistory.emotionalDepth) / 3
-        val nickname = getDynamicNickname(userName, currentPoints)
-        val biography = getPersonaBiography(aiId)
-        val promptText = """
-You are ${getPersonaName(aiId)}.
-User Profile: $userName
-Your Biography: $biography
-
-Memory Log: [$mem]
-
-Your current state:
-$state
-
-Use the nickname "$nickname" when addressing the user.
-Respond with a message that reflects your personality, current mood, and relationship stage.
-""".trimIndent()
-        return ChatMessage("system", promptText)
-    }
-
-    private fun getPersonaName(aiId: String): String = when (aiId) {
-        "zaraAi" -> "Zara"
-        "kabirAi" -> "Kabir"
-        else -> "AI"
-    }
-    private fun getDynamicNickname(userName: String, points: Int): String = when {
-        points < 50 -> userName.split(" ").firstOrNull() ?: userName
-        points < 100 -> "babe"
-        points < 200 -> "darling"
-        points < 400 -> "love"
-        else -> "my love"
-    }
-    private fun getPersonaBiography(aiId: String): String = when (aiId) {
-        "zaraAi" -> "Cricket Diva with passion and grace."
-        "kabirAi" -> "Bad Boy Cop with a rebellious charm."
-        else -> "A unique personality."
-    }
-
-    private suspend fun generateAIResponse(aiId: String, userInput: String, recentMessages: List<Message>, userName: String): String {
-        val state = getModelingState(aiId)
-        val masterPrompt = buildMasterPrompt(aiId, state, userName)
-        val messagesForResponse = listOf(masterPrompt, ChatMessage("user", userInput))
-        val raw = callKupidXApi(messagesForResponse)
-        return raw?.trim()?.removePrefix("```json")?.removeSuffix("```")?.trim() ?: "Hello! How can I assist you today?"
-    }
-
-    fun sendMessageToAI(
-        aiId: String,
-        userInput: String,
-        currentUserId: String,
-        messagesRef: DatabaseReference,
-        context: Context,
-        recentMessages: List<Message>,
-        userName: String
-    ) {
-        if (userInput.isBlank()) return
-        val userMsg = Message(
-            id = messagesRef.push().key ?: return,
-            senderId = currentUserId,
-            receiverId = aiId,
-            text = userInput,
-            timestamp = System.currentTimeMillis(),
-            read = false,
-            processed = false
-        )
-        messagesRef.child(userMsg.id).setValue(userMsg)
-        incrementMessageCount(aiId)
-        viewModelScope.launch {
-            val impact = classifyMessageImpact(aiId, userInput, recentMessages)
-            applyMessageImpact(aiId, impact)
-            val responseText = generateAIResponse(aiId, userInput, recentMessages, userName)
-            val aiMsg = Message(
-                id = messagesRef.push().key ?: return@launch,
-                senderId = aiId,
-                receiverId = currentUserId,
-                text = responseText,
-                timestamp = System.currentTimeMillis(),
-                read = false,
-                processed = false
-            )
-            messagesRef.child(aiMsg.id).setValue(aiMsg)
-        }
-    }
-
-    private fun incrementMessageCount(aiId: String) {
-        val currentCount = messageCounts[aiId] ?: 0
-        messageCounts[aiId] = currentCount + 1
-        messageCountRef.child(aiId).setValue(currentCount + 1)
-    }
-
-    suspend fun callKupidXApi(messages: List<ChatMessage>): String? = withContext(Dispatchers.IO) {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(120, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)
-            .writeTimeout(120, TimeUnit.SECONDS)
-            .build()
-
-        val firebaseUrl = "https://us-central1-am-twentyfour.cloudfunctions.net/chat" // ✅ UPDATE this
-
-        val chatRequest = ChatRequest(
-            model = "llama-3.3-70b-versatile", // ✅ same as before
-            messages = messages,
-            max_tokens = 8000
-        )
-
-        val jsonBody = gson.toJson(chatRequest)
-        Log.d("FinalRequest", "Sending request: $jsonBody")
-
-        val mediaType = "application/json".toMediaType()
-        val reqBody = jsonBody.toRequestBody(mediaType)
-
-        val req = Request.Builder()
-            .url(firebaseUrl)
-            .post(reqBody)
-            .build()
-
-        try {
-            client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) {
-                    Log.e("FinalResponse", "Request failed: ${resp.code}")
-                    return@withContext "Error: ${resp.code}"
-                }
-                val rBody = resp.body?.string() ?: return@withContext null
-                Log.d("FinalResponse", rBody)
-
-                val chatResp = gson.fromJson(rBody, ChatResponse::class.java)
-                chatResp.choices.firstOrNull()?.message?.content
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            "Error: ${e.message}"
-        }
-    }
-
-
-    private suspend fun callClassifierApi(messages: List<ChatMessage>): String? = callKupidXApi(messages)
-
-    fun clearMemoryForAI(aiId: String) {
-        memoryLogs[aiId]?.clear()
-        memoryRef.child(aiId).setValue(null)
-    }
-}
-
 @Composable
 fun ChatScreen(navController: NavController, otherUserId: String) {
     val profileViewModel: ProfileViewModel = viewModel()
-    val chatAIViewModel: ChatAIViewModel = viewModel()
-    ChatScreenContent(navController, otherUserId, profileViewModel, chatAIViewModel)
+    ChatScreenContent(navController, otherUserId, profileViewModel)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -400,7 +105,6 @@ fun ChatScreenContent(
     navController: NavController,
     otherUserId: String,
     profileViewModel: ProfileViewModel,
-    chatAIViewModel: ChatAIViewModel
 ) {
     var previewRefresh by remember { mutableStateOf(0) }
     var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
@@ -427,7 +131,6 @@ fun ChatScreenContent(
     // Typing status for real users
     var isOtherUserTyping by remember { mutableStateOf(false) }
     val typingRef = database.getReference("typing/$chatId/$otherUserId")
-    val isAiConversation = otherUserId.endsWith("Ai")
 
     var averageRating by remember { mutableStateOf(0.0) }
     var yourRating by rememberSaveable(otherUserId) { mutableStateOf(-1.0) }
@@ -490,7 +193,6 @@ fun ChatScreenContent(
 
 
     // Listen for typing status (real users only)
-    if (!isAiConversation) {
         DisposableEffect(typingRef) {
             val listener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -503,7 +205,7 @@ fun ChatScreenContent(
             typingRef.addValueEventListener(listener)
             onDispose { typingRef.removeEventListener(listener) }
         }
-    }
+
 
     // ─── replace your current takePhotoLauncher with this ───
     val takePhotoLauncher: ManagedActivityResultLauncher<Uri, Boolean> =
@@ -530,7 +232,7 @@ fun ChatScreenContent(
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted && !isAiConversation) {
+        if (granted) {
             isRecording = true
             recordFile = File(context.filesDir, "voice_message.aac")
             recorder = MediaRecorder().apply {
@@ -660,17 +362,6 @@ fun ChatScreenContent(
         }
 
         if (messageText.isNotBlank()) {
-            if (isAiConversation) {
-                scope.launch {
-                    chatAIViewModel.sendMessageToAI(
-                        otherUserId, messageText, currentUserId,
-                        messagesRef, context, messages,
-                        currentUserProfile?.name ?: "User"
-                    )
-                    done()
-                    Log.d("ChatScreen", "AI text message sent")
-                }
-            } else {
                 val newId = messagesRef.push().key ?: return@mySend
                 val msg = Message(
                     id = newId,
@@ -683,7 +374,6 @@ fun ChatScreenContent(
                 postNotification(notificationsRef, otherUserId, currentUserId, messageText)
                 database.getReference("typing/$chatId/$currentUserId").setValue(false)
                 Log.d("ChatScreen", "Text message sent")
-            }
             messageText = ""
         } else {
             done()
@@ -701,7 +391,6 @@ fun ChatScreenContent(
             Toast.makeText(context, "Failed to load your profile", Toast.LENGTH_SHORT).show()
             isLoadingProfiles = false
         }
-        if (!isAiConversation) {
             usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
                 val profile = snapshot.getValue(Profile::class.java)
                 if (profile != null) {
@@ -716,7 +405,6 @@ fun ChatScreenContent(
             fetchUserRating(ratingsRef, otherUserId) { rating -> yourRating = rating }
             fetchAverageRating(ratingsRef, otherUserId) { avg -> averageRating = avg }
         }
-    }
 
     // Listen for messages
     DisposableEffect(messagesRef) {
@@ -763,7 +451,7 @@ fun ChatScreenContent(
     }
 
     LaunchedEffect(isRecording) {
-        if (!isAiConversation && isRecording) {
+        if (isRecording) {
             while (recordingTimeLeft > 0) {
                 delay(1000L)
                 recordingTimeLeft -= 1000
@@ -819,13 +507,9 @@ fun ChatScreenContent(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
-                            if (isAiConversation) {
-                                navController.navigate("aiProfile/$otherUserId")
-                            } else {
                                 otherUserProfile?.let {
                                     navController.navigate("matchedUserProfile/$otherUserId")
                                 }
-                            }
                         }
                     ) {
                         if (isLoadingProfiles) {
@@ -843,15 +527,12 @@ fun ChatScreenContent(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            val displayProfile = if (isAiConversation) {
-                                Profile(userId = otherUserId, username = "", name = "")
-                            } else {
                                 otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
-                            }
-                            AIOrProfileImage(
-                                profile = displayProfile,
-                                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)
-                            )
+                                    /* use helper that falls back to gray box */
+                                    AIOrProfileImage(
+                                        profile = otherUserProfile ?: Profile(userId = "", username = "", name = ""),
+                                        modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)
+                                    )
                             Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
                         }
                         Spacer(Modifier.width(8.dp))
@@ -862,15 +543,8 @@ fun ChatScreenContent(
                                 .horizontalScroll(scrollState, true)
                         ) {
                             Text(
-                                text = if (isAiConversation) {
-                                    when (otherUserId) {
-                                        "zaraAi" -> "Zara"
-                                        "kabirAi" -> "Kabir"
-                                        else -> "AI"
-                                    }
-                                } else {
-                                    otherUserProfile?.name ?: "Chat"
-                                },
+                                text =
+                                    otherUserProfile?.name ?: "Chat",
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
@@ -880,7 +554,6 @@ fun ChatScreenContent(
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
-                    if (!isAiConversation) {
                         IconButton(
                             onClick = {
                                 suggestionsExpanded = true
@@ -905,8 +578,8 @@ fun ChatScreenContent(
                                     }
                                 }
                             }
-                        ) { Icon(Icons.Default.Place, "Places Suggestions", tint = Color(0xFFFF6F00)) }
-                    }
+                        ) {
+                            Icon(Icons.Default.Place, "Places Suggestions", tint = Color(0xFFFF6F00)) }
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) { Icon(Icons.Default.MoreVert, "More Options", tint = Color.White) }
                     DropdownMenu(expanded = moreOptionsMenuExpanded, onDismissRequest = { moreOptionsMenuExpanded = false }) {
                         // New Rating toggle item
@@ -953,7 +626,7 @@ fun ChatScreenContent(
     ) { paddingValues ->
         Box(Modifier.fillMaxSize().padding(paddingValues).background(Color.Black)) {
             Column(Modifier.fillMaxSize()) {
-                if (!isAiConversation && otherUserProfile != null && showRating) {
+                if (otherUserProfile != null && showRating) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
                         RatingBar(rating = averageRating, ratingCount = otherUserProfile!!.numberOfRatings)
                         Text(
@@ -990,7 +663,7 @@ fun ChatScreenContent(
                         verticalArrangement = Arrangement.Bottom
                     ) {
                                 // 1) Typing indicator stays as its own `item {}`:
-                        if (isOtherUserTyping || (isAiConversation && isSendingMessage)) {
+                        if (isOtherUserTyping || isSendingMessage) {
                             item { TypingIndicator() }
 
                         }
@@ -1043,7 +716,7 @@ fun ChatScreenContent(
 
                     }
                 }
-                if (!isAiConversation && isRecording) {
+                if (isRecording) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -1069,7 +742,7 @@ fun ChatScreenContent(
                         }
                     }
                 }
-                if (!isAiConversation && recordedVoiceUri != null) {
+                if (recordedVoiceUri != null) {
                     VoiceMessagePlayer(
                         mediaUrl = recordedVoiceUri.toString(),
                         isPlaying = isVoicePlaying,
@@ -1140,10 +813,8 @@ fun ChatScreenContent(
                     messageText = messageText,
                     onTextChange = { newText ->
                         messageText = newText
-                        if (!isAiConversation) {
                             database.getReference("typing/$chatId/$currentUserId")
                                 .setValue(newText.isNotEmpty())
-                        }
                     },
                     onSend       = sendHandler,
                     sendEnabled  = !isSendingMessage && !isUploadingMedia,
@@ -1180,7 +851,7 @@ fun ChatScreenContent(
                 )
             }
             // Suggestions Dropdown (preserved)
-            if (!isAiConversation && suggestionsExpanded) {
+            if (suggestionsExpanded) {
                 Box(
                     Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
                         .clickable(onClick = { suggestionsExpanded = false }, indication = null, interactionSource = remember { MutableInteractionSource() }),
@@ -1306,7 +977,7 @@ fun ChatScreenContent(
                 }
             }
             // Places Suggestions Dropdown
-            if (!isAiConversation && placeSuggestionsExpanded) {
+            if (placeSuggestionsExpanded) {
                 Box(
                     Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
                         .clickable(onClick = { placeSuggestionsExpanded = false }, indication = null, interactionSource = remember { MutableInteractionSource() }),
@@ -2014,42 +1685,21 @@ fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit, modifier: Modifier
 @Composable
 fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    when (profile.userId) {
-        "zaraAi" -> {
-            Image(
-                painter = painterResource(R.drawable.zara_avatar),
-                contentDescription = "Zara",
-                modifier = modifier,
-                contentScale = ContentScale.Crop
-            )
-        }
-        "kabirAi" -> {
-            Image(
-                painter = painterResource(R.drawable.kabir_avatar),
-                contentDescription = "Kabir",
-                modifier = modifier,
-                contentScale = ContentScale.Crop
-            )
-        }
-        else -> {
-            profile.profilepicUrl?.let { url ->
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(url)
-                        .diskCacheKey(url)
-                        .memoryCacheKey(url)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = profile.username,
-                    modifier = modifier,
-                    contentScale = ContentScale.Crop
-                )
-            } ?: run {
-                Box(modifier = modifier.background(Color.Gray))
-            }
-        }
-    }
+    profile.profilepicUrl?.takeIf { it.isNotBlank() }?.let { url ->
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(url)
+                .diskCacheKey(url)
+                .memoryCacheKey(url)
+                .crossfade(true)
+                .build(),
+            contentDescription = profile.username,
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } ?: Box(modifier = modifier.background(Color.Gray))
 }
+
 
 @Composable
 fun MediaPreviewBox(
@@ -2174,7 +1824,7 @@ fun ChatInputBar(
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     sendEnabled: Boolean,
-    sending: Boolean,                      //  ← new
+    sending: Boolean,
     isRecording: Boolean,
     onToggleRecord: () -> Unit,
     onPickPhoto: () -> Unit,
@@ -2191,7 +1841,6 @@ fun ChatInputBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        /* text entry */
         TextField(
             value = messageText,
             onValueChange = onTextChange,
@@ -2207,16 +1856,24 @@ fun ChatInputBar(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
             ),
-            singleLine = true
+            singleLine = true,
+
+            // ← HERE: make Enter act as “Send”
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Send
+            ),
+            keyboardActions = KeyboardActions(
+                onSend = {
+                    if (sendEnabled) onSend()
+                }
+            )
         )
 
         Spacer(Modifier.width(4.dp))
 
-        /* “⋮” media–tools button */
         IconButton(onClick = { mediaMenu = true }) {
             Icon(Icons.Default.MoreVert, null, tint = Color(0xFFFFA500))
         }
-
         MediaToolsMenu(
             expanded = mediaMenu,
             onDismiss = { mediaMenu = false },
@@ -2230,7 +1887,6 @@ fun ChatInputBar(
 
         Spacer(Modifier.width(4.dp))
 
-        /* SEND */
         IconButton(
             enabled = sendEnabled,
             onClick = onSend,
