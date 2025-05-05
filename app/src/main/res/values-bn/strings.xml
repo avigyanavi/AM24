@@ -5,6 +5,53 @@
     আপনি শুধুমাত্র %1$dটি সামাজিক কারণ নির্বাচন করতে পারেন।
 </string>
 
+    <!-- App / logo -->
+    <string name="logo_kupidx_desc">KupidX লোগো</string>
+    <string name="date">ডেট</string>
+    <string name="map">মানচিত্র</string>
+    <string name="chat">চ্যাট</string>
+    <string name="feed">ফিড</string>
+    <string name="profile">প্রোফাইল</string>
+
+    <!-- Bottom-navigation labels -->
+    <string name="nav_date">ডেট</string>
+    <string name="nav_map">মানচিত্র</string>
+    <string name="nav_chat">চ্যাট</string>
+    <string name="nav_feed">ফিড</string>
+    <string name="nav_profile">প্রোফাইল</string>
+
+    <!-- Top-bar / action icons -->
+    <string name="cd_leaderboard">লিডারবোর্ড</string>
+    <string name="cd_location_settings">অবস্থান সেটিংস</string>
+    <string name="cd_for_you">আপনার জন্য</string>
+    <string name="cd_create_post">পোস্ট তৈরি করুন</string>
+    <string name="cd_user_settings">ব্যবহারকারী সেটিংস</string>
+    <string name="cd_logout">লগআউট</string>
+    <string name="cd_notifications">বিজ্ঞপ্তি</string>
+
+    <!-- Location-visibility dialog -->
+    <string name="dialog_location_title">অবস্থান দৃশ্যমানতার সেটিংস</string>
+    <string name="lbl_visible_to_matches">ম্যাচদের কাছে দৃশ্যমান</string>
+    <string name="btn_save">সংরক্ষণ করুন</string>
+
+        <string name="hint_type_message">বার্তা লিখুন…</string>
+        <string name="btn_language">ভাষা</string>
+        <string name="btn_suggestions">পরামর্শ</string>
+        <string name="btn_places">স্থান</string>
+        <string name="btn_record_voice">ভয়েস রেকর্ড করুন</string>
+        <string name="btn_stop_recording">রেকর্ডিং বন্ধ করুন</string>
+        <string name="btn_pick_photo">ফটো বাছাই করুন</string>
+        <string name="btn_pick_video">ভিডিও বাছাই করুন</string>
+        <string name="btn_capture_photo">ফটো তুলুন</string>
+        <string name="btn_capture_video">ভিডিও ধারণ করুন</string>
+        <string name="lbl_topics">বিষয়</string>
+        <string name="lbl_activities">কার্যকলাপ</string>
+        <string name="lbl_tips">টিপস</string>
+        <string name="no_suggestions">কোনও পরামর্শ নেই</string>
+        <string name="get_suggestions">পরামর্শ নিন</string>
+        <string name="typing">টাইপ করছে</string>
+        <string name="recording_left">রেকর্ডিং… বাকি সময়: %1$d সেকেন্ড</string>
+
     <!-- res/values‑bn/arrays.xml (Bengali) -->
     <string-array name="social_causes_list">
         <!-- Environment & Public Health -->
@@ -623,7 +670,7 @@
     <string name="not_specified">নির্দিষ্ট নয়</string>
 
     <string name="pause_audio">অডিও থামান</string>
-    <string name="tap_to_play">চালাতে স্পর্শ করুন</string>
+    <string name="tap_to_play">ভয়েস বার্তা চালান</string>
     <string name="playing_seconds">%1$d সেকেন্ড চলছে</string>
 
     <string name="select_love_language">ভালবাসার ভাষা নির্বাচন করুন</string>

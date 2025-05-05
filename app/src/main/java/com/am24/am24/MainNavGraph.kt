@@ -50,7 +50,8 @@ val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
 fun MainNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    postViewModel: PostViewModel
+    postViewModel: PostViewModel,
+    currentPrice  : String
 ) {
     // Re-initialize postViewModel
     val postViewModel: PostViewModel = viewModel(
@@ -174,7 +175,8 @@ fun MainNavGraph(
                     } else {
                         navController.navigate("dating_screen?initialQuery=$profileId")
                     }
-                }
+                },
+                currentPrice = currentPrice
             )
         }
 

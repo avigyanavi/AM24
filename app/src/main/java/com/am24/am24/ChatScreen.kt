@@ -79,6 +79,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.res.stringResource
+import com.am24.am24.util.LocaleUtils
+import java.util.Locale
 
 // Updated Message data class (without viewed field)
 data class Message(
@@ -166,6 +169,12 @@ fun ChatScreenContent(
     var isVoicePlaying by remember { mutableStateOf(false) }
     var voiceProgress by remember { mutableStateOf(0f) }
     var voicePlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+     var pickLangMenu by remember { mutableStateOf(false) }
+     val ctx = LocalContext.current
+     var chatLang by rememberSaveable {           // initialise from saved value
+                mutableStateOf(LocaleUtils.getSavedLang(ctx))
+         }
 
     // Media-related state: used for both photo and video
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
@@ -465,13 +474,23 @@ fun ChatScreenContent(
             }
         }
     }
-
+    @Composable
+    fun item(label:String, code:String) = DropdownMenuItem(
+        text = { Text(label) },
+        onClick = {
+            chatLang = code
+            pickLangMenu = false
+            /* clear cached suggestions so the next click fetches in the new language */
+            suggestions = null
+            placeSuggestions = null
+        }
+    )
     suspend fun fetchSuggestionsWithRetry(): ChatSuggestions? {
         var attempts = 0
         val maxAttempts = 3
         while (attempts < maxAttempts) {
             try {
-                return getChatSuggestions(messages, currentUserProfile ?: Profile(), otherUserProfile, context)
+                return getChatSuggestions(messages, chatLang )    //  🆕 e.g.  "hi" / "bn" / "en)
             } catch (e: JsonSyntaxException) {
                 attempts++
                 Log.w("ChatScreen", "JSON parse error on attempt $attempts: ${e.message}")
@@ -554,6 +573,44 @@ fun ChatScreenContent(
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
+/* ─── Language selector ─── */
+                    IconButton(
+                        onClick = { pickLangMenu = true },
+                        colors  = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (pickLangMenu) Color(0xFFFF6F00)
+                            else Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Language,
+                            contentDescription = stringResource(R.string.btn_language))
+                    }
+
+                    DropdownMenu(
+                        expanded = pickLangMenu,
+                        onDismissRequest = { pickLangMenu = false }
+                    ) {
+                        @Composable
+                        fun langItem(label: String, code: String) = DropdownMenuItem(
+                            text = {
+                                Text(
+                                    label,
+                                    color = if (chatLang == code) Color(0xFFFF6F00) else Color.White
+                                )
+                            },
+                            onClick = {
+                                pickLangMenu = false
+                                if (chatLang != code) {
+                                    chatLang = code                     // 1️⃣ suggestions etc.
+                                    LocaleUtils.setAppLocale(ctx, code) // 2️⃣ switch UI locale
+                                    suggestions        = null           // clear caches
+                                    placeSuggestions   = null
+                                }
+                            }
+                        )
+                        langItem("English", "en")
+                        langItem("हिन्दी" , "hi")
+                        langItem("বাংলা" , "bn")
+                    }
                         IconButton(
                             onClick = {
                                 suggestionsExpanded = true
@@ -565,7 +622,7 @@ fun ChatScreenContent(
                                     }
                                 }
                             }
-                        ) { Icon(Icons.Default.Lightbulb, "Suggestions", tint = Color(0xFFFFA500)) }
+                        ) { Icon(Icons.Default.Lightbulb, stringResource(R.string.btn_suggestions), tint = Color(0xFFFFA500)) }
                         IconButton(
                             onClick = {
                                 placeSuggestionsExpanded = true
@@ -579,7 +636,7 @@ fun ChatScreenContent(
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.Place, "Places Suggestions", tint = Color(0xFFFF6F00)) }
+                            Icon(Icons.Default.Place, stringResource(R.string.btn_places), tint = Color(0xFFFF6F00)) }
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) { Icon(Icons.Default.MoreVert, "More Options", tint = Color.White) }
                     DropdownMenu(expanded = moreOptionsMenuExpanded, onDismissRequest = { moreOptionsMenuExpanded = false }) {
                         // New Rating toggle item
@@ -724,7 +781,7 @@ fun ChatScreenContent(
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text(
-                            "Recording... Time left: ${recordingTimeLeft / 1000}s",
+                            stringResource(R.string.recording_left, recordingTimeLeft / 1000),
                             color = Color.White,
                             modifier = Modifier.weight(1f)
                         )
@@ -873,7 +930,7 @@ fun ChatScreenContent(
                             } else {
                                 suggestions?.let { sugg ->
                                     if (sugg.topics.isNotEmpty()) {
-                                        item { Text("Topics", color = Color.White, fontWeight = FontWeight.Bold) }
+                                        item { Text(stringResource(R.string.lbl_topics), color = Color.White, fontWeight = FontWeight.Bold) }
                                         items(sugg.topics.toMutableList()) { topic ->
                                             Row(
                                                 Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp),
@@ -890,7 +947,7 @@ fun ChatScreenContent(
                                         }
                                     }
                                     if (sugg.activities.isNotEmpty()) {
-                                        item { Spacer(Modifier.height(8.dp)); Text("Activities", color = Color.White, fontWeight = FontWeight.Bold) }
+                                        item { Spacer(Modifier.height(8.dp)); Text(stringResource(R.string.lbl_activities), color = Color.White, fontWeight = FontWeight.Bold) }
                                         items(sugg.activities.toMutableList()) { activity ->
                                             Row(
                                                 Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp),
@@ -914,7 +971,7 @@ fun ChatScreenContent(
                                         }
                                     }
                                     if (sugg.integrationTips.isNotEmpty()) {
-                                        item { Spacer(Modifier.height(8.dp)); Text("Tips", color = Color.White, fontWeight = FontWeight.Bold) }
+                                        item { Spacer(Modifier.height(8.dp)); Text(stringResource(R.string.lbl_tips), color = Color.White, fontWeight = FontWeight.Bold) }
                                         items(sugg.integrationTips.toMutableList()) { tip ->
                                             Row(
                                                 Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp),
@@ -932,7 +989,7 @@ fun ChatScreenContent(
                                     }
                                     if (sugg.topics.isEmpty() && sugg.activities.isEmpty() && sugg.integrationTips.isEmpty()) {
                                         item {
-                                            Text("No suggestions", color = Color.Gray)
+                                            Text(stringResource(R.string.no_suggestions), color = Color.Gray)
                                             Spacer(Modifier.height(8.dp))
                                             Button(onClick = {
                                                 scope.launch {
@@ -941,12 +998,12 @@ fun ChatScreenContent(
                                                     isLoadingSuggestions = false
                                                 }
                                             }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))) {
-                                                Text("Get Suggestions", color = Color.White)
+                                                Text(stringResource(R.string.get_suggestions), color = Color.White)
                                             }
                                         }
                                     }
                                 } ?: item {
-                                    Text("No suggestions", color = Color.Gray)
+                                    Text(stringResource(R.string.no_suggestions), color = Color.Gray)
                                     Spacer(Modifier.height(8.dp))
                                     Button(onClick = {
                                         scope.launch {
@@ -955,7 +1012,7 @@ fun ChatScreenContent(
                                             isLoadingSuggestions = false
                                         }
                                     }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))) {
-                                        Text("Get Suggestions", color = Color.White)
+                                        Text(stringResource(R.string.get_suggestions), color = Color.White)
                                     }
                                 }
                             }
@@ -969,7 +1026,7 @@ fun ChatScreenContent(
                                     Button(
                                         onClick = { suggestionsExpanded = false },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
-                                    ) { Text("Close", color = Color.White) }
+                                    ) { Text(stringResource(R.string.close), color = Color.White) }
                                 }
                             }
                         }
@@ -1092,11 +1149,12 @@ fun TypingIndicator() {
             .padding(start = 16.dp, top = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Typing", color = Color.Gray, fontSize = 12.sp)
+        Text(stringResource(R.string.typing), color = Color.Gray, fontSize = 12.sp)
         Spacer(Modifier.width(4.dp))
         AnimatedDots()
     }
 }
+
 
 // Animated Dots Composable
 @Composable
@@ -1787,31 +1845,34 @@ fun MediaToolsMenu(
                     contentDescription = null
                 )
             },
-            text = { Text(if (isRecording) "Stop recording" else "Record voice") },
-            onClick = { onDismiss(); onToggleRecord() }
+            text = { Text( if (isRecording)
+                stringResource(R.string.btn_stop_recording)
+            else
+                stringResource(R.string.btn_record_voice) ) },
+                    onClick = { onDismiss(); onToggleRecord() }
         )
 
         /* pick from gallery */
         DropdownMenuItem(
             leadingIcon = { Icon(Icons.Default.Photo, null) },
-            text = { Text("Pick photo") },
+            text = { Text(stringResource(R.string.btn_pick_photo)) },
             onClick = { onDismiss(); onPickPhoto() }
         )
         DropdownMenuItem(
             leadingIcon = { Icon(Icons.Default.VideoLibrary, null) },
-            text = { Text("Pick video") },
+            text = { Text(stringResource(R.string.btn_pick_video)) },
             onClick = { onDismiss(); onPickVideo() }
         )
 
         /* capture with camera */
         DropdownMenuItem(
             leadingIcon = { Icon(Icons.Default.CameraAlt, null) },
-            text = { Text("Capture photo") },
+            text = { Text(stringResource(R.string.btn_capture_photo)) },
             onClick = { onDismiss(); onCapturePhoto() }
         )
         DropdownMenuItem(
             leadingIcon = { Icon(Icons.Default.Videocam, null) },
-            text = { Text("Capture video") },
+            text = { Text(stringResource(R.string.btn_capture_video)) },
             onClick = { onDismiss(); onCaptureVideo() }
         )
     }
@@ -1844,7 +1905,7 @@ fun ChatInputBar(
         TextField(
             value = messageText,
             onValueChange = onTextChange,
-            placeholder = { Text("Type a message…", color = Color.Gray) },
+            placeholder = { Text(stringResource(R.string.hint_type_message), color = Color.Gray) },
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 48.dp)

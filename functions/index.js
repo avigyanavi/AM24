@@ -1,60 +1,61 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const axios = require("axios");
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+/* eslint-disable camelcase */
+const functions  = require("firebase-functions");
+const admin      = require("firebase-admin");
+const OpenAI     = require("openai").default;
 const Busboy = require("busboy");
 const { v4: uuidv4 } = require("uuid");
-const OpenAI = require("openai");
+
 const fetch = require("node-fetch");
 
 const openai = new OpenAI({
   apiKey: "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"   // make sure this env var is set
 });
 
-
 admin.initializeApp();
-const db = admin.firestore();
-const bucket = admin.storage().bucket();
 
-const Razorpay = require('razorpay');
+/* ───────────────────────────── Razorpay callable ───────────────────────────── */
 
-// Initialize Razorpay with your key ID and secret
+const Razorpay = require("razorpay");
 const razorpay = new Razorpay({
-    key_id: 'rzp_test_PEBgJvcT9jIT7O',
-    key_secret: 'HM0OOCqESrzteQG1oRO7Lplz'
+  key_id:     "rzp_test_PEBgJvcT9jIT7O",
+  key_secret: "HM0OOCqESrzteQG1oRO7Lplz",
 });
 
 exports.verifyPayment = functions.https.onCall(async (data, context) => {
-    try {
-        const paymentId = data.paymentId;
-        if (!paymentId) {
-            throw new functions.https.HttpsError('invalid-argument', 'Payment ID is required.');
-        }
-
-        // Fetch payment details from Razorpay
-        const payment = await razorpay.payments.fetch(paymentId);
-        const isValid = payment.status === 'captured';
-
-        console.log(`Payment verification for paymentId ${paymentId}: status=${payment.status}, isValid=${isValid}`);
-        return isValid;
-    } catch (error) {
-        console.error(`Error verifying payment: ${error.message}`);
-        throw new functions.https.HttpsError('internal', `Payment verification failed: ${error.message}`);
+  try {
+    const { paymentId } = data;
+    if (!paymentId) {
+      throw new functions.https.HttpsError("invalid-argument", "Payment ID required");
     }
+    const payment  = await razorpay.payments.fetch(paymentId);
+    const captured = payment.status === "captured";
+    console.log(`[verifyPayment] ${paymentId} → ${payment.status}`);
+    return captured;
+  } catch (err) {
+    console.error("verifyPayment error:", err);
+    throw new functions.https.HttpsError("internal", err.message);
+  }
 });
+
+/* ───────────────────────────── Chat suggestions ───────────────────────────── */
+
+/* maps “hi”, “bn”, … → prompt fragment */
+const LANG = { hi: "Hindi", bn: "Bengali", en: "English" };
 
 exports.chatSuggestions = functions
   .region("asia-south1")
-  .runWith({ timeoutSeconds: 540, memory: "512MB" })   // ⬅️ NEW
+  .runWith({ timeoutSeconds: 540, memory: "512MB" })
   .https.onRequest(async (req, res) => {
-    /* ---- basic CORS ---- */
+    /* CORS */
     if (req.method === "OPTIONS") {
       return res
         .set({
-          "Access-Control-Allow-Origin" : "*",
+          "Access-Control-Allow-Origin":  "*",
           "Access-Control-Allow-Methods": "POST",
-          "Access-Control-Allow-Headers": "Content-Type"
+          "Access-Control-Allow-Headers": "Content-Type",
         })
         .status(204).send("");
     }
@@ -62,20 +63,24 @@ exports.chatSuggestions = functions
 
     try {
       const {
-        messages      = [],
-        currentProfile = {},
-        otherProfile   = {}
+        messages       = [],
+        lang            // 🆕 preferred
       } = req.body || {};
 
-      /* ---- build GPT-4.1 multimodal messages ---- */
+    console.log("[chatSuggestions] got lang:", lang);
+
+      const code     = (lang).toLowerCase().slice(0, 2);
+      const language = LANG[code] || "English";
+
+      /* ─── build GPT messages ─── */
       const gptMsgs = [
         {
           role: "system",
           content:
-            `You are a “Chat-Suggestion Engine” for a dating app. ` +
-            `Return **pure JSON** with up to 2 topics, 2 activities ` +
-            `(fields: placeName, integration) and 2 integrationTips:\n` +
-            `{"topics":[],"activities":[{"placeName":"","integration":""}],"integrationTips":[]}`
+            `You are a “Chat-Suggestion Engine” for a dating app.\n` +
+            `⚠️  ALWAYS reply *exclusively* in ${language}.\n\n` +
+            `Return **JSON only** in this exact schema (no other text):\n` +
+            `{"topics":[],"activities":[{"placeName":"","integration":""}],"integrationTips":[]}`,
         },
         {
           role: "user",
@@ -83,41 +88,34 @@ exports.chatSuggestions = functions
             {
               type: "text",
               text:
-                `Conversation:\n` +
+                `Recent messages:\n` +
                 messages
                   .slice(-10)
-                  .map(m => `${m.role}: ${m.text ?? "[image]"}`)
-                  .join(" | ") +
-                `\n\nCurrent profile: ${currentProfile.name ?? "?"}` +
-                ` | Other profile: ${otherProfile.name ?? "?"}`
+                  .map((m) => `${m.role}: ${m.text ?? "[image]"}`)
             },
+            /* ≤3 pictures */
             ...messages
-              .filter(m => m.imageUrl)
-              .slice(-3)                   // send at most 3 images
-              .map(m => ({
-                type: "image_url",
-                image_url: { url: m.imageUrl }
-              }))
-          ]
+              .filter((m) => m.imageUrl)
+              .slice(-3)
+              .map((m) => ({ type: "image_url", image_url: { url: m.imageUrl } })),
+          ],
         }
       ];
 
-      /* ---- GPT-4.1 call ---- */
       const completion = await openai.chat.completions.create({
         model: "gpt-4.1",
         messages: gptMsgs,
         temperature: 0.7,
-        max_tokens: 400
+        max_tokens: 400,
+        /* NEW: ask the API itself to enforce JSON */
+        response_format: { type: "json_object" },
       });
 
-      let out = completion.choices?.[0]?.message?.content ?? "{}";
-      out = out.replace(/```json|```/g, "").trim();  // strip fences if present
+      const json = completion.choices[0].message.content.trim();   // already pure JSON
 
-      return res
-        .set("Access-Control-Allow-Origin", "*")
-        .json(JSON.parse(out));
+      return res.set("Access-Control-Allow-Origin", "*").send(json);
     } catch (err) {
       console.error("chatSuggestions error:", err);
-      return res.status(500).send(err.message ?? "internal error");
+      return res.status(500).send(err.message || "internal error");
     }
   });

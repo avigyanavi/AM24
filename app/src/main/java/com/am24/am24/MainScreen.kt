@@ -31,28 +31,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
-        BottomNavItem("Date", Icons.Default.FavoriteBorder, "dating"),
-        BottomNavItem("Map", Icons.Default.Map, "map"),
-        BottomNavItem("Chat", Icons.Default.MailOutline, "dms"),
-        BottomNavItem("Feed", Icons.Default.RssFeed, "home"),
-        BottomNavItem("Profile", Icons.Default.PersonOutline, "profile")
+        BottomNavItem(stringResource(R.string.date), Icons.Default.FavoriteBorder, "dating"),
+        BottomNavItem(stringResource(R.string.map), Icons.Default.Map, "map"),
+        BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
+        BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
+        BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile")
     )
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val priceAll = stringResource(id = R.string.price_all)
+
 
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
     val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
             currentRoute != "leaderboard"
+    val priceTier = rememberSaveable { mutableStateOf(priceAll) }
 
     val profileViewModel: ProfileViewModel = viewModel()
 
@@ -64,7 +69,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     profileViewModel = profileViewModel,
                     currentUserId = currentUserId,
                     postViewModel = postViewModel,   // ← pass it
-                    onLogout = onLogout
+                    onPriceChange = { priceTier.value = it },   //  ← update state
+                            onLogout = onLogout
                 )
             }
         },
@@ -78,7 +84,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         MainNavGraph(
             navController   = navController,
             modifier        = Modifier.padding(paddingValues),
-            postViewModel   = postViewModel
+            postViewModel   = postViewModel,
+            currentPrice  = priceTier.value
         )
     }
 }
@@ -90,7 +97,8 @@ fun TopNavBar(
     profileViewModel: ProfileViewModel,
     currentUserId: String,
     postViewModel: PostViewModel,   // ← pass it
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onPriceChange      : (String) -> Unit = {}   // ← NEW, default no-op
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -104,6 +112,13 @@ fun TopNavBar(
     val isPremium = remember { mutableStateOf(false) }
     var showLocationPrefDialog by remember { mutableStateOf(false) }
     var allowLocationForMatches by remember { mutableStateOf(false) }
+
+    /*  ─────────  STATE FOR PRICE FILTER  ────────── */
+    val priceAll = stringResource(id = R.string.price_all)
+
+    var priceMenuExpanded   by rememberSaveable { mutableStateOf(false) }
+    var selectedPriceRange  by rememberSaveable { mutableStateOf(priceAll) }
+
 
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
@@ -163,7 +178,7 @@ fun TopNavBar(
 
     TopAppBar(
         title = {
-            Text("Kupidx", color = Color(0xFFFF6F00))
+            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
         },
         navigationIcon = {
             Box(
@@ -171,7 +186,7 @@ fun TopNavBar(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.kupidx_logo),
-                    contentDescription = "KupidX Logo",
+                    contentDescription = stringResource(R.string.logo_kupidx_desc),
                     modifier = Modifier.size(56.dp)
                 )
             }
@@ -182,20 +197,65 @@ fun TopNavBar(
                 IconButton(onClick = { navController.navigate("leaderboard") }) {
                     Icon(
                         imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = "Leaderboard",
+                        contentDescription = stringResource(R.string.cd_leaderboard),
                         tint = Color(0xFFFF6F00),
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
             // Location settings icon (map screen)
+            // Location settings icon (map screen)
             if (currentRoute == "map") {
+                /* 1) Price-Filter icon (new) – shows before the old Location icon */
+                IconButton(onClick = { priceMenuExpanded = true }) {
+                    Icon(
+                        imageVector      = Icons.Default.FilterList,
+                        contentDescription = stringResource(R.string.cd_price_filter),
+                        tint              = if (selectedPriceRange != stringResource(R.string.price_all))
+                            Color(0xFFFF6F00) else Color.Gray,
+                        modifier          = Modifier.size(24.dp)
+                    )
+                }
+
+                /* ▼ Dropdown for price tiers */
+                DropdownMenu(
+                    expanded          = priceMenuExpanded,
+                    onDismissRequest  = { priceMenuExpanded = false }
+                ) {
+                    val tiers = listOf(
+                        stringResource(R.string.price_all),
+                        stringResource(R.string.price_1),
+                        stringResource(R.string.price_2),
+                        stringResource(R.string.price_3),
+                        stringResource(R.string.price_4)
+                    )
+                    tiers.forEach { tier ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    tier,
+                                    color = if (tier == selectedPriceRange) Color(0xFFFF6F00) else Color.White
+                                )
+                            },
+                            onClick = {
+                                priceMenuExpanded  = false
+                                if (tier != selectedPriceRange) {
+                                    selectedPriceRange = tier
+                                    /* TODO : forward this to MapScreen / ViewModel */
+                                    onPriceChange(tier)                 // ✅ fire the callback
+                                }
+                            }
+                        )
+                    }
+                }
+
+                /* 2) Existing location icon */
                 IconButton(onClick = { showLocationPrefDialog = true }) {
                     Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Location Settings",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
+                        imageVector   = Icons.Default.LocationOn,
+                        contentDescription = stringResource(R.string.cd_location_settings),
+                        tint          = Color.Gray,
+                        modifier      = Modifier.size(24.dp)
                     )
                 }
             }
@@ -204,7 +264,7 @@ fun TopNavBar(
                     IconButton(onClick = { showForYouDialog = true }) {
                         Icon(
                             Icons.Outlined.Home,
-                            contentDescription = "For You",
+                            contentDescription = stringResource(R.string.cd_for_you),
                             tint = Color(0xFFFF6F00)
                         )
                     }
@@ -213,7 +273,7 @@ fun TopNavBar(
                 IconButton(onClick = { navController.navigate("create_post") }) {
                     Icon(
                         imageVector    = Icons.Default.Add,
-                        contentDescription = "Create Post",
+                        contentDescription = stringResource(R.string.cd_create_post),
                         tint           = Color(0xFFFF6F00)
                     )
                 }
@@ -314,11 +374,11 @@ fun TopNavBar(
     if (showLocationPrefDialog) {
         AlertDialog(
             onDismissRequest = { showLocationPrefDialog = false },
-            title = { Text("Location Visibility Settings") },
+            title = { Text(stringResource(R.string.dialog_location_title)) },
             text = {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Visible to Matches")
+                        Text(stringResource(R.string.lbl_visible_to_matches))
                         Spacer(modifier = Modifier.width(8.dp))
                         Switch(
                             checked = allowLocationForMatches,
@@ -344,7 +404,7 @@ fun TopNavBar(
                         .addOnFailureListener { e ->
                             Log.e("TopNavBar", "Failed to save preference: ${e.message}")
                         }
-                }) { Text("Save") }
+                }) { Text(stringResource(R.string.btn_save)) }
             }
         )
     }

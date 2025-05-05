@@ -8,6 +8,59 @@
     You can select up to %1$d social causes only.
     </string>
 
+    <string name="cd_price_filter">Filter by price</string>
+    <string name="price_all">All</string>
+    <string name="price_1">$</string>
+    <string name="price_2">$$</string>
+    <string name="price_3">$$$</string>
+    <string name="price_4">$$$$</string>
+
+    <string name="logo_kupidx_desc">KupidX Logo</string>
+    <string name="date">Date</string>
+    <string name="map">Map</string>
+    <string name="chat">Chat</string>
+    <string name="feed">Feed</string>
+    <string name="profile">Profile</string>
+
+    <!-- Bottom-navigation -->
+    <string name="nav_date">Date</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_feed">Feed</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Top-bar / actions -->
+    <string name="cd_leaderboard">Leaderboard</string>
+    <string name="cd_location_settings">Location Settings</string>
+    <string name="cd_for_you">For You</string>
+    <string name="cd_create_post">Create Post</string>
+    <string name="cd_user_settings">User Settings</string>
+    <string name="cd_logout">Logout</string>
+    <string name="cd_notifications">Notifications</string>
+
+    <!-- Location-visibility dialog -->
+    <string name="dialog_location_title">Location Visibility Settings</string>
+    <string name="lbl_visible_to_matches">Visible to Matches</string>
+    <string name="btn_save">Save</string>
+
+    <string name="hint_type_message">Type a message…</string>
+    <string name="btn_language">Language</string>
+    <string name="btn_suggestions">Suggestions</string>
+    <string name="btn_places">Places</string>
+    <string name="btn_record_voice">Record voice</string>
+    <string name="btn_stop_recording">Stop recording</string>
+    <string name="btn_pick_photo">Pick photo</string>
+    <string name="btn_pick_video">Pick video</string>
+    <string name="btn_capture_photo">Capture photo</string>
+    <string name="btn_capture_video">Capture video</string>
+    <string name="lbl_topics">Topics</string>
+    <string name="lbl_activities">Activities</string>
+    <string name="lbl_tips">Tips</string>
+    <string name="no_suggestions">No suggestions</string>
+    <string name="get_suggestions">Get Suggestions</string>
+    <string name="typing">Typing</string>
+    <string name="recording_left">Recording… Time left: %1$ds</string>
+
     <!-- more education -->
     <!-- ─── Engineering Colleges ────────────────────────────────── -->
     <string name="college_srm_institute_of_science_and_technology">SRM Institute of Science and Technology</string>
@@ -454,7 +507,7 @@
     <string name="not_specified">Not specified</string>
 
     <string name="pause_audio">Pause audio</string>
-    <string name="tap_to_play">Tap to play</string>
+    <string name="tap_to_play">Play Voice Message</string>
     <string name="playing_seconds">Playing %1$d seconds</string>
 
     <string name="select_love_language">Select love language</string>
@@ -899,7 +952,7 @@
     <string name="community_deori">Deori</string>
     <string name="community_sonowal_kachari">Sonowal Kachari</string>
     <string name="community_bengali">Bengali</string>
-    <string name="community_santhal">Santhal</string>
+    <string name="community_santhal">Saonthal</string>
     <string name="community_oraon">Oraon</string>
     <string name="community_munda">Munda</string>
     <string name="community_punjabi">Punjabi</string>

@@ -406,7 +406,7 @@ fun IconWithQuota(
         // icon
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
         // tiny number in the centre
-        Text(quota.toString(), fontSize = 10.sp, color = Color.White)
+        Text(quota.toString(), fontSize = 14.sp, color = Color(0xFFFF5900), fontWeight = FontWeight.Bold)
     }
 }
 /**

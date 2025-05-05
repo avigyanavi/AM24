@@ -1,6 +1,7 @@
 package com.am24.am24
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -10,13 +11,18 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
@@ -37,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,7 +97,8 @@ fun MapScreen(
     locationManager: LocationManager,
     geoFireDatabaseRef: DatabaseReference,
     navController: NavController,
-    onProfileMarkerClicked: (String) -> Unit
+    onProfileMarkerClicked: (String) -> Unit,
+    currentPrice: String        // ← add this param, pass from MainNavGraph
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -100,6 +108,7 @@ fun MapScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showSearchBar by remember { mutableStateOf(false) }
     val cameraPositionState = rememberCameraPositionState()
+    val selectedPriceRange = currentPrice   // READ-ONLY
     val markersState = remember { mutableStateListOf<MarkerData>() }
     val searchResultsState = remember { mutableStateListOf<Pair<LatLng, String>>() }
     var selectedPlaceDetails by remember { mutableStateOf<Pair<LatLng, String>?>(null) }
@@ -111,7 +120,6 @@ fun MapScreen(
     )
     val matchesSet = remember { mutableStateListOf<String>() }
     var showPriceFilterDialog by remember { mutableStateOf(false) }
-    var selectedPriceRange by remember { mutableStateOf("All") }
     var navigateToProfile by remember { mutableStateOf<String?>(null) }
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
 
@@ -210,184 +218,140 @@ fun MapScreen(
                 }
         ) {
             // Top Row: Search and Filter Buttons
-            if (showSearchBar) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+            /* ───────── SEARCH ICON  +  HASH-TAGS ROW ───────── */
+            /* ───────── SEARCH ICON  +  TAGS  ───────── */
+            val listState = rememberLazyListState()
+
+            /* inside MapScreen(), just before LazyRow --------------------------------*/
+            suspend fun performSearch(query: String) {
+                if (query.isBlank()) return
+                isLoadingSearch = true
+                val q = if (selectedPriceRange != "All")
+                    "$query, Price: $selectedPriceRange" else query
+                userLatLng?.let { loc ->
+                    val results = searchPlacesWithOkHttp(q, loc)
+                    searchResultsState.apply { clear(); addAll(results) }
+                    selectedPlaceDetails = null
+                    if (checkNotEmpty(results)) {
+                        val b = LatLngBounds.builder()
+                        results.forEach { b.include(it.first) }
+                        cameraPositionState.move(
+                            CameraUpdateFactory.newLatLngBounds(b.build(), 100)
+                        )
+                    }
+                } ?: Toast.makeText(context,
+                    "User location not available", Toast.LENGTH_SHORT).show()
+                isLoadingSearch = false
+            }
+
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                state = listState,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                /* 1️⃣  Search capsule / icon --------------------------------------- */
+                item {
+                    // -- search capsule / icon ------------------------------------------
+                    if (showSearchBar) {
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .background(Color.White, RoundedCornerShape(16.dp))
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .height(36.dp)
+                                .background(Color.White, RoundedCornerShape(18.dp))
+                                .padding(start = 12.dp, end = 40.dp, top = 8.dp, bottom = 8.dp)
+                                .wrapContentWidth()
                         ) {
                             BasicTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                textStyle = TextStyle(color = Color.Black),
-                                modifier = Modifier.fillMaxWidth()
+                                textStyle  = TextStyle(color = Color.Black, fontSize = 14.sp),
+                                singleLine = true,
+                                keyboardOptions  = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { scope.launch { performSearch(searchQuery) } }
+                                )
                             )
                         }
-                        Spacer(Modifier.width(8.dp))
-                        Button(
+
+                        /* 🔍 now *runs search* when bar is visible,
+                           ❌ still closes if bar empty                               */
+                        IconButton(
                             onClick = {
-                                scope.launch {
-                                    isLoadingSearch = true
-                                    val queryWithFilter = if (selectedPriceRange != "All")
-                                        "$searchQuery, Price: $selectedPriceRange" else searchQuery
-                                    userLatLng?.let { location ->
-                                        val results = searchPlacesWithOkHttp(queryWithFilter, location)
-                                        searchResultsState.clear()
-                                        searchResultsState.addAll(results)
-                                        selectedPlaceDetails = null
-                                        if (checkNotEmpty(results)) {
-                                            val boundsBuilder = LatLngBounds.builder()
-                                            results.forEach { boundsBuilder.include(it.first) }
-                                            cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100))
-                                        }
-                                    } ?: run {
-                                        Toast.makeText(context, "User location not available", Toast.LENGTH_SHORT).show()
-                                    }
-                                    isLoadingSearch = false
+                                if (searchQuery.isNotBlank()) {
+                                    scope.launch { performSearch(searchQuery) }
+                                } else {
+                                    showSearchBar = false
+                                    focusManager.clearFocus()
                                 }
                             },
-                            enabled = !isLoadingSearch,
-                            border = BorderStroke(2.dp, Color(0xFFFF6F00))
+                            modifier = Modifier
+                                .size(36.dp)
+                                .offset(x = (-36).dp)
                         ) {
-                            if (isLoadingSearch) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = Color.White
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = "Search",
-                                    tint = Color.White
-                                )
-                            }
+                            Icon(
+                                if (searchQuery.isNotBlank()) Icons.Default.Search else Icons.Default.Close,
+                                contentDescription = if (searchQuery.isNotBlank()) "Search" else "Close",
+                                tint = if (searchQuery.isNotBlank()) Color(0xFFFF6F00) else Color.Gray
+                            )
                         }
-                        Spacer(Modifier.width(8.dp))
-                        Button(onClick = {
-                            searchQuery = ""
-                            searchResultsState.clear()
-                            selectedPlaceDetails = null
-                            showSearchBar = false
-                            focusManager.clearFocus()
-                        }) { Text("Clear", color = Color.White) }
+                    } else {
+                        /* first tap -> open bar */
+                        IconButton(
+                            onClick  = { showSearchBar = true },
+                            modifier = Modifier.size(36.dp)
+                        ) { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.White) }
                     }
-                    IconButton(onClick = { showPriceFilterDialog = true }) {
-                        Icon(imageVector = Icons.Filled.FilterList, contentDescription = "Filter by Price")
-                    }
+                    Spacer(Modifier.width(8.dp))
                 }
-            } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = { showSearchBar = true },
-                        border = BorderStroke(2.dp, Color(0xFFFF6F00))
-                    ) {
-                        Text("Search", color = Color.White)
-                    }
-                    IconButton(onClick = { showPriceFilterDialog = true }) {
-                        Icon(imageVector = Icons.Filled.FilterList, contentDescription = "Filter by Price")
-                    }
-                }
-            }
 
-            // Price Filter Indicator
-            if (selectedPriceRange != "All") {
-                Box(
-                    modifier = Modifier
-                        .padding(start = 12.dp, bottom = 4.dp)
-                        .background(Color(0xFFFFEB3B), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text("Price Filter: $selectedPriceRange", color = Color.Black, fontSize = 14.sp)
-                }
-            }
-
-            // Price Filter Dialog
-            if (showPriceFilterDialog) {
-                AlertDialog(
-                    onDismissRequest = { showPriceFilterDialog = false },
-                    title = { Text("Select Price Range") },
-                    text = {
-                        Column {
-                            listOf("All", "$", "$$", "$$$", "$$$$").forEach { price ->
-                                Text(
-                                    text = price,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            selectedPriceRange = price
-                                            showPriceFilterDialog = false
-                                            if (searchQuery.isNotEmpty()) {
-                                                scope.launch {
-                                                    isLoadingSearch = true
-                                                    val queryWithFilter = if (price != "All")
-                                                        "$searchQuery, Price: $price" else searchQuery
-                                                    userLatLng?.let { location ->
-                                                        val results = searchPlacesWithOkHttp(queryWithFilter, location)
-                                                        searchResultsState.clear()
-                                                        searchResultsState.addAll(results)
-                                                        selectedPlaceDetails = null
-                                                        if (checkNotEmpty(results)) {
-                                                            val boundsBuilder = LatLngBounds.builder()
-                                                            results.forEach { boundsBuilder.include(it.first) }
-                                                            cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100))
-                                                        }
-                                                    } ?: run {
-                                                        Toast.makeText(context, "User location not available", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                    isLoadingSearch = false
-                                                }
-                                            }
+                /* 2️⃣  Tags --------------------------------------------------------- */
+                items(quickSearchItems) { tag ->
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 6.dp)
+                            .background(Color.Black, RoundedCornerShape(4.dp))
+                            .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
+                            .clickable(enabled = !isLoadingQuickSearch) {
+                                /* the same onTagSelected work you already had */
+                                scope.launch {
+                                    isLoadingQuickSearch = true
+                                    searchQuery          = tag
+                                    val q = if (selectedPriceRange != "All")
+                                        "$tag, Price: $selectedPriceRange" else tag
+                                    userLatLng?.let { loc ->
+                                        val results = searchPlacesWithOkHttp(q, loc)
+                                        searchResultsState.apply {
+                                            clear(); addAll(results)
                                         }
-                                        .padding(8.dp)
-                                )
+                                        selectedPlaceDetails = null
+                                        if (checkNotEmpty(results)) {
+                                            val b = LatLngBounds.builder()
+                                            results.forEach { b.include(it.first) }
+                                            cameraPositionState.move(
+                                                CameraUpdateFactory.newLatLngBounds(b.build(), 100)
+                                            )
+                                        }
+                                    } ?: Toast.makeText(context,
+                                        "User location not available",
+                                        Toast.LENGTH_SHORT).show()
+                                    isLoadingQuickSearch = false
+                                }
                             }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        if (isLoadingQuickSearch && tag == quickSearchItems.first()) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 1.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text("#$tag", color = Color.LightGray, fontSize = 10.sp)
                         }
-                    },
-                    confirmButton = {}
-                )
-            }
-
-            // Quick Search Tags with Loading
-            QuickSearchTags(
-                tags = quickSearchItems,
-                onTagSelected = { tag ->
-                    scope.launch {
-                        isLoadingQuickSearch = true
-                        searchQuery = tag
-                        val queryWithFilter = if (selectedPriceRange != "All") "$tag, Price: $selectedPriceRange" else tag
-                        userLatLng?.let { location ->
-                            val results = searchPlacesWithOkHttp(queryWithFilter, location)
-                            searchResultsState.clear()
-                            searchResultsState.addAll(results)
-                            selectedPlaceDetails = null
-                            if (checkNotEmpty(results)) {
-                                val boundsBuilder = LatLngBounds.builder()
-                                results.forEach { boundsBuilder.include(it.first) }
-                                cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100))
-                            }
-                        } ?: run {
-                            Toast.makeText(context, "User location not available", Toast.LENGTH_SHORT).show()
-                        }
-                        isLoadingQuickSearch = false
                     }
-                },
-                isLoading = isLoadingQuickSearch
-            )
+                }
+            }
 
             // Map & Overlays
             Box(Modifier.weight(1f)) {
@@ -982,3 +946,4 @@ data class MatchProfile(
     val hometown: String,
     val photoUrl: String?
 )
+
