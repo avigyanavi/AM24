@@ -449,6 +449,33 @@
     <string name="nov">नवंबर</string>
     <string name="dec">दिसंबर</string>
 
+    <!-- ── Map quick-search tags ─────────────────────────────── -->
+    <string name="tag_oyo">OYO</string>
+    <string name="tag_hotels">होटल</string>
+    <string name="tag_cafes">कैफ़े</string>
+    <string name="tag_bars">बार</string>
+    <string name="tag_malls">मॉल</string>
+    <string name="tag_parks">पार्क</string>
+    <string name="tag_cinemas">सिनेमा</string>
+    <string name="tag_restaurants">रेस्तरां</string>
+    <string name="tag_lovers_point">प्रेम स्थल</string>
+    <string name="tag_street_food">सड़क का खाना</string>
+    <string name="tag_clubs">क्लब</string>
+    <string name="tag_riverfronts">नदी किनारा</string>
+    <string name="tag_bookstores">किताबों की दुकान</string>
+    <string name="tag_gaming_zones">गेमिंग ज़ोन</string>
+    <string name="tag_rooftops">रूफ़टॉप</string>
+    <string name="tag_festivals">त्योहार</string>
+    <string name="tag_chai_stalls">चाय स्टॉल</string>
+
+    <!-- ── Price-filter UI ───────────────────────────────────── -->
+    <string name="cd_price_filter">दाम के अनुसार फ़िल्टर करें</string>
+    <string name="price_all">सभी</string>
+    <string name="price_1">$</string>
+    <string name="price_2">$$</string>
+    <string name="price_3">$$$</string>
+    <string name="price_4">$$$$</string>
+
     <!-- ProfileScreen -->
     <!-- GENERAL / COMMON -->
     <string name="edit">संपादित करें</string>

@@ -15,6 +15,26 @@
     <string name="price_3">$$$</string>
     <string name="price_4">$$$$</string>
 
+    <!-- ── Map quick-search tags ─────────────────────────────── -->
+    <string name="tag_oyo">OYO</string>
+    <string name="tag_hotels">hotels</string>
+    <string name="tag_cafes">cafes</string>
+    <string name="tag_bars">bars</string>
+    <string name="tag_malls">malls</string>
+    <string name="tag_parks">parks</string>
+    <string name="tag_cinemas">cinemas</string>
+    <string name="tag_restaurants">restaurants</string>
+    <string name="tag_lovers_point">lovers point</string>
+    <string name="tag_street_food">street food</string>
+    <string name="tag_clubs">clubs</string>
+    <string name="tag_riverfronts">riverfronts</string>
+    <string name="tag_bookstores">bookstores</string>
+    <string name="tag_gaming_zones">gaming zones</string>
+    <string name="tag_rooftops">rooftops</string>
+    <string name="tag_festivals">festivals</string>
+    <string name="tag_chai_stalls">chai stalls</string>
+
+
     <string name="logo_kupidx_desc">KupidX Logo</string>
     <string name="date">Date</string>
     <string name="map">Map</string>

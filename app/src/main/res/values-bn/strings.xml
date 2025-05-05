@@ -448,6 +448,32 @@
     <string name="tell_us_more_about_yourself">নিজেকে সম্পর্কে আরও বলুন</string>
     <string name="enter_custom_value">কাস্টম মান লিখুন</string>
 
+    <!-- ── Map quick-search tags ─────────────────────────────── -->
+    <string name="tag_oyo">OYO</string>
+    <string name="tag_hotels">হোটেল</string>
+    <string name="tag_cafes">ক্যাফে</string>
+    <string name="tag_bars">বার</string>
+    <string name="tag_malls">মল</string>
+    <string name="tag_parks">পার্ক</string>
+    <string name="tag_cinemas">সিনেমা হল</string>
+    <string name="tag_restaurants">রেস্তোরাঁ</string>
+    <string name="tag_lovers_point">প্রেমিক-প্রেমিকার আড্ডা</string>
+    <string name="tag_street_food">স্ট্রিট ফুড</string>
+    <string name="tag_clubs">ক্লাব</string>
+    <string name="tag_riverfronts">নদীর ধারে</string>
+    <string name="tag_bookstores">বইয়ের দোকান</string>
+    <string name="tag_gaming_zones">গেমিং জোন</string>
+    <string name="tag_rooftops">রুফটপ</string>
+    <string name="tag_festivals">উৎসব</string>
+    <string name="tag_chai_stalls">চায়ের দোকান</string>
+
+    <!-- ── Price-filter UI ───────────────────────────────────── -->
+    <string name="cd_price_filter">মূল্য অনুযায়ী ফিল্টার</string>
+    <string name="price_all">সব</string>
+    <string name="price_1">$</string>
+    <string name="price_2">$$</string>
+    <string name="price_3">$$$</string>
+    <string name="price_4">$$$$</string>
     <!-- ProfileScreen -->
 
     <!-- GENERAL / COMMON -->

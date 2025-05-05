@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -113,11 +114,27 @@ fun MapScreen(
     val searchResultsState = remember { mutableStateListOf<Pair<LatLng, String>>() }
     var selectedPlaceDetails by remember { mutableStateOf<Pair<LatLng, String>?>(null) }
     var selectedUserProfile by remember { mutableStateOf<Profile?>(null) }
+    /* before: val quickSearchItems = listOf("OYO", "hotels", …) */
     val quickSearchItems = listOf(
-        "OYO", "hotels", "cafes", "bars", "malls", "parks", "cinemas", "restaurants",
-        "lovers point", "street food", "clubs", "riverfronts", "bookstores", "gaming zones",
-        "rooftops", "festivals", "chai stalls"
+        stringResource(R.string.tag_oyo),
+        stringResource(R.string.tag_hotels),
+        stringResource(R.string.tag_cafes),
+        stringResource(R.string.tag_bars),
+        stringResource(R.string.tag_malls),
+        stringResource(R.string.tag_parks),
+        stringResource(R.string.tag_cinemas),
+        stringResource(R.string.tag_restaurants),
+        stringResource(R.string.tag_lovers_point),
+        stringResource(R.string.tag_street_food),
+        stringResource(R.string.tag_clubs),
+        stringResource(R.string.tag_riverfronts),
+        stringResource(R.string.tag_bookstores),
+        stringResource(R.string.tag_gaming_zones),
+        stringResource(R.string.tag_rooftops),
+        stringResource(R.string.tag_festivals),
+        stringResource(R.string.tag_chai_stalls)
     )
+
     val matchesSet = remember { mutableStateListOf<String>() }
     var showPriceFilterDialog by remember { mutableStateOf(false) }
     var navigateToProfile by remember { mutableStateOf<String?>(null) }
@@ -126,6 +143,7 @@ fun MapScreen(
     // Loading States
     var isLoadingSearch by remember { mutableStateOf(false) }
     var isLoadingQuickSearch by remember { mutableStateOf(false) }
+    var loadingTag by remember { mutableStateOf<String?>(null) }
     var isLoadingMatches by remember { mutableStateOf(false) }
 
     // Overlay states
@@ -315,6 +333,7 @@ fun MapScreen(
                             .clickable(enabled = !isLoadingQuickSearch) {
                                 /* the same onTagSelected work you already had */
                                 scope.launch {
+                                    loadingTag = tag           // <-- start spinner on this tag
                                     isLoadingQuickSearch = true
                                     searchQuery          = tag
                                     val q = if (selectedPriceRange != "All")
@@ -336,11 +355,12 @@ fun MapScreen(
                                         "User location not available",
                                         Toast.LENGTH_SHORT).show()
                                     isLoadingQuickSearch = false
+                                    loadingTag = null          // <-- remove spinner
                                 }
                             }
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        if (isLoadingQuickSearch && tag == quickSearchItems.first()) {
+                        if (isLoadingQuickSearch && tag == loadingTag) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(12.dp),
                                 strokeWidth = 1.dp,
@@ -523,39 +543,6 @@ fun DirectionalArrowsOverlay(
                     .graphicsLayer(rotationZ = bearing)
                     .clickable { onArrowClick(matchLoc) }
             )
-        }
-    }
-}
-
-@Composable
-fun QuickSearchTags(
-    tags: List<String>,
-    onTagSelected: (String) -> Unit,
-    isLoading: Boolean
-) {
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-    ) {
-        items(tags) { tag ->
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .background(Color.Black, RoundedCornerShape(4.dp))
-                    .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                    .clickable(enabled = !isLoading) { onTagSelected(tag) }
-            ) {
-                if (isLoading && tag == tags.first()) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = Color.White
-                    )
-                } else {
-                    Text("#$tag", color = Color.LightGray, fontSize = 10.sp)
-                }
-            }
         }
     }
 }
