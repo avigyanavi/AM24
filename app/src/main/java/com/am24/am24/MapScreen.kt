@@ -91,6 +91,13 @@ fun getBearing(from: LatLng, to: LatLng): Float {
     return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
 }
 
+/** UI label (locale-dependent) + English query term */
+private data class TagItem(
+    val label : String,   // what the user sees (#<label>)
+    val query : String    // always English – what we send to Places
+)
+
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MapScreen(
@@ -114,25 +121,27 @@ fun MapScreen(
     val searchResultsState = remember { mutableStateListOf<Pair<LatLng, String>>() }
     var selectedPlaceDetails by remember { mutableStateOf<Pair<LatLng, String>?>(null) }
     var selectedUserProfile by remember { mutableStateOf<Profile?>(null) }
+    val errorlocation = stringResource(R.string.error_location_not_available)
+
     /* before: val quickSearchItems = listOf("OYO", "hotels", …) */
     val quickSearchItems = listOf(
-        stringResource(R.string.tag_oyo),
-        stringResource(R.string.tag_hotels),
-        stringResource(R.string.tag_cafes),
-        stringResource(R.string.tag_bars),
-        stringResource(R.string.tag_malls),
-        stringResource(R.string.tag_parks),
-        stringResource(R.string.tag_cinemas),
-        stringResource(R.string.tag_restaurants),
-        stringResource(R.string.tag_lovers_point),
-        stringResource(R.string.tag_street_food),
-        stringResource(R.string.tag_clubs),
-        stringResource(R.string.tag_riverfronts),
-        stringResource(R.string.tag_bookstores),
-        stringResource(R.string.tag_gaming_zones),
-        stringResource(R.string.tag_rooftops),
-        stringResource(R.string.tag_festivals),
-        stringResource(R.string.tag_chai_stalls)
+        TagItem(stringResource(R.string.tag_oyo)          , "OYO"),
+        TagItem(stringResource(R.string.tag_hotels)       , "hotels"),
+        TagItem(stringResource(R.string.tag_cafes)        , "cafes"),
+        TagItem(stringResource(R.string.tag_bars)         , "bars"),
+        TagItem(stringResource(R.string.tag_malls)        , "malls"),
+        TagItem(stringResource(R.string.tag_parks)        , "parks"),
+        TagItem(stringResource(R.string.tag_cinemas)      , "cinemas"),
+        TagItem(stringResource(R.string.tag_restaurants)  , "restaurants"),
+        TagItem(stringResource(R.string.tag_lovers_point) , "lovers point"),
+        TagItem(stringResource(R.string.tag_street_food)  , "street food"),
+        TagItem(stringResource(R.string.tag_clubs)        , "clubs"),
+        TagItem(stringResource(R.string.tag_riverfronts)  , "riverfronts"),
+        TagItem(stringResource(R.string.tag_bookstores)   , "bookstores"),
+        TagItem(stringResource(R.string.tag_gaming_zones) , "gaming zones"),
+        TagItem(stringResource(R.string.tag_rooftops)     , "rooftops"),
+        TagItem(stringResource(R.string.tag_festivals)    , "festivals"),
+        TagItem(stringResource(R.string.tag_chai_stalls)  , "chai stalls")
     )
 
     val matchesSet = remember { mutableStateListOf<String>() }
@@ -324,24 +333,27 @@ fun MapScreen(
                 }
 
                 /* 2️⃣  Tags --------------------------------------------------------- */
-                items(quickSearchItems) { tag ->
+                items(quickSearchItems) { tagItem ->
                     Box(
                         modifier = Modifier
                             .padding(end = 6.dp)
                             .background(Color.Black, RoundedCornerShape(4.dp))
                             .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
                             .clickable(enabled = !isLoadingQuickSearch) {
-                                /* the same onTagSelected work you already had */
                                 scope.launch {
-                                    loadingTag = tag           // <-- start spinner on this tag
+                                    loadingTag = tagItem.label          // start spinner on this tag
                                     isLoadingQuickSearch = true
-                                    searchQuery          = tag
+                                    searchQuery = tagItem.query         // show English in the text-field
                                     val q = if (selectedPriceRange != "All")
-                                        "$tag, Price: $selectedPriceRange" else tag
+                                        "${tagItem.query}, Price: $selectedPriceRange"
+                                    else
+                                        tagItem.query
+
                                     userLatLng?.let { loc ->
                                         val results = searchPlacesWithOkHttp(q, loc)
                                         searchResultsState.apply {
-                                            clear(); addAll(results)
+                                            clear()
+                                            addAll(results)
                                         }
                                         selectedPlaceDetails = null
                                         if (checkNotEmpty(results)) {
@@ -351,26 +363,30 @@ fun MapScreen(
                                                 CameraUpdateFactory.newLatLngBounds(b.build(), 100)
                                             )
                                         }
-                                    } ?: Toast.makeText(context,
-                                        "User location not available",
-                                        Toast.LENGTH_SHORT).show()
+                                    } ?: Toast.makeText(
+                                        context,
+                                        errorlocation,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
                                     isLoadingQuickSearch = false
-                                    loadingTag = null          // <-- remove spinner
+                                    loadingTag = null                   // remove spinner
                                 }
                             }
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        if (isLoadingQuickSearch && tag == loadingTag) {
+                        if (isLoadingQuickSearch && tagItem.label == loadingTag) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(12.dp),
                                 strokeWidth = 1.dp,
                                 color = Color.White
                             )
                         } else {
-                            Text("#$tag", color = Color.LightGray, fontSize = 10.sp)
+                            Text("#${tagItem.label}", color = Color.LightGray, fontSize = 10.sp)
                         }
                     }
                 }
+
             }
 
             // Map & Overlays

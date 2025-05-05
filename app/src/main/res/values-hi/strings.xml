@@ -488,6 +488,8 @@
 
     <!-- Looking For -->
     <string name="looking_for_label">क्या खोज रहे हैं</string>
+    <string name="error_location_not_available">उपयोगकर्ता का स्थान उपलब्ध नहीं है</string>
+
 
     <!-- Lifestyle -->
     <string name="family_information">पारिवारिक जानकारी</string>
