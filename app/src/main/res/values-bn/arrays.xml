@@ -17,7 +17,6 @@
         <item>মেদিনীপুর</item>
         <item>বর্ধমান</item>
         <item>হুগলি</item>
-        <item>নদিয়া</item>
         <item>মুর্শিদাবাদ</item>
         <item>বহরমপুর</item>
         <item>হলদিয়া</item>
@@ -216,15 +215,6 @@
         <item>আরামবাগ</item>
         <item>কোন্নগর</item>
         <item>উত্তরপাড়া</item>
-        <item>অন্যান্য</item>
-    </string-array>
-
-    <!-- নদিয়ার লোকালিটি -->
-    <string-array name="localities_nadia">
-        <item>কৃষ্ণনগর</item>
-        <item>নবদ্বীপ</item>
-        <item>শান্তিপুর</item>
-        <item>করিমপুর</item>
         <item>অন্যান্য</item>
     </string-array>
 

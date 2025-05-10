@@ -17,7 +17,6 @@
         <item>मिदनापुर</item>
         <item>बर्द्धमान</item>
         <item>हुगली</item>
-        <item>नादिया</item>
         <item>मुर्शिदाबाद</item>
         <item>बहरमपुर</item>
         <item>हल्दिया</item>
@@ -216,15 +215,6 @@
         <item>आरामबाग</item>
         <item>कोन नगर</item>
         <item>उत्तरपारा</item>
-        <item>अन्य</item>
-    </string-array>
-
-    <!-- नादिया की स्थानीयताएँ -->
-    <string-array name="localities_nadia">
-        <item>कृष्णनगर</item>
-        <item>नवद्वीप</item>
-        <item>शांतिपुर</item>
-        <item>करीमपुर</item>
         <item>अन्य</item>
     </string-array>
 

@@ -343,31 +343,100 @@ fun EnterPersonalDetailsScreen(
         stringResource(R.string.love_language_option_other),
     )
 
+// ── Politics options ──
     val politicsOptions = listOf(
-        stringResource(R.string.politics_option_not_selected),
+        stringResource(R.string.politics_option_far_left),
+        stringResource(R.string.politics_option_left),
+        stringResource(R.string.politics_option_centre_left),
+        stringResource(R.string.politics_option_centre),
+        stringResource(R.string.politics_option_centre_right),
+        stringResource(R.string.politics_option_right),
+        stringResource(R.string.politics_option_far_right),
         stringResource(R.string.politics_option_liberal),
-        stringResource(R.string.politics_option_moderate),
         stringResource(R.string.politics_option_conservative),
-        stringResource(R.string.politics_option_other),
+        stringResource(R.string.politics_option_moderate),
+        stringResource(R.string.politics_option_socialist),
+        stringResource(R.string.politics_option_communist),
+        stringResource(R.string.politics_option_other)
     )
 
-    val jobRoleOptions = listOf(
-        stringResource(R.string.job_role_option_not_selected),
-        stringResource(R.string.job_role_option_engineer),
-        stringResource(R.string.job_role_option_teacher),
-        stringResource(R.string.job_role_option_doctor),
-        stringResource(R.string.job_role_option_intern),
-        stringResource(R.string.job_role_option_entrepreneur),
-        stringResource(R.string.job_role_option_other),
-    )
-
+    // ── Work/Industry options ──
     val workOptions = listOf(
-        stringResource(R.string.work_option_not_selected),
         stringResource(R.string.work_option_private_sector),
         stringResource(R.string.work_option_government),
+        stringResource(R.string.work_option_information_technology),
+        stringResource(R.string.work_option_healthcare),
+        stringResource(R.string.work_option_education),
+        stringResource(R.string.work_option_construction),
+        stringResource(R.string.work_option_manufacturing),
+        stringResource(R.string.work_option_agriculture),
+        stringResource(R.string.work_option_pharmaceuticals),
+        stringResource(R.string.work_option_banking),
+        stringResource(R.string.work_option_insurance),
+        stringResource(R.string.work_option_real_estate),
+        stringResource(R.string.work_option_retail),
+        stringResource(R.string.work_option_e_commerce),
+        stringResource(R.string.work_option_telecom),
+        stringResource(R.string.work_option_automobile),
+        stringResource(R.string.work_option_mining),
+        stringResource(R.string.work_option_media_entertainment),
+        stringResource(R.string.work_option_hospitality),
+        stringResource(R.string.work_option_logistics),
+        stringResource(R.string.work_option_non_profit),
+        stringResource(R.string.work_option_startup),
         stringResource(R.string.work_option_freelance),
         stringResource(R.string.work_option_unemployed),
-        stringResource(R.string.work_option_other),
+        stringResource(R.string.work_option_other)
+    )
+
+    // ── Job‐role options ──
+    val jobRoleOptions = listOf(
+        stringResource(R.string.job_role_option_software_developer),
+        stringResource(R.string.job_role_option_data_scientist),
+        stringResource(R.string.job_role_option_ux_ui_designer),
+        stringResource(R.string.job_role_option_civil_engineer),
+        stringResource(R.string.job_role_option_mechanical_engineer),
+        stringResource(R.string.job_role_option_electrical_engineer),
+        stringResource(R.string.job_role_option_project_manager),
+        stringResource(R.string.job_role_option_product_manager),
+        stringResource(R.string.job_role_option_business_analyst),
+        stringResource(R.string.job_role_option_accountant),
+        stringResource(R.string.job_role_option_chartered_accountant),
+        stringResource(R.string.job_role_option_hr_manager),
+        stringResource(R.string.job_role_option_marketing_manager),
+        stringResource(R.string.job_role_option_sales_executive),
+        stringResource(R.string.job_role_option_director),
+        stringResource(R.string.job_role_option_ceo),
+        stringResource(R.string.job_role_option_teacher),
+        stringResource(R.string.job_role_option_professor),
+        stringResource(R.string.job_role_option_researcher),
+        stringResource(R.string.job_role_option_scientist),
+        stringResource(R.string.job_role_option_doctor),
+        stringResource(R.string.job_role_option_surgeon),
+        stringResource(R.string.job_role_option_nurse),
+        stringResource(R.string.job_role_option_pharmacist),
+        stringResource(R.string.job_role_option_lawyer),
+        stringResource(R.string.job_role_option_advocate),
+        stringResource(R.string.job_role_option_legal_consultant),
+        stringResource(R.string.job_role_option_graphic_designer),
+        stringResource(R.string.job_role_option_content_writer),
+        stringResource(R.string.job_role_option_photographer),
+        stringResource(R.string.job_role_option_journalist),
+        stringResource(R.string.job_role_option_editor),
+        stringResource(R.string.job_role_option_chef),
+        stringResource(R.string.job_role_option_barista),
+        stringResource(R.string.job_role_option_pilot),
+        stringResource(R.string.job_role_option_flight_attendant),
+        stringResource(R.string.job_role_option_police_officer),
+        stringResource(R.string.job_role_option_firefighter),
+        stringResource(R.string.job_role_option_army_officer),
+        stringResource(R.string.job_role_option_electrician),
+        stringResource(R.string.job_role_option_plumber),
+        stringResource(R.string.job_role_option_carpenter),
+        stringResource(R.string.job_role_option_mechanic),
+        stringResource(R.string.job_role_option_entrepreneur),
+        stringResource(R.string.job_role_option_intern),
+        stringResource(R.string.job_role_option_other)
     )
     var lookingFor by remember { mutableStateOf(viewModel.lookingFor) }
     var loveLanguage by remember { mutableStateOf(viewModel.loveLanguage) }
@@ -376,12 +445,6 @@ fun EnterPersonalDetailsScreen(
     var newSocialCause by remember { mutableStateOf("") }
     var jobRole by remember { mutableStateOf(viewModel.jobRole) }
     var work by remember { mutableStateOf(viewModel.work) }
-
-    var lookingForExpanded by remember { mutableStateOf(false) }
-    var loveLanguageExpanded by remember { mutableStateOf(false) }
-    var politicsExpanded by remember { mutableStateOf(false) }
-    var jobRoleExpanded by remember { mutableStateOf(false) }
-    var workExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -2017,71 +2080,11 @@ fun EnterGenderCommunityReligionScreen(
         stringResource(R.string.community_bhutanese),
         stringResource(R.string.community_sikkimese),
 
-        /* ——— Nagaland ——— */
-        stringResource(R.string.community_naga),
-        stringResource(R.string.community_ao),
-        stringResource(R.string.community_angami),
-        stringResource(R.string.community_lotha),
-        stringResource(R.string.community_sema),
-        stringResource(R.string.community_chakhesang),
-        stringResource(R.string.community_konyak),
-        stringResource(R.string.community_phom),
-        stringResource(R.string.community_chang),
-        stringResource(R.string.community_rengma),
-        stringResource(R.string.community_yimkhiung),
-        stringResource(R.string.community_khiamniungan),
-        stringResource(R.string.community_zeliang),
-
         /* ——— Arunachal Pradesh ——— */
         stringResource(R.string.community_arunachali),   // ← NEW
-        stringResource(R.string.community_apatani),
-        stringResource(R.string.community_adi),
-        stringResource(R.string.community_nyishi),
-        stringResource(R.string.community_galo),
-        stringResource(R.string.community_tagin),
-        stringResource(R.string.community_mishmi),
-        stringResource(R.string.community_monpa),
-        stringResource(R.string.community_sherdukpen),
-        stringResource(R.string.community_bugun),
-        stringResource(R.string.community_aka),
-
-        /* ——— Manipur ——— */
-        stringResource(R.string.community_meitei),
-        stringResource(R.string.community_tangkhul),
-        stringResource(R.string.community_poumai),
-        stringResource(R.string.community_mao),
-        stringResource(R.string.community_thadou),
-        stringResource(R.string.community_paite),
-        stringResource(R.string.community_zou),
-        stringResource(R.string.community_anal),
-        stringResource(R.string.community_hmar),
-        stringResource(R.string.community_maring),
-
-        /* ——— Mizoram ——— */
-        stringResource(R.string.community_mizo),
-        stringResource(R.string.community_lai),
-        stringResource(R.string.community_mara),
-
-        /* ——— Tripura ——— */
-        stringResource(R.string.community_tripuri),
-        stringResource(R.string.community_reang),
-        stringResource(R.string.community_chakma),
-        stringResource(R.string.community_halam),
-
-        /* ——— Meghalaya ——— */
-        stringResource(R.string.community_khasi),
-        stringResource(R.string.community_garo),
-        stringResource(R.string.community_jaintia),
 
         /* ——— Assam plains tribes ——— */
         stringResource(R.string.community_assamese),
-        stringResource(R.string.community_bodo),
-        stringResource(R.string.community_mishing),
-        stringResource(R.string.community_karbi),
-        stringResource(R.string.community_dimasa),
-        stringResource(R.string.community_rabha),
-        stringResource(R.string.community_tiwa),
-        stringResource(R.string.community_deori),
         stringResource(R.string.community_sonowal_kachari)
     )
     val religionOptions = listOf(stringResource(R.string.religion_hindu), stringResource(R.string.religion_muslim), stringResource(R.string.religion_christian), stringResource(R.string.religion_sikh), stringResource(R.string.religion_buddhist), stringResource(R.string.religion_jain), stringResource(R.string.religion_no_religion), stringResource(R.string.religion_indigenous_tribal), stringResource(R.string.religion_other))
@@ -2763,7 +2766,6 @@ fun EnterBirthdateCityHometownScreen(
     var midnapore = stringResource(R.string.city_midnapore)
     var bardhaman = stringResource(R.string.city_bardhaman)
     var hooghly = stringResource(R.string.city_hooghly)
-    var nadia = stringResource(R.string.city_nadia)
     var murshidabad = stringResource(R.string.city_murshidabad)
     var baharampur = stringResource(R.string.city_baharampur)
     var haldia = stringResource(R.string.city_haldia)
@@ -2790,7 +2792,6 @@ fun EnterBirthdateCityHometownScreen(
             midnapore -> resources.getStringArray(R.array.localities_midnapore).toList()
             bardhaman -> resources.getStringArray(R.array.localities_bardhaman).toList()
             hooghly -> resources.getStringArray(R.array.localities_hooghly).toList()
-            nadia -> resources.getStringArray(R.array.localities_nadia).toList()
             murshidabad -> resources.getStringArray(R.array.localities_murshidabad).toList()
             baharampur -> resources.getStringArray(R.array.localities_baharampur).toList()
             haldia -> resources.getStringArray(R.array.localities_haldia).toList()
@@ -2816,7 +2817,7 @@ fun EnterBirthdateCityHometownScreen(
         val allGranted = permissionsResult.values.all { it }
         if (allGranted) {
             isLocating = true
-            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, nadia, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
+            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
                 selectedCity = city
                 selectedLocality = locality
                 registrationViewModel.city = if (city == other) customCity else city
@@ -2833,7 +2834,7 @@ fun EnterBirthdateCityHometownScreen(
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             isLocating = true
-            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, nadia, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
+            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
                 selectedCity = city
                 selectedLocality = locality
                 registrationViewModel.city = if (city == other) customCity else city
@@ -3105,7 +3106,7 @@ private fun fetchLocation(
     fusedLocationClient: FusedLocationProviderClient,
     context: Context,
     other: String,
-    kolkata: String, howrah: String, durgapur: String, asansol: String, siliguri: String, darjeeling: String, malda: String, jalpaiguri: String, coochbehar: String, alipurduar: String, bankura: String, purulia: String, kharagpur: String, midnapore: String, bardhaman: String, hooghly: String, nadia: String, murshidabad: String, baharampur: String, haldia: String, ranaghat: String, kalyani: String, chandannagar: String,
+    kolkata: String, howrah: String, durgapur: String, asansol: String, siliguri: String, darjeeling: String, malda: String, jalpaiguri: String, coochbehar: String, alipurduar: String, bankura: String, purulia: String, kharagpur: String, midnapore: String, bardhaman: String, hooghly: String, murshidabad: String, baharampur: String, haldia: String, ranaghat: String, kalyani: String, chandannagar: String,
     onLocationFound: (String, String) -> Unit
 ) {
     val scope = (context as? ComponentActivity)?.lifecycleScope ?: return
@@ -3157,7 +3158,6 @@ private fun fetchLocation(
                         midnapore -> context.resources.getStringArray(R.array.localities_midnapore).toList()
                         bardhaman -> context.resources.getStringArray(R.array.localities_bardhaman).toList()
                         hooghly -> context.resources.getStringArray(R.array.localities_hooghly).toList()
-                        nadia -> context.resources.getStringArray(R.array.localities_nadia).toList()
                         murshidabad -> context.resources.getStringArray(R.array.localities_murshidabad).toList()
                         baharampur -> context.resources.getStringArray(R.array.localities_baharampur).toList()
                         haldia -> context.resources.getStringArray(R.array.localities_haldia).toList()

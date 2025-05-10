@@ -7,6 +7,9 @@
     आप केवल अधिकतम %1$d सामाजिक कारण चुन सकते हैं।
 </string>
 
+    <string name="age_format">उम्र: %s</string>
+    <string name="age_only_format">उम्र: %s</string>
+
     <!-- App / logo -->
     <string name="logo_kupidx_desc">KupidX लोगो</string>
     <string name="date">डेट</string>
@@ -159,69 +162,7 @@
     <string name="community_bhutanese">भूटानी</string>
     <string name="community_sikkimese">सिक्कीमी</string>
     <string name="community_arunachali">अरुणाचली</string>
-    <!-- Nagaland -->
-    <string name="community_naga">नागा</string>
-    <string name="community_ao">आओ</string>
-    <string name="community_angami">अंगामी</string>
-    <string name="community_lotha">लोथा</string>
-    <string name="community_sema">सेमा (सुमी)</string>
-    <string name="community_chakhesang">चाखेसांग</string>
-    <string name="community_konyak">कोन्याक</string>
-    <string name="community_phom">फोम</string>
-    <string name="community_chang">चांग</string>
-    <string name="community_rengma">रेंगमा</string>
-    <string name="community_yimkhiung">यिमखियुंग</string>
-    <string name="community_khiamniungan">खियामनिउंगान</string>
-    <string name="community_zeliang">ज़ेलियांग</string>
 
-    <!-- Arunachal Pradesh -->
-    <string name="community_apatani">अपातानी</string>
-    <string name="community_adi">आदि</string>
-    <string name="community_nyishi">न्यीशी</string>
-    <string name="community_galo">गालो</string>
-    <string name="community_tagin">तागिन</string>
-    <string name="community_mishmi">मिश्मी</string>
-    <string name="community_monpa">मोनपा</string>
-    <string name="community_sherdukpen">शेरदुक्पेन</string>
-    <string name="community_bugun">बुगुन</string>
-    <string name="community_aka">आका (ह्रुस्सो)</string>
-
-    <!-- Manipur -->
-    <string name="community_meitei">मैतेई</string>
-    <string name="community_tangkhul">तांगखुल</string>
-    <string name="community_poumai">पोउमाइ</string>
-    <string name="community_mao">माओ</string>
-    <string name="community_thadou">थाडू</string>
-    <string name="community_paite">पैते</string>
-    <string name="community_zou">ज़ोउ</string>
-    <string name="community_anal">अनाल</string>
-    <string name="community_hmar">हमार</string>
-    <string name="community_maring">मारींग</string>
-
-    <!-- Mizoram -->
-    <string name="community_mizo">मिज़ो</string>
-    <string name="community_lai">लाई</string>
-    <string name="community_mara">मारा</string>
-
-    <!-- Tripura -->
-    <string name="community_tripuri">त्रिपुरी</string>
-    <string name="community_reang">रियांग</string>
-    <string name="community_chakma">चकमा</string>
-    <string name="community_halam">हालाम</string>
-
-    <!-- Meghalaya -->
-    <string name="community_khasi">खासी</string>
-    <string name="community_garo">गारो</string>
-    <string name="community_jaintia">जयंतिया</string>
-
-    <!-- Assam -->
-    <string name="community_bodo">बोडो</string>
-    <string name="community_mishing">मिशिंग</string>
-    <string name="community_karbi">कारबी</string>
-    <string name="community_dimasa">दिमासा</string>
-    <string name="community_rabha">राभा</string>
-    <string name="community_tiwa">तिवा</string>
-    <string name="community_deori">देओरी</string>
     <string name="community_sonowal_kachari">सोनवाल कछारी</string>
 
     <!-- Engineering Colleges -->
@@ -491,6 +432,16 @@
     <string name="error_location_not_available">उपयोगकर्ता का स्थान उपलब्ध नहीं है</string>
 
 
+    <string name="search_matches">मैच खोजें</string>
+    <string name="no_matches_found">कोई मैच नहीं मिला</string>
+    <string name="rate">रेट करें</string>
+    <string name="no_messages_yet">अभी तक कोई संदेश नहीं</string>
+    <string name="sent_message">भेजा गया: %s</string>
+    <string name="seen_status">✔✔ देखा गया</string>
+    <string name="delivered_status">✔ पहुंचा दिया</string>
+    <string name="your_rating">आपकी रेटिंग: %s</string>
+    <string name="scroll_to_top">शीर्ष पर जाएं</string>
+
     <!-- Lifestyle -->
     <string name="family_information">पारिवारिक जानकारी</string>
     <string name="add">जोड़ें</string>
@@ -708,28 +659,100 @@
     <string name="love_language_option_physical_touch">शारीरिक संपर्क</string>
     <string name="love_language_option_other">अन्य</string>
 
-    <string name="select_politics">राजनीति चुनें</string>
+    <!-- ── Politics dropdown ── -->
+    <string name="select_politics">राजनीतिक रुख चुनें</string>
     <string name="politics_option_not_selected">चयनित नहीं</string>
+    <string name="politics_option_far_left">अत्यंत वाम</string>
+    <string name="politics_option_left">वामपंथी</string>
+    <string name="politics_option_centre_left">मध्य-वाम</string>
+    <string name="politics_option_centre">मध्य</string>
+    <string name="politics_option_centre_right">मध्य-दक्षिण</string>
+    <string name="politics_option_right">दक्षिणपंथी</string>
+    <string name="politics_option_far_right">अत्यंत दक्षिणपंथी</string>
     <string name="politics_option_liberal">उदार</string>
-    <string name="politics_option_moderate">मध्यमवर्ती</string>
-    <string name="politics_option_conservative">रुढ़िवादी</string>
+    <string name="politics_option_conservative">रूढ़िवादी</string>
+    <string name="politics_option_moderate">मध्यम</string>
+    <string name="politics_option_socialist">समाजवादी</string>
+    <string name="politics_option_communist">सम्यवादी</string>
     <string name="politics_option_other">अन्य</string>
 
-    <string name="select_job_role">नौकरी चुनें</string>
+    <!-- ── Job‐role dropdown ── -->
+    <string name="select_job_role">पेशा चुनें</string>
     <string name="job_role_option_not_selected">चयनित नहीं</string>
-    <string name="job_role_option_engineer">इंजीनियर</string>
+    <string name="job_role_option_software_developer">सॉफ्टवेयर डेवलपर</string>
+    <string name="job_role_option_data_scientist">डेटा वैज्ञानिक</string>
+    <string name="job_role_option_ux_ui_designer">UX/UI डिज़ाइनर</string>
+    <string name="job_role_option_civil_engineer">सिविल इंजीनियर</string>
+    <string name="job_role_option_mechanical_engineer">मैकेनिकल इंजीनियर</string>
+    <string name="job_role_option_electrical_engineer">इलेक्ट्रिकल इंजीनियर</string>
+    <string name="job_role_option_project_manager">प्रोजेक्ट मैनेजर</string>
+    <string name="job_role_option_product_manager">प्रोडक्ट मैनेजर</string>
+    <string name="job_role_option_business_analyst">बिजनेस एनालिस्ट</string>
+    <string name="job_role_option_accountant">अकाउंटेंट</string>
+    <string name="job_role_option_chartered_accountant">चार्टर्ड अकाउंटेंट</string>
+    <string name="job_role_option_hr_manager">HR मैनेजर</string>
+    <string name="job_role_option_marketing_manager">मार्केटिंग मैनेजर</string>
+    <string name="job_role_option_sales_executive">सेल्स एक्जीक्यूटिव</string>
+    <string name="job_role_option_director">निदेशक</string>
+    <string name="job_role_option_ceo">CEO</string>
     <string name="job_role_option_teacher">शिक्षक</string>
-    <string name="job_role_option_doctor">चिकित्सक</string>
-    <string name="job_role_option_intern">इंटर्न</string>
+    <string name="job_role_option_professor">प्रोफ़ेसर</string>
+    <string name="job_role_option_researcher">शोधकर्ता</string>
+    <string name="job_role_option_scientist">वैज्ञानिक</string>
+    <string name="job_role_option_doctor">डॉक्टर</string>
+    <string name="job_role_option_surgeon">सर्जन</string>
+    <string name="job_role_option_nurse">नर्स</string>
+    <string name="job_role_option_pharmacist">फार्मासिस्ट</string>
+    <string name="job_role_option_lawyer">वकील</string>
+    <string name="job_role_option_advocate">अधिवक्ता</string>
+    <string name="job_role_option_legal_consultant">कानूनी सलाहकार</string>
+    <string name="job_role_option_graphic_designer">ग्राफिक डिज़ाइनर</string>
+    <string name="job_role_option_content_writer">कंटेंट राइटर</string>
+    <string name="job_role_option_photographer">फोटोग्राफर</string>
+    <string name="job_role_option_journalist">पत्रकार</string>
+    <string name="job_role_option_editor">संपादक</string>
+    <string name="job_role_option_chef">शेफ</string>
+    <string name="job_role_option_barista">बारिट्सा</string>
+    <string name="job_role_option_pilot">पायलट</string>
+    <string name="job_role_option_flight_attendant">फ्लाइट अटेंडेंट</string>
+    <string name="job_role_option_police_officer">पुलिस अधिकारी</string>
+    <string name="job_role_option_firefighter">दमकलकर्मी</string>
+    <string name="job_role_option_army_officer">सेना अधिकारी</string>
+    <string name="job_role_option_electrician">इलेक्ट्रीशियन</string>
+    <string name="job_role_option_plumber">प्लंबर</string>
+    <string name="job_role_option_carpenter">कार्पेंटर</string>
+    <string name="job_role_option_mechanic">मैकेनिक</string>
     <string name="job_role_option_entrepreneur">उद्यमी</string>
+    <string name="job_role_option_intern">इंटर्न</string>
     <string name="job_role_option_other">अन्य</string>
 
-    <string name="select_work">काम चुनें</string>
+    <!-- ── Work/Industry dropdown ── -->
+    <string name="select_work">कार्य क्षेत्र चुनें</string>
     <string name="work_option_not_selected">चयनित नहीं</string>
     <string name="work_option_private_sector">निजी क्षेत्र</string>
     <string name="work_option_government">सरकारी</string>
-    <string name="work_option_freelance">फ्रीलांसर</string>
-    <string name="work_option_unemployed">बेरोजगार</string>
+    <string name="work_option_information_technology">सूचना प्रौद्योगिकी</string>
+    <string name="work_option_healthcare">स्वास्थ्य सेवा</string>
+    <string name="work_option_education">शिक्षा</string>
+    <string name="work_option_construction">निर्माण</string>
+    <string name="work_option_manufacturing">उत्पादन</string>
+    <string name="work_option_agriculture">कृषि</string>
+    <string name="work_option_pharmaceuticals">फार्मास्यूटिकल</string>
+    <string name="work_option_banking">बैंकिंग</string>
+    <string name="work_option_insurance">बीमा</string>
+    <string name="work_option_real_estate">रियल एस्टेट</string>
+    <string name="work_option_retail">रिटेल</string>
+    <string name="work_option_e_commerce">ई-कॉमर्स</string>
+    <string name="work_option_telecom">टेलीकॉम</string>
+    <string name="work_option_automobile">ऑटोमोबाइल</string>
+    <string name="work_option_mining">खनन</string>
+    <string name="work_option_media_entertainment">मीडिया और मनोरंजन</string>
+    <string name="work_option_hospitality">अतिथिशाला</string>
+    <string name="work_option_logistics">लॉजिक्‍सटिक</string>
+    <string name="work_option_non_profit">गैर-लाभकारी</string>
+    <string name="work_option_startup">स्टार्टअप</string>
+    <string name="work_option_freelance">स्वतंत्र</string>
+    <string name="work_option_unemployed">बेरोज़गार</string>
     <string name="work_option_other">अन्य</string>
 
     <string name="label_custom_love_language">कस्टम प्रेम भाषा</string>

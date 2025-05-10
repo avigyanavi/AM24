@@ -34,7 +34,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
+import androidx.compose.ui.res.stringResource
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
@@ -365,72 +365,66 @@ fun DMUserCard(
     lastMessage: String,
     lastMessageFromCurrentUser: Boolean,
     lastMessageRead: Boolean,
-    onRateClick: (Profile) -> Unit  // New parameter
+    onRateClick: (Profile) -> Unit
 ) {
     Box(
-        modifier = Modifier
+        Modifier
             .fillMaxWidth()
             .background(Color.Black)
-            .border(BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)), shape = RoundedCornerShape(8.dp))
+            .border(
+                BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)),
+                shape = RoundedCornerShape(8.dp)
+            )
             .clickable { navController.navigate("chat/${profile.userId}") }
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AIOrProfileImage(
-                    profile = profile,
-                    modifier = Modifier
+                    profile,
+                    Modifier
                         .size(70.dp)
                         .clip(CircleShape)
                         .background(Color.Gray)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
                     Text(
                         text = profile.username,
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    // Display locality and age info
-                    val age = profile.dob?.let { calculateAge(it) }
-                    val locality = profile.hometown
-                    if (profile.hometown.isNotBlank()) {
-                        Text(
-                            text = "$locality, ${profile.jobRole}, Age: ${age ?: ""}",
-                            fontSize = 14.sp,
-                            color = Color.White
-                        )
+                    val age = profile.dob?.let { calculateAge(it) } ?: ""
+                    val localeInfo = if (profile.hometown.isNotBlank()) {
+                        "${profile.hometown}, ${profile.jobRole}, ${stringResource(R.string.age_format, age)}"
                     } else {
-                        Text(
-                            text = "${locality ?: ""}, Age: ${age ?: ""}",
-                            color = Color.White,
-                            fontSize = 12.sp
-                        )
+                        stringResource(R.string.age_only_format, age)
                     }
+                    Text(localeInfo, fontSize
+                            = 14.sp, color = Color.White)
 
-                    // Display last message with ticks (same as before)
+                    // build last-message + ticks from resources
                     val messageText = when {
-                        lastMessage.isEmpty() -> "No messages yet"
-                        lastMessageFromCurrentUser -> "Sent: $lastMessage"
+                        lastMessage.isEmpty() -> stringResource(R.string.no_messages_yet)
+                        lastMessageFromCurrentUser -> stringResource(R.string.sent_message, lastMessage)
                         else -> lastMessage
                     }
                     val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
-                        if (lastMessageRead) " ✔✔ Seen" else " ✔ Delivered"
+                        if (lastMessageRead) stringResource(R.string.seen_status)
+                        else                 stringResource(R.string.delivered_status)
                     } else ""
                     val fullText = messageText + ticks
-                    val styledText = buildAnnotatedString {
-                        val tickIndex = fullText.indexOf('✔')
-                        if (tickIndex != -1) {
-                            append(fullText.substring(0, tickIndex))
+                    val styled = buildAnnotatedString {
+                        val tickAt = fullText.indexOf('✔')
+                        if (tickAt >= 0) {
+                            append(fullText.substring(0, tickAt))
                             withStyle(SpanStyle(color = Color(0xFFFF4500))) {
-                                append(fullText.substring(tickIndex))
+                                append(fullText.substring(tickAt))
                             }
-                        } else {
-                            append(fullText)
-                        }
+                        } else append(fullText)
                     }
                     Text(
-                        text = styledText,
+                        text = styled,
                         fontSize = 12.sp,
                         color = Color.White,
                         maxLines = 2,
@@ -438,15 +432,12 @@ fun DMUserCard(
                     )
                 }
             }
-            // NEW: "Rate" button row. You can position it as desired.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(
-                    onClick = { onRateClick(profile) }
-                ) {
-                    Text("Rate", color = Color(0xFFFF4500))
+                TextButton(onClick = { onRateClick(profile) }) {
+                    Text(stringResource(R.string.rate), color = Color(0xFFFF4500))
                 }
             }
         }

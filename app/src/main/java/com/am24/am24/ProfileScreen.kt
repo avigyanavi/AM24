@@ -26,8 +26,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -39,6 +44,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.White
@@ -121,6 +127,10 @@ fun ProfileLazyScreen(
     // Use ViewModel's profile if available, otherwise fall back to initial profile
     var currentProfile by remember { mutableStateOf(profile) }
 
+    val leaderboardVm: LeaderboardViewModel = viewModel()
+    val allProfiles by leaderboardVm.allProfiles.collectAsState()
+    // whenever our currentProfile changes, compute all the ranks
+    var displayProfile by remember { mutableStateOf(profile) }
     // Sync with ViewModel's profile
     LaunchedEffect(currentUserProfile) {
         currentUserProfile?.let { updatedProfile ->
@@ -128,6 +138,84 @@ fun ProfileLazyScreen(
             currentProfile = updatedProfile
         }
     }
+    LaunchedEffect(profile, allProfiles) {
+        // 1) global composite rank
+        val sortedByComposite = allProfiles.sortedByDescending { it.compositeScore }
+        val globalIdx = sortedByComposite.indexOfFirst { it.userId == profile.userId }
+        val globalRank = if (globalIdx >= 0) globalIdx + 1 else -1
+
+        // 2) city-level rank
+        val cityList = allProfiles
+            .filter {
+                it.city.equals(profile.city, ignoreCase = true) ||
+                        it.customCity.equals(profile.city, ignoreCase = true)
+            }
+            .sortedByDescending { it.compositeScore }
+        val cityIdx = cityList.indexOfFirst { it.userId == profile.userId }
+        val cityRank = if (cityIdx >= 0) cityIdx + 1 else -1
+
+        // 3) custom-city (if city=="Other")
+        val customCityList = allProfiles
+            .filter { it.customCity.equals(profile.customCity, ignoreCase = true) }
+            .sortedByDescending { it.compositeScore }
+        val customCityIdx = customCityList.indexOfFirst { it.userId == profile.userId }
+        val customCityRank = if (customCityIdx >= 0) customCityIdx + 1 else -1
+
+        // 4) hometown/locality
+        val hoodList = allProfiles
+            .filter {
+                it.hometown.equals(profile.hometown, ignoreCase = true) ||
+                        it.customHometown.equals(profile.hometown, ignoreCase = true)
+            }
+            .sortedByDescending { it.compositeScore }
+        val hoodIdx = hoodList.indexOfFirst { it.userId == profile.userId }
+        val hoodRank = if (hoodIdx >= 0) hoodIdx + 1 else -1
+
+        // 5) custom-hood
+        val customHoodList = allProfiles
+            .filter { it.customHometown.equals(profile.customHometown, ignoreCase = true) }
+            .sortedByDescending { it.compositeScore }
+        val customHoodIdx = customHoodList.indexOfFirst { it.userId == profile.userId }
+        val customHoodRank = if (customHoodIdx >= 0) customHoodIdx + 1 else -1
+
+        // 6) age-ranking (youngest=1? or oldest=1? adjust comparator if you want)
+        val ageList = allProfiles.sortedBy { it.age }
+        val ageIdx = ageList.indexOfFirst { it.userId == profile.userId }
+        val ageRank = if (ageIdx >= 0) ageIdx + 1 else -1
+
+        // 7) high-school
+        val hsList = allProfiles
+            .filter {
+                it.highSchool.equals(profile.highSchool, ignoreCase = true) ||
+                        it.customHighSchool.equals(profile.highSchool, ignoreCase = true)
+            }
+            .sortedByDescending { it.compositeScore }
+        val hsIdx = hsList.indexOfFirst { it.userId == profile.userId }
+        val hsRank = if (hsIdx >= 0) hsIdx + 1 else -1
+
+        // 8) college
+        val collList = allProfiles
+            .filter {
+                it.college.equals(profile.college, ignoreCase = true) ||
+                        it.customCollege.equals(profile.college, ignoreCase = true)
+            }
+            .sortedByDescending { it.compositeScore }
+        val collIdx = collList.indexOfFirst { it.userId == profile.userId }
+        val collRank = if (collIdx >= 0) collIdx + 1 else -1
+
+        displayProfile = profile.copy(
+            am24Ranking                = globalRank,
+            am24RankingCity            = cityRank,
+            am24RankingCustomCity      = customCityRank,
+            am24RankingHometown        = hoodRank,
+            am24RankingCustomHometown  = customHoodRank,
+            am24RankingAge             = ageRank,
+            am24RankingHighSchool      = hsRank,
+            am24RankingCollege         = collRank
+        )
+    }
+
+    currentProfile = displayProfile
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -223,6 +311,72 @@ fun ProfileLazyScreen(
 }
 
 @Composable
+private fun localizedLocality(city: String, storedLocality: String): String {
+    // pick the correct array for this city
+    val arrayRes = when (localizedCity(city)) {
+        stringResource(R.string.city_kolkata)     -> R.array.localities_kolkata
+        stringResource(R.string.city_howrah)      -> R.array.localities_howrah
+        stringResource(R.string.city_durgapur)    -> R.array.localities_durgapur
+        stringResource(R.string.city_asansol)     -> R.array.localities_asansol
+        stringResource(R.string.city_siliguri)    -> R.array.localities_siliguri
+        stringResource(R.string.city_darjeeling)  -> R.array.localities_darjeeling
+        stringResource(R.string.city_malda)       -> R.array.localities_malda
+        stringResource(R.string.city_jalpaiguri)  -> R.array.localities_jalpaiguri
+        stringResource(R.string.city_cooch_behar) -> R.array.localities_cooch_behar
+        stringResource(R.string.city_alipurduar)  -> R.array.localities_alipurduar
+        stringResource(R.string.city_bankura)     -> R.array.localities_bankura
+        stringResource(R.string.city_purulia)     -> R.array.localities_purulia
+        stringResource(R.string.city_kharagpur)   -> R.array.localities_kharagpur
+        stringResource(R.string.city_midnapore)   -> R.array.localities_midnapore
+        stringResource(R.string.city_bardhaman)   -> R.array.localities_bardhaman
+        stringResource(R.string.city_hooghly)     -> R.array.localities_hooghly
+        stringResource(R.string.city_murshidabad) -> R.array.localities_murshidabad
+        stringResource(R.string.city_baharampur)  -> R.array.localities_baharampur
+        stringResource(R.string.city_haldia)      -> R.array.localities_haldia
+        stringResource(R.string.city_ranaghat)    -> R.array.localities_ranaghat
+        stringResource(R.string.city_kalyani)     -> R.array.localities_kalyani
+        stringResource(R.string.city_chandannagar)-> R.array.localities_chandannagar
+        // … add any remaining ones here …
+        else                                     -> R.array.localities_other
+    }
+    // load that array and see if our stored value still exists
+    val allLocs = stringArrayResource(id = arrayRes)
+    return allLocs.firstOrNull { it == storedLocality } ?: storedLocality
+}
+
+@Composable
+private fun localizedCaste(raw: String): String =
+    casteNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
+private fun localizedGender(raw: String): String =
+    genderNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
+private fun localizedCommunity(raw: String): String =
+    communityNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
+private fun localizedReligion(raw: String): String =
+    religionNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
+private fun localizedCity(raw: String): String =
+    cityNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
+private fun localizedLookingFor(raw: String): String =
+    lookingForNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
+private fun localizedLoveLanguage(raw: String): String =
+    loveLanguageNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
+private fun localizedPolitics(raw: String): String =
+    politicsNameToRes[raw]?.let { stringResource(it) } ?: raw
+
+@Composable
 fun VerificationBadge(
     verified: Boolean,
     onClick: () -> Unit,
@@ -248,6 +402,8 @@ fun VerificationBadge(
         )
     }
 }
+
+
 
 /**
  * Main LazyColumn structure:
@@ -474,7 +630,7 @@ fun PhotoCarouselWithOverlay(
 
                 // Rating Bar + zodiac side by side
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RatingBar3(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                    RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
                     Spacer(Modifier.width(8.dp))
 
                     // Zodiac next to rating bar
@@ -534,8 +690,6 @@ fun CachedProfilePhoto(
         contentScale = contentScale
     )
 }
-
-
 
 /** Display a horizontal progress for completion. */
 @Composable
@@ -604,7 +758,7 @@ fun BasicInfoSection(profile: Profile) {
         "female" -> Icons.Default.Female
         else     -> Icons.Default.Transgender
     }
-
+    val ctx = LocalContext.current
     val heightString = if (profile.height2.size == 2)
         "${profile.height2[0]} ft ${profile.height2[1]} in"
     else
@@ -619,29 +773,35 @@ fun BasicInfoSection(profile: Profile) {
         heightString,
         Icons.Default.Straighten)
 
-    ProfileDetailRow(stringResource(R.string.caste),
-        profile.caste ?: stringResource(R.string.not_set),
+    ProfileDetailRow(
+        stringResource(R.string.caste),
+        localizedCaste(profile.caste ?: ""),
         Icons.Default.Groups)
 
-    ProfileDetailRow(stringResource(R.string.label_gender),
-        profile.gender,
+    ProfileDetailRow(
+        stringResource(R.string.label_gender),
+        localizedGender(profile.gender),
         genderIcon)
 
     // --- Community, religion, height, date joined ---
-    ProfileDetailRow(stringResource(R.string.label_community),
-        profile.community,
+    ProfileDetailRow(
+        stringResource(R.string.label_community),
+        localizedCommunity(profile.community),
         Icons.Default.Groups)
 
-    ProfileDetailRow(stringResource(R.string.label_religion),
-        profile.religion,
+    ProfileDetailRow(
+        stringResource(R.string.label_religion),
+        localizedReligion(profile.religion),
         Icons.Default.Church)
 
-    ProfileDetailRow(stringResource(R.string.city_label),
-        profile.city.ifBlank { stringResource(R.string.not_set) },
+    ProfileDetailRow(
+        stringResource(R.string.city_label),
+        localizedCity(profile.city).ifBlank { stringResource(R.string.not_set) },
         Icons.Default.LocationCity)
 
-    ProfileDetailRow(stringResource(R.string.label_locality),
-        profile.hometown,
+    ProfileDetailRow(
+        stringResource(R.string.label_locality),
+        localizedLocality(profile.city, profile.hometown),
         Icons.Default.LocationCity)
 
     ProfileDetailRow(stringResource(R.string.label_username),
@@ -717,9 +877,11 @@ fun BasicInfoSection(profile: Profile) {
             Icons.Default.School)
     }
 
-    ProfileDetailRow(stringResource(R.string.label_date_joined),
-        formatDate(profile.dateOfJoin),
-        Icons.Default.DateRange)
+    ProfileDetailRow(
+        stringResource(R.string.label_date_joined),
+        formatJoinedOn(ctx, profile.dateOfJoin),
+        Icons.Default.DateRange
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1030,12 +1192,52 @@ fun BasicInfoEditSection(
     }
 
     // ─── Job & Work ──────────────────────────────────────
-    val jobRoleOptions       = listOf(
-        stringResource(R.string.job_role_option_engineer),
+    val jobRoleOptions = listOf(
+        stringResource(R.string.job_role_option_software_developer),
+        stringResource(R.string.job_role_option_data_scientist),
+        stringResource(R.string.job_role_option_ux_ui_designer),
+        stringResource(R.string.job_role_option_civil_engineer),
+        stringResource(R.string.job_role_option_mechanical_engineer),
+        stringResource(R.string.job_role_option_electrical_engineer),
+        stringResource(R.string.job_role_option_project_manager),
+        stringResource(R.string.job_role_option_product_manager),
+        stringResource(R.string.job_role_option_business_analyst),
+        stringResource(R.string.job_role_option_accountant),
+        stringResource(R.string.job_role_option_chartered_accountant),
+        stringResource(R.string.job_role_option_hr_manager),
+        stringResource(R.string.job_role_option_marketing_manager),
+        stringResource(R.string.job_role_option_sales_executive),
+        stringResource(R.string.job_role_option_director),
+        stringResource(R.string.job_role_option_ceo),
         stringResource(R.string.job_role_option_teacher),
+        stringResource(R.string.job_role_option_professor),
+        stringResource(R.string.job_role_option_researcher),
+        stringResource(R.string.job_role_option_scientist),
         stringResource(R.string.job_role_option_doctor),
-        stringResource(R.string.job_role_option_intern),
+        stringResource(R.string.job_role_option_surgeon),
+        stringResource(R.string.job_role_option_nurse),
+        stringResource(R.string.job_role_option_pharmacist),
+        stringResource(R.string.job_role_option_lawyer),
+        stringResource(R.string.job_role_option_advocate),
+        stringResource(R.string.job_role_option_legal_consultant),
+        stringResource(R.string.job_role_option_graphic_designer),
+        stringResource(R.string.job_role_option_content_writer),
+        stringResource(R.string.job_role_option_photographer),
+        stringResource(R.string.job_role_option_journalist),
+        stringResource(R.string.job_role_option_editor),
+        stringResource(R.string.job_role_option_chef),
+        stringResource(R.string.job_role_option_barista),
+        stringResource(R.string.job_role_option_pilot),
+        stringResource(R.string.job_role_option_flight_attendant),
+        stringResource(R.string.job_role_option_police_officer),
+        stringResource(R.string.job_role_option_firefighter),
+        stringResource(R.string.job_role_option_army_officer),
+        stringResource(R.string.job_role_option_electrician),
+        stringResource(R.string.job_role_option_plumber),
+        stringResource(R.string.job_role_option_carpenter),
+        stringResource(R.string.job_role_option_mechanic),
         stringResource(R.string.job_role_option_entrepreneur),
+        stringResource(R.string.job_role_option_intern),
         stringResource(R.string.job_role_option_other)
     )
     var selectedJobRole      by remember {
@@ -1047,9 +1249,29 @@ fun BasicInfoEditSection(
             tempProfile.customJobRole.orEmpty() else "")
     }
 
-    val workOptions          = listOf(
+    val workOptions = listOf(
         stringResource(R.string.work_option_private_sector),
         stringResource(R.string.work_option_government),
+        stringResource(R.string.work_option_information_technology),
+        stringResource(R.string.work_option_healthcare),
+        stringResource(R.string.work_option_education),
+        stringResource(R.string.work_option_construction),
+        stringResource(R.string.work_option_manufacturing),
+        stringResource(R.string.work_option_agriculture),
+        stringResource(R.string.work_option_pharmaceuticals),
+        stringResource(R.string.work_option_banking),
+        stringResource(R.string.work_option_insurance),
+        stringResource(R.string.work_option_real_estate),
+        stringResource(R.string.work_option_retail),
+        stringResource(R.string.work_option_e_commerce),
+        stringResource(R.string.work_option_telecom),
+        stringResource(R.string.work_option_automobile),
+        stringResource(R.string.work_option_mining),
+        stringResource(R.string.work_option_media_entertainment),
+        stringResource(R.string.work_option_hospitality),
+        stringResource(R.string.work_option_logistics),
+        stringResource(R.string.work_option_non_profit),
+        stringResource(R.string.work_option_startup),
         stringResource(R.string.work_option_freelance),
         stringResource(R.string.work_option_unemployed),
         stringResource(R.string.work_option_other)
@@ -1065,12 +1287,31 @@ fun BasicInfoEditSection(
 
     // ─── City & Locality arrays ──────────────────────────
     val cityOptionsList      = stringArrayResource(id = R.array.city_names).toList()
-    val localityOptionsList  = when(city) {
-        stringResource(R.string.city_kolkata)  -> stringArrayResource(id = R.array.localities_kolkata).toList()
-        stringResource(R.string.city_howrah)   -> stringArrayResource(id = R.array.localities_howrah).toList()
-        stringResource(R.string.city_durgapur) -> stringArrayResource(id = R.array.localities_durgapur).toList()
-        stringResource(R.string.city_asansol)  -> stringArrayResource(id = R.array.localities_asansol).toList()
-        else -> emptyList()
+    val localityOptionsList: List<String> = when(city) {
+        stringResource(R.string.city_kolkata)     -> stringArrayResource(R.array.localities_kolkata).toList()
+        stringResource(R.string.city_howrah)      -> stringArrayResource(R.array.localities_howrah).toList()
+        stringResource(R.string.city_durgapur)    -> stringArrayResource(R.array.localities_durgapur).toList()
+        stringResource(R.string.city_asansol)     -> stringArrayResource(R.array.localities_asansol).toList()
+        stringResource(R.string.city_siliguri)    -> stringArrayResource(R.array.localities_siliguri).toList()
+        stringResource(R.string.city_darjeeling)  -> stringArrayResource(R.array.localities_darjeeling).toList()
+        stringResource(R.string.city_malda)       -> stringArrayResource(R.array.localities_malda).toList()
+        stringResource(R.string.city_jalpaiguri)  -> stringArrayResource(R.array.localities_jalpaiguri).toList()
+        stringResource(R.string.city_cooch_behar) -> stringArrayResource(R.array.localities_cooch_behar).toList()
+        stringResource(R.string.city_alipurduar)  -> stringArrayResource(R.array.localities_alipurduar).toList()
+        stringResource(R.string.city_bankura)     -> stringArrayResource(R.array.localities_bankura).toList()
+        stringResource(R.string.city_purulia)     -> stringArrayResource(R.array.localities_purulia).toList()
+        stringResource(R.string.city_kharagpur)   -> stringArrayResource(R.array.localities_kharagpur).toList()
+        stringResource(R.string.city_midnapore)   -> stringArrayResource(R.array.localities_midnapore).toList()
+        stringResource(R.string.city_bardhaman)   -> stringArrayResource(R.array.localities_bardhaman).toList()
+        stringResource(R.string.city_hooghly)     -> stringArrayResource(R.array.localities_hooghly).toList()
+        stringResource(R.string.city_murshidabad) -> stringArrayResource(R.array.localities_murshidabad).toList()
+        stringResource(R.string.city_baharampur)  -> stringArrayResource(R.array.localities_baharampur).toList()
+        stringResource(R.string.city_haldia)      -> stringArrayResource(R.array.localities_haldia).toList()
+        stringResource(R.string.city_ranaghat)    -> stringArrayResource(R.array.localities_ranaghat).toList()
+        stringResource(R.string.city_kalyani)     -> stringArrayResource(R.array.localities_kalyani).toList()
+        stringResource(R.string.city_chandannagar)-> stringArrayResource(R.array.localities_chandannagar).toList()
+        // … all your cities …
+        else -> stringArrayResource(R.array.localities_other).toList()
     }
 
     Column(
@@ -1185,71 +1426,11 @@ fun BasicInfoEditSection(
                 stringResource(R.string.community_bhutanese),
                 stringResource(R.string.community_sikkimese),
 
-                /* ——— Nagaland ——— */
-                stringResource(R.string.community_naga),
-                stringResource(R.string.community_ao),
-                stringResource(R.string.community_angami),
-                stringResource(R.string.community_lotha),
-                stringResource(R.string.community_sema),
-                stringResource(R.string.community_chakhesang),
-                stringResource(R.string.community_konyak),
-                stringResource(R.string.community_phom),
-                stringResource(R.string.community_chang),
-                stringResource(R.string.community_rengma),
-                stringResource(R.string.community_yimkhiung),
-                stringResource(R.string.community_khiamniungan),
-                stringResource(R.string.community_zeliang),
-
                 /* ——— Arunachal Pradesh ——— */
                 stringResource(R.string.community_arunachali),   // ← NEW
-                stringResource(R.string.community_apatani),
-                stringResource(R.string.community_adi),
-                stringResource(R.string.community_nyishi),
-                stringResource(R.string.community_galo),
-                stringResource(R.string.community_tagin),
-                stringResource(R.string.community_mishmi),
-                stringResource(R.string.community_monpa),
-                stringResource(R.string.community_sherdukpen),
-                stringResource(R.string.community_bugun),
-                stringResource(R.string.community_aka),
-
-                /* ——— Manipur ——— */
-                stringResource(R.string.community_meitei),
-                stringResource(R.string.community_tangkhul),
-                stringResource(R.string.community_poumai),
-                stringResource(R.string.community_mao),
-                stringResource(R.string.community_thadou),
-                stringResource(R.string.community_paite),
-                stringResource(R.string.community_zou),
-                stringResource(R.string.community_anal),
-                stringResource(R.string.community_hmar),
-                stringResource(R.string.community_maring),
-
-                /* ——— Mizoram ——— */
-                stringResource(R.string.community_mizo),
-                stringResource(R.string.community_lai),
-                stringResource(R.string.community_mara),
-
-                /* ——— Tripura ——— */
-                stringResource(R.string.community_tripuri),
-                stringResource(R.string.community_reang),
-                stringResource(R.string.community_chakma),
-                stringResource(R.string.community_halam),
-
-                /* ——— Meghalaya ——— */
-                stringResource(R.string.community_khasi),
-                stringResource(R.string.community_garo),
-                stringResource(R.string.community_jaintia),
 
                 /* ——— Assam plains tribes ——— */
                 stringResource(R.string.community_assamese),
-                stringResource(R.string.community_bodo),
-                stringResource(R.string.community_mishing),
-                stringResource(R.string.community_karbi),
-                stringResource(R.string.community_dimasa),
-                stringResource(R.string.community_rabha),
-                stringResource(R.string.community_tiwa),
-                stringResource(R.string.community_deori),
                 stringResource(R.string.community_sonowal_kachari)
             )
             commOpts.forEach { option ->
@@ -1641,9 +1822,13 @@ fun PerformanceMetricsSection(profile: Profile) {
 @Composable
 fun PreferencesSection(profile: Profile) {
     val lookingForText = profile.lookingFor.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_specified)
-    ProfileDetailRow(stringResource(R.string.looking_for_label), lookingForText, Icons.Default.Favorite)
-    ProfileDetailRow(stringResource(R.string.label_love_language), profile.loveLanguage.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_set), Icons.Default.Favorite)
-    ProfileDetailRow(stringResource(R.string.label_politics), profile.politics.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_set), Icons.Default.HowToVote)
+    ProfileDetailRow(    stringResource(R.string.looking_for_label),
+            localizedLookingFor(profile.lookingFor)
+                      .ifBlank { stringResource(R.string.not_specified) }, Icons.Default.Favorite)
+    ProfileDetailRow(stringResource(R.string.label_love_language), localizedLoveLanguage(profile.loveLanguage)
+                      .ifBlank { stringResource(R.string.not_set) }, Icons.Default.Favorite)
+    ProfileDetailRow(stringResource(R.string.label_politics), localizedPolitics(profile.politics)
+                      .ifBlank { stringResource(R.string.not_set) }, Icons.Default.HowToVote)
 }
 
 fun isLifestyleEmpty(lifestyle: Lifestyle?): Boolean {
@@ -2461,15 +2646,26 @@ fun PreferencesEditSection(
         stringResource(R.string.love_language_option_acts_of_service),
         stringResource(R.string.love_language_option_receiving_gifts),
         stringResource(R.string.love_language_option_quality_time),
-        stringResource(R.string.love_language_option_physical_touch)
+        stringResource(R.string.love_language_option_physical_touch),
+        stringResource(R.string.love_language_option_other)
     )
     var selectedLoveLanguage by remember { mutableStateOf(tempProfile.loveLanguage.ifBlank { notSelected }) }
 
     // Politics
     val politicsOptions = listOf(
+        stringResource(R.string.politics_option_far_left),
+        stringResource(R.string.politics_option_left),
+        stringResource(R.string.politics_option_centre_left),
+        stringResource(R.string.politics_option_centre),
+        stringResource(R.string.politics_option_centre_right),
+        stringResource(R.string.politics_option_right),
+        stringResource(R.string.politics_option_far_right),
         stringResource(R.string.politics_option_liberal),
+        stringResource(R.string.politics_option_conservative),
         stringResource(R.string.politics_option_moderate),
-        stringResource(R.string.politics_option_conservative)
+        stringResource(R.string.politics_option_socialist),
+        stringResource(R.string.politics_option_communist),
+        stringResource(R.string.politics_option_other)
     )
     var selectedPolitics by remember { mutableStateOf(tempProfile.politics.ifBlank { notSelected }) }
 
@@ -3472,16 +3668,15 @@ fun LifestyleSlider(label: String, value: Int, nouns: List<String>, icon: ImageV
     )
 }
 
-/** Simple star rating bar (no vibe score). */
 @Composable
 fun RatingBar(rating: Double, ratingCount: Int) {
-    val starSize = 20.dp
+    val starSize = 30.dp
     val fullStars = kotlin.math.floor(rating).toInt()
     val fraction = rating - fullStars
     val orange = Color(0xFFFF6F00)
-    val backgroundColor = Color(0xFF1A1A1A)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
+        // Full stars
         repeat(fullStars) {
             Icon(
                 imageVector = Icons.Default.Star,
@@ -3490,121 +3685,49 @@ fun RatingBar(rating: Double, ratingCount: Int) {
                 modifier = Modifier.size(starSize)
             )
         }
+        // Fractional star
         if (fraction > 0) {
             Box(modifier = Modifier.size(starSize)) {
+                // Outline for the fractional star
                 Icon(
                     imageVector = Icons.Default.StarBorder,
                     contentDescription = null,
                     tint = orange,
                     modifier = Modifier.fillMaxSize()
                 )
+                // Filled portion of the fractional star
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
                     tint = orange,
-                    modifier = Modifier.fillMaxSize()
-                )
-                val fractionUnfilled = 1 - fraction
-                Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .width(starSize * fractionUnfilled.toFloat())
-                        .align(Alignment.CenterEnd)
-                        .background(backgroundColor)
+                        .matchParentSize()
+                        .clip(RectangleShape) // Clip to a rectangle
+                        .fractionalClip(fraction.toFloat()) // Custom modifier to clip fraction
+                        .align(Alignment.CenterStart)
                 )
             }
         }
+        // Spacer and rating text
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = String.format("%.2f (%d)", rating, ratingCount),
-            color = White,
+            color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
         )
     }
 }
 
-@Composable
-fun RatingBar3(rating: Double, ratingCount: Int) {
-    val starSize = 20.dp
-    val fullStars = kotlin.math.floor(rating).toInt()
-    val fraction = rating - fullStars
-    val orange = Color(0xFFFF6F00)
-    val backgroundColor = Color.Black
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        repeat(fullStars) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = orange,
-                modifier = Modifier.size(starSize)
-            )
-        }
-        if (fraction > 0) {
-            Box(modifier = Modifier.size(starSize)) {
-                Icon(
-                    imageVector = Icons.Default.StarBorder,
-                    contentDescription = null,
-                    tint = orange,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = orange,
-                    modifier = Modifier.fillMaxSize()
-                )
-                val fractionUnfilled = 1 - fraction
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(starSize * fractionUnfilled.toFloat())
-                        .align(Alignment.CenterEnd)
-                        .background(backgroundColor)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = String.format("%.2f (%d)", rating, ratingCount),
-            color = White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
-    }
-}
-
-/** Utility to format date timestamps. */
-fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
-
-/** Utility to calculate age from dob. */
-fun calculateAge(dob: String?): Int {
-    if (dob.isNullOrBlank()) return 0
-    val formats = listOf(
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
-        SimpleDateFormat("dd/M/yyyy", Locale.getDefault())
-    )
-    for (format in formats) {
-        try {
-            val birthDate = format.parse(dob)
-            if (birthDate != null) {
-                val today = Calendar.getInstance()
-                val birthDay = Calendar.getInstance().apply { time = birthDate }
-                var age = today.get(Calendar.YEAR) - birthDay.get(Calendar.YEAR)
-                if (today.get(Calendar.DAY_OF_YEAR) < birthDay.get(Calendar.DAY_OF_YEAR)) {
-                    age--
-                }
-                return age
-            }
-        } catch (_: ParseException) {
+// Custom modifier to clip the icon to a fraction of its width
+fun Modifier.fractionalClip(fraction: Float) = this.then(
+    Modifier.drawWithContent {
+        val width = size.width * fraction
+        clipRect(right = width) {
+            this@drawWithContent.drawContent()
         }
     }
-    return 0
-}
+)
 
 @Composable
 fun VoicePlayer(url: String) {

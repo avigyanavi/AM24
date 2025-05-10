@@ -1,15 +1,22 @@
-// LeaderboardScreen.kt
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.am24.am24
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardElevation
+import androidx.compose.material3.CardDefaults.cardColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,13 +26,41 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import kotlin.math.roundToInt
+import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.SliderDefaults
 
 @Composable
 fun LeaderboardScreen(
     navController: NavHostController,
     viewModel: LeaderboardViewModel = viewModel()
 ) {
-    val leaderboard by viewModel.leaderboard.collectAsState()
+    val profiles by viewModel.leaderboard.collectAsState()
+
+    // local UI filter state
+    var selectedGender   by remember { mutableStateOf("") }
+    var cityFilter       by remember { mutableStateOf("") }
+    var localityFilter   by remember { mutableStateOf("") }
+    var highSchoolFilter by remember { mutableStateOf("") }
+    var collegeFilter    by remember { mutableStateOf("") }
+    // for age range slider:
+    var ageRange by remember { mutableStateOf(18f..100f) }
+    // existing composite slider in percent 0–100:
+    var minComposite by remember { mutableStateOf(0f) }
+
+    // collapse/expand filters
+    var filtersExpanded by remember { mutableStateOf(false) }
+
+    // sync back into VM
+    LaunchedEffect(selectedGender) { viewModel.setGenderFilter(selectedGender.ifBlank { null }) }
+    LaunchedEffect(cityFilter)     { viewModel.setCityFilter(cityFilter.ifBlank { null }) }
+    LaunchedEffect(localityFilter) { viewModel.setLocalityFilter(localityFilter.ifBlank { null }) }
+    LaunchedEffect(highSchoolFilter) { viewModel.setHighSchoolFilter(highSchoolFilter.ifBlank { null }) }
+    LaunchedEffect(collegeFilter)  { viewModel.setCollegeFilter(collegeFilter.ifBlank { null }) }
+    LaunchedEffect(ageRange) {
+        viewModel.setAgeRangeFilter(ageRange.start.roundToInt(), ageRange.endInclusive.roundToInt())
+    }
+    LaunchedEffect(minComposite)   { viewModel.setMinCompositePct(minComposite.toDouble()) }
 
     Scaffold(
         topBar = {
@@ -41,53 +76,328 @@ fun LeaderboardScreen(
         }
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
-                .padding(innerPadding)                     // ← apply it here
+                .padding(innerPadding)
         ) {
-// filter out AI users here:
-            items(leaderboard.filterNot { profile ->
-                profile.userId.endsWith("Ai")
-            }) { profile ->
-                LeaderboardRow(profile)
+            // Collapsible Filters card
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = cardElevation(defaultElevation = 4.dp),
+                    colors = cardColors(containerColor = Color(0xFF121212))
+                ) {
+                    Column {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { filtersExpanded = !filtersExpanded }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Filters", style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.weight(1f))
+                            Icon(
+                                imageVector = if (filtersExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
+                        if (filtersExpanded) {
+                            Divider(color = Color.Gray.copy(alpha = 0.3f))
+                            Spacer(Modifier.height(12.dp))
+                            LeaderboardFilters(
+                                selectedGender       = selectedGender,
+                                onGenderChange       = { selectedGender = it },
+                                cityFilter           = cityFilter,
+                                onCityChange         = { cityFilter = it },
+                                localityFilter       = localityFilter,
+                                onLocalityChange     = { localityFilter = it },
+                                highSchoolFilter     = highSchoolFilter,
+                                onHighSchoolChange   = { highSchoolFilter = it },
+                                collegeFilter        = collegeFilter,
+                                onCollegeChange      = { collegeFilter = it },
+                                ageRange             = ageRange,
+                                onAgeRangeChange     = { ageRange = it },
+                                minComposite         = minComposite,
+                                onMinCompositeChange = { minComposite = it }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Leaderboard rows
+            itemsIndexed(profiles) { index, profile ->
+                LeaderboardRow(rank = index + 1, profile = profile)
             }
         }
     }
 }
 
+
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun LeaderboardRow(profile: Profile) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = "${profile.am24Ranking}",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.width( thirtyTwoDp )
+fun LeaderboardFilters(
+    selectedGender: String,
+    onGenderChange: (String) -> Unit,
+    cityFilter: String,
+    onCityChange: (String) -> Unit,
+    localityFilter: String,
+    onLocalityChange: (String) -> Unit,
+    highSchoolFilter: String,
+    onHighSchoolChange: (String) -> Unit,
+    collegeFilter: String,
+    onCollegeChange: (String) -> Unit,
+    ageRange: ClosedFloatingPointRange<Float>,
+    onAgeRangeChange: (ClosedFloatingPointRange<Float>) -> Unit,
+    minComposite: Float,
+    onMinCompositeChange: (Float) -> Unit
+) {
+    Column(Modifier.padding(16.dp)) {
+        // 1️⃣ Gender chips
+        FlowRow(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("" to "All", "Male" to "Male", "Female" to "Female", "Other" to "Other")
+                .forEach { (value, label) ->
+                    FilterChip(
+                        selected = selectedGender == value,
+                        onClick  = { onGenderChange(value) },
+                        label    = { Text(label) }
+                    )
+                }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 2️⃣ Dropdowns instead of free-text
+        // Example: City
+        var cityExpanded by remember { mutableStateOf(false) }
+        val cityOptions = listOf("Kolkata", "Howrah", "Durgapur", "Other")
+        ExposedDropdownMenuBox(
+            expanded = cityExpanded,
+            onExpandedChange = { cityExpanded = it }
+        ) {
+            TextField(
+                value = cityFilter,
+                onValueChange = { /* no-op, handled by menu */ },
+                readOnly = true,
+                label = { Text("City") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) },
+                modifier = Modifier.fillMaxWidth()
+                    .menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = cityExpanded,
+                onDismissRequest = { cityExpanded = false }
+            ) {
+                cityOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onCityChange(option)
+                            cityExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Locality dropdown (same pattern)
+        var localityExpanded by remember { mutableStateOf(false) }
+        val localityOptions = listOf("North", "South", "East", "West", "Other")
+        ExposedDropdownMenuBox(
+            expanded = localityExpanded,
+            onExpandedChange = { localityExpanded = it }
+        ) {
+            TextField(
+                value = localityFilter,
+                readOnly = true,
+                onValueChange = {},
+                label = { Text("Locality") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(localityExpanded) },
+                modifier = Modifier.fillMaxWidth()
+                    .menuAnchor()
+
+            )
+            ExposedDropdownMenu(
+                expanded = localityExpanded,
+                onDismissRequest = { localityExpanded = false }
+            ) {
+                localityOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onLocalityChange(option)
+                            localityExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // High School dropdown
+        var hsExpanded by remember { mutableStateOf(false) }
+        val hsOptions = listOf("Andrews HS", "Don Bosco", "Other")
+        ExposedDropdownMenuBox(
+            expanded = hsExpanded,
+            onExpandedChange = { hsExpanded = it }
+        ) {
+            TextField(
+                value = highSchoolFilter,
+                readOnly = true,
+                onValueChange = {},
+                label = { Text("High School") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(hsExpanded) },
+                modifier = Modifier.fillMaxWidth()
+                    .menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = hsExpanded,
+                onDismissRequest = { hsExpanded = false }
+            ) {
+                hsOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onHighSchoolChange(option)
+                            hsExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // College dropdown
+        var collExpanded by remember { mutableStateOf(false) }
+        val collOptions = listOf("Calcutta Univ", "IIT Kharagpur", "Other")
+        ExposedDropdownMenuBox(
+            expanded = collExpanded,
+            onExpandedChange = { collExpanded = it }
+        ) {
+            TextField(
+                value = collegeFilter,
+                readOnly = true,
+                onValueChange = {},
+                label = { Text("College") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(collExpanded) },
+                modifier = Modifier.fillMaxWidth()
+                    .menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = collExpanded,
+                onDismissRequest = { collExpanded = false }
+            ) {
+                collOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onCollegeChange(option)
+                            collExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 3️⃣ Age range slider
+        Text("Age: ${ageRange.start.roundToInt()} – ${ageRange.endInclusive.roundToInt()}", color = Color.White)
+        RangeSlider(
+            value = ageRange,
+            onValueChange = { onAgeRangeChange(it) },
+            valueRange = 18f..100f,
+            steps = 82,
+            modifier = Modifier.fillMaxWidth(),
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFFFF6F00),
+                activeTrackColor = Color(0xFFFF6F00)
+            )
         )
 
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.height(16.dp))
 
-        AsyncImage(
-            model = profile.profilepicUrl ?: "",   // use your real URL field
-            contentDescription = profile.name,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-        )
-
-        Spacer(Modifier.width(12.dp))
-
-        Text(
-            text = profile.name,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
+        // 4️⃣ Composite slider (unchanged)
+        Text("Min composite: ${minComposite.roundToInt()}%", color = Color.White)
+        Slider(
+            value = minComposite / 100f,
+            onValueChange = { onMinCompositeChange(it * 100f) },
+            valueRange = 0f..1f,
+            modifier = Modifier.fillMaxWidth(),
+            steps = 5,
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFFFF6000),
+                activeTrackColor = Color(0xFFFF6000),
+                inactiveTrackColor = Color.Gray
+            )
         )
     }
 }
 
-// handy constant for consistent rank‐column width
-private val thirtyTwoDp = 32.dp
+
+@Composable
+fun LeaderboardRow(rank: Int, profile: Profile) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = cardElevation(defaultElevation = 4.dp),
+        colors = cardColors(containerColor = Color(0xFF121212))
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text(
+                text = "$rank",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White,
+                modifier = Modifier.width(32.dp)
+            )
+
+            Spacer(Modifier.width(8.dp))
+
+            AsyncImage(
+                model = profile.profilepicUrl.orEmpty(),
+                contentDescription = profile.name,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(24.dp))
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = profile.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White
+                )
+                Text(
+                    text = "${profile.compositeScorePct.roundToInt()} %",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "Matches: ${profile.matchCount}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}

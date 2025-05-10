@@ -60,7 +60,7 @@ data class Profile(
     val socialCauses: List<String> = emptyList(),
     val lookingFor: String = "",      // What the user is looking for (e.g., Friendship, Dating)
     val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
-    val numberOfUsersWhoSwiped: Double = 0.0,
+    val numberOfUsersWhoSwiped: Int = 0,
     val UsersWhoLikeMe: MutableMap<String, Boolean> = mutableMapOf(),
     var isBoosted: Boolean = false,
     /** when that profile was boosted (ms since epoch) */
@@ -71,6 +71,7 @@ data class Profile(
     /** when *you* last hit “Boost” (ms since epoch) */
     var lastBoostTimestamp: Long? = null,
     var isPremium: Boolean = false,
+    var isPlus: Boolean = false,
     var isPrivate: Boolean = false,
     var availableCompliments: Int = 10,          // resets daily
     var lastComplimentResetDayOfYear: Int? = null,
@@ -144,6 +145,10 @@ data class Profile(
     @Exclude
     var ratingsReceived: Map<String, Float> = emptyMap()
 ) {
+    companion object {
+        // “half-saturation” constant: ~20 ratings → 50% of raw average
+        private const val COMPOSITE_K = 20.0
+    }
     @get:Exclude
     val profileCompletionPercentage: Int
         get() {
@@ -165,6 +170,42 @@ data class Profile(
             matchCount.toDouble() / numberOfSwipeRights
         } else 0.0
     }
+    @get:Exclude
+    val compositeScore: Double
+        get() {
+            // normalize [0..1]
+            val normalizedAvg = (averageRating / 5.0).coerceIn(0.0, 1.0)
+            val n = numberOfRatings.toDouble()
+            // count-weighted formula
+            return normalizedAvg * (n / (n + COMPOSITE_K))
+        }
+
+    /** If you really want it on a 0–100 scale: */
+    @get:Exclude
+    val compositeScorePct: Double
+        get() = compositeScore * 100.0
+
+    @get:Exclude
+    val age: Int
+        get() {
+            if (dob.isBlank()) return 0
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val birthDate = try {
+                sdf.parse(dob)
+            } catch (e: Exception) {
+                null
+            } ?: return 0
+
+            val today = Calendar.getInstance()
+            val birth = Calendar.getInstance().apply { time = birthDate }
+
+            var years = today.get(Calendar.YEAR) - birth.get(Calendar.YEAR)
+            // if we haven't yet reached their birthday this year, subtract 1
+            if (today.get(Calendar.DAY_OF_YEAR) < birth.get(Calendar.DAY_OF_YEAR)) {
+                years--
+            }
+            return years
+        }
 }
 
 /** Zodiac compatibility logic. */

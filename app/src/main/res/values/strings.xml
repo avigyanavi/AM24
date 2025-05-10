@@ -33,7 +33,18 @@
     <string name="tag_rooftops">rooftops</string>
     <string name="tag_festivals">festivals</string>
     <string name="tag_chai_stalls">chai stalls</string>
+    <string name="age_format">Age: %s</string>
+    <string name="age_only_format">Age: %s</string>
 
+        <string name="search_matches">Search matches</string>
+        <string name="no_matches_found">No matches found</string>
+        <string name="rate">Rate</string>
+        <string name="no_messages_yet">No messages yet</string>
+        <string name="sent_message">Sent: %s</string>
+        <string name="seen_status">✔✔ Seen</string>
+        <string name="delivered_status">✔ Delivered</string>
+        <string name="your_rating">Your Rating: %s</string>
+        <string name="scroll_to_top">Scroll to Top</string>
 
     <string name="logo_kupidx_desc">KupidX Logo</string>
     <string name="date">Date</string>
@@ -540,26 +551,101 @@
     <string name="love_language_option_physical_touch">Physical touch</string>
     <string name="love_language_option_other">Other</string>
 
+    <!-- ── Politics dropdown ── -->
     <string name="select_politics">Select politics</string>
     <string name="politics_option_not_selected">Not selected</string>
+    <!-- ── new options ── -->
+    <string name="politics_option_far_left">Far left</string>              <!-- new -->
+    <string name="politics_option_left">Left</string>                    <!-- new -->
+    <string name="politics_option_centre_left">Centre-left</string>      <!-- new -->
+    <string name="politics_option_centre">Centre</string>                 <!-- new -->
+    <string name="politics_option_centre_right">Centre-right</string>    <!-- new -->
+    <string name="politics_option_right">Right</string>                  <!-- new -->
+    <string name="politics_option_far_right">Far right</string>          <!-- new -->
     <string name="politics_option_liberal">Liberal</string>
-    <string name="politics_option_moderate">Moderate</string>
     <string name="politics_option_conservative">Conservative</string>
+    <string name="politics_option_moderate">Moderate</string>
+    <string name="politics_option_socialist">Socialist</string>          <!-- new -->
+    <string name="politics_option_communist">Communist</string>          <!-- new -->
     <string name="politics_option_other">Other</string>
 
+    <!-- ── Job-role dropdown ── -->
     <string name="select_job_role">Select job role</string>
     <string name="job_role_option_not_selected">Not selected</string>
-    <string name="job_role_option_engineer">Engineer</string>
+    <!-- ── new options ── -->
+    <string name="job_role_option_software_developer">Software developer</string>   <!-- new -->
+    <string name="job_role_option_data_scientist">Data scientist</string>           <!-- new -->
+    <string name="job_role_option_ux_ui_designer">UX/UI designer</string>           <!-- new -->
+    <string name="job_role_option_civil_engineer">Civil engineer</string>           <!-- new -->
+    <string name="job_role_option_mechanical_engineer">Mechanical engineer</string> <!-- new -->
+    <string name="job_role_option_electrical_engineer">Electrical engineer</string> <!-- new -->
+    <string name="job_role_option_project_manager">Project manager</string>         <!-- new -->
+    <string name="job_role_option_product_manager">Product manager</string>         <!-- new -->
+    <string name="job_role_option_business_analyst">Business analyst</string>       <!-- new -->
+    <string name="job_role_option_accountant">Accountant</string>                   <!-- new -->
+    <string name="job_role_option_chartered_accountant">Chartered accountant</string><!-- new -->
+    <string name="job_role_option_hr_manager">HR manager</string>                   <!-- new -->
+    <string name="job_role_option_marketing_manager">Marketing manager</string>     <!-- new -->
+    <string name="job_role_option_sales_executive">Sales executive</string>         <!-- new -->
+    <string name="job_role_option_director">Director</string>                       <!-- new -->
+    <string name="job_role_option_ceo">CEO</string>                                 <!-- new -->
     <string name="job_role_option_teacher">Teacher</string>
+    <string name="job_role_option_professor">Professor</string>                     <!-- new -->
+    <string name="job_role_option_researcher">Researcher</string>                   <!-- new -->
+    <string name="job_role_option_scientist">Scientist</string>                     <!-- new -->
     <string name="job_role_option_doctor">Doctor</string>
-    <string name="job_role_option_intern">Intern</string>
+    <string name="job_role_option_surgeon">Surgeon</string>                         <!-- new -->
+    <string name="job_role_option_nurse">Nurse</string>                             <!-- new -->
+    <string name="job_role_option_pharmacist">Pharmacist</string>                   <!-- new -->
+    <string name="job_role_option_lawyer">Lawyer</string>                           <!-- new -->
+    <string name="job_role_option_advocate">Advocate</string>                       <!-- new -->
+    <string name="job_role_option_legal_consultant">Legal consultant</string>       <!-- new -->
+    <string name="job_role_option_graphic_designer">Graphic designer</string>       <!-- new -->
+    <string name="job_role_option_content_writer">Content writer</string>           <!-- new -->
+    <string name="job_role_option_photographer">Photographer</string>               <!-- new -->
+    <string name="job_role_option_journalist">Journalist</string>                   <!-- new -->
+    <string name="job_role_option_editor">Editor</string>                           <!-- new -->
+    <string name="job_role_option_chef">Chef</string>                               <!-- new -->
+    <string name="job_role_option_barista">Barista</string>                         <!-- new -->
+    <string name="job_role_option_pilot">Pilot</string>                             <!-- new -->
+    <string name="job_role_option_flight_attendant">Flight attendant</string>       <!-- new -->
+    <string name="job_role_option_police_officer">Police officer</string>           <!-- new -->
+    <string name="job_role_option_firefighter">Firefighter</string>                 <!-- new -->
+    <string name="job_role_option_army_officer">Army officer</string>               <!-- new -->
+    <string name="job_role_option_electrician">Electrician</string>                 <!-- new -->
+    <string name="job_role_option_plumber">Plumber</string>                         <!-- new -->
+    <string name="job_role_option_carpenter">Carpenter</string>                     <!-- new -->
+    <string name="job_role_option_mechanic">Mechanic</string>                       <!-- new -->
     <string name="job_role_option_entrepreneur">Entrepreneur</string>
+    <string name="job_role_option_intern">Intern</string>
     <string name="job_role_option_other">Other</string>
 
+    <!-- ── Work/Industry dropdown ── -->
     <string name="select_work">Select work</string>
     <string name="work_option_not_selected">Not selected</string>
+    <!-- ── new options ── -->
     <string name="work_option_private_sector">Private sector</string>
     <string name="work_option_government">Government</string>
+    <string name="work_option_information_technology">Information Technology</string> <!-- new -->
+    <string name="work_option_healthcare">Healthcare</string>                         <!-- new -->
+    <string name="work_option_education">Education</string>                           <!-- new -->
+    <string name="work_option_construction">Construction</string>                     <!-- new -->
+    <string name="work_option_manufacturing">Manufacturing</string>                   <!-- new -->
+    <string name="work_option_agriculture">Agriculture</string>                       <!-- new -->
+    <string name="work_option_pharmaceuticals">Pharmaceuticals</string>               <!-- new -->
+    <string name="work_option_banking">Banking</string>                               <!-- new -->
+    <string name="work_option_insurance">Insurance</string>                           <!-- new -->
+    <string name="work_option_real_estate">Real estate</string>                       <!-- new -->
+    <string name="work_option_retail">Retail</string>                                 <!-- new -->
+    <string name="work_option_e_commerce">E-commerce</string>                         <!-- new -->
+    <string name="work_option_telecom">Telecom</string>                               <!-- new -->
+    <string name="work_option_automobile">Automobile</string>                         <!-- new -->
+    <string name="work_option_mining">Mining</string>                                 <!-- new -->
+    <string name="work_option_media_entertainment">Media &amp; entertainment</string> <!-- new -->
+    <string name="work_option_hospitality">Hospitality</string>                       <!-- new -->
+    <string name="work_option_logistics">Logistics</string>                           <!-- new -->
+    <string name="work_option_non_profit">Non-profit</string>                         <!-- new -->
+    <string name="work_option_startup">Startup</string>                               <!-- new -->
     <string name="work_option_freelance">Freelance</string>
     <string name="work_option_unemployed">Unemployed</string>
     <string name="work_option_other">Other</string>
@@ -906,71 +992,6 @@
     <string name="community_sikkimese">Sikkimese</string>
     <string name="community_arunachali">Arunachali</string>
 
-    <!-- ───── North‑East India | State‑wise tribe & community keys ───── -->
-
-    <!-- Nagaland -->
-    <string name="community_naga">Naga (generic)</string>
-    <string name="community_ao">Ao</string>
-    <string name="community_angami">Angami</string>
-    <string name="community_lotha">Lotha</string>
-    <string name="community_sema">Sema (Sumi)</string>
-    <string name="community_chakhesang">Chakhesang</string>
-    <string name="community_konyak">Konyak</string>
-    <string name="community_phom">Phom</string>
-    <string name="community_chang">Chang</string>
-    <string name="community_rengma">Rengma</string>
-    <string name="community_yimkhiung">Yimkhiung (Yimchunger)</string>
-    <string name="community_khiamniungan">Khiamniungan</string>
-    <string name="community_zeliang">Zeliang</string>
-
-    <!-- Arunachal Pradesh -->
-    <string name="community_apatani">Apatani</string>
-    <string name="community_adi">Adi</string>
-    <string name="community_nyishi">Nyishi</string>
-    <string name="community_galo">Galo</string>
-    <string name="community_tagin">Tagin</string>
-    <string name="community_mishmi">Mishmi (Idu / Digaru / Miju)</string>
-    <string name="community_monpa">Monpa</string>
-    <string name="community_sherdukpen">Sherdukpen</string>
-    <string name="community_bugun">Bugun (Khowa)</string>
-    <string name="community_aka">Aka (Hrusso)</string>
-
-    <!-- Manipur -->
-    <string name="community_meitei">Meitei (Manipuri)</string>
-    <string name="community_tangkhul">Tangkhul</string>
-    <string name="community_poumai">Poumai</string>
-    <string name="community_mao">Mao</string>
-    <string name="community_thadou">Thadou (Kuki)</string>
-    <string name="community_paite">Paite</string>
-    <string name="community_zou">Zou</string>
-    <string name="community_anal">Anal</string>
-    <string name="community_hmar">Hmar</string>
-    <string name="community_maring">Maring</string>
-
-    <!-- Mizoram -->
-    <string name="community_mizo">Mizo (Lushai)</string>
-    <string name="community_lai">Lai</string>
-    <string name="community_mara">Mara</string>
-
-    <!-- Tripura -->
-    <string name="community_tripuri">Tripuri / Debbarma</string>
-    <string name="community_reang">Reang (Bru)</string>
-    <string name="community_chakma">Chakma</string>
-    <string name="community_halam">Halam</string>
-
-    <!-- Meghalaya -->
-    <string name="community_khasi">Khasi</string>
-    <string name="community_garo">Garo</string>
-    <string name="community_jaintia">Jaintia (Pnar)</string>
-
-    <!-- Assam -->
-    <string name="community_bodo">Bodo</string>
-    <string name="community_mishing">Mishing (Miri)</string>
-    <string name="community_karbi">Karbi</string>
-    <string name="community_dimasa">Dimasa</string>
-    <string name="community_rabha">Rabha</string>
-    <string name="community_tiwa">Tiwa (Lalung)</string>
-    <string name="community_deori">Deori</string>
     <string name="community_sonowal_kachari">Sonowal Kachari</string>
     <string name="community_bengali">Bengali</string>
     <string name="community_santhal">Saonthal</string>

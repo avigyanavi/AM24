@@ -84,6 +84,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.OnlinePrediction
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.net.toUri
@@ -157,7 +158,6 @@ fun DatingScreen(
     val isLoading by datingViewModel.isLoading.collectAsState()
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
     val boostedUsers by datingViewModel.boostedUsers.collectAsState()
-    val userDistanceMap by datingViewModel.userDistanceMap.collectAsState()
 
     // ← NEW: collect the map of compliments that others have sent you
     val complimentsReceived by datingViewModel.complimentsReceived.collectAsState()
@@ -197,21 +197,31 @@ fun DatingScreen(
 // 1) everyone you haven’t yet swiped/matched on
     val base = filteredProfiles.filter { it.userId !in excludedUserIds }
 
-// 2) boosted users (skip those who already complimented you)
-    val boostedFirst = boostedUsers
-        .filter { it.userId !in complimenters && it.userId !in excludedUserIds }
-
-// 3) then your complimenters
-    val complimentFirst = complimenters
+// 2) your complimenters (in your preferred order)
+    val complimentersList = complimentsReceived
+        .keys
         .mapNotNull { id -> base.find { it.userId == id } }
 
-// 4) then everyone else
-    val rest = base.filter {
-        it.userId !in boostedFirst.map { b -> b.userId } &&
-                it.userId !in complimenters
-    }
+// 3) then boosted users (skip complimenters & excluded)
+    val boostedList = boostedUsers
+        .filter { it.userId !in complimentersList.map { p -> p.userId } }
+        .filter { it.userId !in excludedUserIds }
 
-    val displayedProfiles = boostedFirst + complimentFirst + rest
+// 4) then premium users (skip complimenters & boosted & excluded)
+    val premiumList = base
+        .filter { it.userId !in complimentersList.map { p -> p.userId } }
+        .filter { it.userId !in boostedList.map    { p -> p.userId } }
+        .filter { it.isPremium }
+
+// 5) the rest
+    val restList = base
+        .filter { it.userId !in complimentersList.map { p -> p.userId } }
+        .filter { it.userId !in boostedList.map    { p -> p.userId } }
+        .filter { !it.isPremium }
+
+// merge in the exact order you specified
+    val displayedProfiles = complimentersList + boostedList + premiumList + restList
+    val currentSwipeProfile = displayedProfiles.firstOrNull()
 
     ModalBottomSheetLayout(
         sheetState   = bottomSheetState,
@@ -247,11 +257,19 @@ fun DatingScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             Row(
-                modifier           = Modifier.fillMaxWidth().padding(8.dp),
+                modifier           = Modifier.fillMaxWidth().padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = { coroutineScope.launch { bottomSheetState.show() } }) {
-                    Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filters), tint = Color(0xFFFF6F00))
+                IconButton(onClick = { coroutineScope.launch { bottomSheetState.show() } },   modifier = Modifier.size(40.dp)) {
+                    Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filters), tint = Color(0xFFFF6F00), modifier = Modifier.size(36.dp))
+                }
+
+                // 2) Your current user’s rating
+                currentSwipeProfile?.let { profile ->
+                    RatingBar(
+                        rating      = profile.averageRating,
+                        ratingCount = profile.numberOfRatings  // or whatever field holds total ratings
+                    )
                 }
 
                 Row {
@@ -341,12 +359,21 @@ fun DatingScreen(
         }
 
         // standard match popup
-        matchPopUpState?.let { (currentUser, matchedUser) ->
+        matchPopUpState?.let { (you, them) ->
             MatchPopUp(
-                currentUser.profilepicUrl.orEmpty(),
-                matchedUser.profilepicUrl.orEmpty(),
-                onChatClick = { navController.navigate("chat/${matchedUser.userId}") },
-                onClose    = { profileViewModel.clearMatchPopUp() }
+                you.profilepicUrl.orEmpty(),
+                them.profilepicUrl.orEmpty(),
+
+                // first clear the popup state, then navigate
+                onChatClick = {
+                    profileViewModel.clearMatchPopUp()
+                    navController.navigate("chat/${them.userId}")
+                },
+
+                // same clear logic on “Not now”
+                onClose = {
+                    profileViewModel.clearMatchPopUp()
+                }
             )
         }
 
@@ -1328,19 +1355,70 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
-    isBoosted: Boolean,             // ← NEW
+    isBoosted: Boolean,
     userDistance: Float,
     aiMatchResult: AiMatchCheckResult?,
     currentProfile: Profile? = null
 ) {
     var currentPhotoIndex by remember { mutableStateOf(0) }
-    val context = LocalContext.current
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    val context = LocalContext.current
     val datingViewModel: DatingViewModel = viewModel()
     val compliments by datingViewModel.complimentsReceived.collectAsState()
     val compliment = compliments[profile.userId]
 
-    // Prefetch
+    // Prepare interest strings
+    val interestsTexts = profile.interests.map { "${it.emoji} ${it.name}" }
+    // Prepare preference strings
+    val preferencesTexts = listOfNotNull(
+        profile.lookingFor.takeIf(String::isNotBlank)?.let { "🎯 $it" },
+        profile.loveLanguage.takeIf(String::isNotBlank)?.let { "🗣️ $it" },
+        profile.jobRole.takeIf(String::isNotBlank)?.let            { "💼 $it" }
+    )
+
+    // Prepare lifestyle entries (value, nounList, emoji)
+    val smokingNouns = listOf(
+        stringResource(R.string.non_smoker),
+        stringResource(R.string.rare_smoker),
+        stringResource(R.string.social_smoker),
+        stringResource(R.string.frequent_smoker),
+        stringResource(R.string.heavy_smoker)
+    )
+    val drinkingNouns = listOf(
+        stringResource(R.string.non_drinker),
+        stringResource(R.string.rare_drinker),
+        stringResource(R.string.social_drinker),
+        stringResource(R.string.frequent_drinker),
+        stringResource(R.string.heavy_drinker)
+    )
+    val exerciseNouns = listOf(
+        stringResource(R.string.inactive),
+        stringResource(R.string.rarely_active),
+        stringResource(R.string.moderately_active),
+        stringResource(R.string.active),
+        stringResource(R.string.very_active)
+    )
+    // You can add more lifestyle attributes similarly if needed
+
+    val lifestyleList = listOfNotNull(
+        profile.lifestyle?.smoking_habit?.takeIf { it >= 0 }?.let { Triple(it, smokingNouns, "🚬") },
+        profile.lifestyle?.drinking_habit?.takeIf { it >= 0 }?.let { Triple(it, drinkingNouns, "🍷") },
+        profile.lifestyle?.exercise_frequency?.takeIf { it >= 0 }?.let { Triple(it, exerciseNouns, "🏃") }
+    )
+    // Sort by highest numeric rating and take top 3
+    val lifestyleTexts = lifestyleList
+        .sortedByDescending { it.first }
+        .take(3)
+        .map { (value, nouns, emoji) -> "$emoji ${nouns.getOrNull(value) ?: ""}" }
+
+    // Sort by highest numeric rating and take top 3
+    val lifestyleTexts2 = lifestyleList
+        .sortedByDescending { it.first }
+        .drop(3)
+        .take(6)
+        .map { (value, nouns, emoji) -> "$emoji ${nouns.getOrNull(value) ?: ""}" }
+
+    // Prefetch images
     LaunchedEffect(photoUrls) {
         photoUrls.forEach { url ->
             context.imageLoader.enqueue(
@@ -1354,7 +1432,6 @@ fun PhotoWithTwoOverlays(
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // ─── PHOTO + OVERLAYS ────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1372,7 +1449,7 @@ fun PhotoWithTwoOverlays(
                     }
                 }
         ) {
-            // 1) main photo
+            // Main photo or placeholder
             if (photoUrls.isNotEmpty()) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
@@ -1389,14 +1466,20 @@ fun PhotoWithTwoOverlays(
                 )
             } else {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(stringResource(R.string.no_images), color = Color.White)
+                    Text(
+                        text = stringResource(R.string.no_images),
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
                 }
             }
 
-            // 2) photo‐position indicators
+            // Photo-position indicators
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1416,38 +1499,42 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
-            // 3) interests gradient overlay (only on first photo)
-            if (currentPhotoIndex == 0 && profile.interests.isNotEmpty()) {
-                Box(
+            // Bottom overlay (always three slots)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black)
+                        )
+                    )
+            ) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black),
-                                startY = 0f, endY = Float.POSITIVE_INFINITY
-                            )
-                        )
+                        .horizontalScroll(rememberScrollState())  // allow scrolling if they don’t all fit
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        profile.interests.take(5).forEach { interest ->
-                            Text(
-                                text = "${interest.emoji} ${interest.name}",
-                                color = Color.White,
-                                fontSize = 14.sp
-                            )
-                        }
+                    val overlayStrings = when (currentPhotoIndex) {
+                        0 -> lifestyleTexts                 // top 3 lifestyle nouns
+                        1 -> preferencesTexts.take(3)
+                        2 -> interestsTexts.take(4)
+                        3 -> interestsTexts.drop(4).take(5)
+                        4 -> lifestyleTexts2
+                        else -> emptyList()
                     }
+                    overlayStrings
+                        .filter { it.isNotBlank() }
+                        .forEach { text ->
+                            TagBox(text = text)
+                        }
                 }
             }
 
-            // 4) Super-swipe compliment badge
+            // Compliment badge
             compliment?.let { c ->
                 Box(
                     modifier = Modifier
@@ -1474,10 +1561,12 @@ fun PhotoWithTwoOverlays(
                     }
                 }
             }
+
+            // Boost icon
             if (isBoosted) {
                 Icon(
                     Icons.Default.FlashOn,
-                    contentDescription = "Boosted",
+                    contentDescription = null,
                     tint = Color(0xFFFF6F00),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -1487,11 +1576,10 @@ fun PhotoWithTwoOverlays(
             }
         }
 
-        // ─── DISTANCE TAG (moved *below* the photo) ────────────────────────────
+        // Distance tag below the photo
         TagBox(
             text = stringResource(R.string.max_distance, userDistance.roundToInt()),
-            modifier = Modifier
-                .padding(start = 14.dp, top = 8.dp)
+            modifier = Modifier.padding(start = 14.dp, top = 8.dp)
         )
     }
 }
@@ -1501,16 +1589,22 @@ fun TagBox(
     text: String,
     modifier: Modifier = Modifier
 ) {
-    if (text.isNotBlank()) {
-        Box(
-            modifier = modifier
-                .padding(horizontal = 1.dp)
-                .background(Color.Black, shape = RoundedCornerShape(4.dp))
-                .border(BorderStroke(1.dp, Color(0xFFFF6F00)), shape = RoundedCornerShape(4.dp))
-                .padding(horizontal = 6.dp, vertical = 4.dp)
-        ) {
-            Text(text = text, color = Color.White, fontSize = 15.sp)
-        }
+    Box(
+        modifier = modifier
+            .wrapContentWidth()      // only take as much width as you need
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .background(Color.Black, shape = RoundedCornerShape(4.dp))
+            .border(1.dp, Color(0xFFFF6F00), shape = RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 15.sp,
+            maxLines = 1,                      // force a single line
+            overflow = TextOverflow.Ellipsis,  // ellipsize if too long
+            softWrap = false
+        )
     }
 }
 
@@ -1681,8 +1775,10 @@ fun ProfileCollapsibleSectionsAll(
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        PerformanceMetricsSectionDating(profile)
-        Spacer(modifier = Modifier.height(8.dp))
+        if (profile.isPremium || profile.isPlus) {
+            PerformanceMetricsSection(profile)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         CollapsibleSection(
             title = stringResource(R.string.bio),
             icon = Icons.Default.Mic,
