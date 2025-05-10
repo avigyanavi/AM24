@@ -1731,6 +1731,7 @@ fun ProfileCollapsibleSectionsAll(
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
     var showSocialCauses by rememberSaveable { mutableStateOf(false) } // New state for Social Causes
     val context = LocalContext.current // ✅ declare at the top of the Composable
+    val isPaid = currentUserProfile?.isPlus == true || currentUserProfile?.isPremium == true
 
     Column(
         modifier = Modifier
@@ -1738,44 +1739,38 @@ fun ProfileCollapsibleSectionsAll(
             .background(Color.Black)
             .padding(8.dp)
     ) {
-        CollapsibleSection(
-            title = stringResource(R.string.compatibility_check),
-            icon = Icons.Default.Info,
-            isExpanded = showAiSection,
-            onToggle = { showAiSection = !showAiSection }
-        ) {
-            Column {
+        /** ─────────── Compatibility ─────────── */
+        if (profile.isPremium || profile.isPlus) {
+            CollapsibleSection(
+                title = stringResource(R.string.compatibility_check),
+                icon = Icons.Default.Info,
+                isExpanded = showAiSection,
+                onToggle = {
+                    showAiSection = !showAiSection         // expand / collapse
+
+                    /*  auto-run every time it OPENS  */
+                    if (showAiSection && currentUserProfile != null) {
+                        runAiMatchCheck(
+                            context = context,
+                            coroutineScope = coroutineScope,
+                            currentUserId = FirebaseAuth.getInstance().uid
+                                ?: return@CollapsibleSection,
+                            currentUserProfile = currentUserProfile,
+                            otherProfile = profile
+                        ) { result -> currentAiMatchResult = result }
+                    }
+                }
+            ) {
                 if (currentAiMatchResult != null) {
                     ShowAiMatchAnalysis(currentAiMatchResult!!)
                 } else {
+                    /* tiny placeholder while it’s working */
                     Text(stringResource(R.string.run_analysis), color = Color.White)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        if (currentUserProfile != null) {
-                            runAiMatchCheck(
-                                context = context, // ← ADD THIS
-                                coroutineScope = coroutineScope,
-                                currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-                                    ?: return@Button,
-                                currentUserProfile = currentUserProfile,
-                                otherProfile = profile
-                            ) { newResult ->
-                                currentAiMatchResult = newResult
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                    modifier = Modifier
-                        .height(36.dp)
-                ) {
-                    Text("Run", color = Color.White, fontSize = 12.sp)
                 }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        if (profile.isPremium || profile.isPlus) {
+        if (profile.isPremium) {
             PerformanceMetricsSection(profile)
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -1836,20 +1831,85 @@ fun ProfileCollapsibleSectionsAll(
 }
 
 @Composable
-fun ShowAiMatchAnalysis(aiResult: AiMatchCheckResult) {
-    Text(
-        text = aiResult.summary,
-        color = Color.White,
-        fontSize = 16.sp,
-        modifier = Modifier.padding(8.dp)
-    )
-    Spacer(Modifier.height(8.dp))
-    Text(
-        text = stringResource(R.string.analyzed_on, formatTime(aiResult.timestamp)),
-        color = Color.Gray,
-        fontSize = 12.sp
-    )
+fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
+
+    /* 1 ── pull the individual insight lines out of the breakdown */
+    val rawLines = result.compatibilityBreakdown
+        .split('\n')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }           // ←-- kills the “blank-chip” problem
+
+    /* 2 ── classify lines */
+    val strengths = rawLines.filter { it.startsWith("✅") }
+    val concerns  = rawLines.filter { it.startsWith("⚠️") }
+    val notes     = rawLines.filter { it.startsWith("ℹ️") }
+
+    Column(modifier = Modifier.padding(8.dp)) {
+
+        /* headline */
+        Text(
+            text  = stringResource(R.string.total_match_label, result.totalMatchPercentage),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        /* strengths */
+        if (strengths.isNotEmpty()) {
+            Text(stringResource(R.string.strengths), color = Color.White, fontWeight = FontWeight.SemiBold)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                strengths.forEach { TagBox(it.removePrefix("✅").trim()) }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+
+        /* concerns */
+        if (concerns.isNotEmpty()) {
+            Text(stringResource(R.string.concerns), color = Color.White, fontWeight = FontWeight.SemiBold)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                concerns.forEach { TagBox(it.removePrefix("⚠️").trim()) }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+
+        /* notes */
+        if (notes.isNotEmpty()) {
+            Text(stringResource(R.string.notes), color = Color.White, fontWeight = FontWeight.SemiBold)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                notes.forEach { TagBox(it.removePrefix("ℹ️").trim()) }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+
+        /* timestamp */
+        Text(
+            text = stringResource(R.string.analyzed_on, formatTime(result.timestamp)),
+            color = Color.Gray,
+            fontSize = 12.sp
+        )
+    }
 }
+
+private fun formatInsights(ctx: Context, list: List<MatchInsight>): String {
+    val positives = list.filter { it.isPositive }.take(4)
+    val concerns  = list.filter { !it.isPositive && it.emoji == "⚠️" }.take(4)
+    val infos     = list.filter { it.emoji == "ℹ️" }.take(2)
+
+    fun block(title: Int, items: List<MatchInsight>) =
+        if (items.isEmpty()) "" else
+            ctx.getString(title) + ":\n" +
+                    items.joinToString("\n") { "${it.emoji} ${it.text}" }
+
+    return listOf(
+        block(R.string.strengths, positives),
+        block(R.string.concerns,  concerns),
+        block(R.string.notes,     infos)
+    ).filter { it.isNotBlank() }
+        .joinToString("\n\n")
+}
+
 
 fun formatTime(timestamp: Long): String {
     val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
@@ -2149,13 +2209,14 @@ fun runAiMatchCheck(
         otherProfile
     )
 
-    val breakdownText = insights.joinToString(separator = "\n") { "${it.emoji} ${it.text}" }
+    val breakdownText = formatInsights(context, insights)
 
-    val summaryText = context.getString(
+    val summaryText   = context.getString(
         R.string.match_summary_format,
         finalScore,
         breakdownText
     )
+
 
     Log.d("runAiMatchCheck", "Compatibility Summary: $summaryText")
 
@@ -2183,330 +2244,138 @@ fun calculateExhaustiveCompatibilityScore(
     profileA: Profile,
     profileB: Profile
 ): Pair<Int, List<MatchInsight>> {
-    var score = 0.0
-    val maxScore = 100.0
+
+    var score    = 0.0
+    var possible = 0.0
     val insights = mutableListOf<MatchInsight>()
 
-    fun resolveField(primary: String, fallback: String?): String {
-        return if (primary.trim().isNotEmpty()) primary.trim() else (fallback?.trim() ?: "")
-    }
-
-    fun compareStringField(a: String, b: String, label: String, points: Double): Double {
+    fun compareStringField(a: String?, b: String?, label: String, pts: Double) {
         val aTrim = a.orEmpty().trim()
         val bTrim = b.orEmpty().trim()
-        return when {
-            aTrim.isEmpty() && bTrim.isEmpty() -> {
+        when {
+            aTrim.isEmpty() && bTrim.isEmpty() ->
                 insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_not_set_suffix, label), false)
-                0.0
+            aTrim.isEmpty() || bTrim.isEmpty() ->
+                insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_one_not_set_suffix, label), false)
+            aTrim.equals(bTrim, true) -> {
+                score    += pts
+                possible += pts
+                insights += MatchInsight("✅", "$label: $aTrim", true)
             }
-
-            aTrim.equals(bTrim, ignoreCase = true) -> {
-                insights += MatchInsight("✅", "$label match: Both are \"$aTrim\"", true)
-                points
-            }
-
             else -> {
-                insights += MatchInsight("⚠️", "$label mismatch: \"$aTrim\" vs \"$bTrim\"", false)
-                0.0
+                possible += pts
+                insights += MatchInsight("⚠️", "$label: \"$aTrim\" vs \"$bTrim\"", false)
             }
         }
     }
 
-    // 1. Education
+    fun resolveField(p: String, f: String?) = if (p.trim().isNotEmpty()) p.trim() else f.orEmpty().trim()
+
     val collegeA = resolveField(profileA.college, profileA.customCollege)
     val collegeB = resolveField(profileB.college, profileB.customCollege)
-    if (collegeA.isNotBlank() && collegeA.equals(collegeB, true)) {
-        score += 6.0
-    } else {
-        insights += MatchInsight(
-            "⚠️",
-            context.getString(R.string.college_mismatch_format, collegeA, collegeB),
-            false
-        )
+    if (collegeA.isNotBlank() || collegeB.isNotBlank()) {
+        possible += 6.0
+        if (collegeA.equals(collegeB, true)) score += 6.0
+        else insights += MatchInsight("⚠️", context.getString(R.string.college_mismatch_format, collegeA, collegeB), false)
     }
 
     val pgA = resolveField(profileA.postGraduation ?: "", profileA.customPostGraduation)
     val pgB = resolveField(profileB.postGraduation ?: "", profileB.customPostGraduation)
-    if (pgA.isNotBlank() && pgA.equals(pgB, true)) {
-        score += 6.0
-    } else {
-        insights += MatchInsight(
-            "⚠️",
-            context.getString(R.string.post_graduation_mismatch_format, pgA, pgB),
-            false
-        )
+    if (pgA.isNotBlank() || pgB.isNotBlank()) {
+        possible += 6.0
+        if (pgA.equals(pgB, true)) score += 6.0
+        else insights += MatchInsight("⚠️", context.getString(R.string.post_graduation_mismatch_format, pgA, pgB), false)
     }
 
-    // 2. Work & Job Role
-    score += compareStringField(profileA.work, profileB.work, context.getString(R.string.workplace_label), 8.0)
-    score += compareStringField(profileA.jobRole, profileB.jobRole, context.getString(R.string.job_role_label), 5.0)
+    compareStringField(profileA.work,              profileB.work,              context.getString(R.string.workplace_label),          8.0)
+    compareStringField(profileA.jobRole,           profileB.jobRole,           context.getString(R.string.job_role_label),           5.0)
+    compareStringField(profileA.loveLanguage,      profileB.loveLanguage,      context.getString(R.string.love_language_label),      4.0)
+    compareStringField(profileA.lookingFor,        profileB.lookingFor,        context.getString(R.string.relationship_intent_label),6.0)
+    compareStringField(profileA.community,         profileB.community,         context.getString(R.string.community),                5.0)
+    compareStringField(profileA.religion,          profileB.religion,          context.getString(R.string.religion),                 4.0)
+    compareStringField(profileA.city,              profileB.city,              context.getString(R.string.city),                     4.0)
+    compareStringField(profileA.preferredLanguage, profileB.preferredLanguage, context.getString(R.string.preferred_language_label), 3.0)
 
-    // 3. Love Language
-    score += compareStringField(profileA.loveLanguage, profileB.loveLanguage, context.getString(R.string.love_language_label), 4.0)
-
-    // 4. Relationship Intent
-    score += compareStringField(profileA.lookingFor, profileB.lookingFor, context.getString(R.string.relationship_intent_label), 6.0)
-
-    // 5. Community & Religion
-    val communityA = profileA.community.trim()
-    val communityB = profileB.community.trim()
-    if (communityA.equals(communityB, true) && communityA.isNotBlank()) {
-        score += 5.0
-        insights += MatchInsight("✅", context.getString(R.string.community_match_format, communityA), true)
-    } else {
-        insights += MatchInsight("⚠️", context.getString(R.string.community_match_format, "$communityA vs $communityB"), false)
-    }
-
-    val religionA = profileA.religion.trim()
-    val religionB = profileB.religion.trim()
-    if (religionA.equals(religionB, true) && religionA.isNotBlank()) {
-        score += 4.0
-        insights += MatchInsight("✅", context.getString(R.string.religion_match_format, religionA), true)
-    } else {
-        insights += MatchInsight("⚠️", context.getString(R.string.religion_match_format, "$religionA vs $religionB"), false)
-    }
-
-    // 6. City
-    val cityA = profileA.city.trim()
-    val cityB = profileB.city.trim()
-    if (cityA.equals(cityB, true) && cityA.isNotBlank()) {
-        score += 4.0
-    } else {
-        insights += MatchInsight("⚠️", context.getString(R.string.city_mismatch_format, cityA, cityB), false)
-    }
-
-
-    // 7. Preferred Language
-    score += compareStringField(profileA.preferredLanguage, profileB.preferredLanguage, context.getString(R.string.preferred_language_label), 3.0)
-
-    // 8. Interests
     val interestsA = profileA.interests.map { it.name.trim() }.filter { it.isNotEmpty() }.toSet()
     val interestsB = profileB.interests.map { it.name.trim() }.filter { it.isNotEmpty() }.toSet()
-    val sharedInterests = interestsA.intersect(interestsB)
-    if (sharedInterests.isNotEmpty()) {
-        val bonus = (sharedInterests.size * 2).coerceAtMost(8)
-        score += bonus.toDouble()
-        insights += MatchInsight("✅", context.getString(R.string.shared_interests_prefix, sharedInterests.joinToString()), true)
-    } else {
-        if (interestsA.isEmpty() && interestsB.isEmpty()) {
-            insights += MatchInsight("ℹ️", context.getString(R.string.interests_not_set), false)
-        } else {
-            insights += MatchInsight("⚠️", context.getString(R.string.no_common_interests), false)
-        }
-    }
+    if (interestsA.isNotEmpty() && interestsB.isNotEmpty()) {
+        possible += 8.0
+        val shared = interestsA intersect interestsB
+        if (shared.isNotEmpty()) {
+            val pts = (shared.size * 2).coerceAtMost(8)
+            score += pts
+            insights += MatchInsight("✅", context.getString(R.string.shared_interests_prefix, shared.joinToString()), true)
+        } else insights += MatchInsight("⚠️", context.getString(R.string.no_common_interests), false)
+    } else insights += MatchInsight("ℹ️", context.getString(R.string.interests_not_set), false)
 
-    // 9. Social Causes
     val causesA = profileA.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val causesB = profileB.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-    val sharedCauses = causesA.intersect(causesB)
-    if (sharedCauses.isNotEmpty()) {
-        val bonus = (sharedCauses.size * 2).coerceAtMost(6)
-        score += bonus.toDouble()
-        insights += MatchInsight("✅", context.getString(R.string.shared_social_causes_prefix, sharedCauses.joinToString()), true)
-    } else {
-        if (causesA.isEmpty() && causesB.isEmpty()) {
-            insights += MatchInsight("ℹ️", context.getString(R.string.social_causes_not_set), false)
-        } else {
-            insights += MatchInsight("⚠️", context.getString(R.string.no_common_social_causes), false)
-        }
-    }
+    if (causesA.isNotEmpty() && causesB.isNotEmpty()) {
+        possible += 6.0
+        val shared = causesA intersect causesB
+        if (shared.isNotEmpty()) {
+            val pts = (shared.size * 2).coerceAtMost(6)
+            score += pts
+            insights += MatchInsight("✅", context.getString(R.string.shared_social_causes_prefix, shared.joinToString()), true)
+        } else insights += MatchInsight("⚠️", context.getString(R.string.no_common_social_causes), false)
+    } else insights += MatchInsight("ℹ️", context.getString(R.string.social_causes_not_set), false)
 
-    // 10. Zodiac
     val zodiacA = if (!profileA.zodiac.isNullOrBlank()) profileA.zodiac!! else deriveZodiac(profileA.dob)
     val zodiacB = if (!profileB.zodiac.isNullOrBlank()) profileB.zodiac!! else deriveZodiac(profileB.dob)
     if (zodiacA != "Unknown" && zodiacB != "Unknown") {
+        possible += 5.0
         if (isZodiacCompatible(zodiacA, zodiacB)) {
             score += 5.0
             insights += MatchInsight("✅", context.getString(R.string.zodiac_compatibility_prefix, zodiacA, zodiacB), true)
-        } else {
-            insights += MatchInsight("⚠️", context.getString(R.string.zodiac_mismatch_prefix, zodiacA, zodiacB), false)
-        }
-    } else {
-        insights += MatchInsight("ℹ️", context.getString(R.string.zodiac_not_set), false)
-    }
+        } else insights += MatchInsight("⚠️", context.getString(R.string.zodiac_mismatch_prefix, zodiacA, zodiacB), false)
+    } else insights += MatchInsight("ℹ️", context.getString(R.string.zodiac_not_set), false)
 
-    // 11. Matrimony Mode
-    if (profileA.isMatrimonyMode && profileB.isMatrimonyMode) {
-        score += 3.0
-        score += compareStringField(profileA.marriageTimeline.orEmpty(), profileB.marriageTimeline.orEmpty(), context.getString(R.string.marriage_timeline_label), 3.0)
-    } else if (profileA.isMatrimonyMode != profileB.isMatrimonyMode) {
-        insights += MatchInsight("⚠️", context.getString(R.string.matrimony_mismatch), false)
-    } else {
-        insights += MatchInsight("ℹ️", context.getString(R.string.matrimony_not_set), false)
-    }
+    if (profileA.isMatrimonyMode || profileB.isMatrimonyMode) {
+        possible += 3.0
+        if (profileA.isMatrimonyMode && profileB.isMatrimonyMode) {
+            score += 3.0
+            compareStringField(profileA.marriageTimeline, profileB.marriageTimeline,
+                context.getString(R.string.marriage_timeline_label), 3.0)
+        } else insights += MatchInsight("⚠️", context.getString(R.string.matrimony_mismatch), false)
+    } else insights += MatchInsight("ℹ️", context.getString(R.string.matrimony_not_set), false)
 
-    // 12. Relocation
     val relocA = profileA.relocationPreference.orEmpty().trim()
     val relocB = profileB.relocationPreference.orEmpty().trim()
-    if (relocA.equals(relocB, true) && relocA.isNotBlank()) {
-        score += 4.0
-    } else {
-        insights += MatchInsight("⚠️", context.getString(R.string.relocation_mismatch_format, relocA, relocB), false)
+    if (relocA.isNotBlank() || relocB.isNotBlank()) {
+        possible += 4.0
+        if (relocA.equals(relocB, true)) score += 4.0
+        else insights += MatchInsight("⚠️", context.getString(R.string.relocation_mismatch_format, relocA, relocB), false)
     }
 
-    // 13. Post-Marriage Career
     val careerA = profileA.postMarriageCareerPlan.orEmpty().trim()
     val careerB = profileB.postMarriageCareerPlan.orEmpty().trim()
-    if (careerA.equals(careerB, true) && careerA.isNotBlank()) {
-        score += 3.0
-    } else {
-        insights += MatchInsight("⚠️", context.getString(R.string.career_plan_mismatch_format, careerA, careerB), false)
+    if (careerA.isNotBlank() || careerB.isNotBlank()) {
+        possible += 3.0
+        if (careerA.equals(careerB, true)) score += 3.0
+        else insights += MatchInsight("⚠️", context.getString(R.string.career_plan_mismatch_format, careerA, careerB), false)
     }
 
-    // 14. Cultural Mindset
     val cultureA = profileA.traditionalVsLiberal.orEmpty().trim()
     val cultureB = profileB.traditionalVsLiberal.orEmpty().trim()
-    if (cultureA.equals(cultureB, true) && cultureA.isNotBlank()) {
-        score += 3.0
-    } else {
-        insights += MatchInsight("⚠️", context.getString(R.string.cultural_mindset_mismatch_format, cultureA, cultureB), false)
+    if (cultureA.isNotBlank() || cultureB.isNotBlank()) {
+        possible += 3.0
+        if (cultureA.equals(cultureB, true)) score += 3.0
+        else insights += MatchInsight("⚠️", context.getString(R.string.cultural_mindset_mismatch_format, cultureA, cultureB), false)
     }
 
-    // 15. Lifestyle
-    val lifestyleFieldNames = listOf(
-        context.getString(R.string.lifestyle_smoking),
-        context.getString(R.string.lifestyle_drinking),
-        context.getString(R.string.lifestyle_indoor_outdoor),
-        context.getString(R.string.lifestyle_sexual_activity),
-        context.getString(R.string.lifestyle_sociability),
-        context.getString(R.string.lifestyle_social_media),
-        context.getString(R.string.lifestyle_dietary_preferences),
-        context.getString(R.string.lifestyle_sleep),
-        context.getString(R.string.lifestyle_work_life_balance),
-        context.getString(R.string.lifestyle_exercise),
-        context.getString(R.string.lifestyle_adventurousness),
-        context.getString(R.string.lifestyle_family_oriented),
-        context.getString(R.string.lifestyle_intellectual_curiosity),
-        context.getString(R.string.lifestyle_creative_expression),
-        context.getString(R.string.lifestyle_physical_fitness),
-        context.getString(R.string.lifestyle_spirituality),
-        context.getString(R.string.lifestyle_humor),
-        context.getString(R.string.lifestyle_professional_ambition),
-        context.getString(R.string.lifestyle_environmental_awareness),
-        context.getString(R.string.lifestyle_culinary_enthusiasm),
-        context.getString(R.string.lifestyle_political_awareness),
-        context.getString(R.string.lifestyle_community_engagement),
-        context.getString(R.string.lifestyle_sports),
-    )
-
-    val lifestylePairs = listOf(
-        profileA.lifestyle?.smoking_habit to profileB.lifestyle?.smoking_habit,
-        profileA.lifestyle?.drinking_habit to profileB.lifestyle?.drinking_habit,
-        profileA.lifestyle?.indoor_outdoor_orientation to profileB.lifestyle?.indoor_outdoor_orientation,
-        profileA.lifestyle?.sexual_activity_level to profileB.lifestyle?.sexual_activity_level,
-        profileA.lifestyle?.sociability to profileB.lifestyle?.sociability,
-        profileA.lifestyle?.social_media_engagement to profileB.lifestyle?.social_media_engagement,
-        profileA.lifestyle?.dietary_preferences to profileB.lifestyle?.dietary_preferences,
-        profileA.lifestyle?.sleep_pattern to profileB.lifestyle?.sleep_pattern,
-        profileA.lifestyle?.work_life_balance to profileB.lifestyle?.work_life_balance,
-        profileA.lifestyle?.exercise_frequency to profileB.lifestyle?.exercise_frequency,
-        profileA.lifestyle?.adventurousness to profileB.lifestyle?.adventurousness,
-        profileA.lifestyle?.family_orientated to profileB.lifestyle?.family_orientated,
-        profileA.lifestyle?.intellectual_curiosity to profileB.lifestyle?.intellectual_curiosity,
-        profileA.lifestyle?.creative_expression to profileB.lifestyle?.creative_expression,
-        profileA.lifestyle?.physical_fitness to profileB.lifestyle?.physical_fitness,
-        profileA.lifestyle?.spirituality_mindfulness to profileB.lifestyle?.spirituality_mindfulness,
-        profileA.lifestyle?.easy_goingness to profileB.lifestyle?.easy_goingness,
-        profileA.lifestyle?.professional_ambition to profileB.lifestyle?.professional_ambition,
-        profileA.lifestyle?.environmental_awareness to profileB.lifestyle?.environmental_awareness,
-        profileA.lifestyle?.culinary_enthusiasm to profileB.lifestyle?.culinary_enthusiasm,
-        profileA.lifestyle?.political_awareness to profileB.lifestyle?.political_awareness,
-        profileA.lifestyle?.community_engagement to profileB.lifestyle?.community_engagement,
-        profileA.lifestyle?.sports_enthusiasm to profileB.lifestyle?.sports_enthusiasm,
-    )
-
-    var lifestyleMatched = 0
-    var lifestyleCompared = 0
-    val lifestyleMatchesList = mutableListOf<String>()
-    val lifestyleMismatchesList = mutableListOf<String>()
-
-    for ((index, pair) in lifestylePairs.withIndex()) {
-        val label = lifestyleFieldNames.getOrElse(index) { context.getString(R.string.lifestyle_field_default) }
-        val a = pair.first
-        val b = pair.second
-        when {
-            a is Int && b is Int -> {
-                if (a == -1 && b == -1) {
-                    lifestyleMatchesList.add(context.getString(R.string.lifestyle_not_set_suffix, label))
-                } else if (a == -1 || b == -1) {
-                    lifestyleCompared++
-                    lifestyleMismatchesList.add(context.getString(R.string.lifestyle_one_not_set_suffix, label))
-                } else {
-                    lifestyleCompared++
-                    if (a == b) {
-                        lifestyleMatched++
-                        lifestyleMatchesList.add(label)
-                    } else {
-                        lifestyleMismatchesList.add("$label: $a vs $b")
-                    }
-                }
-            }
-
-            a is Boolean && b is Boolean -> {
-                lifestyleCompared++
-                if (a == b) {
-                    lifestyleMatched++
-                    lifestyleMatchesList.add(label)
-                } else {
-                    lifestyleMismatchesList.add("$label: $a vs $b")
-                }
-            }
-
-            a is String && b is String -> {
-                if (a.isBlank() && b.isBlank()) {
-                    lifestyleMatchesList.add(context.getString(R.string.lifestyle_not_set_suffix, label))
-                } else if (a.isBlank() || b.isBlank()) {
-                    lifestyleCompared++
-                    lifestyleMismatchesList.add(context.getString(R.string.lifestyle_one_not_set_suffix, label))
-                } else {
-                    lifestyleCompared++
-                    if (a.equals(b, ignoreCase = true)) {
-                        lifestyleMatched++
-                        lifestyleMatchesList.add(label)
-                    } else {
-                        lifestyleMismatchesList.add("$label: '$a' vs '$b'")
-                    }
-                }
-            }
-        }
-    }
-
-    if (lifestyleCompared > 0) {
-        if (lifestyleCompared < 5) {
-            if (lifestyleMatched > 0) {
-                insights += MatchInsight("✅", context.getString(R.string.lifestyle_match_format, lifestyleMatched, lifestyleMatchesList.joinToString(", ")), true)
-            } else {
-                insights += MatchInsight("⚠️", context.getString(R.string.lifestyle_no_traits_to_compare), false)
-            }
-        } else {
-            val percentage = (lifestyleMatched.toDouble() / lifestyleCompared.toDouble()) * 100
-            insights += MatchInsight(
-                "✅",
-                context.getString(R.string.lifestyle_similarity_format, "%.1f".format(percentage), lifestyleCompared, lifestyleMatchesList.joinToString(", ").ifEmpty { context.getString(R.string.lifestyle_none_common) }),
-                true
-            )
-        }
-    } else {
-        insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_not_set_in_profiles), false)
-    }
-
-    if (lifestyleMismatchesList.isNotEmpty()) {
-        insights += MatchInsight("⚠️", context.getString(R.string.lifestyle_mismatches_format, lifestyleMismatchesList.joinToString("; ")), false)
-    }
-
-    // 16. Tags
     val tagsA = profileA.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val tagsB = profileB.userTags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-    val sharedTags = tagsA.intersect(tagsB)
-    if (sharedTags.isNotEmpty()) {
-        val bonus = (sharedTags.size).coerceAtMost(2)
-        score += bonus.toDouble()
-        insights += MatchInsight("✅", context.getString(R.string.shared_tags_prefix, sharedTags.joinToString()), true)
-    } else {
-        insights += MatchInsight("ℹ️", context.getString(R.string.tags_not_set_or_no_overlap), false)
-    }
+    if (tagsA.isNotEmpty() && tagsB.isNotEmpty()) {
+        possible += 2.0
+        val shared = tagsA intersect tagsB
+        if (shared.isNotEmpty()) {
+            val pts = shared.size.coerceAtMost(2)
+            score += pts
+            insights += MatchInsight("✅", context.getString(R.string.shared_tags_prefix, shared.joinToString()), true)
+        } else insights += MatchInsight("⚠️", context.getString(R.string.tags_not_set_or_no_overlap), false)
+    } else insights += MatchInsight("ℹ️", context.getString(R.string.tags_not_set_or_no_overlap), false)
 
-    val finalScore = score.coerceAtMost(maxScore).toInt()
+    val finalScore = if (possible == 0.0) 0 else ((score / possible) * 100).roundToInt().coerceIn(0, 100)
     return finalScore to insights
 }
 

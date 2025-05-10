@@ -152,6 +152,12 @@
 
     <string name="section_bio_and_voice">বায়ো ও ভয়েস</string>
     <!-- interests -->
+    <string name="total_match_label">মোট মিল: %1$d%%</string>
+    <string name="running_analysis">বিশ্লেষণ চলছে…</string>
+    <string name="strengths">শক্তির দিক</string>
+    <string name="concerns">উদ্বেগ</string>
+    <string name="notes">নোট</string>
+    <string name="upgrade_to_plus">প্লাসে আপগ্রেড করুন</string>
 
     <!-- ───── Himalayan neighbours ───── -->
     <string name="community_bhutanese">ভুটানি</string>

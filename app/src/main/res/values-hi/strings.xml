@@ -764,6 +764,13 @@
     <string name="no_interests">कोई रुचियाँ निर्दिष्ट नहीं।</string>
     <string name="no_social_causes">कोई सामाजिक कारण निर्दिष्ट नहीं।</string>
 
+    <string name="total_match_label">कुल मिलान: %1$d%%</string>
+    <string name="running_analysis">विश्लेषण चल रहा है…</string>
+    <string name="strengths">मज़बूत पक्ष</string>
+    <string name="concerns">चिंताएँ</string>
+    <string name="notes">टिप्पणियाँ</string>
+    <string name="upgrade_to_plus">प्लस में अपग्रेड करें</string>
+
     <!-- DatingScreen -->
     <string name="no_more_swipes_available">कोई और स्वाइप उपलब्ध नहीं है</string>
 

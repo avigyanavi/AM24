@@ -8,6 +8,13 @@
     You can select up to %1$d social causes only.
     </string>
 
+    <string name="total_match_label">Total match: %1$d%%</string>
+    <string name="running_analysis">Running analysis…</string>
+    <string name="strengths">Strengths</string>
+    <string name="concerns">Concerns</string>
+    <string name="notes">Notes</string>
+    <string name="upgrade_to_plus">Upgrade to Plus</string>
+
     <string name="cd_price_filter">Filter by price</string>
     <string name="price_all">All</string>
     <string name="price_1">$</string>
