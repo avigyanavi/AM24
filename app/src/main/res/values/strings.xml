@@ -1189,6 +1189,7 @@
     <string name="profile_picture_label">Profile Picture</string>
     <string name="tap_placeholder">Tap</string>
     <string name="optional_photos_label">Optional Photos</string>
+    <string name="optional_voice">Optional Voice</string>
     <string name="add_photos_button">Add Photos</string>
     <string name="voice_bio_label">Voice Bio [Tap icon to record/re-record]</string>
     <string name="voice_bio_duration_error">Voice Bio exceeds 60 seconds. Please record a shorter one.</string>

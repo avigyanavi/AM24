@@ -12,6 +12,8 @@ import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.location.Geocoder
 import android.media.MediaPlayer
 import android.os.Bundle
@@ -72,6 +74,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.util.Calendar
@@ -2443,24 +2446,54 @@ suspend fun saveProfileToFirebase(
     }
 }
 
+suspend fun compressImage(
+    context: Context,
+    uri: Uri,
+    maxWidth: Int = 1080,      // down-scale if wider than this
+    quality: Int = 75          // JPEG quality 0‒100
+): ByteArray = withContext(Dispatchers.IO) {
+    val input = context.contentResolver.openInputStream(uri) ?: error("No stream")
+    val original = BitmapFactory.decodeStream(input)
+    input.close()
+
+    // scale if needed
+    val ratio = maxWidth.toFloat() / original.width.toFloat()
+    val scaled = if (ratio < 1f) {
+        Bitmap.createScaledBitmap(
+            original,
+            (original.width * ratio).toInt(),
+            (original.height * ratio).toInt(),
+            true
+        )
+    } else original
+
+    val out = ByteArrayOutputStream()
+    scaled.compress(Bitmap.CompressFormat.JPEG, quality, out)
+    out.toByteArray()
+}
 
 fun uploadProfilePicToFirebase(
+    context: Context,
     storageRef: StorageReference,
     uri: Uri,
     registrationViewModel: RegistrationViewModel
 ) {
-    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val profilePicRef = storageRef.child("users/$userId/profile_pic.jpg")
-    profilePicRef.putFile(uri)
-        .addOnSuccessListener {
-            profilePicRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                registrationViewModel.profilePicUrl = downloadUri.toString()
-                Log.d("UploadMedia", "Profile picture uploaded successfully: $downloadUri")
+    (context as? ComponentActivity)?.lifecycleScope?.launch {
+        val jpegBytes = compressImage(context, uri)           // ← compress first
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+        val ref = storageRef.child("users/$userId/profile_pic.jpg")
+
+        ref.putBytes(jpegBytes)
+            .addOnSuccessListener {
+                ref.downloadUrl.addOnSuccessListener { downloadUri ->
+                    registrationViewModel.profilePicUrl = downloadUri.toString()
+                    Log.d("UploadMedia", "Profile picture uploaded: $downloadUri")
+                }
             }
-        }
-        .addOnFailureListener { exception ->
-            Log.e("UploadMedia", "Failed to upload profile picture: ${exception.message}")
-        }
+            .addOnFailureListener { e ->
+                Log.e("UploadMedia", "Profile-pic upload failed: ${e.message}")
+            }
+    }
 }
 
 fun uploadVoiceToFirebase(
@@ -3416,93 +3449,94 @@ fun UploadMediaComposable(
     val storageRef = FirebaseRefs.storage.reference
 
     var isRecording by remember { mutableStateOf(false) }
-    var isPlaying by remember { mutableStateOf(false) }
+    var isPlaying  by remember { mutableStateOf(false) }
     var isVoiceBioValid by remember { mutableStateOf(true) }
-    var voiceFilePath by remember { mutableStateOf(File(context.filesDir, "voice_note.mp3").absolutePath) }
+
+    val voiceFile = remember { File(context.filesDir, "voice_note.mp3") }
+    val voiceFilePath = voiceFile.absolutePath
     var voiceProgress by remember { mutableStateOf(0f) }
     var voiceDuration by remember { mutableStateOf(0L) }
 
     val mediaPlayer = remember { MediaPlayer() }
 
-    val canProceed = registrationViewModel.profilePictureUri != null &&
-            isVoiceBioValid &&
-            registrationViewModel.voiceNoteUri != null
+    /* --------------------------------------------------------------------- */
+    /*  Voice bio is now OPTIONAL – so it’s removed from the 'canProceed'    */
+    /* --------------------------------------------------------------------- */
+    val canProceed = registrationViewModel.profilePictureUri != null
 
-    // Profile Picture Picker
+    /* ---------- Profile picture picker (with compression) ---------- */
     val profilePicPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri ->
-            uri?.let {
-                registrationViewModel.profilePictureUri = it
-                uploadProfilePicToFirebase(storageRef, it, registrationViewModel)
-            }
-        }
-    )
-
-    // Optional Photos Picker
-    val optionalPhotoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri ->
-            uri?.let {
-                registrationViewModel.optionalPhotoUris.add(it)
-                uploadOptionalPhoto(storageRef, it, registrationViewModel)
-            }
-        }
-    )
-
-    fun validateVoiceBio() {
-        try {
-            val tempPlayer = MediaPlayer()
-            tempPlayer.setDataSource(voiceFilePath)
-            tempPlayer.prepare()
-            voiceDuration = tempPlayer.duration.toLong()
-            tempPlayer.release()
-            isVoiceBioValid = voiceDuration <= 60000
-        } catch (e: Exception) {
-            Log.e("VoiceValidation", "Error validating voice duration: ${e.message}")
-            isVoiceBioValid = false
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            registrationViewModel.profilePictureUri = it
+            uploadProfilePicToFirebase(context, storageRef, it, registrationViewModel)
         }
     }
 
-    val permissions = arrayOf(
+    /* ---------- Optional photo picker ---------- */
+    val optionalPhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            registrationViewModel.optionalPhotoUris.add(it)
+            uploadOptionalPhoto(context, storageRef, it, registrationViewModel)
+        }
+    }
+
+    /* ---------- Voice-bio helpers ---------- */
+    fun validateVoiceBio() {
+        try {
+            val temp = MediaPlayer().apply {
+                setDataSource(voiceFilePath)
+                prepare()
+            }
+            voiceDuration = temp.duration.toLong()
+            temp.release()
+            isVoiceBioValid = voiceDuration <= 60_000          // ≤ 60 s allowed
+        } catch (e: Exception) {
+            isVoiceBioValid = false
+            Log.e("VoiceValidation", "Could not validate: ${e.message}")
+        }
+    }
+
+    val audioPermissions = arrayOf(
         Manifest.permission.RECORD_AUDIO,
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE
     )
-    // 1) Declare a lateinit variable (no initializer yet)
-    lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
 
-// 2) Assign it with rememberLauncherForActivityResult
-    permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissionsResult ->
-        val allGranted = permissionsResult.values.all { it }
-
-        if (!allGranted) {
-            // Re‐request
-            permissionLauncher.launch(permissions)
-        } else {
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted ->
+        if (granted.values.all { it }) {
             isRecording = true
             registrationViewModel.startVoiceRecording(context, voiceFilePath)
+        } else {
+            Toast.makeText(context, "Mic permission denied", Toast.LENGTH_SHORT).show()
         }
     }
 
-    val toggleRecording: () -> Unit = {
+    fun toggleRecording() {
         if (isRecording) {
             isRecording = false
             registrationViewModel.stopVoiceRecording()
-            registrationViewModel.voiceNoteUri = Uri.fromFile(File(voiceFilePath))
+            registrationViewModel.voiceNoteUri = Uri.fromFile(voiceFile)
             validateVoiceBio()
+
             if (isVoiceBioValid) {
-                uploadVoiceToFirebase(storageRef, registrationViewModel.voiceNoteUri!!, registrationViewModel)
+                uploadVoiceToFirebase(
+                    storageRef,
+                    registrationViewModel.voiceNoteUri!!,
+                    registrationViewModel
+                )
             }
         } else {
-            permissionLauncher.launch(permissions) // Request permissions before recording
+            permissionLauncher.launch(audioPermissions)
         }
     }
 
-
-    val togglePlayback: () -> Unit = {
+    fun togglePlayback() {
         if (isPlaying) {
             mediaPlayer.pause()
             isPlaying = false
@@ -3517,15 +3551,16 @@ fun UploadMediaComposable(
                 isPlaying = true
                 voiceDuration = mediaPlayer.duration.toLong().coerceAtLeast(1L)
             } catch (e: IOException) {
-                Log.e("MediaPlayer", "Playback Error: ${e.message}")
+                Log.e("MediaPlayer", "Playback error: ${e.message}")
             }
         }
     }
 
+    /* ---------- Observe playback progress ---------- */
     LaunchedEffect(isPlaying) {
         while (isPlaying && mediaPlayer.isPlaying) {
-            voiceProgress = (mediaPlayer.currentPosition / voiceDuration.toFloat()).coerceIn(0f, 1f)
-            delay(500)
+            voiceProgress = mediaPlayer.currentPosition / voiceDuration.toFloat()
+            delay(300)
         }
         if (!mediaPlayer.isPlaying) {
             isPlaying = false
@@ -3533,170 +3568,170 @@ fun UploadMediaComposable(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer.release()
-        }
-    }
+    DisposableEffect(Unit) { onDispose { mediaPlayer.release() } }
 
+    /* ============================  UI  ============================ */
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.upload_media_title), color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
-        content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A1A))
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                LazyColumn(
+        containerColor = Color(0xFF1A1A1A)
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            /* ---------------- Profile picture ---------------- */
+            item {
+                Text(stringResource(R.string.profile_picture_label),
+                    color = Color.White, fontSize = 18.sp)
+
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 32.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .size(110.dp)
+                        .border(2.dp, Color(0xFFFF6000), CircleShape)
+                        .clickable { profilePicPickerLauncher.launch("image/*") }
                 ) {
-                    item {
-                        // Profile Picture Section
-                        Text(stringResource(R.string.profile_picture_label), color = Color.White, fontSize = 18.sp)
-                        Box(
-                            contentAlignment = Alignment.Center,
+                    registrationViewModel.profilePictureUri?.let {
+                        AsyncImage(
+                            model = it,
+                            contentDescription = "Profile Picture",
                             modifier = Modifier
-                                .size(110.dp)
-                                .border(2.dp, Color(0xFFFF6000), CircleShape)
-                                .clickable { profilePicPickerLauncher.launch("image/*") }
-                        ) {
-                            if (registrationViewModel.profilePictureUri != null) {
-                                AsyncImage(
-                                    model = registrationViewModel.profilePictureUri,
-                                    contentDescription = "Profile Picture",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape)
-                                )
-                            } else {
-                                Text(stringResource(R.string.tap_placeholder), color = Color.White, fontSize = 14.sp)
-                            }
-                        }
+                                .size(100.dp)
+                                .clip(CircleShape)
+                        )
+                    } ?: Text("Tap", color = Color.White, fontSize = 14.sp)
+                }
+            }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+            /* ---------------- Optional photos ---------------- */
+            item {
+                Text(stringResource(R.string.optional_photos_label),
+                    color = Color.White, fontSize = 18.sp)
 
-                        // Optional Photos Section
-                        Text(stringResource(R.string.optional_photos_label), color = Color.White, fontSize = 18.sp)
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(registrationViewModel.optionalPhotoUris) { uri ->
-                                Box(modifier = Modifier.size(100.dp)) {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .matchParentSize()
-                                            .clip(CircleShape)
-                                    )
-                                    IconButton(
-                                        onClick = { registrationViewModel.optionalPhotoUris.remove(uri) },
-                                        modifier = Modifier.align(Alignment.TopEnd)
-                                    ) {
-                                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
-                                    }
-                                }
-                            }
-                        }
-                        Button(
-                            onClick = { optionalPhotoPickerLauncher.launch("image/*") },
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
-                        ) {
-                            Text(stringResource(R.string.add_photos_button), color = Color.White)
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Voice Bio Section
-                        Text(stringResource(R.string.voice_bio_label), color = Color.White, fontSize = 18.sp)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        IconButton(onClick = toggleRecording) {
-                            Icon(
-                                imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(registrationViewModel.optionalPhotoUris) { uri ->
+                        Box(modifier = Modifier.size(100.dp)) {
+                            AsyncImage(
+                                model = uri,
                                 contentDescription = null,
-                                tint = if (isRecording) Color.Red else Color.White
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(CircleShape)
                             )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        if (!isVoiceBioValid) {
-                            Text(
-                                text = stringResource(R.string.voice_bio_duration_error),
-                                color = Color.Red,
-                                fontSize = 14.sp
-                            )
-                        }
-
-                        registrationViewModel.voiceNoteUri?.let {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = togglePlayback) {
-                                    Icon(
-                                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                        contentDescription = null,
-                                        tint = Color.White
-                                    )
-                                }
-                                Slider(
-                                    value = voiceProgress,
-                                    onValueChange = {},
-                                    valueRange = 0f..1f,
-                                    modifier = Modifier.weight(1f)
-                                )
+                            IconButton(
+                                onClick = { registrationViewModel.optionalPhotoUris.remove(uri) },
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Icon(Icons.Default.Close, null, tint = Color.White)
                             }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Next Button
-                        Button(
-                            onClick = { if (canProceed) onNext() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
-                            ),
-                            enabled = canProceed
-                        ) {
-                            Text(stringResource(R.string.next_button), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
+                Button(
+                    onClick = { optionalPhotoPickerLauncher.launch("image/*") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+                ) {
+                    Text(stringResource(R.string.add_photos_button), color = Color.White)
+                }
+            }
+
+            /* ---------------- Voice bio (optional) ---------------- */
+            item {
+                Text(stringResource(R.string.voice_bio_label) + "  •  " +
+                        stringResource(R.string.optional_voice),
+                    color = Color.White, fontSize = 18.sp)
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = ::toggleRecording) {
+                        Icon(
+                            if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
+                            null,
+                            tint = if (isRecording) Color.Red else Color.White
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    registrationViewModel.voiceNoteUri?.let {
+                        IconButton(onClick = ::togglePlayback) {
+                            Icon(
+                                if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                null,
+                                tint = Color.White
+                            )
+                        }
+                        Slider(
+                            value = voiceProgress,
+                            onValueChange = {},
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                if (!isVoiceBioValid) {
+                    Text(
+                        stringResource(R.string.voice_bio_duration_error),
+                        color = Color.Red,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            /* ---------------- Next button ---------------- */
+            item {
+                Button(
+                    onClick = { if (canProceed) onNext() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    enabled = canProceed,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
+                    )
+                ) {
+                    Text(stringResource(R.string.next_button), color = Color.White)
+                }
             }
         }
-    )
+    }
 }
 
 
 fun uploadOptionalPhoto(
+    context: Context,
     storageRef: StorageReference,
     uri: Uri,
     registrationViewModel: RegistrationViewModel
 ) {
-    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val ref = storageRef.child("users/$userId/${uri.lastPathSegment}")
-    ref.putFile(uri).addOnSuccessListener {
-        ref.downloadUrl.addOnSuccessListener { downloadUri ->
-            registrationViewModel.optionalPhotoUrls.add(downloadUri.toString())
-        }
-    }.addOnFailureListener {
-        Log.e("UploadMedia", "Failed to upload: ${it.message}")
+    (context as? ComponentActivity)?.lifecycleScope?.launch {
+        val jpegBytes = compressImage(context, uri)
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+        val ref = storageRef.child("users/$userId/${uri.lastPathSegment ?: System.currentTimeMillis()}.jpg")
+
+        ref.putBytes(jpegBytes)
+            .addOnSuccessListener {
+                ref.downloadUrl.addOnSuccessListener { downloadUri ->
+                    registrationViewModel.optionalPhotoUrls.add(downloadUri.toString())
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("UploadMedia", "Optional-photo upload failed: ${e.message}")
+            }
     }
 }
+
 
 fun checkAndStoreUsernameForRegistration(
     newUsername: String,

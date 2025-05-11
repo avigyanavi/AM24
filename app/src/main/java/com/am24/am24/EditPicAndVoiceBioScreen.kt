@@ -23,6 +23,7 @@ import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,8 +32,10 @@ import coil.compose.AsyncImage
 import com.am24.am24.FirebaseRefs
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
+import com.am24.am24.compressImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.launch
 
 import java.io.IOException
 
@@ -122,28 +125,45 @@ fun EditPicAndVoiceBioScreen(
         }
     }
 
-    // 2) Image picking. We store which "slot index" the user clicked.
+// 2) Image picking. We store which "slot index" the user clicked.
     var slotIndexToReplace by remember { mutableStateOf<Int?>(null) }
+    val context = LocalContext.current
+    val scope   = rememberCoroutineScope()
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            // Upload to Firebase => get the resulting URL => store in photoItems[slotIndex]
-            val slotIdx = slotIndexToReplace
-            if (slotIdx == null) return@let // no valid slot
-            uploadImageToFirebase(
-                userId = currentUserId,
-                imageUri = it,
-                onSuccess = { downloadUrl ->
-                    photoItems[slotIdx] = downloadUrl
-                },
-                onFailure = { err ->
-                    Log.e("PhotoUpload", "Failed: $err")
-                }
-            )
+    ) { rawUri: Uri? ->
+        rawUri ?: return@rememberLauncherForActivityResult          // user cancelled
+
+        val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
+
+        scope.launch {
+            try {
+                // ── compress off the main thread ──────────────────────
+                val jpegBytes = compressImage(context, rawUri)
+
+                // ── push bytes to Firebase Storage ───────────────────
+                val fileName   = "${System.currentTimeMillis()}.jpg"
+                val imgRef     =
+                    FirebaseRefs.storage.reference.child("users/$currentUserId/$fileName")
+
+                imgRef.putBytes(jpegBytes)
+                    .addOnSuccessListener { task ->
+                        task.storage.downloadUrl
+                            .addOnSuccessListener { dl ->
+                                photoItems[idx] = dl.toString()        // show in UI
+                            }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("PhotoUpload", "Upload failed: ${e.message}")
+                    }
+
+            } catch (e: Exception) {
+                Log.e("PhotoCompress", "Compression error: ${e.message}")
+            }
         }
     }
+
 
     // 3) Voice picking
     val pickVoiceLauncher = rememberLauncherForActivityResult(

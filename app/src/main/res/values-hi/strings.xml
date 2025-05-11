@@ -1288,6 +1288,7 @@
     <string name="profile_picture_label">प्रोफ़ाइल चित्र</string>
     <string name="tap_placeholder">टैप करें</string>
     <string name="optional_photos_label">वैकल्पिक चित्र</string>
+    <string name="optional_voice">वैकल्पिक वॉयस बायो</string>
     <string name="add_photos_button">चित्र जोड़ें</string>
     <string name="voice_bio_label">वॉयस बायो [रिकॉर्ड/पुनः रिकॉर्ड करने के लिए टैप करें]</string>
     <string name="voice_bio_duration_error">वॉयस बायो 60 सेकंड से अधिक है, कृपया कम समय का रिकॉर्ड करें</string>
