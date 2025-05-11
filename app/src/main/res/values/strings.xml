@@ -15,6 +15,14 @@
     <string name="notes">Notes</string>
     <string name="upgrade_to_plus">Upgrade to Plus</string>
 
+    <string name="worldwide">Worldwide 🌍</string>
+
+    <string name="rating_label">Rating</string>
+    <string name="min_rating">Minimum ⭐ %.1f</string>
+
+    <string name="ranking_label">Ranking</string>
+    <string name="top_n_ranking">Top %s profiles</string>
+
     <string name="cd_price_filter">Filter by price</string>
     <string name="price_all">All</string>
     <string name="price_1">$</string>

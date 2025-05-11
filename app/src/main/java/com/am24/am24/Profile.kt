@@ -236,7 +236,7 @@ data class Interest(
     constructor() : this("", null)
 }
 
-
+@IgnoreExtraProperties
 data class Lifestyle(
     var smoking_habit: Int = -1,
     var drinking_habit: Int = -1,

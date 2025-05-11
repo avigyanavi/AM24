@@ -159,6 +159,15 @@
     <string name="notes">নোট</string>
     <string name="upgrade_to_plus">প্লাসে আপগ্রেড করুন</string>
 
+    <string name="rating_label">রেটিং</string>
+    <string name="min_rating">সর্বনিম্ন ⭐ %.1f</string>
+
+    <!-- values-bn/strings.xml  (Bengali) -->
+    <string name="worldwide">সারা বিশ্ব 🌍</string>
+
+    <string name="ranking_label">র‌্যাঙ্কিং</string>
+    <string name="top_n_ranking">শীর্ষ %s প্রোফাইল</string>
+
     <!-- ───── Himalayan neighbours ───── -->
     <string name="community_bhutanese">ভুটানি</string>
     <string name="community_sikkimese">সিকিমি</string>

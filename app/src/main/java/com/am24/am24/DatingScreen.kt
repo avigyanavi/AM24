@@ -6,6 +6,7 @@
 package com.am24.am24
 
 import DatingViewModel
+import DatingViewModel.Companion.WORLDWIDE_DISTANCE
 import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
@@ -100,6 +101,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import java.io.File
 
+/* DatingScreen.kt  – add near the top, after imports */
+private fun Iterable<*>.dump(tag: String) =
+    Log.d("DS-FLOW", "$tag  size=${count()}  →  ${joinToString { (it as? Profile)?.userId ?: it.toString() }}")
+
+
 data class SwipeData(
     val liked: Boolean = false,
     val timestamp: Long = 0L
@@ -139,12 +145,15 @@ fun DatingScreen(
     modifier: Modifier = Modifier,
     initialQuery: String = ""
 ) {
-    val datingViewModel: DatingViewModel = viewModel()
+    val datingViewModel: DatingViewModel   = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
-    // ① Trigger the load as soon as the composable enters composition
-    LaunchedEffect(Unit) {
-        profileViewModel.fetchCurrentUserProfile()
-    }
+    val postViewModel: PostViewModel       = viewModel()
+    val coroutineScope                     = rememberCoroutineScope()
+
+    /* fetch *my* Profile once */
+    LaunchedEffect(Unit) { profileViewModel.fetchCurrentUserProfile() }
+
+    // ── StateFlows ────────────────────────────────────────────────────
     val myProfile by profileViewModel.currentUserProfile.collectAsState()
     if (myProfile == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -152,23 +161,20 @@ fun DatingScreen(
         }
         return
     }
-    val postViewModel: PostViewModel = viewModel()
-    val filters by datingViewModel.datingFilters.collectAsState()
-    val filteredProfiles by datingViewModel.filteredProfiles.collectAsState()
-    val isLoading by datingViewModel.isLoading.collectAsState()
-    val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
-    val boostedUsers by datingViewModel.boostedUsers.collectAsState()
-
-    // ← NEW: collect the map of compliments that others have sent you
-    val complimentsReceived by datingViewModel.complimentsReceived.collectAsState()
-    val complimenters       = complimentsReceived.keys.toList()
-    val complimentsLeft by datingViewModel.complimentsLeft.collectAsState()
-
-    var excludedUserIds by remember { mutableStateOf(emptySet<String>()) }
-    val remainingSwipes = remember { mutableStateOf(0) }
-    var swipesLoaded by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-    var showBoostedOverlay by rememberSaveable { mutableStateOf(false) }
+    val filters           by datingViewModel.datingFilters.collectAsState()
+    val filteredProfiles  by datingViewModel.filteredProfiles.collectAsState()
+    val isLoading         by datingViewModel.isLoading.collectAsState()
+    val matchPopUpState   by profileViewModel.matchPopUpState.collectAsState()
+    val boostedUsers      by datingViewModel.boostedUsers.collectAsState()
+    val complimentsLeft   by datingViewModel.complimentsLeft.collectAsState()
+    val complimentsRecv   by datingViewModel.complimentsReceived.collectAsState()
+    val complimenters = complimentsRecv.keys.toList()
+    // ── Misc local state ─────────────────────────────────────────────
+    var excludedUserIds   by remember { mutableStateOf(emptySet<String>()) }
+    var remainingSwipes   by remember { mutableStateOf(0) }
+    var swipesLoaded      by remember { mutableStateOf(false) }
+    var showComplimentDlg by remember { mutableStateOf(false) }
+    var showBoostFlash    by rememberSaveable { mutableStateOf(false) }
 
     // constants
     val BOOST_DURATION = 6 * 60 * 60 * 1000L
@@ -186,45 +192,65 @@ fun DatingScreen(
 
     LaunchedEffect(Unit) {
         FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-            excludedUserIds     = fetchExcludedUsers(uid)
+            excludedUserIds = fetchExcludedUsers(uid)
             profileViewModel.fetchCurrentUserProfile()
-            remainingSwipes.value = loadAndResetSwipesDaily(uid)
-            swipesLoaded        = true
+            remainingSwipes = loadAndResetSwipesDaily(uid)
+            swipesLoaded    = true
             datingViewModel.refreshFilteredProfiles()
         }
     }
 
-// 1) everyone you haven’t yet swiped/matched on
-    val base = filteredProfiles.filter { it.userId !in excludedUserIds }
+    // ─────────────────────────────────────────────────────────────────
+    //   BUILD DISPLAY LIST  (must come *before* we use it)
+    // ─────────────────────────────────────────────────────────────────
+    val base = filteredProfiles
+        .filter { it.userId !in excludedUserIds }
+        .also { it.dump("BASE") }
 
-// 2) your complimenters (in your preferred order)
-    val complimentersList = complimentsReceived
-        .keys
+    val complimentersList = complimentsRecv.keys
         .mapNotNull { id -> base.find { it.userId == id } }
+        .also { it.dump("COMP") }
 
-// 3) then boosted users (skip complimenters & excluded)
     val boostedList = boostedUsers
         .filter { it.userId !in complimentersList.map { p -> p.userId } }
         .filter { it.userId !in excludedUserIds }
+        .also { it.dump("BOOST") }
 
-// 4) then premium users (skip complimenters & boosted & excluded)
     val premiumList = base
         .filter { it.userId !in complimentersList.map { p -> p.userId } }
         .filter { it.userId !in boostedList.map    { p -> p.userId } }
         .filter { it.isPremium }
+        .also { it.dump("PREM") }
 
-// 5) the rest
     val restList = base
         .filter { it.userId !in complimentersList.map { p -> p.userId } }
         .filter { it.userId !in boostedList.map    { p -> p.userId } }
         .filter { !it.isPremium }
+        .also { it.dump("REST") }
 
-// merge in the exact order you specified
     val displayedProfiles = complimentersList + boostedList + premiumList + restList
-    val currentSwipeProfile = displayedProfiles.firstOrNull()
+    Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
+
+    // ── Hoisted deck pointer ─────────────────────────────────────────
+    var currentIndex      by rememberSaveable { mutableStateOf(0) }
+    val currentSwipeProfile = displayedProfiles.getOrNull(currentIndex)
+
+    /* bottom-sheet for filters */
+    val sheetState = rememberModalBottomSheetState(
+        initialValue     = ModalBottomSheetValue.Hidden,
+        skipHalfExpanded = true
+    )
+
+    /* cannot go on until *my* profile has loaded */
+    if (myProfile == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     ModalBottomSheetLayout(
-        sheetState   = bottomSheetState,
+        sheetState   = sheetState,
         sheetContent = {
             FiltersOverlay(
                 ageRange           = filters.ageStart..filters.ageEnd,
@@ -245,35 +271,53 @@ fun DatingScreen(
                 onCollegeChange    = { datingViewModel.updateDatingFilters(filters.copy(college = it)) },
                 selectedPostGrad   = filters.postGrad,
                 onPostGradChange   = { datingViewModel.updateDatingFilters(filters.copy(postGrad = it)) },
-                onSaveFilters      = {
+                onSaveFilters = {
                     coroutineScope.launch {
-                        bottomSheetState.hide()
+                        sheetState.hide()
                         datingViewModel.refreshFilteredProfiles()
                     }
                 },
-                onCancel = { coroutineScope.launch { bottomSheetState.hide() } }
+                onCancel = { coroutineScope.launch { sheetState.hide() } },
+                isPlus = myProfile!!.isPlus,
+                isPremium = myProfile!!.isPremium,
+                minRating = filters.minRating,
+                onMinRatingChange = { datingViewModel.updateDatingFilters(filters.copy(minRating = it)) },
+                maxRanking = filters.maxRanking,
+                onMaxRankingChange = { datingViewModel.updateDatingFilters(filters.copy(maxRanking = it)) }
             )
         }
     ) {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        Column(Modifier.fillMaxSize().background(Color.Black)) {
+
+            // ── TOOLBAR ───────────────────────────────────────────────
             Row(
-                modifier           = Modifier.fillMaxWidth().padding(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = { coroutineScope.launch { bottomSheetState.show() } },   modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filters), tint = Color(0xFFFF6F00), modifier = Modifier.size(36.dp))
+                IconButton(
+                    onClick = { coroutineScope.launch { sheetState.show() } },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = null,
+                        tint = Color(0xFFFF6F00),
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
 
-                // 2) Your current user’s rating
-                currentSwipeProfile?.let { profile ->
+                /* ⭐  live rating of the *current* card */
+                currentSwipeProfile?.let { prof ->
                     RatingBar(
-                        rating      = profile.averageRating,
-                        ratingCount = profile.numberOfRatings  // or whatever field holds total ratings
+                        rating      = prof.averageRating,
+                        ratingCount = prof.numberOfRatings
                     )
                 }
 
                 Row {
-                    // ── compliment button ────────────────────────────────
+                    /* compliment button (unchanged) */
                     IconWithQuota(
                         quota   = complimentsLeft,
                         icon    = Icons.Default.AttachEmail,
@@ -285,71 +329,89 @@ fun DatingScreen(
 
                     Spacer(Modifier.width(16.dp))
 
-// ── boost button  (+ keep your existing canBoost logic) ─────
                     IconWithQuota(
-                        quota   = myProfile?.availableBoosts ?: 0,
+                        quota   = myProfile!!.availableBoosts,
                         icon    = Icons.Default.FlashOn,
                         tint    = if (canBoost) Color.White else Color.Gray,
                         enabled = canBoost,
                         onClick = {
-                            val myUid = FirebaseAuth.getInstance().uid ?: return@IconWithQuota
-                            datingViewModel.boostUser(myUid) {
-                                profileViewModel.decrementBoostsLocal()          // 👈 instant UI drop
-                                showBoostedOverlay = true
+                        val myUid = FirebaseAuth.getInstance().uid ?: return@IconWithQuota
+                        datingViewModel.boostUser(myUid) {
+                            profileViewModel.decrementBoostsLocal()
+                            showBoostFlash = true
                                 profileViewModel.fetchCurrentUserProfile()       // keep server-truth
                             }
                         }
                     )
                 }
-                // ─── yellow flash that fades out ──────────────────────────────────────────
+
+                /* yellow flash overlay on successful boost */
                 AnimatedVisibility(
-                    visible = showBoostedOverlay,
+                    visible = showBoostFlash,
                     enter   = fadeIn(animationSpec = tween(250)),
                     exit    = fadeOut(animationSpec = tween(600))
                 ) {
                     Box(
-                        Modifier
-                            .fillMaxSize()
-                            .background(Color(0x88FFFF00)),
+                        Modifier.fillMaxSize().background(Color(0x88FFFF00)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.FlashOn, null,
+                        Icon(
+                            Icons.Default.FlashOn, null,
                             tint = Color(0xFFFF6F00),
-                            modifier = Modifier.size(96.dp))
+                            modifier = Modifier.size(96.dp)
+                        )
                     }
                 }
 
-                LaunchedEffect(showBoostedOverlay) {
-                    if (showBoostedOverlay) {
-                        kotlinx.coroutines.delay(2000)
-                        showBoostedOverlay = false
+                LaunchedEffect(showBoostFlash) {
+                    if (showBoostFlash) {
+                        delay(2000)
+                        showBoostFlash = false
                     }
                 }
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            // ── DECK / LOADING / EMPTY STATES ────────────────────────
+            Box(Modifier.fillMaxSize()) {
                 when {
-                    isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFFFF6F00))
+                    isLoading -> CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color(0xFFFF6F00)
+                    )
+
                     displayedProfiles.isEmpty() -> NoMoreProfilesScreen()
+
                     else -> DatingScreenContent(
-                        navController, geoFire, profileViewModel, postViewModel, displayedProfiles,
-                        onSwipeRight = { if (remainingSwipes.value > 0) remainingSwipes.value-- },
-                        onSwipeLeft  = { if (remainingSwipes.value > 0) remainingSwipes.value-- },
-                        boostedUsers
+                        navController    = navController,
+                        geoFire          = geoFire,
+                        profileViewModel = profileViewModel,
+                        postViewModel    = postViewModel,
+                        profiles         = displayedProfiles,
+                        currentIndex     = currentIndex,   // 🔹
+                        boostedUsers     = boostedUsers,
+                        onSwipeRight     = {
+                            if (remainingSwipes > 0) remainingSwipes--
+                            currentIndex++
+                        },
+                        onSwipeLeft      = {
+                            if (remainingSwipes > 0) remainingSwipes--
+                            currentIndex++
+                        }
                     )
                 }
 
-                if (swipesLoaded && remainingSwipes.value <= 0) {
+                /* daily swipe-limit overlay */
+                if (swipesLoaded && remainingSwipes <= 0) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.8f))
-                            .pointerInput(Unit) { detectTapGestures {} },
+                            .pointerInput(Unit) { /* block touches */ },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             stringResource(R.string.no_more_swipes_available),
-                            color    = Color.White,
+                            color = Color.White,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -358,48 +420,40 @@ fun DatingScreen(
             }
         }
 
-        // standard match popup
+        /* match pop-up, compliment dialog – unchanged from your code */
         matchPopUpState?.let { (you, them) ->
             MatchPopUp(
                 you.profilepicUrl.orEmpty(),
                 them.profilepicUrl.orEmpty(),
-
-                // first clear the popup state, then navigate
                 onChatClick = {
                     profileViewModel.clearMatchPopUp()
                     navController.navigate("chat/${them.userId}")
                 },
-
-                // same clear logic on “Not now”
-                onClose = {
-                    profileViewModel.clearMatchPopUp()
-                }
+                onClose = { profileViewModel.clearMatchPopUp() }
             )
         }
 
-        // ← CHANGED: route through ViewModel.sendCompliment(...)
-        if (showComplimentDialog && displayedProfiles.isNotEmpty()) {
+        if (showComplimentDlg && displayedProfiles.isNotEmpty()) {
             ComplimentDialog(
                 complimentsLeft = complimentsLeft,
                 onSend = { text, voiceUri ->
                     coroutineScope.launch {
-                        val justComplimented = displayedProfiles.first()
+                        val receiver = displayedProfiles[currentIndex]
                         datingViewModel.sendCompliment(
-                            receiverId       = justComplimented.userId,
+                            receiverId       = receiver.userId,
                             textMessage      = text,
                             voiceUri         = voiceUri,
                             profileViewModel = profileViewModel
                         )
-                        excludedUserIds = excludedUserIds + justComplimented.userId
-                        showComplimentDialog = false
+                        excludedUserIds += receiver.userId
+                        showComplimentDlg = false
                     }
                 },
-                onDismiss = { showComplimentDialog = false }
+                onDismiss = { showComplimentDlg = false }
             )
         }
     }
 }
-
 
 @Composable
 fun IconWithQuota(
@@ -490,6 +544,12 @@ fun FiltersOverlay(
     selectedPostGrad: String,
     onPostGradChange: (String) -> Unit,
     onSaveFilters: () -> Unit,
+    isPlus: Boolean,
+    isPremium: Boolean,
+    minRating: Float,
+    onMinRatingChange: (Float) -> Unit,
+    maxRanking: Int,
+    onMaxRankingChange: (Int) -> Unit,
     onCancel: () -> Unit
 ) {
     Column(
@@ -594,23 +654,83 @@ fun FiltersOverlay(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Max Distance Slider
+// Max Distance Slider  (0-100 km + Worldwide)
                 Text(
-                    text = stringResource(R.string.max_distance, maxDistance),
+                    text = if (maxDistance == DatingViewModel.WORLDWIDE_DISTANCE)
+                        stringResource(R.string.worldwide)          // “Worldwide 🌍”
+                    else
+                        stringResource(R.string.max_distance, maxDistance),
                     color = Color.White
                 )
                 Slider(
-                    value = maxDistance.toFloat(),
-                    onValueChange = { onDistanceChange(it.roundToInt()) },
-                    valueRange = 0f..100f,
-                    steps = 10,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFFF6000),
-                        activeTrackColor = Color(0xFFFF6000),
-                        inactiveTrackColor = Color.Gray
+                    value           = maxDistance.toFloat(),
+                    onValueChange   = { onDistanceChange(it.roundToInt()) },
+                    valueRange      = 0f..DatingViewModel.WORLDWIDE_DISTANCE.toFloat(),
+                    // 0-100 give us 101 stops, plus one extra ⇒ 102-1 = 101 visible stops
+                    steps           = DatingViewModel.WORLDWIDE_DISTANCE - 1,
+                    colors          = SliderDefaults.colors(
+                        thumbColor        = Color(0xFFFF6000),
+                        activeTrackColor  = Color(0xFFFF6000),
+                        inactiveTrackColor= Color.Gray
                     )
                 )
             }
+
+            /* ────────────────  POWER FILTERS  ────────────────────────── */
+            /* ⭐  Minimum Rating  (Plus & Premium) */
+            if (!isPlus || !isPremium) {
+                item {
+                    Spacer(Modifier.height(24.dp))
+                    FilterSectionTitle(stringResource(R.string.rating_label))
+
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.min_rating, minRating),
+                        color = Color.White
+                    )
+                    Slider(
+                        value       = minRating,
+                        onValueChange = onMinRatingChange,
+                        valueRange  = 0f..5f,
+                        steps       = 4,          // 0 → 5 in 1-star steps
+                        colors      = SliderDefaults.colors(
+                            thumbColor        = Color(0xFFFF6000),
+                            activeTrackColor  = Color(0xFFFF6000),
+                            inactiveTrackColor= Color.Gray
+                        )
+                    )
+                }
+            }
+
+            /* 🏆  Top-N Ranking  (Premium only) */
+            if (!isPremium) {
+                item {
+                    Spacer(Modifier.height(24.dp))
+                    FilterSectionTitle(stringResource(R.string.ranking_label))
+
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(
+                            R.string.top_n_ranking,
+                            if (maxRanking == 0) "∞" else maxRanking
+                        ),
+                        color = Color.White
+                    )
+                    Slider(
+                        value        = (if (maxRanking == 0) 10_0 else maxRanking).toFloat(),
+                        onValueChange = { onMaxRankingChange(it.roundToInt()) },
+                        valueRange   = 1f..10_0f,     // adjust upper bound if needed
+                        steps        = 9,
+                        colors       = SliderDefaults.colors(
+                            thumbColor        = Color(0xFFFF6000),
+                            activeTrackColor  = Color(0xFFFF6000),
+                            inactiveTrackColor= Color.Gray
+                        )
+                    )
+                }
+            }
+            /* ─────────────────────────────────────────────────────────── */
+
 
             // Section: Education
             item {
@@ -1067,74 +1187,51 @@ fun DatingScreenContent(
     profileViewModel: ProfileViewModel,
     postViewModel: PostViewModel,
     profiles: List<Profile>,
+    currentIndex: Int,                 // 🔹  index is now owned by parent
+    boostedUsers: List<Profile>,
     onSwipeRight: () -> Unit,
-    onSwipeLeft: () -> Unit,
-    boostedUsers: List<Profile>          // ← already added in your latest code
+    onSwipeLeft: () -> Unit
 ) {
-    var currentProfileIndex by remember { mutableStateOf(0) }
-
-    LaunchedEffect(Unit) { postViewModel.fetchPosts() }
-
-    if (profiles.isEmpty() || currentProfileIndex >= profiles.size) {
+    if (profiles.isEmpty() || currentIndex >= profiles.size) {
         NoMoreProfilesScreen()
         return
     }
 
-    val currentUserId        = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val currentUserProfile   by profileViewModel.currentUserProfile.collectAsState()
-    val currentProfile       = profiles[currentProfileIndex]
-    val isBoostedProfile     = boostedUsers.any { it.userId == currentProfile.userId }
+    val currentUserId      = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
+    val currentProfile     = profiles[currentIndex]
+    val isBoostedProfile   = boostedUsers.any { it.userId == currentProfile.userId }
 
-    var userDistance   by remember { mutableStateOf<Float?>(null) }
-    var aiMatchResult  by remember { mutableStateOf<AiMatchCheckResult?>(null) }
-    val context        = LocalContext.current
+    /* distance + AI check – unchanged */
+    var userDistance  by remember { mutableStateOf<Float?>(null) }
+    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
-    /* --- distance + optional AI check (unchanged) --- */
     LaunchedEffect(currentProfile.userId) {
         userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-        val ref  = FirebaseRefs.db
+        val ref = FirebaseRefs.db
             .getReference("aiMatchCheck/$currentUserId/${currentProfile.userId}")
         val snap = ref.get().await()
-        val existing = snap.getValue(AiMatchCheckResult::class.java)
-        if (existing != null) {
-            aiMatchResult = existing
-        } else {
-            runAiMatchCheck(
-                context        = context,
-                coroutineScope = this,
-                currentUserId  = currentUserId,
-                currentUserProfile = currentUserProfile!!,
-                otherProfile   = currentProfile
-            ) { newResult -> aiMatchResult = newResult }
-        }
+        aiMatchResult = snap.getValue(AiMatchCheckResult::class.java)
     }
 
     userDistance?.let { distance ->
-        Column {                          // ← STACK the pill and the card
-            if (isBoostedProfile) {
-                BoostedPill()
+        DatingProfileCard(
+            profile        = currentProfile,
+            isBoosted      = isBoostedProfile,
+            aiMatchResult  = aiMatchResult,
+            userDistance   = distance,
+            navController  = navController,
+            postViewModel  = postViewModel,
+            currentProfile = currentUserProfile,
+            onSwipeRight   = {
+                onSwipeRight()
+                handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
+            },
+            onSwipeLeft    = {
+                onSwipeLeft()
+                handleSwipeLeft(currentUserId, currentProfile.userId)
             }
-
-            DatingProfileCard(
-                profile         = currentProfile,
-                isBoosted       = isBoostedProfile,            // NEW
-                aiMatchResult   = aiMatchResult,
-                onSwipeRight    = {
-                    onSwipeRight()
-                    handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
-                    currentProfileIndex++
-                },
-                onSwipeLeft     = {
-                    onSwipeLeft()
-                    handleSwipeLeft(currentUserId, currentProfile.userId)
-                    currentProfileIndex++
-                },
-                navController   = navController,
-                userDistance    = distance,
-                postViewModel   = postViewModel,
-                currentProfile  = currentUserProfile
-            )
-        }
+        )
     }
 }
 
@@ -1578,7 +1675,10 @@ fun PhotoWithTwoOverlays(
 
         // Distance tag below the photo
         TagBox(
-            text = stringResource(R.string.max_distance, userDistance.roundToInt()),
+            text = if (userDistance.isNaN() || userDistance > 100f)
+                stringResource(R.string.worldwide)          // 🔶
+            else
+                stringResource(R.string.max_distance, userDistance.roundToInt()),
             modifier = Modifier.padding(start = 14.dp, top = 8.dp)
         )
     }
@@ -1731,7 +1831,6 @@ fun ProfileCollapsibleSectionsAll(
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
     var showSocialCauses by rememberSaveable { mutableStateOf(false) } // New state for Social Causes
     val context = LocalContext.current // ✅ declare at the top of the Composable
-    val isPaid = currentUserProfile?.isPlus == true || currentUserProfile?.isPremium == true
 
     Column(
         modifier = Modifier

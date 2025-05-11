@@ -771,6 +771,15 @@
     <string name="notes">टिप्पणियाँ</string>
     <string name="upgrade_to_plus">प्लस में अपग्रेड करें</string>
 
+    <!-- values-hi/strings.xml  (Hindi) -->
+    <string name="worldwide">पूरी दुनिया 🌍</string>
+
+    <string name="rating_label">रेटिंग</string>
+    <string name="min_rating">न्यूनतम ⭐ %.1f</string>
+
+    <string name="ranking_label">रैंकिंग</string>
+    <string name="top_n_ranking">शीर्ष %s प्रोफ़ाइल</string>
+
     <!-- DatingScreen -->
     <string name="no_more_swipes_available">कोई और स्वाइप उपलब्ध नहीं है</string>
 

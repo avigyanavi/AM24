@@ -12,6 +12,8 @@ import com.am24.am24.calculateDistance
 import com.am24.am24.handleSwipeRight
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
@@ -37,6 +39,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     companion object {
         private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
         internal const val COMPLIMENT_DAILY_QUOTA = 10
+        /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
+        const val WORLDWIDE_DISTANCE = 101
     }
 
     private val TAG = "DatingViewModel"
@@ -76,6 +80,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         loadFilters()
+
+        startRealtimeProfilesListener()      // ← ADD THIS LINE ✅
 
         FirebaseAuth.getInstance().currentUser?.uid?.let { me ->
             // 1) first make sure we fetch today’s compliment quota ----------------
@@ -296,6 +302,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private suspend fun applyDatingFilters(profiles: List<Profile>, filters: DatingFilterSettings): List<Profile> = coroutineScope {
+        Log.d(TAG, "⚙️ FILTER DUMP  ->  $filters")   // ← add
+
         var result = profiles
 
         // Apply localities filter
@@ -335,61 +343,108 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
         // Apply age range filter
         result = result.filter { profile ->
-            val age = profile.dob?.let { calculateAge(it) }
-            age != null && age in filters.ageStart..filters.ageEnd
+// keep if age unknown  OR  within range
+            val age = profile.dob.takeIf { it.isNotBlank() }?.let { calculateAge(it) }
+            if (age == null || age in filters.ageStart..filters.ageEnd)
+                true  else false
         }
 
-        // Apply rating filter
-        if (filters.rating.isNotBlank()) {
-            val ratingRange = when (filters.rating) {
-                "0-1.9" -> 0.0..1.9
-                "2-3.9" -> 2.0..3.9
-                "4-5" -> 4.0..5.0
-                else -> 0.0..5.0
-            }
-            result = result.filter { profile ->
-                profile.averageRating in ratingRange
-            }
+            // ── NEW: Minimum ⭐ Rating  (Plus & Premium)
+        if (filters.minRating > 0f) {
+            result = result.filter { it.averageRating >= filters.minRating }
         }
 
+            // ── NEW: Top-N 🏆 Ranking  (Premium only)
+        if (filters.maxRanking > 0) {
+            result = result.filter { it.am24Ranking == 0 || it.am24Ranking <= filters.maxRanking }
+        }
         // Apply gender filter
         if (filters.gender.isNotBlank()) {
-            val genders = filters.gender.split(",").map { it.trim() }
+            val genders = filters.gender.split(",")   // ",Female,Male" → ["", "Female", "Male"]
             result = result.filter { profile ->
                 profile.gender?.let { genders.contains(it) } == true
             }
         }
 
         // Apply distance filter
-        if (filters.distance < 100) {
+        if (filters.distance in 0 until WORLDWIDE_DISTANCE) {   // ✅ BEFORE it was 0..100
             result = filterByDistance(result, filters.distance)
         }
 
         return@coroutineScope result
     }
 
-    private suspend fun filterByDistance(profiles: List<Profile>, maxDistance: Int): List<Profile> = coroutineScope {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@coroutineScope profiles
+    private suspend fun filterByDistance(
+        profiles: List<Profile>,
+        maxDistance: Int
+    ): List<Profile> = coroutineScope {
+
+        val me = FirebaseAuth.getInstance().uid ?: return@coroutineScope profiles
+        // 101 km or more ⇒ no distance filter at all
+        if (maxDistance >= WORLDWIDE_DISTANCE) return@coroutineScope profiles
+
         val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
+        val kept    = mutableListOf<Profile>()
 
-        val filteredProfiles = mutableListOf<Profile>()
-
-        profiles.forEach { profile ->
+        profiles.forEach { other ->
             launch {
-                val distance = calculateDistance(currentUserId, profile.userId, geoFire)
-                if (distance != null && distance <= maxDistance) {
-                    synchronized(filteredProfiles) {
-                        filteredProfiles.add(profile)
-                    }
+                val d = calculateDistance(me, other.userId, geoFire)
+                /* keep if  ➜ distance unknown  OR  distance ≤ slider value */
+                if (d == null || d <= maxDistance) {
+                    synchronized(kept) { kept.add(other) }
                 }
             }
         }
-        return@coroutineScope filteredProfiles
+        kept
     }
-
 
     override fun onCleared() {
         super.onCleared()
         profilesListener?.let { usersRef.removeEventListener(it) }
+    }
+
+    private fun startRealtimeProfilesListener() {
+
+        // don’t register twice
+        if (profilesListener != null) return
+
+        profilesListener = usersRef.addValueEventListener(object : ValueEventListener {
+
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val me = FirebaseAuth.getInstance().uid
+                Log.d(TAG, "users listener → rows ${snapshot.childrenCount}")
+
+                val parsed   = mutableListOf<Profile>()
+                var failures = 0
+
+                // ── walk every child and try to deserialise it ──────────────
+                snapshot.children.forEach { child ->
+                    val key = child.key ?: "<no-key>"
+                    val p   = try {
+                        child.getValue(Profile::class.java)
+                    } catch (e: Exception) {    // catches class-cast errors too
+                        Log.e(TAG, "❌ exception on row $key : ${e.message}")
+                        null
+                    }
+
+                    if (p == null) {
+                        failures++
+                        Log.w(TAG, "⚠️ could NOT parse row $key")
+                        Log.w(TAG, "    raw JSON = ${child.value}")
+                    } else if (p.userId != me) {
+                        parsed += p
+                    }
+                }
+
+                Log.d(TAG, "parsed ${parsed.size} / ${snapshot.childrenCount} profiles (failures=$failures)")
+
+                _allProfiles.value = parsed
+                me?.let { updateBoostedUsers(it) }   // keep boost list fresh
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "users listener error: ${error.message}")
+            }
+        })
     }
 }
