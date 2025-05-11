@@ -35,6 +35,7 @@ import com.am24.am24.ProfileViewModel
 import com.am24.am24.compressImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 import java.io.IOException
@@ -201,12 +202,11 @@ fun EditPicAndVoiceBioScreen(
         profileViewModel.saveProfileUpdated(
             updatedProfile = updatedProfile,
             onSuccess = {
-                // Navigate back
-                navController.navigateUp()
+                scope.launch(Dispatchers.Main) {
+                    navController.navigateUp()
+                }
             },
-            onFailure = { e ->
-                Log.e("EditPic", "Failed to update: $e")
-            }
+            onFailure = { e -> Log.e("EditPic", "Failed to update: $e") }
         )
     }
 
