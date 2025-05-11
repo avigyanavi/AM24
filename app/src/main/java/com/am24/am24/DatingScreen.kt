@@ -168,7 +168,6 @@ fun DatingScreen(
     val boostedUsers      by datingViewModel.boostedUsers.collectAsState()
     val complimentsLeft   by datingViewModel.complimentsLeft.collectAsState()
     val complimentsRecv   by datingViewModel.complimentsReceived.collectAsState()
-    val complimenters = complimentsRecv.keys.toList()
     // ── Misc local state ─────────────────────────────────────────────
     var excludedUserIds   by remember { mutableStateOf(emptySet<String>()) }
     var remainingSwipes   by remember { mutableStateOf(0) }

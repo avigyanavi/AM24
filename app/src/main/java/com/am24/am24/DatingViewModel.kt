@@ -27,6 +27,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import java.util.UUID
+import com.firebase.geofire.GeoFireUtils          // 🔥 NEW
+import com.firebase.geofire.GeoLocation          // 🔥 NEW
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.database.GenericTypeIndicator
 
 // ─── NEW: data class for holding incoming compliment ───
 data class ComplimentData(
@@ -41,6 +45,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         internal const val COMPLIMENT_DAILY_QUOTA = 10
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
         const val WORLDWIDE_DISTANCE = 101
+        private val RADIUS_STEPS_KM              = listOf(20.0, 50.0, 70.0, 100.0) // 🔥 NEW
+        private const val DESIRED_MIN_ROWS       = 50
     }
 
     private val TAG = "DatingViewModel"
@@ -78,18 +84,21 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _userDistanceMap   = MutableStateFlow<Map<String, Float>>(emptyMap())
     val userDistanceMap: StateFlow<Map<String, Float>> get() = _userDistanceMap
 
+    // ── init() is unchanged except we no longer call startRealtimeProfilesListener() ──
     init {
         loadFilters()
 
-        startRealtimeProfilesListener()      // ← ADD THIS LINE ✅
+        // 🔥 CHANGED ───────────────
+        // We replace the huge /users listener with a single initial load via location.
+        // Real-time changes are handled by filtering *again* whenever the user changes
+        // their slider or when boost / compliment updates arrive.
+        refreshFilteredProfiles()
+        // ─────────────────────────
 
         FirebaseAuth.getInstance().currentUser?.uid?.let { me ->
-            // 1) first make sure we fetch today’s compliment quota ----------------
             viewModelScope.launch {
                 _complimentsLeft.value = loadAndResetComplimentsDaily(me)
             }
-
-            // the two lines you already had
             updateBoostedUsers(me)
             loadCompliments(me)
         }
@@ -221,20 +230,92 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
+    private suspend fun fetchNearbyProfiles(
+        me: String,
+        maxDistanceKm: Int
+    ): List<Profile> = coroutineScope {
+
+        // 1️⃣ get *my* lat/lng from RTDB --------------------------------------
+        val myLocSnap = database.getReference("geoFireLocations/$me/l").get().await()
+        val latLng = myLocSnap.getValue(object : GenericTypeIndicator<List<Double>>() {})
+        if (latLng == null || latLng.size < 2) {
+            Log.w(TAG, "⚠️  user has no lat/lng – falling back to whole /users tree")
+            return@coroutineScope usersRef.get().await().children
+                .mapNotNull { it.getValue(Profile::class.java) }
+                .filter { it.userId != me }
+        }
+        val myLocation = GeoLocation(latLng[0], latLng[1])
+
+        // 2️⃣ progressive radius search until we have ~DESIRED_MIN_ROWS -------
+        val steps = if (maxDistanceKm >= WORLDWIDE_DISTANCE)
+            listOf(Double.MAX_VALUE)        // "world-wide"
+        else
+            RADIUS_STEPS_KM.filter { it <= maxDistanceKm.toDouble() }
+
+        val collectedUids = linkedSetOf<String>()
+
+        outer@ for (radius in steps) {
+            val bounds = GeoFireUtils.getGeoHashQueryBounds(myLocation, radius * 1000)
+            val uidTasks = bounds.map { b ->
+                database.getReference("geoFireLocations")
+                    .orderByChild("g")
+                    .startAt(b.startHash)
+                    .endAt(b.endHash)
+                    .get()
+            }
+
+            // run all bounds queries in parallel and wait
+            val snapshots = uidTasks.map { it.await() }
+            for (snap in snapshots) {
+                for (child in snap.children) {
+                    val uid = child.key ?: continue
+                    val hash = child.child("g").getValue(String::class.java) ?: continue
+                    val locArr = child.child("l")
+                        .getValue(object : GenericTypeIndicator<List<Double>>() {}) ?: continue
+
+                    val candidate = GeoLocation(locArr[0], locArr[1])
+                    val dist = GeoFireUtils.getDistanceBetween(myLocation, candidate) / 1000.0
+                    if (dist <= radius) collectedUids += uid
+                }
+            }
+
+            if (collectedUids.size >= DESIRED_MIN_ROWS || radius == steps.last())
+                break@outer
+        }
+
+        // 3️⃣ batch-download the actual profile docs --------------------------
+        if (collectedUids.isEmpty()) return@coroutineScope emptyList()
+
+        val profileTasks = collectedUids.map { uid ->
+            usersRef.child(uid).get()     // one Task<DataSnapshot> per UID
+        }
+
+        val snaps = profileTasks.map { it.await() }
+
+        return@coroutineScope snaps.mapNotNull { snap ->
+            snap.getValue(Profile::class.java)
+        }.filter { it.userId != me }
+    }
+
+        /**
      * Refresh profiles manually
      */
     fun refreshFilteredProfiles() {
         viewModelScope.launch {
             _isLoading.value = true
             val me = FirebaseAuth.getInstance().currentUser?.uid
+
             try {
-                val snapshot = usersRef.get().await()
-                val profiles = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
-                _allProfiles.value = profiles.filter { it.userId != me }
+                val maxDistance = _datingFilters.value.distance
+                val profiles = if (me != null)
+                    fetchNearbyProfiles(me, maxDistance)      // 🔥 NEW
+                else
+                    emptyList()
+
+                _allProfiles.value = profiles
                 me?.let {
                     updateBoostedUsers(it)
-                    loadCompliments(it) // ← NEW: also re-load when refreshing
+                    loadCompliments(it)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error refreshing profiles: ${e.message}")
@@ -243,7 +324,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
-
     /** call this when the user presses “Boost” */
     fun boostUser(
         targetUserId: String,
@@ -448,3 +528,4 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         })
     }
 }
+
