@@ -6,7 +6,6 @@
 package com.am24.am24
 
 import DatingViewModel
-import DatingViewModel.Companion.WORLDWIDE_DISTANCE
 import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
@@ -27,8 +26,6 @@ import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.EmojiEmotions  // or whichever icon you prefer for “Compliment”
@@ -36,7 +33,6 @@ import androidx.compose.material.icons.filled.FlashOn         // for “Boost”
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
@@ -70,8 +66,6 @@ import com.firebase.geofire.GeoLocation
 import com.firebase.geofire.LocationCallback
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -84,21 +78,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.filled.AttachEmail
-import androidx.compose.material.icons.filled.OnlinePrediction
-import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.net.toUri
 import java.util.Calendar
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.*
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
 import java.io.File
 
 /* DatingScreen.kt  – add near the top, after imports */
@@ -142,10 +129,10 @@ fun BoostedPill(modifier: Modifier = Modifier) {
 fun DatingScreen(
     navController: NavController,
     geoFire: GeoFire,
+    datingViewModel: DatingViewModel = viewModel(),
     modifier: Modifier = Modifier,
     initialQuery: String = ""
 ) {
-    val datingViewModel: DatingViewModel   = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
     val postViewModel: PostViewModel       = viewModel()
     val coroutineScope                     = rememberCoroutineScope()

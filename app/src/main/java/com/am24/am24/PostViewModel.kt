@@ -127,8 +127,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             Log.d("PostViewModel", "Starting fetchPosts")
             _isLoading.value = true
             _profilePosts.value = emptyList() // Reset to avoid stale data
-            val database = FirebaseRefs.db
-            val postsRef = database.getReference("posts")
+            val currentUserId = _currentUserId.value ?: return@launch
+            // Fetch blocked users
+            val blockedUsers = fetchBlockedUsers(currentUserId)
 
             postsRef.addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -136,10 +137,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     for (postSnapshot in snapshot.children) {
                         try {
                             val post = postSnapshot.getValue(Post::class.java)
-                            if (post != null) {
+                            if (post != null && !blockedUsers.contains(post.userId)) { // Filter out blocked users
                                 postsList.add(post)
                                 Log.d("PostViewModel", "Added post: $post")
-                            } else {
+                            } else if (post == null) {
                                 Log.w("PostViewModel", "Failed to deserialize post at ${postSnapshot.key}: ${postSnapshot.value}")
                             }
                         } catch (e: Exception) {
@@ -172,18 +173,22 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Sets up a real-time listener to observe changes in "posts" node.
      */
-
     private fun observePosts() {
         if (postsListener == null) { // Avoid re-adding listener if already active
             postsListener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     viewModelScope.launch(Dispatchers.IO) {
+                        val currentUserId = _currentUserId.value ?: return@launch
+                        // Fetch blocked users
+                        val blockedUsers = fetchBlockedUsers(currentUserId)
+
                         val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                            .filter { post -> !blockedUsers.contains(post.userId) } // Filter out posts from blocked users
                         val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                         val userIds = sortedPosts.map { it.userId }.toSet()
                         val profiles = fetchUserProfiles(userIds)
 
-                        Log.d(TAG, "Fetched ${sortedPosts.size} posts and ${profiles.size} profiles")
+                        Log.d(TAG, "Fetched ${sortedPosts.size} posts and ${profiles.size} profiles after filtering blocked users")
 
                         _userProfiles.value = profiles
                         _posts.value = sortedPosts
@@ -203,13 +208,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         // Trigger a one-time fetch for immediate data availability
         viewModelScope.launch {
             try {
+                val currentUserId = _currentUserId.value ?: return@launch
+                // Fetch blocked users
+                val blockedUsers = fetchBlockedUsers(currentUserId)
+
                 val snapshot = postsRef.get().await()
                 val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                    .filter { post -> !blockedUsers.contains(post.userId) } // Filter out posts from blocked users
                 val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                 val userIds = sortedPosts.map { it.userId }.toSet()
                 val profiles = fetchUserProfiles(userIds)
 
-                Log.d(TAG, "One-time fetch: ${sortedPosts.size} posts and ${profiles.size} profiles")
+                Log.d(TAG, "One-time fetch: ${sortedPosts.size} posts and ${profiles.size} profiles after filtering blocked users")
 
                 _userProfiles.value = profiles
                 _posts.value = sortedPosts
@@ -218,7 +228,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-
 
     // Pause observing posts
     fun pauseFeed() {
@@ -460,6 +469,19 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             Log.e(TAG, "Error uploading media: ${e.message}", e)
             onFailure(e.message ?: "Media upload failed.")
             null
+        }
+    }
+
+    /**
+     * Fetches the list of user IDs blocked by the given user.
+     */
+    private suspend fun fetchBlockedUsers(userId: String): List<String> {
+        return try {
+            val snapshot = FirebaseRefs.db.getReference("blocks/$userId").get().await()
+            snapshot.children.mapNotNull { it.key }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching blocked users: ${e.message}", e)
+            emptyList()
         }
     }
 

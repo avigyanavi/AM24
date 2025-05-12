@@ -1,6 +1,5 @@
 package com.am24.am24
 
-
 import DatingViewModel
 import android.Manifest
 import android.app.Activity
@@ -128,16 +127,14 @@ fun ChatScreenContent(
 ) {
     var previewRefresh by remember { mutableStateOf(0) }
     var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
-    // keep track of which Uri we’re editing
     var pendingEditUri by remember { mutableStateOf<Uri?>(null) }
     var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
     val datingViewModel: DatingViewModel = viewModel()
     var isSendingMessage by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    // — pull in any Super-Swipe compliments this user sent you —
     val compliments by datingViewModel.complimentsReceived.collectAsState()
-    val compliment  = compliments[otherUserId]
+    val compliment = compliments[otherUserId]
     var fullScreenTarget by remember { mutableStateOf<Message?>(null) }
     val database = FirebaseRefs.db
     val usersRef = database.getReference("users")
@@ -147,11 +144,8 @@ fun ChatScreenContent(
     val ratingsRef = database.getReference("ratings")
     val reportsRef = database.getReference("reports")
     val storageRef = FirebaseRefs.storage.reference
-
-    // Typing status for real users
     var isOtherUserTyping by remember { mutableStateOf(false) }
     val typingRef = database.getReference("typing/$chatId/$otherUserId")
-
     var averageRating by remember { mutableStateOf(0.0) }
     var yourRating by rememberSaveable(otherUserId) { mutableStateOf(-1.0) }
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
@@ -162,7 +156,7 @@ fun ChatScreenContent(
     var moreOptionsMenuExpanded by remember { mutableStateOf(false) }
     var showClearChatMenu by remember { mutableStateOf(false) }
     var showDeleteTimerMenu by remember { mutableStateOf(false) }
-    // Default delete timer: 1 month (30 days)
+    var showUnmatchDialog by remember { mutableStateOf(false) } // Added for unmatch confirmation
     val ONE_MONTH_MS = 30L * 24 * 60 * 60 * 1000
     var deleteTimer by remember { mutableStateOf<Long?>(ONE_MONTH_MS) }
     var suggestions by remember { mutableStateOf<ChatSuggestions?>(null) }
@@ -174,9 +168,7 @@ fun ChatScreenContent(
     var isLoadingMessages by remember { mutableStateOf(true) }
     var isLoadingProfiles by remember { mutableStateOf(true) }
     var isUploadingMedia by remember { mutableStateOf(false) }
-
     val scope = rememberCoroutineScope()
-
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
     var recordFile: File? by remember { mutableStateOf(null) }
@@ -186,25 +178,18 @@ fun ChatScreenContent(
     var isVoicePlaying by remember { mutableStateOf(false) }
     var voiceProgress by remember { mutableStateOf(0f) }
     var voicePlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-
-     var pickLangMenu by remember { mutableStateOf(false) }
-     val ctx = LocalContext.current
-     var chatLang by rememberSaveable {           // initialise from saved value
-                mutableStateOf(LocaleUtils.getSavedLang(ctx))
-         }
-
-    // Media-related state: used for both photo and video
+    var pickLangMenu by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
+    var chatLang by rememberSaveable { mutableStateOf(LocaleUtils.getSavedLang(ctx)) }
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedMediaType by remember { mutableStateOf<String?>(null) } // "photo" or "video"
+    var selectedMediaType by remember { mutableStateOf<String?>(null) }
+    var showReportDialog by remember { mutableStateOf(false) } // Added for report dialog
 
-// then define your editLauncher like this:
     val editLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK && pendingEditUri != null) {
-            // clear out the pending URI
             pendingEditUri = null
-            // bump the key so MediaPreviewBox re-loads the image
             previewRefresh++
         }
     }
@@ -217,23 +202,19 @@ fun ChatScreenContent(
         }
     }
 
-
-    // Listen for typing status (real users only)
-        DisposableEffect(typingRef) {
-            val listener = object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    isOtherUserTyping = snapshot.getValue(Boolean::class.java) == true
-                }
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("ChatScreen", "Error reading typing status: ${error.message}")
-                }
+    DisposableEffect(typingRef) {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                isOtherUserTyping = snapshot.getValue(Boolean::class.java) == true
             }
-            typingRef.addValueEventListener(listener)
-            onDispose { typingRef.removeEventListener(listener) }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ChatScreen", "Error reading typing status: ${error.message}")
+            }
         }
+        typingRef.addValueEventListener(listener)
+        onDispose { typingRef.removeEventListener(listener) }
+    }
 
-
-    // ─── replace your current takePhotoLauncher with this ───
     val takePhotoLauncher: ManagedActivityResultLauncher<Uri, Boolean> =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
             if (success && pendingPhotoUri != null) {
@@ -247,14 +228,13 @@ fun ChatScreenContent(
     val takeVideoLauncher: ManagedActivityResultLauncher<Uri, Boolean> =
         rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
             if (success && pendingVideoUri != null) {
-                selectedMediaUri  = pendingVideoUri
+                selectedMediaUri = pendingVideoUri
                 selectedMediaType = "video"
             }
             pendingVideoUri = null
             isUploadingMedia = false
         }
 
-    // Permission launchers
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -274,6 +254,7 @@ fun ChatScreenContent(
             Toast.makeText(context, "Microphone permission is required.", Toast.LENGTH_SHORT).show()
         }
     }
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -290,18 +271,15 @@ fun ChatScreenContent(
         }
     }
 
-    /* ─── microphone start / stop toggle ─── */
     val onToggleRecord: () -> Unit = {
-        if (isRecording) {            // stop
+        if (isRecording) {
             recorder?.stop()
             recorder?.release()
             recorder = null
             isRecording = false
             recordedVoiceUri = Uri.fromFile(recordFile)
-        } else {                      // start
-            if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED
-            ) {
+        } else {
+            if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                 isRecording = true
                 messageText = ""
                 recordedVoiceUri = null
@@ -319,8 +297,7 @@ fun ChatScreenContent(
             }
         }
     }
-    // Launchers for picking media from gallery
-// Media pickers
+
     val pickPhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -341,7 +318,6 @@ fun ChatScreenContent(
         }
     }
 
-    // Updated sendHandler with explicit logging
     val sendHandler: () -> Unit = mySend@{
         if (isSendingMessage || isUploadingMedia) {
             Log.d("ChatScreen", "Send blocked: isSendingMessage=$isSendingMessage, isUploadingMedia=$isUploadingMedia")
@@ -368,9 +344,9 @@ fun ChatScreenContent(
                         "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
                     )
                 } finally {
-                    selectedMediaUri  = null
+                    selectedMediaUri = null
                     selectedMediaType = null
-                    isUploadingMedia  = false
+                    isUploadingMedia = false
                     done()
                 }
             }
@@ -391,18 +367,18 @@ fun ChatScreenContent(
         }
 
         if (messageText.isNotBlank()) {
-                val newId = messagesRef.push().key ?: return@mySend
-                val msg = Message(
-                    id = newId,
-                    senderId = currentUserId,
-                    receiverId = otherUserId,
-                    text = messageText,
-                    timestamp = System.currentTimeMillis()
-                )
-                messagesRef.child(newId).setValue(msg).addOnCompleteListener { done() }
-                postNotification(notificationsRef, otherUserId, currentUserId, messageText)
-                database.getReference("typing/$chatId/$currentUserId").setValue(false)
-                Log.d("ChatScreen", "Text message sent")
+            val newId = messagesRef.push().key ?: return@mySend
+            val msg = Message(
+                id = newId,
+                senderId = currentUserId,
+                receiverId = otherUserId,
+                text = messageText,
+                timestamp = System.currentTimeMillis()
+            )
+            messagesRef.child(newId).setValue(msg).addOnCompleteListener { done() }
+            postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+            database.getReference("typing/$chatId/$currentUserId").setValue(false)
+            Log.d("ChatScreen", "Text message sent")
             messageText = ""
         } else {
             done()
@@ -410,7 +386,6 @@ fun ChatScreenContent(
         }
     }
 
-    // Load profiles
     LaunchedEffect(Unit) {
         isLoadingProfiles = true
         usersRef.child(currentUserId).get().addOnSuccessListener { snapshot ->
@@ -420,22 +395,21 @@ fun ChatScreenContent(
             Toast.makeText(context, "Failed to load your profile", Toast.LENGTH_SHORT).show()
             isLoadingProfiles = false
         }
-            usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
-                val profile = snapshot.getValue(Profile::class.java)
-                if (profile != null) {
-                    otherUserProfile = profile
-                    averageRating = profile.averageRating
-                }
-                isLoadingProfiles = false
-            }.addOnFailureListener {
-                Toast.makeText(context, "Failed to load user", Toast.LENGTH_SHORT).show()
-                isLoadingProfiles = false
+        usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
+            val profile = snapshot.getValue(Profile::class.java)
+            if (profile != null) {
+                otherUserProfile = profile
+                averageRating = profile.averageRating
             }
-            fetchUserRating(ratingsRef, otherUserId) { rating -> yourRating = rating }
-            fetchAverageRating(ratingsRef, otherUserId) { avg -> averageRating = avg }
+            isLoadingProfiles = false
+        }.addOnFailureListener {
+            Toast.makeText(context, "Failed to load user", Toast.LENGTH_SHORT).show()
+            isLoadingProfiles = false
         }
+        fetchUserRating(ratingsRef, otherUserId) { rating -> yourRating = rating }
+        fetchAverageRating(ratingsRef, otherUserId) { avg -> averageRating = avg }
+    }
 
-    // Listen for messages
     DisposableEffect(messagesRef) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -461,7 +435,6 @@ fun ChatScreenContent(
         }
     }
 
-    // Delete timer logic
     LaunchedEffect(deleteTimer, messages) {
         while (true) {
             deleteTimer?.let { timer ->
@@ -494,23 +467,24 @@ fun ChatScreenContent(
             }
         }
     }
+
     @Composable
-    fun item(label:String, code:String) = DropdownMenuItem(
+    fun item(label: String, code: String) = DropdownMenuItem(
         text = { Text(label) },
         onClick = {
             chatLang = code
             pickLangMenu = false
-            /* clear cached suggestions so the next click fetches in the new language */
             suggestions = null
             placeSuggestions = null
         }
     )
+
     suspend fun fetchSuggestionsWithRetry(): ChatSuggestions? {
         var attempts = 0
         val maxAttempts = 3
         while (attempts < maxAttempts) {
             try {
-                return getChatSuggestions(messages, chatLang )    //  🆕 e.g.  "hi" / "bn" / "en)
+                return getChatSuggestions(messages, chatLang)
             } catch (e: JsonSyntaxException) {
                 attempts++
                 Log.w("ChatScreen", "JSON parse error on attempt $attempts: ${e.message}")
@@ -524,21 +498,55 @@ fun ChatScreenContent(
         return null
     }
 
+    // Unmatch handler function
+    fun unmatchUser() {
+        scope.launch {
+            try {
+                // ❶ Build a single multi-path update that wipes the match entirely
+                val updates = mapOf<String, Any?>(
+                    // remove the match rows for both users ⬇
+                    "matches/$currentUserId/$otherUserId" to null,
+                    "matches/$otherUserId/$currentUserId" to null,
+
+                    // delete the whole conversation + typing status ⬇
+                    "messages/$chatId" to null,
+                    "typing/$chatId"  to null
+                )
+
+                // ❷ Execute atomically
+                database.reference.updateChildren(updates).await()
+
+                // ❸ Clear any unread-badge notifications for this chat
+                notificationsRef.child(currentUserId)
+                    .orderByChild("senderId").equalTo(otherUserId)
+                    .get().await().children.forEach { it.ref.removeValue() }
+
+                notificationsRef.child(otherUserId)
+                    .orderByChild("senderId").equalTo(currentUserId)
+                    .get().await().children.forEach { it.ref.removeValue() }
+
+                // ❹ Local UI tidy-up
+                messages.clear()
+                navController.popBackStack()
+                Toast.makeText(context, "You have unmatched with this user.", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.e("ChatScreen", "Unmatch failed: ${e.message}")
+                Toast.makeText(context, "Failed to unmatch. Please try again.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    // 1) remember a ScrollState
                     val scrollState = rememberScrollState()
-                    // 2) whenever the name changes, kick off an infinite marquee loop
                     LaunchedEffect(otherUserProfile?.name ?: "Chat") {
-                        // brief delay so you can actually see the start
                         delay(500)
                         while (true) {
-                            // scroll to end
                             scrollState.animateScrollTo(scrollState.maxValue)
                             delay(1500)
-                            // scroll back to start
                             scrollState.animateScrollTo(0)
                             delay(1500)
                         }
@@ -546,9 +554,9 @@ fun ChatScreenContent(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
-                                otherUserProfile?.let {
-                                    navController.navigate("matchedUserProfile/$otherUserId")
-                                }
+                            otherUserProfile?.let {
+                                navController.navigate("matchedUserProfile/$otherUserId")
+                            }
                         }
                     ) {
                         if (isLoadingProfiles) {
@@ -566,45 +574,37 @@ fun ChatScreenContent(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                                otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
-                                    /* use helper that falls back to gray box */
-                                    AIOrProfileImage(
-                                        profile = otherUserProfile ?: Profile(userId = "", username = "", name = ""),
-                                        modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)
-                                    )
-                            Icon(Icons.Default.Person, "Default Avatar", tint = Color.White)
+                            otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
+                            AIOrProfileImage(
+                                profile = otherUserProfile ?: Profile(userId = "", username = "", name = ""),
+                                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)
+                            )
                         }
                         Spacer(Modifier.width(8.dp))
-                        // ← Replace your Text(...) with this Box
                         Box(
                             modifier = Modifier
-                                .weight(1f)                        // take up remaining space
+                                .weight(1f)
                                 .horizontalScroll(scrollState, true)
                         ) {
                             Text(
-                                text =
-                                    otherUserProfile?.name ?: "Chat",
+                                text = otherUserProfile?.name ?: "Chat",
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        }
+                    }
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
-/* ─── Language selector ─── */
                     IconButton(
                         onClick = { pickLangMenu = true },
-                        colors  = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (pickLangMenu) Color(0xFFFF6F00)
-                            else Color.White
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (pickLangMenu) Color(0xFFFF6F00) else Color.White
                         )
                     ) {
-                        Icon(Icons.Default.Language,
-                            contentDescription = stringResource(R.string.btn_language))
+                        Icon(Icons.Default.Language, contentDescription = stringResource(R.string.btn_language))
                     }
-
                     DropdownMenu(
                         expanded = pickLangMenu,
                         onDismissRequest = { pickLangMenu = false }
@@ -620,46 +620,46 @@ fun ChatScreenContent(
                             onClick = {
                                 pickLangMenu = false
                                 if (chatLang != code) {
-                                    chatLang = code                     // 1️⃣ suggestions etc.
-                                    LocaleUtils.setAppLocale(ctx, code) // 2️⃣ switch UI locale
-                                    suggestions        = null           // clear caches
-                                    placeSuggestions   = null
+                                    chatLang = code
+                                    LocaleUtils.setAppLocale(ctx, code)
+                                    suggestions = null
+                                    placeSuggestions = null
                                 }
                             }
                         )
                         langItem("English", "en")
-                        langItem("हिन्दी" , "hi")
-                        langItem("বাংলা" , "bn")
+                        langItem("हिन्दी", "hi")
+                        langItem("বাংলা", "bn")
                     }
-                        IconButton(
-                            onClick = {
-                                suggestionsExpanded = true
-                                if (suggestions == null || messages.size > 10) {
-                                    scope.launch {
-                                        isLoadingSuggestions = true
-                                        suggestions = fetchSuggestionsWithRetry()
-                                        isLoadingSuggestions = false
-                                    }
+                    IconButton(
+                        onClick = {
+                            suggestionsExpanded = true
+                            if (suggestions == null || messages.size > 10) {
+                                scope.launch {
+                                    isLoadingSuggestions = true
+                                    suggestions = fetchSuggestionsWithRetry()
+                                    isLoadingSuggestions = false
                                 }
                             }
-                        ) { Icon(Icons.Default.Lightbulb, stringResource(R.string.btn_suggestions), tint = Color(0xFFFFA500)) }
-                        IconButton(
-                            onClick = {
-                                placeSuggestionsExpanded = true
-                                if (placeSuggestions == null || messages.size > 10) {
-                                    scope.launch {
-                                        isLoadingPlaces = true
-                                        val sugg = fetchSuggestionsWithRetry()
-                                        placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
-                                        isLoadingPlaces = false
-                                    }
+                        }
+                    ) { Icon(Icons.Default.Lightbulb, stringResource(R.string.btn_suggestions), tint = Color(0xFFFFA500)) }
+                    IconButton(
+                        onClick = {
+                            placeSuggestionsExpanded = true
+                            if (placeSuggestions == null || messages.size > 10) {
+                                scope.launch {
+                                    isLoadingPlaces = true
+                                    val sugg = fetchSuggestionsWithRetry()
+                                    placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                    isLoadingPlaces = false
                                 }
                             }
-                        ) {
-                            Icon(Icons.Default.Place, stringResource(R.string.btn_places), tint = Color(0xFFFF6F00)) }
+                        }
+                    ) {
+                        Icon(Icons.Default.Place, stringResource(R.string.btn_places), tint = Color(0xFFFF6F00))
+                    }
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) { Icon(Icons.Default.MoreVert, "More Options", tint = Color.White) }
                     DropdownMenu(expanded = moreOptionsMenuExpanded, onDismissRequest = { moreOptionsMenuExpanded = false }) {
-                        // New Rating toggle item
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -674,12 +674,51 @@ fun ChatScreenContent(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red); Spacer(Modifier.width(4.dp)); Text("Clear Chat...") } },
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Clear Chat...")
+                                }
+                            },
                             onClick = { moreOptionsMenuExpanded = false; showClearChatMenu = true }
                         )
                         DropdownMenuItem(
-                            text = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Timer, "Set Delete Timer", tint = Color.Yellow); Spacer(Modifier.width(4.dp)); Text("Set Delete Timer...") } },
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Timer, "Set Delete Timer", tint = Color.Yellow)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Set Delete Timer...")
+                                }
+                            },
                             onClick = { moreOptionsMenuExpanded = false; showDeleteTimerMenu = true }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Close, "Unmatch", tint = Color.Red)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Unmatch...")
+                                }
+                            },
+                            onClick = {
+                                moreOptionsMenuExpanded = false
+                                showUnmatchDialog = true
+                            }
+                        )
+                        // New Report Option
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Warning, "Report", tint = Color.Red)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Report User...")
+                                }
+                            },
+                            onClick = {
+                                moreOptionsMenuExpanded = false
+                                showReportDialog = true // Trigger report dialog
+                            }
                         )
                     }
                     DropdownMenu(expanded = showClearChatMenu, onDismissRequest = { showClearChatMenu = false }) {
@@ -716,7 +755,6 @@ fun ChatScreenContent(
                             onValueChange = { yourRating = it.toDouble() },
                             onValueChangeFinished = {
                                 if (yourRating >= 0) updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context)
-                                // Hide the rating section after a user rates
                                 showRating = false
                             },
                             valueRange = 0f..5f,
@@ -739,36 +777,27 @@ fun ChatScreenContent(
                         reverseLayout = true,
                         verticalArrangement = Arrangement.Bottom
                     ) {
-                                // 1) Typing indicator stays as its own `item {}`:
                         if (isOtherUserTyping || isSendingMessage) {
                             item { TypingIndicator() }
-
                         }
-
-                                // 3) Finally, list out your real messages:
                         items(messages.reversed()) { message ->
                             when (message.mediaType) {
                                 "voice" -> VoiceMessageBubble(message, currentUserId)
                                 "photo" -> MediaMessageBubble(
                                     message,
                                     currentUserId,
-                                    onFullscreen = { fullScreenTarget = it })
-
+                                    onFullscreen = { fullScreenTarget = it }
+                                )
                                 "video" -> MediaMessageBubble(
                                     message,
                                     currentUserId,
-                                    onFullscreen = { fullScreenTarget = it })
-
+                                    onFullscreen = { fullScreenTarget = it }
+                                )
                                 else -> MessageBubble(message, currentUserId)
-
                             }
-
                         }
-                        // 2) Your Super-Swipe compliment goes as its own `item {}` here:
                         compliment?.let { c ->
                             item {
-                                // build a fake Message for the superswipe
-
                                 val m = Message(
                                     id = "superswipe_${c.timestamp}",
                                     senderId = otherUserId,
@@ -778,19 +807,14 @@ fun ChatScreenContent(
                                     mediaType = if (c.voiceUrl != null) "voice" else null,
                                     mediaUrl = c.voiceUrl,
                                     read = true
-
                                 )
                                 MessageBubble(
                                     message = m,
                                     currentUserId = currentUserId,
                                     isSuperswipe = true
-
                                 )
-
                             }
-
                         }
-
                     }
                 }
                 if (isRecording) {
@@ -847,23 +871,18 @@ fun ChatScreenContent(
                     }
                 }
                 var fullScreenLocal by remember { mutableStateOf(false) }
-                /* ------------------ live  media preview before sending ------------------ */
-
                 selectedMediaUri?.let { localUri ->
                     MediaPreviewBox(
-                        uri       = localUri,
+                        uri = localUri,
                         mediaType = selectedMediaType,
-                        onCancel  = {
+                        onCancel = {
                             selectedMediaUri = null
                             selectedMediaType = null
                             fullScreenLocal = false
                         },
-                        onFull    = { fullScreenLocal = true },
-                        onEdit    = {
-                            // stash for the callback:
+                        onFull = { fullScreenLocal = true },
+                        onEdit = {
                             pendingEditUri = localUri
-
-                            // build an ACTION_EDIT intent that writes back to the same URI
                             val editIntent = Intent(Intent.ACTION_EDIT).apply {
                                 setDataAndType(localUri, if (selectedMediaType == "photo") "image/*" else "video/*")
                                 putExtra(MediaStore.EXTRA_OUTPUT, localUri)
@@ -877,29 +896,27 @@ fun ChatScreenContent(
                         refreshKey = previewRefresh
                     )
                 }
-                // 2) then *immediately* after it, show the full-screen dialog:
                 if (fullScreenLocal && selectedMediaUri != null && selectedMediaType != null) {
                     SelectedMediaFullScreen(
-                        uri       = selectedMediaUri!!,
+                        uri = selectedMediaUri!!,
                         mediaType = selectedMediaType,
                         onDismiss = { fullScreenLocal = false }
                     )
                 }
-
                 ChatInputBar(
                     messageText = messageText,
                     onTextChange = { newText ->
                         messageText = newText
-                            database.getReference("typing/$chatId/$currentUserId")
-                                .setValue(newText.isNotEmpty())
+                        database.getReference("typing/$chatId/$currentUserId")
+                            .setValue(newText.isNotEmpty())
                     },
-                    onSend       = sendHandler,
-                    sendEnabled  = !isSendingMessage && !isUploadingMedia,
-                    sending      = isSendingMessage,          //  ← pass the flag
-                    isRecording  = isRecording,
+                    onSend = sendHandler,
+                    sendEnabled = !isSendingMessage && !isUploadingMedia,
+                    sending = isSendingMessage,
+                    isRecording = isRecording,
                     onToggleRecord = onToggleRecord,
-                    onPickPhoto  = { pickPhotoLauncher.launch("image/*") },
-                    onPickVideo  = { pickVideoLauncher.launch("video/*") },
+                    onPickPhoto = { pickPhotoLauncher.launch("image/*") },
+                    onPickVideo = { pickVideoLauncher.launch("video/*") },
                     onCapturePhoto = {
                         selectedMediaType = "photo"
                         captureWithPermission(
@@ -907,11 +924,10 @@ fun ChatScreenContent(
                             cameraPermissionLauncher,
                             ::freshPhotoUri,
                             takePhotoLauncher
-                        ) {
-                                uri ->
-                            // don’t preview it yet – stash it and let the launcher callback do the rest
+                        ) { uri ->
                             pendingPhotoUri = uri
-                            isUploadingMedia = true }
+                            isUploadingMedia = true
+                        }
                     },
                     onCaptureVideo = {
                         selectedMediaType = "video"
@@ -921,13 +937,12 @@ fun ChatScreenContent(
                             ::freshVideoUri,
                             takeVideoLauncher
                         ) { uri ->
-                            // don’t preview it yet – stash it and let the launcher callback do the rest
                             pendingVideoUri = uri
-                            isUploadingMedia = true }
+                            isUploadingMedia = true
+                        }
                     }
                 )
             }
-            // Suggestions Dropdown (preserved)
             if (suggestionsExpanded) {
                 Box(
                     Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
@@ -1053,7 +1068,6 @@ fun ChatScreenContent(
                     }
                 }
             }
-            // Places Suggestions Dropdown
             if (placeSuggestionsExpanded) {
                 Box(
                     Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
@@ -1149,9 +1163,112 @@ fun ChatScreenContent(
                     }
                 }
             }
+            // Unmatch Confirmation Dialog
+            if (showUnmatchDialog) {
+                AlertDialog(
+                    onDismissRequest = { showUnmatchDialog = false },
+                    title = { Text("Unmatch User") },
+                    text = { Text("Are you sure you want to unmatch? This will delete all messages and end the conversation.") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showUnmatchDialog = false
+                                unmatchUser()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text("Unmatch", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showUnmatchDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                        ) {
+                            Text("Cancel", color = Color.White)
+                        }
+                    }
+                )
+            }
+
+            // Report Dialog
+            if (showReportDialog) {
+                var reportReason by remember { mutableStateOf("") }
+                AlertDialog(
+                    onDismissRequest = { showReportDialog = false },
+                    title = { Text("Report User") },
+                    text = {
+                        Column {
+                            Text("Please provide a reason for reporting this user:")
+                            Spacer(Modifier.height(8.dp))
+                            TextField(
+                                value = reportReason,
+                                onValueChange = { reportReason = it },
+                                placeholder = { Text("Enter reason") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                                colors = TextFieldDefaults.textFieldColors(
+                                    containerColor = Color.DarkGray,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                )
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                if (reportReason.isNotBlank()) {
+                                    scope.launch {
+                                        try {
+                                            // Submit report
+                                            submitReport(
+                                                reportsRef = reportsRef,
+                                                reporterId = currentUserId,
+                                                reportedId = otherUserId,
+                                                reason = reportReason,
+                                                context = context
+                                            )
+                                            // Block the user
+                                            blockUser(
+                                                database = database,
+                                                blockerId = currentUserId,
+                                                blockedId = otherUserId,
+                                                context = context
+                                            )
+                                            // Unmatch the user
+                                            unmatchUser()
+                                            showReportDialog = false
+                                            Toast.makeText(context, "User reported, blocked, and unmatched.", Toast.LENGTH_SHORT).show()
+                                        } catch (e: Exception) {
+                                            Log.e("ChatScreen", "Report failed: ${e.message}")
+                                            Toast.makeText(context, "Failed to report user. Please try again.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Please provide a reason for the report.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text("Submit", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showReportDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                        ) {
+                            Text("Cancel", color = Color.White)
+                        }
+                    }
+                )
+            }
         }
     }
-    /* Full-screen viewer overlay */
     FullscreenMediaViewer(
         target = fullScreenTarget,
         onDismiss = { fullScreenTarget = null },
@@ -1160,7 +1277,6 @@ fun ChatScreenContent(
     )
 }
 
-// Typing Indicator Composable
 @Composable
 fun TypingIndicator() {
     Row(
@@ -1179,52 +1295,30 @@ fun TypingIndicator() {
 suspend fun compressVideo(
     context: Context,
     uri: Uri,
-    targetBitrate: Int = 1_000_000      // ≈ 1 Mb/s
+    targetBitrate: Int = 1_000_000
 ): ByteArray = withContext(Dispatchers.IO) {
-
-    /* 1️⃣  create a temp output file */
     val outFile = File.createTempFile("compressed_", ".mp4", context.cacheDir)
-
-    /* 2️⃣  tell the encoder which size/bit-rate we want */
     val videoSettings = VideoEncoderSettings.Builder()
-        .setBitrate(targetBitrate)        // average video bit-rate
+        .setBitrate(targetBitrate)
         .build()
-
     val encoderFactory = DefaultEncoderFactory.Builder(context)
         .setRequestedVideoEncoderSettings(videoSettings)
         .build()
-
-    /* 3️⃣  run the transformation and suspend until it finishes */
     suspendCancellableCoroutine { cont ->
         val transformer = Transformer.Builder(context)
             .setVideoMimeType(MimeTypes.VIDEO_H264)
             .setAudioMimeType(MimeTypes.AUDIO_AAC)
             .setEncoderFactory(encoderFactory)
             .addListener(object : Transformer.Listener {
-                override fun onCompleted(
-                    composition: Composition,
-                    exportResult: ExportResult
-                ) = cont.resume(Unit)
-
-                override fun onError(
-                    composition: Composition,
-                    exportResult: ExportResult,
-                    exportException: ExportException
-                ) = cont.resumeWithException(exportException)
+                override fun onCompleted(composition: Composition, exportResult: ExportResult) = cont.resume(Unit)
+                override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) = cont.resumeWithException(exportException)
             })
             .build()
-
-        transformer.start(
-            /* input  */ MediaItem.fromUri(uri),
-            /* output */ outFile.absolutePath         // *string* path, not Uri
-        )
+        transformer.start(MediaItem.fromUri(uri), outFile.absolutePath)
     }
-
-    /* 4️⃣  return the compressed bytes (ready for Firebase upload, etc.) */
     outFile.readBytes()
 }
 
-// Animated Dots Composable
 @Composable
 fun AnimatedDots() {
     var dotCount by remember { mutableStateOf(0) }
@@ -1279,6 +1373,7 @@ fun CachedPhotoThumbnail(
         }
     }
 }
+
 @Composable
 fun CachedVideoThumbnail(
     url: String,
@@ -1286,14 +1381,12 @@ fun CachedVideoThumbnail(
     contentScale: ContentScale = ContentScale.Crop,
     placeholderResId: Int? = null,
     errorResId: Int? = null,
-    frameMillis: Long = 1_000L      // grab frame at 1 s
+    frameMillis: Long = 1_000L
 ) {
     val context = LocalContext.current
-
     val painter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(context)
             .data(url)
-            // ▶ enable built-in video decoder
             .decoderFactory(coil.decode.VideoFrameDecoder.Factory())
             .videoFrameMillis(frameMillis)
             .crossfade(true)
@@ -1303,7 +1396,6 @@ fun CachedVideoThumbnail(
             }
             .build()
     )
-
     Box(
         modifier = modifier
             .border(BorderStroke(2.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
@@ -1322,8 +1414,6 @@ fun CachedVideoThumbnail(
     }
 }
 
-// --- Helper Functions and Composables ---
-
 fun freshPhotoUri(context: Context): Uri {
     val photoFile = createTempFile(context, ".jpg")
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
@@ -1340,54 +1430,47 @@ fun createTempFile(context: Context, extension: String): File {
     return File.createTempFile("media_${System.currentTimeMillis()}", extension, dir)
 }
 
-// Modified sendMediaMessage: Supports photo, video, and voice (extension based on mediaType)
 @androidx.annotation.OptIn(UnstableApi::class)
 suspend fun sendMediaMessage(
-    currentUserId : String,
-    otherUserId   : String,
-    chatId        : String,
-    uri           : Uri,
-    mediaType     : String,
-    messagesRef   : DatabaseReference,
-    context       : Context
+    currentUserId: String,
+    otherUserId: String,
+    chatId: String,
+    uri: Uri,
+    mediaType: String,
+    messagesRef: DatabaseReference,
+    context: Context
 ) {
-    val ts          = System.currentTimeMillis()
-    val storageRef  = FirebaseStorage.getInstance().reference
-    val ext         = if (mediaType == "photo") "jpg" else "mp4"
-    val remoteName  = "${mediaType}_${ts}.$ext"
-    val mediaRef    = storageRef.child("$mediaType/$chatId/$remoteName")
-
-    /* 1️⃣  compress locally, then upload */
+    val ts = System.currentTimeMillis()
+    val storageRef = FirebaseStorage.getInstance().reference
+    val ext = if (mediaType == "photo") "jpg" else "mp4"
+    val remoteName = "${mediaType}_${ts}.$ext"
+    val mediaRef = storageRef.child("$mediaType/$chatId/$remoteName")
     val bytes = when (mediaType) {
         "photo" -> compressImage(context, uri)
         "video" -> compressVideo(context, uri)
-        else    -> null                       // voice etc. – fall through
+        else -> null
     }
-
     if (bytes != null) {
         mediaRef.putBytes(bytes).await()
     } else {
         mediaRef.putFile(uri).await()
     }
-
-    /* 2️⃣  get the download URL & push the message */
     val downloadUrl = mediaRef.downloadUrl.await().toString()
     val id = messagesRef.push().key ?: return
     val msg = Message(
-        id          = id,
-        senderId    = currentUserId,
-        receiverId  = otherUserId,
-        text        = "",
-        timestamp   = ts,
-        read        = false,
-        mediaType   = mediaType,
-        mediaUrl    = downloadUrl,
-        processed   = false
+        id = id,
+        senderId = currentUserId,
+        receiverId = otherUserId,
+        text = "",
+        timestamp = ts,
+        read = false,
+        mediaType = mediaType,
+        mediaUrl = downloadUrl,
+        processed = false
     )
     messagesRef.child(id).setValue(msg)
 }
 
-// FullscreenMediaViewer that supports photo and video
 @Composable
 fun FullscreenMediaViewer(
     target: Message?,
@@ -1404,7 +1487,6 @@ fun FullscreenMediaViewer(
                 .background(Color.Black)
         ) {
             if (target.mediaType == "photo") {
-                // For photos, build request with caching keys:
                 val photoRequest = ImageRequest.Builder(context)
                     .data(target.mediaUrl)
                     .diskCacheKey(target.mediaUrl)
@@ -1421,7 +1503,6 @@ fun FullscreenMediaViewer(
                     }
                 )
             } else if (target.mediaType == "video") {
-                // Use the new ExoPlayer-based fullscreen video player
                 FullscreenVideoPlayer(uri = Uri.parse(target.mediaUrl), onDismiss = onDismiss)
             }
             IconButton(
@@ -1438,20 +1519,12 @@ fun FullscreenMediaViewer(
 @Composable
 fun FullscreenVideoPlayer(uri: Uri, onDismiss: () -> Unit) {
     val context = LocalContext.current
-
     var videoLoading by remember { mutableStateOf(true) }
-
-    // Obtain the singleton cache instance.
     val simpleCache = VideoCacheProvider.getInstance(context)
-
-    // Create an upstream data source factory.
     val upstreamFactory = DefaultDataSource.Factory(context)
-    // Create a CacheDataSource.Factory using the singleton cache.
     val cacheDataSourceFactory = CacheDataSource.Factory()
         .setCache(simpleCache)
         .setUpstreamDataSourceFactory(upstreamFactory)
-
-    // Build ExoPlayer using its builder and set a media source factory configured with caching.
     val exoPlayer = remember(uri) {
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
@@ -1468,23 +1541,20 @@ fun FullscreenVideoPlayer(uri: Uri, onDismiss: () -> Unit) {
                 })
             }
     }
-
     DisposableEffect(uri) {
         onDispose { exoPlayer.release() }
     }
-
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            // Show the video using a PlayerView wrapped inside AndroidView.
             androidx.compose.ui.viewinterop.AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
                         player = exoPlayer
-                        useController = true // enable built-in controls
+                        useController = true
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -1532,7 +1602,6 @@ fun MediaMessageBubble(
                         url = message.mediaUrl ?: "",
                         modifier = Modifier.size(150.dp),
                         contentScale = ContentScale.Crop,
-                        // Optionally, pass your placeholder (e.g., R.drawable.local_placeholder)
                         placeholderResId = R.drawable.local_placeholder,
                         errorResId = R.drawable.local_placeholder
                     )
@@ -1540,7 +1609,6 @@ fun MediaMessageBubble(
                         url = message.mediaUrl ?: "",
                         modifier = Modifier.size(150.dp),
                         contentScale = ContentScale.Crop,
-                        // Optionally, pass a placeholder if desired
                         placeholderResId = R.drawable.local_placeholder,
                         errorResId = R.drawable.local_placeholder
                     )
@@ -1558,15 +1626,13 @@ fun MediaMessageBubble(
     }
 }
 
-
 @Composable
-fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean = false    // ← new optional flag
-) {
+fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean = false) {
     val isCurrentUser = message.senderId == currentUserId
-    val bubbleColor =   when {
-        isSuperswipe             -> Color(0xFFE91E63)  // hot-pink pill for superswipe
+    val bubbleColor = when {
+        isSuperswipe -> Color(0xFFE91E63)
         message.senderId == currentUserId -> Color(0xFFFFDB00)
-        else                      -> Color(0xFFFF6F00)
+        else -> Color(0xFFFF6F00)
     }
     val textColor = if (isCurrentUser) Color.Black else Color.White
     val context = LocalContext.current
@@ -1583,10 +1649,7 @@ fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean
         ) {
             if (isSuperswipe) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.EmojiEmotions,
-                        contentDescription = "SuperSwipe",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.EmojiEmotions, contentDescription = "SuperSwipe", tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("Super-Swipe!", color = Color.White, fontSize = 12.sp)
                 }
@@ -1833,7 +1896,6 @@ fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
     } ?: Box(modifier = modifier.background(Color.Gray))
 }
 
-
 @Composable
 fun MediaPreviewBox(
     uri: Uri,
@@ -1860,7 +1922,6 @@ fun MediaPreviewBox(
                         factory = { ctx ->
                             VideoView(ctx).apply {
                                 setVideoURI(uri)
-                                // show first frame without autoplay
                                 setOnPreparedListener { it.isLooping = false; seekTo(1) }
                             }
                         },
@@ -1884,7 +1945,6 @@ fun MediaPreviewBox(
                 }
             }
         }
-
         Row(
             Modifier
                 .fillMaxWidth()
@@ -1898,7 +1958,6 @@ fun MediaPreviewBox(
     }
 }
 
-
 @Composable
 fun MediaToolsMenu(
     expanded: Boolean,
@@ -1911,8 +1970,6 @@ fun MediaToolsMenu(
     onCaptureVideo: () -> Unit
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-
-        /* voice-note toggle */
         DropdownMenuItem(
             leadingIcon = {
                 Icon(
@@ -1920,14 +1977,9 @@ fun MediaToolsMenu(
                     contentDescription = null
                 )
             },
-            text = { Text( if (isRecording)
-                stringResource(R.string.btn_stop_recording)
-            else
-                stringResource(R.string.btn_record_voice) ) },
-                    onClick = { onDismiss(); onToggleRecord() }
+            text = { Text(if (isRecording) stringResource(R.string.btn_stop_recording) else stringResource(R.string.btn_record_voice)) },
+            onClick = { onDismiss(); onToggleRecord() }
         )
-
-        /* pick from gallery */
         DropdownMenuItem(
             leadingIcon = { Icon(Icons.Default.Photo, null) },
             text = { Text(stringResource(R.string.btn_pick_photo)) },
@@ -1938,8 +1990,6 @@ fun MediaToolsMenu(
             text = { Text(stringResource(R.string.btn_pick_video)) },
             onClick = { onDismiss(); onPickVideo() }
         )
-
-        /* capture with camera */
         DropdownMenuItem(
             leadingIcon = { Icon(Icons.Default.CameraAlt, null) },
             text = { Text(stringResource(R.string.btn_capture_photo)) },
@@ -2043,8 +2093,6 @@ fun ChatInputBar(
     }
 }
 
-
-
 fun captureWithPermission(
     context: Context,
     permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
@@ -2124,6 +2172,35 @@ fun SelectedMediaFullScreen(
     }
 }
 
+// Submit a report to Firebase
+private suspend fun submitReport(
+    reportsRef: DatabaseReference,
+    reporterId: String,
+    reportedId: String,
+    reason: String,
+    context: Context
+) {
+    val reportId = reportsRef.push().key ?: return
+    val report = mapOf(
+        "reporterId" to reporterId,
+        "reportedId" to reportedId,
+        "reason" to reason,
+        "timestamp" to System.currentTimeMillis(),
+        "status" to "pending"
+    )
+    reportsRef.child(reportId).setValue(report).await()
+}
+
+// Block a user by adding them to the blocker's block list
+private suspend fun blockUser(
+    database: FirebaseDatabase,
+    blockerId: String,
+    blockedId: String,
+    context: Context
+) {
+    val blockRef = database.getReference("blocks/$blockerId/$blockedId")
+    blockRef.setValue(true).await()
+}
 
 /* ------------ open the best editor the device offers (photo & video) ------------- */
 fun launchMediaEditor(context: Context, uri: Uri, mediaType: String?) {

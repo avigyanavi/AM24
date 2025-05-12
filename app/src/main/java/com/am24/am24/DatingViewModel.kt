@@ -64,11 +64,9 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _datingFilters = MutableStateFlow(DatingFilterSettings())
     val datingFilters: StateFlow<DatingFilterSettings> get() = _datingFilters
 
-    val filteredProfiles: StateFlow<List<Profile>> = combine(_allProfiles, _datingFilters) { profiles, filters ->
-        applyDatingFilters(profiles, filters)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    private val _blockedUsers = MutableStateFlow<List<String>>(emptyList())
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> get() = _isLoading
 
     private var profilesListener: ValueEventListener? = null
@@ -84,24 +82,28 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _userDistanceMap   = MutableStateFlow<Map<String, Float>>(emptyMap())
     val userDistanceMap: StateFlow<Map<String, Float>> get() = _userDistanceMap
 
+    val filteredProfiles: StateFlow<List<Profile>> =
+        combine(_allProfiles, _datingFilters, _blockedUsers) { profiles, filters, blocked ->
+            applyDatingFilters(profiles, filters, blocked)
+        }.stateIn(
+            scope   = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+
     // ── init() is unchanged except we no longer call startRealtimeProfilesListener() ──
     init {
         loadFilters()
-
-        // 🔥 CHANGED ───────────────
-        // We replace the huge /users listener with a single initial load via location.
-        // Real-time changes are handled by filtering *again* whenever the user changes
-        // their slider or when boost / compliment updates arrive.
-        refreshFilteredProfiles()
-        // ─────────────────────────
-
         FirebaseAuth.getInstance().currentUser?.uid?.let { me ->
             viewModelScope.launch {
+                _blockedUsers.value    = fetchBlockedUsers(me)    // ← NEW (must precede refresh)
                 _complimentsLeft.value = loadAndResetComplimentsDaily(me)
             }
             updateBoostedUsers(me)
             loadCompliments(me)
         }
+        refreshFilteredProfiles()    // keep this AFTER the launch block        }
     }
 
     /**
@@ -234,7 +236,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         me: String,
         maxDistanceKm: Int
     ): List<Profile> = coroutineScope {
-
+        try {
         // 1️⃣ get *my* lat/lng from RTDB --------------------------------------
         val myLocSnap = database.getReference("geoFireLocations/$me/l").get().await()
         val latLng = myLocSnap.getValue(object : GenericTypeIndicator<List<Double>>() {})
@@ -295,35 +297,42 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         return@coroutineScope snaps.mapNotNull { snap ->
             snap.getValue(Profile::class.java)
         }.filter { it.userId != me }
+    } catch (e: Exception) {
+            Log.e(TAG, "fetchNearbyProfiles() failed: ${e.message}", e)
+            emptyList()
+        }
     }
 
         /**
      * Refresh profiles manually
      */
-    fun refreshFilteredProfiles() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val me = FirebaseAuth.getInstance().currentUser?.uid
+        fun refreshFilteredProfiles() {
+            viewModelScope.launch {
+                _isLoading.value = true
+                val me = FirebaseAuth.getInstance().currentUser?.uid
 
-            try {
-                val maxDistance = _datingFilters.value.distance
-                val profiles = if (me != null)
-                    fetchNearbyProfiles(me, maxDistance)      // 🔥 NEW
-                else
-                    emptyList()
+                try {
+                    if (me == null) {
+                        _allProfiles.value = emptyList()
+                        return@launch
+                    }
 
-                _allProfiles.value = profiles
-                me?.let {
-                    updateBoostedUsers(it)
-                    loadCompliments(it)
+                    // ✅ always refresh blocks first to prevent race conditions
+                    _blockedUsers.value = fetchBlockedUsers(me)
+
+                    val maxDist  = _datingFilters.value.distance
+                    _allProfiles.value = fetchNearbyProfiles(me, maxDist)
+
+                    updateBoostedUsers(me)
+                    loadCompliments(me)
+                } catch (e: Exception) {
+                    Log.e(TAG, "refreshFilteredProfiles() failed: ${e.message}", e)
+                } finally {
+                    _isLoading.value = false
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error refreshing profiles: ${e.message}")
-            } finally {
-                _isLoading.value = false
             }
         }
-    }
+
     /** call this when the user presses “Boost” */
     fun boostUser(
         targetUserId: String,
@@ -381,10 +390,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private suspend fun applyDatingFilters(profiles: List<Profile>, filters: DatingFilterSettings): List<Profile> = coroutineScope {
+    private suspend fun applyDatingFilters(profiles: List<Profile>, filters: DatingFilterSettings, blocked:  List<String> // ← NEW
+    ): List<Profile> = coroutineScope {
         Log.d(TAG, "⚙️ FILTER DUMP  ->  $filters")   // ← add
 
-        var result = profiles
+        // Fetch blocked users
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@coroutineScope emptyList()
+        var result = profiles.filterNot { blocked.contains(it.userId) }
 
         // Apply localities filter
         if (filters.localities.isNotEmpty()) {
@@ -478,54 +490,20 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         kept
     }
 
+    // Fetch the list of blocked user IDs
+    private suspend fun fetchBlockedUsers(userId: String): List<String> {
+        return try {
+            val snapshot = database.getReference("blocks/$userId").get().await()
+            snapshot.children.mapNotNull { it.key }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching blocked users: ${e.message}")
+            emptyList()
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         profilesListener?.let { usersRef.removeEventListener(it) }
-    }
-
-    private fun startRealtimeProfilesListener() {
-
-        // don’t register twice
-        if (profilesListener != null) return
-
-        profilesListener = usersRef.addValueEventListener(object : ValueEventListener {
-
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val me = FirebaseAuth.getInstance().uid
-                Log.d(TAG, "users listener → rows ${snapshot.childrenCount}")
-
-                val parsed   = mutableListOf<Profile>()
-                var failures = 0
-
-                // ── walk every child and try to deserialise it ──────────────
-                snapshot.children.forEach { child ->
-                    val key = child.key ?: "<no-key>"
-                    val p   = try {
-                        child.getValue(Profile::class.java)
-                    } catch (e: Exception) {    // catches class-cast errors too
-                        Log.e(TAG, "❌ exception on row $key : ${e.message}")
-                        null
-                    }
-
-                    if (p == null) {
-                        failures++
-                        Log.w(TAG, "⚠️ could NOT parse row $key")
-                        Log.w(TAG, "    raw JSON = ${child.value}")
-                    } else if (p.userId != me) {
-                        parsed += p
-                    }
-                }
-
-                Log.d(TAG, "parsed ${parsed.size} / ${snapshot.childrenCount} profiles (failures=$failures)")
-
-                _allProfiles.value = parsed
-                me?.let { updateBoostedUsers(it) }   // keep boost list fresh
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "users listener error: ${error.message}")
-            }
-        })
     }
 }
 

@@ -122,10 +122,16 @@ fun MainNavGraph(
             )
         }
         composable("dating_screen?initialQuery={initialQuery}") { backStackEntry ->
+            val datingViewModel: DatingViewModel = viewModel(
+                factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+                    LocalContext.current.applicationContext as Application
+                )
+            )
             val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
             DatingScreen(
                 navController = navController,
                 geoFire = geoFire,
+                datingViewModel = datingViewModel,
                 initialQuery = initialQuery
             )
         }
@@ -133,7 +139,16 @@ fun MainNavGraph(
             SubscriptionScreen(navController)
         }
         composable("dating") {
-            DatingScreen(navController = navController, geoFire = geoFire)
+            val datingViewModel: DatingViewModel = viewModel(
+                factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+                    LocalContext.current.applicationContext as Application
+                )
+            )
+            DatingScreen(
+                navController = navController,
+                geoFire = geoFire,
+                datingViewModel = datingViewModel // Pass the ViewModel
+            )
         }
         composable("editPicAndVoiceBio") {
             EditPicAndVoiceBioScreen(navController, profileViewModel)

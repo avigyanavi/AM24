@@ -15,11 +15,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -27,26 +31,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
-import androidx.compose.ui.res.stringResource
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-/* ----------  extra imports  ---------- */
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun DMScreen(navController: NavController) {
@@ -59,14 +57,16 @@ fun DMScreenContent(navController: NavController) {
     val context = LocalContext.current
     val database = FirebaseRefs.db
     val matchesRef = database.getReference("matches/$currentUserId")
-    val likesRef = database.getReference("likesReceived/$currentUserId") // Added for likes
+    val likesRef = database.getReference("likesReceived/$currentUserId")
     val usersRef = database.getReference("users")
     val messagesRootRef = database.getReference("messages")
-    val ratingsRef = database.getReference("ratings") // Add this, similar to ChatScreenContent
+    val ratingsRef = database.getReference("ratings")
 
     var showRatingOverlay by remember { mutableStateOf(false) }
     var profileToRate by remember { mutableStateOf<Profile?>(null) }
     var tempRating by remember { mutableStateOf(-1.0) }
+    var showUnmatchDialog by remember { mutableStateOf(false) }
+    var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
 
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     LaunchedEffect(currentUserId) {
@@ -92,18 +92,15 @@ fun DMScreenContent(navController: NavController) {
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
 
-    /* ---- Lists to compute likedCount (likes – matches) ---- */
     val matchIds = remember { mutableStateListOf<String>() }
     val likeIds = remember { mutableStateListOf<String>() }
     fun recomputeLiked() { likedCount = likeIds.count { !matchIds.contains(it) } }
 
-    /* ---- Scroll-to-top helpers ---- */
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    val focusManager = LocalFocusManager.current // Add FocusManager
+    val focusManager = LocalFocusManager.current
 
-    /* ───────── Realtime listeners for matches & likes ───────── */
     LaunchedEffect(Unit) {
         matchesRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
@@ -123,16 +120,13 @@ fun DMScreenContent(navController: NavController) {
         })
     }
 
-    /* ───────── Fetch matched user objects ───────── */
     LaunchedEffect(currentUserId) {
         fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
-            // Check non-initiated conversations
             checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
                 nonInitiatedMatches.clear()
                 nonInitiatedMatches.addAll(nonInitiated)
             }
 
-            // Preload profile pictures
             matchedUsers.forEach { profile ->
                 profile.profilepicUrl?.let { url ->
                     val request = ImageRequest.Builder(context)
@@ -145,7 +139,6 @@ fun DMScreenContent(navController: NavController) {
                 }
             }
 
-            // Fetch last messages
             val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@fetchUsersFromNode
             matchedUsers.forEach { profile ->
                 val chatId = getChatId(currentUserId, profile.userId)
@@ -178,14 +171,13 @@ fun DMScreenContent(navController: NavController) {
         }
     }
 
-    // Wrap the content in a Box to handle clicks outside the text field
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
             .clickable(
-                onClick = { focusManager.clearFocus() }, // Clear focus when clicking outside
-                indication = null, // Remove ripple effect for better UX
+                onClick = { focusManager.clearFocus() },
+                indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             )
     ) {
@@ -193,17 +185,15 @@ fun DMScreenContent(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            // Single Row for group chat buttons and AI toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Scrollable Row for group chat buttons
                 Row(
                     modifier = Modifier
-                        .weight(1f) // Takes available space on the left
+                        .weight(1f)
                         .horizontalScroll(rememberScrollState()),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -278,7 +268,7 @@ fun DMScreenContent(navController: NavController) {
                 }
             } else {
                 LazyColumn(
-                    state = listState, // Use listState for scroll control
+                    state = listState,
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black)
@@ -294,12 +284,15 @@ fun DMScreenContent(navController: NavController) {
                             lastMessageFromCurrentUser = lastMsg.second,
                             lastMessageRead = lastMsg.third,
                             onRateClick = { selectedProfile ->
-                                // Fetch the current rating for this profile and update the state
                                 fetchUserRating(ratingsRef, selectedProfile.userId) { fetchedRating ->
                                     tempRating = fetchedRating
                                     profileToRate = selectedProfile
                                     showRatingOverlay = true
                                 }
+                            },
+                            onUnmatchClick = { selectedProfile ->
+                                profileToUnmatch = selectedProfile
+                                showUnmatchDialog = true
                             }
                         )
                     }
@@ -317,7 +310,6 @@ fun DMScreenContent(navController: NavController) {
                     border = BorderStroke(2.dp, Color(0xFFFF4500))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        // Show the rated user's current rating info
                         RatingBar(rating = profileToRate!!.averageRating, ratingCount = profileToRate!!.numberOfRatings)
                         Text(
                             "Your Rating: ${if (tempRating >= 0) String.format("%.1f", tempRating) else "N/A"}",
@@ -328,9 +320,7 @@ fun DMScreenContent(navController: NavController) {
                             value = if (tempRating >= 0) tempRating.toFloat() else 0f,
                             onValueChange = { tempRating = it.toDouble() },
                             onValueChangeFinished = {
-                                // Update rating on Firebase for this matched user
                                 updateUserRating(ratingsRef, usersRef, profileToRate!!.userId, tempRating, context)
-                                // Hide overlay once done
                                 showRatingOverlay = false
                                 profileToRate = null
                             },
@@ -346,8 +336,59 @@ fun DMScreenContent(navController: NavController) {
             }
         }
 
+        if (showUnmatchDialog && profileToUnmatch != null) {
+            Dialog(onDismissRequest = {
+                showUnmatchDialog = false
+                profileToUnmatch = null
+            }) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black,
+                    border = BorderStroke(2.dp, Color(0xFFFF4500))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "Unmatch with ${profileToUnmatch!!.username}?",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "This will remove the match and delete your conversation history.",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = {
+                                showUnmatchDialog = false
+                                profileToUnmatch = null
+                            }) {
+                                Text("Cancel", color = Color.White)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = {
+                                unmatchUser(
+                                    currentUserId = currentUserId,
+                                    otherUserId = profileToUnmatch!!.userId,
+                                    database = database,
+                                    context = context
+                                )
+                                showUnmatchDialog = false
+                                profileToUnmatch = null
+                            }) {
+                                Text("Unmatch", color = Color.Red)
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-        /* ───── Scroll-to-top FAB ───── */
         FloatingActionButton(
             onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
             containerColor = Color(0xFFFF4500),
@@ -365,7 +406,8 @@ fun DMUserCard(
     lastMessage: String,
     lastMessageFromCurrentUser: Boolean,
     lastMessageRead: Boolean,
-    onRateClick: (Profile) -> Unit
+    onRateClick: (Profile) -> Unit,
+    onUnmatchClick: (Profile) -> Unit
 ) {
     Box(
         Modifier
@@ -400,10 +442,8 @@ fun DMUserCard(
                     } else {
                         stringResource(R.string.age_only_format, age)
                     }
-                    Text(localeInfo, fontSize
-                            = 14.sp, color = Color.White)
+                    Text(localeInfo, fontSize = 14.sp, color = Color.White)
 
-                    // build last-message + ticks from resources
                     val messageText = when {
                         lastMessage.isEmpty() -> stringResource(R.string.no_messages_yet)
                         lastMessageFromCurrentUser -> stringResource(R.string.sent_message, lastMessage)
@@ -411,7 +451,7 @@ fun DMUserCard(
                     }
                     val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
                         if (lastMessageRead) stringResource(R.string.seen_status)
-                        else                 stringResource(R.string.delivered_status)
+                        else stringResource(R.string.delivered_status)
                     } else ""
                     val fullText = messageText + ticks
                     val styled = buildAnnotatedString {
@@ -439,11 +479,36 @@ fun DMUserCard(
                 TextButton(onClick = { onRateClick(profile) }) {
                     Text(stringResource(R.string.rate), color = Color(0xFFFF4500))
                 }
+                TextButton(onClick = { onUnmatchClick(profile) }) {
+                    Text("Unmatch", color = Color.Red)
+                }
             }
         }
     }
 }
 
+private fun unmatchUser(
+    currentUserId: String,
+    otherUserId: String,
+    database: FirebaseDatabase,
+    context: android.content.Context
+) {
+    val chatId = getChatId(currentUserId, otherUserId)
+    val updates = mapOf(
+        "matches/$currentUserId/$otherUserId" to null,
+        "matches/$otherUserId/$currentUserId" to null,
+        "messages/$chatId" to null
+    )
+
+    database.reference.updateChildren(updates)
+        .addOnSuccessListener {
+            Toast.makeText(context, "Unmatched successfully", Toast.LENGTH_SHORT).show()
+        }
+        .addOnFailureListener { error ->
+            Toast.makeText(context, "Failed to unmatch: ${error.message}", Toast.LENGTH_SHORT).show()
+            Log.e("DMScreen", "Unmatch failed: ${error.message}")
+        }
+}
 
 private fun checkNonInitiatedConversations(
     matchedUsers: List<Profile>,
@@ -545,4 +610,3 @@ fun GroupChatChip(
         Text(title, color = Color.White, fontSize = 14.sp)
     }
 }
-
