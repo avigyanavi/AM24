@@ -677,7 +677,7 @@ fun FiltersOverlay(
 
             /* ────────────────  POWER FILTERS  ────────────────────────── */
             /* ⭐  Minimum Rating  (Plus & Premium) */
-            if (!isPlus || !isPremium) {
+            if (isPlus || isPremium) {
                 item {
                     Spacer(Modifier.height(24.dp))
                     FilterSectionTitle(stringResource(R.string.rating_label))
@@ -702,7 +702,7 @@ fun FiltersOverlay(
             }
 
             /* 🏆  Top-N Ranking  (Premium only) */
-            if (!isPremium) {
+            if (isPremium) {
                 item {
                     Spacer(Modifier.height(24.dp))
                     FilterSectionTitle(stringResource(R.string.ranking_label))

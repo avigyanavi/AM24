@@ -20,6 +20,7 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.media3.transformer.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -80,8 +81,24 @@ import java.io.File
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.res.stringResource
+import androidx.core.net.toUri
 import com.am24.am24.util.LocaleUtils
-import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.transformer.Composition
+import androidx.media3.transformer.ExportException
+import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.TransformationRequest
+import androidx.media3.transformer.Transformer
+import kotlinx.coroutines.tasks.await
+import androidx.core.net.toUri
+import androidx.media3.transformer.*
 
 // Updated Message data class (without viewed field)
 data class Message(
@@ -339,20 +356,23 @@ fun ChatScreenContent(
 
         if (selectedMediaUri != null && selectedMediaType != null) {
             isUploadingMedia = true
-            sendMediaMessage(
-                currentUserId, otherUserId, chatId,
-                selectedMediaUri!!, selectedMediaType!!,
-                messagesRef, context
-            ) {
-                postNotification(
-                    notificationsRef, otherUserId, currentUserId,
-                    "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
-                )
-                selectedMediaUri = null
-                selectedMediaType = null
-                isUploadingMedia = false
-                done()
-                Log.d("ChatScreen", "Media sent successfully")
+            scope.launch {
+                try {
+                    sendMediaMessage(
+                        currentUserId, otherUserId, chatId,
+                        selectedMediaUri!!, selectedMediaType!!,
+                        messagesRef, context
+                    )
+                    postNotification(
+                        notificationsRef, otherUserId, currentUserId,
+                        "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
+                    )
+                } finally {
+                    selectedMediaUri  = null
+                    selectedMediaType = null
+                    isUploadingMedia  = false
+                    done()
+                }
             }
             return@mySend
         }
@@ -1155,6 +1175,54 @@ fun TypingIndicator() {
     }
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+suspend fun compressVideo(
+    context: Context,
+    uri: Uri,
+    targetBitrate: Int = 1_000_000      // ≈ 1 Mb/s
+): ByteArray = withContext(Dispatchers.IO) {
+
+    /* 1️⃣  create a temp output file */
+    val outFile = File.createTempFile("compressed_", ".mp4", context.cacheDir)
+
+    /* 2️⃣  tell the encoder which size/bit-rate we want */
+    val videoSettings = VideoEncoderSettings.Builder()
+        .setBitrate(targetBitrate)        // average video bit-rate
+        .build()
+
+    val encoderFactory = DefaultEncoderFactory.Builder(context)
+        .setRequestedVideoEncoderSettings(videoSettings)
+        .build()
+
+    /* 3️⃣  run the transformation and suspend until it finishes */
+    suspendCancellableCoroutine { cont ->
+        val transformer = Transformer.Builder(context)
+            .setVideoMimeType(MimeTypes.VIDEO_H264)
+            .setAudioMimeType(MimeTypes.AUDIO_AAC)
+            .setEncoderFactory(encoderFactory)
+            .addListener(object : Transformer.Listener {
+                override fun onCompleted(
+                    composition: Composition,
+                    exportResult: ExportResult
+                ) = cont.resume(Unit)
+
+                override fun onError(
+                    composition: Composition,
+                    exportResult: ExportResult,
+                    exportException: ExportException
+                ) = cont.resumeWithException(exportException)
+            })
+            .build()
+
+        transformer.start(
+            /* input  */ MediaItem.fromUri(uri),
+            /* output */ outFile.absolutePath         // *string* path, not Uri
+        )
+    }
+
+    /* 4️⃣  return the compressed bytes (ready for Firebase upload, etc.) */
+    outFile.readBytes()
+}
 
 // Animated Dots Composable
 @Composable
@@ -1273,43 +1341,50 @@ fun createTempFile(context: Context, extension: String): File {
 }
 
 // Modified sendMediaMessage: Supports photo, video, and voice (extension based on mediaType)
-fun sendMediaMessage(
-    currentUserId: String,
-    otherUserId: String,
-    chatId: String,
-    uri: Uri,
-    mediaType: String,
-    messagesRef: DatabaseReference,
-    context: Context,
-    onSuccess: () -> Unit = {}
+@androidx.annotation.OptIn(UnstableApi::class)
+suspend fun sendMediaMessage(
+    currentUserId : String,
+    otherUserId   : String,
+    chatId        : String,
+    uri           : Uri,
+    mediaType     : String,
+    messagesRef   : DatabaseReference,
+    context       : Context
 ) {
-    val timestamp = System.currentTimeMillis()
-    val storageRef = FirebaseStorage.getInstance().reference
-    val extension = when (mediaType) {
-        "photo" -> "jpg"
-        "video" -> "mp4"
-        else -> "aac"
+    val ts          = System.currentTimeMillis()
+    val storageRef  = FirebaseStorage.getInstance().reference
+    val ext         = if (mediaType == "photo") "jpg" else "mp4"
+    val remoteName  = "${mediaType}_${ts}.$ext"
+    val mediaRef    = storageRef.child("$mediaType/$chatId/$remoteName")
+
+    /* 1️⃣  compress locally, then upload */
+    val bytes = when (mediaType) {
+        "photo" -> compressImage(context, uri)
+        "video" -> compressVideo(context, uri)
+        else    -> null                       // voice etc. – fall through
     }
-    val fileName = "${mediaType}_${timestamp}.$extension"
-    val mediaRef = storageRef.child("$mediaType/$chatId/$fileName")
-    mediaRef.putFile(uri).addOnSuccessListener {
-        mediaRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-            val messageId = messagesRef.push().key ?: return@addOnSuccessListener
-            val message = Message(
-                id = messageId,
-                senderId = currentUserId,
-                receiverId = otherUserId,
-                text = "",
-                timestamp = timestamp,
-                read = false,
-                mediaType = mediaType,
-                mediaUrl = downloadUrl.toString(),
-                processed = false
-            )
-            messagesRef.child(messageId).setValue(message)
-            onSuccess()
-        }.addOnFailureListener { Toast.makeText(context, "Failed to get $mediaType URL", Toast.LENGTH_SHORT).show() }
-    }.addOnFailureListener { Toast.makeText(context, "Failed to upload $mediaType", Toast.LENGTH_SHORT).show() }
+
+    if (bytes != null) {
+        mediaRef.putBytes(bytes).await()
+    } else {
+        mediaRef.putFile(uri).await()
+    }
+
+    /* 2️⃣  get the download URL & push the message */
+    val downloadUrl = mediaRef.downloadUrl.await().toString()
+    val id = messagesRef.push().key ?: return
+    val msg = Message(
+        id          = id,
+        senderId    = currentUserId,
+        receiverId  = otherUserId,
+        text        = "",
+        timestamp   = ts,
+        read        = false,
+        mediaType   = mediaType,
+        mediaUrl    = downloadUrl,
+        processed   = false
+    )
+    messagesRef.child(id).setValue(msg)
 }
 
 // FullscreenMediaViewer that supports photo and video

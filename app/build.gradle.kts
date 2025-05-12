@@ -62,7 +62,6 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.analytics)
-//    implementation(libs.firebase.auth)
     implementation("com.google.android.gms:play-services-auth:20.6.0")
     implementation("com.google.firebase:firebase-auth-ktx:22.1.1")
     implementation(libs.firebase.firestore)
@@ -87,10 +86,10 @@ dependencies {
     implementation(libs.coil.compose.v222)
     implementation(libs.gpuimage)
     implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation(libs.exoplayer)
     implementation("io.coil-kt:coil-video:2.2.2")
     implementation("io.coil-kt:coil:2.2.2")
     implementation("androidx.compose.ui:ui-text:1.8.0")
+    implementation("androidx.media3:media3-transformer:1.6.1")
 
 
     //geofire
