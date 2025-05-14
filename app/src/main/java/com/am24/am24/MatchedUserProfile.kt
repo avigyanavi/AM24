@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.am24.am24.Post
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -134,14 +135,16 @@ fun MatchedUserProfileScreen(
                                 isBoosted = false,
                                 userDistance = userDistance!!,
                                 aiMatchResult = aiMatchResult,
-                                currentProfile = currentUserProfile
+                                sortedByUpvotes = sortedByUpvotes,
+                            currentProfile = currentUserProfile
                             )
                         }
                         item {
                             DatingProfileHeader(
                                 profile = profile,
                                 userDistance = userDistance!!,
-                                sortedByUpvotes = sortedByUpvotes
+                                sortedByUpvotes = sortedByUpvotes,
+                                isBoosted = false
                             )
                         }
                         item {

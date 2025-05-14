@@ -25,6 +25,22 @@ fun PeopleWhoLikeMeScreen(
     navController: NavController,
     currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 ) {
+    val blockedRef = FirebaseRefs.db
+        .getReference("blocks/$currentUserId")
+
+    val blockedIds = remember { mutableStateListOf<String>() }
+
+    // Load blocked IDs
+    LaunchedEffect(currentUserId) {
+        blockedRef.addListenerForSingleValueEvent(object: ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                blockedIds.clear()
+                s.children.forEach { it.key?.let(blockedIds::add) }
+            }
+            override fun onCancelled(e: DatabaseError) {}
+        })
+    }
+
     val likesReceivedRef = FirebaseRefs.db
         .getReference("likesReceived/$currentUserId")
     val usersRef = FirebaseRefs.db.getReference("users")
@@ -66,8 +82,9 @@ fun PeopleWhoLikeMeScreen(
                                 // We'll only add them if NOT matched with the current user
                                 // i.e. if "myMatchIds" does not contain their userId.
                                 // Also we can check if they have matched you in their "matches".
-                                if (!myMatchIds.contains(profile.userId) &&
-                                    !profile.matches.contains(currentUserId)
+                                if (!myMatchIds.contains(profile.userId)
+                                    && !profile.matches.contains(currentUserId)
+                                    && !blockedIds.contains(profile.userId)
                                 ) {
                                     likedUsers.add(profile)
                                 }

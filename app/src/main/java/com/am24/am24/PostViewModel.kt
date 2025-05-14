@@ -2,19 +2,14 @@
 package com.am24.am24
 
 import android.app.Application
-import android.content.ContentResolver
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.am24.am24.FirebaseRefs.db
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.getValue
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -46,9 +41,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     // Firebase Realtime Database reference to "notifications"
     private val notificationsRef = FirebaseRefs.db.getReference("notifications")
 
-    // Firebase Realtime Database reference to "friends" and "matches"
-    private val matchesRef = FirebaseRefs.db.getReference("matches")
-
+    private val matchesRef = db.getReference("matches")
+    private val chatsRef   = db.getReference("chats")      // or wherever you store DM threads
+    private val userChats  = db.getReference("userChats")  // if you have a per-user index
     /**
      * StateFlow holding the list of posts.
      */
@@ -250,6 +245,58 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         pauseFeed() // Cleanup listeners to prevent memory leaks
     }
 
+
+    /**
+     * Remove the mutual match, then delete their chat/thread entry.
+     */
+    private suspend fun unmatchAndRemoveChat(userA: String, userB: String) {
+        // 1) delete the match entries both ways
+        matchesRef.child(userA).child(userB).removeValue().await()
+        matchesRef.child(userB).child(userA).removeValue().await()
+
+        // 2) if you store a list of chats per user, remove it:
+        userChats.child(userA).child(userB).removeValue().await()
+        userChats.child(userB).child(userA).removeValue().await()
+
+        // 3) delete the conversation node itself (if it’s under chats/{conversationId})
+        //    you need to compute or look up the conversationId:
+        val conversationId = listOf(userA, userB).sorted().joinToString("_")
+        chatsRef.child(conversationId).removeValue().await()
+    }
+
+    /**
+     * Combined “report → block → unmatch” workflow
+     */
+    suspend fun reportAndBlock(
+        postId: String,
+        reporterId: String,
+        reportedUserId: String,
+        reason: String
+    ) {
+        // 1) report
+        val repRef = db.getReference("reportedPosts").child(postId).push()
+        val reportId = repRef.key ?: throw IllegalStateException("No key")
+        repRef.setValue(
+            mapOf(
+                "reportId" to reportId,
+                "postId" to postId,
+                "reporterId" to reporterId,
+                "reportedUser" to reportedUserId,
+                "reason" to reason,
+                "timestamp" to ServerValue.TIMESTAMP
+            )
+        ).await()
+
+        // 2) block
+        db.getReference("blocks")
+            .child(reporterId)
+            .child(reportedUserId)
+            .setValue(true)
+            .await()
+
+        // 3) unmatch + remove chat
+        unmatchAndRemoveChat(reporterId, reportedUserId)
+    }
 
     // Helper function to send a notification
     private suspend fun sendNotification(
@@ -1236,43 +1283,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e("PostViewModel", "Error saving post: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Failed to save post.")
-                }
-            }
-        }
-    }
-
-
-    /**
-     * Function to report a post.
-     */
-    fun reportPost(
-        postId: String,
-        reporterId: String,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val reportsRef = FirebaseRefs.db.getReference("reportedPosts").child(postId)
-                val reportId = reportsRef.push().key
-                if (reportId == null) {
-                    onFailure("Unable to generate report ID.")
-                    return@launch
-                }
-
-                val report = mapOf(
-                    "reportId" to reportId,
-                    "postId" to postId,
-                    "reporterId" to reporterId,
-                    "timestamp" to ServerValue.TIMESTAMP
-                )
-
-                reportsRef.child(reportId).setValue(report).await()
-                onSuccess()
-            } catch (e: Exception) {
-                Log.e("PostViewModel", "Error reporting post: ${e.message}", e)
-                withContext(Dispatchers.Main) {
-                    onFailure(e.message ?: "Failed to report post.")
                 }
             }
         }

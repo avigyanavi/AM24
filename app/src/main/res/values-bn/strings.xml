@@ -1268,6 +1268,11 @@
     <string name="confirm_password_label">পাসওয়ার্ড নিশ্চিত করুন</string>
     <string name="password_mismatch_error">পাসওয়ার্ডগুলো মিলেনি</string>
 
+    <string name="or_click_date_to_refresh">
+  নিচের নেভিগেশন বারে “♡” আইকনে ক্লিক করে রিফ্রেশ করুন।
+</string>
+
+
     <!-- Enter Name & Height -->
     <string name="full_name_label">পূর্ণ নাম</string>
     <string name="height_label">উচ্চতা</string>

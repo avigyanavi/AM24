@@ -44,7 +44,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
         internal const val COMPLIMENT_DAILY_QUOTA = 10
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
-        const val WORLDWIDE_DISTANCE = 101
+        const val WORLDWIDE_DISTANCE = 100
         private val RADIUS_STEPS_KM              = listOf(20.0, 50.0, 70.0, 100.0) // 🔥 NEW
         private const val DESIRED_MIN_ROWS       = 50
     }
@@ -53,6 +53,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val database = FirebaseRefs.db
     private val usersRef = database.getReference("users")
     private val geoFire = GeoFire(database.getReference("geoFireLocations"))
+    private var lastNonEmptyProfiles: List<Profile> = emptyList()
 
     // StateFlows
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
@@ -61,7 +62,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _complimentsLeft = MutableStateFlow(COMPLIMENT_DAILY_QUOTA)
     val complimentsLeft: StateFlow<Int> get() = _complimentsLeft
 
-    private val _datingFilters = MutableStateFlow(DatingFilterSettings())
+    private val _datingFilters = MutableStateFlow(DatingFilterSettings().copy(distance = WORLDWIDE_DISTANCE))
     val datingFilters: StateFlow<DatingFilterSettings> get() = _datingFilters
 
     private val _blockedUsers = MutableStateFlow<List<String>>(emptyList())
@@ -82,14 +83,32 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _userDistanceMap   = MutableStateFlow<Map<String, Float>>(emptyMap())
     val userDistanceMap: StateFlow<Map<String, Float>> get() = _userDistanceMap
 
-    val filteredProfiles: StateFlow<List<Profile>> =
-        combine(_allProfiles, _datingFilters, _blockedUsers) { profiles, filters, blocked ->
-            applyDatingFilters(profiles, filters, blocked)
-        }.stateIn(
-            scope   = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
-        )
+    // 1) the un-wrapped filter logic exactly as before
+    private val baseFiltered = combine(
+        _allProfiles,
+        _datingFilters,
+        _blockedUsers
+    ) { profiles, filters, blocked ->
+        applyDatingFilters(profiles, filters, blocked)
+    }
+
+    // 2) the “freeze while loading” wrapper
+    val displayingProfiles: StateFlow<List<Profile>> =
+        combine(baseFiltered, _isLoading) { newList, loading ->
+            if (loading) {
+                // still waiting for the network → keep showing whatever was last non-empty
+                lastNonEmptyProfiles
+            } else {
+                // network done → if we got something non-empty, cache it
+                if (newList.isNotEmpty()) lastNonEmptyProfiles = newList
+                newList
+            }
+        }
+            .stateIn(
+                scope   = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
 
 
     // ── init() is unchanged except we no longer call startRealtimeProfilesListener() ──

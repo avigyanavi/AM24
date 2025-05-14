@@ -91,11 +91,30 @@ fun DMScreenContent(navController: NavController) {
     val matchedUsers = remember { mutableStateListOf<Profile>() }
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
+    // — new: grab your blocks
+    val blockedRef = database.getReference("blocks/$currentUserId")
+    val blockedIds = remember { mutableStateListOf<String>() }
+
+    LaunchedEffect(currentUserId) {
+        blockedRef.addListenerForSingleValueEvent(object: ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                blockedIds.clear()
+                s.children.mapNotNull { it.key }
+                    .also(blockedIds::addAll)
+            }
+            override fun onCancelled(e: DatabaseError) {}
+        })
+    }
 
     val matchIds = remember { mutableStateListOf<String>() }
     val likeIds = remember { mutableStateListOf<String>() }
-    fun recomputeLiked() { likedCount = likeIds.count { !matchIds.contains(it) } }
-
+    fun recomputeLiked() {
+        likedCount = likeIds.count { id ->
+            // only count if NOT matched *and* NOT blocked
+            !matchIds.contains(id) &&
+                    !blockedIds.contains(id)
+        }
+    }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 

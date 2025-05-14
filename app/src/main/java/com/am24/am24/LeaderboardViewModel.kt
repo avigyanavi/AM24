@@ -2,8 +2,10 @@
 package com.am24.am24
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.am24.am24.FirebaseRefs.db
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
@@ -94,14 +96,20 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
 
     init {
         // fetch and compute metrics
+        Log.d("LeaderboardVM", ">>> init LeaderboardViewModel")
         FirebaseDatabase.getInstance()
             .getReference("users")
             .addListenerForSingleValueEvent(object : ValueEventListener {
+
                 override fun onDataChange(snapshot: DataSnapshot) {
+                    Log.d("LeaderboardVM", "Using RTDB instance: $db")
+                    Log.d("LeaderboardVM", "Root ref URL: ${db.reference.root}")
                     viewModelScope.launch {
                         // raw
+                        Log.d("LeaderboardVM", "Got ${snapshot.childrenCount} users from Firebase")
                         val raw = snapshot.children
                             .mapNotNull { it.getValue(Profile::class.java) }
+                        Log.d("LeaderboardVM", "Mapped to ${raw.size} Profile objects")
 
                         // compute various rank maps
                         val compRank   = raw.sortedByDescending { it.compositeScore }

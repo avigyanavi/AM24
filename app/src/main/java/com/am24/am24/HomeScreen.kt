@@ -168,15 +168,11 @@ fun HomeScreenContent(
     onSortOptionChanged: (String) -> Unit,
     listState: LazyListState // Added listState parameter
 ) {
-    var showFilterMenu by remember { mutableStateOf(false) }
-    var showSortMenu by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
-    var isVoiceOnly by remember { mutableStateOf(false) }
     val feedTabs = listOf("everyone", "matches")
     var selectedTab by remember {                   // keeps UI and VM in sync
         mutableStateOf(if (filterOption == "matches") 1 else 0)
     }
-    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -413,19 +409,6 @@ fun FeedSection(
                             }
                         )
                     },
-                    onReport = { postToReport ->
-                        // Implement report logic, possibly calling PostViewModel's reportPost
-                        postViewModel.reportPost(
-                            postId = postToReport.postId,
-                            reporterId = userId ?: "",
-                            onSuccess = {
-                                // Handle post report success
-                            },
-                            onFailure = {
-                                // Handle post report failure
-                            }
-                        )
-                    },
                     postViewModel = postViewModel,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -465,7 +448,6 @@ fun FeedItem(
     onComment: (String) -> Unit,
     currentUserId: String,
     onDelete: (Post) -> Unit,
-    onReport: (Post) -> Unit,
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -535,9 +517,13 @@ fun FeedItem(
     var playbackProgress by remember { mutableStateOf(0f) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportReason     by remember { mutableStateOf("") }
+
     // Annotate post content based on formatting markers
     val annotatedText = buildFormattedText(post.contentText ?: "")
-
+    val context = LocalContext.current
+    val scope   = rememberCoroutineScope()
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center // Center-align the card within the Box
@@ -638,22 +624,14 @@ fun FeedItem(
                                     }
                                 )
                             } else {
-                                // Another user's post
+                                // ─────────── replace your old onReport call ───────────
                                 DropdownMenuItem(
-                                    text = { Text("Report Post", color = Color.White) },
+                                    text    = { Text("Report Post", color = Color.White) },
                                     onClick = {
                                         moreOptionsExpanded = false
-                                        onReport(post)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Hide from feed", color = Color.White) },
-                                    onClick = {
-                                        moreOptionsExpanded = false
-                                        // Implement hide from feed logic here
-                                        // Possibly call a function in postViewModel to update user's feed preferences
-                                    }
-                                )
+                                        showReportDialog    = true
+                                }
+                               )
                             }
                         }
                     }
@@ -959,6 +937,77 @@ fun FeedItem(
                                 onFailure = {
                                 }
                             )
+                        }
+                    )
+                }
+
+
+                // ─────────── THE REPORT POST DIALOG ───────────
+                if (showReportDialog) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showReportDialog = false
+                            reportReason    = ""
+                        },
+                        title = { Text("Report Post") },
+                        text = {
+                            Column {
+                                Text("Please provide a reason for reporting this post:")
+                                Spacer(Modifier.height(8.dp))
+                                TextField(
+                                    value = reportReason,
+                                    onValueChange = { reportReason = it },
+                                    placeholder = { Text("Enter reason") },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(100.dp),
+                                    colors = TextFieldDefaults.textFieldColors(
+                                        containerColor       = Color.DarkGray,
+                                        focusedTextColor     = Color.White,
+                                        unfocusedTextColor   = Color.White,
+                                        focusedIndicatorColor   = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent
+                                    )
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (reportReason.isBlank()) {
+                                        Toast.makeText(context, "Reason required", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    scope.launch {
+                                        try {
+                                            postViewModel.reportAndBlock(
+                                                postId         = post.postId,
+                                                reporterId     = currentUserId,
+                                                reportedUserId = post.userId,
+                                                reason         = reportReason
+                                            )
+                                            Toast.makeText(context, "Reported, blocked & unmatched", Toast.LENGTH_SHORT).show()
+                                            showReportDialog = false
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                            ) {
+                                Text("Submit", color = Color.White)
+                            }
+                        },
+                        dismissButton = {
+                            Button(
+                                onClick = {
+                                    showReportDialog = false
+                                    reportReason    = ""
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                            ) {
+                                Text("Cancel", color = Color.White)
+                            }
                         }
                     )
                 }

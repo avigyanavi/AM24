@@ -1269,6 +1269,9 @@
     <string name="confirm_password_label">पासवर्ड की पुष्टि करें</string>
     <string name="password_mismatch_error">पासवर्ड मेल नहीं खाते</string>
 
+    <string name="or_click_date_to_refresh">
+  रिफ्रेश करने के लिए नीचे के नेविगेशन बार में “♡” आइकन पर क्लिक करें।
+</string>
     <!-- Enter Name & Height -->
     <string name="full_name_label">पूरा नाम</string>
     <string name="height_label">ऊंचाई</string>

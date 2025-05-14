@@ -97,7 +97,11 @@ import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.Transformer
 import kotlinx.coroutines.tasks.await
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.transformer.*
+import java.io.IOException
 
 // Updated Message data class (without viewed field)
 data class Message(
@@ -187,10 +191,31 @@ fun ChatScreenContent(
 
     val editLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && pendingEditUri != null) {
-            pendingEditUri = null
+    ) {
+        // Editor returned correctly
+        if (it.resultCode == Activity.RESULT_OK && pendingEditUri != null) {
+            selectedMediaUri = pendingEditUri
             previewRefresh++
+        }
+        pendingEditUri = null
+    }
+
+    // Track lifecycle explicitly:
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (pendingEditUri != null) {
+                    // Assume edit finished, even if no proper result was returned
+                    selectedMediaUri = pendingEditUri
+                    previewRefresh++
+                    pendingEditUri = null
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -467,17 +492,6 @@ fun ChatScreenContent(
             }
         }
     }
-
-    @Composable
-    fun item(label: String, code: String) = DropdownMenuItem(
-        text = { Text(label) },
-        onClick = {
-            chatLang = code
-            pickLangMenu = false
-            suggestions = null
-            placeSuggestions = null
-        }
-    )
 
     suspend fun fetchSuggestionsWithRetry(): ChatSuggestions? {
         var attempts = 0
@@ -881,17 +895,35 @@ fun ChatScreenContent(
                             fullScreenLocal = false
                         },
                         onFull = { fullScreenLocal = true },
+                        // Edit Handler
                         onEdit = {
-                            pendingEditUri = localUri
-                            val editIntent = Intent(Intent.ACTION_EDIT).apply {
-                                setDataAndType(localUri, if (selectedMediaType == "photo") "image/*" else "video/*")
-                                putExtra(MediaStore.EXTRA_OUTPUT, localUri)
-                                addFlags(
-                                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                                )
+                            scope.launch {
+                                try {
+                                    val extension = if (selectedMediaType == "photo") "jpg" else "mp4"
+                                    val localCopyUri = copyUriToLocalFile(context, localUri, extension)
+                                    pendingEditUri = localCopyUri
+
+                                    val editIntent = Intent(Intent.ACTION_EDIT).apply {
+                                        setDataAndType(localCopyUri, if (selectedMediaType == "photo") "image/*" else "video/*")
+                                        putExtra(MediaStore.EXTRA_OUTPUT, localCopyUri)
+                                        addFlags(
+                                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                        )
+                                    }
+
+                                    if (editIntent.resolveActivity(context.packageManager) != null) {
+                                        editLauncher.launch(editIntent)
+                                    } else {
+                                        Toast.makeText(context, "No suitable editor found.", Toast.LENGTH_SHORT).show()
+                                        pendingEditUri = null
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("ChatScreen", "Error preparing edit: ${e.message}")
+                                    Toast.makeText(context, "Failed to prepare edit.", Toast.LENGTH_SHORT).show()
+                                    pendingEditUri = null
+                                }
                             }
-                            editLauncher.launch(editIntent)
                         },
                         refreshKey = previewRefresh
                     )
@@ -1220,36 +1252,51 @@ fun ChatScreenContent(
                     },
                     confirmButton = {
                         Button(
+                            // Replace your existing onClick in the Report dialog with this:
                             onClick = {
-                                if (reportReason.isNotBlank()) {
-                                    scope.launch {
-                                        try {
-                                            // Submit report
-                                            submitReport(
-                                                reportsRef = reportsRef,
-                                                reporterId = currentUserId,
-                                                reportedId = otherUserId,
-                                                reason = reportReason,
-                                                context = context
-                                            )
-                                            // Block the user
-                                            blockUser(
-                                                database = database,
-                                                blockerId = currentUserId,
-                                                blockedId = otherUserId,
-                                                context = context
-                                            )
-                                            // Unmatch the user
-                                            unmatchUser()
+                                if (reportReason.isBlank()) {
+                                    Toast.makeText(context, "Please provide a reason for the report.", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                scope.launch {
+                                    try {
+                                        // 1️⃣ Submit the report
+                                        submitReport(reportsRef, currentUserId, otherUserId, reportReason, context)
+                                        // 2️⃣ Block the user
+                                        blockUser(database, currentUserId, otherUserId, context)
+
+                                        // 3️⃣ Now *inline* your unmatch logic, so it runs in this same coroutine:
+                                        val chatId = getChatId(currentUserId, otherUserId)
+                                        val updates = mapOf<String, Any?>(
+                                            "matches/$currentUserId/$otherUserId" to null,
+                                            "matches/$otherUserId/$currentUserId" to null,
+                                            "messages/$chatId" to null,
+                                            "typing/$chatId" to null
+                                        )
+                                        database.reference.updateChildren(updates).await()
+
+                                        // 4️⃣ Clear any leftover notifications for this chat:
+                                        notificationsRef.child(currentUserId)
+                                            .orderByChild("senderId").equalTo(otherUserId)
+                                            .get().await().children.forEach { it.ref.removeValue() }
+
+                                        notificationsRef.child(otherUserId)
+                                            .orderByChild("senderId").equalTo(currentUserId)
+                                            .get().await().children.forEach { it.ref.removeValue() }
+
+                                        // 5️⃣ Finally, update UI on the main thread:
+                                        withContext(Dispatchers.Main) {
                                             showReportDialog = false
+                                            messages.clear()
+                                            navController.popBackStack()
                                             Toast.makeText(context, "User reported, blocked, and unmatched.", Toast.LENGTH_SHORT).show()
-                                        } catch (e: Exception) {
-                                            Log.e("ChatScreen", "Report failed: ${e.message}")
-                                            Toast.makeText(context, "Failed to report user. Please try again.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("ChatScreen", "Report/Unmatch failed: ${e.message}")
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "Failed to report. Please try again.", Toast.LENGTH_SHORT).show()
                                         }
                                     }
-                                } else {
-                                    Toast.makeText(context, "Please provide a reason for the report.", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
@@ -1274,6 +1321,26 @@ fun ChatScreenContent(
         onDismiss = { fullScreenTarget = null },
         messagesRef = messagesRef,
         reportsRef = reportsRef
+    )
+}
+
+suspend fun copyUriToLocalFile(context: Context, uri: Uri, extension: String): Uri {
+    val inputStream = context.contentResolver.openInputStream(uri)
+        ?: throw IOException("Failed to open input stream")
+
+    val outputFile = File(context.cacheDir, "edited_${System.currentTimeMillis()}.$extension")
+    val outputStream = outputFile.outputStream()
+
+    inputStream.use { input ->
+        outputStream.use { output ->
+            input.copyTo(output)
+        }
+    }
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        outputFile
     )
 }
 

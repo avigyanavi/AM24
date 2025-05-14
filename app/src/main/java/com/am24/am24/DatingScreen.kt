@@ -136,6 +136,11 @@ fun DatingScreen(
     val profileViewModel: ProfileViewModel = viewModel()
     val postViewModel: PostViewModel       = viewModel()
     val coroutineScope                     = rememberCoroutineScope()
+    var showSwipeLimitOverlay by remember { mutableStateOf(false) }
+
+    /* Auto-tap counter for empty profiles */
+    var autoTapCount by rememberSaveable { mutableStateOf(0) }
+    val maxAutoTaps = 5
 
     /* fetch *my* Profile once */
     LaunchedEffect(Unit) { profileViewModel.fetchCurrentUserProfile() }
@@ -149,7 +154,7 @@ fun DatingScreen(
         return
     }
     val filters           by datingViewModel.datingFilters.collectAsState()
-    val filteredProfiles  by datingViewModel.filteredProfiles.collectAsState()
+    val filteredProfiles  by datingViewModel.displayingProfiles.collectAsState()
     val isLoading         by datingViewModel.isLoading.collectAsState()
     val matchPopUpState   by profileViewModel.matchPopUpState.collectAsState()
     val boostedUsers      by datingViewModel.boostedUsers.collectAsState()
@@ -168,11 +173,6 @@ fun DatingScreen(
     val last = myProfile?.lastBoostTimestamp ?: 0L
     val inCooldown = now - last < BOOST_DURATION
     val canBoost = myProfile?.availableBoosts!! > 0 && !inCooldown
-
-    val bottomSheetState = rememberModalBottomSheetState(
-        initialValue = ModalBottomSheetValue.Hidden,
-        skipHalfExpanded = true
-    )
 
     var showComplimentDialog by remember { mutableStateOf(false) }
 
@@ -220,6 +220,31 @@ fun DatingScreen(
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
     val currentSwipeProfile = displayedProfiles.getOrNull(currentIndex)
+
+    // add this:
+    var initialProcessed by remember { mutableStateOf(false) }
+    LaunchedEffect(initialQuery, displayedProfiles) {
+        if (!initialProcessed && initialQuery.isNotBlank()) {
+            // find the deep-link target
+            val idx = displayedProfiles.indexOfFirst { it.userId == initialQuery }
+            if (idx >= 0) {
+                currentIndex = idx
+            }
+            initialProcessed = true
+        }
+    }
+
+    /* Auto-tap dating icon when profiles are empty */
+    LaunchedEffect(displayedProfiles, isLoading) {
+        if (!isLoading && displayedProfiles.isEmpty() && autoTapCount < maxAutoTaps) {
+            delay(1000) // Delay to allow profile fetching
+            navController.navigate("dating") {
+                launchSingleTop = true
+                restoreState = true
+            }
+            autoTapCount++
+        }
+    }
 
     /* bottom-sheet for filters */
     val sheetState = rememberModalBottomSheetState(
@@ -273,7 +298,10 @@ fun DatingScreen(
             )
         }
     ) {
-        Column(Modifier.fillMaxSize().background(Color.Black)) {
+        Column(Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+        ) {
 
             // ── TOOLBAR ───────────────────────────────────────────────
             Row(
@@ -329,6 +357,15 @@ fun DatingScreen(
                             }
                         }
                     )
+                    Spacer(Modifier.width(16.dp))
+
+                    IconWithQuota(
+                        quota   = remainingSwipes,               // how many swipes you have left
+                        icon    = Icons.Default.Swipe,
+                        onClick = { showSwipeLimitOverlay = true },
+                        tint    = Color.White,
+                        enabled = remainingSwipes > 0
+                    )
                 }
 
                 /* yellow flash overlay on successful boost */
@@ -365,7 +402,10 @@ fun DatingScreen(
                         color = Color(0xFFFF6F00)
                     )
 
-                    displayedProfiles.isEmpty() -> NoMoreProfilesScreen()
+                    displayedProfiles.isEmpty() -> NoMoreProfilesScreen(
+                        autoTapCount = autoTapCount,
+                        maxAutoTaps = maxAutoTaps
+                    )
 
                     else -> DatingScreenContent(
                         navController    = navController,
@@ -377,6 +417,7 @@ fun DatingScreen(
                         boostedUsers     = boostedUsers,
                         onSwipeRight     = {
                             if (remainingSwipes > 0) remainingSwipes--
+                            updateSwipesInFirebase(remainingSwipes)         // ← persist
                             currentIndex++
                         },
                         onSwipeLeft      = {
@@ -385,27 +426,23 @@ fun DatingScreen(
                         }
                     )
                 }
+                // ── if they’ve exhausted swipes, show your overlay (below) ──
+                if (swipesLoaded && remainingSwipes <= 0 && !showSwipeLimitOverlay) {
+                    showSwipeLimitOverlay = true
+                }
 
-                /* daily swipe-limit overlay */
-                if (swipesLoaded && remainingSwipes <= 0) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.8f))
-                            .pointerInput(Unit) { /* block touches */ },
-                        contentAlignment = Alignment.Center
+                // ② if they've used up all their swipes, show the pretty overlay:
+                if (showSwipeLimitOverlay) {
+                    SwipeLimitOverlay(
+                        remainingSwipes = remainingSwipes,
+                        isPlus = myProfile!!.isPlus,
+                        isPremium = myProfile!!.isPremium
                     ) {
-                        Text(
-                            stringResource(R.string.no_more_swipes_available),
-                            color = Color.White,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        showSwipeLimitOverlay = false
                     }
                 }
             }
-        }
-
+            }
         /* match pop-up, compliment dialog – unchanged from your code */
         matchPopUpState?.let { (you, them) ->
             MatchPopUp(
@@ -418,7 +455,6 @@ fun DatingScreen(
                 onClose = { profileViewModel.clearMatchPopUp() }
             )
         }
-
         if (showComplimentDlg && displayedProfiles.isNotEmpty()) {
             ComplimentDialog(
                 complimentsLeft = complimentsLeft,
@@ -477,12 +513,12 @@ fun IconWithQuota(
     }
 }
 /**
- * Load swipes from Firebase and reset them to 25 if a new day has started.
+ * Load swipes from Firebase and reset them to 15 if a new day has started.
  */
 suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
     val snapshot = swipesRef.get().await()
-    var remainingSwipes = 25
+    var remainingSwipes = 15
     var lastResetDayOfYear = -1
     snapshot.child("remainingSwipes").getValue(Int::class.java)?.let {
         remainingSwipes = it
@@ -493,7 +529,7 @@ suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val calendar = Calendar.getInstance()
     val todayDayOfYear = calendar.get(Calendar.DAY_OF_YEAR)
     if (todayDayOfYear != lastResetDayOfYear) {
-        remainingSwipes = 25
+        remainingSwipes = 15
         lastResetDayOfYear = todayDayOfYear
     }
     swipesRef.child("remainingSwipes").setValue(remainingSwipes)
@@ -506,6 +542,73 @@ fun updateSwipesInFirebase(newSwipesCount: Int) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
     swipesRef.child("remainingSwipes").setValue(newSwipesCount)
+}
+
+@Composable
+fun SwipeLimitOverlay(
+    remainingSwipes: Int,
+    isPlus: Boolean,
+    isPremium: Boolean,
+    onDismiss: () -> Unit
+) {
+    // compute your daily quota
+    val quota = when {
+        isPremium  -> Int.MAX_VALUE
+        isPlus     -> 50
+        else       -> 15
+    }
+
+    // countdown to midnight
+    var timeLeft by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = System.currentTimeMillis()
+            val cal = Calendar.getInstance().apply {
+                timeInMillis = now
+                add(Calendar.DAY_OF_YEAR, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE,      0)
+                set(Calendar.SECOND,      0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val diff = cal.timeInMillis - now
+            val h = diff / 3_600_000
+            val m = (diff % 3_600_000) / 60_000
+            val s = (diff % 60_000) / 1000
+            timeLeft = String.format("%02d:%02d:%02d", h, m, s)
+            delay(1000)
+        }
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.8f))
+            .pointerInput(Unit) {},   // eat all touches
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Column(
+                Modifier
+                    .background(Color(0xFF1A1A1A))
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Swipes Remaining", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(12.dp))
+                Text("$remainingSwipes / ${if (quota == Int.MAX_VALUE) "∞" else quota}", color = Color.White, fontSize = 32.sp)
+                Spacer(Modifier.height(12.dp))
+                Text("Resets in: $timeLeft", color = Color.Gray)
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))) {
+                    Text("OK", color = Color.Black)
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -653,7 +756,7 @@ fun FiltersOverlay(
                     onValueChange   = { onDistanceChange(it.roundToInt()) },
                     valueRange      = 0f..DatingViewModel.WORLDWIDE_DISTANCE.toFloat(),
                     // 0-100 give us 101 stops, plus one extra ⇒ 102-1 = 101 visible stops
-                    steps           = DatingViewModel.WORLDWIDE_DISTANCE - 1,
+                    steps           = 10,
                     colors          = SliderDefaults.colors(
                         thumbColor        = Color(0xFFFF6000),
                         activeTrackColor  = Color(0xFFFF6000),
@@ -1141,7 +1244,7 @@ fun DropdownFilter(
 }
 
 @Composable
-fun NoMoreProfilesScreen() {
+fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 5) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1151,13 +1254,24 @@ fun NoMoreProfilesScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = stringResource(R.string.no_more_profiles),
+            text = if (autoTapCount < maxAutoTaps)
+                stringResource(R.string.no_more_profiles) + " Trying again... ($autoTapCount/$maxAutoTaps)"
+            else
+                stringResource(R.string.no_more_profiles) + " No profiles found after $maxAutoTaps attempts.",
             color = Color.White,
             fontSize = 18.sp,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
             text = stringResource(R.string.adjust_filters),
+            color = Color.White,
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Text(
+            text = stringResource(R.string.or_click_date_to_refresh),
             color = Color.White,
             fontSize = 16.sp,
             textAlign = TextAlign.Center,
@@ -1191,6 +1305,10 @@ fun DatingScreenContent(
     /* distance + AI check – unchanged */
     var userDistance  by remember { mutableStateOf<Float?>(null) }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+    // in DatingProfileCard, before Card:
+    val allPosts       by postViewModel.posts.collectAsState()
+    val myPosts         = allPosts.filter { it.userId == currentProfile.userId }
+    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
 
     LaunchedEffect(currentProfile.userId) {
         userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
@@ -1205,6 +1323,7 @@ fun DatingScreenContent(
             profile        = currentProfile,
             isBoosted      = isBoostedProfile,
             aiMatchResult  = aiMatchResult,
+            sortedByUpvotes  = sortedByUpvotes,      // ← pass it i
             userDistance   = distance,
             navController  = navController,
             postViewModel  = postViewModel,
@@ -1227,6 +1346,7 @@ fun DatingProfileCard(
     profile: Profile,
     isBoosted: Boolean,                         // ← NEW
     aiMatchResult: AiMatchCheckResult?,
+    sortedByUpvotes: List<Post>,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
     userDistance: Float,
@@ -1285,15 +1405,17 @@ fun DatingProfileCard(
                     isBoosted      = isBoosted,            // ← pass through
                     userDistance = userDistance,
                     aiMatchResult = aiMatchResult,
-                    currentProfile = currentProfile
+                    sortedByUpvotes = sortedByUpvotes,
+                currentProfile = currentProfile
                 )
             }
             item {
-                DatingProfileHeader(
-                    profile = profile,
-                    userDistance = userDistance,
-                    sortedByUpvotes = sortedByUpvotes // Pass the list here
-                )
+                 DatingProfileHeader(
+                         profile         = profile,
+                         userDistance    = userDistance,
+                         sortedByUpvotes = sortedByUpvotes,
+                         isBoosted       = isBoosted       // ⚡ NEW ARG
+                 )
             }
             item {
                 ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult)
@@ -1335,15 +1457,14 @@ fun DatingProfileCard(
 
 @Composable
 fun DatingProfileHeader(
-    profile: Profile,
-    userDistance: Float,
-    sortedByUpvotes: List<Post>
+        profile: Profile,
+        userDistance: Float,
+        sortedByUpvotes: List<Post>,
+        isBoosted: Boolean                 // ⚡ NEW PARAM
 ) {
-    val age = calculateAge(profile.dob)
     val community = profile.community
     val religion = profile.religion
     val caste = profile.caste
-    var showPostsOverlay by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1356,6 +1477,11 @@ fun DatingProfileHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+                    /* ———  BOOST PILL ——— */
+                    if (isBoosted) {
+                            BoostedPill()              // ⬅️ inject the orange “Boosted profile” chip
+                            Spacer(Modifier.width(6.dp))
+                        }
             Row {
                 if (community.isNotBlank()) {
                     TagBox(text = community)
@@ -1370,42 +1496,6 @@ fun DatingProfileHeader(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (age > 0) stringResource(
-                    R.string.name_age,
-                    profile.name,
-                    age
-                ) else profile.name,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                color = Color.White,
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(end = 8.dp)
-            )
-            Button(
-                onClick = { showPostsOverlay = true },
-                colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00)),
-                modifier = Modifier.height(30.dp)
-            ) {
-                Text(stringResource(R.string.posts), color = Color.White, fontSize = 12.sp)
-            }
-        }
-    }
-
-    if (showPostsOverlay) {
-        PostsOverlay(
-            posts = sortedByUpvotes,
-            onDismiss = { showPostsOverlay = false }
-        )
     }
 }
 
@@ -1441,6 +1531,7 @@ fun PhotoWithTwoOverlays(
     isBoosted: Boolean,
     userDistance: Float,
     aiMatchResult: AiMatchCheckResult?,
+    sortedByUpvotes: List<Post>,
     currentProfile: Profile? = null
 ) {
     var currentPhotoIndex by remember { mutableStateOf(0) }
@@ -1449,6 +1540,11 @@ fun PhotoWithTwoOverlays(
     val datingViewModel: DatingViewModel = viewModel()
     val compliments by datingViewModel.complimentsReceived.collectAsState()
     val compliment = compliments[profile.userId]
+    // bring in age calculation
+    val age = calculateAge(profile.dob)
+
+    // bring in posts state
+    var showPostsOverlay by remember { mutableStateOf(false) }
 
     // Prepare interest strings
     val interestsTexts = profile.interests.map { "${it.emoji} ${it.name}" }
@@ -1581,6 +1677,37 @@ fun PhotoWithTwoOverlays(
                     )
                 }
             }
+            // ─── NEW NAME & AGE OVERLAY ─────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopStart)
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (age > 0) "${profile.name}, $age" else profile.name,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Button(
+                    onClick = { showPostsOverlay = true },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.posts),
+                        color = Color.White,
+                        fontSize = 12.sp
+                    )
+                }
+            }
 
             // Bottom overlay (always three slots)
             Box(
@@ -1658,14 +1785,24 @@ fun PhotoWithTwoOverlays(
                 )
             }
         }
+        // ─── HOOK UP THE OVERLAY DIALOG ─────────────────
+        if (showPostsOverlay) {
+            PostsOverlay(
+                posts = sortedByUpvotes,
+                onDismiss = { showPostsOverlay = false }
+            )
+        }
 
-        // Distance tag below the photo
-        TagBox(
+        // Distance string below the photo
+        Text(
             text = if (userDistance.isNaN() || userDistance > 100f)
                 stringResource(R.string.worldwide)          // 🔶
             else
                 stringResource(R.string.max_distance, userDistance.roundToInt()),
-            modifier = Modifier.padding(start = 14.dp, top = 8.dp)
+            color = Color.White,
+            fontSize = 18.sp,
+            modifier = Modifier
+                .padding(start = 14.dp, top = 8.dp)
         )
     }
 }
