@@ -81,6 +81,7 @@ import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.net.toUri
+import androidx.navigation.compose.currentBackStackEntryAsState
 import java.util.Calendar
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -137,6 +138,10 @@ fun DatingScreen(
     val postViewModel: PostViewModel       = viewModel()
     val coroutineScope                     = rememberCoroutineScope()
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
+
+    // 1) watch for “are we still on the Dating route?”
+    val backstackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute    = backstackEntry?.destination?.route
 
     /* Auto-tap counter for empty profiles */
     var autoTapCount by rememberSaveable { mutableStateOf(0) }
@@ -235,12 +240,16 @@ fun DatingScreen(
     }
 
     /* Auto-tap dating icon when profiles are empty */
-    LaunchedEffect(displayedProfiles, isLoading) {
-        if (!isLoading && displayedProfiles.isEmpty() && autoTapCount < maxAutoTaps) {
-            delay(1000) // Delay to allow profile fetching
+    LaunchedEffect(currentRoute, displayedProfiles, isLoading) {
+        if (currentRoute == "dating"                     // only run if we’re still here
+            && !isLoading
+            && displayedProfiles.isEmpty()
+            && autoTapCount < maxAutoTaps
+        ) {
+            delay(1_000)  // give Firebase a chance to come back
             navController.navigate("dating") {
                 launchSingleTop = true
-                restoreState = true
+                restoreState    = true
             }
             autoTapCount++
         }

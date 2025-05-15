@@ -277,73 +277,6 @@
     <string name="college_st_xaviers_mumbai">সেন্ট জেভিয়ার্স কলেজ, মুম্বাই</string>
     <string name="college_mcc_chennai">মাদ্রাস ক্রিশ্চিয়ান কলেজ, চেন্নাই</string>
 
-        <!-- ─── Kolkata cluster ─── -->
-        <string name="interest_airport_area">বিমানবন্দর এলাকা</string>
-        <string name="interest_local_market">স্থানীয় বাজার</string>
-        <string name="interest_old_market">পুরনো বাজার</string>
-        <string name="interest_local_eateries">স্থানীয় খাবার দোকান</string>
-        <string name="interest_nightlife">নাইটলাইফ</string>
-        <string name="interest_park_street_cafes">পার্ক স্ট্রিট ক্যাফে</string>
-
-        <!-- ─── Hooghly / Chandannagar ─── -->
-        <string name="interest_chandannagar_strand">চন্দননগর স্ট্র্যান্ড</string>
-        <string name="interest_french_heritage">ফরাসি ঐতিহ্য</string>
-        <string name="interest_riverside_ghats">নদীপাড়ের ঘাট</string>
-        <string name="interest_heritage_walks">ঐতিহ্য ভ্রমণ</string>
-
-        <!-- ─── Howrah ─── -->
-        <string name="interest_avani_mall">আভানি মল</string>
-
-        <!-- ─── Durgapur / Asansol belt ─── -->
-        <string name="interest_city_centre_plaza">সিটি সেন্টার প্লাজা</string>
-        <string name="interest_steel_plant_tour">স্টিল প্ল্যান্ট ভ্রমণ</string>
-        <string name="interest_burnpur_riverside">বার্নপুর নদীপাড়</string>
-        <string name="interest_chittaranjan_park">চিত্তরঞ্জন পার্ক</string>
-
-        <!-- ─── North‑Bengal cluster ─── -->
-        <string name="interest_hongkong_market">হংকং মার্কেট</string>
-        <string name="interest_mahananda_wls">মহানন্দা বন্যপ্রাণী অভয়ারণ্য</string>
-        <string name="interest_toy_train">টয় ট্রেন</string>
-        <string name="interest_tea_estate_walks">চা বাগান ভ্রমণ</string>
-        <string name="interest_gorumara_safari">গরুমারা সাফারি</string>
-        <string name="interest_rafting_teesta">তিস্তা র্যাফটিং</string>
-        <string name="interest_rajbari_palace">রাজবাড়ি প্রাসাদ</string>
-        <string name="interest_sagar_dighi">সাগর‑দিঘি</string>
-        <string name="interest_buxa_fort_trek">বক্সা দুর্গ ট্রেক</string>
-        <string name="interest_jayanti_picnic">জয়ন্তী নদী পিকনিক</string>
-
-        <!-- ─── South‑West cluster ─── -->
-        <string name="interest_iit_campus_walk">আইআইটি ক্যাম্পাস হাঁটা</string>
-        <string name="interest_gol_bazaar_food">গোল বাজার খাবার</string>
-        <string name="interest_vidyasagar_lake">বিদ্যাসাগর বিশ্ববিদ্যালয় লেক</string>
-        <string name="interest_khudiram_park">ক্ষুদিরাম পার্ক</string>
-        <string name="interest_river_cruise">নৌ ভ্রমণ</string>
-        <string name="interest_marine_drive">মেরিন ড্রাইভ</string>
-
-        <!-- ─── Central WB ─── -->
-        <string name="interest_curzon_gate_photo">কার্জন গেট ছবি</string>
-        <string name="interest_sitabhog_mihidana">সিতাভোগ ও মিহিদানা টেস্টিং</string>
-        <string name="interest_terracotta_art">টেরাকোটা শিল্প</string>
-        <string name="interest_susunia_trek">সুসুনিয়া ট্রেক</string>
-        <string name="interest_ayodhya_hills">অযোধ্যা পাহাড়</string>
-        <string name="interest_chhau_dance">ছাউ নৃত্য</string>
-
-        <!-- ─── Nadia zone ─── -->
-        <string name="interest_clay_doll_lane">মাটির পুতুল গলি</string>
-        <string name="interest_ghurni_artists">ঘূর্ণি শিল্পী</string>
-        <string name="interest_university_campus_walk">বিশ্ববিদ্যালয় ক্যাম্পাস হাঁটা</string>
-        <string name="interest_kalyani_lake">কল্যাণী লেক</string>
-        <string name="interest_boutique_sarees">বুটিক শাড়ি</string>
-        <string name="interest_churni_riverbank">চূর্ণি নদীপাড়</string>
-
-        <!-- ─── North‑centre / Murshidabad ─── -->
-        <string name="interest_mango_festival">আম উৎসব</string>
-        <string name="interest_gour_ruins">গৌড় ধ্বংসাবশেষ</string>
-        <string name="interest_hazar_duari_museum">হাজারদুয়ারি জাদুঘর</string>
-        <string name="interest_khusbagh_gardens">খুশবাগ উদ্যান</string>
-        <string name="interest_berhampore_silk">বহরমপুর সিল্ক শপিং</string>
-        <string name="interest_cossimbazar_rajbari">কসিমবাজার রাজবাড়ি</string>
-
     <string name="match_summary_format">
         মোট মিল: %1$d%%\nবিস্তারিত:\n%2$s
     </string>
@@ -365,26 +298,70 @@
     <string name="interest_nature">প্রকৃতি</string>
     <string name="interest_pets">পোষ্য</string>
     <string name="interest_fashion">ফ্যাশন</string>
-    <string name="interest_dance">নাচ</string>
+    <string name="interest_charity">দান কার্যক্রম</string>
+    <string name="interest_community">কমিউনিটি সংগঠন</string>
+    <string name="interest_networking">নেটওয়ার্কিং</string>
+    <string name="interest_public_speaking">পাবলিক স্পিকিং</string>
+    <string name="interest_writing">লেখা</string>
+    <string name="interest_blogging">ব্লগিং</string>
+    <string name="interest_podcasting">পডকাস্টিং</string>
+    <string name="interest_social_media">সোশ্যাল মিডিয়া</string>
+    <string name="interest_online_communities">অনলাইন কমিউনিটি</string>
 
-    <!-- West‑Bengal locality interests -->
-    <string name="interest_eco_park">ইকো পার্ক</string>
-    <string name="interest_cc_block_market">সিসি ব্লক মার্কেট</string>
-    <string name="interest_sector_v_it_hub">সেক্টর ৫ আইটি হাব</string>
-    <string name="interest_city_centre_2">সিটি সেন্টার ২</string>
-    <string name="interest_victoria_memorial">ভিক্টোরিয়া মেমোরিয়াল</string>
-    <string name="interest_princep_ghat">প্রিন্সেপ ঘাট</string>
-    <string name="interest_nicco_park">নিক্কো পার্ক</string>
-    <string name="interest_science_city">সায়েন্স সিটি</string>
-    <string name="interest_dakshineswar_temple">দক্ষিণেশ্বর মন্দির</string>
-    <string name="interest_belur_math">বেলুড় মঠ</string>
-    <string name="interest_howrah_bridge">হাওড়া ব্রিজ</string>
-    <string name="interest_iit_kharagpur_campus">আইআইটি খড়গপুর ক্যাম্পাস</string>
-    <string name="interest_digha_beach">দীঘা বিচ</string>
-    <string name="interest_tiger_hill">টাইগার হিল</string>
-    <string name="interest_mall_road">মল রোড (দার্জিলিং)</string>
-    <string name="interest_hazarduari_palace">হাজারদুয়ারি প্যালেস</string>
-    <string name="interest_shantiniketan">শান্তিনিকেতন</string>
+    <string name="interest_skydiving">স্কাইডাইভিং</string>
+    <string name="interest_scuba_diving">স্কুবা ডাইভিং</string>
+    <string name="interest_rock_climbing">রক ক্লাইমিং</string>
+    <string name="interest_surfing">সার্ফিং</string>
+    <string name="interest_skiing">স্কিইং</string>
+    <string name="interest_snowboarding">স্নোবোর্ডিং</string>
+    <string name="interest_mountain_biking">মাউন্টাইন বাইকিং</string>
+    <string name="interest_motorcycling">মোটরসাইক্লিং</string>
+    <string name="interest_car_racing">কার রেসিং</string>
+    <string name="interest_extreme_sports">এক্সট্রিম স্পোর্টস</string>
+
+    <string name="interest_puzzles">ধাঁধা</string>
+    <string name="interest_board_games">বোর্ড গেমস</string>
+    <string name="interest_video_games">ভিডিও গেমস</string>
+    <string name="interest_watching_tv">টিভি দেখা</string>
+    <string name="interest_napping">ন্যাপিং</string>
+    <string name="interest_spa_days">স্পা ডে</string>
+    <string name="interest_beach_days">বিচ ডে</string>
+    <string name="interest_picnics">পিকনিক</string>
+
+    <string name="interest_coding">কোডিং</string>
+    <string name="interest_robotics">রোবোটিক্স</string>
+    <string name="interest_space">মহাকাশ অন্বেষণ</string>
+    <string name="interest_environmentalism">পরিবেশবাদ</string>
+
+    <string name="interest_baking">বেকিং</string>
+    <string name="interest_wine_tasting">ওয়াইন টেস্টিং</string>
+    <string name="interest_craft_beer">ক্রাফ্ট বিয়ার</string>
+    <string name="interest_coffee">কফি</string>
+
+    <string name="interest_yoga">যোগ</string>
+    <string name="interest_meditation">ধ্যান</string>
+    <string name="interest_astrology">জ্যোতিষ</string>
+    <string name="interest_romance">প্রেম</string>
+    <string name="interest_crystals">ক্রিস্টালস</string>
+
+    <string name="interest_vintage_clothing">ভিন্টেজ পোশাক</string>
+    <string name="interest_thrift_shopping">থ্রিফট শপিং</string>
+    <string name="interest_diy">ডিআইওয়াই প্রকল্প</string>
+    <string name="interest_home_improvement">গৃহ উন্নয়ন</string>
+    <string name="interest_interior_design">অভ্যন্তরীণ নকশা</string>
+
+    <string name="interest_history">ইতিহাস</string>
+    <string name="interest_science">বিজ্ঞান</string>
+    <string name="interest_philosophy">দর্শন শাস্ত্র</string>
+    <string name="interest_politics">রাজনীতি</string>
+    <string name="interest_economics">অর্থনীতি</string>
+
+    <string name="interest_hiking">হাইকিং</string>
+    <string name="interest_camping">ক্যাম্পিং</string>
+    <string name="interest_fishing">মাছ ধরা</string>
+    <string name="interest_hunting">শিকার</string>
+
+    <string name="interest_traveling">ভ্রমণ</string>
 
 
     <string name="jan">জানুয়ারি</string>

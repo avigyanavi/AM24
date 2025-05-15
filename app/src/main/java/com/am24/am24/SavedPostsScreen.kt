@@ -24,6 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.navigation.NavController
 import androidx.compose.ui.Modifier
@@ -31,7 +34,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ServerValue
+import com.google.firebase.database.ValueEventListener
 import java.util.UUID
 
 @Composable
@@ -46,6 +52,22 @@ fun SavedPostsScreen(
     // Collect saved posts and user profiles as State
     val savedPosts by postViewModel.savedPosts.collectAsState(initial = emptyList())
     val userProfiles by postViewModel.userProfiles.collectAsState(initial = emptyMap())
+
+    var myMatches by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            FirebaseRefs.db
+                .getReference("matches")
+                .child(userId)
+                .addListenerForSingleValueEvent(object: ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        myMatches = snapshot.children.mapNotNull { it.key }
+                    }
+                    override fun onCancelled(error: DatabaseError) { /* … */ }
+                })
+        }
+    }
 
     // Trigger loading saved posts when userId becomes available
     LaunchedEffect(userId) {
@@ -101,6 +123,8 @@ fun SavedPostsScreen(
                         post = post,
                         postViewModel = postViewModel,
                         userProfile = profile,
+                        matches       = myMatches,                 // ← here
+                        userProfiles  = userProfiles,   // ← pass it through
                         onUpvote = {
                             postViewModel.upvotePost(
                                 postId = post.postId,
@@ -125,13 +149,13 @@ fun SavedPostsScreen(
                             }
                         },
                         onTagClick = { /* no-op */ },
-                        onShare = {
-                            postViewModel.sharePostWithMatches(
-                                postId = post.postId,
-                                matches = emptyList(),
-                                onSuccess = {},
-                                onFailure = {}
-                            )
+                             onShare       = {
+                                   postViewModel.sharePostWithMatches(
+                                         postId   = post.postId,
+                                         matches  = myMatches,      // ← use real matches
+                                         onSuccess= { /* toast…*/ },
+                                         onFailure= { /*…*/ }
+                                       )
                         },
                         onSave = {
                             postViewModel.savePost(

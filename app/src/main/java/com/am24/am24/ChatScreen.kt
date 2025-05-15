@@ -114,6 +114,9 @@ data class Message(
     val mediaType: String? = null, // Supports "photo", "video" or "voice"
     val mediaUrl: String? = null,
     val processed: Boolean = false,
+    @get:PropertyName("isPost")
+    @set:PropertyName("isPost")
+    var isPost: Boolean = false // Add this field to flag shared posts
 )
 
 @Composable
@@ -439,7 +442,35 @@ fun ChatScreenContent(
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 isLoadingMessages = true
-                val newMessages = snapshot.children.mapNotNull { it.getValue(Message::class.java) }
+                val newMessages = snapshot.children.mapNotNull { msgSnapshot ->
+                    // Skip the "participants" node
+                    if (msgSnapshot.key == "participants") return@mapNotNull null
+
+                    try {
+                        val map = msgSnapshot.value as? Map<String, Any> ?: return@mapNotNull null
+                        Message(
+                            id = map["id"] as? String ?: "",
+                            senderId = map["senderId"] as? String ?: "",
+                            receiverId = map["receiverId"] as? String ?: "",
+                            text = map["text"] as? String ?: "",
+                            timestamp = (map["timestamp"] as? Long) ?: System.currentTimeMillis(),
+                            read = map["read"] as? Boolean ?: false,
+                            mediaType = map["mediaType"] as? String,
+                            mediaUrl = map["mediaUrl"] as? String,
+                            processed = map["processed"] as? Boolean ?: false,
+                            isPost = map["isPost"] as? Boolean ?: false
+                        ).also { msg ->
+                            Log.d("ChatScreen", "Received message: id=${msg.id}, isPost=${msg.isPost}, mediaType=${msg.mediaType}, text=${msg.text}, mediaUrl=${msg.mediaUrl}")
+                            if (msg.text.isEmpty() && msg.mediaUrl == null) {
+                                Log.w("ChatScreen", "Blank message detected: id=${msg.id}, isPost=${msg.isPost}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ChatScreen", "Error deserializing message ${msgSnapshot.key}: ${e.message}")
+                        null
+                    }
+                }
+                Log.d("ChatScreen", "Fetched ${newMessages.size} messages for chatId=$chatId")
                 messages.clear()
                 messages.addAll(newMessages)
                 isLoadingMessages = false
@@ -795,19 +826,48 @@ fun ChatScreenContent(
                             item { TypingIndicator() }
                         }
                         items(messages.reversed()) { message ->
-                            when (message.mediaType) {
-                                "voice" -> VoiceMessageBubble(message, currentUserId)
-                                "photo" -> MediaMessageBubble(
-                                    message,
-                                    currentUserId,
-                                    onFullscreen = { fullScreenTarget = it }
+                            if (message.isPost) {
+                                // Map Message to Post for PostBubble
+                                val post = Post(
+                                    postId = message.id,
+                                    userId = message.senderId,
+                                    contentText = message.text,
+                                    mediaUrl = message.mediaUrl,
+                                    mediaType = message.mediaType,
+                                    timestamp = message.timestamp
                                 )
-                                "video" -> MediaMessageBubble(
-                                    message,
-                                    currentUserId,
-                                    onFullscreen = { fullScreenTarget = it }
+                                PostBubble(
+                                    post = post,
+                                    currentUserId = currentUserId,
+                                    onFullscreen = { p ->
+                                        // Map Post back to Message for FullscreenMediaViewer
+                                        fullScreenTarget = Message(
+                                            id = p.postId,
+                                            senderId = p.userId,
+                                            receiverId = if (p.userId == currentUserId) otherUserId else currentUserId,
+                                            text = p.contentText ?: "",
+                                            timestamp = p.timestamp as Long,
+                                            mediaType = p.mediaType,
+                                            mediaUrl = p.mediaUrl,
+                                            isPost = true
+                                        )
+                                    }
                                 )
-                                else -> MessageBubble(message, currentUserId)
+                            } else {
+                                when (message.mediaType) {
+                                    "voice" -> VoiceMessageBubble(message, currentUserId)
+                                    "photo" -> MediaMessageBubble(
+                                        message,
+                                        currentUserId,
+                                        onFullscreen = { fullScreenTarget = it }
+                                    )
+                                    "video" -> MediaMessageBubble(
+                                        message,
+                                        currentUserId,
+                                        onFullscreen = { fullScreenTarget = it }
+                                    )
+                                    else -> MessageBubble(message, currentUserId)
+                                }
                             }
                         }
                         compliment?.let { c ->
@@ -2238,6 +2298,81 @@ fun SelectedMediaFullScreen(
         }
     }
 }
+
+@Composable
+fun PostBubble(
+    post: Post,
+    currentUserId: String,
+    onFullscreen: (Post) -> Unit
+) {
+    val isCurrentUser = post.userId == currentUserId
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
+    ) {
+        Column(
+            modifier = Modifier
+                .background(Color.Black, RoundedCornerShape(12.dp))
+                .border(2.dp, Color(0xFFFFA500), RoundedCornerShape(12.dp)) // Orange border for shared posts
+                .padding(12.dp)
+        ) {
+            // Indicate shared post
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Share, contentDescription = "Shared Post", tint = Color(0xFFFFA500), modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Shared Post", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(8.dp))
+            // Render content based on mediaType
+            when (post.mediaType) {
+                "voice" -> {
+                    // Map Post to Message for VoiceMessageBubble
+                    val message = Message(
+                        id = post.postId,
+                        senderId = post.userId,
+                        receiverId = if (isCurrentUser) "" else currentUserId,
+                        text = "",
+                        timestamp = post.timestamp as Long,
+                        mediaType = "voice",
+                        mediaUrl = post.mediaUrl
+                    )
+                    VoiceMessageBubble(message, currentUserId)
+                }
+                "photo", "video" -> {
+                    // Map Post to Message for MediaMessageBubble
+                    val message = Message(
+                        id = post.postId,
+                        senderId = post.userId,
+                        receiverId = if (isCurrentUser) "" else currentUserId,
+                        text = post.contentText ?: "",
+                        timestamp = post.timestamp as Long,
+                        mediaType = post.mediaType,
+                        mediaUrl = post.mediaUrl
+                    )
+                    MediaMessageBubble(
+                        message = message,
+                        currentUserId = currentUserId,
+                        onFullscreen = { onFullscreen(post) }
+                    )
+                }
+                else -> {
+                    // Map Post to Message for MessageBubble
+                    val message = Message(
+                        id = post.postId,
+                        senderId = post.userId,
+                        receiverId = if (isCurrentUser) "" else currentUserId,
+                        text = post.contentText ?: "",
+                        timestamp = post.timestamp as Long
+                    )
+                    MessageBubble(message, currentUserId)
+                }
+            }
+        }
+    }
+}
+
 
 // Submit a report to Firebase
 private suspend fun submitReport(

@@ -298,18 +298,26 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * Remove the mutual match, then delete their chat/thread entry.
      */
     private suspend fun unmatchAndRemoveChat(userA: String, userB: String) {
-        // 1) delete the match entries both ways
-        matchesRef.child(userA).child(userB).removeValue().await()
-        matchesRef.child(userB).child(userA).removeValue().await()
+        try {
+            // 1) Delete the match entries both ways
+            matchesRef.child(userA).child(userB).removeValue().await()
+            matchesRef.child(userB).child(userA).removeValue().await()
 
-        // 2) if you store a list of chats per user, remove it:
-        userChats.child(userA).child(userB).removeValue().await()
-        userChats.child(userB).child(userA).removeValue().await()
+            // 2) Remove chat entries from userChats (if you have a per-user index)
+            userChats.child(userA).child(userB).removeValue().await()
+            userChats.child(userB).child(userA).removeValue().await()
 
-        // 3) delete the conversation node itself (if it’s under chats/{conversationId})
-        //    you need to compute or look up the conversationId:
-        val conversationId = listOf(userA, userB).sorted().joinToString("_")
-        chatsRef.child(conversationId).removeValue().await()
+            // 3) Delete the conversation node (if it’s under chats/{conversationId})
+            val conversationId = listOf(userA, userB).sorted().joinToString("_")
+            chatsRef.child(conversationId).removeValue().await()
+
+            // 4) Delete the messages node (contains chat history and shared posts)
+            val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$conversationId")
+            messagesRef.removeValue().await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error unmatching and removing chat: ${e.message}", e)
+            throw e // Rethrow to allow caller (e.g., reportAndBlock) to handle
+        }
     }
 
     /**
@@ -1045,20 +1053,70 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Example: Create a share entry in each match's "sharedPosts" node
-                val sharedPostsRef = FirebaseRefs.db.getReference("sharedPosts")
-                matches.forEach { matchId ->
-                    sharedPostsRef.child(matchId).child(postId).setValue(true).await()
+                val currentUserId = _currentUserId.value ?: run {
+                    onFailure("User not logged in")
+                    return@launch
                 }
-                onSuccess()
+
+                val postSnapshot = postsRef.child(postId).get().await()
+                val post = postSnapshot.getValue(Post::class.java) ?: run {
+                    onFailure("Post not found")
+                    return@launch
+                }
+
+                matches.forEach { matchId ->
+                    val chatId = if (currentUserId < matchId) "${currentUserId}_$matchId" else "${matchId}_$currentUserId"
+                    val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$chatId")
+                    val participantsRef = FirebaseDatabase.getInstance().getReference("chatParticipants/$chatId")
+                    val newMessageId = messagesRef.push().key ?: run {
+                        onFailure("Failed to generate new message ID")
+                        return@forEach
+                    }
+
+                    // Ensure the shared post has some content
+                    if (post.contentText.isNullOrEmpty() && post.mediaUrl.isNullOrEmpty()) {
+                        onFailure("Cannot share an empty post")
+                        return@forEach
+                    }
+
+                    val sharedMessage = Message(
+                        id = newMessageId,
+                        senderId = currentUserId,
+                        receiverId = matchId,
+                        text = post.contentText ?: "",
+                        timestamp = System.currentTimeMillis(),
+                        read = false,
+                        mediaType = post.mediaType,
+                        mediaUrl = post.mediaUrl,
+                        processed = false,
+                        isPost = true
+                    )
+
+                    // Write participants to a separate path
+                    participantsRef.setValue(mapOf(currentUserId to true, matchId to true)).await()
+                    messagesRef.child(newMessageId).setValue(sharedMessage).await()
+                    Log.d("PostViewModel", "Shared post message written: $newMessageId to chat $chatId, message=$sharedMessage")
+
+                    val notificationsRef = FirebaseDatabase.getInstance().getReference("notifications")
+                    postNotification(
+                        notificationsRef = notificationsRef,
+                        toUserId = matchId,
+                        fromUserId = currentUserId,
+                        message = "Shared a post"
+                    )
+                }
+
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error sharing post: ${e.message}", e)
-                onFailure(e.message ?: "Failed to share post.")
+                Log.e("PostViewModel", "Error sharing post: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Failed to share post")
+                }
             }
         }
     }
-
-
     /**
      * Function to apply filters and sorting to the list of posts.
      */

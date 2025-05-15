@@ -125,14 +125,14 @@ fun MapScreen(
 
     /* before: val quickSearchItems = listOf("OYO", "hotels", …) */
     val quickSearchItems = listOf(
-        TagItem(stringResource(R.string.tag_oyo)          , "OYO"),
-        TagItem(stringResource(R.string.tag_hotels)       , "hotels"),
         TagItem(stringResource(R.string.tag_cafes)        , "cafes"),
         TagItem(stringResource(R.string.tag_bars)         , "bars"),
         TagItem(stringResource(R.string.tag_malls)        , "malls"),
         TagItem(stringResource(R.string.tag_parks)        , "parks"),
         TagItem(stringResource(R.string.tag_cinemas)      , "cinemas"),
         TagItem(stringResource(R.string.tag_restaurants)  , "restaurants"),
+        TagItem(stringResource(R.string.tag_hotels)       , "hotels"),
+        TagItem(stringResource(R.string.tag_oyo)          , "OYO"),
         TagItem(stringResource(R.string.tag_lovers_point) , "lovers point"),
         TagItem(stringResource(R.string.tag_street_food)  , "street food"),
         TagItem(stringResource(R.string.tag_clubs)        , "clubs"),

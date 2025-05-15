@@ -104,6 +104,7 @@ fun HomeScreen(
 
         val userProfiles by postViewModel.userProfiles.collectAsState()
         val filterSettings by postViewModel.filterSettings.collectAsState()
+        var myMatches by remember { mutableStateOf<List<String>>(emptyList()) }
 
         // Fetch the current user's own Profile.
         var userProfile by remember { mutableStateOf<Profile?>(null) }
@@ -125,6 +126,22 @@ fun HomeScreen(
             }
         }
 
+        // 2️⃣ Fetch once from “matches/$userId”
+        LaunchedEffect(userId) {
+            if (userId != null) {
+                FirebaseRefs.db
+                    .getReference("matches")
+                    .child(userId)
+                    .addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            // Each child key is a matched user’s UID
+                            myMatches = snapshot.children.mapNotNull { it.key }
+                        }
+                        override fun onCancelled(error: DatabaseError) { /* handle error */ }
+                    })
+            }
+        }
+
         // Show HomeScreenContent with the updated data.
         HomeScreenContent(
             navController = navController,
@@ -132,6 +149,7 @@ fun HomeScreen(
             posts = posts,
             postViewModel = postViewModel,
             userProfiles = userProfiles,
+            matches      = myMatches,
             filterOption = filterSettings.filterOption,
             filterValue = "",  // if extra parameter needed
             searchQuery = filterSettings.searchQuery,
@@ -154,6 +172,7 @@ fun HomeScreenContent(
     posts: List<Post>,
     postViewModel: PostViewModel,
     userProfiles: Map<String, Profile>,
+    matches: List<String>,
     filterOption: String,
     filterValue: String,
     searchQuery: String,
@@ -239,6 +258,7 @@ fun HomeScreenContent(
                 navController = navController,
                 posts = posts,
                 userId = userId,
+                matches = matches,
                 userProfile = userProfile,
                 isPosting = false,
                 postViewModel = postViewModel,
@@ -258,6 +278,7 @@ fun FeedSection(
     navController: NavController,
     posts: List<Post>,
     userId: String?,
+    matches: List<String>,
     userProfile: Profile?,
     isPosting: Boolean,
     postViewModel: PostViewModel,
@@ -314,6 +335,8 @@ fun FeedSection(
                 FeedItem(
                     post = post,
                     userProfile = profile,
+                    matches = matches,
+                    userProfiles  = userProfiles,   // ← pass it through
                     onUpvote = {
                         postViewModel.upvotePost(
                             postId = post.postId,
@@ -351,16 +374,13 @@ fun FeedSection(
                         onTagClick(tag)
                     },
                     onShare = {
-                        postViewModel.sharePostWithMatches(
-                            postId = post.postId,
-                            matches = listOf(), // Replace with actual list of matches
-                            onSuccess = {
-                                Toast.makeText(context, "Post shared successfully!", Toast.LENGTH_SHORT).show()
-                            },
-                            onFailure = { errorMsg ->
-                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                            }
-                        )
+                             // hand off the real matches list
+                             postViewModel.sharePostWithMatches(
+                                   postId   = post.postId,
+                                   matches  = matches,
+                                   onSuccess= {},
+                                   onFailure= {}
+                                         )
                     },
                     onSave = {
                         postViewModel.savePost(
@@ -436,6 +456,8 @@ fun FeedItem(
     post: Post,
     postViewModel: PostViewModel,
     userProfile: Profile?,
+    matches: List<String>,
+    userProfiles: Map<String, Profile>,   // ← add this
     onUpvote: () -> Unit,
     onDownvote: () -> Unit,
     onUserClick: () -> Unit,
@@ -784,6 +806,10 @@ fun FeedItem(
                     }
                 }
 
+                var showShareDialog by remember { mutableStateOf(false) }
+                var selectedMatch by remember { mutableStateOf<String?>(null) }
+                val context = LocalContext.current
+
 
                 // Sharing, Upvote/Downvote, and Comment Section
                 Row(
@@ -792,12 +818,9 @@ fun FeedItem(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row {
-                        IconButton(onClick = onShare) {
-                            Icon(
-                                Icons.Default.Share,
-                                contentDescription = "Share",
-                                tint = Color.White
-                            )
+                        // Replace your current Share IconButton with this:
+                        IconButton(onClick = { showShareDialog = true }) {
+                            Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
                         }
                         // Add Save Icon
                         IconButton(onClick = { onSave() }) {
@@ -808,6 +831,63 @@ fun FeedItem(
                             )
                         }
                     }
+
+                    // When showShareDialog == true, render a dialog of all matches:
+                    if (showShareDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showShareDialog = false },
+                            title = { Text("Share with…", color = Color.White) },
+                            text = {
+                                LazyColumn {
+                                    items(matches) { matchUid ->
+                                        val profile = userProfiles[matchUid]
+                                        Row(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable { selectedMatch = matchUid }
+                                                .padding(vertical = 8.dp, horizontal = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = (matchUid == selectedMatch),
+                                                onClick = { selectedMatch = matchUid },
+                                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFFDB00))
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                text = profile?.username.orEmpty().takeIf { it.isNotEmpty() } ?: matchUid,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    selectedMatch?.let { uid ->
+                                        postViewModel.sharePostWithMatches(
+                                            postId   = post.postId,
+                                            matches  = listOf(uid),
+                                            onSuccess= {},
+                                            onFailure= {}
+                                        )
+                                    }
+                                    showShareDialog = false
+                                }) {
+                                    Text("Send", color = Color(0xFFFFDB00))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showShareDialog = false }) {
+                                    Text("Cancel", color = Color.Gray)
+                                }
+                            },
+                            containerColor    = Color(0xFF1A1A1A),
+                            titleContentColor = Color.White,
+                            textContentColor  = Color.White
+                        )
+                    }
+
 
                     // Upvote and Downvote Buttons
                     Row(

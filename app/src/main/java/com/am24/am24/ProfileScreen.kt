@@ -2211,218 +2211,236 @@ fun InterestsSectionInProfile(profile: Profile) {
         "Nature" to R.string.interest_nature,
         "প্রকৃতি" to R.string.interest_nature, // Bengali
         "प्रकृति" to R.string.interest_nature, // Hindi
-        "Dance" to R.string.interest_dance,
-        "নাচ" to R.string.interest_dance, // Bengali (same as Dancing)
-        "नृत्य" to R.string.interest_dance, // Hindi (same as Dancing)
-        // West-Bengal Locality Interests
-        "Victoria Memorial" to R.string.interest_victoria_memorial,
-        "ভিক্টোরিয়া মেমোরিয়াল" to R.string.interest_victoria_memorial, // Bengali
-        "विक्टोरिया मेमोरियल" to R.string.interest_victoria_memorial, // Hindi
-        "Princep Ghat" to R.string.interest_princep_ghat,
-        "প্রিন্সেপ ঘাট" to R.string.interest_princep_ghat, // Bengali
-        "प्रिंसप घाट" to R.string.interest_princep_ghat, // Hindi
-        "Nicco Park" to R.string.interest_nicco_park,
-        "নিক্কো পার্ক" to R.string.interest_nicco_park, // Bengali
-        "निक्को पार्क" to R.string.interest_nicco_park, // Hindi
-        "Science City" to R.string.interest_science_city,
-        "সায়েন্স সিটি" to R.string.interest_science_city, // Bengali
-        "साइंस सिटी" to R.string.interest_science_city, // Hindi
-        "Dakshineswar Temple" to R.string.interest_dakshineswar_temple,
-        "দক্ষিণেশ্বর মন্দির" to R.string.interest_dakshineswar_temple, // Bengali
-        "दक्षिणेश्वर मंदिर" to R.string.interest_dakshineswar_temple, // Hindi
-        "Howrah Bridge" to R.string.interest_howrah_bridge,
-        "হাওড়া ব্রিজ" to R.string.interest_howrah_bridge, // Bengali
-        "हावड़ा ब्रिज" to R.string.interest_howrah_bridge, // Hindi
-        "IIT Kharagpur Campus" to R.string.interest_iit_kharagpur_campus,
-        "আইআইটি খড়গপুর ক্যাম্পাস" to R.string.interest_iit_kharagpur_campus, // Bengali
-        "आईआईटी खड़गपुर कैंपस" to R.string.interest_iit_kharagpur_campus, // Hindi
-        "Digha Beach" to R.string.interest_digha_beach,
-        "দীঘা বিচ" to R.string.interest_digha_beach, // Bengali
-        "दीघा बीच" to R.string.interest_digha_beach, // Hindi
-        "Tiger Hill" to R.string.interest_tiger_hill,
-        "টাইগার হিল" to R.string.interest_tiger_hill, // Bengali
-        "टाइगर हिल" to R.string.interest_tiger_hill, // Hindi
-        "Mall Road (Darjeeling)" to R.string.interest_mall_road,
-        "মল রোড (দার্জিলিং)" to R.string.interest_mall_road, // Bengali
-        "मॉल रोड (दार्जिलिंग)" to R.string.interest_mall_road, // Hindi
-        "Hazarduari Palace" to R.string.interest_hazarduari_palace,
-        "হাজারদুয়ারি প্যালেস" to R.string.interest_hazarduari_palace, // Bengali
-        "हज़ारद्वारी पैलेस" to R.string.interest_hazarduari_palace, // Hindi
-        "Shantiniketan" to R.string.interest_shantiniketan,
-        "শান্তিনিকেতন" to R.string.interest_shantiniketan, // Bengali
-        "शांतिनिकेतन" to R.string.interest_shantiniketan, // Hindi
-        // Kolkata Cluster
-        "CC Block Market" to R.string.interest_cc_block_market,
-        "সিসি ব্লক মার্কেট" to R.string.interest_cc_block_market, // Bengali
-        "सीसी ब्लॉक मार्केट" to R.string.interest_cc_block_market, // Hindi
-        "Sector V IT Hub" to R.string.interest_sector_v_it_hub,
-        "সেক্টর ৫ আইটি হাব" to R.string.interest_sector_v_it_hub, // Bengali
-        "सेक्टर V आईटी हब" to R.string.interest_sector_v_it_hub, // Hindi
-        "Eco Park" to R.string.interest_eco_park,
-        "ইকো পার্ক" to R.string.interest_eco_park, // Bengali
-        "इको पार्क" to R.string.interest_eco_park, // Hindi
-        "City Centre 2" to R.string.interest_city_centre_2,
-        "সিটি সেন্টার ২" to R.string.interest_city_centre_2, // Bengali
-        "सिटी सेंटर 2" to R.string.interest_city_centre_2, // Hindi
-        "Airport Area" to R.string.interest_airport_area,
-        "বিমানবন্দর এলাকা" to R.string.interest_airport_area, // Bengali
-        "एयरपोर्ट क्षेत्र" to R.string.interest_airport_area, // Hindi
-        "Local Market" to R.string.interest_local_market,
-        "স্থানীয় বাজার" to R.string.interest_local_market, // Bengali
-        "स्थानीय बाज़ार" to R.string.interest_local_market, // Hindi
-        "Old Market" to R.string.interest_old_market,
-        "পুরনো বাজার" to R.string.interest_old_market, // Bengali
-        "पुराना बाज़ार" to R.string.interest_old_market, // Hindi
-        "Local Eateries" to R.string.interest_local_eateries,
-        "স্থানীয় খাবার দোকান" to R.string.interest_local_eateries, // Bengali
-        "स्थानीय भोजनालय" to R.string.interest_local_eateries, // Hindi
-        "Night-life" to R.string.interest_nightlife,
-        "নাইটলাইফ" to R.string.interest_nightlife, // Bengali
-        "नाइट-लाइफ़" to R.string.interest_nightlife, // Hindi
-        "Park Street Cafés" to R.string.interest_park_street_cafes,
-        "পার্ক স্ট্রিট ক্যাফে" to R.string.interest_park_street_cafes, // Bengali
-        "पार्क स्ट्रीट कैफ़े" to R.string.interest_park_street_cafes, // Hindi
-        // Hooghly / Chandannagar
-        "Chandannagar Strand" to R.string.interest_chandannagar_strand,
-        "চন্দননগর স্ট্র্যান্ড" to R.string.interest_chandannagar_strand, // Bengali
-        "चंदननगर स्ट्रैंड" to R.string.interest_chandannagar_strand, // Hindi
-        "French Heritage" to R.string.interest_french_heritage,
-        "ফরাসি ঐতিহ্য" to R.string.interest_french_heritage, // Bengali
-        "फ़्रांसीसी विरासत" to R.string.interest_french_heritage, // Hindi
-        "Riverside Ghats" to R.string.interest_riverside_ghats,
-        "নদীপাড়ের ঘাট" to R.string.interest_riverside_ghats, // Bengali
-        "नदी किनारे घाट" to R.string.interest_riverside_ghats, // Hindi
-        "Heritage Walks" to R.string.interest_heritage_walks,
-        "ঐতিহ্য ভ্রমণ" to R.string.interest_heritage_walks, // Bengali
-        "हेरिटेज वॉक" to R.string.interest_heritage_walks, // Hindi
-        // Howrah
-        "Belur Math" to R.string.interest_belur_math,
-        "বেলুড় মঠ" to R.string.interest_belur_math, // Bengali
-        "बेलूर मठ" to R.string.interest_belur_math, // Hindi
-        "Avani Mall" to R.string.interest_avani_mall,
-        "আভানি মল" to R.string.interest_avani_mall, // Bengali
-        "अवानी मॉल" to R.string.interest_avani_mall, // Hindi
-        // Durgapur / Asansol Belt
-        "City Centre Plaza" to R.string.interest_city_centre_plaza,
-        "সিটি সেন্টার প্লাজা" to R.string.interest_city_centre_plaza, // Bengali
-        "सिटी सेंटर प्लाज़ा" to R.string.interest_city_centre_plaza, // Hindi
-        "Steel-Plant Tour" to R.string.interest_steel_plant_tour,
-        "স্টিল প্ল্যান্ট ভ্রমণ" to R.string.interest_steel_plant_tour, // Bengali
-        "स्टील-प्लांट टूर" to R.string.interest_steel_plant_tour, // Hindi
-        "Burnpur Riverside" to R.string.interest_burnpur_riverside,
-        "বার্নপুর নদীপাড়" to R.string.interest_burnpur_riverside, // Bengali
-        "बर्नपुर रिवरसाइड" to R.string.interest_burnpur_riverside, // Hindi
-        "Chittaranjan Park" to R.string.interest_chittaranjan_park,
-        "চিত্তরঞ্জন পার্ক" to R.string.interest_chittaranjan_park, // Bengali
-        "चित्तरंजन पार्क" to R.string.interest_chittaranjan_park, // Hindi
-        // North-Bengal Cluster
-        "Hongkong Market" to R.string.interest_hongkong_market,
-        "হংকং মার্কেট" to R.string.interest_hongkong_market, // Bengali
-        "हॉन्गकॉन्ग मार्केट" to R.string.interest_hongkong_market, // Hindi
-        "Mahananda Wildlife Sanctuary" to R.string.interest_mahananda_wls,
-        "মহানন্দা বন্যপ্রাণী অভয়ারণ্য" to R.string.interest_mahananda_wls, // Bengali
-        "महानंदा वन्यजीव अभयारण्य" to R.string.interest_mahananda_wls, // Hindi
-        "Toy-Train" to R.string.interest_toy_train,
-        "টয় ট্রেন" to R.string.interest_toy_train, // Bengali
-        "टॉय ट्रेन" to R.string.interest_toy_train, // Hindi
-        "Tea-Estate Walks" to R.string.interest_tea_estate_walks,
-        "চা বাগান ভ্রমণ" to R.string.interest_tea_estate_walks, // Bengali
-        "चाय बागान भ्रमण" to R.string.interest_tea_estate_walks, // Hindi
-        "Gorumara Safari" to R.string.interest_gorumara_safari,
-        "গরুমারা সাফারি" to R.string.interest_gorumara_safari, // Bengali
-        "गोरूमारा सफ़ारी" to R.string.interest_gorumara_safari, // Hindi
-        "Rafting on Teesta" to R.string.interest_rafting_teesta,
-        "তিস্তা র্যাফটিং" to R.string.interest_rafting_teesta, // Bengali
-        "तीस्ता राफ्टिंग" to R.string.interest_rafting_teesta, // Hindi
-        "Rajbari Palace" to R.string.interest_rajbari_palace,
-        "রাজবাড়ি প্রাসাদ" to R.string.interest_rajbari_palace, // Bengali
-        "राजबाड़ी महल" to R.string.interest_rajbari_palace, // Hindi
-        "Sagar-Dighi" to R.string.interest_sagar_dighi,
-        "সাগর-দিঘি" to R.string.interest_sagar_dighi, // Bengali
-        "सागर-दिघी" to R.string.interest_sagar_dighi, // Hindi
-        "Buxa Fort Trek" to R.string.interest_buxa_fort_trek,
-        "বক্সা দুর্গ ট্রেক" to R.string.interest_buxa_fort_trek, // Bengali
-        "बक्सा क़िला ट्रेक" to R.string.interest_buxa_fort_trek, // Hindi
-        "Jayanti River Picnic" to R.string.interest_jayanti_picnic,
-        "জয়ন্তী নদী পিকনিক" to R.string.interest_jayanti_picnic, // Bengali
-        "जयंती नदी पिकनिक" to R.string.interest_jayanti_picnic, // Hindi
-        // South-West Cluster
-        "IIT Campus Walk" to R.string.interest_iit_campus_walk,
-        "আইআইটি ক্যাম্পাস হাঁটা" to R.string.interest_iit_campus_walk, // Bengali
-        "आईआईटी कैंपस वॉक" to R.string.interest_iit_campus_walk, // Hindi
-        "Gol Bazaar Food" to R.string.interest_gol_bazaar_food,
-        "গোল বাজার খাবার" to R.string.interest_gol_bazaar_food, // Bengali
-        "गोल बाज़ार भोजन" to R.string.interest_gol_bazaar_food, // Hindi
-        "Vidyasagar Uni Lake" to R.string.interest_vidyasagar_lake,
-        "বিদ্যাসাগর বিশ্ববিদ্যালয় লেক" to R.string.interest_vidyasagar_lake, // Bengali
-        "विद्यासागर विश्वविद्यालय झील" to R.string.interest_vidyasagar_lake, // Hindi
-        "Khudiram Park" to R.string.interest_khudiram_park,
-        "ক্ষুদিরাম পার্ক" to R.string.interest_khudiram_park, // Bengali
-        "खुदीराम पार्क" to R.string.interest_khudiram_park, // Hindi
-        "River Cruise" to R.string.interest_river_cruise,
-        "নৌ ভ্রমণ" to R.string.interest_river_cruise, // Bengali
-        "रिवर क्रूज़" to R.string.interest_river_cruise, // Hindi
-        "Marine Drive" to R.string.interest_marine_drive,
-        "মেরিন ড্রাইভ" to R.string.interest_marine_drive, // Bengali
-        "मरीन ड्राइव" to R.string.interest_marine_drive, // Hindi
-        // Central WB
-        "Curzon Gate Photo-Op" to R.string.interest_curzon_gate_photo,
-        "কার্জন গেট ছবি" to R.string.interest_curzon_gate_photo, // Bengali
-        "करज़न गेट फ़ोटो-ऑप" to R.string.interest_curzon_gate_photo, // Hindi
-        "Sitabhog & Mihidana Tasting" to R.string.interest_sitabhog_mihidana,
-        "সিতাভোগ ও মিহিদানা টেস্টিং" to R.string.interest_sitabhog_mihidana, // Bengali
-        "सिताभोग और मिहिदाना चखना" to R.string.interest_sitabhog_mihidana, // Hindi
-        "Terracotta Art" to R.string.interest_terracotta_art,
-        "টেরাকোটা শিল্প" to R.string.interest_terracotta_art, // Bengali
-        "टेराकोटा कला" to R.string.interest_terracotta_art, // Hindi
-        "Susunia Trek" to R.string.interest_susunia_trek,
-        "সুসুনিয়া ট্রেক" to R.string.interest_susunia_trek, // Bengali
-        "सुसुनिया ट्रेक" to R.string.interest_susunia_trek, // Hindi
-        "Ayodhya Hills" to R.string.interest_ayodhya_hills,
-        "অযোধ্যা পাহাড়" to R.string.interest_ayodhya_hills, // Bengali
-        "अयोध्या हिल्स" to R.string.interest_ayodhya_hills, // Hindi
-        "Chhau Dance" to R.string.interest_chhau_dance,
-        "ছাউ নৃত্য" to R.string.interest_chhau_dance, // Bengali
-        "छऊ नृत्य" to R.string.interest_chhau_dance, // Hindi
-        // Nadia Zone
-        "Clay-Doll Lane" to R.string.interest_clay_doll_lane,
-        "মাটির পুতুল গলি" to R.string.interest_clay_doll_lane, // Bengali
-        "मिट्टी की गुड़िया गली" to R.string.interest_clay_doll_lane, // Hindi
-        "Ghurni Artists" to R.string.interest_ghurni_artists,
-        "ঘূর্ণি শিল্পী" to R.string.interest_ghurni_artists, // Bengali
-        "घूर्णी कलाकार" to R.string.interest_ghurni_artists, // Hindi
-        "University Campus Walk" to R.string.interest_university_campus_walk,
-        "বিশ্ববিদ্যালয় ক্যাম্পাস হাঁটা" to R.string.interest_university_campus_walk, // Bengali
-        "विश्वविद्यालय कैंपस वॉक" to R.string.interest_university_campus_walk, // Hindi
-        "Kalyani Lake" to R.string.interest_kalyani_lake,
-        "কল্যাণী লেক" to R.string.interest_kalyani_lake, // Bengali
-        "कल्याणी झील" to R.string.interest_kalyani_lake, // Hindi
-        "Boutique Sarees" to R.string.interest_boutique_sarees,
-        "বুটিক শাড়ি" to R.string.interest_boutique_sarees, // Bengali
-        "बुटीक साड़ियाँ" to R.string.interest_boutique_sarees, // Hindi
-        "Churni Riverbank" to R.string.interest_churni_riverbank,
-        "চূর্ণি নদীপাড়" to R.string.interest_churni_riverbank, // Bengali
-        "चूर्णी नदी तट" to R.string.interest_churni_riverbank, // Hindi
-        // North-Centre / Murshidabad
-        "Mango Festival" to R.string.interest_mango_festival,
-        "আম উৎসব" to R.string.interest_mango_festival, // Bengali
-        "आम महोत्सव" to R.string.interest_mango_festival, // Hindi
-        "Gour Ruins" to R.string.interest_gour_ruins,
-        "গৌড় ধ্বংসাবশেষ" to R.string.interest_gour_ruins, // Bengali
-        "गौर के खंडहर" to R.string.interest_gour_ruins, // Hindi
-        "Hazarduari Museum" to R.string.interest_hazar_duari_museum,
-        "হাজারদুয়ারি জাদুঘর" to R.string.interest_hazar_duari_museum, // Bengali
-        "हज़ारद्वारी संग्रहालय" to R.string.interest_hazar_duari_museum, // Hindi
-        "Khusbagh Gardens" to R.string.interest_khusbagh_gardens,
-        "খুশবাগ উদ্যান" to R.string.interest_khusbagh_gardens, // Bengali
-        "खुशबाग गार्डन" to R.string.interest_khusbagh_gardens, // Hindi
-        "Berhampore Silk Shopping" to R.string.interest_berhampore_silk,
-        "বহরমপুর সিল্ক শপিং" to R.string.interest_berhampore_silk, // Bengali
-        "बहरमपुर रेशम ख़रीदारी" to R.string.interest_berhampore_silk, // Hindi
-        "Cossimbazar Rajbari" to R.string.interest_cossimbazar_rajbari,
-        "কসিমবাজার রাজবাড়ি" to R.string.interest_cossimbazar_rajbari, // Bengali
-        "कूसीमबाज़ार राजबाड़ी" to R.string.interest_cossimbazar_rajbari // Hindi
-    )
+        // Social & Community
+        "Charity work" to R.string.interest_charity,
+        "দান কার্যক্রম" to R.string.interest_charity,
+        "चैरिटी कार्य" to R.string.interest_charity,
+
+        "Community organizing" to R.string.interest_community,
+        "কমিউনিটি সংগঠন" to R.string.interest_community,
+        "समुदाय आयोजन" to R.string.interest_community,
+
+        "Networking" to R.string.interest_networking,
+        "নেটওয়ার্কিং" to R.string.interest_networking,
+        "नेटवर्किंग" to R.string.interest_networking,
+
+        "Public speaking" to R.string.interest_public_speaking,
+        "পাবলিক স্পিকিং" to R.string.interest_public_speaking,
+        "पब्लिक स्पीकिंग" to R.string.interest_public_speaking,
+
+        "Writing" to R.string.interest_writing,
+        "লেখা" to R.string.interest_writing,
+        "लेखन" to R.string.interest_writing,
+
+        "Blogging" to R.string.interest_blogging,
+        "ব্লগিং" to R.string.interest_blogging,
+        "ब्लॉगिंग" to R.string.interest_blogging,
+
+        "Podcasting" to R.string.interest_podcasting,
+        "পডকাস্টিং" to R.string.interest_podcasting,
+        "पॉडकास्टिंग" to R.string.interest_podcasting,
+
+        "Social media" to R.string.interest_social_media,
+        "সোশ্যাল মিডিয়া" to R.string.interest_social_media,
+        "सोशल मीडिया" to R.string.interest_social_media,
+
+        "Online communities" to R.string.interest_online_communities,
+        "অনলাইন কমিউনিটি" to R.string.interest_online_communities,
+        "ऑनलाइन समुदाय" to R.string.interest_online_communities,
+
+// Adventurous & Thrilling
+        "Skydiving" to R.string.interest_skydiving,
+        "স্কাইডাইভিং" to R.string.interest_skydiving,
+        "स्काईडाइविंग" to R.string.interest_skydiving,
+
+        "Scuba diving" to R.string.interest_scuba_diving,
+        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,
+        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,
+
+        "Rock climbing" to R.string.interest_rock_climbing,
+        "রক ক্লাইমিং" to R.string.interest_rock_climbing,
+        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,
+
+        "Surfing" to R.string.interest_surfing,
+        "সার্ফিং" to R.string.interest_surfing,
+        "सर्फिंग" to R.string.interest_surfing,
+
+        "Skiing" to R.string.interest_skiing,
+        "স্কিইং" to R.string.interest_skiing,
+        "स्कीयिंग" to R.string.interest_skiing,
+
+        "Snowboarding" to R.string.interest_snowboarding,
+        "স্নোবোর্ডিং" to R.string.interest_snowboarding,
+        "स्नोबोर्डिंग" to R.string.interest_snowboarding,
+
+        "Mountain biking" to R.string.interest_mountain_biking,
+        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,
+        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,
+
+        "Motorcycling" to R.string.interest_motorcycling,
+        "মোটরসাইক্লিং" to R.string.interest_motorcycling,
+        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,
+
+        "Car racing" to R.string.interest_car_racing,
+        "কার রেসিং" to R.string.interest_car_racing,
+        "कार रेसिंग" to R.string.interest_car_racing,
+
+        "Extreme sports" to R.string.interest_extreme_sports,
+        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,
+        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,
+
+// Relaxation & Leisure
+        "Puzzles" to R.string.interest_puzzles,
+        "ধাঁধা" to R.string.interest_puzzles,
+        "पहेलियाँ" to R.string.interest_puzzles,
+
+        "Board games" to R.string.interest_board_games,
+        "বোর্ড গেমস" to R.string.interest_board_games,
+        "बोर्ड गेम्स" to R.string.interest_board_games,
+
+        "Video games" to R.string.interest_video_games,
+        "ভিডিও গেমস" to R.string.interest_video_games,
+        "वीडियो गेम्स" to R.string.interest_video_games,
+
+        "Watching TV" to R.string.interest_watching_tv,
+        "টিভি দেখা" to R.string.interest_watching_tv,
+        "टीवी देखना" to R.string.interest_watching_tv,
+
+        "Napping" to R.string.interest_napping,
+        "ন্যাপিং" to R.string.interest_napping,
+        "नैपिंग" to R.string.interest_napping,
+
+        "Spa days" to R.string.interest_spa_days,
+        "স্পা ডে" to R.string.interest_spa_days,
+        "स्पा दिन" to R.string.interest_spa_days,
+
+        "Beach days" to R.string.interest_beach_days,
+        "বিচ ডে" to R.string.interest_beach_days,
+        "बीच डे" to R.string.interest_beach_days,
+
+        "Picnics" to R.string.interest_picnics,
+        "পিকনিক" to R.string.interest_picnics,
+        "पिकनिक" to R.string.interest_picnics,
+
+// Tech & Intellectual
+        "Coding" to R.string.interest_coding,
+        "কোডিং" to R.string.interest_coding,
+        "कोडिंग" to R.string.interest_coding,
+
+        "Robotics" to R.string.interest_robotics,
+        "রোবোটিক্স" to R.string.interest_robotics,
+        "रोबोटिक्स" to R.string.interest_robotics,
+
+        "Space exploration" to R.string.interest_space,
+        "মহাকাশ অন্বেষণ" to R.string.interest_space,
+        "अंतरिक्ष अन्वेषण" to R.string.interest_space,
+
+        "Environmentalism" to R.string.interest_environmentalism,
+        "পরিবেশবাদ" to R.string.interest_environmentalism,
+        "पर्यावरणवाद" to R.string.interest_environmentalism,
+
+// Food & Drink
+        "Baking" to R.string.interest_baking,
+        "বেকিং" to R.string.interest_baking,
+        "बैकिंग" to R.string.interest_baking,
+
+        "Wine tasting" to R.string.interest_wine_tasting,
+        "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,
+        "वाइन चखना" to R.string.interest_wine_tasting,
+
+        "Craft beer" to R.string.interest_craft_beer,
+        "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,
+        "क्राफ्ट बियर" to R.string.interest_craft_beer,
+
+        "Coffee" to R.string.interest_coffee,
+        "কফি" to R.string.interest_coffee,
+        "कॉफ़ी" to R.string.interest_coffee,
+
+// Wellness & Spiritual
+        "Yoga" to R.string.interest_yoga,
+        "যোগ" to R.string.interest_yoga,
+        "योग" to R.string.interest_yoga,
+
+        "Meditation" to R.string.interest_meditation,
+        "ধ্যান" to R.string.interest_meditation,
+        "ध्यान" to R.string.interest_meditation,
+
+        "Astrology" to R.string.interest_astrology,
+        "জ্যোতিষ" to R.string.interest_astrology,
+        "ज्योतिष" to R.string.interest_astrology,
+
+        "Romance" to R.string.interest_romance,
+        "রোমান্স" to R.string.interest_romance, // Bengali
+        "रोमांस" to R.string.interest_romance, // Hindi
+
+        "Crystals" to R.string.interest_crystals,
+        "ক্রিস্টালস" to R.string.interest_crystals,
+        "क्रिस्टल" to R.string.interest_crystals,
+
+// Style & DIY
+        "Vintage clothing" to R.string.interest_vintage_clothing,
+        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,
+        "विंटेज कपड़े" to R.string.interest_vintage_clothing,
+
+        "Thrift shopping" to R.string.interest_thrift_shopping,
+        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,
+        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,
+
+        "DIY projects" to R.string.interest_diy,
+        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,
+        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,
+
+        "Home improvement" to R.string.interest_home_improvement,
+        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,
+        "गृह सुधार" to R.string.interest_home_improvement,
+
+        "Interior design" to R.string.interest_interior_design,
+        "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,
+        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,
+
+// Intellectual
+        "History" to R.string.interest_history,
+        "ইতিহাস" to R.string.interest_history,
+        "इतिहास" to R.string.interest_history,
+
+        "Science" to R.string.interest_science,
+        "বিজ্ঞান" to R.string.interest_science,
+        "विज्ञान" to R.string.interest_science,
+
+        "Philosophy" to R.string.interest_philosophy,
+        "দর্শন শাস্ত্র" to R.string.interest_philosophy,
+        "दर्शनशास्त्र" to R.string.interest_philosophy,
+
+        "Politics" to R.string.interest_politics,
+        "রাজনীতি" to R.string.interest_politics,
+        "राजनीति" to R.string.interest_politics,
+
+        "Economics" to R.string.interest_economics,
+        "অর্থনীতি" to R.string.interest_economics,
+        "अर्थशास्त्र" to R.string.interest_economics,
+
+// Outdoor & Nature
+        "Hiking" to R.string.interest_hiking,
+        "হাইকিং" to R.string.interest_hiking,
+        "हাইকिंग" to R.string.interest_hiking,
+
+        "Camping" to R.string.interest_camping,
+        "ক্যাম্পিং" to R.string.interest_camping,
+        "कैंपिंग" to R.string.interest_camping,
+
+        "Fishing" to R.string.interest_fishing,
+        "মাছ ধরা" to R.string.interest_fishing,
+        "मछली पकड़ना" to R.string.interest_fishing,
+
+        "Hunting" to R.string.interest_hunting,
+        "শিকার" to R.string.interest_hunting,
+        "शिकार" to R.string.interest_hunting,
+
+// Global Interest
+        "Traveling" to R.string.interest_traveling,
+        "ভ্রমণ" to R.string.interest_traveling,
+        "यात्रा" to R.string.interest_traveling,
+        )
 
     if (profile.interests.isEmpty()) {
         Text(
@@ -2965,6 +2983,17 @@ fun LifestyleEditSection(
             value = localLifestyle.sexual_activity_level,
             nouns = listOf(stringResource(R.string.inactive), stringResource(R.string.low), stringResource(R.string.moderate), stringResource(R.string.high), stringResource(R.string.very_high))
         ) { localLifestyle = localLifestyle.copy(sexual_activity_level = it) }
+        LifestyleSliderEdit(
+            label = stringResource(R.string.lifestyle_culinary_enthusiasm),
+            value = localLifestyle.culinary_enthusiasm,
+            nouns = listOf(
+                stringResource(R.string.not_a_foodie),
+                stringResource(R.string.occasional_foodie),
+                stringResource(R.string.foodie),
+                stringResource(R.string.passionate_foodie),
+                stringResource(R.string.gourmet)
+            )
+        ) { localLifestyle = localLifestyle.copy(culinary_enthusiasm = it) }
         Spacer(modifier = Modifier.height(16.dp))
         ButtonRow(
             onSave = {
@@ -3219,274 +3248,288 @@ fun InterestsEditSection(
     onSave: (Profile) -> Unit,
     onCancel: () -> Unit
 ) {
-    // Reuse the same mapping from raw interest name → stringResource(id)
+    // Reuse the same mapping from raw interest name → stringResource(id)
     val interestNameToResource = mapOf(
         // Global Interests
+        "Traveling" to R.string.interest_traveling,
+        "ভ্রমণ" to R.string.interest_traveling,        // Bengali
+        "यात्रा" to R.string.interest_traveling,       // Hindi
+
         "Music" to R.string.interest_music,
-        "সঙ্গীত" to R.string.interest_music, // Bengali
-        "संगीत" to R.string.interest_music, // Hindi
-        "Movies" to R.string.interest_movies,
-        "সিনেমা" to R.string.interest_movies, // Bengali
-        "फ़िल्में" to R.string.interest_movies, // Hindi
-        "Sports" to R.string.interest_sports,
-        "খেলাধুলা" to R.string.interest_sports, // Bengali
-        "खेल" to R.string.interest_sports, // Hindi
-        "Books" to R.string.interest_books,
-        "বই" to R.string.interest_books, // Bengali
-        "किताबें" to R.string.interest_books, // Hindi
-        "Travel" to R.string.interest_travel,
-        "ভ্রমণ" to R.string.interest_travel, // Bengali
-        "यात्रा" to R.string.interest_travel, // Hindi
-        "Fitness" to R.string.interest_fitness,
-        "ফিটনেস" to R.string.interest_fitness, // Bengali
-        "फ़िटनेस" to R.string.interest_fitness, // Hindi
-        "Art" to R.string.interest_art,
-        "শিল্প" to R.string.interest_art, // Bengali
-        "कला" to R.string.interest_art, // Hindi
-        "Gaming" to R.string.interest_gaming,
-        "গেমিং" to R.string.interest_gaming, // Bengali
-        "गेमिंग" to R.string.interest_gaming, // Hindi
-        "Photography" to R.string.interest_photography,
-        "ফটোগ্রাফি" to R.string.interest_photography, // Bengali
-        "फ़ोटोग्राफी" to R.string.interest_photography, // Hindi
-        "Cooking" to R.string.interest_cooking,
-        "রান্না" to R.string.interest_cooking, // Bengali
-        "खाना बनाना" to R.string.interest_cooking, // Hindi
-        "Dancing" to R.string.interest_dancing,
-        "নাচ" to R.string.interest_dancing, // Bengali
-        "नृत्य" to R.string.interest_dancing, // Hindi
-        "Gardening" to R.string.interest_gardening,
-        "বাগান করা" to R.string.interest_gardening, // Bengali
-        "बागवानी" to R.string.interest_gardening, // Hindi
-        "Technology" to R.string.interest_technology,
-        "প্রযুক্তি" to R.string.interest_technology, // Bengali
-        "प्रौद्योगिकी" to R.string.interest_technology, // Hindi
-        "Fashion" to R.string.interest_fashion,
-        "ফ্যাশন" to R.string.interest_fashion, // Bengali
-        "फ़ैशन" to R.string.interest_fashion, // Hindi
-        "Volunteering" to R.string.interest_volunteering,
-        "স্বেচ্ছাসেবা" to R.string.interest_volunteering, // Bengali
-        "स्वयंसेवा" to R.string.interest_volunteering, // Hindi
-        "Pets & Animals" to R.string.interest_pets,
-        "পোষ্য" to R.string.interest_pets, // Bengali
-        "पालतू जानवर" to R.string.interest_pets, // Hindi
+        "সঙ্গীত" to R.string.interest_music,
+        "संगीत" to R.string.interest_music,
+
         "Food" to R.string.interest_food,
-        "খাবার" to R.string.interest_food, // Bengali
-        "भोजन" to R.string.interest_food, // Hindi
-        "Nature" to R.string.interest_nature,
-        "প্রকৃতি" to R.string.interest_nature, // Bengali
-        "प्रकृति" to R.string.interest_nature, // Hindi
-        "Dance" to R.string.interest_dance,
-        "নাচ" to R.string.interest_dance, // Bengali (same as Dancing)
-        "नृत्य" to R.string.interest_dance, // Hindi (same as Dancing)
-        // West-Bengal Locality Interests
-        "Victoria Memorial" to R.string.interest_victoria_memorial,
-        "ভিক্টোরিয়া মেমোরিয়াল" to R.string.interest_victoria_memorial, // Bengali
-        "विक्टोरिया मेमोरियल" to R.string.interest_victoria_memorial, // Hindi
-        "Princep Ghat" to R.string.interest_princep_ghat,
-        "প্রিন্সেপ ঘাট" to R.string.interest_princep_ghat, // Bengali
-        "प्रिंसप घाट" to R.string.interest_princep_ghat, // Hindi
-        "Nicco Park" to R.string.interest_nicco_park,
-        "নিক্কো পার্ক" to R.string.interest_nicco_park, // Bengali
-        "निक्को पार्क" to R.string.interest_nicco_park, // Hindi
-        "Science City" to R.string.interest_science_city,
-        "সায়েন্স সিটি" to R.string.interest_science_city, // Bengali
-        "साइंस सिटी" to R.string.interest_science_city, // Hindi
-        "Dakshineswar Temple" to R.string.interest_dakshineswar_temple,
-        "দক্ষিণেশ্বর মন্দির" to R.string.interest_dakshineswar_temple, // Bengali
-        "दक्षिणेश्वर मंदिर" to R.string.interest_dakshineswar_temple, // Hindi
-        "Howrah Bridge" to R.string.interest_howrah_bridge,
-        "হাওড়া ব্রিজ" to R.string.interest_howrah_bridge, // Bengali
-        "हावड़ा ब्रिज" to R.string.interest_howrah_bridge, // Hindi
-        "IIT Kharagpur Campus" to R.string.interest_iit_kharagpur_campus,
-        "আইআইটি খড়গপুর ক্যাম্পাস" to R.string.interest_iit_kharagpur_campus, // Bengali
-        "आईआईटी खड़गपुर कैंपस" to R.string.interest_iit_kharagpur_campus, // Hindi
-        "Digha Beach" to R.string.interest_digha_beach,
-        "দীঘা বিচ" to R.string.interest_digha_beach, // Bengali
-        "दीघा बीच" to R.string.interest_digha_beach, // Hindi
-        "Tiger Hill" to R.string.interest_tiger_hill,
-        "টাইগার হিল" to R.string.interest_tiger_hill, // Bengali
-        "टाइगर हिल" to R.string.interest_tiger_hill, // Hindi
-        "Mall Road (Darjeeling)" to R.string.interest_mall_road,
-        "মল রোড (দার্জিলিং)" to R.string.interest_mall_road, // Bengali
-        "मॉल रोड (दार्जिलिंग)" to R.string.interest_mall_road, // Hindi
-        "Hazarduari Palace" to R.string.interest_hazarduari_palace,
-        "হাজারদুয়ারি প্যালেস" to R.string.interest_hazarduari_palace, // Bengali
-        "हज़ारद्वारी पैलेस" to R.string.interest_hazarduari_palace, // Hindi
-        "Shantiniketan" to R.string.interest_shantiniketan,
-        "শান্তিনিকেতন" to R.string.interest_shantiniketan, // Bengali
-        "शांतिनिकेतन" to R.string.interest_shantiniketan, // Hindi
-        // Kolkata Cluster
-        "CC Block Market" to R.string.interest_cc_block_market,
-        "সিসি ব্লক মার্কেট" to R.string.interest_cc_block_market, // Bengali
-        "सीसी ब्लॉक मार्केट" to R.string.interest_cc_block_market, // Hindi
-        "Sector V IT Hub" to R.string.interest_sector_v_it_hub,
-        "সেক্টর ৫ আইটি হাব" to R.string.interest_sector_v_it_hub, // Bengali
-        "सेक्टर V आईटी हब" to R.string.interest_sector_v_it_hub, // Hindi
-        "Eco Park" to R.string.interest_eco_park,
-        "ইকো পার্ক" to R.string.interest_eco_park, // Bengali
-        "इको पार्क" to R.string.interest_eco_park, // Hindi
-        "City Centre 2" to R.string.interest_city_centre_2,
-        "সিটি সেন্টার ২" to R.string.interest_city_centre_2, // Bengali
-        "सिटी सेंटर 2" to R.string.interest_city_centre_2, // Hindi
-        "Airport Area" to R.string.interest_airport_area,
-        "বিমানবন্দর এলাকা" to R.string.interest_airport_area, // Bengali
-        "एयरपोर्ट क्षेत्र" to R.string.interest_airport_area, // Hindi
-        "Local Market" to R.string.interest_local_market,
-        "স্থানীয় বাজার" to R.string.interest_local_market, // Bengali
-        "स्थानीय बाज़ार" to R.string.interest_local_market, // Hindi
-        "Old Market" to R.string.interest_old_market,
-        "পুরনো বাজার" to R.string.interest_old_market, // Bengali
-        "पुराना बाज़ार" to R.string.interest_old_market, // Hindi
-        "Local Eateries" to R.string.interest_local_eateries,
-        "স্থানীয় খাবার দোকান" to R.string.interest_local_eateries, // Bengali
-        "स्थानीय भोजनालय" to R.string.interest_local_eateries, // Hindi
-        "Night-life" to R.string.interest_nightlife,
-        "নাইটলাইফ" to R.string.interest_nightlife, // Bengali
-        "नाइट-लाइफ़" to R.string.interest_nightlife, // Hindi
-        "Park Street Cafés" to R.string.interest_park_street_cafes,
-        "পার্ক স্ট্রিট ক্যাফে" to R.string.interest_park_street_cafes, // Bengali
-        "पार्क स्ट्रीट कैफ़े" to R.string.interest_park_street_cafes, // Hindi
-        // Hooghly / Chandannagar
-        "Chandannagar Strand" to R.string.interest_chandannagar_strand,
-        "চন্দননগর স্ট্র্যান্ড" to R.string.interest_chandannagar_strand, // Bengali
-        "चंदननगर स्ट्रैंड" to R.string.interest_chandannagar_strand, // Hindi
-        "French Heritage" to R.string.interest_french_heritage,
-        "ফরাসি ঐতিহ্য" to R.string.interest_french_heritage, // Bengali
-        "फ़्रांसीसी विरासत" to R.string.interest_french_heritage, // Hindi
-        "Riverside Ghats" to R.string.interest_riverside_ghats,
-        "নদীপাড়ের ঘাট" to R.string.interest_riverside_ghats, // Bengali
-        "नदी किनारे घाट" to R.string.interest_riverside_ghats, // Hindi
-        "Heritage Walks" to R.string.interest_heritage_walks,
-        "ঐতিহ্য ভ্রমণ" to R.string.interest_heritage_walks, // Bengali
-        "हेरिटेज वॉक" to R.string.interest_heritage_walks, // Hindi
-        // Howrah
-        "Belur Math" to R.string.interest_belur_math,
-        "বেলুড় মঠ" to R.string.interest_belur_math, // Bengali
-        "बेलूर मठ" to R.string.interest_belur_math, // Hindi
-        "Avani Mall" to R.string.interest_avani_mall,
-        "আভানি মল" to R.string.interest_avani_mall, // Bengali
-        "अवानी मॉल" to R.string.interest_avani_mall, // Hindi
-        // Durgapur / Asansol Belt
-        "City Centre Plaza" to R.string.interest_city_centre_plaza,
-        "সিটি সেন্টার প্লাজা" to R.string.interest_city_centre_plaza, // Bengali
-        "सिटी सेंटर प्लाज़ा" to R.string.interest_city_centre_plaza, // Hindi
-        "Steel-Plant Tour" to R.string.interest_steel_plant_tour,
-        "স্টিল প্ল্যান্ট ভ্রমণ" to R.string.interest_steel_plant_tour, // Bengali
-        "स्टील-प्लांट टूर" to R.string.interest_steel_plant_tour, // Hindi
-        "Burnpur Riverside" to R.string.interest_burnpur_riverside,
-        "বার্নপুর নদীপাড়" to R.string.interest_burnpur_riverside, // Bengali
-        "बर्नपुर रिवरसाइड" to R.string.interest_burnpur_riverside, // Hindi
-        "Chittaranjan Park" to R.string.interest_chittaranjan_park,
-        "চিত্তরঞ্জন পার্ক" to R.string.interest_chittaranjan_park, // Bengali
-        "चित्तरंजन पार्क" to R.string.interest_chittaranjan_park, // Hindi
-        // North-Bengal Cluster
-        "Hongkong Market" to R.string.interest_hongkong_market,
-        "হংকং মার্কেট" to R.string.interest_hongkong_market, // Bengali
-        "हॉन्गकॉन्ग मार्केट" to R.string.interest_hongkong_market, // Hindi
-        "Mahananda Wildlife Sanctuary" to R.string.interest_mahananda_wls,
-        "মহানন্দা বন্যপ্রাণী অভয়ারণ্য" to R.string.interest_mahananda_wls, // Bengali
-        "महानंदा वन्यजीव अभयारण्य" to R.string.interest_mahananda_wls, // Hindi
-        "Toy-Train" to R.string.interest_toy_train,
-        "টয় ট্রেন" to R.string.interest_toy_train, // Bengali
-        "टॉय ट्रेन" to R.string.interest_toy_train, // Hindi
-        "Tea-Estate Walks" to R.string.interest_tea_estate_walks,
-        "চা বাগান ভ্রমণ" to R.string.interest_tea_estate_walks, // Bengali
-        "चाय बागान भ्रमण" to R.string.interest_tea_estate_walks, // Hindi
-        "Gorumara Safari" to R.string.interest_gorumara_safari,
-        "গরুমারা সাফারি" to R.string.interest_gorumara_safari, // Bengali
-        "गोरूमारा सफ़ारी" to R.string.interest_gorumara_safari, // Hindi
-        "Rafting on Teesta" to R.string.interest_rafting_teesta,
-        "তিস্তা র্যাফটিং" to R.string.interest_rafting_teesta, // Bengali
-        "तीस्ता राफ्टिंग" to R.string.interest_rafting_teesta, // Hindi
-        "Rajbari Palace" to R.string.interest_rajbari_palace,
-        "রাজবাড়ি প্রাসাদ" to R.string.interest_rajbari_palace, // Bengali
-        "राजबाड़ी महल" to R.string.interest_rajbari_palace, // Hindi
-        "Sagar-Dighi" to R.string.interest_sagar_dighi,
-        "সাগর-দিঘি" to R.string.interest_sagar_dighi, // Bengali
-        "सागर-दिघी" to R.string.interest_sagar_dighi, // Hindi
-        "Buxa Fort Trek" to R.string.interest_buxa_fort_trek,
-        "বক্সা দুর্গ ট্রেক" to R.string.interest_buxa_fort_trek, // Bengali
-        "बक्सा क़िला ट्रेक" to R.string.interest_buxa_fort_trek, // Hindi
-        "Jayanti River Picnic" to R.string.interest_jayanti_picnic,
-        "জয়ন্তী নদী পিকনিক" to R.string.interest_jayanti_picnic, // Bengali
-        "जयंती नदी पिकनिक" to R.string.interest_jayanti_picnic, // Hindi
-        // South-West Cluster
-        "IIT Campus Walk" to R.string.interest_iit_campus_walk,
-        "আইআইটি ক্যাম্পাস হাঁটা" to R.string.interest_iit_campus_walk, // Bengali
-        "आईआईटी कैंपस वॉक" to R.string.interest_iit_campus_walk, // Hindi
-        "Gol Bazaar Food" to R.string.interest_gol_bazaar_food,
-        "গোল বাজার খাবার" to R.string.interest_gol_bazaar_food, // Bengali
-        "गोल बाज़ार भोजन" to R.string.interest_gol_bazaar_food, // Hindi
-        "Vidyasagar Uni Lake" to R.string.interest_vidyasagar_lake,
-        "বিদ্যাসাগর বিশ্ববিদ্যালয় লেক" to R.string.interest_vidyasagar_lake, // Bengali
-        "विद्यासागर विश्वविद्यालय झील" to R.string.interest_vidyasagar_lake, // Hindi
-        "Khudiram Park" to R.string.interest_khudiram_park,
-        "ক্ষুদিরাম পার্ক" to R.string.interest_khudiram_park, // Bengali
-        "खुदीराम पार्क" to R.string.interest_khudiram_park, // Hindi
-        "River Cruise" to R.string.interest_river_cruise,
-        "নৌ ভ্রমণ" to R.string.interest_river_cruise, // Bengali
-        "रिवर क्रूज़" to R.string.interest_river_cruise, // Hindi
-        "Marine Drive" to R.string.interest_marine_drive,
-        "মেরিন ড্রাইভ" to R.string.interest_marine_drive, // Bengali
-        "मरीन ड्राइव" to R.string.interest_marine_drive, // Hindi
-        // Central WB
-        "Curzon Gate Photo-Op" to R.string.interest_curzon_gate_photo,
-        "কার্জন গেট ছবি" to R.string.interest_curzon_gate_photo, // Bengali
-        "करज़न गेट फ़ोटो-ऑप" to R.string.interest_curzon_gate_photo, // Hindi
-        "Sitabhog & Mihidana Tasting" to R.string.interest_sitabhog_mihidana,
-        "সিতাভোগ ও মিহিদানা টেস্টিং" to R.string.interest_sitabhog_mihidana, // Bengali
-        "सिताभोग और मिहिदाना चखना" to R.string.interest_sitabhog_mihidana, // Hindi
-        "Terracotta Art" to R.string.interest_terracotta_art,
-        "টেরাকোটা শিল্প" to R.string.interest_terracotta_art, // Bengali
-        "टेराकोटा कला" to R.string.interest_terracotta_art, // Hindi
-        "Susunia Trek" to R.string.interest_susunia_trek,
-        "সুসুনিয়া ট্রেক" to R.string.interest_susunia_trek, // Bengali
-        "सुसुनिया ट्रेक" to R.string.interest_susunia_trek, // Hindi
-        "Ayodhya Hills" to R.string.interest_ayodhya_hills,
-        "অযোধ্যা পাহাড়" to R.string.interest_ayodhya_hills, // Bengali
-        "अयोध्या हिल्स" to R.string.interest_ayodhya_hills, // Hindi
-        "Chhau Dance" to R.string.interest_chhau_dance,
-        "ছাউ নৃত্য" to R.string.interest_chhau_dance, // Bengali
-        "छऊ नृत्य" to R.string.interest_chhau_dance, // Hindi
-        // Nadia Zone
-        "Clay-Doll Lane" to R.string.interest_clay_doll_lane,
-        "মাটির পুতুল গলি" to R.string.interest_clay_doll_lane, // Bengali
-        "मिट्टी की गुड़िया गली" to R.string.interest_clay_doll_lane, // Hindi
-        "Ghurni Artists" to R.string.interest_ghurni_artists,
-        "ঘূর্ণি শিল্পী" to R.string.interest_ghurni_artists, // Bengali
-        "घूर्णी कलाकार" to R.string.interest_ghurni_artists, // Hindi
-        "University Campus Walk" to R.string.interest_university_campus_walk,
-        "বিশ্ববিদ্যালয় ক্যাম্পাস হাঁটা" to R.string.interest_university_campus_walk, // Bengali
-        "विश्वविद्यालय कैंपस वॉक" to R.string.interest_university_campus_walk, // Hindi
-        "Kalyani Lake" to R.string.interest_kalyani_lake,
-        "কল্যাণী লেক" to R.string.interest_kalyani_lake, // Bengali
-        "कल्याणी झील" to R.string.interest_kalyani_lake, // Hindi
-        "Boutique Sarees" to R.string.interest_boutique_sarees,
-        "বুটিক শাড়ি" to R.string.interest_boutique_sarees, // Bengali
-        "बुटीक साड़ियाँ" to R.string.interest_boutique_sarees, // Hindi
-        "Churni Riverbank" to R.string.interest_churni_riverbank,
-        "চূর্ণি নদীপাড়" to R.string.interest_churni_riverbank, // Bengali
-        "चूर्णी नदी तट" to R.string.interest_churni_riverbank, // Hindi
-        // North-Centre / Murshidabad
-        "Mango Festival" to R.string.interest_mango_festival,
-        "আম উৎসব" to R.string.interest_mango_festival, // Bengali
-        "आम महोत्सव" to R.string.interest_mango_festival, // Hindi
-        "Gour Ruins" to R.string.interest_gour_ruins,
-        "গৌড় ধ্বংসাবশেষ" to R.string.interest_gour_ruins, // Bengali
-        "गौर के खंडहर" to R.string.interest_gour_ruins, // Hindi
-        "Hazarduari Museum" to R.string.interest_hazar_duari_museum,
-        "হাজারদুয়ারি জাদুঘর" to R.string.interest_hazar_duari_museum, // Bengali
-        "हज़ारद्वारी संग्रहालय" to R.string.interest_hazar_duari_museum, // Hindi
-        "Khusbagh Gardens" to R.string.interest_khusbagh_gardens,
-        "খুশবাগ উদ্যান" to R.string.interest_khusbagh_gardens, // Bengali
-        "खुशबाग गार्डन" to R.string.interest_khusbagh_gardens, // Hindi
-        "Berhampore Silk Shopping" to R.string.interest_berhampore_silk,
-        "বহরমপুর সিল্ক শপিং" to R.string.interest_berhampore_silk, // Bengali
-        "बहरमपुर रेशम ख़रीदारी" to R.string.interest_berhampore_silk, // Hindi
-        "Cossimbazar Rajbari" to R.string.interest_cossimbazar_rajbari,
-        "কসিমবাজার রাজবাড়ি" to R.string.interest_cossimbazar_rajbari, // Bengali
-        "कूसीमबाज़ार राजबाड़ी" to R.string.interest_cossimbazar_rajbari // Hindi
+        "খাবার" to R.string.interest_food,
+        "भोजन" to R.string.interest_food,
+
+        "Sports" to R.string.interest_sports,
+        "খেলাধুলা" to R.string.interest_sports,
+        "खेल" to R.string.interest_sports,
+
+        "Movies" to R.string.interest_movies,
+        "সিনেমা" to R.string.interest_movies,
+        "फ़िल्में" to R.string.interest_movies,
+
+        "Books" to R.string.interest_books,
+        "বই" to R.string.interest_books,
+        "किताबें" to R.string.interest_books,
+
+        "Art" to R.string.interest_art,
+        "শিল্প" to R.string.interest_art,
+        "कला" to R.string.interest_art,
+
+        "Photography" to R.string.interest_photography,
+        "ফটোগ্রাফি" to R.string.interest_photography,
+        "फ़ोटोग्राफी" to R.string.interest_photography,
+
+        "Gaming" to R.string.interest_gaming,
+        "গেমিং" to R.string.interest_gaming,
+        "गेमिंग" to R.string.interest_gaming,
+
+        "Fitness" to R.string.interest_fitness,
+        "ফিটনেস" to R.string.interest_fitness,
+        "फ़िटनेस" to R.string.interest_fitness,
+
+        // Specific Outdoor & Nature
+        "Hiking" to R.string.interest_hiking,
+        "হাইকিং" to R.string.interest_hiking,
+        "हाइकिंग" to R.string.interest_hiking,
+
+        "Camping" to R.string.interest_camping,
+        "ক্যাম্পিং" to R.string.interest_camping,
+        "कैंपिंग" to R.string.interest_camping,
+
+        "Fishing" to R.string.interest_fishing,
+        "মাছ ধরা" to R.string.interest_fishing,
+        "मछली पकड़ना" to R.string.interest_fishing,
+
+        "Hunting" to R.string.interest_hunting,
+        "শিকার" to R.string.interest_hunting,
+        "शिकार" to R.string.interest_hunting,
+
+        "Gardening" to R.string.interest_gardening,
+        "বাগান করা" to R.string.interest_gardening,
+        "बागवानी" to R.string.interest_gardening,
+
+        // Food & Drink
+        "Cooking" to R.string.interest_cooking,
+        "রান্না" to R.string.interest_cooking,
+        "खाना बनाना" to R.string.interest_cooking,
+
+        "Baking" to R.string.interest_baking,
+        "বেকিং" to R.string.interest_baking,
+        "बैकिंग" to R.string.interest_baking,
+
+        "Wine tasting" to R.string.interest_wine_tasting,
+        "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,
+        "वाइन चखना" to R.string.interest_wine_tasting,
+
+        "Craft beer" to R.string.interest_craft_beer,
+        "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,
+        "क्राफ्ट बियर" to R.string.interest_craft_beer,
+
+        "Coffee" to R.string.interest_coffee,
+        "কফি" to R.string.interest_coffee,
+        "कॉफ़ी" to R.string.interest_coffee,
+
+        // Wellness & Spiritual
+        "Yoga" to R.string.interest_yoga,
+        "যোগ" to R.string.interest_yoga,
+        "योग" to R.string.interest_yoga,
+
+        "Meditation" to R.string.interest_meditation,
+        "ধ্যান" to R.string.interest_meditation,
+        "ध्यान" to R.string.interest_meditation,
+
+        "Astrology" to R.string.interest_astrology,
+        "জ্যোতিষ" to R.string.interest_astrology,
+        "ज्योतिष" to R.string.interest_astrology,
+
+        "Romance" to R.string.interest_romance,
+        "রোমান্স" to R.string.interest_romance, // Bengali
+        "रोमांस" to R.string.interest_romance, // Hindi
+
+        "Crystals" to R.string.interest_crystals,
+        "ক্রিস্টালস" to R.string.interest_crystals,
+        "क्रिस्टल" to R.string.interest_crystals,
+
+        // Style & DIY
+        "Vintage clothing" to R.string.interest_vintage_clothing,
+        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,
+        "विंटेज कपड़े" to R.string.interest_vintage_clothing,
+
+        "Thrift shopping" to R.string.interest_thrift_shopping,
+        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,
+        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,
+
+        "DIY projects" to R.string.interest_diy,
+        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,
+        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,
+
+        "Home improvement" to R.string.interest_home_improvement,
+        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,
+        "गृह सुधार" to R.string.interest_home_improvement,
+
+        "Interior design" to R.string.interest_interior_design,
+        "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,
+        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,
+
+        // Intellectual & Tech
+        "History" to R.string.interest_history,
+        "ইতিহাস" to R.string.interest_history,
+        "इतिहास" to R.string.interest_history,
+
+        "Science" to R.string.interest_science,
+        "বিজ্ঞান" to R.string.interest_science,
+        "विज्ञान" to R.string.interest_science,
+
+        "Philosophy" to R.string.interest_philosophy,
+        "দর্শন শাস্ত্র" to R.string.interest_philosophy,
+        "दर्शनशास्त्र" to R.string.interest_philosophy,
+
+        "Politics" to R.string.interest_politics,
+        "রাজনীতি" to R.string.interest_politics,
+        "राजनीति" to R.string.interest_politics,
+
+        "Economics" to R.string.interest_economics,
+        "অর্থনীতি" to R.string.interest_economics,
+        "अर्थशास्त्र" to R.string.interest_economics,
+
+        "Technology" to R.string.interest_technology,
+        "প্রযুক্তি" to R.string.interest_technology,
+        "प्रौद्योगिकी" to R.string.interest_technology,
+
+        "Coding" to R.string.interest_coding,
+        "কোডিং" to R.string.interest_coding,
+        "कोडिंग" to R.string.interest_coding,
+
+        "Robotics" to R.string.interest_robotics,
+        "রোবোটিক্স" to R.string.interest_robotics,
+        "रोबोटिक्स" to R.string.interest_robotics,
+
+        "Space exploration" to R.string.interest_space,
+        "মহাকাশ অন্বেষণ" to R.string.interest_space,
+        "अंतरिक्ष अन्वेषण" to R.string.interest_space,
+
+        "Environmentalism" to R.string.interest_environmentalism,
+        "পরিবেশবাদ" to R.string.interest_environmentalism,
+        "पर्यावरणवाद" to R.string.interest_environmentalism,
+
+        // Social & Community
+        "Volunteering" to R.string.interest_volunteering,
+        "স্বেচ্ছাসেবা" to R.string.interest_volunteering,
+        "स्वयंसेवा" to R.string.interest_volunteering,
+
+        "Charity work" to R.string.interest_charity,
+        "দান কার্যক্রম" to R.string.interest_charity,
+        "चैरिटी कार्य" to R.string.interest_charity,
+
+        "Community organizing" to R.string.interest_community,
+        "কমিউনিটি সংগঠন" to R.string.interest_community,
+        "समुदाय आयोजन" to R.string.interest_community,
+
+        "Networking" to R.string.interest_networking,
+        "নেটওয়ার্কিং" to R.string.interest_networking,
+        "नेटवर्किंग" to R.string.interest_networking,
+
+        "Public speaking" to R.string.interest_public_speaking,
+        "পাবলিক স্পিকিং" to R.string.interest_public_speaking,
+        "पब्लिक स्पीकिंग" to R.string.interest_public_speaking,
+
+        "Writing" to R.string.interest_writing,
+        "লেখা" to R.string.interest_writing,
+        "लेखन" to R.string.interest_writing,
+
+        "Blogging" to R.string.interest_blogging,
+        "ব্লগিং" to R.string.interest_blogging,
+        "ब्लॉगिंग" to R.string.interest_blogging,
+
+        "Podcasting" to R.string.interest_podcasting,
+        "পডকাস্টিং" to R.string.interest_podcasting,
+        "पॉडकास्टिंग" to R.string.interest_podcasting,
+
+        "Social media" to R.string.interest_social_media,
+        "সোশ্যাল মিডিয়া" to R.string.interest_social_media,
+        "सोशल मीडिया" to R.string.interest_social_media,
+
+        "Online communities" to R.string.interest_online_communities,
+        "অনলাইন কমিউনিটি" to R.string.interest_online_communities,
+        "ऑनलाइन समुदाय" to R.string.interest_online_communities,
+
+        // Adventurous & Thrilling
+        "Skydiving" to R.string.interest_skydiving,
+        "স্কাইডাইভিং" to R.string.interest_skydiving,
+        "स्काईडाइविंग" to R.string.interest_skydiving,
+
+        "Scuba diving" to R.string.interest_scuba_diving,
+        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,
+        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,
+
+        "Rock climbing" to R.string.interest_rock_climbing,
+        "রক ক্লাইমিং" to R.string.interest_rock_climbing,
+        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,
+
+        "Surfing" to R.string.interest_surfing,
+        "সার্ফিং" to R.string.interest_surfing,
+        "सर्फिंग" to R.string.interest_surfing,
+
+        "Skiing" to R.string.interest_skiing,
+        "স্কিইং" to R.string.interest_skiing,
+        "स्कीयिंग" to R.string.interest_skiing,
+
+        "Snowboarding" to R.string.interest_snowboarding,
+        "স্নোবোর্ডিং" to R.string.interest_snowboarding,
+        "स्नोबोर्डिंग" to R.string.interest_snowboarding,
+
+        "Mountain biking" to R.string.interest_mountain_biking,
+        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,
+        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,
+
+        "Motorcycling" to R.string.interest_motorcycling,
+        "মোটরসাইক্লিং" to R.string.interest_motorcycling,
+        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,
+
+        "Car racing" to R.string.interest_car_racing,
+        "কার রেসিং" to R.string.interest_car_racing,
+        "कार रेसिंग" to R.string.interest_car_racing,
+
+        "Extreme sports" to R.string.interest_extreme_sports,
+        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,
+        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,
+
+        // Relaxation & Leisure
+        "Puzzles" to R.string.interest_puzzles,
+        "ধাঁধা" to R.string.interest_puzzles,
+        "पहेलियाँ" to R.string.interest_puzzles,
+
+        "Board games" to R.string.interest_board_games,
+        "বোর্ড গেমস" to R.string.interest_board_games,
+        "बोर्ड गेम्स" to R.string.interest_board_games,
+
+        "Video games" to R.string.interest_video_games,
+        "ভিডিও গেমস" to R.string.interest_video_games,
+        "वीडियो गेम्स" to R.string.interest_video_games,
+
+        "Watching TV" to R.string.interest_watching_tv,
+        "টিভি দেখা" to R.string.interest_watching_tv,
+        "टीवी देखना" to R.string.interest_watching_tv,
+
+        "Napping" to R.string.interest_napping,
+        "ন্যাপিং" to R.string.interest_napping,
+        "नैपिंग" to R.string.interest_napping,
+
+        "Spa days" to R.string.interest_spa_days,
+        "স্পা ডে" to R.string.interest_spa_days,
+        "स्पा दिन" to R.string.interest_spa_days,
+
+        "Beach days" to R.string.interest_beach_days,
+        "বিচ ডে" to R.string.interest_beach_days,
+        "बीच डे" to R.string.interest_beach_days,
+
+        "Picnics" to R.string.interest_picnics,
+        "পিকনিক" to R.string.interest_picnics,
+        "पिकनिक" to R.string.interest_picnics
     )
 
     // 2) Group by resId, pick one rawName per interest
@@ -3554,7 +3597,6 @@ fun InterestsEditSection(
         )
     }
 }
-
 
 /** Reusable UI elements */
 @Composable

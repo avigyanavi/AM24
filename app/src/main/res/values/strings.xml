@@ -207,6 +207,10 @@
     <string name="college_mcc_chennai">Madras Christian College, Chennai</string>
 
     <!-- Interests -->
+
+    <!-- GLOBAL interests -->
+    <string name="interest_food">Food</string>
+    <string name="interest_nature">Nature</string>
     <!-- ───── Global interests ───── -->
     <string name="interest_music">Music</string>
     <string name="interest_movies">Movies</string>
@@ -224,104 +228,77 @@
     <string name="interest_fashion">Fashion</string>
     <string name="interest_volunteering">Volunteering</string>
     <string name="interest_pets">Pets &amp; Animals</string>
+    <string name="interest_charity">Charity work</string>
+    <string name="interest_community">Community organizing</string>
+    <string name="interest_networking">Networking</string>
+    <string name="interest_public_speaking">Public speaking</string>
+    <string name="interest_writing">Writing</string>
+    <string name="interest_blogging">Blogging</string>
+    <string name="interest_podcasting">Podcasting</string>
+    <string name="interest_social_media">Social media</string>
+    <string name="interest_online_communities">Online communities</string>
 
-    <!-- ───── Kolkata cluster ───── -->
-    <string name="interest_cc_block_market">CC Block Market</string>
-    <string name="interest_sector_v_it_hub">Sector V IT Hub</string>
-    <string name="interest_eco_park">Eco Park</string>
-    <string name="interest_city_centre_2">City Centre 2</string>
-    <string name="interest_airport_area">Airport Area</string>
-    <string name="interest_local_market">Local Market</string>
-    <string name="interest_old_market">Old Market</string>
-    <string name="interest_local_eateries">Local Eateries</string>
-    <string name="interest_nightlife">Night‑life</string>
-    <string name="interest_park_street_cafes">Park Street Cafés</string>
+    <string name="interest_skydiving">Skydiving</string>
+    <string name="interest_scuba_diving">Scuba diving</string>
+    <string name="interest_rock_climbing">Rock climbing</string>
+    <string name="interest_surfing">Surfing</string>
+    <string name="interest_skiing">Skiing</string>
+    <string name="interest_snowboarding">Snowboarding</string>
+    <string name="interest_mountain_biking">Mountain biking</string>
+    <string name="interest_motorcycling">Motorcycling</string>
+    <string name="interest_car_racing">Car racing</string>
+    <string name="interest_extreme_sports">Extreme sports</string>
 
-    <!-- ───── Hooghly / Chandannagar ───── -->
-    <string name="interest_chandannagar_strand">Chandannagar Strand</string>
-    <string name="interest_french_heritage">French Heritage</string>
-    <string name="interest_riverside_ghats">Riverside Ghats</string>
-    <string name="interest_heritage_walks">Heritage Walks</string>
+    <string name="interest_puzzles">Puzzles</string>
+    <string name="interest_board_games">Board games</string>
+    <string name="interest_video_games">Video games</string>
+    <string name="interest_watching_tv">Watching TV</string>
+    <string name="interest_napping">Napping</string>
+    <string name="interest_spa_days">Spa days</string>
+    <string name="interest_beach_days">Beach days</string>
+    <string name="interest_picnics">Picnics</string>
 
-    <!-- ───── Howrah ───── -->
-    <string name="interest_belur_math">Belur Math</string>
-    <string name="interest_avani_mall">Avani Mall</string>
+    <string name="interest_coding">Coding</string>
+    <string name="interest_robotics">Robotics</string>
+    <string name="interest_space">Space exploration</string>
+    <string name="interest_environmentalism">Environmentalism</string>
 
-    <!-- ───── Durgapur / Asansol belt ───── -->
-    <string name="interest_city_centre_plaza">City Centre Plaza</string>
-    <string name="interest_steel_plant_tour">Steel‑Plant Tour</string>
-    <string name="interest_burnpur_riverside">Burnpur Riverside</string>
-    <string name="interest_chittaranjan_park">Chittaranjan Park</string>
+    <string name="interest_baking">Baking</string>
+    <string name="interest_wine_tasting">Wine tasting</string>
+    <string name="interest_craft_beer">Craft beer</string>
+    <string name="interest_coffee">Coffee</string>
 
-    <!-- ───── North‑Bengal cluster ───── -->
-    <string name="interest_hongkong_market">Hongkong Market</string>
-    <string name="interest_mahananda_wls">Mahananda Wildlife Sanctuary</string>
-    <string name="interest_toy_train">Toy‑Train</string>
-    <string name="interest_tea_estate_walks">Tea‑Estate Walks</string>
-    <string name="interest_gorumara_safari">Gorumara Safari</string>
-    <string name="interest_rafting_teesta">Rafting on Teesta</string>
-    <string name="interest_rajbari_palace">Rajbari Palace</string>
-    <string name="interest_sagar_dighi">Sagar‑Dighi</string>
-    <string name="interest_buxa_fort_trek">Buxa Fort Trek</string>
-    <string name="interest_jayanti_picnic">Jayanti River Picnic</string>
+    <string name="interest_yoga">Yoga</string>
+    <string name="interest_meditation">Meditation</string>
+    <string name="interest_astrology">Astrology</string>
+    <string name="interest_romance">Romance</string>
+    <string name="interest_crystals">Crystals</string>
 
-    <!-- ───── South‑West cluster ───── -->
-    <string name="interest_iit_campus_walk">IIT Campus Walk</string>
-    <string name="interest_gol_bazaar_food">Gol Bazaar Food</string>
-    <string name="interest_vidyasagar_lake">Vidyasagar Uni Lake</string>
-    <string name="interest_khudiram_park">Khudiram Park</string>
-    <string name="interest_river_cruise">River Cruise</string>
-    <string name="interest_marine_drive">Marine Drive</string>
+    <string name="interest_vintage_clothing">Vintage clothing</string>
+    <string name="interest_thrift_shopping">Thrift shopping</string>
+    <string name="interest_diy">DIY projects</string>
+    <string name="interest_home_improvement">Home improvement</string>
+    <string name="interest_interior_design">Interior design</string>
 
-    <!-- ───── Central WB ───── -->
-    <string name="interest_curzon_gate_photo">Curzon Gate Photo‑Op</string>
-    <string name="interest_sitabhog_mihidana">Sitabhog &amp; Mihidana Tasting</string>
-    <string name="interest_terracotta_art">Terracotta Art</string>
-    <string name="interest_susunia_trek">Susunia Trek</string>
-    <string name="interest_ayodhya_hills">Ayodhya Hills</string>
-    <string name="interest_chhau_dance">Chhau Dance</string>
+    <string name="interest_history">History</string>
+    <string name="interest_science">Science</string>
+    <string name="interest_philosophy">Philosophy</string>
+    <string name="interest_politics">Politics</string>
+    <string name="interest_economics">Economics</string>
 
-    <!-- ───── Nadia zone ───── -->
-    <string name="interest_clay_doll_lane">Clay‑Doll Lane</string>
-    <string name="interest_ghurni_artists">Ghurni Artists</string>
-    <string name="interest_university_campus_walk">University Campus Walk</string>
-    <string name="interest_kalyani_lake">Kalyani Lake</string>
-    <string name="interest_boutique_sarees">Boutique Sarees</string>
-    <string name="interest_churni_riverbank">Churni Riverbank</string>
+    <string name="interest_hiking">Hiking</string>
+    <string name="interest_camping">Camping</string>
+    <string name="interest_fishing">Fishing</string>
+    <string name="interest_hunting">Hunting</string>
 
-    <!-- ───── North‑centre / Murshidabad ───── -->
-    <string name="interest_mango_festival">Mango Festival</string>
-    <string name="interest_gour_ruins">Gour Ruins</string>
-    <string name="interest_hazar_duari_museum">Hazarduari Museum</string>
-    <string name="interest_khusbagh_gardens">Khusbagh Gardens</string>
-    <string name="interest_berhampore_silk">Berhampore Silk Shopping</string>
-    <string name="interest_cossimbazar_rajbari">Cossimbazar Rajbari</string>
+    <string name="interest_traveling">Traveling</string>
+
 
     <string name="match_summary_format">
         Total Match: %1$d%%\nBreakdown:\n%2$s
     </string>
 
     <string name="enter_your_personal_details">Enter your personal details</string>
-
-    <!-- GLOBAL interests -->
-    <string name="interest_food">Food</string>
-    <string name="interest_nature">Nature</string>
-    <string name="interest_dance">Dance</string>
-
-    <!-- West‑Bengal locality interests -->
-    <string name="interest_victoria_memorial">Victoria Memorial</string>
-    <string name="interest_princep_ghat">Princep Ghat</string>
-    <string name="interest_nicco_park">Nicco Park</string>
-    <string name="interest_science_city">Science City</string>
-    <string name="interest_dakshineswar_temple">Dakshineswar Temple</string>
-    <string name="interest_howrah_bridge">Howrah Bridge</string>
-    <string name="interest_iit_kharagpur_campus">IIT Kharagpur Campus</string>
-    <string name="interest_digha_beach">Digha Beach</string>
-    <string name="interest_tiger_hill">Tiger Hill</string>
-    <string name="interest_mall_road">Mall Road (Darjeeling)</string>
-    <string name="interest_hazarduari_palace">Hazarduari Palace</string>
-    <string name="interest_shantiniketan">Shantiniketan</string>
-
 
     <string name="jan">January</string>
     <string name="feb">February</string>
