@@ -117,6 +117,54 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _savedPosts = MutableStateFlow<List<Post>>(emptyList())
+    val savedPosts: StateFlow<List<Post>> = _savedPosts.asStateFlow()
+
+    fun loadSavedPosts(userId: String) {
+        val savedPostsRef = FirebaseRefs.db.getReference("users").child(userId).child("savedPosts")
+        savedPostsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val savedPostIds = snapshot.children.mapNotNull { it.key }
+                fetchSavedPosts(savedPostIds)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("PostViewModel", "Failed to load saved posts: ${error.message}")
+            }
+        })
+    }
+
+    private fun fetchSavedPosts(postIds: List<String>) {
+        val postsRef = FirebaseRefs.db.getReference("posts")
+        viewModelScope.launch {
+            val savedPostsList = mutableListOf<Post>()
+            postIds.forEach { postId ->
+                postsRef.child(postId).addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        snapshot.getValue(Post::class.java)?.let { post ->
+                            savedPostsList.add(post)
+                            _savedPosts.value = savedPostsList.sortedByDescending { it.getTimestampLong() }
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("PostViewModel", "Failed to fetch post $postId: ${error.message}")
+                    }
+                })
+            }
+        }
+    }
+
+    // Existing savePost function (for reference)
+    fun savePost(postId: String, userId: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val userSavedPostsRef = FirebaseRefs.db.getReference("users").child(userId).child("savedPosts").child(postId)
+        userSavedPostsRef.setValue(true)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { exception ->
+                onFailure(exception.message ?: "Failed to save post")
+            }
+    }
+
     fun fetchPosts() {
         viewModelScope.launch {
             Log.d("PostViewModel", "Starting fetchPosts")
@@ -1251,38 +1299,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e("PostViewModel", "Error deleting post: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Failed to report post.")
-                }
-            }
-        }
-    }
-
-    /**
-     * Function to save a post for a user.
-     */
-    fun savePost(
-        postId: String,
-        userId: String,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // Reference to the "savedPosts" node for the user
-                val savedPostsRef = FirebaseRefs.db
-                    .getReference("savedPosts")
-                    .child(userId)
-                    .child(postId)
-
-                // Save the post by setting it as true in "savedPosts"
-                savedPostsRef.setValue(true).await()
-
-                withContext(Dispatchers.Main) {
-                    onSuccess() // Call success callback
-                }
-            } catch (e: Exception) {
-                Log.e("PostViewModel", "Error saving post: ${e.message}", e)
-                withContext(Dispatchers.Main) {
-                    onFailure(e.message ?: "Failed to save post.")
                 }
             }
         }

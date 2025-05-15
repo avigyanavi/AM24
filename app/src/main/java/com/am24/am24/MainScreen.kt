@@ -320,20 +320,17 @@ fun TopNavBar(
                     }
                 }
             }
-            // Logout Icon (Profile screen only)
-            if (isProfileScreen) {
-                IconButton(onClick = {
-                    FirebaseAuth.getInstance().signOut()
-                    onLogout()
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = "Logout",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+               // Saved-Posts Icon (Profile screen only)
+               if (isProfileScreen) {
+                       IconButton(onClick = { navController.navigate("saved_posts") }) {
+                               Icon(
+                                       imageVector   = Icons.Default.BookmarkBorder,
+                                       contentDescription = "Saved Posts",
+                                       tint          = Color.Gray,
+                                       modifier      = Modifier.size(24.dp)
+                                           )
+                           }
+                   }
             // Notifications Icon
             IconButton(onClick = {
                 if (isNotificationsSelected) {

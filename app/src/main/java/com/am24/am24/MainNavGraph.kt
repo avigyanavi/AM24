@@ -203,6 +203,12 @@ fun MainNavGraph(
             GroupChatScreen(navController = navController, groupId = groupId)
         }
 
+        composable("saved_posts") {
+            SavedPostsScreen(
+                navController = navController,
+                postViewModel = postViewModel
+            )
+        }
 
         composable(
             route = "matchedUserProfile/{userId}",

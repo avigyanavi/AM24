@@ -1823,12 +1823,12 @@ fun PerformanceMetricsSection(profile: Profile) {
 fun PreferencesSection(profile: Profile) {
     val lookingForText = profile.lookingFor.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_specified)
     ProfileDetailRow(    stringResource(R.string.looking_for_label),
-            localizedLookingFor(profile.lookingFor)
-                      .ifBlank { stringResource(R.string.not_specified) }, Icons.Default.Favorite)
+        localizedLookingFor(profile.lookingFor)
+            .ifBlank { stringResource(R.string.not_specified) }, Icons.Default.Favorite)
     ProfileDetailRow(stringResource(R.string.label_love_language), localizedLoveLanguage(profile.loveLanguage)
-                      .ifBlank { stringResource(R.string.not_set) }, Icons.Default.Favorite)
+        .ifBlank { stringResource(R.string.not_set) }, Icons.Default.Favorite)
     ProfileDetailRow(stringResource(R.string.label_politics), localizedPolitics(profile.politics)
-                      .ifBlank { stringResource(R.string.not_set) }, Icons.Default.HowToVote)
+        .ifBlank { stringResource(R.string.not_set) }, Icons.Default.HowToVote)
 }
 
 fun isLifestyleEmpty(lifestyle: Lifestyle?): Boolean {

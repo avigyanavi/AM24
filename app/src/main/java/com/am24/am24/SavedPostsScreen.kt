@@ -1,11 +1,173 @@
-// Placeholder for SavedPostsScreen implementation
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.am24.am24
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.navigation.NavController
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.ServerValue
+import java.util.UUID
 
 @Composable
-fun SavedPostsScreen(navController: NavController, modifier: Modifier = Modifier) {
-    // Placeholder content for future implementation
+fun SavedPostsScreen(
+    navController: NavController,
+    postViewModel: PostViewModel,
+    modifier: Modifier = Modifier
+) {
+    // Get current user ID
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    // Collect saved posts and user profiles as State
+    val savedPosts by postViewModel.savedPosts.collectAsState(initial = emptyList())
+    val userProfiles by postViewModel.userProfiles.collectAsState(initial = emptyMap())
+
+    // Trigger loading saved posts when userId becomes available
+    LaunchedEffect(userId) {
+        userId?.let { postViewModel.loadSavedPosts(it) }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = Color.Black,
+        topBar = {
+            TopAppBar(
+                title = { Text("Saved Posts", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            )
+        }
+    ) { innerPadding ->
+        if (savedPosts.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No saved posts yet.",
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(Color.Black),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                items(
+                    items = savedPosts,
+                    key = { it.postId }
+                ) { post ->
+                    val profile = userProfiles[post.userId]
+                    FeedItem(
+                        post = post,
+                        postViewModel = postViewModel,
+                        userProfile = profile,
+                        onUpvote = {
+                            postViewModel.upvotePost(
+                                postId = post.postId,
+                                userId = userId.orEmpty(),
+                                onSuccess = {},
+                                onFailure = {}
+                            )
+                        },
+                        onDownvote = {
+                            postViewModel.downvotePost(
+                                postId = post.postId,
+                                userId = userId.orEmpty(),
+                                onSuccess = {},
+                                onFailure = {}
+                            )
+                        },
+                        onUserClick = {
+                            if (post.userId == userId) {
+                                navController.navigate("profile")
+                            } else {
+                                navController.navigate("dating_screen?initialQuery=${post.userId}")
+                            }
+                        },
+                        onTagClick = { /* no-op */ },
+                        onShare = {
+                            postViewModel.sharePostWithMatches(
+                                postId = post.postId,
+                                matches = emptyList(),
+                                onSuccess = {},
+                                onFailure = {}
+                            )
+                        },
+                        onSave = {
+                            postViewModel.savePost(
+                                postId = post.postId,
+                                userId = userId.orEmpty(),
+                                onSuccess = {},
+                                onFailure = {}
+                            )
+                        },
+                        onComment = { commentText ->
+                            val comment = Comment(
+                                commentId = UUID.randomUUID().toString(),
+                                userId = userId.orEmpty(),
+                                username = profile?.username.orEmpty(),
+                                commentText = commentText,
+                                timestamp = ServerValue.TIMESTAMP
+                            )
+                            postViewModel.addComment(
+                                postId = post.postId,
+                                comment = comment,
+                                onSuccess = {},
+                                onFailure = {}
+                            )
+                        },
+                        currentUserId = userId.orEmpty(),
+                        onDelete = { postToDelete ->
+                            postViewModel.deletePost(
+                                postId = postToDelete.postId,
+                                onSuccess = {},
+                                onFailure = {}
+                            )
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+    }
 }

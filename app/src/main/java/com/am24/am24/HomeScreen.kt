@@ -47,10 +47,7 @@ import kotlinx.coroutines.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
