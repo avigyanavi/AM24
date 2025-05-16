@@ -7,6 +7,7 @@ import android.Manifest
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -19,6 +20,9 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -62,6 +66,7 @@ import kotlin.math.roundToInt
 import coil.request.ImageRequest
 import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ProfileScreen(
@@ -70,6 +75,20 @@ fun ProfileScreen(
     postViewModel: PostViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context        = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // —— 1) detect “email/password but not yet verified” ——
+    val user = FirebaseAuth.getInstance().currentUser
+    val isPwdUser = user
+        ?.providerData
+        ?.any { it.providerId == "password" } == true
+    val needsVerification = isPwdUser && user?.isEmailVerified == false
+
+    var showVerifyDialog by remember { mutableStateOf(false) }
+    var isSendingEmail   by remember { mutableStateOf(false) }
+
+    // —— your existing state & loading logic ——
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -95,18 +114,82 @@ fun ProfileScreen(
 
     when {
         currentUserProfile == null -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(text = stringResource(R.string.profile_loading), color = Color.White)
             }
         }
         else -> {
             ProfileLazyScreen(
-                navController = navController,
-                profile = currentUserProfile!!,
+                navController    = navController,
+                profile          = currentUserProfile!!,
                 featuredPosts = featuredPosts,
                 remainingPosts = remainingPosts,
                 profileViewModel = profileViewModel
             )
+
+            // —— 3) if they need to verify, intercept all taps ——
+            if (needsVerification) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures { showVerifyDialog = true }
+                        }
+                )
+            }
+
+            // 5) your “please verify” AlertDialog
+            if (showVerifyDialog) {
+                AlertDialog(
+                    onDismissRequest = { showVerifyDialog = false },
+                    backgroundColor = Color(0xFF1A1A1A),
+                    contentColor    = Color.White,
+                    title = { Text("Verify Email", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Text("Verify Email to use app")
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                isSendingEmail = true
+                                coroutineScope.launch {
+                                    try {
+                                        user?.sendEmailVerification()?.await()
+                                        Toast.makeText(
+                                            context,
+                                            "Verification Email Sent",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(
+                                            context,
+                                            e.message ?: "Error sending email",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    isSendingEmail = false
+                                    showVerifyDialog = false
+                                }
+                            },
+                            enabled = !isSendingEmail
+                        ) {
+                            if (isSendingEmail) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Resend Verification Link")
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showVerifyDialog = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                )
+            }
         }
     }
 }
