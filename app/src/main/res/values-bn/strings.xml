@@ -389,15 +389,25 @@
     <string name="tag_parks">পার্ক</string>
     <string name="tag_cinemas">সিনেমা হল</string>
     <string name="tag_restaurants">রেস্তোরাঁ</string>
-    <string name="tag_lovers_point">প্রেমিক-প্রেমিকার আড্ডা</string>
     <string name="tag_street_food">স্ট্রিট ফুড</string>
     <string name="tag_clubs">ক্লাব</string>
-    <string name="tag_riverfronts">নদীর ধারে</string>
+    <string name="tag_turf">টার্ফ</string>
     <string name="tag_bookstores">বইয়ের দোকান</string>
-    <string name="tag_gaming_zones">গেমিং জোন</string>
-    <string name="tag_rooftops">রুফটপ</string>
-    <string name="tag_festivals">উৎসব</string>
-    <string name="tag_chai_stalls">চায়ের দোকান</string>
+    <string name="tag_gaming_zones">গেমিং সেন্টার</string>
+    <string name="tag_howrah_bridge">হাওড়া সেতু</string>
+    <string name="tag_victoria_memorial">ভিক্টোরিয়া মেমোরিয়াল</string>
+    <string name="tag_princep_ghat">প্রিন্সেপ ঘাট</string>
+    <string name="tag_indian_museum">ইন্ডিয়ান মিউজিয়াম</string>
+    <string name="tag_science_city">সায়েন্স সিটি</string>
+    <string name="tag_park_street">পার্ক স্ট্রিট</string>
+    <string name="tag_college_street">কলেজ স্ট্রিট</string>
+    <string name="tag_esplanade">এসপ্লেনেড</string>
+    <string name="tag_dakshineswar_temple">দক্ষিণেশ্বর মন্দির</string>
+    <string name="tag_kalighat_temple">কলিঘাট মন্দির</string>
+    <string name="tag_belur_math">বেলুড় মঠ</string>
+    <string name="tag_nicco_park">নিক্কো পার্ক</string>
+    <string name="tag_eco_park">ইকো পার্ক</string>
+    <string name="tag_salt_lake_stadium">সল্ট লেক স্টেডিয়াম</string>
 
     <!-- ── Price-filter UI ───────────────────────────────────── -->
     <string name="cd_price_filter">মূল্য অনুযায়ী ফিল্টার</string>

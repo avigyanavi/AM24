@@ -310,15 +310,25 @@
     <string name="tag_parks">पार्क</string>
     <string name="tag_cinemas">सिनेमा</string>
     <string name="tag_restaurants">रेस्तरां</string>
-    <string name="tag_lovers_point">प्रेम स्थल</string>
     <string name="tag_street_food">सड़क का खाना</string>
     <string name="tag_clubs">क्लब</string>
-    <string name="tag_riverfronts">नदी किनारा</string>
+    <string name="tag_turf">टर्फ</string>
     <string name="tag_bookstores">किताबों की दुकान</string>
-    <string name="tag_gaming_zones">गेमिंग ज़ोन</string>
-    <string name="tag_rooftops">रूफ़टॉप</string>
-    <string name="tag_festivals">त्योहार</string>
-    <string name="tag_chai_stalls">चाय स्टॉल</string>
+    <string name="tag_gaming_zones">गेमिंग सेंटर</string>
+    <string name="tag_howrah_bridge">हावड़ा पुल</string>
+    <string name="tag_victoria_memorial">विक्टोरिया मेमोरियल</string>
+    <string name="tag_princep_ghat">प्रिंसप घाट</string>
+    <string name="tag_indian_museum">इंडियन म्यूज़ियम</string>
+    <string name="tag_science_city">साइंस सिटी</string>
+    <string name="tag_park_street">पार्क स्ट्रीट</string>
+    <string name="tag_college_street">कॉलेज स्ट्रीट</string>
+    <string name="tag_esplanade">एस्प्लेनेड</string>
+    <string name="tag_dakshineswar_temple">दक्षिणेश्वर मंदिर</string>
+    <string name="tag_kalighat_temple">कलिघाट मंदिर</string>
+    <string name="tag_belur_math">बेलूर मठ</string>
+    <string name="tag_nicco_park">निक्को पार्क</string>
+    <string name="tag_eco_park">इको पार्क</string>
+    <string name="tag_salt_lake_stadium">सॉल्ट लेक स्टेडियम</string>
 
     <!-- ── Price-filter UI ───────────────────────────────────── -->
     <string name="cd_price_filter">दाम के अनुसार फ़िल्टर करें</string>

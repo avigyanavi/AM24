@@ -15,6 +15,7 @@ import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
 import android.widget.VideoView
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -191,6 +192,9 @@ fun ChatScreenContent(
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaType by remember { mutableStateOf<String?>(null) }
     var showReportDialog by remember { mutableStateOf(false) } // Added for report dialog
+    val activity = context as? ComponentActivity
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
 
     val editLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -642,39 +646,53 @@ fun ChatScreenContent(
                 },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
                 actions = {
+                    // ───── Chat‐Screen Language Switcher ─────
+                    var pickLangMenu by remember { mutableStateOf(false) }
+                    val languageOptions = listOf(
+                        "English" to "en",
+                        "हिन्दी"    to "hi",
+                        "বাংলা"     to "bn"
+                    )
+
                     IconButton(
                         onClick = { pickLangMenu = true },
                         colors = IconButtonDefaults.iconButtonColors(
                             contentColor = if (pickLangMenu) Color(0xFFFF6F00) else Color.White
                         )
                     ) {
-                        Icon(Icons.Default.Language, contentDescription = stringResource(R.string.btn_language))
+                        Icon(Icons.Default.Language, contentDescription = "Change language")
                     }
+
                     DropdownMenu(
                         expanded = pickLangMenu,
                         onDismissRequest = { pickLangMenu = false }
                     ) {
-                        @Composable
-                        fun langItem(label: String, code: String) = DropdownMenuItem(
-                            text = {
-                                Text(
-                                    label,
-                                    color = if (chatLang == code) Color(0xFFFF6F00) else Color.White
-                                )
-                            },
-                            onClick = {
-                                pickLangMenu = false
-                                if (chatLang != code) {
-                                    chatLang = code
-                                    LocaleUtils.setAppLocale(ctx, code)
-                                    suggestions = null
-                                    placeSuggestions = null
+                        languageOptions.forEach { (label, code) ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        label,
+                                        color = if (prefs.getString("language", "en") == code)
+                                            Color(0xFFFF6F00) else Color.White
+                                    )
+                                },
+                                onClick = {
+                                    pickLangMenu = false
+                                    // 1) save to SharedPreferences
+                                    prefs
+                                        .edit()
+                                        .putString("language", code)
+                                        .apply()                                    // 2) write to Firebase
+                                    userRef.child("preferredLanguage")
+                                        .setValue(code)
+                                        .addOnCompleteListener {
+                                            // 3) apply locale & 4) restart
+                                            updateLocale(context, code)
+                                            activity?.recreate()
+                                        }
                                 }
-                            }
-                        )
-                        langItem("English", "en")
-                        langItem("हिन्दी", "hi")
-                        langItem("বাংলা", "bn")
+                            )
+                        }
                     }
                     IconButton(
                         onClick = {

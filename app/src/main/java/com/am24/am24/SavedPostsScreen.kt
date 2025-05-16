@@ -52,6 +52,7 @@ fun SavedPostsScreen(
     // Collect saved posts and user profiles as State
     val savedPosts by postViewModel.savedPosts.collectAsState(initial = emptyList())
     val userProfiles by postViewModel.userProfiles.collectAsState(initial = emptyMap())
+    val savedIds = remember(savedPosts) { savedPosts.map { it.postId }.toSet() }
 
     var myMatches by remember { mutableStateOf<List<String>>(emptyList()) }
 
@@ -119,12 +120,15 @@ fun SavedPostsScreen(
                     key = { it.postId }
                 ) { post ->
                     val profile = userProfiles[post.userId]
+                    // ③ figure out if this one is currently saved
+                    val isSaved = savedIds.contains(post.postId)
                     FeedItem(
                         post = post,
                         postViewModel = postViewModel,
                         userProfile = profile,
                         matches       = myMatches,                 // ← here
                         userProfiles  = userProfiles,   // ← pass it through
+                        isSaved = isSaved,
                         onUpvote = {
                             postViewModel.upvotePost(
                                 postId = post.postId,

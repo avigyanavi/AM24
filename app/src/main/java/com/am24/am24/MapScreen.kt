@@ -1,7 +1,6 @@
 package com.am24.am24
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -11,13 +10,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -26,7 +23,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -97,7 +93,6 @@ private data class TagItem(
     val query : String    // always English – what we send to Places
 )
 
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MapScreen(
@@ -133,15 +128,25 @@ fun MapScreen(
         TagItem(stringResource(R.string.tag_restaurants)  , "restaurants"),
         TagItem(stringResource(R.string.tag_hotels)       , "hotels"),
         TagItem(stringResource(R.string.tag_oyo)          , "OYO"),
-        TagItem(stringResource(R.string.tag_lovers_point) , "lovers point"),
         TagItem(stringResource(R.string.tag_street_food)  , "street food"),
         TagItem(stringResource(R.string.tag_clubs)        , "clubs"),
-        TagItem(stringResource(R.string.tag_riverfronts)  , "riverfronts"),
+        TagItem(stringResource(R.string.tag_turf)             , "turf"),
         TagItem(stringResource(R.string.tag_bookstores)   , "bookstores"),
-        TagItem(stringResource(R.string.tag_gaming_zones) , "gaming zones"),
-        TagItem(stringResource(R.string.tag_rooftops)     , "rooftops"),
-        TagItem(stringResource(R.string.tag_festivals)    , "festivals"),
-        TagItem(stringResource(R.string.tag_chai_stalls)  , "chai stalls")
+        TagItem(stringResource(R.string.tag_gaming_zones) , "gaming center"),
+        TagItem(stringResource(R.string.tag_howrah_bridge)       , "howrah bridge"),
+        TagItem(stringResource(R.string.tag_victoria_memorial)   , "victoria memorial"),
+        TagItem(stringResource(R.string.tag_princep_ghat)        , "princep ghat"),
+        TagItem(stringResource(R.string.tag_indian_museum)       , "indian museum"),
+        TagItem(stringResource(R.string.tag_science_city)        , "science city"),
+        TagItem(stringResource(R.string.tag_park_street)         , "park street"),
+        TagItem(stringResource(R.string.tag_college_street)      , "college street"),
+        TagItem(stringResource(R.string.tag_esplanade)           , "esplanade"),
+        TagItem(stringResource(R.string.tag_dakshineswar_temple) , "dakshineswar temple"),
+        TagItem(stringResource(R.string.tag_kalighat_temple)     , "kalighat temple"),
+        TagItem(stringResource(R.string.tag_belur_math)          , "belur math"),
+        TagItem(stringResource(R.string.tag_nicco_park)          , "nicco park"),
+        TagItem(stringResource(R.string.tag_eco_park)            , "eco park"),
+        TagItem(stringResource(R.string.tag_salt_lake_stadium)   , "salt lake stadium")
     )
 
     val matchesSet = remember { mutableStateListOf<String>() }
@@ -382,11 +387,10 @@ fun MapScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("#${tagItem.label}", color = Color.LightGray, fontSize = 10.sp)
+                            Text("${tagItem.label}", color = Color.LightGray, fontSize = 10.sp)
                         }
                     }
                 }
-
             }
 
             // Map & Overlays
@@ -949,4 +953,3 @@ data class MatchProfile(
     val hometown: String,
     val photoUrl: String?
 )
-

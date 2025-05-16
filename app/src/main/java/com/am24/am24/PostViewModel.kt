@@ -61,8 +61,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentUserId = MutableStateFlow<String?>(null)
     val currentUserIdFlow: StateFlow<String?> get() = _currentUserId
 
+    private val _savedPostIds = MutableStateFlow<Set<String>>(emptySet())
+    val savedPostIds: StateFlow<Set<String>> = _savedPostIds.asStateFlow()
+
     fun setCurrentUserId(userId: String?) {
         _currentUserId.value = userId
+
+        // stop listening if null
+        if (userId == null) return
+
+        // start watching the simple ID set:
+        watchSavedPostIds(userId)
+
+        // still call your existing loadSavedPosts() for the saved-posts screen:
+        loadSavedPosts(userId)
     }
 
     private val _feedFilters = MutableStateFlow(FilterSettings())
@@ -72,12 +84,51 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _feedFilters.value = newFilters
     }
 
-    fun setIsVoiceOnly(isVoiceOnly: Boolean) {
-        _filterSettings.value = _filterSettings.value.copy(isVoiceOnly = isVoiceOnly)
-    }
     private val _filtersLoaded = MutableStateFlow(false)
     val filtersLoaded: StateFlow<Boolean> get() = _filtersLoaded
 
+    //
+    // 3) listen for changes under users/{uid}/savedPosts → true
+    //
+    private fun watchSavedPostIds(userId: String) {
+        val ref = db.getReference("users")
+            .child(userId)
+            .child("savedPosts")
+
+        ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // collect all keys under /savedPosts → Set<String>
+                val ids = snapshot.children.mapNotNull { it.key }.toSet()
+                _savedPostIds.value = ids
+            }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "watchSavedPostIds failed: ${error.message}")
+            }
+        })
+    }
+
+    //
+    // 4) Unsaving a post: remove the boolean under users/{uid}/savedPosts/{postId}
+    //
+    fun unsavePost(
+        postId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val uid = _currentUserId.value
+        if (uid == null) {
+            onFailure("Not signed in")
+            return
+        }
+
+        db.getReference("users")
+            .child(uid)
+            .child("savedPosts")
+            .child(postId)
+            .removeValue()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it.message ?: "Failed to unsave") }
+    }
 
     // Update filteredPosts to combine both filters
     val filteredPosts: StateFlow<List<Post>> = combine(
@@ -155,14 +206,22 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Existing savePost function (for reference)
-    fun savePost(postId: String, userId: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
-        val userSavedPostsRef = FirebaseRefs.db.getReference("users").child(userId).child("savedPosts").child(postId)
-        userSavedPostsRef.setValue(true)
+    //
+    // 5) You already have this; it’ll continue to work for your “Saved Posts” screen
+    //
+    fun savePost(
+        postId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        db.getReference("users")
+            .child(userId)
+            .child("savedPosts")
+            .child(postId)
+            .setValue(true)
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { exception ->
-                onFailure(exception.message ?: "Failed to save post")
-            }
+            .addOnFailureListener { onFailure(it.message ?: "Failed to save post") }
     }
 
     fun fetchPosts() {

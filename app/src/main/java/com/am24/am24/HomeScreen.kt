@@ -189,6 +189,8 @@ fun HomeScreenContent(
     var selectedTab by remember {                   // keeps UI and VM in sync
         mutableStateOf(if (filterOption == "matches") 1 else 0)
     }
+    // ① collect your new savedPostIds flow
+    val savedIds by postViewModel.savedPostIds.collectAsState()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -267,6 +269,7 @@ fun HomeScreenContent(
                     // When a tag is clicked, update the search query so that the search bar appears.
                     onSearchQueryChanged(tag)
                 },
+                savedPostIds = savedIds,    // ← NEW
                 listState = listState // Pass listState to FeedSection
             )
         }
@@ -284,6 +287,7 @@ fun FeedSection(
     postViewModel: PostViewModel,
     userProfiles: Map<String, Profile>,
     onTagClick: (String) -> Unit,
+    savedPostIds: Set<String>,           // ← NEW
     listState: LazyListState // Added listState parameter
 ) {
     val context = LocalContext.current
@@ -332,9 +336,11 @@ fun FeedSection(
 
             items(posts) { post ->
                 val profile = userProfiles[post.userId]
+                val isSaved = savedPostIds.contains(post.postId)
                 FeedItem(
                     post = post,
                     userProfile = profile,
+                    isSaved = isSaved,               // ← NEW
                     matches = matches,
                     userProfiles  = userProfiles,   // ← pass it through
                     onUpvote = {
@@ -454,6 +460,7 @@ fun FeedSection(
 @Composable
 fun FeedItem(
     post: Post,
+    isSaved: Boolean,                // ← NEW
     postViewModel: PostViewModel,
     userProfile: Profile?,
     matches: List<String>,
@@ -825,7 +832,7 @@ fun FeedItem(
                         // Add Save Icon
                         IconButton(onClick = { onSave() }) {
                             Icon(
-                                Icons.Default.BookmarkBorder,  // Bookmark or save icon
+                                imageVector = if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                                 contentDescription = "Save Post",
                                 tint = Color.White
                             )

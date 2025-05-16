@@ -39,15 +39,26 @@
     <string name="tag_parks">parks</string>
     <string name="tag_cinemas">cinemas</string>
     <string name="tag_restaurants">restaurants</string>
-    <string name="tag_lovers_point">lovers point</string>
     <string name="tag_street_food">street food</string>
     <string name="tag_clubs">clubs</string>
-    <string name="tag_riverfronts">riverfronts</string>
+    <string name="tag_turf">Turf</string>
     <string name="tag_bookstores">bookstores</string>
-    <string name="tag_gaming_zones">gaming zones</string>
-    <string name="tag_rooftops">rooftops</string>
-    <string name="tag_festivals">festivals</string>
-    <string name="tag_chai_stalls">chai stalls</string>
+    <string name="tag_gaming_zones">gaming center</string>
+    <string name="tag_howrah_bridge">Howrah Bridge</string>
+    <string name="tag_victoria_memorial">Victoria Memorial</string>
+    <string name="tag_princep_ghat">Princep Ghat</string>
+    <string name="tag_indian_museum">Indian Museum</string>
+    <string name="tag_science_city">Science City</string>
+    <string name="tag_park_street">Park Street</string>
+    <string name="tag_college_street">College Street</string>
+    <string name="tag_esplanade">Esplanade</string>
+    <string name="tag_dakshineswar_temple">Dakshineswar Temple</string>
+    <string name="tag_kalighat_temple">Kalighat Temple</string>
+    <string name="tag_belur_math">Belur Math</string>
+    <string name="tag_nicco_park">Nicco Park</string>
+    <string name="tag_eco_park">Eco Park</string>
+    <string name="tag_salt_lake_stadium">Salt Lake Stadium</string>
+
     <string name="age_format">Age: %s</string>
     <string name="age_only_format">Age: %s</string>
 

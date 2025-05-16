@@ -22,6 +22,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -35,7 +36,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.am24.am24.util.LocaleUtils
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
@@ -118,6 +121,14 @@ fun TopNavBar(
 
     var priceMenuExpanded   by rememberSaveable { mutableStateOf(false) }
     var selectedPriceRange  by rememberSaveable { mutableStateOf(priceAll) }
+
+
+    // New: language menu
+    var pickLangMenu by remember { mutableStateOf(false) }
+    val ctx      = LocalContext.current
+    val activity = ctx as? ComponentActivity
+    var appLang  by rememberSaveable { mutableStateOf(LocaleUtils.getSavedLang(ctx)) }
+    val languages = listOf("English" to "en", "हिन्दी" to "hi", "বাংলা" to "bn")
 
 
     // Fetch premium status from Firebase
@@ -203,8 +214,8 @@ fun TopNavBar(
                     )
                 }
             }
-            // Location settings icon (map screen)
-            // Location settings icon (map screen)
+
+           // Location settings icon (map screen)
             if (currentRoute == "map") {
                 /* 1) Price-Filter icon (new) – shows before the old Location icon */
                 IconButton(onClick = { priceMenuExpanded = true }) {
@@ -212,7 +223,7 @@ fun TopNavBar(
                         imageVector      = Icons.Default.FilterList,
                         contentDescription = stringResource(R.string.cd_price_filter),
                         tint              = if (selectedPriceRange != stringResource(R.string.price_all))
-                            Color(0xFFFF6F00) else Color.Gray,
+                            Color(0xFFFF6F00) else Color.White,
                         modifier          = Modifier.size(24.dp)
                     )
                 }
@@ -254,7 +265,7 @@ fun TopNavBar(
                     Icon(
                         imageVector   = Icons.Default.LocationOn,
                         contentDescription = stringResource(R.string.cd_location_settings),
-                        tint          = Color.Gray,
+                        tint          = Color.White,
                         modifier      = Modifier.size(24.dp)
                     )
                 }
@@ -314,7 +325,7 @@ fun TopNavBar(
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "User Settings",
-                            tint = if (isUserSettings) Color(0xFFFF6F00) else Color.Gray,
+                            tint = if (isUserSettings) Color(0xFFFF6F00) else Color.White,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -326,11 +337,51 @@ fun TopNavBar(
                                Icon(
                                        imageVector   = Icons.Default.BookmarkBorder,
                                        contentDescription = "Saved Posts",
-                                       tint          = Color.Gray,
+                                       tint          = Color.White,
                                        modifier      = Modifier.size(24.dp)
                                            )
                            }
                    }
+
+            // 5) **Language picker** on Dating, Map, DMs and Feed:
+            if (currentRoute in listOf("dating", "map", "dms", "home")) {
+                IconButton(
+                    onClick    = { pickLangMenu = !pickLangMenu },
+                    colors     = IconButtonDefaults.iconButtonColors(
+                        contentColor = if (pickLangMenu) Color(0xFFFF6F00) else Color.White
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Language,
+                        contentDescription = stringResource(R.string.btn_language),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded        = pickLangMenu,
+                    onDismissRequest = { pickLangMenu = false }
+                ) {
+                    languages.forEach { (label, code) ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    label,
+                                    color = if (appLang == code) Color(0xFFFF6F00) else Color.White
+                                )
+                            },
+                            onClick = {
+                                pickLangMenu = false
+                                if (appLang != code) {
+                                    appLang = code
+                                    LocaleUtils.setAppLocale(ctx, code)
+                                    activity?.recreate()
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
             // Notifications Icon
             IconButton(onClick = {
                 if (isNotificationsSelected) {
@@ -359,7 +410,7 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications",
-                        tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.Gray,
+                        tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.White,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -384,7 +435,7 @@ fun TopNavBar(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFFFF6F00), // Orange when selected
                                 uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color.Gray
+                                uncheckedTrackColor = Color.White
                             )
                         )
                     }
@@ -435,22 +486,22 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
-                        tint = if (selected) Color(0xFFFF6F00) else Color.Gray,
+                        tint = if (selected) Color(0xFFFF6F00) else Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                 },
                 label = {
                     Text(
                         text = item.label,
-                        color = if (selected) Color(0xFFFF6F00) else Color.Gray,
+                        color = if (selected) Color(0xFFFF6F00) else Color.White,
                         fontSize = 11.sp
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFFFF6F00),
-                    unselectedIconColor = Color.Gray,
+                    unselectedIconColor = Color.White,
                     selectedTextColor = Color(0xFFFF6F00),
-                    unselectedTextColor = Color.Gray,
+                    unselectedTextColor = Color.White,
                     indicatorColor = Color.DarkGray
                 )
             )

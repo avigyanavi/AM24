@@ -31,10 +31,11 @@ import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import androidx.core.content.edit
+import com.google.firebase.database.DatabaseReference
 
 @Composable
 fun SettingsScreen(navController: NavController) {
-    val context = LocalContext.current
     val currentUser = FirebaseAuth.getInstance().currentUser ?: return
     val currentUserId = currentUser.uid
     val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
@@ -96,6 +97,7 @@ fun SettingsScreen(navController: NavController) {
             item { AccountSettingsSection(navController) }
             item {
                 GlobalPreferencesSection(
+                    userRef             = userRef,
                     displayPreference = displayPreference,
                     onDisplayPreferenceChange = { displayPreference = it },
                     preferredLanguage = preferredLanguage,
@@ -108,31 +110,6 @@ fun SettingsScreen(navController: NavController) {
             }
             item { PurchaseOptionsSection(navController) }
             item { BlockedUsersSection(userRef, blockedUsers) }
-            item {
-                val scope = rememberCoroutineScope()
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                updateGlobalSettings(
-                                    userRef = userRef,
-                                    displayPreference = displayPreference,
-                                    preferredLanguage = preferredLanguage,
-                                    allowLocationForMatches = allowLocationForMatches,
-                                    isMatrimonyMode = isMatrimonyMode
-                                )
-                                Toast.makeText(context, "Global settings updated.", Toast.LENGTH_SHORT).show()
-                            } catch (ex: Exception) {
-                                Toast.makeText(context, ex.message ?: "Failed to update.", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-                ) {
-                    Text("Save Global Settings", color = Color.White, fontSize = 16.sp)
-                }
-            }
         }
     }
 }
@@ -438,6 +415,7 @@ fun AccountSettingsSection(navController: NavController) {
 /** GLOBAL PREFERENCES SECTION **/
 @Composable
 fun GlobalPreferencesSection(
+    userRef: DatabaseReference,
     displayPreference: String,
     onDisplayPreferenceChange: (String) -> Unit,
     preferredLanguage: String,
@@ -447,6 +425,14 @@ fun GlobalPreferencesSection(
     isMatrimonyMode: Boolean,
     onMatrimonyModeChange: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = (context as? ComponentActivity)
+    // map label→code
+    val languageOptions = listOf(
+        "English" to "en",
+        "हिन्दी"    to "hi",
+        "বাংলা"     to "bn"
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -487,11 +473,26 @@ fun GlobalPreferencesSection(
                 Text(preferredLanguage, color = Color.White)
             }
             DropdownMenu(expanded = languageExpanded, onDismissRequest = { languageExpanded = false }) {
-                listOf("English", "Hindi", "Bengali", "Other").forEach { lang ->
-                    DropdownMenuItem(text = { Text(lang) }, onClick = {
-                        onPreferredLanguageChange(lang)
-                        languageExpanded = false
-                    })
+                languageOptions.forEach { (label, code) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            // 1) update local UI state
+                            onPreferredLanguageChange(code)
+
+                            // 2) persist to SharedPreferences
+                            context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                                .edit { putString("language", code) }
+
+                            userRef.child("preferredLanguage")
+                                .setValue(code)
+                                .addOnCompleteListener {
+                                    // now locale and restart
+                                    updateLocale(context, code)
+                                    activity?.recreate()
+                                }
+                        }
+                    )
                 }
             }
         }
