@@ -34,102 +34,153 @@ import kotlinx.coroutines.tasks.await
 import androidx.core.content.edit
 import com.google.firebase.database.DatabaseReference
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavController) {
     val currentUser = FirebaseAuth.getInstance().currentUser ?: return
-    val currentUserId = currentUser.uid
-    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+    val uid         = currentUser.uid
+    val userRef     = FirebaseRefs.db.getReference("users").child(uid)
+    val blocksRef   = FirebaseRefs.db.getReference("blocks").child(uid)
+    val scope       = rememberCoroutineScope()
 
-    // Premium & Account States
-    var isPremiumUser by remember { mutableStateOf(false) } // Initially false
-    var premiumExpiryDate by remember { mutableStateOf("") }
-    var isBoosted by remember { mutableStateOf(false) }
-    // Other states (unchanged)
-    var displayPreference by remember { mutableStateOf("name") }
-    var preferredLanguage by remember { mutableStateOf("English") }
-    var allowLocationForMatches by remember { mutableStateOf(true) }
-    var isMatrimonyMode by remember { mutableStateOf(false) }
-    var blockedUsers by remember { mutableStateOf(listOf<String>()) }
+    // ─── STATE ───
+    var isPremium            by remember { mutableStateOf(false) }
+    var expiry               by remember { mutableStateOf("N/A") }
+    var availableBoosts      by remember { mutableStateOf(0) }
+    var availableSwipes      by remember { mutableStateOf(0) }
+    var availableCompliments by remember { mutableStateOf(0) }
+    var lastBoostTs          by remember { mutableStateOf(0L) }
+    var isBoosted            by remember { mutableStateOf(false) }
 
-    // Key to force refresh of premium status
-    var refreshKey by remember { mutableStateOf(0) }
+    var isPrivate         by remember { mutableStateOf(false) }
+    var preferredLang     by remember { mutableStateOf("en") }
+    var allowLocation     by remember { mutableStateOf(true) }
+    var isMatrimonyMode   by remember { mutableStateOf(false) }
+    var blockedUsers      by remember { mutableStateOf(listOf<String>()) }
 
-    // Load settings from Firebase
-    LaunchedEffect(Unit, refreshKey) {
-        userRef.child("premiumStatus").get().addOnSuccessListener { snap ->
-            isPremiumUser = snap.child("isPremium").getValue(Boolean::class.java) ?: false
-            premiumExpiryDate = snap.child("expiryDate").getValue(String::class.java) ?: "N/A"
-        }
-        userRef.child("isBoosted").get().addOnSuccessListener { snap ->
-            isBoosted = snap.getValue(Boolean::class.java) ?: false
-        }
-        userRef.get().addOnSuccessListener { snapshot ->
-            displayPreference = snapshot.child("displayPreference").getValue(String::class.java) ?: "name"
-            preferredLanguage = snapshot.child("preferredLanguage").getValue(String::class.java) ?: "English"
-            allowLocationForMatches = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java) ?: true
-            isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
-            blockedUsers = snapshot.child("blockedUsers").children.mapNotNull { it.value as? String }
+    // ─── LOAD ONCE ───
+    LaunchedEffect(Unit) {
+        val snap = userRef.get().await()
+        // premium
+        isPremium = snap.child("premiumStatus/isPremium")
+            .getValue(Boolean::class.java) ?: false
+        expiry = snap.child("premiumStatus/expiryDate")
+            .getValue(String::class.java) ?: "N/A"
+
+        // boosts/swipes/compliments
+        availableBoosts = snap.child("availableBoosts")
+            .getValue(Int::class.java) ?: 0
+        lastBoostTs = snap.child("lastBoostTimestamp")
+            .getValue(Long::class.java) ?: 0L
+        // ← here’s the fix:
+        availableSwipes = snap
+            .child("swipesInfo")                 // your wrapper node
+            .child("remainingSwipes")            // the exact key
+            .getValue(Int::class.java) ?: 0
+        availableCompliments = snap.child("availableCompliments")
+            .getValue(Int::class.java) ?: 0
+        val now = System.currentTimeMillis()
+        isBoosted = availableBoosts > 0 && (now - lastBoostTs) < 6 * 60 * 60 * 1000L
+
+        // global prefs
+        isPrivate = snap.child("isPrivate")
+            .getValue(Boolean::class.java) ?: false
+        preferredLang = snap.child("preferredLanguage")
+            .getValue(String::class.java) ?: "en"
+        allowLocation = snap.child("allowLocationForMatches")
+            .getValue(Boolean::class.java) ?: true
+        isMatrimonyMode = snap.child("isMatrimonyMode")
+            .getValue(Boolean::class.java) ?: false
+
+        // blocked users
+        blocksRef.get().addOnSuccessListener { bsnap ->
+            blockedUsers = bsnap.children.mapNotNull { it.key }
         }
     }
 
-    // Listen for navigation back from SubscriptionScreen
-    LaunchedEffect(navController) {
-        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("premiumUpdated")?.observe(
-            navController.currentBackStackEntry!!
-        ) { updated ->
-            if (updated == true) { // Explicitly check for true
-                refreshKey++ // Trigger refresh only on successful payment
-            }
-        }
-    }
-
-    // Rest of SettingsScreen (unchanged)
-    Scaffold { paddingValues ->
+    Scaffold { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .background(Color(0xFF121212))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            item { PremiumStatusSection(navController, isPremiumUser, premiumExpiryDate, isBoosted) }
-            item { AccountSettingsSection(navController) }
+            item {
+                Column(Modifier.background(Color.Black, RoundedCornerShape(8.dp))) {
+                    PremiumStatusSection(
+                        navController        = navController,
+                        isPremiumUser        = isPremium,
+                        premiumExpiryDate    = expiry,
+                        isBoosted            = isBoosted,
+                        boosts               = availableBoosts,
+                        swipes               = availableSwipes,
+                        compliments          = availableCompliments
+                    )
+                    Divider(color = Color.DarkGray, modifier = Modifier.padding(vertical = 8.dp))
+                    PurchaseOptionsSection(navController)
+                    Divider(color = Color.DarkGray, modifier = Modifier.padding(vertical = 8.dp))
+                    AccountSettingsSection(
+                        navController    = navController,
+                        isPrivate        = isPrivate,
+                        onPrivateChange  = { new ->
+                            isPrivate = new
+                            scope.launch { userRef.child("isPrivate").setValue(new) }
+                        }
+                    )
+                }
+            }
+
             item {
                 GlobalPreferencesSection(
-                    userRef             = userRef,
-                    displayPreference = displayPreference,
-                    onDisplayPreferenceChange = { displayPreference = it },
-                    preferredLanguage = preferredLanguage,
-                    onPreferredLanguageChange = { preferredLanguage = it },
-                    allowLocationForMatches = allowLocationForMatches,
-                    onAllowLocationForMatchesChange = { allowLocationForMatches = it },
-                    isMatrimonyMode = isMatrimonyMode,
-                    onMatrimonyModeChange = { isMatrimonyMode = it }
+                    userRef                   = userRef,
+                    isPrivate                 = isPrivate,
+                    onPrivateChange           = { new ->
+                        isPrivate = new
+                        scope.launch { userRef.child("isPrivate").setValue(new) }
+                    },
+                    preferredLanguage         = preferredLang,
+                    onPreferredLanguageChange = { code ->
+                        preferredLang = code
+                        scope.launch { userRef.child("preferredLanguage").setValue(code) }
+                    },
+                    allowLocationForMatches   = allowLocation,
+                    onAllowLocationChange     = { allow ->
+                        allowLocation = allow
+                        scope.launch { userRef.child("allowLocationForMatches").setValue(allow) }
+                    },
+                    isMatrimonyMode           = isMatrimonyMode,
+                    onMatrimonyModeChange     = { m ->
+                        isMatrimonyMode = m
+                        scope.launch { userRef.child("isMatrimonyMode").setValue(m) }
+                    }
                 )
             }
-            item { PurchaseOptionsSection(navController) }
-            item { BlockedUsersSection(userRef, blockedUsers) }
+
+            item {
+                BlockedUsersSection(blocksRef = blocksRef, blockedIds = blockedUsers)
+            }
         }
     }
 }
 
-/** PREMIUM STATUS SECTION **/
 @Composable
 fun PremiumStatusSection(
     navController: NavController,
     isPremiumUser: Boolean,
     premiumExpiryDate: String,
-    isBoosted: Boolean
+    isBoosted: Boolean,
+    boosts: Int,
+    swipes: Int,
+    compliments: Int
 ) {
     Column {
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Premium Status",
-            color = Color(0xFF00bf63),
+            text = "   Premium Status",
+            color = Color(0xFFFF6F00),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -144,16 +195,32 @@ fun PremiumStatusSection(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = if (isPremiumUser) "Expires on: $premiumExpiryDate" else "Upgrade to unlock premium features",
+                text = if (isPremiumUser)
+                    "Expires on: $premiumExpiryDate"
+                else
+                    "Upgrade to unlock premium features",
                 color = Color.White,
-                fontSize = 16.sp
+                fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
+
+            // display remaining counts
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text("Boosts remaining: $boosts", color = Color.White, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Swipes remaining: $swipes", color = Color.White, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Compliments remaining: $compliments", color = Color.White, fontSize = 16.sp)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // still allow subscription/manage
             Button(
                 onClick = { navController.navigate("subscription") },
                 modifier = Modifier.width(160.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isPremiumUser) Color.Gray else Color(0xFF00bf63)
+                    containerColor = if (isPremiumUser) Color.Gray else Color(0xFFFF6F00)
                 )
             ) {
                 Text(
@@ -162,111 +229,55 @@ fun PremiumStatusSection(
                     fontSize = 14.sp
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = {
-                    if (!isBoosted) {
-                        navController.navigate("buyBoosts")
-                    }
-                },
-                modifier = Modifier.width(160.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isBoosted) Color.Gray else Color(0xFFFF6F00)
-                )
-            ) {
-                Text(
-                    text = if (isBoosted) "Boost Active" else "Buy Boost",
-                    color = Color.White,
-                    fontSize = 14.sp
-                )
-            }
         }
     }
 }
 
-/** ACCOUNT SETTINGS SECTION **/
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccountSettingsSection(navController: NavController) {
-    val context = LocalContext.current
+fun AccountSettingsSection(
+    navController: NavController,
+    isPrivate: Boolean,
+    onPrivateChange: (Boolean) -> Unit
+) {
+    val context     = LocalContext.current
     val currentUser = FirebaseAuth.getInstance().currentUser ?: return
-    val currentUserId = currentUser.uid
-    val database = FirebaseRefs.db.getReference("users").child(currentUserId)
+    val userId      = currentUser.uid
+    val database    = FirebaseRefs.db.getReference("users").child(userId)
+    val scope       = rememberCoroutineScope()
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var oldUsername by remember { mutableStateOf<String?>(null) }
-    var isPrivate by remember { mutableStateOf(false) }
+    var email          by remember { mutableStateOf("") }
+    var password       by remember { mutableStateOf("") }
+    var username       by remember { mutableStateOf("") }
+    var oldUsername    by remember { mutableStateOf<String?>(null) }
+    var isEditingPass  by remember { mutableStateOf(false) }
+    var isEditingUname by remember { mutableStateOf(false) }
+    var passVisible    by remember { mutableStateOf(false) }
+    var unameStatus    by remember { mutableStateOf("idle") }
 
-    var isEditingPassword by remember { mutableStateOf(false) }
-    var isEditingUsername by remember { mutableStateOf(false) }
-    var passwordVisible by remember { mutableStateOf(false) }
-
-    var usernameStatus by remember { mutableStateOf("idle") }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(currentUserId) {
-        database.get().addOnSuccessListener { snapshot ->
-            val loadedEmail = snapshot.child("email").getValue(String::class.java)
-            val loadedUsername = snapshot.child("username").getValue(String::class.java)
-            val loadedPrivate = snapshot.child("isPrivate").getValue(Boolean::class.java) ?: false
-            email = loadedEmail ?: currentUser.email ?: ""
-            username = loadedUsername ?: ""
-            oldUsername = loadedUsername
-            isPrivate = loadedPrivate
-        }
+    // Load existing user data once
+    LaunchedEffect(userId) {
+        val snap = database.get().await()
+        email       = snap.child("email").getValue(String::class.java)
+            ?: currentUser.email.orEmpty()
+        username    = snap.child("username").getValue(String::class.java).orEmpty()
+        oldUsername = username
     }
 
-    LaunchedEffect(username) {
-        if (isEditingUsername && username.isNotBlank()) {
-            usernameStatus = "checking"
+    // Check username availability whenever it's being edited
+    LaunchedEffect(username, isEditingUname) {
+        if (isEditingUname && username.isNotBlank()) {
+            unameStatus = "checking"
             delay(500)
             val dbUsernames = FirebaseRefs.db.getReference("usernames")
-            dbUsernames.child(username).get()
-                .addOnSuccessListener { snap ->
-                    if (snap.exists() && snap.value != currentUserId) {
-                        usernameStatus = "not available"
-                    } else {
-                        usernameStatus = "available"
-                    }
-                }
-                .addOnFailureListener { usernameStatus = "idle" }
-        } else {
-            usernameStatus = "idle"
-        }
-    }
-
-    fun logoutUser() {
-        FirebaseAuth.getInstance().signOut()
-        val intent = Intent(context, LandingActivity::class.java)
-        context.startActivity(intent)
-        (context as? ComponentActivity)?.finish()
-    }
-
-    fun deleteAccount(context: Context) {
-        val usr = FirebaseAuth.getInstance().currentUser
-        if (usr == null) {
-            Toast.makeText(context, "No user is logged in.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val userId = usr.uid
-        val userRef = FirebaseRefs.db.getReference("users").child(userId)
-        userRef.removeValue().addOnCompleteListener { rmTask ->
-            if (rmTask.isSuccessful) {
-                usr.delete().addOnCompleteListener { delTask ->
-                    if (delTask.isSuccessful) {
-                        Toast.makeText(context, "Account deleted successfully.", Toast.LENGTH_SHORT).show()
-                        navController.navigate("login") {
-                            popUpTo("settings") { inclusive = true }
-                        }
-                    } else {
-                        Toast.makeText(context, "Failed to delete account: ${delTask.exception?.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }
+            val nameSnap = dbUsernames.child(username).get().await()
+            unameStatus = if (nameSnap.exists() && nameSnap.value != userId) {
+                "not available"
             } else {
-                Toast.makeText(context, "Failed to remove account data: ${rmTask.exception?.message}", Toast.LENGTH_SHORT).show()
+                "available"
             }
+        } else {
+            unameStatus = "idle"
         }
     }
 
@@ -278,26 +289,32 @@ fun AccountSettingsSection(navController: NavController) {
     ) {
         Text(
             text = "Account Settings",
-            color = Color(0xFF00bf63),
+            color = Color(0xFFFF6F00),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
+
+        // Email display
         Text("Email: $email", color = Color.White, fontSize = 16.sp)
-        Spacer(modifier = Modifier.height(8.dp))
-        if (isEditingPassword) {
+        Spacer(Modifier.height(8.dp))
+
+        // Password editing
+        if (isEditingPass) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("New Password", color = Color(0xFFFF6F00)) },
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    IconButton(
+                        onClick = { passVisible = !passVisible }
+                    ) {
                         Icon(
-                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle Password",
-                            tint = Color(0xFF00bf63)
+                            imageVector = if (passVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = "Toggle visibility",
+                            tint = Color(0xFFFF6F00)
                         )
                     }
                 },
@@ -307,19 +324,27 @@ fun AccountSettingsSection(navController: NavController) {
                     focusedTextColor = Color.White
                 )
             )
-            TextButton(onClick = { isEditingPassword = false }) {
-                Text("Done", color = Color(0xFF00bf63))
+            TextButton(onClick = { isEditingPass = false }) {
+                Text("Done", color = Color(0xFFFF6F00))
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Password: ********", color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
-                TextButton(onClick = { isEditingPassword = true }) {
-                    Text("Edit", color = Color(0xFF00bf63))
+                Text(
+                    "Password: ********",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { isEditingPass = true }) {
+                    Text("Edit", color = Color(0xFFFF6F00))
                 }
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        if (isEditingUsername) {
+
+        Spacer(Modifier.height(8.dp))
+
+        // Username editing
+        if (isEditingUname) {
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
@@ -331,11 +356,11 @@ fun AccountSettingsSection(navController: NavController) {
                     focusedTextColor = Color.White
                 )
             )
-            when (usernameStatus) {
+            when (unameStatus) {
                 "checking" -> {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color(0xFF00bf63),
+                        color = Color(0xFFFF6F00),
                         strokeWidth = 2.dp
                     )
                 }
@@ -346,176 +371,182 @@ fun AccountSettingsSection(navController: NavController) {
                     Text("✗", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 }
             }
-            TextButton(onClick = { isEditingUsername = false }) {
-                Text("Done", color = Color(0xFF00bf63))
+            TextButton(onClick = { isEditingUname = false }) {
+                Text("Done", color = Color(0xFFFF6F00))
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Username: $username", color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
-                TextButton(onClick = { isEditingUsername = true }) {
-                    Text("Edit", color = Color(0xFF00bf63))
+                Text(
+                    "Username: $username",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { isEditingUname = true }) {
+                    Text("Edit", color = Color(0xFFFF6F00))
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Private Account", color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
-            Switch(
-                checked = isPrivate,
-                onCheckedChange = { isPrivate = it },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color(0xFF00bf63),
-                    uncheckedThumbColor = Color.Gray
-                )
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                scope.launch {
-                    try {
+
+        Spacer(Modifier.height(16.dp))
+
+        // Save & Logout buttons
+        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+            Button(
+                onClick = {
+                    scope.launch {
                         updateAccountSettingsNoEmail(
                             newPassword = if (password == "********") "" else password,
                             newUsername = username,
-                            oldUsername = oldUsername,
-                            isPrivate = isPrivate
+                            oldUsername = oldUsername
                         )
                         Toast.makeText(context, "Settings updated.", Toast.LENGTH_SHORT).show()
                         oldUsername = username
-                    } catch (ex: Exception) {
-                        Toast.makeText(context, ex.message ?: "Failed to update settings.", Toast.LENGTH_SHORT).show()
                     }
-                }
-            },
-            modifier = Modifier.width(160.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-        ) {
-            Text("Save", color = Color.White, fontSize = 14.sp)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-            Button(
-                onClick = { deleteAccount(context) },
-                modifier = Modifier.width(160.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
             ) {
-                Text("Delete Account", color = Color.White, fontSize = 14.sp)
+                Text("Save", color = Color.White)
             }
             Button(
-                onClick = { logoutUser() },
-                modifier = Modifier.width(160.dp),
+                onClick = {
+                    FirebaseAuth.getInstance().signOut()
+                    context.startActivity(Intent(context, LandingActivity::class.java))
+                    (context as? ComponentActivity)?.finish()
+                },
+                modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
             ) {
-                Text("Logout", color = Color.White, fontSize = 14.sp)
+                Text("Logout", color = Color.White)
             }
         }
     }
 }
 
-/** GLOBAL PREFERENCES SECTION **/
 @Composable
 fun GlobalPreferencesSection(
     userRef: DatabaseReference,
-    displayPreference: String,
-    onDisplayPreferenceChange: (String) -> Unit,
+    isPrivate: Boolean,
+    onPrivateChange: (Boolean) -> Unit,
     preferredLanguage: String,
     onPreferredLanguageChange: (String) -> Unit,
     allowLocationForMatches: Boolean,
-    onAllowLocationForMatchesChange: (Boolean) -> Unit,
+    onAllowLocationChange: (Boolean) -> Unit,
     isMatrimonyMode: Boolean,
     onMatrimonyModeChange: (Boolean) -> Unit
 ) {
-    val context = LocalContext.current
+    val context  = LocalContext.current
     val activity = (context as? ComponentActivity)
-    // map label→code
-    val languageOptions = listOf(
-        "English" to "en",
-        "हिन्दी"    to "hi",
-        "বাংলা"     to "bn"
-    )
+    val langs    = listOf("English" to "en", "हिन्दी" to "hi", "বাংলা" to "bn")
+
     Column(
-        modifier = Modifier
+        Modifier
             .fillMaxWidth()
-            .background(Color.Black, shape = RoundedCornerShape(8.dp))
+            .background(Color.Black, RoundedCornerShape(8.dp))
             .padding(16.dp)
     ) {
         Text(
-            text = "Global Preferences",
-            color = Color(0xFF00bf63),
+            "Global Preferences",
+            color = Color(0xFFFF6F00),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Display on Profile:", color = Color.White, fontSize = 16.sp)
+        Spacer(Modifier.height(16.dp))
+
+        // PRIVATE ACCOUNT
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(
-                selected = displayPreference == "name",
-                onClick = { onDisplayPreferenceChange("name") },
-                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFF6F00))
+            Text(
+                "Private Account",
+                color = Color.White,
+                fontSize = 16.sp,
+                modifier = Modifier.weight(1f)
             )
-            Text("Name", color = Color.White)
-            Spacer(modifier = Modifier.width(16.dp))
-            RadioButton(
-                selected = displayPreference == "username",
-                onClick = { onDisplayPreferenceChange("username") },
-                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFF6F00))
+            Switch(
+                checked = isPrivate,
+                onCheckedChange = onPrivateChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor   = Color(0xFFFF6F00),
+                    uncheckedThumbColor = Color.Gray
+                )
             )
-            Text("Username", color = Color.White)
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Be undiscoverable in card stack by everyone except those you swipe right on",
+            color = Color.LightGray,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // PREFERRED LANGUAGE
         Text("Preferred Language:", color = Color.White, fontSize = 16.sp)
-        var languageExpanded by remember { mutableStateOf(false) }
+        var expanded by remember { mutableStateOf(false) }
         Box {
             Button(
-                onClick = { languageExpanded = true },
+                onClick = { expanded = true },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
             ) {
                 Text(preferredLanguage, color = Color.White)
             }
-            DropdownMenu(expanded = languageExpanded, onDismissRequest = { languageExpanded = false }) {
-                languageOptions.forEach { (label, code) ->
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                langs.forEach { (label, code) ->
                     DropdownMenuItem(
                         text = { Text(label) },
                         onClick = {
-                            // 1) update local UI state
                             onPreferredLanguageChange(code)
-
-                            // 2) persist to SharedPreferences
                             context.getSharedPreferences("settings", Context.MODE_PRIVATE)
                                 .edit { putString("language", code) }
-
                             userRef.child("preferredLanguage")
                                 .setValue(code)
                                 .addOnCompleteListener {
-                                    // now locale and restart
                                     updateLocale(context, code)
                                     activity?.recreate()
                                 }
+                            expanded = false
                         }
                     )
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+
+        Spacer(Modifier.height(16.dp))
+
+        // ALLOW LOCATION
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Allow Location for Matches", color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
+            Text(
+                "Allow Location for Matches",
+                color = Color.White,
+                fontSize = 16.sp,
+                modifier = Modifier.weight(1f)
+            )
             Switch(
                 checked = allowLocationForMatches,
-                onCheckedChange = onAllowLocationForMatchesChange,
+                onCheckedChange = onAllowLocationChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color(0xFFFF6F00),
+                    checkedThumbColor   = Color(0xFFFF6F00),
                     uncheckedThumbColor = Color.Gray
                 )
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+
+        Spacer(Modifier.height(16.dp))
+
+        // MATRIMONY MODE
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Matrimony Mode", color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
+            Text(
+                "Matrimony Mode",
+                color = Color.White,
+                fontSize = 16.sp,
+                modifier = Modifier.weight(1f)
+            )
             Switch(
                 checked = isMatrimonyMode,
                 onCheckedChange = onMatrimonyModeChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color(0xFFFF6F00),
+                    checkedThumbColor   = Color(0xFFFF6F00),
                     uncheckedThumbColor = Color.Gray
                 )
             )
@@ -533,8 +564,8 @@ fun PurchaseOptionsSection(navController: NavController) {
             .padding(16.dp)
     ) {
         Text(
-            text = "Purchase Options",
-            color = Color(0xFF00bf63),
+            text = "Swipes/Compliments/Boosts",
+            color = Color(0xFFFF6F00),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
@@ -548,29 +579,53 @@ fun PurchaseOptionsSection(navController: NavController) {
         }
         Spacer(modifier = Modifier.height(8.dp))
         Button(
-            onClick = { navController.navigate("buyForceMatches") },
+            onClick = { navController.navigate("buyCompliments") },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
         ) {
-            Text("Buy Force Matches", color = Color.White)
+            Text("Buy Compliments", color = Color.White)
         }
         Spacer(modifier = Modifier.height(8.dp))
         Button(
-            onClick = { navController.navigate("buySuperSwipes") },
+            onClick = { navController.navigate("buyBoosts") },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
         ) {
-            Text("Buy Super Swipes", color = Color.White)
+            Text("Buy Boosts", color = Color.White)
         }
     }
 }
 
 /** BLOCKED USERS SECTION **/
 @Composable
-fun BlockedUsersSection(userRef: com.google.firebase.database.DatabaseReference, blockedUsers: List<String>) {
+fun BlockedUsersSection(
+    blocksRef: DatabaseReference,          // points at /blocks/{currentUserId}
+    blockedIds: List<String>               // list of UIDs
+) {
     var showBlockedOverlay by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    var namesById        by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val scope            = rememberCoroutineScope()
+    val context          = LocalContext.current
+
+    // 1) Fetch all usernames whenever the blockedIds list changes
+    LaunchedEffect(blockedIds) {
+        val tmp = mutableMapOf<String, String>()
+        blockedIds.forEach { uid ->
+            try {
+                val snap = FirebaseRefs.db
+                    .getReference("users")
+                    .child(uid)
+                    .child("username")
+                    .get()
+                    .await()
+                tmp[uid] = snap.getValue(String::class.java) ?: uid
+            } catch (_: Exception) {
+                tmp[uid] = uid
+            }
+        }
+        namesById = tmp
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -580,38 +635,48 @@ fun BlockedUsersSection(userRef: com.google.firebase.database.DatabaseReference,
     ) {
         Text(
             text = "Blocked Users",
-            color = Color(0xFF00bf63),
+            color = Color(0xFFFF6F00),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        if (blockedUsers.isEmpty()) {
+        Spacer(Modifier.height(8.dp))
+
+        if (blockedIds.isEmpty()) {
             Text("No users are blocked.", color = Color.White, fontSize = 16.sp)
         } else {
-            blockedUsers.take(3).forEach { user ->
-                Text(user, color = Color.White, fontSize = 16.sp)
+            // Show up to 3 usernames
+            blockedIds.take(3).forEach { uid ->
+                val name = namesById[uid] ?: uid
+                Text(name, color = Color.White, fontSize = 16.sp)
             }
         }
     }
+
     if (showBlockedOverlay) {
         AlertDialog(
             onDismissRequest = { showBlockedOverlay = false },
-            title = { Text("Blocked Users", color = Color(0xFF00bf63)) },
+            title = { Text("Blocked Users", color = Color(0xFFFF6F00)) },
             text = {
-                if (blockedUsers.isEmpty()) {
+                if (blockedIds.isEmpty()) {
                     Text("No users are currently blocked.", color = Color.White)
                 } else {
                     Column {
-                        blockedUsers.forEach { user ->
+                        blockedIds.forEach { uid ->
+                            val name = namesById[uid] ?: uid
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
                             ) {
-                                Text(user, color = Color.White, modifier = Modifier.weight(1f))
+                                Text(name, color = Color.White, modifier = Modifier.weight(1f))
                                 TextButton(onClick = {
                                     scope.launch {
-                                        userRef.child("blockedUsers").child(user).removeValue().await()
-                                        Toast.makeText(context, "Unblocked $user", Toast.LENGTH_SHORT).show()
+                                        // remove from /blocks/{currentUserId}/{uid}
+                                        blocksRef.child(uid)
+                                            .removeValue()
+                                            .await()
+                                        Toast.makeText(context, "Unblocked $name", Toast.LENGTH_SHORT).show()
                                     }
                                 }) {
                                     Text("Unblock", color = Color(0xFFFF6F00))
@@ -623,28 +688,11 @@ fun BlockedUsersSection(userRef: com.google.firebase.database.DatabaseReference,
             },
             confirmButton = {
                 TextButton(onClick = { showBlockedOverlay = false }) {
-                    Text("Done", color = Color(0xFF00bf63))
+                    Text("Done", color = Color(0xFFFF6F00))
                 }
             }
         )
     }
-}
-
-/** UPDATE GLOBAL SETTINGS FUNCTION **/
-suspend fun updateGlobalSettings(
-    userRef: com.google.firebase.database.DatabaseReference,
-    displayPreference: String,
-    preferredLanguage: String,
-    allowLocationForMatches: Boolean,
-    isMatrimonyMode: Boolean
-) {
-    val updates = mapOf(
-        "displayPreference" to displayPreference,
-        "preferredLanguage" to preferredLanguage,
-        "allowLocationForMatches" to allowLocationForMatches,
-        "isMatrimonyMode" to isMatrimonyMode
-    )
-    userRef.updateChildren(updates).await()
 }
 
 /** UPDATE ACCOUNT SETTINGS FUNCTION **/
@@ -652,17 +700,14 @@ suspend fun updateAccountSettingsNoEmail(
     newPassword: String,
     newUsername: String,
     oldUsername: String?,
-    isPrivate: Boolean
 ) {
     val user = FirebaseAuth.getInstance().currentUser ?: throw Exception("No user is signed in.")
     val userId = user.uid
-    val db = FirebaseRefs.db.getReference("users").child(userId)
 
     if (newPassword.isNotBlank()) {
         user.updatePassword(newPassword).await()
     }
     checkAndUpdateUsernameAwait(newUsername, oldUsername, userId)
-    db.child("isPrivate").setValue(isPrivate).await()
 }
 
 suspend fun checkAndUpdateUsernameAwait(

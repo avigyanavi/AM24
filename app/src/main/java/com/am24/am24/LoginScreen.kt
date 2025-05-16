@@ -73,14 +73,14 @@ class LoginActivity : ComponentActivity() {
             try {
                 val res = auth.signInWithEmailAndPassword(email, pwd).await()
                 val user = res.user
-                if (user != null && user.isEmailVerified) {
-                    withContext(Dispatchers.Main) {
-                        startActivity(Intent(this@LoginActivity, KupidXAppActivity::class.java))
-                        finish()
+                // ✏️ Let them in always—just nudge if unverified
+                withContext(Dispatchers.Main) {
+                    if (user != null && !user.isEmailVerified) {
+                        toast("Welcome! Please verify your email later to unlock all features.")
                     }
-                } else {
-                    withContext(Dispatchers.Main) { toast("Verify your email first.") }
-                    auth.signOut()
+                    // → proceed into your app
+                    startActivity(Intent(this@LoginActivity, KupidXAppActivity::class.java))
+                    finish()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { toast("Auth failed: ${e.message}") }

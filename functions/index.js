@@ -40,6 +40,31 @@ exports.verifyPayment = functions.https.onCall(async (data, context) => {
   }
 });
 
+// New: create one-time order
+exports.createOneTimeOrder = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const { type, quantity } = data;
+    const pricing = {
+      swipes:      { amount: quantity * 100,  receipt: `swipes_${quantity}` },
+      compliments: { amount: quantity * 150,  receipt: `compliments_${quantity}` },
+      boosts:      { amount: quantity * 200,  receipt: `boosts_${quantity}` },
+    };
+    const p = pricing[type];
+    if (!p) throw new functions.https.HttpsError("invalid-argument", "Unknown purchase type");
+    const order = await razorpay.orders.create({
+      amount: p.amount,
+      currency: "INR",
+      receipt: p.receipt,
+    });
+    return { id: order.id, key: razorpay.key_id };
+  });
+
+
+
+
+
+
 /* ───────────────────────────── Chat suggestions ───────────────────────────── */
 
 /* maps “hi”, “bn”, … → prompt fragment */

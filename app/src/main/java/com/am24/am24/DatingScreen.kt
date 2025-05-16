@@ -138,6 +138,8 @@ fun DatingScreen(
     val postViewModel: PostViewModel       = viewModel()
     val coroutineScope                     = rememberCoroutineScope()
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
+    val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    var likers by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     // 1) watch for “are we still on the Dating route?”
     val backstackEntry by navController.currentBackStackEntryAsState()
@@ -191,11 +193,25 @@ fun DatingScreen(
         }
     }
 
+
+    LaunchedEffect(myUid) {
+        // grab everyone who’s liked me
+        val snap = FirebaseRefs.db
+            .getReference("likesReceived/$myUid")
+            .get()
+            .await()
+        likers = snap.children.mapNotNull { it.key }.toSet()
+    }
+
     // ─────────────────────────────────────────────────────────────────
     //   BUILD DISPLAY LIST  (must come *before* we use it)
     // ─────────────────────────────────────────────────────────────────
     val base = filteredProfiles
         .filter { it.userId !in excludedUserIds }
+        // hide private profiles, unless *they* liked you:
+        .filter { prof ->
+            !prof.isPrivate || prof.userId in likers
+        }
         .also { it.dump("BASE") }
 
     val complimentersList = complimentsRecv.keys

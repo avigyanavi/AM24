@@ -34,6 +34,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.am24.am24.ui.purchase.OneTimePurchaseScreen
+import com.am24.am24.ui.purchase.PurchaseType
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -203,6 +205,18 @@ fun MainNavGraph(
             GroupChatScreen(navController = navController, groupId = groupId)
         }
 
+        composable("buySwipes") { OneTimePurchaseScreen(
+            type = PurchaseType.Swipes,
+            onBack = { navController.popBackStack() }
+        ) }
+        composable("buyCompliments") { OneTimePurchaseScreen(
+            type = PurchaseType.Compliments,
+            onBack = { navController.popBackStack() }
+        ) }
+        composable("buyBoosts") { OneTimePurchaseScreen(
+            type = PurchaseType.Boosts,
+            onBack = { navController.popBackStack() }
+        ) }
         composable("saved_posts") {
             SavedPostsScreen(
                 navController = navController,

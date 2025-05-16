@@ -68,7 +68,7 @@ class KupidXAppActivity : ComponentActivity(), PaymentResultListener {
 
         auth = FirebaseAuth.getInstance()
         val currentUser = auth.currentUser
-        if (currentUser == null || !currentUser.isEmailVerified) {
+        if (currentUser == null) {
             startActivity(Intent(this, LandingActivity::class.java))
             finish()
             return
