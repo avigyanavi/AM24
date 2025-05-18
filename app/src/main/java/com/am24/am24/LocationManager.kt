@@ -1,6 +1,7 @@
 package com.am24.am24
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
@@ -10,10 +11,33 @@ import androidx.core.app.ActivityCompat
 import com.firebase.geofire.GeoFire
 import com.firebase.geofire.GeoLocation
 import com.google.android.gms.location.*
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import java.util.concurrent.TimeUnit
 
-class LocationManager(private val context: Context) {
+public class LocationManager(private val context: Context) {
+    companion object {
+
+        /**
+         * Synchronously returns *(lat, lng)* from the device’s cached
+         * location, or **null** when unavailable / no permission.
+         *
+         * (It blocks for up to 2 s to give Google Play-Services a chance
+         *  to hand us a value; change the timeout if you wish.)
+         */
+        @SuppressLint("MissingPermission")
+        fun getLastKnownLocation(ctx: Context): Pair<Double, Double>? {
+            val fused = LocationServices.getFusedLocationProviderClient(ctx)
+            return try {
+                // Wait (max 2 s) for the Task to finish, then read result
+                val loc = Tasks.await(fused.lastLocation, 2, TimeUnit.SECONDS)
+                loc?.let { Pair(it.latitude, it.longitude) }
+            } catch (_: Exception) {
+                null          // timeout, security-exception, etc.
+            }
+        }
+    }
 
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)

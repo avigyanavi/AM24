@@ -137,6 +137,8 @@ fun MainNavGraph(
                 initialQuery = initialQuery
             )
         }
+        composable("create_post/image") { ImagePostComposable(navController, postViewModel) }
+        composable("create_post/video") { VideoPostComposable(navController, postViewModel) }
         composable("subscription") {
             SubscriptionScreen(navController)
         }

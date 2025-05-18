@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.am24.FirebaseRefs.db
+import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.getValue
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.File
 
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
@@ -262,6 +269,128 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             })
         }
     }
+
+    /**
+     * Generic helper for image / short-video posts.
+     *
+     * @param mediaType  "image" or "video"
+     */
+    fun createMediaPost(
+        userId:   String,
+        username: String,
+        mediaUri: Uri,
+        mediaType:String,
+        caption:  String,
+        userTags: List<String>,
+        checkIn:  CheckIn? = null,          // ← NEW
+        onDone:   () -> Unit,
+        onError:  (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // ─── validations ──────────────────────────────────────────────
+                if (mediaType !in listOf("image","video")) {
+                    onError("Invalid media type"); return@launch
+                }
+                if (mediaType == "video" && videoLongerThan(mediaUri, 15_000)) {
+                    onError("Video must be 15 s or shorter"); return@launch
+                }
+
+                // ─── upload main file ────────────────────────────────────────
+                val folder = if (mediaType == "image") "images" else "videos"
+                val mediaUrl = uploadMediaToStorage(mediaUri, folder) { err ->
+                    onError(err); return@uploadMediaToStorage
+                } ?: return@launch
+
+                // ─── optional thumbnail for videos ───────────────────────────
+                var thumbUrl: String? = null
+                if (mediaType == "video") {
+                    generateVideoThumbnail(mediaUri)?.let { thumbFile ->
+                        thumbUrl = uploadMediaToStorage(Uri.fromFile(thumbFile), "thumbs") { err ->
+                            Log.e(TAG,"Thumb upload failed: $err")
+                        }
+                        thumbFile.delete()
+                    }
+                }
+
+                // ─── push post object ────────────────────────────────────────
+                val postId = postsRef.push().key ?: throw Exception("No postId")
+                val post   = mapOf(
+                    "postId"       to postId,
+                    "userId"       to userId,
+                    "username"     to username,
+                    "contentText"  to caption.ifBlank { null },
+                    "timestamp"    to ServerValue.TIMESTAMP,
+                    "userTags"     to userTags,
+                    "mediaType"    to mediaType,
+                    "mediaUrl"     to mediaUrl,
+                    "mediaThumb"   to thumbUrl,
+                    // --- optional place block ----------------
+                     "checkIn"    to checkIn?.let {
+                                mapOf(
+                                        "placeId" to it.placeId,
+                                        "name"    to it.name,
+                                        "address" to it.address,
+                                        "lat"     to it.lat,
+                                        "lng"     to it.lng
+                                            )
+                         },
+                    "upvotes"      to 0,
+                    "downvotes"    to 0,
+                    "upvotedUsers"   to emptyMap<String, Boolean>(),
+                    "downvotedUsers" to emptyMap<String, Boolean>(),
+                    "totalComments"  to 0
+                )
+                postsRef.child(postId).setValue(post).await()
+
+                withContext(Dispatchers.Main) { onDone() }
+
+                // ─── notify matches, same style as text/voice ───────────────
+                val matches = getMatches(userId)
+                matches.forEach { receiverId ->
+                    val msg = "$username posted a new ${if (mediaType=="image") "photo" else "video"} update."
+                    sendNotification(
+                        receiverId, type = "new_post",
+                        senderId = userId, senderUsername = username, message = msg
+                    )
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG,"createMediaPost: ${e.message}",e)
+                withContext(Dispatchers.Main) { onError(e.message ?: "Failed") }
+            }
+        }
+    }
+
+    /* ---------- small helpers ---------- */
+
+    // true if video is longer than maxMs
+    private fun videoLongerThan(uri: Uri, maxMs: Long): Boolean {
+        return try {
+            MediaMetadataRetriever().run {
+                setDataSource(getApplication<Application>(), uri)
+                val dur = extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
+                release()
+                dur > maxMs
+            }
+        } catch(_: Exception){ false }
+    }
+
+    // saves first frame to cache, returns the File (caller must delete)
+    private fun generateVideoThumbnail(uri: Uri): File? = try {
+        val bmp = MediaMetadataRetriever().run {
+            setDataSource(getApplication<Application>(), uri)
+            val frame = getFrameAtTime(0L)
+            release()
+            frame
+        } ?: return null
+        val file = File.createTempFile("thumb_${System.currentTimeMillis()}", ".jpg",
+            getApplication<Application>().cacheDir)
+        val out = java.io.FileOutputStream(file)
+        bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 75, out)
+        out.flush(); out.close()
+        file
+    } catch(_: Exception){ null }
 
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null

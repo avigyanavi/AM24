@@ -3836,7 +3836,7 @@ fun LifestyleSlider(label: String, value: Int, nouns: List<String>, icon: ImageV
 
 @Composable
 fun RatingBar(rating: Double, ratingCount: Int) {
-    val starSize = 30.dp
+    val starSize = 26.dp
     val fullStars = kotlin.math.floor(rating).toInt()
     val fraction = rating - fullStars
     val orange = Color(0xFFFF6F00)

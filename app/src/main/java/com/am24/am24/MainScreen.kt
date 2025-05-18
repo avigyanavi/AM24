@@ -204,7 +204,7 @@ fun TopNavBar(
         },
         actions = {
 
-            if (currentRoute == "dating" || currentRoute == "profile") {
+            if (currentRoute != "profile") {
                 IconButton(onClick = { navController.navigate("leaderboard") }) {
                     Icon(
                         imageVector = Icons.Default.EmojiEvents,
@@ -271,15 +271,6 @@ fun TopNavBar(
                 }
             }
             if (isOnHome) {
-                if (!isPremium.value) {
-                    IconButton(onClick = { showForYouDialog = true }) {
-                        Icon(
-                            Icons.Outlined.Home,
-                            contentDescription = stringResource(R.string.cd_for_you),
-                            tint = Color(0xFFFF6F00)
-                        )
-                    }
-                }
                 // Create Post
                 IconButton(onClick = { navController.navigate("create_post") }) {
                     Icon(

@@ -1,6 +1,7 @@
 package com.am24.am24
 
 import android.util.Log
+import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.Exclude
 import com.google.firebase.database.ServerValue
 import com.google.gson.Gson
@@ -20,7 +21,7 @@ data class Post(
     val mediaType: String? = null, // "photo", "voice", "video
     val mediaUrl: String? = null,
     val voiceDuration: Int? = null, // in seconds, for voice posts
-
+    val mediaThumb:String? = null,
     // Engagement Metrics
     var upvotes: Int = 0,  // Number of upvotes for this post
     var downvotes: Int = 0,  // Number of downvotes for this post
@@ -35,7 +36,8 @@ data class Post(
     val comments: Map<String, Comment> = emptyMap(),
 
     // Calculated Metrics for Leaderboard
-    val upvoteToDownvoteRatio: Double = 0.0  // Ratio of upvotes to downvotes for leaderboard rankings
+    val upvoteToDownvoteRatio: Double = 0.0,  // Ratio of upvotes to downvotes for leaderboard rankings
+    val checkIn: CheckIn? = null       // null ⇒ not a check-in
 ) {
     @Exclude
     fun getTimestampLong(): Long {
@@ -51,6 +53,7 @@ data class Post(
         }
     }
 }
+
 
 data class Comment(
     val commentId: String = "", // Add this field
