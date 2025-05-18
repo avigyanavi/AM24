@@ -65,25 +65,39 @@ class LoginActivity : ComponentActivity() {
 
     private fun handleLogin(userOrEmail: String, pwd: String) {
         lifecycleScope.launch(Dispatchers.IO) {
-            val email = resolveToEmail(userOrEmail) ?: run {
-                withContext(Dispatchers.Main) { toast("Username / email not found") }
-                return@launch
-            }
-
             try {
-                val res = auth.signInWithEmailAndPassword(email, pwd).await()
-                val user = res.user
-                // ✏️ Let them in always—just nudge if unverified
+                // 1) If it already looks like an email, just use it
+                val email = if (userOrEmail.contains("@")) {
+                    userOrEmail.trim()
+                } else {
+                    // 2) Otherwise, get a temporary anon credential so we can read /usernames and /users
+                    FirebaseAuth.getInstance()
+                        .signInAnonymously()
+                        .await()
+
+                    // 3) Now you can safely look up the real email
+                    resolveToEmail(userOrEmail) ?: return@launch withContext(Dispatchers.Main) {
+                        toast("Username not found")
+                    }
+                }
+
+                // 4) Finally sign in with the real email+password
+                val res = auth
+                    .signInWithEmailAndPassword(email, pwd)
+                    .await()
+
                 withContext(Dispatchers.Main) {
+                    val user = res.user
                     if (user != null && !user.isEmailVerified) {
                         toast("Welcome! Please verify your email later to unlock all features.")
                     }
-                    // → proceed into your app
                     startActivity(Intent(this@LoginActivity, KupidXAppActivity::class.java))
                     finish()
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { toast("Auth failed: ${e.message}") }
+                withContext(Dispatchers.Main) {
+                    toast("Auth failed: ${e.message}")
+                }
             }
         }
     }

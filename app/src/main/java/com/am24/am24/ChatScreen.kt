@@ -1402,6 +1402,7 @@ fun ChatScreenContent(
     )
 }
 
+
 suspend fun copyUriToLocalFile(context: Context, uri: Uri, extension: String): Uri {
     val inputStream = context.contentResolver.openInputStream(uri)
         ?: throw IOException("Failed to open input stream")

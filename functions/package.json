@@ -17,6 +17,7 @@
     "busboy": "^1.6.0",
     "firebase-admin": "^12.1.0",
     "firebase-functions": "^5.0.0",
+    "geofire-common": "^6.0.0",
     "node-fetch": "^2.7.0",
     "openai": "^4.94.0",
     "razorpay": "^2.9.6",

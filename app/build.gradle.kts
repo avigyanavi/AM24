@@ -125,6 +125,7 @@ dependencies {
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.compose.material)
 
+    implementation("com.google.firebase:firebase-appcheck-debug:18.0.0")
     //swipable
     implementation(libs.accompanist.swiperefresh)
     implementation (libs.androidx.foundation.v100)

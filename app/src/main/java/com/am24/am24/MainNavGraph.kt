@@ -274,5 +274,21 @@ fun MainNavGraph(
                 }
             }
         }
+        composable(
+            route = "previewUserProfile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val targetId   = backStackEntry.arguments?.getString("userId") ?: return@composable
+            val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@composable
+
+            PreviewUserProfileScreen(
+                navController    = navController,
+                targetUserId     = targetId,
+                currentUserId    = currentUid,
+                geoFire          = geoFire,          // ← add this line
+                profileViewModel = profileViewModel,
+                postViewModel    = postViewModel
+            )
+        }
     }
 }

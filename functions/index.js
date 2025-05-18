@@ -14,7 +14,9 @@ const openai = new OpenAI({
   apiKey: "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"   // make sure this env var is set
 });
 
-admin.initializeApp();
+admin.initializeApp({
+  databaseURL: "https://kupidxdefault.asia-southeast1.firebasedatabase.app"
+});
 
 /* ───────────────────────────── Razorpay callable ───────────────────────────── */
 
@@ -59,11 +61,6 @@ exports.createOneTimeOrder = functions
     });
     return { id: order.id, key: razorpay.key_id };
   });
-
-
-
-
-
 
 /* ───────────────────────────── Chat suggestions ───────────────────────────── */
 
@@ -143,4 +140,96 @@ exports.chatSuggestions = functions
       console.error("chatSuggestions error:", err);
       return res.status(500).send(err.message || "internal error");
     }
+  });
+
+  const {
+    geohashQueryBounds,
+    distanceBetween
+  } = require('geofire-common');
+
+  /**
+   * Callable: getNearbyProfiles
+   *   data = { uid, maxDistance, minRows }
+   *
+   * • Looks up the caller’s saved lat/lng in /geoFireLocations/{uid}/l
+   * • Runs one geo-hash sweep at maxDistance km
+   * • If we still have < minRows ⇒ does one extra world-wide sweep
+   * • Pulls each profile from /users/* and returns JSON
+   *
+   * Notes
+   *   – `WORLDWIDE_DISTANCE` (101 km in the app) means “no distance filter”.
+   *   – Designed for asia-south1; tweak memory / timeout if you like.
+   */
+exports.getNearbyProfiles = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .https.onCall(async (data, context) => {
+    const {
+      uid,
+      minRows = 50
+    } = data || {};
+
+    if (!uid)
+      throw new functions.https.HttpsError('invalid-argument', 'uid is required');
+
+    const db = admin.database();
+    const locSnap = await db.ref(`geoFireLocations/${uid}/l`).get();
+    const latLng = locSnap.val();  // [lat, lng]
+
+    if (!Array.isArray(latLng) || latLng.length < 2) {
+      const all = await db.ref('users').get();
+      const list = [];
+      all.forEach(ss => { if (ss.key !== uid) list.push(ss.val()); });
+      return { profiles: list.slice(0, minRows) };
+    }
+
+    const center = { lat: latLng[0], lng: latLng[1] };
+    const collectedUids = new Set();
+
+    const sweep = async radiusKm => {
+      if (radiusKm === Infinity) {
+        const all = await db.ref('geoFireLocations').get();
+        all.forEach(s => collectedUids.add(s.key));
+        return;
+      }
+
+      const bounds = geohashQueryBounds([center.lat, center.lng], radiusKm * 1000);
+      const tasks = bounds.map(b =>
+        db.ref('geoFireLocations')
+          .orderByChild('g').startAt(b[0]).endAt(b[1]).get()
+      );
+      const snaps = await Promise.all(tasks);
+
+      snaps.forEach(snap => {
+        snap.forEach(child => {
+          const [lat, lng] = child.child('l').val() || [];
+          if (lat == null) return;
+          const dist = distanceBetween([lat, lng], [center.lat, center.lng]);
+          if (dist <= radiusKm) collectedUids.add(child.key);
+        });
+      });
+    };
+
+    /* ✅ TEMP: override radius to 15000 km */
+    const firstRadius = 15000;
+    console.log(`[getNearbyProfiles] TEMP radius forced to ${firstRadius}km`);
+    await sweep(firstRadius);
+
+    if (collectedUids.size < minRows) {
+      console.log(`[getNearbyProfiles] Fewer than ${minRows} users found, sweeping globally...`);
+      await sweep(Infinity);
+    }
+
+    collectedUids.delete(uid); // drop self
+    const uids = Array.from(collectedUids).slice(0, minRows);
+
+    console.log('[getNearbyProfiles] Final UID list:', uids);
+
+    const docs = await Promise.all(
+      uids.map(id => db.ref(`users/${id}`).get())
+    );
+
+    const profiles = docs.map(s => s.val()).filter(Boolean);
+    console.log('[getNearbyProfiles] returning', profiles.length, 'profiles');
+    return { profiles };
   });

@@ -209,7 +209,7 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.EmojiEvents,
                         contentDescription = stringResource(R.string.cd_leaderboard),
-                        tint = Color(0xFFFF6F00),
+                        tint = Color(0xFFE91E63),
                         modifier = Modifier.size(24.dp)
                     )
                 }

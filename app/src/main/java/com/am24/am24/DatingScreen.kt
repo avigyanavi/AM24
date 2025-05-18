@@ -80,6 +80,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -94,6 +95,9 @@ import java.io.File
 private fun Iterable<*>.dump(tag: String) =
     Log.d("DS-FLOW", "$tag  size=${count()}  →  ${joinToString { (it as? Profile)?.userId ?: it.toString() }}")
 
+/* Prints a plain Set<String> nicely */
+private fun Set<*>.dump(tag: String) =
+    Log.d("DS-FLOW", "$tag  size=${size}  →  ${joinToString()}")
 
 data class SwipeData(
     val liked: Boolean = false,
@@ -184,11 +188,12 @@ fun DatingScreen(
 
     var showComplimentDialog by remember { mutableStateOf(false) }
 
-    // 1) check if they used email/password AND are unverified
-    val user = FirebaseAuth.getInstance().currentUser
-    val isPwdUser = user?.providerData
-        ?.any { it.providerId == "password" } == true
-    val needsVerification = isPwdUser && (user?.isEmailVerified == false)
+// ── 1) replace the existing `needsVerification` val with a mutable state ─────────
+    val user                 = FirebaseAuth.getInstance().currentUser
+    val isPwdUser            = user?.providerData?.any { it.providerId == "password" } == true
+    var needsVerification by remember {         // ← make it mutable
+        mutableStateOf(isPwdUser && user?.isEmailVerified == false)
+    }
 
     // 2) dialog state
     var showVerifyDialog by remember { mutableStateOf(false) }
@@ -198,6 +203,7 @@ fun DatingScreen(
     LaunchedEffect(Unit) {
         FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
             excludedUserIds = fetchExcludedUsers(uid)
+            excludedUserIds.dump("EXCLUDED_UIDS")   // <-- NEW LOG LINE
             profileViewModel.fetchCurrentUserProfile()
             remainingSwipes = loadAndResetSwipesDaily(uid)
             swipesLoaded    = true
@@ -215,6 +221,9 @@ fun DatingScreen(
         likers = snap.children.mapNotNull { it.key }.toSet()
     }
 
+    // —— see which Profile objects are being dropped ————————————————
+    val excludedProfiles = filteredProfiles.filter { it.userId in excludedUserIds }
+    excludedProfiles.dump("EXCLUDED_PROFILES")          // <-- NEW LOG
     // ─────────────────────────────────────────────────────────────────
     //   BUILD DISPLAY LIST  (must come *before* we use it)
     // ─────────────────────────────────────────────────────────────────
@@ -349,22 +358,29 @@ fun DatingScreen(
             ) {
                 IconButton(
                     onClick = { coroutineScope.launch { sheetState.show() } },
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(30.dp)
                 ) {
                     Icon(
                         Icons.Default.FilterList,
                         contentDescription = null,
-                        tint = Color(0xFFFF6F00),
-                        modifier = Modifier.size(36.dp)
+                        tint = Color(0xFFE91E63),
+                        modifier = Modifier.size(27.dp)
                     )
                 }
+                Spacer(Modifier.width(16.dp))
 
                 /* ⭐  live rating of the *current* card */
                 currentSwipeProfile?.let { prof ->
-                    RatingBar(
-                        rating      = prof.averageRating,
-                        ratingCount = prof.numberOfRatings
-                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)                                 // take all free space
+                            .horizontalScroll(rememberScrollState())    // user can drag left / right
+                    ) {
+                        RatingBar(
+                            rating      = prof.averageRating,
+                            ratingCount = prof.numberOfRatings
+                        )
+                    }
                 }
 
                 Row {
@@ -512,54 +528,104 @@ fun DatingScreen(
             )
         }
     }
-    // 4) if they need to verify, put an invisible overlay that eats _all_ touches
+    // ── 3) intercept taps only while we still need verification ---------------------
     if (needsVerification) {
         Box(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures { showVerifyDialog = true }
-                }
+                .pointerInput(Unit) { detectTapGestures { showVerifyDialog = true } }
         )
     }
 
-    // 5) your “please verify” AlertDialog
+    // ── 4) revamped AlertDialog ------------------------------------------------------
     if (showVerifyDialog) {
         AlertDialog(
             onDismissRequest = { showVerifyDialog = false },
-            backgroundColor = Color(0xFF1A1A1A),
-            contentColor    = Color.White,
-            title = { Text("Verify Email", fontWeight = FontWeight.Bold) },
-            text = {
-                Text("Verify Email to use app")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        isSendingEmail = true
-                        coroutineScope.launch {
-                            try {
-                                user?.sendEmailVerification()?.await()
-                                Toast.makeText(context, "Verification Email Sent", Toast.LENGTH_LONG).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Error sending email", Toast.LENGTH_LONG).show()
-                            }
-                            isSendingEmail = false
-                            showVerifyDialog = false
-                        }
-                    },
-                    enabled = !isSendingEmail
+            backgroundColor  = Color(0xFF1A1A1A),
+            contentColor     = Color.White,
+            title  = { Text("Verify Email", fontWeight = FontWeight.Bold) },
+            text   = { Text("Please verify your email address to use the app.") },
+
+            /** ------------- BUTTON ROW ------------- **/
+            buttons = {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    if (isSendingEmail) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text("Resend Verification Link")
+
+                    // a) “Resend link”
+                    TextButton(
+                        onClick = {
+                            isSendingEmail = true
+                            coroutineScope.launch {
+                                try {
+                                    user?.sendEmailVerification()?.await()
+                                    Toast.makeText(
+                                        context,
+                                        "Verification email sent!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        e.message ?: "Error sending email",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                isSendingEmail = false
+                            }
+                        },
+                        enabled = !isSendingEmail
+                    ) {
+                        if (isSendingEmail) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Resend link")
+                        }
                     }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showVerifyDialog = false }) {
-                    Text(stringResource(R.string.cancel))
+
+                    Spacer(Modifier.width(8.dp))
+
+                    // b) “I’ve verified”  ← NEW
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                try {
+                                    // ① wait for the network call to finish
+                                    user?.reload()?.await()      // <-- suspend until done  ✅
+
+                                    // ② THEN read the fresh auth object
+                                    val refreshedUser = FirebaseAuth.getInstance().currentUser
+                                    if (refreshedUser?.isEmailVerified == true) {
+                                        Toast.makeText(
+                                            context,
+                                            "Email verified – enjoy the app!",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        needsVerification = false
+                                        showVerifyDialog  = false
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Still not verified — please confirm the link first.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        e.message ?: "Error checking verification",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        }
+                    ) { Text("I’ve verified") }
                 }
             }
         )
@@ -575,9 +641,9 @@ fun IconWithQuota(
     enabled: Boolean = true
 ) {
     // size of the icon + ring
-    val size    = 42.dp
+    val size    = 30.dp
     val sweep   = remember(quota) { quota / 10f * 360f }   // daily quota = 10
-    val strokeW = 4.dp
+    val strokeW = 3.dp
 
     Box(
         modifier = Modifier
@@ -588,7 +654,7 @@ fun IconWithQuota(
         // progress ring
         Canvas(Modifier.fillMaxSize()) {
             drawArc(
-                color      = Color(0xFFFF6F00),
+                color      = Color(0xFFE91E63),
                 startAngle = -90f,
                 sweepAngle = sweep,
                 useCenter  = false,
@@ -821,7 +887,7 @@ fun FiltersOverlay(
                     onValueChange = { range ->
                         onAgeRangeChange(range.start.roundToInt()..range.endInclusive.roundToInt())
                     },
-                    valueRange = 18f..100f,
+                    valueRange = 0f..100f,
                     steps = 82,
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFFFF6000),
@@ -1810,12 +1876,10 @@ fun PhotoWithTwoOverlays(
                         )
                     )
             ) {
-                Row(
+                AutoMarqueeRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())  // allow scrolling if they don’t all fit
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val overlayStrings = when (currentPhotoIndex) {
                         0 -> lifestyleTexts                 // top 3 lifestyle nouns
@@ -1884,7 +1948,7 @@ fun PhotoWithTwoOverlays(
 
         // Distance string below the photo
         Text(
-            text = if (userDistance.isNaN() || userDistance > 100f)
+            text = if (userDistance.isNaN())
                 stringResource(R.string.worldwide)          // 🔶
             else
                 stringResource(R.string.max_distance, userDistance.roundToInt()),
@@ -1919,6 +1983,32 @@ fun TagBox(
         )
     }
 }
+
+@Composable
+private fun AutoMarqueeRow(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
+    val scroll = rememberScrollState()
+
+    /* keep gliding left ⇄ right forever */
+    LaunchedEffect(Unit) {
+        delay(500)                            // let Compose settle
+        while (true) {
+            scroll.animateScrollTo(scroll.maxValue)
+            delay(1_500)
+            scroll.animateScrollTo(0)
+            delay(1_500)
+        }
+    }
+
+    Row(
+        modifier = modifier.horizontalScroll(scroll, enabled = true),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        content = content
+    )
+}
+
 
 @Composable
 fun PerformanceMetricsSectionDating(profile: Profile) {
@@ -2483,27 +2573,23 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
 /**
  * fetchExcludedUsers => matched or liked recently
  */
-suspend fun fetchExcludedUsers(currentUserId: String): Set<String> {
-    val database = FirebaseRefs.db
-    val matchesRef = database.getReference("matches/$currentUserId")
-    val likesRef = database.getReference("likesGiven/$currentUserId")
-    val oneWeekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
+private suspend fun fetchExcludedUsers(me: String): Set<String> {
+    val db            = FirebaseRefs.db
+    val oneWeekAgo    = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1_000L
+    val excludedIds   = mutableSetOf<String>()
 
-    return withContext(Dispatchers.IO) {
-        val excludedIds = mutableSetOf<String>()
-        matchesRef.get().addOnSuccessListener { snapshot ->
-            snapshot.children.forEach { excludedIds.add(it.key!!) }
-        }.await()
-        likesRef.get().addOnSuccessListener { snapshot ->
-            snapshot.children.forEach { snap ->
-                val ts = snap.getValue(Long::class.java) ?: 0L
-                if (ts >= oneWeekAgo) {
-                    excludedIds.add(snap.key!!)
-                }
-            }
-        }.await()
-        excludedIds
+    // ① matches — every matched UID is excluded
+    val matchSnap = db.getReference("matches/$me").get().await()
+    matchSnap.children.forEach { excludedIds += it.key!! }
+
+    // ② likes you gave in the last 7 days
+    val likeSnap  = db.getReference("likesGiven/$me").get().await()
+    likeSnap.children.forEach { child ->
+        val ts = child.getValue(Long::class.java) ?: 0L
+        if (ts >= oneWeekAgo) excludedIds += child.key!!
     }
+
+    return excludedIds
 }
 
 fun runAiMatchCheck(

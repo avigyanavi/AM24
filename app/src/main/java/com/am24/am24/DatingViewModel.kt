@@ -12,9 +12,6 @@ import com.am24.am24.calculateDistance
 import com.am24.am24.handleSwipeRight
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.coroutineScope
@@ -27,10 +24,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import java.util.UUID
-import com.firebase.geofire.GeoFireUtils          // 🔥 NEW
-import com.firebase.geofire.GeoLocation          // 🔥 NEW
-import com.google.android.gms.tasks.Tasks
-import com.google.firebase.database.GenericTypeIndicator
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.HttpsCallableReference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
+
+private val gson = com.google.gson.Gson()
+
+private fun Map<*, *>.toProfile(): Profile =
+    gson.fromJson(gson.toJson(this), Profile::class.java)
+
 
 // ─── NEW: data class for holding incoming compliment ───
 data class ComplimentData(
@@ -44,8 +48,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
         internal const val COMPLIMENT_DAILY_QUOTA = 10
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
-        const val WORLDWIDE_DISTANCE = 100
-        private val RADIUS_STEPS_KM              = listOf(20.0, 50.0, 70.0, 100.0) // 🔥 NEW
+        const val WORLDWIDE_DISTANCE = 101
         private const val DESIRED_MIN_ROWS       = 50
     }
 
@@ -250,78 +253,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
-
-    private suspend fun fetchNearbyProfiles(
-        me: String,
-        maxDistanceKm: Int
-    ): List<Profile> = coroutineScope {
-        try {
-        // 1️⃣ get *my* lat/lng from RTDB --------------------------------------
-        val myLocSnap = database.getReference("geoFireLocations/$me/l").get().await()
-        val latLng = myLocSnap.getValue(object : GenericTypeIndicator<List<Double>>() {})
-        if (latLng == null || latLng.size < 2) {
-            Log.w(TAG, "⚠️  user has no lat/lng – falling back to whole /users tree")
-            return@coroutineScope usersRef.get().await().children
-                .mapNotNull { it.getValue(Profile::class.java) }
-                .filter { it.userId != me }
-        }
-        val myLocation = GeoLocation(latLng[0], latLng[1])
-
-        // 2️⃣ progressive radius search until we have ~DESIRED_MIN_ROWS -------
-        val steps = if (maxDistanceKm >= WORLDWIDE_DISTANCE)
-            listOf(Double.MAX_VALUE)        // "world-wide"
-        else
-            RADIUS_STEPS_KM.filter { it <= maxDistanceKm.toDouble() }
-
-        val collectedUids = linkedSetOf<String>()
-
-        outer@ for (radius in steps) {
-            val bounds = GeoFireUtils.getGeoHashQueryBounds(myLocation, radius * 1000)
-            val uidTasks = bounds.map { b ->
-                database.getReference("geoFireLocations")
-                    .orderByChild("g")
-                    .startAt(b.startHash)
-                    .endAt(b.endHash)
-                    .get()
-            }
-
-            // run all bounds queries in parallel and wait
-            val snapshots = uidTasks.map { it.await() }
-            for (snap in snapshots) {
-                for (child in snap.children) {
-                    val uid = child.key ?: continue
-                    val hash = child.child("g").getValue(String::class.java) ?: continue
-                    val locArr = child.child("l")
-                        .getValue(object : GenericTypeIndicator<List<Double>>() {}) ?: continue
-
-                    val candidate = GeoLocation(locArr[0], locArr[1])
-                    val dist = GeoFireUtils.getDistanceBetween(myLocation, candidate) / 1000.0
-                    if (dist <= radius) collectedUids += uid
-                }
-            }
-
-            if (collectedUids.size >= DESIRED_MIN_ROWS || radius == steps.last())
-                break@outer
-        }
-
-        // 3️⃣ batch-download the actual profile docs --------------------------
-        if (collectedUids.isEmpty()) return@coroutineScope emptyList()
-
-        val profileTasks = collectedUids.map { uid ->
-            usersRef.child(uid).get()     // one Task<DataSnapshot> per UID
-        }
-
-        val snaps = profileTasks.map { it.await() }
-
-        return@coroutineScope snaps.mapNotNull { snap ->
-            snap.getValue(Profile::class.java)
-        }.filter { it.userId != me }
-    } catch (e: Exception) {
-            Log.e(TAG, "fetchNearbyProfiles() failed: ${e.message}", e)
-            emptyList()
-        }
-    }
-
         /**
      * Refresh profiles manually
      */
@@ -336,11 +267,12 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                         return@launch
                     }
 
-                    // ✅ always refresh blocks first to prevent race conditions
+                    // refresh blocks first
                     _blockedUsers.value = fetchBlockedUsers(me)
 
-                    val maxDist  = _datingFilters.value.distance
-                    _allProfiles.value = fetchNearbyProfiles(me, maxDist)
+                    // 👉 call the Cloud Function instead of the local helper
+                    val maxDist = _datingFilters.value.distance
+                    _allProfiles.value = fetchNearbyProfilesCloud(me, maxDist)
 
                     updateBoostedUsers(me)
                     loadCompliments(me)
@@ -351,6 +283,35 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
         }
+
+    private val functions = FirebaseFunctions.getInstance("asia-south1")
+
+    private suspend fun fetchNearbyProfilesCloud(
+        me: String,
+        maxDistanceKm: Int
+    ): List<Profile> = withContext(Dispatchers.IO) {
+
+        val payload = hashMapOf(
+            "uid"         to me,
+            "maxDistance" to maxDistanceKm,
+            "minRows"     to DESIRED_MIN_ROWS
+        )
+
+        // 1️⃣  get the callable reference …
+        val callable: HttpsCallableReference =
+            functions.getHttpsCallable("getNearbyProfiles")
+
+        // … 2️⃣  and adjust its timeout (default is 60 s)
+        callable.setTimeout(120, TimeUnit.SECONDS)     // 2 minutes
+
+        // 3️⃣  invoke the function
+        @Suppress("UNCHECKED_CAST")
+        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
+
+        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
+
+        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
+    }
 
     /** call this when the user presses “Boost” */
     fun boostUser(
@@ -414,7 +375,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         Log.d(TAG, "⚙️ FILTER DUMP  ->  $filters")   // ← add
 
         // Fetch blocked users
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@coroutineScope emptyList()
         var result = profiles.filterNot { blocked.contains(it.userId) }
 
         // Apply localities filter
@@ -491,17 +451,16 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     ): List<Profile> = coroutineScope {
 
         val me = FirebaseAuth.getInstance().uid ?: return@coroutineScope profiles
-        // 101 km or more ⇒ no distance filter at all
-        if (maxDistance >= WORLDWIDE_DISTANCE) return@coroutineScope profiles
+        if (maxDistance >= WORLDWIDE_DISTANCE) return@coroutineScope profiles   // keep all
 
         val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
         val kept    = mutableListOf<Profile>()
 
         profiles.forEach { other ->
             launch {
-                val d = calculateDistance(me, other.userId, geoFire)
-                /* keep if  ➜ distance unknown  OR  distance ≤ slider value */
-                if (d == null || d <= maxDistance) {
+                val d = calculateDistance(me, other.userId, geoFire)  // <-- may be null
+                /* keep if distance is unknown **OR** ≤ slider value  */
+                if (d == null || d <= maxDistance) {                  // <-- THIS LINE
                     synchronized(kept) { kept.add(other) }
                 }
             }

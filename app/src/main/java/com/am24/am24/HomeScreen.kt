@@ -368,12 +368,17 @@ fun FeedSection(
                         )
                     },
                     onUserClick = {
-                        if (post.userId == userId) {
-                            // Navigate to ProfileScreen if it's your own profile
-                            navController.navigate("profile")
-                        } else {
-                            // NEW: pass the userId instead
-                            navController.navigate("dating_screen?initialQuery=${post.userId}")
+                        when{        // your own profile
+                            post.userId == userId                     ->
+                                navController.navigate("profile")
+
+                            // already a mutual match
+                            matches.contains(post.userId)             ->
+                                navController.navigate("matchedUserProfile/${post.userId}")
+
+                            // not matched yet – open one-off preview screen
+                            else                                      ->
+                                navController.navigate("previewUserProfile/${post.userId}")
                         }
                     },
                     onTagClick = { tag ->

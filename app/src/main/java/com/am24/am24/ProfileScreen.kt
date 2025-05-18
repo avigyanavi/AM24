@@ -78,13 +78,14 @@ fun ProfileScreen(
     val context        = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    // —— 1) detect “email/password but not yet verified” ——
-    val user = FirebaseAuth.getInstance().currentUser
-    val isPwdUser = user
-        ?.providerData
-        ?.any { it.providerId == "password" } == true
-    val needsVerification = isPwdUser && user?.isEmailVerified == false
+// ── 1) replace the existing `needsVerification` val with a mutable state ─────────
+    val user                 = FirebaseAuth.getInstance().currentUser
+    val isPwdUser            = user?.providerData?.any { it.providerId == "password" } == true
+    var needsVerification by remember {         // ← make it mutable
+        mutableStateOf(isPwdUser && user?.isEmailVerified == false)
+    }
 
+// ── 2) keep the rest of your state ----------------------------------------------
     var showVerifyDialog by remember { mutableStateOf(false) }
     var isSendingEmail   by remember { mutableStateOf(false) }
 
@@ -128,64 +129,104 @@ fun ProfileScreen(
             )
 
             // —— 3) if they need to verify, intercept all taps ——
+            // ── 3) intercept taps only while we still need verification ---------------------
             if (needsVerification) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures { showVerifyDialog = true }
-                        }
+                        .pointerInput(Unit) { detectTapGestures { showVerifyDialog = true } }
                 )
             }
 
-            // 5) your “please verify” AlertDialog
+            // ── 4) revamped AlertDialog ------------------------------------------------------
             if (showVerifyDialog) {
                 AlertDialog(
                     onDismissRequest = { showVerifyDialog = false },
-                    backgroundColor = Color(0xFF1A1A1A),
-                    contentColor    = Color.White,
-                    title = { Text("Verify Email", fontWeight = FontWeight.Bold) },
-                    text = {
-                        Text("Verify Email to use app")
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                isSendingEmail = true
-                                coroutineScope.launch {
-                                    try {
-                                        user?.sendEmailVerification()?.await()
-                                        Toast.makeText(
-                                            context,
-                                            "Verification Email Sent",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    } catch (e: Exception) {
-                                        Toast.makeText(
-                                            context,
-                                            e.message ?: "Error sending email",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                    isSendingEmail = false
-                                    showVerifyDialog = false
-                                }
-                            },
-                            enabled = !isSendingEmail
+                    backgroundColor  = Color(0xFF1A1A1A),
+                    contentColor     = Color.White,
+                    title  = { Text("Verify Email", fontWeight = FontWeight.Bold) },
+                    text   = { Text("Please verify your email address to use the app.") },
+
+                    /** ------------- BUTTON ROW ------------- **/
+                    buttons = {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.End
                         ) {
-                            if (isSendingEmail) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text("Resend Verification Link")
+
+                            // a) “Resend link”
+                            TextButton(
+                                onClick = {
+                                    isSendingEmail = true
+                                    coroutineScope.launch {
+                                        try {
+                                            user?.sendEmailVerification()?.await()
+                                            Toast.makeText(
+                                                context,
+                                                "Verification email sent!",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                e.message ?: "Error sending email",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                        isSendingEmail = false
+                                    }
+                                },
+                                enabled = !isSendingEmail
+                            ) {
+                                if (isSendingEmail) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text("Resend link")
+                                }
                             }
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showVerifyDialog = false }) {
-                            Text(stringResource(R.string.cancel))
+
+                            Spacer(Modifier.width(8.dp))
+
+                            // b) “I’ve verified”  ← NEW
+                            TextButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        try {
+                                            // ① wait for the network call to finish
+                                            user?.reload()?.await()      // <-- suspend until done  ✅
+
+                                            // ② THEN read the fresh auth object
+                                            val refreshedUser = FirebaseAuth.getInstance().currentUser
+                                            if (refreshedUser?.isEmailVerified == true) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Email verified – enjoy the app!",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                                needsVerification = false
+                                                showVerifyDialog  = false
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Still not verified — please confirm the link first.",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                e.message ?: "Error checking verification",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    }
+                                }
+                            ) { Text("I’ve verified") }
                         }
                     }
                 )
