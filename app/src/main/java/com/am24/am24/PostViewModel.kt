@@ -71,6 +71,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _savedPostIds = MutableStateFlow<Set<String>>(emptySet())
     val savedPostIds: StateFlow<Set<String>> = _savedPostIds.asStateFlow()
 
+    private val _isUploading = MutableStateFlow(false)
+    val    isUploading : StateFlow<Boolean> = _isUploading
+    private fun clearUploadingFlag() { _isUploading.value = false }
+
     fun setCurrentUserId(userId: String?) {
         _currentUserId.value = userId
 
@@ -287,6 +291,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         onError:  (String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            _isUploading.value = true            // <─── ① RAISE FLAG RIGHT AWAY
+
             try {
                 // ─── validations ──────────────────────────────────────────────
                 if (mediaType !in listOf("image","video")) {
@@ -342,9 +348,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     "totalComments"  to 0
                 )
                 postsRef.child(postId).setValue(post).await()
-
+                clearUploadingFlag() // <─── ② LOWER FLAG
+                refreshPosts()
                 withContext(Dispatchers.Main) { onDone() }
-
                 // ─── notify matches, same style as text/voice ───────────────
                 val matches = getMatches(userId)
                 matches.forEach { receiverId ->
@@ -356,6 +362,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
             } catch (e: Exception) {
+                clearUploadingFlag()            //  ↓ also drop the flag on failure
                 Log.e(TAG,"createMediaPost: ${e.message}",e)
                 withContext(Dispatchers.Main) { onError(e.message ?: "Failed") }
             }
@@ -615,6 +622,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch(Dispatchers.IO) {
+            _isUploading.value = true                       // raise
             val postId = postsRef.push().key
             if (postId == null) {
                 onFailure("Unable to generate post ID.")
@@ -641,6 +649,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 postsRef.child(postId).setValue(post).await()
+                clearUploadingFlag()       // lower
+                refreshPosts()
                 onSuccess()
                 // Send notifications to friends and matches
                 val matches = getMatches(userId)
@@ -655,6 +665,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             } catch (e: Exception) {
+                clearUploadingFlag()
                 Log.e(TAG, "Error creating text post: ${e.message}", e)
                 onFailure(e.message ?: "Unknown error occurred.")
             }

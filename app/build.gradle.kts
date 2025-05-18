@@ -124,6 +124,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.compose.material)
+    implementation("com.google.accompanist:accompanist-placeholder-material:0.34.0")
+
 
     implementation("com.google.firebase:firebase-appcheck-debug:18.0.0")
     //swipable

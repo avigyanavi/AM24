@@ -56,7 +56,9 @@ import java.io.IOException
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.window.PopupProperties
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -68,6 +70,7 @@ fun CreatePostScreen(
     val context  = LocalContext.current
     val userId   = FirebaseAuth.getInstance().currentUser?.uid
     var isPremium by remember { mutableStateOf(false) }
+
 
     // quick check — replace with your own premium flag
     LaunchedEffect(userId) {
@@ -218,8 +221,10 @@ fun TextPostComposable(
                             fontSize = 14, // Default font size since it's removed
                             onSuccess = {
                                 coroutineScope.launch {
-                                    Toast.makeText(context, "Text post created successfully.", Toast.LENGTH_SHORT).show()
-                                    navController.popBackStack()
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "Posted ✔", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack("home", inclusive = false)
+                                    }
                                 }
                             },
                             onFailure = { error ->
@@ -317,6 +322,8 @@ fun ImagePostComposable(
     var searching      by remember { mutableStateOf(false) }
     val menuExpanded   = placeResults.isNotEmpty()
 
+
+
     /* fetch display name once */
     LaunchedEffect(Unit) { username = fetchUsernameById(userId) ?: "Anonymous" }
 
@@ -364,8 +371,12 @@ fun ImagePostComposable(
                                     it.latLng.latitude, it.latLng.longitude)
                             },
                             onDone = {
-                                Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT).show()
-                                navController.popBackStack()
+                                scope.launch {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack("home", inclusive = false)
+                                    }
+                                }
                             },
                             onError = { e -> Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show() }
                         )
@@ -629,8 +640,12 @@ fun VideoPostComposable(
                                     it.latLng.latitude, it.latLng.longitude)
                             },
                             onDone = {
-                                Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT).show()
-                                navController.popBackStack()
+                                scope.launch {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack("home", inclusive = false)
+                                    }
+                                }
                             },
                             onError = { e -> Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show() }
                         )

@@ -20,11 +20,11 @@ data class PlaceResult(
 
 /**  What we finally write into the post object  */
 data class CheckIn(
-    val placeId : String,
-    val name    : String,
-    val address : String,
-    val lat     : Double,
-    val lng     : Double
+    val placeId : String = "",
+    val name    : String = "",
+    val address : String = "",
+    val lat     : Double = 0.0,
+    val lng     : Double = 0.0
 )
 
 /**

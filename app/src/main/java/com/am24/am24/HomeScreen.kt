@@ -7,6 +7,7 @@ package com.am24.am24
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import androidx.compose.foundation.layout.Box
@@ -48,10 +49,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import androidx.wear.compose.material.ExperimentalWearMaterialApi
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.material.placeholder
+import com.google.accompanist.placeholder.material.shimmer
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.storage.FirebaseStorage
@@ -276,6 +282,7 @@ fun HomeScreenContent(
     }
 }
 
+@OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 fun FeedSection(
     navController: NavController,
@@ -320,17 +327,19 @@ fun FeedSection(
                 .background(Color.Black)
         ) {
             if (isPosting) {
-                // Show a loading indicator in place of the post
                 item {
-                    Box(
+                    Card(                                                    // skeleton card
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Color(0xFFFF6F00))
-                    }
+                            .fillMaxWidth(0.95f)
+                            .height(200.dp)
+                            .padding(vertical = 8.dp)
+                            .placeholder(
+                                visible   = true,
+                                highlight = PlaceholderHighlight.shimmer(),
+                                shape     = RoundedCornerShape(6.dp)
+                            ),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
+                    ) {}
                 }
             }
 
@@ -555,6 +564,7 @@ fun FeedItem(
     val annotatedText = buildFormattedText(post.contentText ?: "")
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
+    val ctx = LocalContext.current
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center // Center-align the card within the Box
@@ -669,6 +679,19 @@ fun FeedItem(
 
                 }
 
+                /* ---------- CHECK-IN CHIP ---------- */
+                post.checkIn?.let { ci ->
+                    Spacer(Modifier.height(4.dp))
+                    AssistChip(
+                        onClick = {
+                            /* optional: open Maps */
+                            val gmm = Uri.parse("geo:${ci.lat},${ci.lng}?q=${Uri.encode(ci.name)}")
+                            ctx.startActivity(Intent(Intent.ACTION_VIEW, gmm))
+                        },
+                        label = { Text(ci.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        leadingIcon = { Icon(Icons.Default.Place, null) }
+                    )
+                }
 
                 // Post Content (Formatted Text)
                 if (!post.contentText.isNullOrEmpty()) {
@@ -717,8 +740,26 @@ fun FeedItem(
                 if (post.mediaType != null && post.mediaUrl != null) {
                     val context = LocalContext.current // Get the context once outside
                     Spacer(modifier = Modifier.height(8.dp))
+                    val ctx = LocalContext.current
                     Box(modifier = Modifier.fillMaxWidth()) {
                         when (post.mediaType) {
+                            /* ---------- PHOTO ---------- */
+                            "image", "photo" -> {
+                                PostPhoto(
+                                    url = post.mediaUrl ?: "",
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
+                            }
+
+                            /* ---------- VIDEO ---------- */
+                            "video" -> {
+                                PostVideo(
+                                    context  = ctx,
+                                    url      = post.mediaUrl ?: "",
+                                    thumbUrl = post.mediaThumb,
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
+                            }
                             "voice" -> {
                                 // Voice Post Playback UI
                                 Column(
@@ -1138,6 +1179,59 @@ fun FeedItem(
         }
     }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Helpers for image & video – put these anywhere in HomeScreen.kt   */
+/* ------------------------------------------------------------------ */
+
+@Composable
+fun PostPhoto(url: String, modifier: Modifier = Modifier) {
+    AsyncImage(
+        model = url,
+        contentDescription = "Post photo",
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)                 // square thumbnail
+            .clip(RoundedCornerShape(6.dp)),
+        contentScale = ContentScale.Crop
+    )
+}
+
+/* very lightweight video thumbnail; tap = open external player */
+@Composable
+fun PostVideo(context: Context, url: String, thumbUrl: String?, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clip(RoundedCornerShape(6.dp))
+            .clickable {
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(Uri.parse(url), "video/*")
+                }
+                context.startActivity(intent)
+            }
+    ) {
+        // show either the server-side thumbnail or, as a fallback, the first frame
+        AsyncImage(
+            model = thumbUrl ?: url,
+            contentDescription = "Video thumbnail",
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.Crop
+        )
+        /* play overlay */
+        Icon(
+            Icons.Default.PlayArrow,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier
+                .size(64.dp)
+                .align(Alignment.Center)
+                .shadow(4.dp, CircleShape)
+        )
+    }
+}
+
 
 fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
