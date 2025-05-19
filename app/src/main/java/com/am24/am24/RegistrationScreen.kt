@@ -39,6 +39,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Female
+import androidx.compose.material.icons.filled.Male
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
@@ -106,6 +109,11 @@ class RegistrationActivity : ComponentActivity() {
                 }
                 RegistrationScreen(
                     onRegistrationComplete = {
+                        // 1) Persist “we really made it to the end”
+                        getSharedPreferences("settings", Context.MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("registration_finished", true)
+                            .apply()
                         startActivity(Intent(this, LoginActivity::class.java))
                         finish()
                     },
@@ -331,7 +339,7 @@ fun EnterPersonalDetailsScreen(
 ) {
     val lookingForOptions = listOf(
         stringResource(R.string.looking_for_not_selected),
-        stringResource(R.string.looking_for_casual_sex),
+        stringResource(R.string.looking_for_romance),
         stringResource(R.string.looking_for_connection),
         stringResource(R.string.looking_for_partner),
         stringResource(R.string.looking_for_marriage)
@@ -448,6 +456,10 @@ fun EnterPersonalDetailsScreen(
     var newSocialCause by remember { mutableStateOf("") }
     var jobRole by remember { mutableStateOf(viewModel.jobRole) }
     var work by remember { mutableStateOf(viewModel.work) }
+    // ── Social Causes ──
+    val allCauses = stringArrayResource(R.array.social_causes_list).toList()
+    val selectedCauses = remember { mutableStateListOf<String>().apply { addAll(viewModel.socialCauses) } }
+    val maxSelections = 5
 
     Scaffold(
         topBar = {
@@ -512,50 +524,67 @@ fun EnterPersonalDetailsScreen(
 
                 item {
                     Column {
-                        Text(stringResource(R.string.social_causes), color = Color.White, fontSize = 16.sp)
-                        OutlinedTextField(
-                            value = newSocialCause,
-                            onValueChange = { newSocialCause = it },
-                            label = { Text(stringResource(R.string.add_cause), color = Color.White) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = Color(0xFFFF6000),
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color.White,
-                                focusedLabelColor = Color(0xFFFF6000),
-                                unfocusedLabelColor = Color.White
-                            ),
-                            trailingIcon = {
-                                if (newSocialCause.isNotEmpty()) {
-                                    IconButton(onClick = {
-                                        socialCauses.add(newSocialCause)
-                                        viewModel.socialCauses.add(newSocialCause)
-                                        newSocialCause = ""
-                                    }) {
-                                        Icon(Icons.Default.Add, stringResource(R.string.add), tint = Color.White)
-                                    }
-                                }
-                            }
+                        Text(
+                            stringResource(R.string.social_causes),
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 8.dp)
-                        ) {
-                            items(socialCauses) { cause ->
+                        Spacer(Modifier.height(8.dp))
+
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            allCauses.forEach { cause ->
+                                val isSelected = selectedCauses.contains(cause)
+                                val canSelectMore = selectedCauses.size < maxSelections
+
                                 FilterChip(
-                                    selected = true,
+                                    selected = isSelected,
                                     onClick = {
-                                        socialCauses.remove(cause)
-                                        viewModel.socialCauses.remove(cause)
-                                    },
-                                    label = { Text(cause, color = Color.White) },
-                                    colors = FilterChipDefaults.filterChipColors(containerColor = Color(0xFFFF6000))
+                                        if (isSelected) {
+                                            selectedCauses.remove(cause)
+                                        } else if (canSelectMore) {
+                                            selectedCauses.add(cause)
+                                        }
+                                        // ✅ mutate the SnapshotStateList directly:
+                                        viewModel.socialCauses.apply {
+                                            clear()
+                                            addAll(selectedCauses)
+                                        }
+                                              },
+                                    enabled = isSelected || canSelectMore,
+                                    label = { Text(cause) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFFFF6F00),
+                                        selectedLabelColor = Color.White,
+                                        disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
+                                        disabledLabelColor = Color.LightGray
+                                    )
                                 )
                             }
                         }
+
+                        if (selectedCauses.size > maxSelections) {
+                            Text(
+                                text = stringResource(
+                                    R.string.max_social_causes_error,
+                                    maxSelections
+                                ),
+                                color = Color.Red,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                     }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    Button(
+                        onClick = onNext,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+                    ) {
+                        Text(stringResource(R.string.next_button), color = Color.White)
+                    }
+
                 }
 
                 item {
@@ -925,7 +954,8 @@ fun EnterLocationAndSchoolScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val educationLevels = listOf(stringResource(R.string.high_school_label), stringResource(R.string.college_label), stringResource(R.string.post_graduation_label))
+    val educationLevels = listOf(stringResource(R.string.no_education_label),
+        stringResource(R.string.high_school_label), stringResource(R.string.college_label), stringResource(R.string.post_graduation_label))
     val highSchoolOptions = listOf(
         stringResource(R.string.high_school_andrews_high_school),
         stringResource(R.string.high_school_assembly_of_god_church_school),
@@ -2391,7 +2421,9 @@ fun EnterNameScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
-    val interestedOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option))
+    val maleOption = stringResource(R.string.male_option)
+    val femaleOption = stringResource(R.string.female_option)
+    val interestedOptions = listOf(maleOption, femaleOption)
 
     // State to determine if the "Next" button can be enabled
     val canProceed = registrationViewModel.name.isNotEmpty() &&
@@ -2424,7 +2456,7 @@ fun EnterNameScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     item {
-                        // Name Input
+                        // ---- Full Name ----
                         TextFieldWithLabel(
                             label = stringResource(R.string.full_name_label),
                             value = registrationViewModel.name,
@@ -2433,8 +2465,12 @@ fun EnterNameScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Height Section
-                        Text(stringResource(R.string.height_label), color = Color.White, fontSize = 18.sp)
+                        // ---- Height ----
+                        Text(
+                            text = stringResource(R.string.height_label),
+                            color = Color.White,
+                            fontSize = 18.sp
+                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(vertical = 8.dp)
@@ -2466,11 +2502,7 @@ fun EnterNameScreen(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                // Feet Input
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                ) {
+                                Box(modifier = Modifier.weight(1f)) {
                                     TextFieldWithLabel(
                                         label = stringResource(R.string.feet_label),
                                         value = registrationViewModel.height2.getOrNull(0)?.toString() ?: "",
@@ -2482,12 +2514,7 @@ fun EnterNameScreen(
                                         }
                                     )
                                 }
-
-                                // Inches Input
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                ) {
+                                Box(modifier = Modifier.weight(1f)) {
                                     TextFieldWithLabel(
                                         label = stringResource(R.string.inches_label),
                                         value = registrationViewModel.height2.getOrNull(1)?.toString() ?: "",
@@ -2500,8 +2527,7 @@ fun EnterNameScreen(
                                     )
                                 }
                             }
-                        }
-                         else {
+                        } else {
                             TextFieldWithLabel(
                                 label = stringResource(R.string.height_cm_label),
                                 value = registrationViewModel.height.toString(),
@@ -2513,12 +2539,28 @@ fun EnterNameScreen(
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        var other = stringResource(R.string.college_other)
 
-                        // Caste Input using SearchableDropdownWithCustomOption
+                        // ---- Caste ----
+                        val other = stringResource(R.string.college_other)
                         SearchableDropdownWithCustomOption(
                             title = stringResource(R.string.caste_title),
-                            options = listOf(stringResource(R.string.caste_kulin_brahmin), stringResource(R.string.caste_non_kulin_brahmin), stringResource(R.string.caste_kulin_kayastha), stringResource(R.string.caste_non_kulin_kayastha), stringResource(R.string.caste_kshatriya), stringResource(R.string.caste_baidya), stringResource(R.string.caste_mahishya), stringResource(R.string.caste_sadgop), stringResource(R.string.caste_vaishya), stringResource(R.string.caste_obc), stringResource(R.string.caste_scheduled_caste), stringResource(R.string.caste_scheduled_tribe), stringResource(R.string.caste_rajbonshi), stringResource(R.string.caste_general), stringResource(R.string.caste_other)),
+                            options = listOf(
+                                stringResource(R.string.caste_kulin_brahmin),
+                                stringResource(R.string.caste_non_kulin_brahmin),
+                                stringResource(R.string.caste_kulin_kayastha),
+                                stringResource(R.string.caste_non_kulin_kayastha),
+                                stringResource(R.string.caste_kshatriya),
+                                stringResource(R.string.caste_baidya),
+                                stringResource(R.string.caste_mahishya),
+                                stringResource(R.string.caste_sadgop),
+                                stringResource(R.string.caste_vaishya),
+                                stringResource(R.string.caste_obc),
+                                stringResource(R.string.caste_scheduled_caste),
+                                stringResource(R.string.caste_scheduled_tribe),
+                                stringResource(R.string.caste_rajbonshi),
+                                stringResource(R.string.caste_general),
+                                stringResource(R.string.caste_other)
+                            ),
                             selectedOption = registrationViewModel.caste,
                             onOptionSelected = { selectedOption ->
                                 if (selectedOption != other) {
@@ -2526,74 +2568,71 @@ fun EnterNameScreen(
                                 }
                             },
                             customInput = registrationViewModel.caste,
-                            onCustomInputChange = { customInput ->
-                                registrationViewModel.caste = customInput
-                            }
+                            onCustomInputChange = { registrationViewModel.caste = it }
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Interested In Options
-                        Text(stringResource(R.string.interested_in_title), color = Color.White, fontSize = 18.sp)
+                        // ---- Interested In (improved) ----
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = Color(0xFFFF6000)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.interested_in_header),
+                                style = MaterialTheme.typography.titleMedium
+                                    .copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             interestedOptions.forEach { option ->
-                                val isSelected = option in registrationViewModel.interestedIn
-
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(horizontal = 4.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isSelected)
-                                                Color(0xFFFF6000)
-                                            else
-                                                Color(0xFF1A1A1A)
+                                val isSelected = registrationViewModel.interestedIn.contains(option)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        if (isSelected) registrationViewModel.interestedIn.remove(option)
+                                        else registrationViewModel.interestedIn.add(option)
+                                    },
+                                    label = { Text(option) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = when (option) {
+                                                maleOption -> Icons.Default.Male
+                                                else            -> Icons.Default.Female
+                                            },
+                                            contentDescription = null
                                         )
-                                        .border(1.dp, Color(0xFFFF6000), CircleShape)
-                                ) {
-                                    Button(
-                                        onClick = {
-                                            if (isSelected) {
-                                                registrationViewModel
-                                                    .interestedIn.remove(option)
-                                            } else {
-                                                registrationViewModel
-                                                    .interestedIn.add(option)
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color.Transparent
-                                        ),
-                                        contentPadding = PaddingValues(0.dp),
-                                        shape = CircleShape,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = option,
-                                            color = Color.White
-                                        )
-                                    }
-                                }
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFFFF6000),
+                                        selectedLabelColor     = Color.White,
+                                        containerColor         = Color(0xFF1A1A1A),
+                                        labelColor             = Color.White
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
+                        // ————————————————————————————————————————————————————
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Next Button
+                        // ---- Next Button ----
                         Button(
                             onClick = { if (canProceed) onNext() },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (canProceed)
-                                    Color(0xFFFF6000)
-                                else
-                                    Color.DarkGray
+                                containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
                             ),
                             enabled = canProceed
                         ) {

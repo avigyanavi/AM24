@@ -367,57 +367,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             })
     }
 
-    /**
-     * Report a user profile.
-     */
-    fun reportProfile(
-        profileId: String,
-        reporterId: String,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val reportRef = FirebaseRefs.db.getReference("reportedProfiles").child(profileId)
-                val reportId = reportRef.push().key ?: throw Exception("Unable to generate report ID.")
-
-                val reportData = mapOf(
-                    "reportId" to reportId,
-                    "profileId" to profileId,
-                    "reporterId" to reporterId,
-                    "timestamp" to ServerValue.TIMESTAMP
-                )
-
-                reportRef.child(reportId).setValue(reportData).await()
-                onSuccess()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to report profile: ${e.message}")
-                onFailure(e.message ?: "Failed to report profile.")
-            }
-        }
-    }
-
-    /**
-     * Block a user profile.
-     */
-    fun blockProfile(
-        currentUserId: String,
-        targetUserId: String,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val blockedRef = usersRef.child(currentUserId).child("blockedUsers").child(targetUserId)
-                blockedRef.setValue(true).await()
-                onSuccess()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to block profile: ${e.message}")
-                onFailure(e.message ?: "Failed to block profile.")
-            }
-        }
-    }
-
     // Send a like notification
     fun sendLikeNotification(
         senderId: String,

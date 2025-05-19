@@ -79,6 +79,17 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _complimentsReceived = MutableStateFlow<Map<String, ComplimentData>>(emptyMap()) // ← NEW
     val complimentsReceived: StateFlow<Map<String, ComplimentData>> get() = _complimentsReceived // ← NEW
 
+    // ── NEW: track which user is currently on top of the swipe‐deck ──
+    private val _currentSwipeUserId = MutableStateFlow<String?>(null)
+    /** The userId of the profile card currently “on deck” */
+    val currentSwipeUserId: StateFlow<String?> = _currentSwipeUserId
+
+    /** update the ID of the profile currently shown on top of the deck  */
+    fun setCurrentSwipeUserId(userId: String?) {
+        Log.d(TAG, "VM – setCurrentSwipeUserId → $userId")
+        _currentSwipeUserId.value = userId
+    }
+
 
     private val _boostedUsers      = MutableStateFlow<List<Profile>>(emptyList())
     val boostedUsers: StateFlow<List<Profile>>      get() = _boostedUsers
@@ -482,6 +493,32 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         profilesListener?.let { usersRef.removeEventListener(it) }
+    }
+
+    /** Called when the user hits “Submit” in the report dialog */
+    fun reportUser(
+        reporterId: String,
+        reporteeId: String,
+        reason: String
+    ) {
+        viewModelScope.launch {
+            Log.d(TAG, "VM – reporting $reporteeId for reason “$reason”")
+            val now = System.currentTimeMillis()
+            // 1) save report
+            database.getReference("reports/$reporteeId/$reporterId")
+                .setValue(mapOf("reason" to reason, "timestamp" to now))
+                .await()
+
+            // 2) block them
+            database.getReference("blocks/$reporterId/$reporteeId")
+                .setValue(true)
+                .await()
+
+            // 3) update your local blocked list & refresh
+            _blockedUsers.value = _blockedUsers.value + reporteeId
+            refreshFilteredProfiles()
+            Log.d(TAG, "VM – reportUser complete")
+        }
     }
 }
 

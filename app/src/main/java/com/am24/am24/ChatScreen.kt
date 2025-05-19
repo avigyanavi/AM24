@@ -102,6 +102,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.transformer.*
+import com.am24.am24.util.CachedFullscreenVideoPlayer
 import java.io.IOException
 
 // Updated Message data class (without viewed field)
@@ -840,7 +841,7 @@ fun ChatScreenContent(
                         reverseLayout = true,
                         verticalArrangement = Arrangement.Bottom
                     ) {
-                        if (isOtherUserTyping || isSendingMessage) {
+                        if (isOtherUserTyping) {
                             item { TypingIndicator() }
                         }
                         items(messages.reversed()) { message ->
@@ -2282,24 +2283,10 @@ fun SelectedMediaFullScreen(
                     )
 
                 "video" -> {                             /* use ExoPlayer so it *always* plays */
-                    val player = remember(uri) {
-                        ExoPlayer.Builder(context).build().apply {
-                            setMediaItem(MediaItem.fromUri(uri))
-                            prepare()
-                            playWhenReady = true
-                            addListener(object : Player.Listener {
-                                override fun onPlaybackStateChanged(state: Int) {
-                                    videoReady = state == Player.STATE_READY
-                                }
-                            })
-                        }
-                    }
-                    DisposableEffect(uri) { onDispose { player.release() } }
-
-                    AndroidView(
-                        factory = { PlayerView(it).apply { this.player = player } },
-                        modifier = Modifier.fillMaxSize()
-                    )
+                            CachedFullscreenVideoPlayer(
+                                    uri       = uri,
+                                    onDismiss = onDismiss
+                                        )
                 }
             }
 

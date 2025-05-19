@@ -79,9 +79,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.filled.AttachEmail
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
 import java.util.Calendar
@@ -263,6 +266,11 @@ fun DatingScreen(
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
     val currentSwipeProfile = displayedProfiles.getOrNull(currentIndex)
 
+    // inside DatingScreen (or DatingScreenContent) where you have `currentSwipeProfile`:
+    LaunchedEffect(currentSwipeProfile?.userId) {
+        Log.d("DatingScreen", "Composable – currentSwipeProfile.userId = ${currentSwipeProfile?.userId}")
+        datingViewModel.setCurrentSwipeUserId(currentSwipeProfile?.userId)
+    }
     // add this:
     var initialProcessed by remember { mutableStateOf(false) }
     LaunchedEffect(initialQuery, displayedProfiles) {
@@ -1656,28 +1664,52 @@ fun DatingProfileHeader(
 
 @Composable
 fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("", color = Color.Black) },
-        text = {
-            if (posts.isEmpty()) {
-                Text(stringResource(R.string.no_posts), color = Color.Gray)
-            } else {
-                LazyColumn {
-                    items(posts) { post ->
-                        PostItemInProfile(post)
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            color = Color.Black
+        ) {
+            Box {
+                // — Full-screen scrollable list —
+                if (posts.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(stringResource(R.string.no_posts), color = Color.Gray)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 56.dp)  // leave room for the close button
+                    ) {
+                        items(posts) { post ->
+                            PostItemInProfile(post)
+                        }
                     }
                 }
+
+                // — Close button overlayed in top-right —
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(32.dp)
+                        .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.close),
+                        tint = Color.White
+                    )
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.close), color = Color(0xFFFF6F00))
-            }
-        },
-        backgroundColor = Color.Black,
-        contentColor = Color.White
-    )
+        }
+    }
 }
 
 @Composable

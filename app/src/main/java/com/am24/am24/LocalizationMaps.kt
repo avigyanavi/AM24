@@ -395,9 +395,9 @@ val cityNameToRes = mapOf(
 
 // Looking For (English, Bengali, Hindi)
 val lookingForNameToRes = mapOf(
-    "Casual Sex" to R.string.looking_for_casual_sex,
-    "যৌন সম্পর্ক" to R.string.looking_for_casual_sex,
-    "असामयিক संबंध" to R.string.looking_for_casual_sex,
+    "Romance" to R.string.looking_for_romance,
+    "রোমান্স" to R.string.looking_for_romance,
+    "रोमांस" to R.string.looking_for_romance,
 
     "Connection" to R.string.looking_for_connection,
     "সংযোগ" to R.string.looking_for_connection,
@@ -422,7 +422,6 @@ val loveLanguageNameToRes = mapOf(
     "পরিষেবার কাজ" to R.string.love_language_option_acts_of_service,
     "सेवा कार्य" to R.string.love_language_option_acts_of_service,
 
-    "Receiving Gifts" to R.string.love_language_option_receiving_gifts,
     "Receiving gifts" to R.string.love_language_option_receiving_gifts,
     "উপহার পাওয়া" to R.string.love_language_option_receiving_gifts,
     "उपहार प्राप्त करना" to R.string.love_language_option_receiving_gifts,
@@ -438,16 +437,69 @@ val loveLanguageNameToRes = mapOf(
 
 // Politics (English, Bengali, Hindi)
 val politicsNameToRes = mapOf(
-    "Liberal" to R.string.politics_option_liberal,
-    "উদারপ্রিয়" to R.string.politics_option_liberal,
-    "उदारवादी" to R.string.politics_option_liberal,
+    // Far left
+    "Far left"        to R.string.politics_option_far_left,
+    "চরম বাম"         to R.string.politics_option_far_left,
+    "अत्यंत वाम"      to R.string.politics_option_far_left,
 
-    "Moderate" to R.string.politics_option_moderate,
-    "মধ্যম" to R.string.politics_option_moderate,
-    "मध्यम" to R.string.politics_option_moderate,
+    // Left
+    "Left"            to R.string.politics_option_left,
+    "বাম"              to R.string.politics_option_left,
+    "वामपंथी"          to R.string.politics_option_left,
 
-    "Conservative" to R.string.politics_option_conservative,
-    "সংরক্ষক" to R.string.politics_option_conservative,
-    "संरक्षणवादी" to R.string.politics_option_conservative
+    // Centre-left
+    "Centre-left"     to R.string.politics_option_centre_left,
+    "মধ্যবর্তী বাম"     to R.string.politics_option_centre_left,
+    "मध्य-वाम"         to R.string.politics_option_centre_left,
+
+    // Centre
+    "Centre"          to R.string.politics_option_centre,
+    "মধ্য"             to R.string.politics_option_centre,
+    "मध्य"             to R.string.politics_option_centre,
+
+    // Centre-right
+    "Centre-right"    to R.string.politics_option_centre_right,
+    "মধ্যবর্তী ডান"     to R.string.politics_option_centre_right,
+    "मध्य-दक्षिण"      to R.string.politics_option_centre_right,
+
+    // Right
+    "Right"           to R.string.politics_option_right,
+    "ডান"              to R.string.politics_option_right,
+    "दक्षिणपंथी"      to R.string.politics_option_right,
+
+    // Far right
+    "Far right"       to R.string.politics_option_far_right,
+    "চরম ডান"         to R.string.politics_option_far_right,
+    "अत्यंत दक्षिणपंथी" to R.string.politics_option_far_right,
+
+    // Liberal
+    "Liberal"         to R.string.politics_option_liberal,
+    "উদারপন্থী"       to R.string.politics_option_liberal,
+    "उदार"             to R.string.politics_option_liberal,
+
+    // Conservative
+    "Conservative"    to R.string.politics_option_conservative,
+    "রক্ষণশীল"         to R.string.politics_option_conservative,
+    "रूढ़िवादी"         to R.string.politics_option_conservative,
+
+    // Moderate
+    "Moderate"        to R.string.politics_option_moderate,
+    "মধ্যপন্থী"        to R.string.politics_option_moderate,
+    "मध्यम"            to R.string.politics_option_moderate,
+
+    // Socialist
+    "Socialist"       to R.string.politics_option_socialist,
+    "সমাজতান্ত্রিক"     to R.string.politics_option_socialist,
+    "समाजवादी"         to R.string.politics_option_socialist,
+
+    // Communist
+    "Communist"       to R.string.politics_option_communist,
+    "সাম্যবাদী"        to R.string.politics_option_communist,
+    "सम्यवादी"         to R.string.politics_option_communist,
+
+    // Other
+    "Other"           to R.string.politics_option_other,
+    "অন্যান্য"           to R.string.politics_option_other,
+    "अन्य"             to R.string.politics_option_other
 )
 

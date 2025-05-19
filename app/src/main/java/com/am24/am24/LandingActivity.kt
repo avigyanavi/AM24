@@ -36,6 +36,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.storage.FirebaseStorage
 import java.util.Locale
 
 class LandingActivity : ComponentActivity() {
@@ -44,7 +46,6 @@ class LandingActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val languageCode = prefs.getString("language", "en") ?: "en"
-        // Call updateLocale and pass the newBase so that the updated configuration is used
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
 
@@ -340,6 +341,26 @@ fun SocialSignInButtons(
             }
         }
     }
+}
+
+fun cleanupIncompleteUser(auth: FirebaseAuth, db: FirebaseDatabase, storage: FirebaseStorage) {
+    val user = auth.currentUser ?: return
+    val uid  = user.uid
+
+    // 1) Remove any partial Realtime-DB node:
+    db.reference.child("users").child(uid)
+        .removeValue()
+
+    // 2) Remove storage blobs:
+    val userStorage = storage.reference.child("users").child(uid)
+    userStorage.child("profile_pic.jpg").delete()
+    userStorage.child("voice_note.mp3").delete()
+    userStorage.child("photos")
+        .listAll()
+        .addOnSuccessListener { it.items.forEach { file -> file.delete() } }
+
+    // 3) Delete the Auth user itself:
+    user.delete()
 }
 
 @Preview(showBackground = true)

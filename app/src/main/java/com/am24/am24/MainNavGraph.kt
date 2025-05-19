@@ -51,6 +51,7 @@ val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
 @Composable
 fun MainNavGraph(
     navController: NavHostController,
+    datingViewModel: DatingViewModel,
     modifier: Modifier = Modifier,
     postViewModel: PostViewModel,
     currentPrice  : String
@@ -124,11 +125,6 @@ fun MainNavGraph(
             )
         }
         composable("dating_screen?initialQuery={initialQuery}") { backStackEntry ->
-            val datingViewModel: DatingViewModel = viewModel(
-                factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-                    LocalContext.current.applicationContext as Application
-                )
-            )
             val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
             DatingScreen(
                 navController = navController,
@@ -143,11 +139,6 @@ fun MainNavGraph(
             SubscriptionScreen(navController)
         }
         composable("dating") {
-            val datingViewModel: DatingViewModel = viewModel(
-                factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-                    LocalContext.current.applicationContext as Application
-                )
-            )
             DatingScreen(
                 navController = navController,
                 geoFire = geoFire,

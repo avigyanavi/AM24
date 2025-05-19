@@ -8,6 +8,8 @@
     You can select up to %1$d social causes only.
     </string>
 
+    <string name="no_education_label">No education</string>
+
     <string name="total_match_label">Total match: %1$d%%</string>
     <string name="running_analysis">Running analysis…</string>
     <string name="strengths">Strengths</string>
@@ -347,7 +349,7 @@
     <string name="looking_for_marriage">Marriage</string>
     <string name="looking_for_partner">Partner</string>
     <string name="looking_for_connection">Connection</string>
-    <string name="looking_for_casual_sex">Casual Sex</string>
+    <string name="looking_for_romance">Romance</string>
     <string name="looking_for_not_selected">Not Selected</string>
 
     <string name="very_high">Very High</string>
@@ -1171,7 +1173,7 @@
     <string name="height_cm_label">Height (cm)</string>
     <string name="caste_title">Caste</string>
     <string name="select_or_type">Select or type</string>
-    <string name="interested_in_title">Interested In</string>
+    <string name="interested_in_header">Who are you interested in?</string>
     <string name="male_option">Male</string>
     <string name="female_option">Female</string>
 
@@ -1474,5 +1476,38 @@
     <string name="boost">Boost</string>
     <string name="show_boosted">Show Boosted Users</string>
     <string name="boosted_users">Boosted Users Nearby</string>
+    <string-array name="social_causes_list">
+        <!-- Environment & Sustainability -->
+        <item>Climate Action and Renewable Energy</item>
+        <item>Clean Air and Anti-Pollution</item>
+        <item>Water Conservation and River Revitalization</item>
+        <item>Plastic Waste and Recycling</item>
+
+        <!-- Health & Well-Being -->
+        <item>Mental Health and Wellbeing</item>
+        <item>Comprehensive Sexual and Reproductive Health</item>
+        <item>Community Healthcare and Vaccination</item>
+
+        <!-- Equality & Rights -->
+        <item>Gender Equality and Women’s Safety</item>
+        <item>LGBTQ+ Inclusion</item>
+        <item>Digital Privacy and Online Safety</item>
+
+        <!-- Opportunity & Mobility -->
+        <item>Skill Development and Youth Employment</item>
+        <item>Sustainable Urban Mobility</item>
+
+        <!-- Cultural Nationalism & Social Reforms -->
+        <item>Promotion of Hindu Identity and Culture</item>
+        <item>Cow Protection and Anti-Slaughter Laws</item>
+        <item>National Register of Citizens (NRC)</item>
+        <item>Citizenship Amendment Act (CAA)</item>
+        <item>Anti-Conversion Laws</item>
+        <item>National Security and Anti-Terrorism</item>
+        <item>Patriotic Education and Curriculum Reform</item>
+        <item>Population Control Measures</item>
+        <item>Temple Autonomy and Vedic Education</item>
+        <item>Traditional Family Values</item>
+    </string-array>
 
 </resources>

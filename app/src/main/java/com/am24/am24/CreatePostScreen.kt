@@ -70,13 +70,18 @@ fun CreatePostScreen(
     val context  = LocalContext.current
     val userId   = FirebaseAuth.getInstance().currentUser?.uid
     var isPremium by remember { mutableStateOf(false) }
+    var isPlus by remember { mutableStateOf(false) }
 
 
     // quick check — replace with your own premium flag
     LaunchedEffect(userId) {
         isPremium = FirebaseRefs.db
             .getReference("users").child(userId ?: "")
-            .child("premiumUntil").get().await().getValue(Long::class.java)
+            .child("isPremium").get().await().getValue(Long::class.java)
+            ?.let { it > System.currentTimeMillis() } ?: false
+        isPlus = FirebaseRefs.db
+            .getReference("users").child(userId ?: "")
+            .child("isPlus").get().await().getValue(Long::class.java)
             ?.let { it > System.currentTimeMillis() } ?: false
     }
     Scaffold(
@@ -109,13 +114,7 @@ fun CreatePostScreen(
                     label = "Text Post",
                     onClick = { navController.navigate("create_post/text") }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                PostTypeButton(
-                    icon = Icons.Default.Mic,
-                    label = "Voice Post",
-                    onClick = { navController.navigate("create_post/voice") }
-                )
-                if (!isPremium) {           // <---- premium gate
+                if (isPremium || isPlus) {           // <---- premium gate
                     Spacer(Modifier.height(16.dp))
                     PostTypeButton(icon = Icons.Default.Photo, label = "Image Post", onClick = {
                         navController.navigate("create_post/image")
@@ -124,6 +123,12 @@ fun CreatePostScreen(
                     PostTypeButton(icon = Icons.Default.Videocam, label = "Video Post", onClick = {
                         navController.navigate("create_post/video")
                     })
+                    Spacer(modifier = Modifier.height(16.dp))
+                    PostTypeButton(
+                        icon = Icons.Default.Mic,
+                        label = "Voice Post",
+                        onClick = { navController.navigate("create_post/voice") }
+                    )
                 }
             }
         }

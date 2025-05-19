@@ -7,6 +7,8 @@
     आप केवल अधिकतम %1$d सामाजिक कारण चुन सकते हैं।
 </string>
 
+    <string name="no_education_label">कोई शिक्षा नहीं</string>
+
     <string name="age_format">उम्र: %s</string>
     <string name="age_only_format">उम्र: %s</string>
 
@@ -57,101 +59,6 @@
         <string name="get_suggestions">सुझाव प्राप्त करें</string>
         <string name="typing">टाइप कर रहे हैं</string>
         <string name="recording_left">रिकॉर्डिंग… शेष समय: %1$d सेकंड</string>
-
-    <!-- res/values‑hi/arrays.xml (Hindi) -->
-    <string-array name="social_causes_list">
-        <!-- Environment & Public Health -->
-        <item>वायु गुणवत्ता और AQI सुधार</item>
-        <item>प्लास्टिक और एकल-उपयोगी कचरा कम करना</item>
-        <item>नदी प्रदूषण नियंत्रण और हुगली सफाई</item>
-        <item>सुंदरबन मैंग्रोव और डेल्टा संरक्षण</item>
-        <item>बाढ़ राहत और जलवायु लचीलेपन</item>
-        <item>भूजल क्षरण</item>
-        <item>शहरी हरित क्षेत्र हानि</item>
-        <item>औद्योगिक प्रदूषण</item>
-
-        <!-- Agrarian & Rural Welfare -->
-        <item>किसानों के अधिकार और MSP गारंटी</item>
-        <item>चाय बागान श्रमिक कल्याण (उत्तरी बंगाल)</item>
-        <item>ग्रामीण विकास और स्वयं सहायता समूह</item>
-        <item>सिंचाई अवसंरचना</item>
-        <item>भूमि अधिग्रहण विवाद</item>
-        <item>ग्रामीण विद्युतीकरण अंतराल</item>
-        <item>कृषि विपणन की विफलताएँ</item>
-
-        <!-- Migration & Refugees -->
-        <item>बांग्लादेशी प्रवासी और शरणार्थी अधिकार</item>
-        <item>रोहिंग्या शरणार्थी एकीकरण</item>
-        <item>आंतरिक पलायन</item>
-        <item>सीमा पार तस्करी</item>
-
-        <!-- Social Justice & Governance -->
-        <item>CAA/NRC प्रभावितों के लिए न्याय</item>
-        <item>सांप्रदायिक सौहार्द और धर्मनिरपेक्षता</item>
-        <item>अल्पसंख्यक अधिकार और समावेश</item>
-        <item>श्रमिक अधिकार और उचित वेतन</item>
-        <item>जाति आधारित भेदभाव</item>
-        <item>भ्रष्टाचार स्कैंडल</item>
-        <item>राजनीतिक हिंसा</item>
-        <item>नौकरशाही अक्षमता</item>
-        <item>वोट-बैंक राजनीति</item>
-
-        <!-- Health, Safety & Welfare -->
-        <item>स्वास्थ्य सेवा पहुँच और COVID-19 राहत</item>
-        <item>मानसिक स्वास्थ्य जागरूकता और समर्थन</item>
-        <item>बाल पोषण और आंगनवाड़ी सुदृढ़ीकरण</item>
-        <item>महिलाओं की सुरक्षा और लिंग समानता</item>
-        <item>वरिष्ठ नागरिक कल्याण</item>
-        <item>मादक द्रव्यों का दुरुपयोग</item>
-        <item>स्वच्छता सुविधा</item>
-
-        <!-- Education & Digital Access -->
-        <item>सार्वभौमिक प्राथमिक शिक्षा</item>
-        <item>डिजिटल साक्षरता और इंटरनेट पहुँच</item>
-        <item>उच्च शिक्षा की गुणवत्ता</item>
-        <item>शिक्षक भर्ती कांड</item>
-        <item>व्यावसायिक प्रशिक्षण का अंतराल</item>
-
-        <!-- Civil Liberties -->
-        <item>अभिव्यक्ति की स्वतंत्रता और प्रेस स्वतंत्रता</item>
-        <item>डिजिटल गोपनीयता और डेटा सुरक्षा</item>
-        <item>LGBTQ+ अधिकार और समावेश</item>
-        <item>विरोध करने का अधिकार</item>
-        <item>न्यायिक सुनवाई में देरी</item>
-
-        <!-- Urban & Heritage -->
-        <item>शहरी झुग्गी पुनर्वास (कोलकाता)</item>
-        <item>सार्वजनिक परिवहन और यातायात सुरक्षा</item>
-        <item>ऐतिहासिक भवन संरक्षण (कोलकाता)</item>
-        <item>शहरी बाढ़</item>
-        <item>सड़क विक्रेता अतिक्रमण</item>
-
-        <!-- Economic & Employment Issues -->
-        <item>युवा बेरोजगारी</item>
-        <item>औद्योगिक ठहराव</item>
-        <item>अनौपचारिक अर्थव्यवस्था पर निर्भरता</item>
-        <item>मुद्रास्फीति का प्रभाव</item>
-        <item>MSME चुनौतियाँ</item>
-
-        <!-- Political Dynamics -->
-        <item>TMC का प्रभाव</item>
-        <item>BJP का उदय</item>
-        <item>वामपंथ का पतन</item>
-        <item>विरोधी विभाजन</item>
-        <item>संघीय तनाव</item>
-        <item>वंशवादी राजनीति</item>
-        <item>मतदाता ध्रुवीकरण</item>
-
-        <!-- Emerging & Miscellaneous Issues -->
-        <item>जलवायु पलायन</item>
-        <item>सीमा पार तनाव</item>
-        <item>सांस्कृतिक पहचान</item>
-        <item>छात्र सक्रियता</item>
-        <item>साइबर अपराध में वृद्धि</item>
-        <item>पर्यटन उपेक्षा</item>
-        <item>मानव-वन्यजीव संघर्ष</item>
-        <item>खेल अवसंरचना</item>
-    </string-array>
 
     <string name="match_summary_format">
         कुल मिलान: %1$d%%\nविवरण:\n%2$s
@@ -371,7 +278,7 @@
     <string name="looking_for_marriage">शादी</string>
     <string name="looking_for_partner">साझेदार</string>
     <string name="looking_for_connection">कनेक्शन</string>
-    <string name="looking_for_casual_sex">कैजुअल सेक्स</string>
+    <string name="looking_for_romance">रोमांस</string>
     <string name="looking_for_not_selected">चयनित नहीं</string>
 
     <string name="very_high">बहुत उच्च</string>
@@ -1267,7 +1174,7 @@
     <string name="height_cm_label">ऊंचाई (सेंटीमीटर)</string>
     <string name="caste_title">जाति</string>
     <string name="select_or_type">चुनें या लिखें</string>
-    <string name="interested_in_title">रुचि</string>
+    <string name="interested_in_header">आप किसमें दिलचस्पी रखते हैं?</string>
     <string name="male_option">पुरुष</string>
     <string name="female_option">महिला</string>
 
@@ -1570,5 +1477,39 @@
         <string name="boost">बूस्ट</string>
         <string name="show_boosted">बूस्ट किए गए उपयोगकर्ता दिखाएं</string>
         <string name="boosted_users">पास के बूस्ट किए गए उपयोगकर्ता</string>
+
+    <string-array name="social_causes_list">
+        <!-- पर्यावरण और स्थिरता -->
+        <item>जलवायु कार्रवाई और नवीनीकृत ऊर्जा</item>
+        <item>स्वच्छ वायु और प्रदूषण नियंत्रण</item>
+        <item>जल संरक्षण और नदी पुनरुत्थान</item>
+        <item>प्लास्टिक अपशिष्ट और पुनर्चक्रण</item>
+
+        <!-- स्वास्थ्य और कल्याण -->
+        <item>मानसिक स्वास्थ्य और कल्याण</item>
+        <item>समग्र यौन और प्रजनन स्वास्थ्य</item>
+        <item>सामुदायिक स्वास्थ्य देखभाल और टीकाकरण</item>
+
+        <!-- समानता और अधिकार -->
+        <item>लैंगिक समानता और महिलाओं की सुरक्षा</item>
+        <item>एलजीबीटीक्यू+ समावेश</item>
+        <item>डिजिटल गोपनीयता और ऑनलाइन सुरक्षा</item>
+
+        <!-- अवसर और गतिशीलता -->
+        <item>कौशल विकास और युवा रोजगार</item>
+        <item>सतत शहरी परिवहन</item>
+
+        <!-- सांस्कৃতিক राष्ट्रीयता और सामाजिक सुधार -->
+        <item>हिंदू पहचान और संस्कृति का संवर्धन</item>
+        <item>गौ सुरक्षा और गोहत्या-विरोधी कानून</item>
+        <item>राष्ट्रीय नागरिक रजिस्टर (NRC)</item>
+        <item>नागरिकता संशोधन अधिनियम (CAA)</item>
+        <item>धर्मांतरण विरोधी कानून</item>
+        <item>राष्ट्रीय सुरक्षा और आतंकवाद-विरोधी</item>
+        <item>देशभक्ति शिक्षा और पाठ्यक्रम सुधार</item>
+        <item>जनसंख्या नियंत्रण उपाय</item>
+        <item>मंदिर स्वायत्तता और वैदिक शिक्षा</item>
+        <item>पारंपरिक पारिवारिक मूल्य</item>
+    </string-array>
 
 </resources>

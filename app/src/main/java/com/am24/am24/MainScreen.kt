@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import DatingViewModel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
@@ -22,6 +23,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.material3.Badge
@@ -45,9 +47,9 @@ import com.am24.am24.util.LocaleUtils
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.date), Icons.Default.FavoriteBorder, "dating"),
-        BottomNavItem(stringResource(R.string.map), Icons.Default.Map, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
-        BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
+        BottomNavItem(stringResource(R.string.feed), Icons.Default.Home, "home"),
+        BottomNavItem(stringResource(R.string.map), Icons.Default.Map, "map"),
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile")
     )
 
@@ -56,6 +58,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val currentRoute = navBackStackEntry?.destination?.route
     val priceAll = stringResource(id = R.string.price_all)
 
+    val datingViewModel: DatingViewModel = viewModel()
 
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
     val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
@@ -72,6 +75,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     profileViewModel = profileViewModel,
                     currentUserId = currentUserId,
                     postViewModel = postViewModel,   // ← pass it
+                    datingViewModel     = datingViewModel,
                     onPriceChange = { priceTier.value = it },   //  ← update state
                             onLogout = onLogout
                 )
@@ -86,6 +90,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         val paddingValues = if (showGlobalBars) innerPadding else PaddingValues(0.dp)
         MainNavGraph(
             navController   = navController,
+            datingViewModel = datingViewModel,
             modifier        = Modifier.padding(paddingValues),
             postViewModel   = postViewModel,
             currentPrice  = priceTier.value
@@ -100,6 +105,7 @@ fun TopNavBar(
     profileViewModel: ProfileViewModel,
     currentUserId: String,
     postViewModel: PostViewModel,   // ← pass it
+    datingViewModel: DatingViewModel,
     onLogout: () -> Unit,
     onPriceChange      : (String) -> Unit = {}   // ← NEW, default no-op
 ) {
@@ -180,8 +186,15 @@ fun TopNavBar(
             notificationsRef.removeEventListener(listener)
         }
     }
-    var showForYouDialog by remember { mutableStateOf(false) }
-
+    var showReportDialog by remember { mutableStateOf(false) }
+    val reporteeId by datingViewModel.currentSwipeUserId.collectAsState()
+    // inside your currentRoute == "dating" block, before the IconButton:
+    Text(
+        text = "RID: ${reporteeId ?: "null"}",
+        color = Color.Yellow,
+        modifier = Modifier.padding(horizontal = 8.dp)
+    )
+    val context = LocalContext.current
     // anywhere before TopAppBar:
     val isOnHome = currentDestination
         ?.hierarchy
@@ -203,6 +216,17 @@ fun TopNavBar(
             }
         },
         actions = {
+            // ─── Report current deck user ───
+            if (currentRoute == "dating") {
+// then your report Icon:
+                IconButton(onClick = {
+                    Log.d("TopNavBar", "reporteeId at click = $reporteeId")
+                    if (reporteeId != null) showReportDialog = true
+                    else Toast.makeText(context, "No user to report!", Toast.LENGTH_SHORT).show()
+                }) {
+                    Icon(Icons.Default.Warning, contentDescription = "Report", tint = Color.White)
+                }
+            }
 
             if (currentRoute != "profile") {
                 IconButton(onClick = { navController.navigate("leaderboard") }) {
@@ -410,6 +434,59 @@ fun TopNavBar(
 
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
+    if (showReportDialog) {
+        var reportReason by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showReportDialog = false },
+            title = { Text("Report User") },
+            text = {
+                Column {
+                    Text("Please provide a reason:")
+                    Spacer(Modifier.height(8.dp))
+                    TextField(
+                        value = reportReason,
+                        onValueChange = { reportReason = it },
+                        placeholder = { Text("Enter reason") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor        = Color(0xFF1A1A1A),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor           = Color.White,
+                            focusedTextColor             = Color.White
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (reportReason.isBlank()) {
+                            Toast.makeText(context, "Reason can’t be empty", Toast.LENGTH_SHORT).show()
+                        } else if (reporteeId != null) {
+                            datingViewModel.reportUser(currentUserId, reporteeId!!, reportReason)
+                            Toast.makeText(context, "User reported and blocked", Toast.LENGTH_SHORT).show()
+                            showReportDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Submit", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showReportDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
     if (showLocationPrefDialog) {
         AlertDialog(
             onDismissRequest = { showLocationPrefDialog = false },

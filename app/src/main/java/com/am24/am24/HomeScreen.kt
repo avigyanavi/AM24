@@ -55,6 +55,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
+import com.am24.am24.util.CachedFullscreenVideoPlayer
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.placeholder
 import com.google.accompanist.placeholder.material.shimmer
@@ -377,16 +378,28 @@ fun FeedSection(
                         )
                     },
                     onUserClick = {
-                        when{        // your own profile
-                            post.userId == userId                     ->
+                        // grab the Profile you passed in
+                        val clickedProfile = userProfiles[post.userId]
+                        when {
+                            // your own profile → full edit/profile screen
+                            post.userId == userId ->
                                 navController.navigate("profile")
 
-                            // already a mutual match
-                            matches.contains(post.userId)             ->
+                            // mutual match → matchedProfile screen
+                            matches.contains(post.userId) ->
                                 navController.navigate("matchedUserProfile/${post.userId}")
 
-                            // not matched yet – open one-off preview screen
-                            else                                      ->
+                            // PRIVATE account → block navigation & show a toast
+                            clickedProfile?.isPrivate == true -> {
+                                Toast.makeText(
+                                    context,
+                                    "This account is private",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
+                            // public non‐match → one-off preview
+                            else ->
                                 navController.navigate("previewUserProfile/${post.userId}")
                         }
                     },
@@ -511,7 +524,7 @@ fun FeedItem(
                 onUpvote()
                 showUpvoteAnimation = true
             },
-            onTap = {
+            onLongPress = {
                 // Trigger haptic feedback
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 // Trigger downvote action and show animation
@@ -565,6 +578,8 @@ fun FeedItem(
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
     val ctx = LocalContext.current
+    var showVideoDialog by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center // Center-align the card within the Box
@@ -753,12 +768,36 @@ fun FeedItem(
 
                             /* ---------- VIDEO ---------- */
                             "video" -> {
-                                PostVideo(
-                                    context  = ctx,
-                                    url      = post.mediaUrl ?: "",
-                                    thumbUrl = post.mediaThumb,
-                                    modifier = Modifier.padding(vertical = 6.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(16f/9f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable { showVideoDialog = true }
+                                ) {
+                                    // thumbnail + play icon
+                                    AsyncImage(
+                                        model        = post.mediaThumb ?: post.mediaUrl,
+                                        contentScale = ContentScale.Crop,
+                                        modifier     = Modifier.matchParentSize(),
+                                        contentDescription = "Video thumbnail"
+                                    )
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .align(Alignment.Center)
+                                    )
+                                }
+
+                                // ── show your cache-backed player in a fullscreen Dialog ──
+                                if (showVideoDialog) {
+                                    CachedFullscreenVideoPlayer(
+                                        uri       = Uri.parse(post.mediaUrl),
+                                        onDismiss = { showVideoDialog = false }
+                                    )
+                                }
                             }
                             "voice" -> {
                                 // Voice Post Playback UI
@@ -1196,42 +1235,6 @@ fun PostPhoto(url: String, modifier: Modifier = Modifier) {
         contentScale = ContentScale.Crop
     )
 }
-
-/* very lightweight video thumbnail; tap = open external player */
-@Composable
-fun PostVideo(context: Context, url: String, thumbUrl: String?, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(6.dp))
-            .clickable {
-                val intent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(Uri.parse(url), "video/*")
-                }
-                context.startActivity(intent)
-            }
-    ) {
-        // show either the server-side thumbnail or, as a fallback, the first frame
-        AsyncImage(
-            model = thumbUrl ?: url,
-            contentDescription = "Video thumbnail",
-            modifier = Modifier.matchParentSize(),
-            contentScale = ContentScale.Crop
-        )
-        /* play overlay */
-        Icon(
-            Icons.Default.PlayArrow,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier
-                .size(64.dp)
-                .align(Alignment.Center)
-                .shadow(4.dp, CircleShape)
-        )
-    }
-}
-
 
 fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()

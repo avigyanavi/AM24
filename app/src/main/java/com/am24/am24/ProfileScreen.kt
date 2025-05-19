@@ -8,6 +8,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -66,6 +68,7 @@ import kotlin.math.roundToInt
 import coil.request.ImageRequest
 import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
+import com.am24.am24.util.CachedFullscreenVideoPlayer
 import kotlinx.coroutines.tasks.await
 
 @Composable
@@ -2775,7 +2778,7 @@ fun PreferencesEditSection(
 
     // Looking For
     val lookingForOptions = listOf(
-        stringResource(R.string.looking_for_casual_sex),
+        stringResource(R.string.looking_for_romance),
         stringResource(R.string.looking_for_connection),
         stringResource(R.string.looking_for_partner),
         stringResource(R.string.looking_for_marriage)
@@ -3770,35 +3773,107 @@ fun PostItemInProfile(post: Post) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+            .padding(vertical = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF333333)),
+        shape  = RoundedCornerShape(4.dp)
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            if (!post.contentText.isNullOrBlank()) {
-                Text(post.contentText, color = Color.White, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-            }
-            when (post.mediaType) {
-                "photo" -> {
+        var showVideoDialog by remember { mutableStateOf(false) }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            // — 1) TEXT —
+            post.contentText
+                .takeIf { !it.isNullOrBlank() }
+                ?.let {
+                    Text(it, color = Color.White, fontSize = 14.sp)
+                    Spacer(Modifier.height(6.dp))
+                }
+
+            // — 1.5) CHECK-IN LOCATION —
+            post.checkIn
+                .takeIf { it?.placeId?.isNotBlank() == true }
+                ?.let { checkIn ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = "Checked in at",
+                            tint = Color(0xFFFF6F00),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = checkIn.name
+                                .takeIf { it.isNotBlank() }
+                                ?: checkIn.address,               // fallback to address if name is blank
+                            color = Color(0xFFFF6F00),
+                            fontSize = 16.sp
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+
+            // — 2) MEDIA —
+            when (post.mediaType.orEmpty().lowercase(Locale.ROOT)) {
+                "photo", "image" -> {
                     AsyncImage(
-                        model = post.mediaUrl,
-                        contentDescription = "Photo Post",
-                        placeholder = painterResource(R.drawable.local_placeholder),
-                        error = painterResource(R.drawable.local_placeholder),
+                        model        = post.mediaUrl,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
+                        placeholder  = painterResource(R.drawable.local_placeholder),
+                        error        = painterResource(R.drawable.local_placeholder),
+                        contentDescription = "Photo post",
+                        modifier     = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 150.dp, max = 300.dp)
                     )
+                    Spacer(Modifier.height(6.dp))
+                }
+                "video" -> {
+                    // ② Thumbnail + play button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.Black)
+                            .clickable { showVideoDialog = true }
+                    ) {
+                        AsyncImage(
+                            model        = post.mediaThumb ?: post.mediaUrl,
+                            contentScale = ContentScale.Crop,
+                            modifier     = Modifier.matchParentSize(),
+                            contentDescription = "Video thumbnail"
+                        )
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .align(Alignment.Center)
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+
+                    // ③ Fullscreen cache-backed dialog
+                    if (showVideoDialog) {
+                        CachedFullscreenVideoPlayer(
+                            uri       = Uri.parse(post.mediaUrl),
+                            onDismiss = { showVideoDialog = false }
+                        )
+                    }
                 }
                 "voice" -> {
                     post.mediaUrl?.let { VoicePlayer(url = it) }
+                    Spacer(Modifier.height(6.dp))
                 }
+                else -> { /* no media */ }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+
+            // — 3) UP / DOWN VOTES —
             Row {
                 Text("Upvotes: ${post.upvotes}", color = Color(0xFFFFBF00), fontSize = 12.sp)
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(Modifier.width(8.dp))
                 Text("Downvotes: ${post.downvotes}", color = Color(0xFFFF6F00), fontSize = 12.sp)
             }
         }
