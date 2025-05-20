@@ -721,28 +721,46 @@ fun PhotoCarouselWithOverlay(
             Column {
                 // Name + age + Posts button
                 val age = calculateAge(profile.dob)
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(), // Make the Row take the full available width
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // This Text stays on the start (left)
-                    Text(
-                        text = if (age > 0) "${profile.name}, $age" else profile.name,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 26.sp,
-                        color = Color.White // Make sure this is appropriate for your background
-                    )
+                    // 1) a fixed-height, clipped box that scrolls its content
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(IntrinsicSize.Min)
+                            .clipToBounds()
+                    ) {
+                        val scroll = rememberScrollState()
+                        // 2) when the name changes, continuously animate back-and-forth
+                        LaunchedEffect(profile.name) {
+                            // tiny pause before you start
+                            delay(800)
+                            while (true) {
+                                scroll.animateScrollTo(scroll.maxValue)
+                                delay(800)
+                                scroll.animateScrollTo(0)
+                                delay(800)
+                            }
+                        }
+                        // 3) your name/age text, but horizontally scrollable
+                        Text(
+                            text = if (age > 0) "${profile.name}, $age" else profile.name,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 26.sp,
+                            color = Color.White,
+                            modifier = Modifier
+                                .horizontalScroll(scroll)
+                        )
+                    }
 
-                    // This Spacer takes up all remaining space in the Row
-                    Spacer(Modifier.weight(1f))
-
-                    // This Button is pushed to the end (right)
+                    // 4) your Posts button remains static
                     Button(
                         onClick = onPostsClick,
-                        // Use containerColor for Material 3, backgroundColor for Material 2
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
                         modifier = Modifier.height(34.dp)
-                        // No .align modifier needed here for end alignment
                     ) {
                         Text(text = stringResource(R.string.posts_button), color = Color.White, fontSize = 14.sp)
                     }

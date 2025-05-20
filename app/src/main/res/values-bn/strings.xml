@@ -1200,7 +1200,7 @@
     <string name="select_locality_default">লোকালিটি নির্বাচন করুন</string>
     <string name="select_city">-- শহর নির্বাচন করুন --</string>
     <!-- Interests -->
-    <string name="enter_interests_title">আপনার শখ নির্বাচন করুন</string>
+    <string name="enter_interests_title">আপনার আগ্রহ নির্বাচন করুন (৯টি পর্যন্ত)</string>
     <string name="global_interests_label">সাধারণ শখ</string>
     <string name="local_interests_label">লোকালিটি-এ শখ</string>
     <string name="max_interests_error">আপনি সর্বোচ্চ ১৫টি শখ নির্বাচন করতে পারবেন</string>

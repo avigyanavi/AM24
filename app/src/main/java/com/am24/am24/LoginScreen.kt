@@ -66,22 +66,33 @@ class LoginActivity : ComponentActivity() {
     private fun handleLogin(userOrEmail: String, pwd: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // 1) If it already looks like an email, just use it
                 val email = if (userOrEmail.contains("@")) {
                     userOrEmail.trim()
                 } else {
-                    // 2) Otherwise, get a temporary anon credential so we can read /usernames and /users
-                    FirebaseAuth.getInstance()
-                        .signInAnonymously()
-                        .await()
+                    // 1) Sign in anonymously so we can look up “usernames”…
+                    val anonAuth = FirebaseAuth.getInstance()
+                    val anonResult = anonAuth.signInAnonymously().await()
+                    val anonUser = anonResult.user
 
-                    // 3) Now you can safely look up the real email
-                    resolveToEmail(userOrEmail) ?: return@launch withContext(Dispatchers.Main) {
-                        toast("Username not found")
+                    // 2) Resolve the real email address
+                    val resolved = resolveToEmail(userOrEmail)
+                    if (resolved == null) {
+                        // clean up the anon user before bailing out
+                        anonUser?.delete()?.await()
+                        anonAuth.signOut()
+                        return@launch withContext(Dispatchers.Main) {
+                            toast("Username not found")
+                        }
                     }
+
+                    // 3) Immediately delete the anonymous account once we have the email
+                    anonUser?.delete()?.await()
+                    anonAuth.signOut()
+
+                    resolved
                 }
 
-                // 4) Finally sign in with the real email+password
+                // 4) Now sign in for real
                 val res = auth
                     .signInWithEmailAndPassword(email, pwd)
                     .await()

@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.Center
@@ -224,16 +225,16 @@ fun TopNavBar(
                     if (reporteeId != null) showReportDialog = true
                     else Toast.makeText(context, "No user to report!", Toast.LENGTH_SHORT).show()
                 }) {
-                    Icon(Icons.Default.Warning, contentDescription = "Report", tint = Color.White)
+                    Icon(Icons.Default.Warning, contentDescription = "Report", tint = Color.Yellow)
                 }
             }
 
-            if (currentRoute != "profile") {
+            if (currentRoute != "map" && currentRoute != "home" && currentRoute != "dms" && currentRoute != "profile") {
                 IconButton(onClick = { navController.navigate("leaderboard") }) {
                     Icon(
-                        imageVector = Icons.Default.EmojiEvents,
+                        imageVector = Icons.Outlined.EmojiEvents,
                         contentDescription = stringResource(R.string.cd_leaderboard),
-                        tint = Color(0xFFE91E63),
+                        tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -359,7 +360,7 @@ fun TopNavBar(
                    }
 
             // 5) **Language picker** on Dating, Map, DMs and Feed:
-            if (currentRoute in listOf("dating", "map", "dms", "home")) {
+            if (currentRoute in listOf("profile", "settings")) {
                 IconButton(
                     onClick    = { pickLangMenu = !pickLangMenu },
                     colors     = IconButtonDefaults.iconButtonColors(

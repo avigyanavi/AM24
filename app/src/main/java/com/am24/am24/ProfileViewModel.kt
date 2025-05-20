@@ -14,6 +14,7 @@ import kotlinx.coroutines.tasks.await
 import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
+import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.update
 
@@ -393,6 +394,67 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 onSuccess()
             } catch (e: Exception) {
                 onFailure(e.message ?: "Failed to send like notification.")
+            }
+        }
+    }
+
+    /**
+     * Uploads a government ID image to:
+     *   • Storage at "verifications/{uid}/id.jpg"
+     *   • Realtime DB at "verifications/{uid}" → { status: "pending", timestamp: ... }
+     *
+     * Calls onComplete(true, message) on success or onComplete(false, errorMsg) on failure.
+     */
+    fun uploadGovtId(
+        uid: String,
+        uri: Uri,
+        onComplete: (success: Boolean, message: String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1) upload image
+                val storageRef = FirebaseStorage.getInstance()
+                    .reference
+                    .child("verifications/$uid/id.jpg")
+                storageRef.putFile(uri).await()
+
+                // 2) write status
+                val verifRef = FirebaseRefs.db
+                    .getReference("verifications")
+                    .child(uid)
+                val data = mapOf(
+                    "status" to "pending",
+                    "timestamp" to System.currentTimeMillis()
+                )
+                verifRef.setValue(data).await()
+
+                // 3) callback
+                onComplete(true, "ID submitted, review in 48 h")
+            } catch (e: Exception) {
+                onComplete(false, "Failed to submit ID: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Marks the user’s profile as verified by setting
+     * `users/{uid}/isConsultantVerified = true`, and updates local state.
+     */
+    fun markUserVerified(uid: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // flip the flag in Firebase
+                usersRef.child(uid)
+                    .child("isConsultantVerified")
+                    .setValue(true)
+                    .await()
+
+                // update our local StateFlow
+                _currentUserProfile.update { prof ->
+                    prof?.copy(isConsultantVerified = true)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to mark user verified: ${e.message}")
             }
         }
     }

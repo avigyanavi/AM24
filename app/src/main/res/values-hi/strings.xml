@@ -1197,7 +1197,7 @@
     <string name="select_locality_default">स्थानीयता चुनें</string>
 
     <!-- Interests -->
-    <string name="enter_interests_title">अपनी रुचियाँ चुनें</string>
+    <string name="enter_interests_title">अपनी रुचियाँ चुनें (अधिकतम 9)</string>
     <string name="global_interests_label">वैश्विक रुचियाँ</string>
     <string name="local_interests_label">स्थानीय रुचियाँ in इलाका</string>
     <string name="max_interests_error">आप अधिकतम 15 रुचियाँ ही चुन सकते हैं</string>

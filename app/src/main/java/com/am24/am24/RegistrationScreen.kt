@@ -67,8 +67,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.AppTheme
+import com.firebase.geofire.GeoFire
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -82,6 +84,7 @@ import java.io.File
 import java.io.IOException
 import java.util.Calendar
 import java.util.Locale
+import androidx.core.content.edit
 
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -111,10 +114,10 @@ class RegistrationActivity : ComponentActivity() {
                     onRegistrationComplete = {
                         // 1) Persist “we really made it to the end”
                         getSharedPreferences("settings", Context.MODE_PRIVATE)
-                            .edit()
-                            .putBoolean("registration_finished", true)
-                            .apply()
-                        startActivity(Intent(this, LoginActivity::class.java))
+                            .edit {
+                                putBoolean("registration_finished", true)
+                            }
+                        startActivity(Intent(this, MainActivity::class.java))
                         finish()
                     },
                     fusedLocationClient = fusedLocationClient,
@@ -329,6 +332,146 @@ fun RegistrationScreen(
         }
     )
 }
+
+private fun tryRegister(
+    typedEmail: String,
+    typedPassword: String,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    val auth = FirebaseAuth.getInstance()
+    val db   = FirebaseDatabase.getInstance().getReference("users")
+    val storage = FirebaseStorage.getInstance()
+
+    // 1) See if an email/password account already exists for this email
+    auth.fetchSignInMethodsForEmail(typedEmail)
+        .addOnSuccessListener { result ->
+            val methods = result.signInMethods ?: emptyList()
+            if (methods.contains(EmailAuthProvider.EMAIL_PASSWORD_SIGN_IN_METHOD)) {
+                // → there *is* an existing E/P account: sign in to inspect it
+                auth.signInWithEmailAndPassword(typedEmail, typedPassword)
+                    .addOnSuccessListener {
+                        val uid = auth.currentUser!!.uid
+                        // 2) Check for a username in the DB
+                        db.child(uid).child("username").get()
+                            .addOnSuccessListener { snap ->
+                                if (!snap.exists()) {
+                                    // 🗑️  Incomplete!  Wipe it:
+                                    cleanupIncompleteUser(auth, FirebaseDatabase.getInstance(), storage)
+                                    // after it’s deleted, create the new one:
+                                    createFreshAccount(typedEmail, typedPassword, onSuccess, onError)
+                                } else {
+                                    onError("An account with that email is already fully registered.")
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                onError("Error checking existing profile: ${e.message}")
+                            }
+                    }
+                    .addOnFailureListener {
+                        onError("Wrong password for existing account.")
+                    }
+            } else {
+                // → no existing E/P account: just make a brand-new one
+                createFreshAccount(typedEmail, typedPassword, onSuccess, onError)
+            }
+        }
+        .addOnFailureListener { e ->
+            onError("Error checking sign-in methods: ${e.message}")
+        }
+}
+
+/**
+ * Wipes out any half-baked Firebase user data (RTDB, GeoFire, Storage)
+ * and then deletes the Auth user.
+ */
+fun cleanupIncompleteUser(
+    auth: FirebaseAuth,
+    db: FirebaseDatabase,
+    storage: FirebaseStorage
+) {
+    val user = auth.currentUser ?: return
+    val uid = user.uid
+
+    // 1) Remove any partial Realtime-DB node:
+    db.reference
+        .child("users")
+        .child(uid)
+        .removeValue()
+        .addOnSuccessListener {
+            Log.d("cleanup", "Realtime-DB node removed for $uid")
+        }
+        .addOnFailureListener { e ->
+            Log.e("cleanup", "Failed to remove RTDB node: ${e.message}")
+        }
+
+    // 2) Remove the GeoFire location for this user:
+    val geoRef = db.reference.child("geofire")
+    GeoFire(geoRef).removeLocation(uid) { key, error ->
+        if (error != null) {
+            Log.e("cleanup", "GeoFire removeLocation error for $key: ${error.message}")
+        } else {
+            Log.d("cleanup", "GeoFire location removed for $key")
+        }
+    }
+
+    // 3) Remove storage blobs under /users/{uid}/
+    val userStorage = storage.reference.child("users").child(uid)
+    userStorage.child("profile_pic.jpg").delete()
+        .addOnSuccessListener { Log.d("cleanup", "Deleted profile_pic.jpg for $uid") }
+        .addOnFailureListener { e ->
+            Log.e("cleanup", "Failed to delete profile_pic.jpg: ${e.message}")
+        }
+    userStorage.child("voice_note.mp3").delete()
+        .addOnSuccessListener { Log.d("cleanup", "Deleted voice_note.mp3 for $uid") }
+        .addOnFailureListener { e ->
+            Log.e("cleanup", "Failed to delete voice_note.mp3: ${e.message}")
+        }
+    userStorage.child("photos")
+        .listAll()
+        .addOnSuccessListener { listResult ->
+            listResult.items.forEach { fileRef ->
+                fileRef.delete()
+                    .addOnSuccessListener {
+                        Log.d("cleanup", "Deleted ${fileRef.name} for $uid")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("cleanup", "Failed to delete ${fileRef.name}: ${e.message}")
+                    }
+            }
+        }
+        .addOnFailureListener { e ->
+            Log.e("cleanup", "Failed to list photos for deletion: ${e.message}")
+        }
+
+    // 4) Finally delete the Auth user itself:
+    user.delete()
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d("cleanup", "Auth user $uid deleted successfully.")
+            } else {
+                Log.e("cleanup", "Failed to delete user auth: ${task.exception?.message}")
+            }
+        }
+}
+
+private fun createFreshAccount(
+    email: String,
+    password: String,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    FirebaseAuth.getInstance()
+        .createUserWithEmailAndPassword(email, password)
+        .addOnSuccessListener {
+            it.user?.sendEmailVerification()
+            onSuccess()
+        }
+        .addOnFailureListener { e ->
+            onError("Registration failed: ${e.message}")
+        }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -574,17 +717,6 @@ fun EnterPersonalDetailsScreen(
                             )
                         }
                     }
-
-                    Spacer(Modifier.height(24.dp))
-
-                    Button(
-                        onClick = onNext,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
-                    ) {
-                        Text(stringResource(R.string.next_button), color = Color.White)
-                    }
-
                 }
 
                 item {
@@ -1719,6 +1851,8 @@ fun SearchableDropdownWithCustomOption(
     }
 }
 
+// ─── replace your old EnterEmailAndPasswordScreen with this ───
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterEmailAndPasswordScreen(
@@ -1736,71 +1870,15 @@ fun EnterEmailAndPasswordScreen(
     var isCreatingAccount by remember { mutableStateOf(false) }
     var passwordError by remember { mutableStateOf(false) }
 
-    /**
-     * Suspend function to check for incomplete accounts and delete them if necessary.
-     */
-    suspend fun checkAndDeleteIncompleteIfNeeded(email: String) {
-        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
-        val userId = currentUser.uid
-
-        try {
-            val snapshot = FirebaseRefs.db
-                .getReference("users")
-                .child(userId)
-                .child("username")
-                .get()
-                .await()
-
-            if (!snapshot.exists()) {
-                // Incomplete -> delete user, sign out
-                currentUser.delete().await()
-                FirebaseAuth.getInstance().signOut()
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context,
-                        "Removed incomplete account for this email",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        } catch (e: Exception) {
-        }
-    }
-
-    /**
-     * Create a new user account with typedEmail & typedPassword, and send verification email.
-     */
-    fun createUserAccount(typedEmail: String, typedPassword: String) {
-        (context as? ComponentActivity)?.lifecycleScope?.launch {
-            try {
-                // Call the suspend function before creating the account
-                checkAndDeleteIncompleteIfNeeded(typedEmail)
-
-                // Proceed to create the user account
-                val authResult = FirebaseAuth.getInstance()
-                    .createUserWithEmailAndPassword(typedEmail, typedPassword)
-                    .await()
-
-                val user = authResult.user
-                user?.sendEmailVerification()?.await()
-
-                withContext(Dispatchers.Main) {
-                    isCreatingAccount = false
-                    onNext()
-                }
-            } catch (ex: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error: ${ex.message}", Toast.LENGTH_LONG).show()
-                    isCreatingAccount = false
-                }
-            }
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
@@ -1838,7 +1916,7 @@ fun EnterEmailAndPasswordScreen(
                         modifier = Modifier.padding(bottom = 24.dp)
                     )
 
-                    // Email Input
+                    // ─ email/password fields ─
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -1847,9 +1925,7 @@ fun EnterEmailAndPasswordScreen(
                         },
                         label = { Text(stringResource(R.string.email_label), color = Color.White) },
                         singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
@@ -1860,8 +1936,7 @@ fun EnterEmailAndPasswordScreen(
                             unfocusedLabelColor = Color.White
                         )
                     )
-
-                    // Password Input
+                    Spacer(Modifier.height(16.dp))
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -1870,9 +1945,8 @@ fun EnterEmailAndPasswordScreen(
                         },
                         label = { Text(stringResource(R.string.password_label), color = Color.White) },
                         singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
@@ -1883,8 +1957,7 @@ fun EnterEmailAndPasswordScreen(
                             unfocusedLabelColor = Color.White
                         )
                     )
-
-                    // Confirm Password Input
+                    Spacer(Modifier.height(16.dp))
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
@@ -1892,9 +1965,7 @@ fun EnterEmailAndPasswordScreen(
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         isError = passwordError,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
@@ -1905,36 +1976,48 @@ fun EnterEmailAndPasswordScreen(
                             unfocusedLabelColor = Color.White
                         )
                     )
-
                     if (passwordError) {
-                        Text(stringResource(R.string.password_mismatch_error), color = Color.Red)
+                        Text(
+                            text = stringResource(R.string.password_mismatch_error),
+                            color = Color.Red,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
 
+                    Spacer(Modifier.height(24.dp))
                     Button(
                         onClick = {
                             val typedEmail = email.text.trim()
-                            val typedPassword = password.text.trim()
-                            val typedConfirm = confirmPassword.text.trim()
+                            val typedPwd   = password.text.trim()
+                            val typedConf  = confirmPassword.text.trim()
 
-                            if (typedEmail.isNotEmpty() && typedPassword.isNotEmpty()) {
-                                if (typedPassword == typedConfirm) {
-                                    isCreatingAccount = true
-                                    passwordError = false
-
-                                    // Simply create the user account in Firebase
-                                    createUserAccount(typedEmail, typedPassword)
-                                } else {
-                                    passwordError = true
-                                }
+                            if (typedEmail.isEmpty() || typedPwd.isEmpty()) return@Button
+                            if (typedPwd != typedConf) {
+                                passwordError = true
+                                return@Button
                             }
+                            passwordError = false
+                            isCreatingAccount = true
+
+                            tryRegister(
+                                typedEmail,
+                                typedPwd,
+                                onSuccess = {
+                                    isCreatingAccount = false
+                                    onNext()
+                                },
+                                onError = { msg ->
+                                    isCreatingAccount = false
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                }
+                            )
                         },
+                        enabled = !isCreatingAccount,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        enabled = !isCreatingAccount,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
+                        shape = CircleShape
                     ) {
                         Text(
                             text = stringResource(R.string.next_button),
@@ -2428,7 +2511,6 @@ fun EnterNameScreen(
     // State to determine if the "Next" button can be enabled
     val canProceed = registrationViewModel.name.isNotEmpty() &&
             registrationViewModel.height > 0 &&
-            registrationViewModel.caste.isNotEmpty() &&
             registrationViewModel.interestedIn.isNotEmpty()
 
     Scaffold(

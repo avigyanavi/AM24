@@ -371,7 +371,7 @@ fun DatingScreen(
                     Icon(
                         Icons.Default.FilterList,
                         contentDescription = null,
-                        tint = Color(0xFFE91E63),
+                        tint = Color(0xFFFF6F00),
                         modifier = Modifier.size(27.dp)
                     )
                 }
@@ -662,7 +662,7 @@ fun IconWithQuota(
         // progress ring
         Canvas(Modifier.fillMaxSize()) {
             drawArc(
-                color      = Color(0xFFE91E63),
+                color      = Color.White,
                 startAngle = -90f,
                 sweepAngle = sweep,
                 useCenter  = false,

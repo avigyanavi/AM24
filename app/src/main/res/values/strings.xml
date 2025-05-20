@@ -313,18 +313,18 @@
 
     <string name="enter_your_personal_details">Enter your personal details</string>
 
-    <string name="jan">January</string>
-    <string name="feb">February</string>
-    <string name="mar">March</string>
-    <string name="apr">April</string>
+    <string name="jan">Jan</string>
+    <string name="feb">Feb</string>
+    <string name="mar">Mar</string>
+    <string name="apr">Apr</string>
     <string name="may">May</string>
-    <string name="jun">June</string>
-    <string name="jul">July</string>
-    <string name="aug">August</string>
-    <string name="sep">September</string>
-    <string name="oct">October</string>
-    <string name="nov">November</string>
-    <string name="dec">December</string>
+    <string name="jun">Jun</string>
+    <string name="jul">Jul</string>
+    <string name="aug">Aug</string>
+    <string name="sep">Sep</string>
+    <string name="oct">Oct</string>
+    <string name="nov">Nov</string>
+    <string name="dec">Dec</string>
 
     <!-- ProfileScreen -->
     <!-- GENERAL / COMMON -->
@@ -1197,7 +1197,7 @@
     <string name="select_city">-- Select City --</string>
 
     <!-- Interests -->
-    <string name="enter_interests_title">Select Your Interests</string>
+    <string name="enter_interests_title">Select Your Interests (Upto 9)</string>
     <string name="global_interests_label">Global Interests</string>
     <!-- The %1$s placeholder can be used to inject the locality name -->
     <string name="local_interests_label">Local Interests in locality</string>

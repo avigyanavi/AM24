@@ -11,10 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,7 +39,6 @@ import java.util.Locale
 
 class LandingActivity : ComponentActivity() {
 
-    // Override attachBaseContext so that the language is applied on activity creation.
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val languageCode = prefs.getString("language", "en") ?: "en"
@@ -52,7 +48,6 @@ class LandingActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
 
-    // Launcher for the Google sign-in intent.
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -73,39 +68,29 @@ class LandingActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         firebaseAuth = FirebaseAuth.getInstance()
 
-        // Configure Google sign in options.
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Use full screen mode.
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
 
         setContent {
             AppTheme {
                 LandingScreen(
-                    onLoginClick = {
-                        startActivity(Intent(this, LoginActivity::class.java))
-                    },
-                    onRegisterClick = {
-                        startActivity(Intent(this, RegistrationActivity::class.java))
-                    },
+                    onLoginClick = { startActivity(Intent(this, LoginActivity::class.java)) },
+                    onRegisterClick = { startActivity(Intent(this, RegistrationActivity::class.java)) },
                     onGoogleSignIn = { signInWithGoogle() },
-                    onFacebookSignIn = {
-                        // TODO: Implement Facebook sign in logic later.
-                    }
+                    onFacebookSignIn = { /* TODO */ }
                 )
             }
         }
     }
 
-    // Sign out to force account chooser each time, then launch sign in.
     private fun signInWithGoogle() {
         googleSignInClient.signOut().addOnCompleteListener {
-            val signInIntent = googleSignInClient.signInIntent
-            googleSignInLauncher.launch(signInIntent)
+            googleSignInLauncher.launch(googleSignInClient.signInIntent)
         }
     }
 
@@ -113,30 +98,39 @@ class LandingActivity : ComponentActivity() {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    val isNewUser = task.result?.additionalUserInfo?.isNewUser ?: false
-                    Log.d("LandingActivity", "Firebase sign in successful. New user: $isNewUser")
-                    if (isNewUser) {
-                        val intent = Intent(this, RegistrationActivity::class.java)
-                        intent.putExtra("isGoogleSignUp", true)
-                        intent.putExtra("google_email", firebaseAuth.currentUser?.email)
-                        intent.putExtra("google_displayName", firebaseAuth.currentUser?.displayName)
-                        intent.putExtra("google_photoUrl", firebaseAuth.currentUser?.photoUrl?.toString())
-                        startActivity(intent)
-                    } else {
-                        startActivity(Intent(this, MainActivity::class.java))
-                    }
-                    finish()
-                } else {
+                if (!task.isSuccessful) {
                     Log.w("LandingActivity", "Firebase sign in failed", task.exception)
+                    return@addOnCompleteListener
+                }
+
+                val isNewUser = task.result
+                    ?.additionalUserInfo
+                    ?.isNewUser
+                    ?: false
+
+                if (isNewUser) {
+                    // brand-new Google sign-up → go straight to Registration
+                    startRegistrationFlow()
+                } else {
+                    // returning user → Main
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
                 }
             }
     }
+
+    private fun startRegistrationFlow() {
+        Intent(this, RegistrationActivity::class.java).also { intent ->
+            intent.putExtra("isGoogleSignUp", true)
+            intent.putExtra("google_email", firebaseAuth.currentUser?.email)
+            intent.putExtra("google_displayName", firebaseAuth.currentUser?.displayName)
+            intent.putExtra("google_photoUrl", firebaseAuth.currentUser?.photoUrl?.toString())
+            startActivity(intent)
+        }
+        finish()
+    }
 }
 
-/**
- * Update the locale by creating a new configuration context.
- */
 fun updateLocale(context: Context, languageCode: String): Context {
     val locale = Locale(languageCode)
     Locale.setDefault(locale)
@@ -153,11 +147,8 @@ fun LandingScreen(
     onFacebookSignIn: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // Read saved language
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val savedLang = prefs.getString("language", "en") ?: "en"
-    var selectedLanguage by remember { mutableStateOf(savedLang) }
+    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
     var shouldRestart by remember { mutableStateOf(false) }
 
     if (shouldRestart) {
@@ -170,17 +161,10 @@ fun LandingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.Black, Color(0xFF1A1A1A))
-                )
-            ),
+            .background(Brush.verticalGradient(listOf(Color.Black, Color(0xFF1A1A1A)))),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Spacer at the top if needed.
         Spacer(modifier = Modifier.height(32.dp))
-
-        // Main content – app title and auth buttons shifted upward.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -190,7 +174,7 @@ fun LandingScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = stringResource(id = R.string.welcome_kupidx),
+                text = stringResource(R.string.welcome_kupidx),
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -204,15 +188,9 @@ fun LandingScreen(
                     .padding(horizontal = 16.dp)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
-                shape = CircleShape,
-                elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+                shape = CircleShape
             ) {
-                Text(
-                    text = stringResource(id = R.string.register),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(stringResource(R.string.register), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
@@ -222,43 +200,24 @@ fun LandingScreen(
                     .padding(horizontal = 16.dp)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                shape = CircleShape,
-                elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+                shape = CircleShape
             ) {
-                Text(
-                    text = stringResource(id = R.string.login),
-                    color = Color.Black,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(stringResource(R.string.login), color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(16.dp))
-            SocialSignInButtons(
-                onGoogleSignIn = onGoogleSignIn,
-                onFacebookSignIn = onFacebookSignIn
-            )
+            SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
         }
-
-        // Language selection bar placed at the bottom.
-        LanguageSelectionBar(
-            selectedLanguage = selectedLanguage,
-            onLanguageSelected = { lang ->
-                selectedLanguage = lang
-                prefs.edit().putString("language", lang).apply()
-                updateLocale(context, lang)
-                shouldRestart = true
-            }
-        )
+        LanguageSelectionBar(selectedLanguage) { lang ->
+            prefs.edit().putString("language", lang).apply()
+            updateLocale(context, lang)
+            shouldRestart = true
+        }
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-fun LanguageSelectionBar(
-    selectedLanguage: String,
-    onLanguageSelected: (String) -> Unit
-) {
-    // Supported languages: adjust labels as needed.
+fun LanguageSelectionBar(selectedLanguage: String, onLanguageSelected: (String) -> Unit) {
     val languages = listOf("English" to "en", "বাংলা" to "bn", "हिन्दी" to "hi")
     Row(
         modifier = Modifier
@@ -274,104 +233,50 @@ fun LanguageSelectionBar(
                 ),
                 modifier = Modifier.padding(horizontal = 4.dp)
             ) {
-                Text(text = label, color = Color.White, fontSize = 14.sp)
+                Text(label, color = Color.White, fontSize = 14.sp)
             }
         }
     }
 }
 
 @Composable
-fun SocialSignInButtons(
-    onGoogleSignIn: () -> Unit,
-    onFacebookSignIn: () -> Unit
-) {
+fun SocialSignInButtons(onGoogleSignIn: () -> Unit, onFacebookSignIn: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Google Sign-In Button with logo.
         Button(
             onClick = onGoogleSignIn,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-            shape = CircleShape,
-            elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+            shape = CircleShape
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(id = R.drawable.google_logo),
-                    contentDescription = "Google Logo",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(id = R.string.continue_with_google),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Icon(painterResource(R.drawable.google_logo), contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.continue_with_google), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(16.dp))
-        // Facebook Sign-In Button with logo.
         Button(
             onClick = onFacebookSignIn,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-            shape = CircleShape,
-            elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+            shape = CircleShape
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(id = R.drawable.facebook_logo),
-                    contentDescription = "Facebook Logo",
-                    modifier = Modifier.size(26.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(id = R.string.continue_with_facebook),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Icon(painterResource(R.drawable.facebook_logo), contentDescription = null, modifier = Modifier.size(26.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.continue_with_facebook), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
-}
-
-fun cleanupIncompleteUser(auth: FirebaseAuth, db: FirebaseDatabase, storage: FirebaseStorage) {
-    val user = auth.currentUser ?: return
-    val uid  = user.uid
-
-    // 1) Remove any partial Realtime-DB node:
-    db.reference.child("users").child(uid)
-        .removeValue()
-
-    // 2) Remove storage blobs:
-    val userStorage = storage.reference.child("users").child(uid)
-    userStorage.child("profile_pic.jpg").delete()
-    userStorage.child("voice_note.mp3").delete()
-    userStorage.child("photos")
-        .listAll()
-        .addOnSuccessListener { it.items.forEach { file -> file.delete() } }
-
-    // 3) Delete the Auth user itself:
-    user.delete()
 }
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewLandingScreen() {
     AppTheme {
-        LandingScreen(
-            onLoginClick = { },
-            onRegisterClick = { },
-            onGoogleSignIn = { },
-            onFacebookSignIn = { }
-        )
+        LandingScreen({}, {}, {}, {})
     }
 }
