@@ -2009,9 +2009,8 @@ fun TagBox(
             text = text,
             color = Color.White,
             fontSize = 15.sp,
-            maxLines = 1,                      // force a single line
-            overflow = TextOverflow.Ellipsis,  // ellipsize if too long
-            softWrap = false
+            maxLines = 10,                      // force a single line
+            softWrap = true
         )
     }
 }
@@ -2173,7 +2172,7 @@ fun ProfileCollapsibleSectionsAll(
             .padding(8.dp)
     ) {
         /** ─────────── Compatibility ─────────── */
-        if (profile.isPremium || profile.isPlus) {
+        if (currentUserProfile?.isPremium == true || currentUserProfile?.isPlus == true) {
             CollapsibleSection(
                 title = stringResource(R.string.compatibility_check),
                 icon = Icons.Default.Info,
@@ -2182,7 +2181,7 @@ fun ProfileCollapsibleSectionsAll(
                     showAiSection = !showAiSection         // expand / collapse
 
                     /*  auto-run every time it OPENS  */
-                    if (showAiSection && currentUserProfile != null) {
+                    if (showAiSection) {
                         runAiMatchCheck(
                             context = context,
                             coroutineScope = coroutineScope,
@@ -2203,8 +2202,8 @@ fun ProfileCollapsibleSectionsAll(
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        if (profile.isPremium) {
-            PerformanceMetricsSection(profile)
+        if (currentUserProfile?.isPremium == true) {
+            PerformanceMetricsSectionDating(profile)
             Spacer(modifier = Modifier.height(12.dp))
         }
         CollapsibleSection(
@@ -2292,7 +2291,11 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
         /* strengths */
         if (strengths.isNotEmpty()) {
             Text(stringResource(R.string.strengths), color = Color.White, fontWeight = FontWeight.SemiBold)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(
+                modifier          = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement   = Arrangement.spacedBy(6.dp),
+                maxLines             = Int.MAX_VALUE) {
                 strengths.forEach { TagBox(it.removePrefix("✅").trim()) }
             }
             Spacer(Modifier.height(6.dp))
@@ -2300,17 +2303,30 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
 
         /* concerns */
         if (concerns.isNotEmpty()) {
-            Text(stringResource(R.string.concerns), color = Color.White, fontWeight = FontWeight.SemiBold)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                concerns.forEach { TagBox(it.removePrefix("⚠️").trim()) }
+            Text(stringResource(R.string.concerns),
+                color = Color.White, fontWeight = FontWeight.SemiBold)
+            FlowRow(
+                modifier          = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement   = Arrangement.spacedBy(6.dp),
+                maxLines             = Int.MAX_VALUE
+            ) {
+                concerns.forEach {
+                    TagBox(it.removePrefix("⚠️").trim())
+                }
             }
             Spacer(Modifier.height(6.dp))
         }
 
+
         /* notes */
         if (notes.isNotEmpty()) {
             Text(stringResource(R.string.notes), color = Color.White, fontWeight = FontWeight.SemiBold)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(
+                modifier          = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement   = Arrangement.spacedBy(6.dp),
+                maxLines             = Int.MAX_VALUE) {
                 notes.forEach { TagBox(it.removePrefix("ℹ️").trim()) }
             }
             Spacer(Modifier.height(6.dp))
@@ -2414,13 +2430,21 @@ fun CollapsibleSection(
         Spacer(Modifier.height(4.dp))
         Card(
             backgroundColor = Color(0xFF1A1A1A),
-            elevation = 4.dp,
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier
+            elevation       = 4.dp,
+            shape           = RoundedCornerShape(8.dp),
+            modifier        = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
+                // cap the height so it never grows off‐screen
+                .heightIn(min = 100.dp, max = 400.dp)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // make the content inside scroll vertically
+                    .verticalScroll(rememberScrollState())
+                    .padding(12.dp)
+            ) {
                 content()
             }
         }

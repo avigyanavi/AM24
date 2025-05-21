@@ -1976,7 +1976,6 @@ fun PerformanceMetricsSection(profile: Profile) {
 /** Preferences (View-Only) */
 @Composable
 fun PreferencesSection(profile: Profile) {
-    val lookingForText = profile.lookingFor.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_specified)
     ProfileDetailRow(    stringResource(R.string.looking_for_label),
         localizedLookingFor(profile.lookingFor)
             .ifBlank { stringResource(R.string.not_specified) }, Icons.Default.Favorite)
