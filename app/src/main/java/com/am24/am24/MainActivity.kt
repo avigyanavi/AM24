@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
-
+        FirebaseStorage.getInstance("gs://am-twentyfour.com")
         // Kick off our navigation logic inside a coroutine
         lifecycleScope.launch(Dispatchers.IO) {
             val currentUser = auth.currentUser
@@ -39,25 +39,19 @@ class MainActivity : ComponentActivity() {
 
             // Decide where to send the user
             val nextIntent = when {
-                currentUser != null && !registrationFinished -> {
-                    // Incomplete → clean up and force back to landing
-                    cleanupIncompleteUser(
-                        auth,
-                        FirebaseDatabase.getInstance(),
-                        FirebaseStorage.getInstance()
-                    )
-                    Intent(this@MainActivity, LandingActivity::class.java)
-                }
-                currentUser != null && registrationFinished  -> {
-                    // Fully registered → go into the app
-                    Intent(this@MainActivity, KupidXAppActivity::class.java)
-                }
-                else                                         -> {
-                    // Not signed in → show landing
-                    Intent(this@MainActivity, LandingActivity::class.java)
-                }
-            }
-
+                            currentUser != null && !registrationFinished -> {
+                                    // User exists but hasn’t finished registration → send them to Registration
+                                    Intent(this@MainActivity, RegistrationActivity::class.java)
+                                }
+                            currentUser != null -> {
+                                    // Fully registered (or we don’t care) → go into the app
+                                    Intent(this@MainActivity, KupidXAppActivity::class.java)
+                                }
+                            else -> {
+                                    // Not signed in → show landing
+                                    Intent(this@MainActivity, LandingActivity::class.java)
+                                }
+                        }
             withContext(Dispatchers.Main) {
                 startActivity(nextIntent)
                 finish()

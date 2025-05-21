@@ -10,6 +10,8 @@ import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.ImageView
@@ -1443,27 +1445,53 @@ suspend fun compressVideo(
     context: Context,
     uri: Uri,
     targetBitrate: Int = 1_000_000
-): ByteArray = withContext(Dispatchers.IO) {
+): ByteArray {
+    // 1) Prepare your temp file
     val outFile = File.createTempFile("compressed_", ".mp4", context.cacheDir)
+
+    // 2) Configure encoder settings
     val videoSettings = VideoEncoderSettings.Builder()
         .setBitrate(targetBitrate)
         .build()
     val encoderFactory = DefaultEncoderFactory.Builder(context)
         .setRequestedVideoEncoderSettings(videoSettings)
         .build()
-    suspendCancellableCoroutine { cont ->
-        val transformer = Transformer.Builder(context)
-            .setVideoMimeType(MimeTypes.VIDEO_H264)
-            .setAudioMimeType(MimeTypes.AUDIO_AAC)
-            .setEncoderFactory(encoderFactory)
-            .addListener(object : Transformer.Listener {
-                override fun onCompleted(composition: Composition, exportResult: ExportResult) = cont.resume(Unit)
-                override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) = cont.resumeWithException(exportException)
-            })
-            .build()
-        transformer.start(MediaItem.fromUri(uri), outFile.absolutePath)
+
+    // 3) Build the transformer
+    val transformer = Transformer.Builder(context)
+        .setVideoMimeType(MimeTypes.VIDEO_H264)
+        .setAudioMimeType(MimeTypes.AUDIO_AAC)
+        .setEncoderFactory(encoderFactory)
+        .build()
+
+    // 4) Suspend until transform completes, but post start() on the Main thread
+    suspendCancellableCoroutine<Unit> { cont ->
+        transformer.addListener(object : Transformer.Listener {
+            override fun onCompleted(composition: Composition, exportResult: ExportResult) {
+                cont.resume(Unit)
+            }
+            override fun onError(
+                composition: Composition,
+                exportResult: ExportResult,
+                exportException: ExportException
+            ) {
+                cont.resumeWithException(exportException)
+            }
+        })
+
+        // This must run on the UI thread:
+        Handler(Looper.getMainLooper()).post {
+            transformer.start(
+                MediaItem.fromUri(uri),
+                outFile.absolutePath
+            )
+        }
     }
-    outFile.readBytes()
+
+    // 5) Read the output back into memory (this can be IO)
+    return withContext(Dispatchers.IO) {
+        outFile.readBytes()
+    }
 }
 
 @Composable

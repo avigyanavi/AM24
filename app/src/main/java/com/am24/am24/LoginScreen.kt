@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -35,6 +34,8 @@ import kotlinx.coroutines.withContext
 class LoginActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
+    private val isLoading = mutableStateOf(false)
+    private val loginProgress = mutableStateOf(0f)
 
     // Override attachBaseContext to update the locale
     override fun attachBaseContext(newBase: Context) {
@@ -51,7 +52,9 @@ class LoginActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 LoginScreen(
-                    onLoginClick = ::handleLogin,
+                    isLoading     = isLoading.value,
+                    progress      = loginProgress.value,
+                    onLoginClick  = ::handleLogin,
                     onForgotPassword = ::handlePasswordReset
                 )
             }
@@ -64,6 +67,8 @@ class LoginActivity : ComponentActivity() {
         Toast.makeText(this@LoginActivity, msg, Toast.LENGTH_LONG).show()
 
     private fun handleLogin(userOrEmail: String, pwd: String) {
+        isLoading.value = true
+        loginProgress.value = 0f
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val email = if (userOrEmail.contains("@")) {
@@ -73,6 +78,7 @@ class LoginActivity : ComponentActivity() {
                     val anonAuth = FirebaseAuth.getInstance()
                     val anonResult = anonAuth.signInAnonymously().await()
                     val anonUser = anonResult.user
+                    loginProgress.value = 0.33f
 
                     // 2) Resolve the real email address
                     val resolved = resolveToEmail(userOrEmail)
@@ -84,6 +90,7 @@ class LoginActivity : ComponentActivity() {
                             toast("Username not found")
                         }
                     }
+                    loginProgress.value = 0.66f
 
                     // 3) Immediately delete the anonymous account once we have the email
                     anonUser?.delete()?.await()
@@ -96,22 +103,38 @@ class LoginActivity : ComponentActivity() {
                 val res = auth
                     .signInWithEmailAndPassword(email, pwd)
                     .await()
+                loginProgress.value = 1f
 
                 withContext(Dispatchers.Main) {
                     val user = res.user
                     if (user != null && !user.isEmailVerified) {
                         toast("Welcome! Please verify your email later to unlock all features.")
                     }
+                    isLoading.value = false
                     startActivity(Intent(this@LoginActivity, KupidXAppActivity::class.java))
                     finish()
                 }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    toast("Auth failed: ${e.message}")
-                }
             }
-        }
-    }
+                catch (e: Exception) {
+                         withContext(Dispatchers.Main) {
+                             isLoading.value = false
+                             val fullMsg = "Auth failed: ${e.message}"
+                                     // If it begins with the INVALID_LOGIN internal error, show the custom toast
+                                     if (fullMsg.startsWith(
+                                             "Auth failed: An internal error has occurred. [ INVALID_LOGIN"
+                                         )
+                                     ) {
+                                         toast("Invalid manual log in. Try signing in with Google or Facebook.")
+                                     } else {
+                                                 // <-- all other errors still show the raw message
+                                                 toast("Auth failed: ${e.message}")
+                                             }
+                                     }
+                             }
+                     }
+            }
+
+
 
     private fun handlePasswordReset(userOrEmail: String) {
         lifecycleScope.launch(Dispatchers.IO) {
@@ -150,6 +173,8 @@ class LoginActivity : ComponentActivity() {
 
 @Composable
 fun LoginScreen(
+    isLoading: Boolean,
+    progress: Float,
     onLoginClick: (String, String) -> Unit,
     onForgotPassword: (String) -> Unit
 ) {
@@ -218,6 +243,28 @@ fun LoginScreen(
                 dialogInput = ""
             }
         )
+    }
+
+    // ── Loading overlay ──
+    if (isLoading) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color(0x88000000)),  // semi-transparent black
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // determinate circular with progress [0f..1f]
+                CircularProgressIndicator(progress = progress)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "${(progress * 100).toInt()}%",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 
     /* ---------- Main layout ---------- */

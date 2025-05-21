@@ -26,6 +26,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val notificationsRef = database.getReference("notifications")
     private val chatRef = database.getReference("chats") // New chat reference for DM creation
 
+    private val _verificationStatus = MutableStateFlow<String?>(null)
+    val verificationStatus: StateFlow<String?> = _verificationStatus
+
     // Match Pop-Up State
     private val _matchPopUpState = MutableStateFlow<Pair<Profile, Profile>?>(null)
     val matchPopUpState: StateFlow<Pair<Profile, Profile>?> get() = _matchPopUpState
@@ -200,7 +203,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     "traditionalVsLiberal"        to profileWithScore.traditionalVsLiberal,
                     "fatherOccupation"            to profileWithScore.fatherOccupation,
                     "motherOccupation"            to profileWithScore.motherOccupation,
-                    "isConsultantVerified"        to profileWithScore.isConsultantVerified,
 
                     // data that influences the composite
                     "averageRating"               to profileWithScore.averageRating,
@@ -417,12 +419,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     .reference
                     .child("verifications/$uid/id.jpg")
                 storageRef.putFile(uri).await()
+                val downloadUrl = storageRef.downloadUrl.await().toString()
 
                 // 2) write status
                 val verifRef = FirebaseRefs.db
                     .getReference("verifications")
                     .child(uid)
                 val data = mapOf(
+                    "photoUrl"  to downloadUrl,
                     "status" to "pending",
                     "timestamp" to System.currentTimeMillis()
                 )
@@ -436,28 +440,36 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun watchVerificationStatus(uid: String, onUpdate: (status: String, photoUrl: String?) -> Unit) {
+        val verifRef = FirebaseRefs.db
+            .getReference("verifications")
+            .child(uid)
+        verifRef.addValueEventListener(object: ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                val status   = snap.child("status").getValue(String::class.java)
+                val photoUrl = snap.child("photoUrl").getValue(String::class.java)
+                if (status != null) onUpdate(status, photoUrl)
+            }
+            override fun onCancelled(err: DatabaseError) { /*…*/ }
+        })
+    }
+
+    fun deleteVerification(uid: String, onDone: ()->Unit) {
+        val storageRef = FirebaseStorage.getInstance()
+            .reference.child("verifications/$uid/id.jpg")
+        storageRef.delete().addOnCompleteListener {
+            FirebaseRefs.db
+                .getReference("verifications")
+                .child(uid)
+                .removeValue()
+                .addOnCompleteListener { onDone() }
+        }
+    }
+
     /**
      * Marks the user’s profile as verified by setting
      * `users/{uid}/isConsultantVerified = true`, and updates local state.
      */
-    fun markUserVerified(uid: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // flip the flag in Firebase
-                usersRef.child(uid)
-                    .child("isConsultantVerified")
-                    .setValue(true)
-                    .await()
-
-                // update our local StateFlow
-                _currentUserProfile.update { prof ->
-                    prof?.copy(isConsultantVerified = true)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to mark user verified: ${e.message}")
-            }
-        }
-    }
 
     fun fetchUserProfile(
         userId: String,
@@ -485,6 +497,23 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 Log.e(TAG, "Failed to fetch profile for userId $userId: ${error.message}")
                 onFailure(error.message ?: "Failed to fetch profile")
             }
+    }
+
+    fun observeVerificationStatus(uid: String) {
+        val verRef = FirebaseRefs.db
+            .getReference("verifications")
+            .child(uid)
+            .child("status")
+
+        // detach any previous listener if you like…
+        verRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                _verificationStatus.value = snap.getValue(String::class.java)
+            }
+            override fun onCancelled(err: DatabaseError) {
+                Log.e(TAG, "Verification listener failed: ${err.message}")
+            }
+        })
     }
 
     // Send a match notification

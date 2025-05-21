@@ -34,29 +34,87 @@ fun GovtIdVerificationScreen(
     profileViewModel: ProfileViewModel
 ) {
     val context = LocalContext.current
-    // make sure the user is logged in
     val uid = FirebaseAuth.getInstance().currentUser?.uid
         ?: run {
             Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show()
             return
         }
 
-    // local UI state
+    // --- UI state ---
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
+    var verifStatus by remember { mutableStateOf<String?>(null) }
+    var verifPhotoUrl by remember { mutableStateOf<String?>(null) }
 
-    // 1) prepare a temp file, 2) get its content Uri
+    // 1) Pending view
+    if (verifStatus == "pending") {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121212))
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Verification Pending", color = Color.White, fontSize = 20.sp)
+            Spacer(Modifier.height(16.dp))
+            verifPhotoUrl?.let { url ->
+                Image(
+                    painter = rememberAsyncImagePainter(url),
+                    contentDescription = "ID Pending Review",
+                    modifier = Modifier
+                        .size(240.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(2.dp, Color.Gray, RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+        return
+    }
+
+    // 2) Accepted view
+    if (verifStatus == "accepted") {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121212))
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("You're already verified", color = Color(0xFF00C853), fontSize = 20.sp)
+        }
+        return
+    }
+
+    // 3) Rejected view
+    if (verifStatus == "rejected") {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121212))
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Photo rejected, try again", color = Color.Red, fontSize = 20.sp)
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { /* retry logic already triggered in listener */ },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+            ) {
+                Text("Capture New ID", color = Color.Black)
+            }
+        }
+        return
+    }
+
+    // --- initial or no verification yet ---
+    // prepare temp file + Uri
     val imageFile = remember { createTempImageFile(context) }
     val authority = "${context.packageName}.provider"
     val contentUri = remember { FileProvider.getUriForFile(context, authority, imageFile) }
-
-    // camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(TakePicture()) { success ->
-        if (success) {
-            photoUri = contentUri
-        } else {
-            Toast.makeText(context, "Capture failed, please try again", Toast.LENGTH_SHORT).show()
-        }
+        if (success) photoUri = contentUri
+        else Toast.makeText(context, "Capture failed, please try again", Toast.LENGTH_SHORT).show()
     }
 
     Column(
@@ -66,15 +124,11 @@ fun GovtIdVerificationScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            "Verify Your Government-ID",
-            color = Color.White,
-            fontSize = 22.sp
-        )
+        Text("Verify Your Government-ID", color = Color.White, fontSize = 22.sp)
         Spacer(Modifier.height(16.dp))
 
-        // if we've got a snapshot, show it
         if (photoUri != null) {
+            // preview + actions
             Image(
                 painter = rememberAsyncImagePainter(photoUri),
                 contentDescription = "ID Preview",
@@ -86,32 +140,22 @@ fun GovtIdVerificationScreen(
             )
             Spacer(Modifier.height(16.dp))
 
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                // Retake
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 Button(
                     onClick = { photoUri = null },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) {
                     Text("Retake", color = Color.White)
                 }
-
-                // Submit
                 Button(
                     enabled = !isSubmitting,
                     onClick = {
                         photoUri?.let { uri ->
                             isSubmitting = true
-                            profileViewModel.uploadGovtId(
-                                uid,
-                                uri
-                            ) { success, message ->
+                            profileViewModel.uploadGovtId(uid, uri) { success, _ ->
                                 isSubmitting = false
                                 if (success) {
-                                    // mark the user as verified in their profile
-                                    profileViewModel.markUserVerified(uid)
+                                    // navigate back; pending state will show on next visit
                                     navController.popBackStack()
                                 }
                             }
@@ -126,7 +170,7 @@ fun GovtIdVerificationScreen(
                 }
             }
         } else {
-            // no photo yet → launch camera
+            // capture button
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { cameraLauncher.launch(contentUri) },

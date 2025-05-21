@@ -124,8 +124,6 @@ data class Profile(
     var fatherOccupation: String? = null,
     var motherOccupation: String? = null,
 
-    var isConsultantVerified: Boolean = false,  // You will verify the profile manually
-
     // Keep these three for the user's personal dating prefs from registration
     val datingAgeStart: Int = 18,
     val datingAgeEnd: Int = 30,

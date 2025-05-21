@@ -67,23 +67,37 @@ fun CreatePostScreen(
     navController: NavController,
     postViewModel: PostViewModel
 ) {
-    val context  = LocalContext.current
-    val userId   = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
     var isPremium by remember { mutableStateOf(false) }
     var isPlus by remember { mutableStateOf(false) }
 
-
-    // quick check — replace with your own premium flag
+    // Fetch isPremium and isPlus from Firebase
     LaunchedEffect(userId) {
-        isPremium = FirebaseRefs.db
-            .getReference("users").child(userId ?: "")
-            .child("isPremium").get().await().getValue(Long::class.java)
-            ?.let { it > System.currentTimeMillis() } ?: false
-        isPlus = FirebaseRefs.db
-            .getReference("users").child(userId ?: "")
-            .child("isPlus").get().await().getValue(Long::class.java)
-            ?.let { it > System.currentTimeMillis() } ?: false
+        if (userId != null) {
+            try {
+                val db = FirebaseDatabase.getInstance()
+                val premiumSnapshot = db.getReference("users")
+                    .child(userId)
+                    .child("premium")
+                    .get()
+                    .await()
+                val plusSnapshot = db.getReference("users")
+                    .child(userId)
+                    .child("plus")
+                    .get()
+                    .await()
+
+                isPremium = premiumSnapshot.getValue(Boolean::class.java) ?: false
+                isPlus = plusSnapshot.getValue(Boolean::class.java) ?: false
+            } catch (e: Exception) {
+                Log.e("CreatePostScreen", "Failed to fetch premium status: ${e.message}")
+                isPremium = false
+                isPlus = false
+            }
+        }
     }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -96,10 +110,11 @@ fun CreatePostScreen(
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
         },
-        content = {  innerPadding ->
+        content = { innerPadding ->
             Column(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(innerPadding), // Apply padding from Scaffold
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -114,7 +129,7 @@ fun CreatePostScreen(
                     label = "Text Post",
                     onClick = { navController.navigate("create_post/text") }
                 )
-                if (isPremium || isPlus) {           // <---- premium gate
+                if (isPremium || isPlus) {
                     Spacer(Modifier.height(16.dp))
                     PostTypeButton(icon = Icons.Default.Photo, label = "Image Post", onClick = {
                         navController.navigate("create_post/image")
@@ -337,7 +352,7 @@ fun ImagePostComposable(
         .apply { deleteOnExit() }
 
     val camFile = remember { tmpImg() }
-    val camUri  = FileProvider.getUriForFile(ctx, "${ctx.packageName}.provider", camFile)
+    val camUri  = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", camFile)
 
     val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
         if (it) imageUri = camUri
@@ -578,11 +593,11 @@ fun VideoPostComposable(
     LaunchedEffect(Unit) { username = fetchUsernameById(userId) ?: "Anonymous" }
 
     /* ------------- camera / gallery helpers ------------- */
-    fun tmpVid() = File.createTempFile("vid_${System.currentTimeMillis()}", ".mp4", ctx.cacheDir)
+    fun tmpVid() = File.createTempFile("vid_${System.currentTimeMillis()}", ".mp4")
         .apply { deleteOnExit() }
 
     val camFile = remember { tmpVid() }
-    val camUri  = FileProvider.getUriForFile(ctx, "${ctx.packageName}.provider", camFile)
+    val camUri  = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", camFile)
 
     val captureVideo = rememberLauncherForActivityResult(
         ActivityResultContracts.CaptureVideo()

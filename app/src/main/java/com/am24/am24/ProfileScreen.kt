@@ -101,7 +101,11 @@ fun ProfileScreen(
     LaunchedEffect(currentUserId) {
         Log.d("ProfileScreen", "Fetching profile for userId: $currentUserId")
         profileViewModel.fetchCurrentUserProfile()
+        profileViewModel.observeVerificationStatus(currentUserId)
     }
+
+    val verStatus by profileViewModel.verificationStatus.collectAsState()
+    val isVerified = verStatus == "accepted"
 
     if (!filtersLoaded) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -128,7 +132,9 @@ fun ProfileScreen(
                 profile          = currentUserProfile!!,
                 featuredPosts = featuredPosts,
                 remainingPosts = remainingPosts,
-                profileViewModel = profileViewModel
+                profileViewModel = profileViewModel,
+                isVerified       = isVerified,
+                onVerifyClick    = { navController.navigate("govtIdVerification") }
             )
 
             // —— 3) if they need to verify, intercept all taps ——
@@ -244,7 +250,9 @@ fun ProfileLazyScreen(
     profile: Profile,
     featuredPosts: List<Post>,
     remainingPosts: List<Post>,
-    profileViewModel: ProfileViewModel
+    profileViewModel: ProfileViewModel,
+    isVerified: Boolean,                 // ← new
+    onVerifyClick: () -> Unit           // ← new
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -354,9 +362,10 @@ fun ProfileLazyScreen(
             item {
                 PhotoCarouselWithOverlay(
                     profile = currentProfile,
+                    verified            = isVerified,      // ← changed
                     onEditProfileClick = { navController.navigate("editPicAndVoiceBio") },
                     onPostsClick = { showPostsOverlay = true },
-                    onVerifyClick = { navController.navigate("govtIdVerification") }
+                    onVerifyClick       = onVerifyClick    // ← new
                 )
             }
             item {
@@ -622,6 +631,7 @@ fun CollapsibleSection(
 @Composable
 fun PhotoCarouselWithOverlay(
     profile: Profile,
+    verified: Boolean,                   // ← new
     onEditProfileClick: () -> Unit,
     onPostsClick: () -> Unit,
     onVerifyClick: () -> Unit        // ➊ new
@@ -702,8 +712,8 @@ fun PhotoCarouselWithOverlay(
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 )
                 VerificationBadge(
-                    verified  = profile.isConsultantVerified,
-                    onClick   = onVerifyClick,
+                    verified = verified,              // ← use the new prop
+                    onClick  = onVerifyClick,
                     modifier  = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 16.dp, end = 16.dp)   // leaves room for the edit icon
@@ -4189,7 +4199,6 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "traditionalVsLiberal" to updatedProfile.traditionalVsLiberal,
         "fatherOccupation" to updatedProfile.fatherOccupation,
         "motherOccupation" to updatedProfile.motherOccupation,
-        "isConsultantVerified" to updatedProfile.isConsultantVerified
     )
 
     userRef.updateChildren(updates).addOnCompleteListener { task ->

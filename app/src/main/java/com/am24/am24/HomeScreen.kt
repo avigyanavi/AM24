@@ -68,6 +68,8 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
+import androidx.core.net.toUri
+import com.am24.am24.util.TextureFullscreenVideoPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -335,9 +337,9 @@ fun FeedSection(
                             .height(200.dp)
                             .padding(vertical = 8.dp)
                             .placeholder(
-                                visible   = true,
+                                visible = true,
                                 highlight = PlaceholderHighlight.shimmer(),
-                                shape     = RoundedCornerShape(6.dp)
+                                shape = RoundedCornerShape(6.dp)
                             ),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
                     ) {}
@@ -768,10 +770,11 @@ fun FeedItem(
 
                             /* ---------- VIDEO ---------- */
                             "video" -> {
+                                Log.d("VideoPlayer", "Video URL: ${post.mediaUrl}")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .aspectRatio(16f/9f)
+                                        .aspectRatio(16f / 9f)
                                         .clip(RoundedCornerShape(6.dp))
                                         .clickable { showVideoDialog = true }
                                 ) {
@@ -790,11 +793,11 @@ fun FeedItem(
                                             .align(Alignment.Center)
                                     )
                                 }
-
+                                val videoUri = remember { post.mediaUrl.toUri() } // Convert String to Uri
                                 // ── show your cache-backed player in a fullscreen Dialog ──
                                 if (showVideoDialog) {
-                                    CachedFullscreenVideoPlayer(
-                                        uri       = Uri.parse(post.mediaUrl),
+                                    TextureFullscreenVideoPlayer(
+                                        uri = remember(post.mediaUrl) { post.mediaUrl.toUri() },
                                         onDismiss = { showVideoDialog = false }
                                     )
                                 }
