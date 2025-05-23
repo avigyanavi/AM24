@@ -76,11 +76,10 @@ import kotlinx.coroutines.withContext
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
@@ -156,9 +155,12 @@ fun DatingScreen(
     /* Auto-tap counter for empty profiles */
     var autoTapCount by rememberSaveable { mutableStateOf(0) }
     val maxAutoTaps = 5
+    val verificationStatuses by datingViewModel.verificationStatuses.collectAsState()
 
     /* fetch *my* Profile once */
-    LaunchedEffect(Unit) { profileViewModel.fetchCurrentUserProfile() }
+    LaunchedEffect(Unit) {
+        profileViewModel.fetchCurrentUserProfile()
+    }
 
     // ── StateFlows ────────────────────────────────────────────────────
     val myProfile by profileViewModel.currentUserProfile.collectAsState()
@@ -282,6 +284,7 @@ fun DatingScreen(
             }
             initialProcessed = true
         }
+        displayedProfiles.forEach { datingViewModel.loadVerification(it.userId) }
     }
 
     /* Auto-tap dating icon when profiles are empty */
@@ -470,6 +473,7 @@ fun DatingScreen(
 
                     else -> DatingScreenContent(
                         navController    = navController,
+                        verificationStatuses = verificationStatuses,  // pass it down
                         geoFire          = geoFire,
                         profileViewModel = profileViewModel,
                         postViewModel    = postViewModel,
@@ -648,10 +652,7 @@ fun IconWithQuota(
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
-    // size of the icon + ring
-    val size    = 30.dp
-    val sweep   = remember(quota) { quota / 10f * 360f }   // daily quota = 10
-    val strokeW = 3.dp
+    val size = 30.dp
 
     Box(
         modifier = Modifier
@@ -659,22 +660,24 @@ fun IconWithQuota(
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // progress ring
-        Canvas(Modifier.fillMaxSize()) {
-            drawArc(
-                color      = Color.White,
-                startAngle = -90f,
-                sweepAngle = sweep,
-                useCenter  = false,
-                style      = Stroke(width = strokeW.toPx(), cap = StrokeCap.Round)
-            )
-        }
         // icon
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
-        // tiny number in the centre
-        Text(quota.toString(), fontSize = 14.sp, color = Color(0xFFFF5900), fontWeight = FontWeight.Bold)
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(22.dp)
+        )
+
+        // quota number
+        Text(
+            quota.toString(),
+            fontSize = 14.sp,
+            color = Color(0xFFFF5900),
+            fontWeight = FontWeight.Bold
+        )
     }
 }
+
 /**
  * Load swipes from Firebase and reset them to 15 if a new day has started.
  */
@@ -1446,6 +1449,7 @@ fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 5) {
 @Composable
 fun DatingScreenContent(
     navController: NavController,
+    verificationStatuses: Map<String,String>,
     geoFire: GeoFire,
     profileViewModel: ProfileViewModel,
     postViewModel: PostViewModel,
@@ -1464,7 +1468,9 @@ fun DatingScreenContent(
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
     val currentProfile     = profiles[currentIndex]
     val isBoostedProfile   = boostedUsers.any { it.userId == currentProfile.userId }
+    val isVerified = verificationStatuses[currentProfile.userId] == "accepted"
 
+    Log.d("VERIF", "isVerified = $isVerified")
     /* distance + AI check – unchanged */
     var userDistance  by remember { mutableStateOf<Float?>(null) }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
@@ -1484,6 +1490,7 @@ fun DatingScreenContent(
     userDistance?.let { distance ->
         DatingProfileCard(
             profile        = currentProfile,
+            isVerified    = isVerified,
             isBoosted      = isBoostedProfile,
             aiMatchResult  = aiMatchResult,
             sortedByUpvotes  = sortedByUpvotes,      // ← pass it i
@@ -1507,6 +1514,7 @@ fun DatingScreenContent(
 @Composable
 fun DatingProfileCard(
     profile: Profile,
+    isVerified: Boolean,  // new param
     isBoosted: Boolean,                         // ← NEW
     aiMatchResult: AiMatchCheckResult?,
     sortedByUpvotes: List<Post>,
@@ -1565,6 +1573,7 @@ fun DatingProfileCard(
             item {
                 PhotoWithTwoOverlays(
                     profile = profile,
+                    isVerified = isVerified,  // new param
                     isBoosted      = isBoosted,            // ← pass through
                     userDistance = userDistance,
                     aiMatchResult = aiMatchResult,
@@ -1715,6 +1724,7 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
+    isVerified: Boolean,  // new param
     isBoosted: Boolean,
     userDistance: Float,
     aiMatchResult: AiMatchCheckResult?,
@@ -1874,6 +1884,17 @@ fun PhotoWithTwoOverlays(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Verified tick
+                if (isVerified) {
+                    Icon(
+                        Icons.Default.Verified,
+                        contentDescription = "Verified",
+                        tint = Color(0xFF2196F3),
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .size(24.dp)
+                    )
+                }
                 Text(
                     text = if (age > 0) "${profile.name}, $age" else profile.name,
                     color = Color.White,

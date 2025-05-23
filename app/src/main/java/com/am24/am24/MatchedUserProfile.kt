@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.util.Log
 import androidx.navigation.NavController
 import com.am24.am24.Post
 import com.firebase.geofire.GeoFire
@@ -44,6 +45,8 @@ fun MatchedUserProfileScreen(
     var userDistance by remember { mutableStateOf<Float?>(null) }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    var isVerified by remember { mutableStateOf(false) }
+
 
     // Fetch data on initial load
     LaunchedEffect(Unit) {
@@ -96,6 +99,23 @@ fun MatchedUserProfileScreen(
         } catch (e: Exception) {
             println("Error fetching AI match result: ${e.message}")
         }
+
+        // verification
+        val statusSnap  = FirebaseRefs.db
+            .getReference("verifications")
+            .child(profile.userId)
+            .child("status")
+            .get()
+            .await()
+
+        val status = statusSnap.getValue(String::class.java)
+        if (status == "accepted")
+        {
+            isVerified = true
+        } else
+        {
+            isVerified = false
+        }
     }
 
     // Filter posts
@@ -118,8 +138,7 @@ fun MatchedUserProfileScreen(
             userDistance != null && currentUserProfile != null && postsLoaded -> {
                 Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
+                        .fillMaxSize(),
                     backgroundColor = Color.Black,
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
@@ -132,6 +151,7 @@ fun MatchedUserProfileScreen(
                         item {
                             PhotoWithTwoOverlays(
                                 profile = profile,
+                                isVerified = isVerified,    // ← now passed in
                                 isBoosted = false,
                                 userDistance = userDistance!!,
                                 aiMatchResult = aiMatchResult,

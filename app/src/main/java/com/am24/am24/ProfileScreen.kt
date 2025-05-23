@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.AlertDialog
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
@@ -1052,6 +1053,11 @@ fun BasicInfoEditSection(
     var cityExpanded       by remember { mutableStateOf(false) }
     var locality           by remember { mutableStateOf(tempProfile.hometown) }
     var localityExpanded   by remember { mutableStateOf(false) }
+    var customCity by remember { mutableStateOf(tempProfile.customCity.orEmpty()) }
+    var customLocality by remember { mutableStateOf(tempProfile.customHometown.orEmpty()) }
+    var customHighSchool by remember { mutableStateOf(tempProfile.customHighSchool.orEmpty()) }
+    var customCollege by remember { mutableStateOf(tempProfile.customCollege.orEmpty()) }
+    var customPostGrad by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
 
     // ─── High-School dropdown + year ────────────────────
     val highSchoolOptions     = listOf(
@@ -1477,33 +1483,46 @@ fun BasicInfoEditSection(
     ) {
         // Name
         OutlinedTextField(
+            textStyle = LocalTextStyle.current.copy(color = Color.White),
             value       = name,
             onValueChange = { name = it },
             label       = { Text(stringResource(R.string.label_name), color = Color(0xFFFF6F00)) },
-            modifier    = Modifier.fillMaxWidth()
+            modifier    = Modifier.fillMaxWidth(),
+            colors =  OutlinedTextFieldDefaults.colors(
+                focusedBorderColor      = Color(0xFFFF6F00),
+                unfocusedBorderColor    = Color.Gray,
+                cursorColor             = Color.White,
+                )
         )
 
         // Height toggle & fields…
-        Text(stringResource(R.string.height_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.height_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = isFeet, onCheckedChange = { isFeet = it })
+            Switch(checked = isFeet, onCheckedChange = { isFeet = it }, colors = SwitchDefaults.colors(
+                // thumb (the round “knob”)
+                checkedThumbColor   = Color(0xFFFF6F00),
+                uncheckedThumbColor = Color.Gray,
+                // track (the background line)
+                checkedTrackColor   = Color(0xFFFF6F00).copy(alpha = 0.54f),
+                uncheckedTrackColor = Color.Gray.copy(alpha = 0.54f)
+            ) )
             Spacer(Modifier.width(8.dp))
             Text(if (isFeet) stringResource(R.string.feet_inches_label)
-            else stringResource(R.string.centimeters_label))
+            else stringResource(R.string.centimeters_label), color = Color.White)
         }
         if (isFeet) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value           = feet.toString(),
                     onValueChange   = { feet = it.toIntOrNull() ?: 0 },
-                    label           = { Text(stringResource(R.string.feet_label)) },
+                    label           = { Text(stringResource(R.string.feet_label), color = Color(0xFFFF6F00)) },
                     modifier        = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value           = inches.toString(),
                     onValueChange   = { inches = it.toIntOrNull() ?: 0 },
-                    label           = { Text(stringResource(R.string.inches_label)) },
+                    label           = { Text(stringResource(R.string.inches_label), color = Color(0xFFFF6F00)) },
                     modifier        = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
@@ -1512,14 +1531,14 @@ fun BasicInfoEditSection(
             OutlinedTextField(
                 value           = heightCm.toString(),
                 onValueChange   = { heightCm = it.toIntOrNull() ?: 0 },
-                label           = { Text(stringResource(R.string.centimeters_label)) },
+                label           = { Text(stringResource(R.string.centimeters_label), color = Color(0xFFFF6F00)) },
                 modifier        = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         }
 
         // Religion chips
-        Text(stringResource(R.string.religion_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.religion_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         val religionOpts = listOf(
             stringResource(R.string.religion_other),
             stringResource(R.string.religion_no_religion),
@@ -1541,8 +1560,10 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = religion==option,
                     onClick  = { religion = option },
-                    label    = { Text(option) },
+                    label    = { Text(option, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1551,7 +1572,7 @@ fun BasicInfoEditSection(
         }
 
         // Community chips
-        Text(stringResource(R.string.community_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.community_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1592,8 +1613,10 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = community==option,
                     onClick  = { community = option },
-                    label    = { Text(option) },
+                    label    = { Text(option, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1602,7 +1625,7 @@ fun BasicInfoEditSection(
         }
 
         // **Caste chips**
-        Text(stringResource(R.string.caste_title), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.caste_title), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1613,8 +1636,10 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = caste==option,
                     onClick  = { caste = option },
-                    label    = { Text(option) },
+                    label    = { Text(option, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1623,7 +1648,7 @@ fun BasicInfoEditSection(
         }
 
         // Gender chips
-        Text(stringResource(R.string.gender_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.gender_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1634,8 +1659,10 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = selectedGender==option,
                     onClick  = { selectedGender = option },
-                    label    = { Text(option) },
+                    label    = { Text(option, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1644,56 +1671,47 @@ fun BasicInfoEditSection(
         }
 
         // City dropdown…
-        Text(stringResource(R.string.city_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.city_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Button(
             onClick = { cityExpanded = true },
             modifier = Modifier.fillMaxWidth(),
             colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
         ) {
-            Text(if (city.isBlank()) stringResource(R.string.select_city) else city)
+            Text(if (city.isBlank()) stringResource(R.string.select_city) else city, color = Color.White)
         }
-        DropdownMenu(
-            expanded = cityExpanded,
-            onDismissRequest = { cityExpanded = false }
-        ) {
-            cityOptionsList.forEach { option ->
-                DropdownMenuItem(
-                    text    = { Text(option) },
-                    onClick = {
-                        city = option
-                        cityExpanded = false
-                        locality = ""
-                    }
-                )
-            }
-        }
+        SearchableDropdownWithCustomOption(
+            title               = stringResource(R.string.label_locality),
+            options             = localityOptionsList,
+            selectedOption      = locality,
+            onOptionSelected    = { sel ->
+                locality = sel
+            },
+            customInput         = customLocality,
+            onCustomInputChange = { customLocality = it }
+        )
 
         // Locality dropdown…
-        Text(stringResource(R.string.label_locality), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.label_locality), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Button(
             onClick = { localityExpanded = true },
             modifier = Modifier.fillMaxWidth(),
             colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
         ) {
-            Text(if (locality.isBlank()) stringResource(R.string.locality) else locality)
+            Text(if (locality.isBlank()) stringResource(R.string.locality) else locality, color = Color.White)
         }
-        DropdownMenu(
-            expanded = localityExpanded,
-            onDismissRequest = { localityExpanded = false }
-        ) {
-            localityOptionsList.forEach { option ->
-                DropdownMenuItem(
-                    text    = { Text(option) },
-                    onClick = {
-                        locality = option
-                        localityExpanded = false
-                    }
-                )
-            }
-        }
+        SearchableDropdownWithCustomOption(
+            title               = stringResource(R.string.label_locality),
+            options             = localityOptionsList,
+            selectedOption      = locality,
+            onOptionSelected    = { sel ->
+                locality = sel
+            },
+            customInput         = customLocality,
+            onCustomInputChange = { customLocality = it }
+        )
 
         // Job-Role & Work chips + optional customs…
-        Text(stringResource(R.string.job_role_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.job_role_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1707,8 +1725,10 @@ fun BasicInfoEditSection(
                         selectedJobRole = option
                         if (option!=jobRoleOptions.last()) customJobRole = ""
                     },
-                    label    = { Text(option) },
+                    label    = { Text(option, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1724,7 +1744,7 @@ fun BasicInfoEditSection(
             )
         }
 
-        Text(stringResource(R.string.label_work), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.label_work), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1738,8 +1758,10 @@ fun BasicInfoEditSection(
                         selectedWork = option
                         if (option!=workOptions.last()) customWork = ""
                     },
-                    label    = { Text(option) },
+                    label    = { Text(option, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -1756,7 +1778,7 @@ fun BasicInfoEditSection(
         }
 
         // High-School dropdown + Year…
-        Text(stringResource(R.string.label_high_school), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.label_high_school), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Button(
             onClick   = { highSchoolExpanded = true },
             modifier  = Modifier.fillMaxWidth(),
@@ -1764,22 +1786,18 @@ fun BasicInfoEditSection(
         ) {
             Text(if (highSchool.isBlank())
                 stringResource(R.string.select_or_type_high_school)
-            else highSchool)
+            else highSchool, color = Color.White)
         }
-        DropdownMenu(
-            expanded = highSchoolExpanded,
-            onDismissRequest = { highSchoolExpanded = false }
-        ) {
-            highSchoolOptions.forEach { option ->
-                DropdownMenuItem(
-                    text    = { Text(option) },
-                    onClick = {
-                        highSchool = option
-                        highSchoolExpanded = false
-                    }
-                )
-            }
-        }
+        SearchableDropdownWithCustomOption(
+            title               = stringResource(R.string.label_high_school),
+            options             = highSchoolOptions,
+            selectedOption      = highSchool,
+            onOptionSelected    = { sel ->
+                highSchool = sel
+            },
+            customInput         = customHighSchool,
+            onCustomInputChange = { customHighSchool = it }
+        )
         if (highSchool.isNotBlank()) {
             OutlinedTextField(
                 value           = highSchoolYear,
@@ -1791,7 +1809,7 @@ fun BasicInfoEditSection(
         }
 
         // College dropdown + Year + Degree…
-        Text(stringResource(R.string.college_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.college_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Button(
             onClick   = { collegeExpanded = true },
             modifier  = Modifier.fillMaxWidth(),
@@ -1799,22 +1817,18 @@ fun BasicInfoEditSection(
         ) {
             Text(if (college.isBlank())
                 stringResource(R.string.select_or_type_college)
-            else college)
+            else college, color = Color.White)
         }
-        DropdownMenu(
-            expanded = collegeExpanded,
-            onDismissRequest = { collegeExpanded = false }
-        ) {
-            collegeOptions.forEach { option ->
-                DropdownMenuItem(
-                    text    = { Text(option) },
-                    onClick = {
-                        college = option
-                        collegeExpanded = false
-                    }
-                )
-            }
-        }
+        SearchableDropdownWithCustomOption(
+            title               = stringResource(R.string.college_label),
+            options             = collegeOptions,
+            selectedOption      = college,
+            onOptionSelected    = { sel ->
+                college = sel
+            },
+            customInput         = customCollege,
+            onCustomInputChange = { customCollege = it }
+        )
         if (college.isNotBlank()) {
             OutlinedTextField(
                 value           = collegeYear,
@@ -1833,7 +1847,7 @@ fun BasicInfoEditSection(
         }
 
         // Post-Grad dropdown + Year + Degree…
-        Text(stringResource(R.string.post_graduation_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.post_graduation_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Button(
             onClick   = { postGradExpanded = true },
             modifier  = Modifier.fillMaxWidth(),
@@ -1841,22 +1855,18 @@ fun BasicInfoEditSection(
         ) {
             Text(if (postGrad.isBlank())
                 stringResource(R.string.select_or_type_post_grad)
-            else postGrad)
+            else postGrad, color = Color.White)
         }
-        DropdownMenu(
-            expanded = postGradExpanded,
-            onDismissRequest = { postGradExpanded = false }
-        ) {
-            postGradOptions.forEach { option ->
-                DropdownMenuItem(
-                    text    = { Text(option) },
-                    onClick = {
-                        postGrad = option
-                        postGradExpanded = false
-                    }
-                )
-            }
-        }
+        SearchableDropdownWithCustomOption(
+            title               = stringResource(R.string.post_graduation_label),
+            options             = postGradOptions,
+            selectedOption      = postGrad,
+            onOptionSelected    = { sel ->
+                postGrad = sel
+            },
+            customInput         = customPostGrad,
+            onCustomInputChange = { customPostGrad = it }
+        )
         if (postGrad.isNotBlank()) {
             OutlinedTextField(
                 value           = postGradYear,
@@ -1878,27 +1888,31 @@ fun BasicInfoEditSection(
         ButtonRow(
             onSave = {
                 onSave(tempProfile.copy(
-                    name                     = name,
-                    city                     = city,
-                    hometown                 = locality,
-                    highSchool               = highSchool,
-                    highSchoolGraduationYear = highSchoolYear,
-                    college                  = college,
-                    collegeGraduationYear    = collegeYear,
-                    collegeDegree            = collegeDegree.ifBlank { null },
-                    postGraduation           = postGrad.ifBlank { null },
-                    postGraduationYear       = postGradYear,
-                    postGraduationDegree     = postGradDegree.ifBlank { null },
-                    religion                 = religion,
-                    community                = community,
-                    caste                    = caste,
-                    height                   = heightCm,
-                    height2                  = if (isFeet) listOf(feet, inches) else emptyList(),
-                    gender                   = selectedGender,
-                    jobRole                  = selectedJobRole,
-                    customJobRole            = selectedJobRole.takeIf { it==jobRoleOptions.last() }?.let { customJobRole },
-                    work                     = selectedWork,
-                    customWork               = selectedWork.takeIf    { it==workOptions.last() }?.let { customWork }
+                    name                       = name,
+                    city                       = city,
+                    customCity                 = customCity.ifBlank { null },
+                    hometown                   = locality,
+                    customHometown             = customLocality.ifBlank { null },
+                    highSchool                 = highSchool,
+                    customHighSchool           = customHighSchool.ifBlank { null },
+                    highSchoolGraduationYear   = highSchoolYear,
+                    college                    = college,
+                    customCollege              = customCollege.ifBlank { null },
+                    collegeGraduationYear      = collegeYear,
+                    collegeDegree              = collegeDegree.ifBlank { null },
+                    postGraduation             = postGrad.ifBlank { null },
+                    postGraduationYear         = postGradYear,
+                    postGraduationDegree       = postGradDegree.ifBlank { null },
+                    religion                   = religion,
+                    community                  = community,
+                    caste                      = caste,
+                    height                     = heightCm,
+                    height2                    = if (isFeet) listOf(feet, inches) else emptyList(),
+                    gender                     = selectedGender,
+                    jobRole                    = selectedJobRole,
+                    customJobRole              = selectedJobRole.takeIf { it == jobRoleOptions.last() }?.let { customJobRole },
+                    work                       = selectedWork,
+                    customWork                 = selectedWork.takeIf { it == workOptions.last() }?.let { customWork }
                 ))
             },
             onCancel = onCancel
@@ -2848,14 +2862,16 @@ fun PreferencesEditSection(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- Looking For ---
-        Text(stringResource(R.string.looking_for_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.looking_for_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             lookingForOptions.forEach { option ->
                 FilterChip(
                     selected = selectedLookingFor == option,
                     onClick = { selectedLookingFor = option },
-                    label = { Text(option) },
+                    label = { Text(option, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -2864,14 +2880,16 @@ fun PreferencesEditSection(
         }
 
         // --- Love Language ---
-        Text(stringResource(R.string.love_language_label), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.love_language_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             loveLanguageOptions.forEach { option ->
                 FilterChip(
                     selected = selectedLoveLanguage == option,
                     onClick = { selectedLoveLanguage = option },
-                    label = { Text(option) },
+                    label = { Text(option, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -2880,14 +2898,16 @@ fun PreferencesEditSection(
         }
 
         // --- Politics ---
-        Text(stringResource(R.string.label_politics), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.label_politics), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             politicsOptions.forEach { option ->
                 FilterChip(
                     selected = selectedPolitics == option,
                     onClick = { selectedPolitics = option },
-                    label = { Text(option) },
+                    label = { Text(option, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White
                     )
@@ -2921,7 +2941,7 @@ fun SocialCausesSection(profile: Profile) {
         Column {
             Text(stringResource(R.string.social_causes), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement   = Arrangement.spacedBy(8.dp)) {
                 profile.socialCauses.forEach { cause ->
                     Surface(
                         shape = RoundedCornerShape(4.dp),
@@ -2987,12 +3007,12 @@ fun SocialCausesEditSection(
                         }
                     },
                     enabled = isSelected || canSelectMore,
-                    label = { Text(cause) },
+                    label = { Text(cause, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White,
-                        disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
-                        disabledLabelColor     = Color.LightGray
+                        selectedLabelColor     = Color.Black
                     )
                 )
             }
@@ -3732,7 +3752,7 @@ fun InterestsEditSection(
                         }
                     },
                     enabled = isSelected || canToggleOn,
-                    label = { Text(label) },
+                    label = { Text(label, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFFF6F00),
                         selectedLabelColor     = Color.White,

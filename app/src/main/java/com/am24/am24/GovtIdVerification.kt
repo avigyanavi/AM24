@@ -110,7 +110,7 @@ fun GovtIdVerificationScreen(
     // --- initial or no verification yet ---
     // prepare temp file + Uri
     val imageFile = remember { createTempImageFile(context) }
-    val authority = "${context.packageName}.provider"
+    val authority = "${context.packageName}.fileprovider"
     val contentUri = remember { FileProvider.getUriForFile(context, authority, imageFile) }
     val cameraLauncher = rememberLauncherForActivityResult(TakePicture()) { success ->
         if (success) photoUri = contentUri

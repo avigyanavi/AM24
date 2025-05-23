@@ -74,7 +74,7 @@ fun SubscriptionScreen(navController: NavController) {
                         initiateRazorpayPayment(
                             context = context,
                             activity = activity,
-                            amount = 99900, // ₹999.00 in paise
+                            amount = 1000, // ₹10.00 in paise
                             onSuccess = { paymentId ->
                                 Log.d("SubscriptionScreen", "Payment success callback received with paymentId: $paymentId")
                                 // Verify payment before updating Firebase
@@ -128,7 +128,7 @@ fun SubscriptionScreen(navController: NavController) {
             enabled = !isPaymentInitiated
         ) {
             Text(
-                text = if (isPaymentInitiated) "Processing..." else "Upgrade for ₹999",
+                text = if (isPaymentInitiated) "Processing..." else "Upgrade for ₹10",
                 color = Color.White,
                 fontSize = 16.sp
             )

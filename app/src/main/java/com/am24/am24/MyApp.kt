@@ -14,10 +14,5 @@ class MyApp : Application() {
 
         FirebaseApp.initializeApp(this)            // usually auto-init
         FirebaseStorage.getInstance("gs://am-twentyfour")
-
-        // Debug provider – good for emulator & dev devices
-        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
-            DebugAppCheckProviderFactory.getInstance()
-        )
     }
 }

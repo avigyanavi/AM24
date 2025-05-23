@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,13 +32,15 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
 import java.util.Locale
 
 class LandingActivity : ComponentActivity() {
+
+    private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
 
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -45,15 +48,11 @@ class LandingActivity : ComponentActivity() {
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
 
-    private lateinit var firebaseAuth: FirebaseAuth
-    private lateinit var googleSignInClient: GoogleSignInClient
-
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            val data = result.data
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account: GoogleSignInAccount? = task.getResult(ApiException::class.java)
                 Log.d("LandingActivity", "Google sign in successful: ${account?.email}")
@@ -79,8 +78,14 @@ class LandingActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 LandingScreen(
-                    onLoginClick = { startActivity(Intent(this, LoginActivity::class.java)) },
-                    onRegisterClick = { startActivity(Intent(this, RegistrationActivity::class.java)) },
+                    onLoginClick = {
+                        startActivity(Intent(this, LoginActivity::class.java))
+                        finish()
+                    },
+                    onRegisterClick = {
+                        startActivity(Intent(this, RegistrationActivity::class.java))
+                        finish()
+                    },
                     onGoogleSignIn = { signInWithGoogle() },
                     onFacebookSignIn = { /* TODO */ }
                 )
@@ -94,29 +99,82 @@ class LandingActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Check existing providers for this email before signing in with Google:
+     * - If already has "google.com" → direct sign-in
+     * - If has "password" only → prompt to link Google
+     * - If none → new user → Google sign-up → registration
+     */
     private fun firebaseAuthWithGoogle(idToken: String?, account: GoogleSignInAccount?) {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        firebaseAuth.signInWithCredential(credential)
+        val email = account?.email ?: return
+        firebaseAuth.fetchSignInMethodsForEmail(email)
+            .addOnSuccessListener { result ->
+                val methods = result.signInMethods.orEmpty()
+                when {
+                    methods.contains(GoogleAuthProvider.GOOGLE_SIGN_IN_METHOD) -> {
+                        // Already linked → sign in directly
+                        signInAndGoMain(idToken)
+                    }
+                    methods.contains(EmailAuthProvider.EMAIL_PASSWORD_SIGN_IN_METHOD) -> {
+                        // E/P only → prompt to link Google credential
+                        promptForPasswordAndLink(email, idToken)
+                    }
+                    else -> {
+                        // No providers → new user flow
+                        signInAndHandleRegistration(idToken)
+                    }
+                }
+            }
+            .addOnFailureListener {
+                // fallback flow
+                signInAndHandleRegistration(idToken)
+            }
+    }
+
+    /**
+     * Sign in with Google and if returning user go to Main, otherwise registration
+     */
+    private fun signInAndHandleRegistration(idToken: String?) {
+        val cred = GoogleAuthProvider.getCredential(idToken, null)
+        firebaseAuth.signInWithCredential(cred)
             .addOnCompleteListener(this) { task ->
                 if (!task.isSuccessful) {
                     Log.w("LandingActivity", "Firebase sign in failed", task.exception)
                     return@addOnCompleteListener
                 }
-
-                val isNewUser = task.result
-                    ?.additionalUserInfo
-                    ?.isNewUser
-                    ?: false
-
-                if (isNewUser) {
-                    // brand-new Google sign-up → go straight to Registration
-                    startRegistrationFlow()
-                } else {
-                    // returning user → Main
-                    startActivity(Intent(this, MainActivity::class.java))
-                    finish()
-                }
+                val isNew = task.result?.additionalUserInfo?.isNewUser == true
+                if (isNew) startRegistrationFlow() else goToMain()
             }
+    }
+
+    /**
+     * Sign in with Google and immediately go to Main
+     */
+    private fun signInAndGoMain(idToken: String?) {
+        val cred = GoogleAuthProvider.getCredential(idToken, null)
+        firebaseAuth.signInWithCredential(cred)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) goToMain()
+                else Log.w("LandingActivity", "Google sign-in failed", task.exception)
+            }
+    }
+
+    /**
+     * Ask for the existing E/P password to then link Google credential into that account
+     */
+    private fun promptForPasswordAndLink(email: String, idToken: String?) {
+        // Show your own dialog/UI to collect password securely
+        collectPasswordFromUser(email) { password ->
+            firebaseAuth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener { authResult ->
+                    val cred = GoogleAuthProvider.getCredential(idToken, null)
+                    authResult.user
+                        ?.linkWithCredential(cred)
+                        ?.addOnSuccessListener { goToMain() }
+                        ?.addOnFailureListener { e -> toast("Could not link Google: ${e.message}") }
+                }
+                .addOnFailureListener { toast("Password incorrect; cannot link Google.") }
+        }
     }
 
     private fun startRegistrationFlow() {
@@ -128,6 +186,18 @@ class LandingActivity : ComponentActivity() {
             startActivity(intent)
         }
         finish()
+    }
+
+    private fun goToMain() {
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+
+    // Stubbed: implement secure password prompt dialog
+    private fun collectPasswordFromUser(email: String, onPassword: (String) -> Unit) {
+        // e.g. AlertDialog with TextField, then invoke onPassword(input)
     }
 }
 
@@ -161,12 +231,11 @@ fun LandingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color.Black, Color(0xFF1A1A1A)))),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Brush.verticalGradient(listOf(Color.Black, Color(0xFF1A1A1A))))
     ) {
         Spacer(modifier = Modifier.height(32.dp))
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .padding(horizontal = 32.dp),
@@ -185,7 +254,6 @@ fun LandingScreen(
                 onClick = onRegisterClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
                 shape = CircleShape
@@ -197,7 +265,6 @@ fun LandingScreen(
                 onClick = onLoginClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                 shape = CircleShape
@@ -220,9 +287,7 @@ fun LandingScreen(
 fun LanguageSelectionBar(selectedLanguage: String, onLanguageSelected: (String) -> Unit) {
     val languages = listOf("English" to "en", "বাংলা" to "bn", "हिन्दी" to "hi")
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(8.dp),
         horizontalArrangement = Arrangement.Center
     ) {
         languages.forEach { (label, code) ->

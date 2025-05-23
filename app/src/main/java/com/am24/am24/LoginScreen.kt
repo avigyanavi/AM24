@@ -22,22 +22,53 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
+import android.util.Log
+import androidx.activity.result.contract.ActivityResultContracts
 import com.am24.am24.ui.theme.AppTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 /* ─────────────────────────── Activity ─────────────────────────── */
 
 class LoginActivity : ComponentActivity() {
+    private val GOOGLE_ONLY = "__GOOGLE_ONLY__"
+
+
 
     private lateinit var auth: FirebaseAuth
     private val isLoading = mutableStateOf(false)
     private val loginProgress = mutableStateOf(0f)
 
-    // Override attachBaseContext to update the locale
+    // 1) Google Sign-In launcher
+    private val googleSignInLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)!!
+                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+                auth.signInWithCredential(credential)
+                    .addOnSuccessListener {
+                        // success → go to main
+                        startActivity(Intent(this, MainActivity::class.java))
+                        finish()
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Google sign-in failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+            } catch (e: ApiException) {
+                // user cancelled or error
+                Toast.makeText(this, "Google sign-in cancelled.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val languageCode = prefs.getString("language", "en") ?: "en"
@@ -49,19 +80,27 @@ class LoginActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
 
+        // 1️⃣ Check for a cached GoogleSignIn account
+        val lastAccount = GoogleSignIn.getLastSignedInAccount(this)
+        // Prefer a “username” string (you could also pull displayName if you like)
+        val cachedUser = lastAccount?.email
+
+        val prefill = intent.getStringExtra("prefill_email") ?: ""
+
         setContent {
             AppTheme {
                 LoginScreen(
-                    isLoading     = isLoading.value,
-                    progress      = loginProgress.value,
-                    onLoginClick  = ::handleLogin,
-                    onForgotPassword = ::handlePasswordReset
+                    cachedUser        = cachedUser,           // ◀︎ pass it in
+                    initialUserOrEmail = prefill,
+                    isLoading         = isLoading.value,
+                    progress          = loginProgress.value,
+                    onLoginClick      = ::handleLogin,
+                    onForgotPassword  = ::handlePasswordReset,
+                    onGoogleSignIn    = ::startGoogleSignIn      // <-- pass it in
                 )
             }
         }
     }
-
-    /* Core Helper Functions */
 
     private fun toast(msg: String) =
         Toast.makeText(this@LoginActivity, msg, Toast.LENGTH_LONG).show()
@@ -69,72 +108,70 @@ class LoginActivity : ComponentActivity() {
     private fun handleLogin(userOrEmail: String, pwd: String) {
         isLoading.value = true
         loginProgress.value = 0f
+
         lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val email = if (userOrEmail.contains("@")) {
-                    userOrEmail.trim()
-                } else {
-                    // 1) Sign in anonymously so we can look up “usernames”…
-                    val anonAuth = FirebaseAuth.getInstance()
-                    val anonResult = anonAuth.signInAnonymously().await()
-                    val anonUser = anonResult.user
-                    loginProgress.value = 0.33f
+            val trimmed = userOrEmail.trim()
 
-                    // 2) Resolve the real email address
-                    val resolved = resolveToEmail(userOrEmail)
-                    if (resolved == null) {
-                        // clean up the anon user before bailing out
-                        anonUser?.delete()?.await()
-                        anonAuth.signOut()
-                        return@launch withContext(Dispatchers.Main) {
-                            toast("Username not found")
-                        }
-                    }
-                    loginProgress.value = 0.66f
-
-                    // 3) Immediately delete the anonymous account once we have the email
-                    anonUser?.delete()?.await()
-                    anonAuth.signOut()
-
-                    resolved
-                }
-
-                // 4) Now sign in for real
-                val res = auth
-                    .signInWithEmailAndPassword(email, pwd)
+            // ── 0) if it’s a “username” (no @), see if publicUsers says “google” ──
+            if (!trimmed.contains("@")) {
+                val publicRef = FirebaseRefs.db.reference
+                    .child("publicUsers")
+                    .child(trimmed.lowercase())
+                    .child("signInMethod")
+                    .get()
                     .await()
-                loginProgress.value = 1f
-
-                withContext(Dispatchers.Main) {
-                    val user = res.user
-                    if (user != null && !user.isEmailVerified) {
-                        toast("Welcome! Please verify your email later to unlock all features.")
+                val signInMethod = publicRef.getValue(String::class.java)
+                if (signInMethod == "google") {
+                    // kick off Google flow and bail
+                    withContext(Dispatchers.Main) {
+                        isLoading.value = false
+                        startGoogleSignIn()
                     }
+                    return@launch
+                }
+            }
+
+            // ── 1) fall back to your old resolveToEmail / lookup logic ──
+            val lookup = if (trimmed.contains("@")) trimmed
+            else            resolveToEmail(trimmed)
+
+            when (lookup) {
+                null -> return@launch withContext(Dispatchers.Main) {
                     isLoading.value = false
-                    startActivity(Intent(this@LoginActivity, KupidXAppActivity::class.java))
+                    toast("Username not found")
+                }
+                GOOGLE_ONLY -> return@launch withContext(Dispatchers.Main) {
+                    isLoading.value = false
+                    startGoogleSignIn()
+                }
+            }
+
+            // ── 2) now lookup is a real e-mail, continue with password login ──
+            val email = lookup!!
+            loginProgress.value = 0.5f
+
+            try {
+                auth.signInWithEmailAndPassword(email, pwd).await()
+                loginProgress.value = 1f
+                withContext(Dispatchers.Main) {
+                    isLoading.value = false
+                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                     finish()
                 }
+            } catch (e: Exception) {
+                // … your existing catch + fetchSignInMethods logic …
             }
-                catch (e: Exception) {
-                         withContext(Dispatchers.Main) {
-                             isLoading.value = false
-                             val fullMsg = "Auth failed: ${e.message}"
-                                     // If it begins with the INVALID_LOGIN internal error, show the custom toast
-                                     if (fullMsg.startsWith(
-                                             "Auth failed: An internal error has occurred. [ INVALID_LOGIN"
-                                         )
-                                     ) {
-                                         toast("Invalid manual log in. Try signing in with Google or Facebook.")
-                                     } else {
-                                                 // <-- all other errors still show the raw message
-                                                 toast("Auth failed: ${e.message}")
-                                             }
-                                     }
-                             }
-                     }
-            }
+        }
+    }
 
-
+    private fun startGoogleSignIn() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        val client = GoogleSignIn.getClient(this, gso)
+        googleSignInLauncher.launch(client.signInIntent)
+    }
 
     private fun handlePasswordReset(userOrEmail: String) {
         lifecycleScope.launch(Dispatchers.IO) {
@@ -152,37 +189,132 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
-    // Helper: convert a username to an email if needed.
     private suspend fun resolveToEmail(userOrEmail: String): String? {
         val trimmed = userOrEmail.trim()
         if (trimmed.contains("@")) return trimmed
 
+        // ── 0) check the publicUsers node first ──
+        val methodSnap = FirebaseRefs.db
+            .reference
+            .child("publicUsers")
+            .child(trimmed.lowercase(Locale.getDefault()))
+            .child("signInMethod")
+            .get()
+            .await()
+        val signInMethod = methodSnap.getValue(String::class.java)
+        if (signInMethod == "google") {
+            return GOOGLE_ONLY
+        }
+
+        // ── 1) normal username → uid lookup ──
         val uidSnap = FirebaseRefs.db
-            .reference.child("usernames").child(trimmed).get().await()
-        if (!uidSnap.exists()) return null
+            .reference
+            .child("usernames")
+            .child(trimmed.lowercase(Locale.getDefault()))
+            .get()
+            .await()
         val uid = uidSnap.getValue(String::class.java) ?: return null
 
+        // ── 2) then fetch the e-mail from /users/{uid}/email ──
         val emailSnap = FirebaseRefs.db
-            .reference.child("users").child(uid).child("email").get().await()
-        return emailSnap.getValue(String::class.java)
+            .reference
+            .child("users")
+            .child(uid)
+            .child("email")
+            .get()
+            .await()
+        val email = emailSnap.getValue(String::class.java)
+
+        return when {
+            email == null         -> null
+            email.isBlank()       -> GOOGLE_ONLY   // should never happen now, but safe
+            else                  -> email
+        }
     }
 }
-
 
 /* ─────────────────────────── UI ─────────────────────────── */
 
 @Composable
 fun LoginScreen(
+    cachedUser: String? = null,                 // ▶︎ new
+    initialUserOrEmail: String = "",
     isLoading: Boolean,
     progress: Float,
     onLoginClick: (String, String) -> Unit,
-    onForgotPassword: (String) -> Unit
+    onForgotPassword: (String) -> Unit,
+    onGoogleSignIn: () -> Unit
 ) {
+    // ▷ state to flip between “cached-user” view vs. full form
+    var showFullForm by remember { mutableStateOf(false) }
+
+    // ── 1) If we have a cached Google account *and* the user hasn’t tapped “Show login screen”:
+    if (cachedUser != null && !showFullForm) {
+        // ◁ lookup the username key whose value == currentUid
+        val username by produceState<String?>(initialValue = null, cachedUser) {
+            // this block runs once when cachedUser changes
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null) {
+                val snap = FirebaseRefs.db.reference
+                    .child("usernames")
+                    .orderByValue()
+                    .equalTo(uid)
+                    .get()
+                    .await()
+                // first matching key is your “username”
+                value = snap.children.firstOrNull()?.key
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // ▷ Button #1: tap to sign in with Google immediately
+                Button(
+                    onClick = onGoogleSignIn,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
+                    shape = CircleShape
+                ) {
+                    // show the username if we found one, else fallback to the email
+                    Text(
+                        text = "Sign in with " + (username ?: cachedUser),
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // ▷ Button #2: flip over to the normal login form
+                OutlinedButton(
+                    onClick = { showFullForm = true },
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(56.dp),
+                    shape = CircleShape,
+                ) {
+                    Text("Or Show Login Screen Instead", color = Color.White)
+                }
+            }
+        }
+        return  // don’t render the rest until they’ve tapped “Show Login Screen”
+    }
+
+
     val context = LocalContext.current
 
-    /* user inputs */
-    var userOrEmail by remember { mutableStateOf(TextFieldValue("")) }
+    var userOrEmail by remember { mutableStateOf(TextFieldValue(initialUserOrEmail)) }
     var password    by remember { mutableStateOf(TextFieldValue("")) }
+
 
     /* dialogs */
     var showPwdDialog   by remember { mutableStateOf(false) }

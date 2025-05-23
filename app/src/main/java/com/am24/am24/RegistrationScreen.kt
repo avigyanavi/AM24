@@ -22,7 +22,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -36,7 +35,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
@@ -48,7 +46,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,22 +100,40 @@ class RegistrationActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
+                // grab your ViewModel so you can pass it in:
                 val registrationViewModel: RegistrationViewModel = viewModel()
-                // If coming via Google, pre-populate email, name, and profile picture.
-                if (isGoogleSignUp) {
-                    registrationViewModel.email = intent?.getStringExtra("google_email") ?: ""
-                    registrationViewModel.name = intent?.getStringExtra("google_displayName") ?: ""
-                    registrationViewModel.profilePicUrl = intent?.getStringExtra("google_photoUrl")
-                }
+
                 RegistrationScreen(
                     onRegistrationComplete = {
-                        // 1) Persist “we really made it to the end”
-                        getSharedPreferences("settings", Context.MODE_PRIVATE)
-                            .edit {
-                                putBoolean("registration_finished", true)
+                        // ① first save the whole profile under /users/{uid}
+                        lifecycleScope.launch {
+                            saveProfileToFirebase(
+                                registrationViewModel,
+                                /* other-string = */ getString(R.string.college_other)
+                            ) {
+                                // ② only once that’s done, mirror under /publicUsers/{username}
+                                val auth = FirebaseAuth.getInstance()
+                                val db   = FirebaseRefs.db.reference
+                                auth.currentUser?.uid?.let { uid ->
+                                    db.child("users").child(uid).child("username").get()
+                                        .addOnSuccessListener { snap ->
+                                            val username = snap.getValue(String::class.java) ?: return@addOnSuccessListener
+                                            val signInMethod = if (isGoogleSignUp) "google" else "emailPassword"
+                                            db.child("publicUsers")
+                                                .child(username)
+                                                .setValue(mapOf(
+                                                    "email"                to auth.currentUser?.email,
+                                                    "signInMethod"         to signInMethod,
+                                                    "registrationFinished" to true
+                                                ))
+                                                .addOnSuccessListener {
+                                                    startActivity(Intent(this@RegistrationActivity, MainActivity::class.java))
+                                                    finish()
+                                                }
+                                        }
+                                }
                             }
-                        startActivity(Intent(this, MainActivity::class.java))
-                        finish()
+                        }
                     },
                     fusedLocationClient = fusedLocationClient,
                     initialStep = initialStep
@@ -208,6 +223,7 @@ class RegistrationViewModel : ViewModel() {
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
     var educationLevel by mutableStateOf("")  // For user's highest education level
+    var customEducationLevel by mutableStateOf("")  // ← NEW
 
     var highSchool by mutableStateOf("")
     var customHighSchool by mutableStateOf("")
@@ -340,7 +356,9 @@ private fun tryRegister(
     onError: (String) -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
-    val db   = FirebaseDatabase.getInstance().getReference("users")
+    val db   = FirebaseDatabase
+        .getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/")
+        .getReference()
     val storage = FirebaseStorage.getInstance()
 
     // 1) See if an email/password account already exists for this email
@@ -357,7 +375,8 @@ private fun tryRegister(
                             .addOnSuccessListener { snap ->
                                 if (!snap.exists()) {
                                     // 🗑️  Incomplete!  Wipe it:
-                                    cleanupIncompleteUser(auth, FirebaseDatabase.getInstance(), storage)
+                                    cleanupIncompleteUser(auth, FirebaseDatabase.getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/"),
+                                        storage)
                                     // after it’s deleted, create the new one:
                                     createFreshAccount(typedEmail, typedPassword, onSuccess, onError)
                                 } else {
@@ -380,6 +399,8 @@ private fun tryRegister(
             onError("Error checking sign-in methods: ${e.message}")
         }
 }
+
+
 
 /**
  * Wipes out any half-baked Firebase user data (RTDB, GeoFire, Storage)
@@ -2038,6 +2059,7 @@ fun EnterGenderCommunityReligionScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
+
     var other = stringResource(R.string.college_other)
     // Predefined lists for dropdown options
     val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), other)
@@ -2076,9 +2098,7 @@ fun EnterGenderCommunityReligionScreen(
     val religionOptions = listOf(stringResource(R.string.religion_hindu), stringResource(R.string.religion_muslim), stringResource(R.string.religion_christian), stringResource(R.string.religion_sikh), stringResource(R.string.religion_buddhist), stringResource(R.string.religion_jain), stringResource(R.string.religion_no_religion), stringResource(R.string.religion_indigenous_tribal), stringResource(R.string.religion_other))
 
     // Validation for enabling the "Next" button
-    val isNextEnabled = registrationViewModel.gender.isNotEmpty() &&
-            registrationViewModel.community.isNotEmpty() &&
-            registrationViewModel.religion.isNotEmpty()
+    val isNextEnabled = registrationViewModel.gender.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -2092,6 +2112,7 @@ fun EnterGenderCommunityReligionScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xFF1A1A1A))
+                    .verticalScroll(rememberScrollState())
                     .padding(innerPadding)
                     .padding(horizontal = 32.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.Top,
@@ -2107,12 +2128,6 @@ fun EnterGenderCommunityReligionScreen(
                 )
 
                 // Gender Dropdown
-                Text(
-                    text = stringResource(R.string.gender_label),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
                 DropdownWithSearch(
                     title = stringResource(R.string.select_gender),
                     options = genderOptions,
@@ -2122,13 +2137,17 @@ fun EnterGenderCommunityReligionScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Community Dropdown
-                Text(
-                    text = stringResource(R.string.community_label),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                // Religion Dropdown
+                DropdownWithSearch(
+                    title = stringResource(R.string.select_religion),
+                    options = religionOptions,
+                    selectedOption = registrationViewModel.religion,
+                    onOptionSelected = { registrationViewModel.religion = it }
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Community Dropdown
                 DropdownWithSearch(
                     title = stringResource(R.string.select_community),
                     options = communityOptions,
@@ -2138,21 +2157,38 @@ fun EnterGenderCommunityReligionScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Religion Dropdown
-                Text(
-                    text = stringResource(R.string.religion_label),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                DropdownWithSearch(
-                    title = stringResource(R.string.select_religion),
-                    options = religionOptions,
-                    selectedOption = registrationViewModel.religion,
-                    onOptionSelected = { registrationViewModel.religion = it }
+                // ---- Caste ----
+                val other = stringResource(R.string.college_other)
+                SearchableDropdownWithCustomOption(
+                    title = stringResource(R.string.caste_title),
+                    options = listOf(
+                        stringResource(R.string.caste_kulin_brahmin),
+                        stringResource(R.string.caste_non_kulin_brahmin),
+                        stringResource(R.string.caste_kulin_kayastha),
+                        stringResource(R.string.caste_non_kulin_kayastha),
+                        stringResource(R.string.caste_kshatriya),
+                        stringResource(R.string.caste_baidya),
+                        stringResource(R.string.caste_mahishya),
+                        stringResource(R.string.caste_sadgop),
+                        stringResource(R.string.caste_vaishya),
+                        stringResource(R.string.caste_obc),
+                        stringResource(R.string.caste_scheduled_caste),
+                        stringResource(R.string.caste_scheduled_tribe),
+                        stringResource(R.string.caste_rajbonshi),
+                        stringResource(R.string.caste_general),
+                        stringResource(R.string.caste_other)
+                    ),
+                    selectedOption = registrationViewModel.caste,
+                    onOptionSelected = { selectedOption ->
+                        if (selectedOption != other) {
+                            registrationViewModel.caste = selectedOption
+                        }
+                    },
+                    customInput = registrationViewModel.caste,
+                    onCustomInputChange = { registrationViewModel.caste = it }
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Next Button
                 Button(
@@ -2248,127 +2284,117 @@ fun EnterUsernameScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
-    val database = FirebaseRefs.db.reference
+    val auth    = FirebaseAuth.getInstance()
+    val db      = FirebaseDatabase
+        .getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/")
+        .getReference()
 
-    val scope = rememberCoroutineScope()
-
-    var username by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
-    var isUsernameValid by remember { mutableStateOf(true) }
-    var usernameErrorMessage by remember { mutableStateOf("") }
+    var usernameTf by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
+    var isValid    by remember { mutableStateOf(true) }
+    var errorMsg   by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
-        content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A1A))
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Username TextField
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = {
-                            username = it
-                            isUsernameValid = true
-                            usernameErrorMessage = ""
-                        },
-                        label = { Text(stringResource(R.string.username_label), color = Color.White) },
-                        singleLine = true,
-                        isError = !isUsernameValid,
-                        supportingText = {
-                            if (!isUsernameValid) {
-                                Text(
-                                    text = usernameErrorMessage,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF6000),
-                            focusedBorderColor = Color(0xFFFF6000),
-                            unfocusedBorderColor = Color(0xFFFFDB00)
-                        )
-                    )
-                    var usernameempty = stringResource(R.string.username_empty_error)
-                    var other = stringResource(R.string.college_other)
-                    // Finish Button
-                    Button(
-                        onClick = {
-                            // Inside the Finish Button onClick in EnterUsernameScreen:
-                            val trimmedUsername = username.text.trim()
-                            if (trimmedUsername.isEmpty()) {
-                                isUsernameValid = false
-                                usernameErrorMessage = usernameempty
-                                return@Button
-                            }
-                            val currentUser = auth.currentUser
+        containerColor = Color(0xFF1A1A1A)
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(32.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            OutlinedTextField(
+                value = usernameTf,
+                onValueChange = {
+                    usernameTf = it
+                    isValid    = true
+                },
+                label = { Text("Username", color = Color.White) },
+                singleLine = true,
+                isError    = !isValid,
+                supportingText = {
+                    if (!isValid) Text(errorMsg, color = MaterialTheme.colorScheme.error)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor   = Color(0xFFFF6000),
+                    unfocusedBorderColor = Color.White,
+                    cursorColor          = Color.White,
+                    focusedLabelColor    = Color(0xFFFF6000),
+                    unfocusedLabelColor  = Color.White
+                )
+            )
 
-                            if (currentUser != null) {
-                                val userId = currentUser.uid
-                                // 1) Store username in both the user's node and in the "usernames" node.
-                                checkAndStoreUsernameForRegistration(trimmedUsername, userId, onSuccess = {
-                                    // If successful, update the user's profile node:
-                                    database.child("users").child(userId).child("username")
-                                        .setValue(trimmedUsername)
-                                        .addOnSuccessListener {
-                                            registrationViewModel.username = trimmedUsername
-                                            // 2) Save the full profile in background.
-                                            scope.launch {
-                                                try {
-                                                    saveProfileToFirebase(registrationViewModel, other) {
-                                                        onRegistrationComplete()
-                                                    }
-                                                } catch (e: Exception) {
-                                                    Log.e("EnterUsernameScreen", "Error saving profile: ${e.message}")
-                                                }
-                                            }
-                                        }
-                                        .addOnFailureListener { exception ->
-                                            Log.e("EnterUsernameScreen", "Error saving username in profile: ${exception.message}")
-                                        }
-                                }, onFailure = { errorMsg ->
-                                    Log.e("EnterUsernameScreen", errorMsg)
-                                })
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.finish_button),
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    val raw = usernameTf.text.trim()
+                    if (raw.isEmpty()) {
+                        isValid  = false
+                        errorMsg = "Username cannot be empty."
+                        return@Button
                     }
-                }
+
+                    // normalize for lookup
+                    val key = raw.lowercase(Locale.getDefault())
+                    val uid = auth.currentUser?.uid ?: run {
+                        Toast.makeText(context, "No signed-in user", Toast.LENGTH_LONG).show()
+                        return@Button
+                    }
+
+                    // 1) check availability
+                    db.child("usernames").child(key).get()
+                        .addOnSuccessListener { snap ->
+                            if (snap.exists()) {
+                                isValid  = false
+                                errorMsg = "That username is taken."
+                            } else {
+                                // 2) reserve under /usernames/{key}
+                                db.child("usernames").child(key).setValue(uid)
+                                    .addOnSuccessListener {
+                                        // 3) write into /users/{uid}/username
+                                        db.child("users").child(uid)
+                                            .child("username")
+                                            .setValue(raw)
+                                            .addOnSuccessListener {
+                                                registrationViewModel.username = raw
+                                                // 4) call back to finish registration
+                                                onRegistrationComplete()
+                                            }
+                                    }
+                                    .addOnFailureListener {
+                                        isValid  = false
+                                        errorMsg = "Failed to reserve username: ${it.message}"
+                                    }
+                            }
+                        }
+                        .addOnFailureListener {
+                            isValid  = false
+                            errorMsg = "Error checking username: ${it.message}"
+                        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
+                shape = CircleShape
+            ) {
+                Text("Finish", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
-    )
+    }
 }
 
 suspend fun saveProfileToFirebase(
@@ -2622,39 +2648,6 @@ fun EnterNameScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // ---- Caste ----
-                        val other = stringResource(R.string.college_other)
-                        SearchableDropdownWithCustomOption(
-                            title = stringResource(R.string.caste_title),
-                            options = listOf(
-                                stringResource(R.string.caste_kulin_brahmin),
-                                stringResource(R.string.caste_non_kulin_brahmin),
-                                stringResource(R.string.caste_kulin_kayastha),
-                                stringResource(R.string.caste_non_kulin_kayastha),
-                                stringResource(R.string.caste_kshatriya),
-                                stringResource(R.string.caste_baidya),
-                                stringResource(R.string.caste_mahishya),
-                                stringResource(R.string.caste_sadgop),
-                                stringResource(R.string.caste_vaishya),
-                                stringResource(R.string.caste_obc),
-                                stringResource(R.string.caste_scheduled_caste),
-                                stringResource(R.string.caste_scheduled_tribe),
-                                stringResource(R.string.caste_rajbonshi),
-                                stringResource(R.string.caste_general),
-                                stringResource(R.string.caste_other)
-                            ),
-                            selectedOption = registrationViewModel.caste,
-                            onOptionSelected = { selectedOption ->
-                                if (selectedOption != other) {
-                                    registrationViewModel.caste = selectedOption
-                                }
-                            },
-                            customInput = registrationViewModel.caste,
-                            onCustomInputChange = { registrationViewModel.caste = it }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         // ---- Interested In (improved) ----
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -2763,14 +2756,10 @@ fun EnterBirthdateCityHometownScreen(
         }
         updateDob()
     }
-    var dayExpanded by remember { mutableStateOf(false) }
-    var monthExpanded by remember { mutableStateOf(false) }
-    var yearExpanded by remember { mutableStateOf(false) }
 
     // City Selection
     val cities = remember { resources.getStringArray(R.array.city_names).toList() }
     var selectedCity by remember { mutableStateOf(cities.firstOrNull() ?: "") }
-    var cityExpanded by remember { mutableStateOf(false) }
     var customCity by remember { mutableStateOf(registrationViewModel.customCity) }
     var isLocating by remember { mutableStateOf(false) }
 
@@ -2896,84 +2885,45 @@ fun EnterBirthdateCityHometownScreen(
                 Text(stringResource(R.string.select_birth_date_label), color = Color.White, fontSize = 18.sp)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { dayExpanded = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
-                        ) {
-                            Text("$selectedDay", color = Color.White)
-                        }
-                        DropdownMenu(
-                            expanded = dayExpanded,
-                            onDismissRequest = { dayExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            dayRange.forEach { day ->
-                                DropdownMenuItem(
-                                    text = { Text("$day", color = Color.White) },
-                                    onClick = {
-                                        selectedDay = day
-                                        dayExpanded = false
-                                        updateDob()
-                                    }
-                                )
+                        DropdownWithSearch(
+                            title          = stringResource(R.string.select_day_label),
+                            options        = dayRange.map { it.toString() },
+                            selectedOption = selectedDay.toString(),
+                            onOptionSelected = { sel ->
+                                sel.toIntOrNull()?.let {
+                                    selectedDay = it
+                                    updateDob()
+                                }
                             }
-                        }
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { monthExpanded = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
-                        ) {
-                            Text(monthNames[selectedMonthIndex], color = Color.White)
-                        }
-                        DropdownMenu(
-                            expanded = monthExpanded,
-                            onDismissRequest = { monthExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            monthNames.forEachIndexed { index, monthName ->
-                                DropdownMenuItem(
-                                    text = { Text(monthName, color = Color.White) },
-                                    onClick = {
-                                        selectedMonthIndex = index
-                                        monthExpanded = false
-                                        updateDob()
-                                    }
-                                )
+                        DropdownWithSearch(
+                            title           = stringResource(R.string.select_month_label),
+                            options         = monthNames,
+                            selectedOption  = monthNames[selectedMonthIndex],
+                            onOptionSelected = { sel ->
+                                monthNames.indexOf(sel).takeIf { it >= 0 }?.let { idx ->
+                                    selectedMonthIndex = idx
+                                    updateDob()
+                                }
                             }
-                        }
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { yearExpanded = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
-                        ) {
-                            Text("$selectedYear", color = Color.White)
-                        }
-                        DropdownMenu(
-                            expanded = yearExpanded,
-                            onDismissRequest = { yearExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            yearRange.forEach { yr ->
-                                DropdownMenuItem(
-                                    text = { Text(yr, color = Color.White) },
-                                    onClick = {
-                                        selectedYear = yr.toInt()
-                                        yearExpanded = false
-                                        updateDob()
-                                    }
-                                )
+                        DropdownWithSearch(
+                            title           = stringResource(R.string.select_year_label),
+                            options         = yearRange,
+                            selectedOption  = selectedYear.toString(),
+                            onOptionSelected = { sel ->
+                                sel.toIntOrNull()?.let { yyyy ->
+                                    selectedYear = yyyy
+                                    updateDob()
+                                }
                             }
-                        }
+                        )
                     }
                 }
 
@@ -2984,33 +2934,39 @@ fun EnterBirthdateCityHometownScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { cityExpanded = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
-                        ) {
-                            Text(
-                                text = if (selectedCity.isNotEmpty()) selectedCity else stringResource(R.string.select_city_default),
-                                color = Color.White
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = cityExpanded,
-                            onDismissRequest = { cityExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1A1A1A))
-                        ) {
-                            cities.forEach { cityName ->
-                                DropdownMenuItem(
-                                    text = { Text(cityName, color = Color.White) },
-                                    onClick = {
-                                        selectedCity = cityName
-                                        registrationViewModel.city = if (cityName == other) customCity else cityName
-                                        cityExpanded = false
-                                        selectedLocality = if (localities.isNotEmpty()) localities.first() else ""
-                                    }
-                                )
+                        DropdownWithSearch(
+                            title            = stringResource(R.string.select_city_default),
+                            options          = cities,
+                            selectedOption   = selectedCity,
+                            onOptionSelected = { cityName ->
+                                selectedCity = cityName
+                                registrationViewModel.city =
+                                    if (cityName == other) customCity else cityName
+                                // update localities list here…
+                                updateDob() // or whatever you need
                             }
+                        )
+                        if (selectedCity == other) {
+                            OutlinedTextField(
+                                value = customCity,
+                                onValueChange = {
+                                    customCity = it
+                                    registrationViewModel.customCity = it
+                                    registrationViewModel.city = it
+                                },
+                                label = { Text(stringResource(R.string.city_label), color = Color.White) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = Color(0xFFFF6000),
+                                    focusedBorderColor = Color(0xFFFF6000),
+                                    unfocusedBorderColor = Color.White,
+                                    focusedLabelColor = Color(0xFFFF6000),
+                                    unfocusedLabelColor = Color.White
+                                )
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -3029,83 +2985,43 @@ fun EnterBirthdateCityHometownScreen(
                         }
                     }
                 }
-                if (selectedCity == other) {
-                    OutlinedTextField(
-                        value = customCity,
-                        onValueChange = {
-                            customCity = it
-                            registrationViewModel.customCity = it
-                            registrationViewModel.city = it
-                        },
-                        label = { Text(stringResource(R.string.city_label), color = Color.White) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF6000),
-                            focusedBorderColor = Color(0xFFFF6000),
-                            unfocusedBorderColor = Color.White,
-                            focusedLabelColor = Color(0xFFFF6000),
-                            unfocusedLabelColor = Color.White
-                        )
-                    )
-                }
 
                 // Locality Section
                 Text(stringResource(R.string.locality_label), color = Color.White, fontSize = 18.sp)
                 Box {
-                    OutlinedButton(
-                        onClick = { localityExpanded = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF1A1A1A))
-                    ) {
-                        Text(
-                            text = if (selectedLocality.isNotEmpty()) selectedLocality else stringResource(R.string.select_locality_default),
-                            color = Color.White
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = localityExpanded,
-                        onDismissRequest = { localityExpanded = false },
-                        modifier = Modifier.background(Color(0xFF1A1A1A))
-                    ) {
-                        localities.forEach { loc ->
-                            DropdownMenuItem(
-                                text = { Text(loc, color = Color.White) },
-                                onClick = {
-                                    selectedLocality = loc
-                                    registrationViewModel.hometown = if (loc == other) customLocality else loc
-                                    localityExpanded = false
-                                }
-                            )
+                    DropdownWithSearch(
+                        title            = stringResource(R.string.select_locality_default),
+                        options          = localities,
+                        selectedOption   = selectedLocality,
+                        onOptionSelected = { loc ->
+                            selectedLocality = loc
+                            registrationViewModel.hometown =
+                                if (loc == other) customLocality else loc
                         }
+                    )
+                    if (selectedLocality == other) {
+                        OutlinedTextField(
+                            value = customLocality,
+                            onValueChange = {
+                                customLocality = it
+                                registrationViewModel.customHometown = it
+                                registrationViewModel.hometown = it
+                            },
+                            label = { Text(stringResource(R.string.locality_label), color = Color.White) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = Color(0xFFFF6000),
+                                focusedBorderColor = Color(0xFFFF6000),
+                                unfocusedBorderColor = Color.White,
+                                focusedLabelColor = Color(0xFFFF6000),
+                                unfocusedLabelColor = Color.White
+                            )
+                        )
                     }
                 }
-                if (selectedLocality == other) {
-                    OutlinedTextField(
-                        value = customLocality,
-                        onValueChange = {
-                            customLocality = it
-                            registrationViewModel.customHometown = it
-                            registrationViewModel.hometown = it
-                        },
-                        label = { Text(stringResource(R.string.locality_label), color = Color.White) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF6000),
-                            focusedBorderColor = Color(0xFFFF6000),
-                            unfocusedBorderColor = Color.White,
-                            focusedLabelColor = Color(0xFFFF6000),
-                            unfocusedLabelColor = Color.White
-                        )
-                    )
-                }
-
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = { if (isNextEnabled) onNext() },

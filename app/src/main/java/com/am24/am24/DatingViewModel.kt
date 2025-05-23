@@ -12,6 +12,7 @@ import com.am24.am24.calculateDistance
 import com.am24.am24.handleSwipeRight
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.coroutineScope
@@ -27,6 +28,7 @@ import java.util.UUID
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.HttpsCallableReference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
@@ -478,6 +480,28 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
         kept
     }
+    private val _verificationStatuses =
+        MutableStateFlow<Map<String,String>>(emptyMap())
+    val verificationStatuses: StateFlow<Map<String,String>>
+            = _verificationStatuses
+    private val db = FirebaseDatabase.getInstance().reference
+
+    /** one-off load for a single uid */
+    fun loadVerification(uid: String) = viewModelScope.launch {
+        val status = try {
+            db.child("verifications")
+                .child(uid)
+                .child("status")
+                .get()
+                .await()
+                .getValue(String::class.java)
+                ?: "pending"
+        } catch(e: Exception) {
+            "pending"
+        }
+        _verificationStatuses.update { it + (uid to status) }
+    }
+
 
     // Fetch the list of blocked user IDs
     private suspend fun fetchBlockedUsers(userId: String): List<String> {

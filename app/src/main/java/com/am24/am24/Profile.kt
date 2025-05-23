@@ -34,6 +34,9 @@ data class Profile(
     val matches: List<String> = emptyList(),  // List of matched user IDs
     val religion: String = "",
     val community: String = "",
+    // ── NEW: Country ──
+    val country: String = "",
+    val customCountry: String? = null,
     val city: String = "",
     val customCity: String? = null,
     val hometown: String = "",  // User's hometown
