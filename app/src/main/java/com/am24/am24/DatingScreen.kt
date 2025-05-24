@@ -1731,8 +1731,8 @@ fun PhotoWithTwoOverlays(
     sortedByUpvotes: List<Post>,
     currentProfile: Profile? = null
 ) {
-    var currentPhotoIndex by remember { mutableStateOf(0) }
     val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    var currentPhotoIndex by remember(photoUrls) { mutableStateOf(0) }
     val context = LocalContext.current
     val datingViewModel: DatingViewModel = viewModel()
     val compliments by datingViewModel.complimentsReceived.collectAsState()

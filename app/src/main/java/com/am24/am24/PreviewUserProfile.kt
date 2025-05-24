@@ -33,6 +33,7 @@ fun PreviewUserProfileScreen(
     var profile      by remember { mutableStateOf<Profile?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope        = rememberCoroutineScope()
+    var pendingLike by remember { mutableStateOf(false) }
 
     /* ── one-shot fetch ────────────────────────────────────────────── */
     LaunchedEffect(targetUserId) {
@@ -46,6 +47,10 @@ fun PreviewUserProfileScreen(
         }
     }
 
+    // ① collect your own Profile (so we know your pic URL)
+    val yourProfile by profileViewModel.currentUserProfile.collectAsState()
+    // ② collect the match-pop-up state
+    val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
     /* ── UI ────────────────────────────────────────────────────────── */
     Box(
         Modifier
@@ -100,6 +105,7 @@ fun PreviewUserProfileScreen(
                 /* ✅ LIKE */
                 FloatingActionButton(
                     onClick = {
+                        pendingLike = true
                         scope.launch {
                             handleSwipeRight(currentUserId, targetUserId, profileViewModel)
                             updateDailySwipeCount()
@@ -110,6 +116,34 @@ fun PreviewUserProfileScreen(
                     containerColor = Color(0xFFFF6F00)
                 ) {
                     Icon(Icons.Default.Favorite, null, tint = Color.White)
+                }
+                // ② Watch pendingLike + matchPopUpState
+                LaunchedEffect(pendingLike, matchPopUpState) {
+                    if (!pendingLike) return@LaunchedEffect
+
+                    if (matchPopUpState == null) {
+                        // no match → dismiss immediately
+                        navController.popBackStack("home", false)
+                        pendingLike = false
+                    }
+                }
+                // ③ Render the popup when it arrives
+                matchPopUpState?.let { (you, them) ->
+                    val yourPic = profileViewModel.currentUserProfile.value?.profilepicUrl.orEmpty()
+                    MatchPopUp(
+                        currentUserProfilePic = yourPic,
+                        otherUserProfilePic   = them.profilepicUrl.orEmpty(),
+                        onChatClick = {
+                            profileViewModel.clearMatchPopUp()
+                            pendingLike = false
+                            navController.navigate("chat/${them.userId}")
+                        },
+                        onClose = {
+                            profileViewModel.clearMatchPopUp()
+                            pendingLike = false
+                            navController.popBackStack("home", false)
+                        }
+                    )
                 }
             }
         }

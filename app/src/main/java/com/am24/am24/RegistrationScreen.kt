@@ -82,6 +82,7 @@ import java.io.IOException
 import java.util.Calendar
 import java.util.Locale
 import androidx.core.content.edit
+import kotlin.math.roundToInt
 
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -274,6 +275,19 @@ class RegistrationViewModel : ViewModel() {
         }
     }
 
+    /** Convert cm → (feet, inches) */
+    fun cmToFeetInches(cm: Int): Pair<Int,Int> {
+        val totalInches = cm / 2.54
+        val feet = (totalInches / 12).toInt()
+        val inches = ((totalInches - feet * 12).roundToInt())
+        return feet to inches
+    }
+
+    /** Convert (feet, inches) → cm */
+    fun feetInchesToCm(feet: Int, inches: Int): Int {
+        return ((feet * 12 + inches) * 2.54).roundToInt()
+    }
+
     fun stopVoiceRecording() {
         try {
             voiceRecorder?.apply {
@@ -302,7 +316,32 @@ fun RegistrationScreen(
     val context = LocalContext.current
     val onNext = { currentStep += 1 }
     val onBack: () -> Unit = {
-        if (currentStep > 1) currentStep -= 1 else (context as? ComponentActivity)?.finish()
+        when {
+            // BACK from Step 2 → Step 1: delete half-baked account, clear email/password, go to step 1
+            currentStep == 2 -> {
+                cleanupIncompleteUser(
+                    FirebaseAuth.getInstance(),
+                    FirebaseDatabase.getInstance(),
+                    FirebaseStorage.getInstance()
+                )
+                registrationViewModel.email = ""
+                registrationViewModel.password = ""
+                currentStep = 1
+            }
+            // any other back (steps > 2) just go back a step
+            currentStep > 2 -> {
+                currentStep -= 1
+            }
+            // BACK from Step 1 → exit: also delete incomplete auth right here, then finish
+            else -> {
+                cleanupIncompleteUser(
+                    FirebaseAuth.getInstance(),
+                    FirebaseDatabase.getInstance(),
+                    FirebaseStorage.getInstance()
+                )
+                (context as? ComponentActivity)?.finish()
+            }
+        }
     }
 
     Scaffold(
@@ -1895,11 +1934,6 @@ fun EnterEmailAndPasswordScreen(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
@@ -2406,6 +2440,15 @@ suspend fun saveProfileToFirebase(
         val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
+        val finalHeightCm = if (registrationViewModel.isHeightInFeet) {
+            registrationViewModel.feetInchesToCm(
+                registrationViewModel.height2.getOrNull(0) ?: 0,
+                registrationViewModel.height2.getOrNull(1) ?: 0
+            )
+        } else {
+            registrationViewModel.height
+        }
+
         val profile = Profile(
             userId = userId,
             username = registrationViewModel.username,
@@ -2432,7 +2475,7 @@ suspend fun saveProfileToFirebase(
             lookingFor = registrationViewModel.lookingFor,
             politics = registrationViewModel.politics,
             socialCauses = registrationViewModel.socialCauses.toList(),
-            height = registrationViewModel.height,
+            height = finalHeightCm,
             height2 = registrationViewModel.height2,
             caste = registrationViewModel.caste,
             voiceNoteUrl = registrationViewModel.voiceNoteUrl,
@@ -2534,6 +2577,14 @@ fun EnterNameScreen(
     val femaleOption = stringResource(R.string.female_option)
     val interestedOptions = listOf(maleOption, femaleOption)
 
+    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
+    var feetText   by remember {
+        mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "")
+    }
+    var inchText   by remember {
+        mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "")
+    }
+
     // State to determine if the "Next" button can be enabled
     val canProceed = registrationViewModel.name.isNotEmpty() &&
             registrationViewModel.height > 0 &&
@@ -2570,29 +2621,35 @@ fun EnterNameScreen(
                             value = registrationViewModel.name,
                             onValueChange = { registrationViewModel.name = it }
                         )
-
                         Spacer(modifier = Modifier.height(16.dp))
-
                         // ---- Height ----
                         Text(
                             text = stringResource(R.string.height_label),
                             color = Color.White,
                             fontSize = 18.sp
                         )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Switch(
                                 checked = registrationViewModel.isHeightInFeet,
-                                onCheckedChange = {
-                                    registrationViewModel.isHeightInFeet = it
+                                onCheckedChange = { useFeet ->
+                                    // update the unit
+                                    registrationViewModel.isHeightInFeet = useFeet
+
+                                    if (useFeet) {
+                                        // cm → ft/in
+                                        val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
+                                        feetText = f.toString()
+                                        inchText = i.toString()
+                                    } else {
+                                        // ft/in → cm
+                                        val f = feetText.toIntOrNull() ?: 0
+                                        val i = inchText.toIntOrNull() ?: 0
+                                        heightText = registrationViewModel.feetInchesToCm(f, i).toString()
+                                    }
                                 },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color(0xFFFF6000),
-                                    uncheckedThumbColor = Color.White,
-                                    uncheckedBorderColor = Color.White,
-                                    checkedBorderColor = Color(0xFFFF6000)
+                                    checkedThumbColor   = Color(0xFFFF6000),
+                                    uncheckedThumbColor = Color.White
                                 )
                             )
                             Text(
@@ -2605,43 +2662,72 @@ fun EnterNameScreen(
                         }
 
                         if (registrationViewModel.isHeightInFeet) {
+                            // make sure the Row itself fills the width:
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(modifier = Modifier.weight(1f)) {
-                                    TextFieldWithLabel(
-                                        label = stringResource(R.string.feet_label),
-                                        value = registrationViewModel.height2.getOrNull(0)?.toString() ?: "",
-                                        onValueChange = { newFeet ->
-                                            registrationViewModel.height2 = listOf(
-                                                newFeet.toIntOrNull() ?: 0,
-                                                registrationViewModel.height2.getOrNull(1) ?: 0
-                                            )
-                                        }
+                                // Feet field
+                                OutlinedTextField(
+                                    value = feetText,
+                                    onValueChange = { newFeet ->
+                                        feetText = newFeet
+                                        registrationViewModel.height2 = listOf(
+                                            newFeet.toIntOrNull() ?: 0,
+                                            registrationViewModel.height2.getOrNull(1) ?: 0
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.feet_label), color = Color.White) },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(56.dp),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedBorderColor = Color(0xFFFF6000),
+                                        unfocusedBorderColor = Color.White,
+                                        cursorColor = Color.White,
+                                        focusedLabelColor = Color(0xFFFF6000),
+                                        unfocusedLabelColor = Color.White
                                     )
-                                }
-                                Box(modifier = Modifier.weight(1f)) {
-                                    TextFieldWithLabel(
-                                        label = stringResource(R.string.inches_label),
-                                        value = registrationViewModel.height2.getOrNull(1)?.toString() ?: "",
-                                        onValueChange = { newInches ->
-                                            registrationViewModel.height2 = listOf(
-                                                registrationViewModel.height2.getOrNull(0) ?: 0,
-                                                newInches.toIntOrNull() ?: 0
-                                            )
-                                        }
+                                )
+
+                                // Inches field
+                                OutlinedTextField(
+                                    value = inchText,
+                                    onValueChange = { newInch ->
+                                        inchText = newInch
+                                        registrationViewModel.height2 = listOf(
+                                            registrationViewModel.height2.getOrNull(0) ?: 0,
+                                            newInch.toIntOrNull() ?: 0
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.inches_label), color = Color.White) },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(56.dp),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedBorderColor = Color(0xFFFF6000),
+                                        unfocusedBorderColor = Color.White,
+                                        cursorColor = Color.White,
+                                        focusedLabelColor = Color(0xFFFF6000),
+                                        unfocusedLabelColor = Color.White
                                     )
-                                }
+                                )
                             }
                         } else {
+                            // Centimeters field
                             TextFieldWithLabel(
                                 label = stringResource(R.string.height_cm_label),
-                                value = registrationViewModel.height.toString(),
-                                onValueChange = { newHeight ->
-                                    registrationViewModel.height =
-                                        newHeight.toIntOrNull() ?: 0
+                                value = heightText,
+                                onValueChange = { newCm ->
+                                    heightText = newCm
+                                    // only parse when we have a number—otherwise leave the last valid
+                                    registrationViewModel.height = newCm.toIntOrNull()
+                                        ?: registrationViewModel.height
                                 }
                             )
                         }
@@ -3607,36 +3693,6 @@ fun uploadOptionalPhoto(
             .addOnFailureListener { e ->
                 Log.e("UploadMedia", "Optional-photo upload failed: ${e.message}")
             }
-    }
-}
-
-
-fun checkAndStoreUsernameForRegistration(
-    newUsername: String,
-    userId: String,
-    onSuccess: () -> Unit,
-    onFailure: (String) -> Unit
-) {
-    if(newUsername.isBlank()){
-        onFailure("Username cannot be empty.")
-        return
-    }
-    val db = FirebaseRefs.db.reference
-    val usernamesRef = db.child("usernames")
-    // Check if the username already exists.
-    usernamesRef.child(newUsername).get().addOnSuccessListener { snapshot ->
-        if (snapshot.exists()) {
-            onFailure("Username already taken. Please choose another.")
-        } else {
-            // Set the new mapping: username -> userId.
-            usernamesRef.child(newUsername).setValue(userId)
-                .addOnSuccessListener { onSuccess() }
-                .addOnFailureListener { e ->
-                    onFailure("Failed to store username mapping: ${e.message}")
-                }
-        }
-    }.addOnFailureListener { error ->
-        onFailure("Error checking username uniqueness: ${error.message}")
     }
 }
 

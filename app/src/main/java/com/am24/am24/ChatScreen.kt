@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
@@ -137,7 +138,6 @@ fun ChatScreenContent(
     profileViewModel: ProfileViewModel,
 ) {
     var previewRefresh by remember { mutableStateOf(0) }
-    var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
     var pendingEditUri by remember { mutableStateOf<Uri?>(null) }
     var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
     val datingViewModel: DatingViewModel = viewModel()
@@ -260,15 +260,19 @@ fun ChatScreenContent(
             isUploadingMedia = false
         }
 
-    val takeVideoLauncher: ManagedActivityResultLauncher<Uri, Boolean> =
-        rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
-            if (success && pendingVideoUri != null) {
-                selectedMediaUri = pendingVideoUri
+// ─── NEW single‐intent launcher for video capture ───
+    val videoCaptureLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isUploadingMedia = false
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                selectedMediaUri  = uri
                 selectedMediaType = "video"
             }
-            pendingVideoUri = null
-            isUploadingMedia = false
         }
+    }
+
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -291,20 +295,29 @@ fun ChatScreenContent(
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            if (selectedMediaType == "photo") {
-                selectedMediaUri = freshPhotoUri(context)
-                takePhotoLauncher.launch(selectedMediaUri!!)
-            } else if (selectedMediaType == "video") {
-                selectedMediaUri = freshVideoUri(context)
-                takeVideoLauncher.launch(selectedMediaUri!!)
+            when (selectedMediaType) {
+                "photo" -> {
+                    selectedMediaUri = freshPhotoUri(context)
+                    takePhotoLauncher.launch(selectedMediaUri!!)
+                }
+                "video" -> {
+                    // 🎥 now use your new Intent + launcher
+                    isUploadingMedia = true
+                    val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
+                        putExtra(MediaStore.EXTRA_DURATION_LIMIT, 30)  // 30 sec max
+                        putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1)    // high quality
+                    }
+                    videoCaptureLauncher.launch(intent)
+                }
             }
         } else {
             Toast.makeText(context, "Camera permission required", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     val onToggleRecord: () -> Unit = {
         if (isRecording) {
@@ -344,10 +357,19 @@ fun ChatScreenContent(
     }
 
     val pickVideoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            selectedMediaUri = it
+            // check duration
+            val retriever = MediaMetadataRetriever().apply { setDataSource(context, it) }
+            val dur = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: 0L
+            retriever.release()
+            if (dur > 30_000L) {
+                Toast.makeText(context, "Please select a video of 30 seconds or less.", Toast.LENGTH_SHORT).show()
+                return@let
+            }
+            selectedMediaUri  = it
             selectedMediaType = "video"
             Log.d("ChatScreen", "Video picked: $uri")
         }
@@ -1043,16 +1065,10 @@ fun ChatScreenContent(
                         }
                     },
                     onCaptureVideo = {
+                        isUploadingMedia = true
                         selectedMediaType = "video"
-                        captureWithPermission(
-                            context,
-                            cameraPermissionLauncher,
-                            ::freshVideoUri,
-                            takeVideoLauncher
-                        ) { uri ->
-                            pendingVideoUri = uri
-                            isUploadingMedia = true
-                        }
+                        // ask for CAMERA first; your launcher will then do the actual Intent
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                     }
                 )
             }

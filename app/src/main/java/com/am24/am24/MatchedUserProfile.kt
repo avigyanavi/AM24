@@ -22,7 +22,6 @@ import androidx.navigation.NavController
 import com.am24.am24.Post
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 

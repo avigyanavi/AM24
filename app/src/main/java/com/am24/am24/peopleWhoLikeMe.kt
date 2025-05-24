@@ -155,9 +155,7 @@ fun PeopleWhoLikeMeScreen(
                                 .padding(8.dp)
                                 .clickable {
                                     // (4) Navigate with userId as the query param
-                                    navController.navigate(
-                                        "dating_screen?initialQuery=${profile.userId}"
-                                    )
+                                    navController.navigate("previewUserProfile/${profile.userId}")
                                 },
                             colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
                         ) {
