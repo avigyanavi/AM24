@@ -25,6 +25,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
+import java.util.Calendar
 
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
@@ -75,6 +76,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     val    isUploading : StateFlow<Boolean> = _isUploading
     private fun clearUploadingFlag() { _isUploading.value = false }
 
+    // 1) keep track of *your* Profile in-memory
+    private val _myProfile = MutableStateFlow<Profile?>(null)
+    val myProfile: StateFlow<Profile?> = _myProfile.asStateFlow()
+
     fun setCurrentUserId(userId: String?) {
         _currentUserId.value = userId
 
@@ -86,7 +91,66 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
         // still call your existing loadSavedPosts() for the saved-posts screen:
         loadSavedPosts(userId)
+
+        // ─── NEW: start listening to your Profile node ────────────
+        observeMyProfile(userId)
     }
+
+    private fun observeMyProfile(userId: String) {
+        val ref = db.getReference("users").child(userId)
+        ref.addValueEventListener(object: ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                snap.getValue(Profile::class.java)?.let {
+                    _myProfile.value = it
+                }
+            }
+            override fun onCancelled(err: DatabaseError) { /* log if you like */ }
+        })
+    }
+
+    /**
+     * Returns true if Plus/Premium, or still under the 5-views-per-day limit.
+     * Also auto-resets the counter the first time you call it each new day.
+     */
+    fun canPlayMedia(): Boolean {
+        val profile = _myProfile.value ?: return false
+        val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+
+        // if a new day has rolled over, reset on the server:
+        if (profile.lastMediaResetDayOfYear != today) {
+            resetMediaQuota(profile.userId, today)
+            // after resetting we’re at 0, so free users can view up to DAILY_FREE_QUOTA
+            return true
+        }
+
+        return profile.isPlus
+                || profile.isPremium
+                || profile.mediaViewsToday!! < DAILY_FREE_QUOTA
+    }
+
+    /** Call *after* a successful play to bump the counter in-DB (no-ops for premium). */
+    fun recordMediaPlay() {
+        val profile = _myProfile.value ?: return
+        if (profile.isPlus || profile.isPremium) return
+
+        // increment only the count; leave the “last reset” untouched
+        val newCount = profile.mediaViewsToday?.plus(1)
+        db.getReference("users")
+            .child(profile.userId)
+            .child("mediaViewsToday")
+            .setValue(newCount)
+    }
+
+    /** Atomically do both: zero today’s count & stamp the day-of-year. */
+    private fun resetMediaQuota(userId: String, todayDayOfYear: Int) {
+        db.getReference("users")
+            .child(userId)
+            .updateChildren(mapOf(
+                "mediaViewsToday" to 0,
+                "lastMediaResetDayOfYear" to todayDayOfYear
+            ))
+    }
+
 
     private val _feedFilters = MutableStateFlow(FilterSettings())
     val feedFilters: StateFlow<FilterSettings> get() = _feedFilters
@@ -98,6 +162,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _filtersLoaded = MutableStateFlow(false)
     val filtersLoaded: StateFlow<Boolean> get() = _filtersLoaded
 
+    // 2) quota helpers
+    private val DAILY_FREE_QUOTA = 5
     //
     // 3) listen for changes under users/{uid}/savedPosts → true
     //
@@ -332,15 +398,15 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     "mediaUrl"     to mediaUrl,
                     "mediaThumb"   to thumbUrl,
                     // --- optional place block ----------------
-                     "checkIn"    to checkIn?.let {
-                                mapOf(
-                                        "placeId" to it.placeId,
-                                        "name"    to it.name,
-                                        "address" to it.address,
-                                        "lat"     to it.lat,
-                                        "lng"     to it.lng
-                                            )
-                         },
+                    "checkIn"    to checkIn?.let {
+                        mapOf(
+                            "placeId" to it.placeId,
+                            "name"    to it.name,
+                            "address" to it.address,
+                            "lat"     to it.lat,
+                            "lng"     to it.lng
+                        )
+                    },
                     "upvotes"      to 0,
                     "downvotes"    to 0,
                     "upvotedUsers"   to emptyMap<String, Boolean>(),

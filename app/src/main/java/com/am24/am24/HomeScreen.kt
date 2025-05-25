@@ -19,7 +19,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -409,13 +410,13 @@ fun FeedSection(
                         onTagClick(tag)
                     },
                     onShare = {
-                             // hand off the real matches list
-                             postViewModel.sharePostWithMatches(
-                                   postId   = post.postId,
-                                   matches  = matches,
-                                   onSuccess= {},
-                                   onFailure= {}
-                                         )
+                        // hand off the real matches list
+                        postViewModel.sharePostWithMatches(
+                            postId   = post.postId,
+                            matches  = matches,
+                            onSuccess= {},
+                            onFailure= {}
+                        )
                     },
                     onSave = {
                         postViewModel.savePost(
@@ -688,8 +689,8 @@ fun FeedItem(
                                     onClick = {
                                         moreOptionsExpanded = false
                                         showReportDialog    = true
-                                }
-                               )
+                                    }
+                                )
                             }
                         }
                     }
@@ -751,8 +752,6 @@ fun FeedItem(
                     }
                 }
 
-
-
                 // Media Content - Photo, Video, Voice
                 if (post.mediaType != null && post.mediaUrl != null) {
                     val context = LocalContext.current // Get the context once outside
@@ -762,28 +761,66 @@ fun FeedItem(
                         when (post.mediaType) {
                             /* ---------- PHOTO ---------- */
                             "image", "photo" -> {
-                                PostPhoto(
-                                    url = post.mediaUrl ?: "",
-                                    modifier = Modifier.padding(vertical = 6.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .then(
+                                            if (postViewModel.canPlayMedia()) {
+                                                Modifier.clickable {
+                                                    postViewModel.recordMediaPlay()
+                                                    // optional: open full-screen photo viewer here
+                                                }
+                                            } else {
+                                                Modifier
+                                                    .blur(16.dp)
+                                                    .clickable {
+                                                        Toast
+                                                            .makeText(context, "Free tier allows only 5 media views per day", Toast.LENGTH_SHORT)
+                                                            .show()
+                                                    }
+                                            }
+                                        )
+                                ) {
+                                    AsyncImage(
+                                        model = post.mediaUrl ?: "",
+                                        contentDescription = "Post photo",
+                                        modifier = Modifier.matchParentSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
                             }
 
                             /* ---------- VIDEO ---------- */
                             "video" -> {
-                                Log.d("VideoPlayer", "Video URL: ${post.mediaUrl}")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(16f / 9f)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .clickable { showVideoDialog = true }
+                                        .then(
+                                            if (postViewModel.canPlayMedia()) {
+                                                Modifier.clickable {
+                                                    postViewModel.recordMediaPlay()
+                                                    showVideoDialog = true
+                                                }
+                                            } else {
+                                                Modifier
+                                                    .blur(16.dp)
+                                                    .clickable {
+                                                        Toast
+                                                            .makeText(context, "Free tier allows only 5 media views per day", Toast.LENGTH_SHORT)
+                                                            .show()
+                                                    }
+                                            }
+                                        )
                                 ) {
-                                    // thumbnail + play icon
                                     AsyncImage(
-                                        model        = post.mediaThumb ?: post.mediaUrl,
-                                        contentScale = ContentScale.Crop,
-                                        modifier     = Modifier.matchParentSize(),
-                                        contentDescription = "Video thumbnail"
+                                        model = post.mediaThumb ?: post.mediaUrl,
+                                        contentDescription = "Video thumbnail",
+                                        modifier = Modifier.matchParentSize(),
+                                        contentScale = ContentScale.Crop
                                     )
                                     Icon(
                                         Icons.Default.PlayArrow,
@@ -793,17 +830,16 @@ fun FeedItem(
                                             .align(Alignment.Center)
                                     )
                                 }
-                                val videoUri = remember { post.mediaUrl.toUri() } // Convert String to Uri
-                                // ── show your cache-backed player in a fullscreen Dialog ──
                                 if (showVideoDialog) {
                                     TextureFullscreenVideoPlayer(
-                                        uri = remember(post.mediaUrl) { post.mediaUrl.toUri() },
+                                        uri = remember(post.mediaUrl) { post.mediaUrl!!.toUri() },
                                         onDismiss = { showVideoDialog = false }
                                     )
                                 }
                             }
+
+                            /* ---------- VOICE ---------- */
                             "voice" -> {
-                                // Voice Post Playback UI
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.fillMaxWidth()
@@ -812,35 +848,43 @@ fun FeedItem(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        IconButton(
-                                            onClick = {
-                                                if (isPlaying) {
-                                                    mediaPlayer?.pause()
-                                                    isPlaying = false
-                                                } else {
-                                                    // Play using caching logic
-                                                    playVoice(context, post.mediaUrl ?: "") { player ->
-                                                        mediaPlayer = player
-                                                        isPlaying = true
-
-                                                        // Fetch and set the duration for the media
-                                                        mediaDuration = player.duration.toLong()
-
-                                                        // Set completion listener to stop playback once done
-                                                        mediaPlayer?.setOnCompletionListener {
+                                        // wrap in Box so blur affects only the button
+                                        Box {
+                                            IconButton(
+                                                onClick = {
+                                                    if (!postViewModel.canPlayMedia()) {
+                                                        Toast
+                                                            .makeText(context, "Free tier allows only 5 media views per day", Toast.LENGTH_SHORT)
+                                                            .show()
+                                                    } else {
+                                                        postViewModel.recordMediaPlay()
+                                                        if (isPlaying) {
+                                                            mediaPlayer?.pause()
                                                             isPlaying = false
-                                                            playbackProgress = 0f
+                                                        } else {
+                                                            playVoice(context, post.mediaUrl ?: "") { player ->
+                                                                mediaPlayer = player
+                                                                isPlaying = true
+                                                                mediaDuration = player.duration.toLong()
+                                                                mediaPlayer?.setOnCompletionListener {
+                                                                    isPlaying = false
+                                                                    playbackProgress = 0f
+                                                                }
+                                                            }
                                                         }
                                                     }
-                                                }
+                                                },
+                                                modifier = Modifier.then(
+                                                    if (postViewModel.canPlayMedia()) Modifier else Modifier.blur(16.dp)
+                                                )
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                    contentDescription = "Play/Pause",
+                                                    tint = Color(0xFFFFDB00),
+                                                    modifier = Modifier.size(70.dp)
+                                                )
                                             }
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                                contentDescription = "Play/Pause",
-                                                tint = Color(0xFFFFDB00),
-                                                modifier = Modifier.size(70.dp)
-                                            )
                                         }
 
                                         // Progress bar for voice playback
@@ -869,7 +913,7 @@ fun FeedItem(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-// Now place tags below time/distance
+                // Now place tags below time/distance
                 if (post.userTags.isNotEmpty()) {
                     FlowRow(
                         modifier = Modifier

@@ -139,7 +139,8 @@ data class Profile(
 
     var averageSwipeRightsOnUser: Double = 0.0,
 
-
+    var mediaViewsToday: Int? = null,
+    var lastMediaResetDayOfYear: Int? = null,
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
 

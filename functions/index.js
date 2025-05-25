@@ -233,3 +233,50 @@ exports.getNearbyProfiles = functions
     console.log('[getNearbyProfiles] returning', profiles.length, 'profiles');
     return { profiles };
   });
+
+  exports.backfillMediaFields = functions
+    .runWith({ timeoutSeconds: 540, memory: "256MB" })
+    .https.onRequest(async (req, res) => {
+      try {
+        const usersRef = admin.database().ref("users");
+        const snapshot = await usersRef.once("value");
+
+        // Compute today’s day-of-year
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 0);
+        const diff = now - start;
+        const oneDay = 1000 * 60 * 60 * 24;
+        const todayDayOfYear = Math.floor(diff / oneDay);
+
+        const updates = {};
+        let backfilledCount = 0;
+
+        snapshot.forEach(userSnap => {
+          const uid = userSnap.key;
+          const u = userSnap.val() || {};
+
+          // Only write if the field is completely missing
+          if (u.mediaViewsToday === undefined) {
+            updates[`users/${uid}/mediaViewsToday`] = 0;
+            backfilledCount++;
+          }
+          if (u.lastMediaResetDayOfYear === undefined) {
+            updates[`users/${uid}/lastMediaResetDayOfYear`] = todayDayOfYear;
+            backfilledCount++;
+          }
+        });
+
+        if (Object.keys(updates).length) {
+          await admin.database().ref().update(updates);
+        }
+
+        res
+          .status(200)
+          .send(
+            `✅ Backfilled ${backfilledCount} missing field entries across ${snapshot.numChildren()} users.`
+          );
+      } catch (err) {
+        console.error("Error doing backfill:", err);
+        res.status(500).send("❌ Backfill failed: " + err.message);
+      }
+    });

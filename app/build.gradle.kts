@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.gms.google.services)
+    kotlin("plugin.noarg") version "1.8.0"
     alias(libs.plugins.compose.compiler)
 }
 
@@ -146,4 +147,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// ↓ configure the noArg extension at the bottom of the file:
+noArg {
+    // generate a zero-arg constructor for any class annotated with @IgnoreExtraProperties
+    annotation("com.google.firebase.database.IgnoreExtraProperties")
 }

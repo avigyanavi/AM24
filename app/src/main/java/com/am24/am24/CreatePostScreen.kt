@@ -4,7 +4,8 @@
 package com.am24.am24
 
 import android.widget.Toast
-import androidx.compose.foundation.lazy.items
+import android.os.Handler
+import android.os.Looper
 import com.am24.am24.LocationManager as AM24LocationManager
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -401,8 +402,11 @@ fun ImagePostComposable(
                                     }
                                 }
                             },
-                            onError = { e -> Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show() }
-                        )
+                             onError = { e ->
+                                     Handler(Looper.getMainLooper()).post {
+                                             Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
+                                         }
+                                 }                        )
                     }) { Text("Post", color = Color(0xFFFF4500)) }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -603,13 +607,13 @@ fun VideoPostComposable(
     val camUri  = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", camFile)
 
     val videoCaptureLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.StartActivityForResult()
-                    ) { result ->
-                if (result.resultCode == Activity.RESULT_OK) {
-                        // the camera activity will write to our camUri
-                        videoUri = camUri
-                    }
-            }
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // the camera activity will write to our camUri
+            videoUri = camUri
+        }
+    }
 
     // wrap the intent in a helper function so we can re-use it in the button below
     fun makeVideoCaptureIntent(): Intent =
@@ -708,8 +712,11 @@ fun VideoPostComposable(
                                     }
                                 }
                             },
-                            onError = { e -> Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show() }
-                        )
+                             onError = { e ->
+                                     Handler(Looper.getMainLooper()).post {
+                                             Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
+                                         }
+                                 }                        )
                     }) { Text("Post", color = Color(0xFFFF4500)) }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
