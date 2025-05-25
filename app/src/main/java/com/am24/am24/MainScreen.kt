@@ -75,10 +75,10 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     navController = navController,
                     profileViewModel = profileViewModel,
                     currentUserId = currentUserId,
-                    postViewModel = postViewModel,   // ← pass it
-                    datingViewModel     = datingViewModel,
-                    onPriceChange = { priceTier.value = it },   //  ← update state
-                            onLogout = onLogout
+                    postViewModel = postViewModel,
+                    datingViewModel = datingViewModel,
+                    onPriceChange = { priceTier.value = it },
+                    onLogout = onLogout
                 )
             }
         },
@@ -90,11 +90,11 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     ) { innerPadding ->
         val paddingValues = if (showGlobalBars) innerPadding else PaddingValues(0.dp)
         MainNavGraph(
-            navController   = navController,
+            navController = navController,
             datingViewModel = datingViewModel,
-            modifier        = Modifier.padding(paddingValues),
-            postViewModel   = postViewModel,
-            currentPrice  = priceTier.value
+            modifier = Modifier.padding(paddingValues),
+            postViewModel = postViewModel,
+            currentPrice = priceTier.value
         )
     }
 }
@@ -105,10 +105,10 @@ fun TopNavBar(
     navController: NavController,
     profileViewModel: ProfileViewModel,
     currentUserId: String,
-    postViewModel: PostViewModel,   // ← pass it
+    postViewModel: PostViewModel,
     datingViewModel: DatingViewModel,
     onLogout: () -> Unit,
-    onPriceChange      : (String) -> Unit = {}   // ← NEW, default no-op
+    onPriceChange: (String) -> Unit = {}
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -125,18 +125,15 @@ fun TopNavBar(
 
     /*  ─────────  STATE FOR PRICE FILTER  ────────── */
     val priceAll = stringResource(id = R.string.price_all)
-
-    var priceMenuExpanded   by rememberSaveable { mutableStateOf(false) }
-    var selectedPriceRange  by rememberSaveable { mutableStateOf(priceAll) }
-
+    var priceMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var selectedPriceRange by rememberSaveable { mutableStateOf(priceAll) }
 
     // New: language menu
     var pickLangMenu by remember { mutableStateOf(false) }
-    val ctx      = LocalContext.current
+    val ctx = LocalContext.current
     val activity = ctx as? ComponentActivity
-    var appLang  by rememberSaveable { mutableStateOf(LocaleUtils.getSavedLang(ctx)) }
+    var appLang by rememberSaveable { mutableStateOf(LocaleUtils.getSavedLang(ctx)) }
     val languages = listOf("English" to "en", "हिन्दी" to "hi", "বাংলা" to "bn")
-
 
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
@@ -219,7 +216,6 @@ fun TopNavBar(
         actions = {
             // ─── Report current deck user ───
             if (currentRoute == "dating") {
-// then your report Icon:
                 IconButton(onClick = {
                     Log.d("TopNavBar", "reporteeId at click = $reporteeId")
                     if (reporteeId != null) showReportDialog = true
@@ -240,23 +236,23 @@ fun TopNavBar(
                 }
             }
 
-           // Location settings icon (map screen)
+            // Location settings icon (map screen)
             if (currentRoute == "map") {
                 /* 1) Price-Filter icon (new) – shows before the old Location icon */
                 IconButton(onClick = { priceMenuExpanded = true }) {
                     Icon(
-                        imageVector      = Icons.Default.FilterList,
+                        imageVector = Icons.Default.FilterList,
                         contentDescription = stringResource(R.string.cd_price_filter),
-                        tint              = if (selectedPriceRange != stringResource(R.string.price_all))
+                        tint = if (selectedPriceRange != stringResource(R.string.price_all))
                             Color(0xFFFF6F00) else Color.White,
-                        modifier          = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
                 /* ▼ Dropdown for price tiers */
                 DropdownMenu(
-                    expanded          = priceMenuExpanded,
-                    onDismissRequest  = { priceMenuExpanded = false }
+                    expanded = priceMenuExpanded,
+                    onDismissRequest = { priceMenuExpanded = false }
                 ) {
                     val tiers = listOf(
                         stringResource(R.string.price_all),
@@ -274,11 +270,10 @@ fun TopNavBar(
                                 )
                             },
                             onClick = {
-                                priceMenuExpanded  = false
+                                priceMenuExpanded = false
                                 if (tier != selectedPriceRange) {
                                     selectedPriceRange = tier
-                                    /* TODO : forward this to MapScreen / ViewModel */
-                                    onPriceChange(tier)                 // ✅ fire the callback
+                                    onPriceChange(tier)
                                 }
                             }
                         )
@@ -288,10 +283,10 @@ fun TopNavBar(
                 /* 2) Existing location icon */
                 IconButton(onClick = { showLocationPrefDialog = true }) {
                     Icon(
-                        imageVector   = Icons.Default.LocationOn,
+                        imageVector = Icons.Default.LocationOn,
                         contentDescription = stringResource(R.string.cd_location_settings),
-                        tint          = Color.White,
-                        modifier      = Modifier.size(24.dp)
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -299,9 +294,9 @@ fun TopNavBar(
                 // Create Post
                 IconButton(onClick = { navController.navigate("create_post") }) {
                     Icon(
-                        imageVector    = Icons.Default.Add,
+                        imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.cd_create_post),
-                        tint           = Color(0xFFFF6F00)
+                        tint = Color(0xFFFF6F00)
                     )
                 }
             }
@@ -347,23 +342,23 @@ fun TopNavBar(
                     }
                 }
             }
-               // Saved-Posts Icon (Profile screen only)
-               if (isProfileScreen) {
-                       IconButton(onClick = { navController.navigate("saved_posts") }) {
-                               Icon(
-                                       imageVector   = Icons.Default.BookmarkBorder,
-                                       contentDescription = "Saved Posts",
-                                       tint          = Color.White,
-                                       modifier      = Modifier.size(24.dp)
-                                           )
-                           }
-                   }
+            // Saved-Posts Icon (Profile screen only)
+            if (isProfileScreen) {
+                IconButton(onClick = { navController.navigate("saved_posts") }) {
+                    Icon(
+                        imageVector = Icons.Default.BookmarkBorder,
+                        contentDescription = "Saved Posts",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
 
             // 5) **Language picker** on Dating, Map, DMs and Feed:
             if (currentRoute in listOf("profile", "settings")) {
                 IconButton(
-                    onClick    = { pickLangMenu = !pickLangMenu },
-                    colors     = IconButtonDefaults.iconButtonColors(
+                    onClick = { pickLangMenu = !pickLangMenu },
+                    colors = IconButtonDefaults.iconButtonColors(
                         contentColor = if (pickLangMenu) Color(0xFFFF6F00) else Color.White
                     )
                 ) {
@@ -374,7 +369,7 @@ fun TopNavBar(
                     )
                 }
                 DropdownMenu(
-                    expanded        = pickLangMenu,
+                    expanded = pickLangMenu,
                     onDismissRequest = { pickLangMenu = false }
                 ) {
                     languages.forEach { (label, code) ->
@@ -432,7 +427,6 @@ fun TopNavBar(
                 }
             }
         },
-
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
     if (showReportDialog) {
@@ -453,11 +447,11 @@ fun TopNavBar(
                             .fillMaxWidth()
                             .height(100.dp),
                         colors = TextFieldDefaults.textFieldColors(
-                            containerColor        = Color(0xFF1A1A1A),
+                            containerColor = Color(0xFF1A1A1A),
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor           = Color.White,
-                            focusedTextColor             = Color.White
+                            cursorColor = Color.White,
+                            focusedTextColor = Color.White
                         )
                     )
                 }
@@ -502,7 +496,7 @@ fun TopNavBar(
                             onCheckedChange = { allowLocationForMatches = it },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFFFF6F00), // Orange when selected
+                                checkedTrackColor = Color(0xFFFF6F00),
                                 uncheckedThumbColor = Color.White,
                                 uncheckedTrackColor = Color.White
                             )
@@ -533,14 +527,37 @@ data class BottomNavItem(val label: String, val icon: ImageVector, val route: St
 fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
 
     NavigationBar(containerColor = Color.Black) {
         items.forEach { item ->
-            val selected = if (item.route == "dms") {
-                val route = currentDestination?.route ?: ""
-                route.startsWith("dms") || route.startsWith("chat/") || route.startsWith("matchedUserProfile/")
-            } else {
-                currentDestination?.hierarchy?.any { it.route == item.route } == true
+            val selected = when (item.route) {
+                "dms" -> {
+                    currentRoute?.startsWith("dms") == true ||
+                            currentRoute?.startsWith("chat/") == true ||
+                            currentRoute == "peopleWhoLikedMe" ||
+                            (currentRoute?.startsWith("previewUserProfile/") == true &&
+                                    navController.previousBackStackEntry?.destination?.route == "peopleWhoLikedMe")
+                }
+                "profile" -> {
+                    currentRoute == "profile" ||
+                            currentRoute == "govtIdVerification" ||
+                            currentRoute == "settings" ||
+                            currentRoute == "saved_posts"
+                }
+                "home" -> {
+                    currentRoute == "home" ||
+                            currentRoute == "create_post" ||
+                            currentRoute == "create_post/text" ||
+                            currentRoute == "create_post/voice" ||
+                            currentRoute == "create_post/image" ||
+                            currentRoute == "create_post/video" ||
+                            (currentRoute?.startsWith("previewUserProfile/") == true &&
+                                    navController.previousBackStackEntry?.destination?.route == "home")
+                }
+                else -> {
+                    currentDestination?.hierarchy?.any { it.route == item.route } == true
+                }
             }
 
             NavigationBarItem(
