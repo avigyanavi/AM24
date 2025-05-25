@@ -25,12 +25,15 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -599,18 +602,56 @@ fun VideoPostComposable(
     val camFile = remember { tmpVid() }
     val camUri  = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", camFile)
 
-    val captureVideo = rememberLauncherForActivityResult(
-        ActivityResultContracts.CaptureVideo()
-    ) { ok -> if (ok) videoUri = camUri }
+    val videoCaptureLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.StartActivityForResult()
+                    ) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                        // the camera activity will write to our camUri
+                        videoUri = camUri
+                    }
+            }
+
+    // wrap the intent in a helper function so we can re-use it in the button below
+    fun makeVideoCaptureIntent(): Intent =
+        Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, camUri)
+            putExtra(MediaStore.EXTRA_DURATION_LIMIT, 30)  // cap at 30s
+            putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1)    // high quality
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            videoCaptureLauncher.launch(makeVideoCaptureIntent())
+        } else {
+            Toast.makeText(ctx, "Camera permission required", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val pickVideo = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri -> uri?.let { videoUri = it } }
+    ) { uri ->
+        uri?.let {
+            val tooLong = MediaMetadataRetriever().run {
+                setDataSource(ctx, it)
+                val d = extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                release()
+                d > 30_000L
+            }
+            if (tooLong) {
+                Toast.makeText(ctx, "Please select a video ≤ 30 s", Toast.LENGTH_SHORT).show()
+            } else {
+                videoUri = it
+            }
+        }
+    }
 
     fun videoTooLong(uri: Uri): Boolean = MediaMetadataRetriever().run {
         return@run try {
             setDataSource(ctx, uri)
-            (extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L) > 15_000
+            (extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L) > 30_000
         } finally { release() }
     }
 
@@ -643,7 +684,7 @@ fun VideoPostComposable(
                             return@TextButton
                         }
                         if (videoTooLong(videoUri!!)) {
-                            Toast.makeText(ctx, "Video longer than 15 s", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(ctx, "Video longer than 30 s", Toast.LENGTH_SHORT).show()
                             return@TextButton
                         }
                         val tags = userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -716,7 +757,9 @@ fun VideoPostComposable(
                         .padding(top = 4.dp),
                     Arrangement.SpaceEvenly
                 ) {
-                    IconButton({ captureVideo.launch(camUri) }) {
+                    IconButton({
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }) {
                         Icon(Icons.Default.Videocam, null, tint = Color(0xFFFFA500))
                     }
                     IconButton({ pickVideo.launch("video/*") }) {
