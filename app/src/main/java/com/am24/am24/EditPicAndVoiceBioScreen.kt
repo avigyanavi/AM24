@@ -1,6 +1,6 @@
-import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -15,8 +15,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -33,12 +31,12 @@ import com.am24.am24.FirebaseRefs
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
 import com.am24.am24.compressImage
+import com.am24.am24.moderateImages
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,9 +51,6 @@ fun EditPicAndVoiceBioScreen(
 
     // Up to 5 images in memory. Each item is either a string (Firebase Storage URL) or empty "".
     val photoItems = remember { mutableStateListOf<String>() }
-
-    // Voice note URL if present, else null.
-    var voiceNoteUrl by remember { mutableStateOf<String?>(null) }
 
     // 1) Fetch the user’s profile once.
     LaunchedEffect(currentUserId) {
@@ -75,9 +70,7 @@ fun EditPicAndVoiceBioScreen(
                 }
                 photoItems.clear()
                 photoItems.addAll(combined.take(5))
-
-                voiceNoteUrl = fetchedProfile.voiceNoteUrl
-            },
+                        },
             onFailure = { error ->
                 Log.e("EditPic", "Failed to load profile: $error")
             }
@@ -92,95 +85,56 @@ fun EditPicAndVoiceBioScreen(
         return
     }
 
-    // Minimal audio playback
-    val mediaPlayer = remember { MediaPlayer() }
-    var isPlaying by remember { mutableStateOf(false) }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer.release()
-        }
-    }
-
-    fun togglePlayVoice() {
-        // If voiceNoteUrl is blank, do nothing
-        if (voiceNoteUrl.isNullOrEmpty()) return
-
-        if (isPlaying) {
-            mediaPlayer.pause()
-            isPlaying = false
-        } else {
-            mediaPlayer.reset()
-            try {
-                mediaPlayer.setDataSource(voiceNoteUrl)
-                mediaPlayer.prepare()
-                mediaPlayer.start()
-                isPlaying = true
-                // On completion, reset isPlaying
-                mediaPlayer.setOnCompletionListener {
-                    isPlaying = false
-                }
-            } catch (e: IOException) {
-                Log.e("VoicePlay", "Error playing voice note: ${e.message}")
-            }
-        }
-    }
-
 // 2) Image picking. We store which "slot index" the user clicked.
     var slotIndexToReplace by remember { mutableStateOf<Int?>(null) }
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
 
+    /* ─── OpenAI image-moderation helper ─────────────────────────────── */
+    suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
+        val jpeg = compressImage(context, uri)                          // already have this util
+        val b64  = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
+        moderateImages(listOf(b64))                                     // true == unsafe
+    }
+
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { rawUri: Uri? ->
-        rawUri ?: return@rememberLauncherForActivityResult          // user cancelled
-
+        rawUri ?: return@rememberLauncherForActivityResult
         val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
 
         scope.launch {
-            try {
-                // ── compress off the main thread ──────────────────────
-                val jpegBytes = compressImage(context, rawUri)
+            // 🔍 call OpenAI
+            if (isExplicit(rawUri)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "That photo looks explicit – please choose another.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return@launch                                            // 🚫 block upload
+            }
 
-                // ── push bytes to Firebase Storage ───────────────────
-                val fileName   = "${System.currentTimeMillis()}.jpg"
-                val imgRef     =
-                    FirebaseRefs.storage.reference.child("users/$currentUserId/$fileName")
+            /* —— existing compress ▶ push to Firebase —— */
+            try {
+                val jpegBytes = compressImage(context, rawUri)
+                val fileName  = "${System.currentTimeMillis()}.jpg"
+                val imgRef    = FirebaseRefs.storage.reference
+                    .child("users/$currentUserId/$fileName")
 
                 imgRef.putBytes(jpegBytes)
-                    .addOnSuccessListener { task ->
-                        task.storage.downloadUrl
-                            .addOnSuccessListener { dl ->
-                                photoItems[idx] = dl.toString()        // show in UI
-                            }
+                    .addOnSuccessListener {
+                        it.storage.downloadUrl.addOnSuccessListener { dl ->
+                            photoItems[idx] = dl.toString()
+                        }
                     }
                     .addOnFailureListener { e ->
                         Log.e("PhotoUpload", "Upload failed: ${e.message}")
                     }
-
             } catch (e: Exception) {
                 Log.e("PhotoCompress", "Compression error: ${e.message}")
             }
-        }
-    }
-
-
-    // 3) Voice picking
-    val pickVoiceLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            uploadVoiceToFirebase(
-                userId = currentUserId,
-                voiceUri = it,
-                onSuccess = { dlUrl ->
-                    voiceNoteUrl = dlUrl
-                },
-                onFailure = { err ->
-                    Log.e("VoiceUpload", "Failed: $err")
-                }
-            )
         }
     }
 
@@ -195,7 +149,6 @@ fun EditPicAndVoiceBioScreen(
         val updatedProfile = profile!!.copy(
             profilepicUrl = mainPic,
             optionalPhotoUrls = others,
-            voiceNoteUrl = voiceNoteUrl
         )
 
         // Save to Firebase (Realtime DB)
@@ -349,48 +302,6 @@ fun EditPicAndVoiceBioScreen(
                 fontSize = 16.sp,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            if (voiceNoteUrl.isNullOrEmpty()) {
-                Text(
-                    text = "You have no recorded voice bio yet. Tap below to upload/record one.",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-                Row(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Button(
-                        onClick = {
-                            pickVoiceLauncher.launch("audio/*")
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00bf63))
-                    ) {
-                        Text("Upload Voice", color = Color.White)
-                    }
-                }
-            } else {
-                // Show a mini player with play/pause
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .height(40.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { togglePlayVoice() }) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = "Toggle Playback",
-                            tint = Color.White
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    // Remove voice icon
-                    IconButton(onClick = { voiceNoteUrl = null }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Remove Voice", tint = Color.Red)
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(30.dp))
 
             // Bottom row: Cancel / Save
@@ -408,7 +319,7 @@ fun EditPicAndVoiceBioScreen(
                 }
                 Button(
                     onClick = { onSave() },
-                    colors = ButtonDefaults.buttonColors(Color(0xFF00bf63))
+                    colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
                 ) {
                     Text("Save", color = Color.White)
                 }
@@ -417,52 +328,4 @@ fun EditPicAndVoiceBioScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
-}
-
-/** Upload image to Firebase Storage, returning the final Storage download URL via onSuccess. */
-private fun uploadImageToFirebase(
-    userId: String,
-    imageUri: Uri,
-    onSuccess: (String) -> Unit,
-    onFailure: (String) -> Unit
-) {
-    val fileName = "${System.currentTimeMillis()}.jpg"
-    val userImageRef = FirebaseRefs.storage.reference.child("users/$userId/$fileName")
-
-    userImageRef.putFile(imageUri)
-        .addOnSuccessListener { snapshot ->
-            snapshot.storage.downloadUrl
-                .addOnSuccessListener { downloadUrl ->
-                    onSuccess(downloadUrl.toString())
-                }
-                .addOnFailureListener { e ->
-                    onFailure("Failed to get download URL: ${e.message}")
-                }
-        }
-        .addOnFailureListener { e ->
-            onFailure("Upload failed: ${e.message}")
-        }
-}
-
-/** Upload voice file (audio) to Firebase Storage. */
-private fun uploadVoiceToFirebase(
-    userId: String,
-    voiceUri: Uri,
-    onSuccess: (String) -> Unit,
-    onFailure: (String) -> Unit
-) {
-    val fileName = "voice_${System.currentTimeMillis()}.mp3"
-    val voiceRef = FirebaseRefs.storage.reference.child("users/$userId/$fileName")
-
-    voiceRef.putFile(voiceUri)
-        .addOnSuccessListener { task ->
-            task.storage.downloadUrl.addOnSuccessListener { dl ->
-                onSuccess(dl.toString())
-            }.addOnFailureListener { e ->
-                onFailure("Failed to get voice download URL: ${e.message}")
-            }
-        }
-        .addOnFailureListener { e ->
-            onFailure("Failed to upload voice: ${e.message}")
-        }
 }

@@ -3558,6 +3558,8 @@ fun UploadMediaComposable(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val ctx   = LocalContext.current
+    val scope = rememberCoroutineScope()
     val storageRef = FirebaseRefs.storage.reference
 
     var isRecording by remember { mutableStateOf(false) }
@@ -3576,23 +3578,55 @@ fun UploadMediaComposable(
     /* --------------------------------------------------------------------- */
     val canProceed = registrationViewModel.profilePictureUri != null
 
-    /* ---------- Profile picture picker (with compression) ---------- */
+    /* ─────────────────── HELPER: check image with OpenAI ─────────────────── */
+    suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
+        // ① read the (already-compressed) JPEG bytes
+        val jpeg = compressImage(ctx, uri)
+        // ② Base-64 encode for moderation endpoint
+        val b64  = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
+        // ③ call the existing suspend helper (true == unsafe)
+        moderateImages(listOf(b64))
+    }
+
+    /* ─────────────────── PROFILE PIC PICKER ─────────────────── */
     val profilePicPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            registrationViewModel.profilePictureUri = it
-            uploadProfilePicToFirebase(context, storageRef, it, registrationViewModel)
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            if (isExplicit(uri)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        ctx,
+                        "That photo looks explicit – please retake another one.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return@launch                                           // 🚫  block upload
+            }
+            registrationViewModel.profilePictureUri = uri
+            uploadProfilePicToFirebase(ctx, storageRef, uri, registrationViewModel)
         }
     }
 
-    /* ---------- Optional photo picker ---------- */
+    /* ─────────────────── OPTIONAL PHOTOS PICKER ─────────────────── */
     val optionalPhotoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            registrationViewModel.optionalPhotoUris.add(it)
-            uploadOptionalPhoto(context, storageRef, it, registrationViewModel)
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            if (isExplicit(uri)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        ctx,
+                        "That photo looks explicit – please choose another.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return@launch                                           // 🚫  block upload
+            }
+            registrationViewModel.optionalPhotoUris.add(uri)
+            uploadOptionalPhoto(ctx, storageRef, uri, registrationViewModel)
         }
     }
 
