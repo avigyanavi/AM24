@@ -4,14 +4,21 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.support.annotation.DrawableRes
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -220,6 +227,7 @@ fun LandingScreen(
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
     var shouldRestart by remember { mutableStateOf(false) }
+    var showLanguagePicker by remember { mutableStateOf(false) }
 
     if (shouldRestart) {
         LaunchedEffect(Unit) {
@@ -250,29 +258,46 @@ fun LandingScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
+            SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
             Button(
-                onClick = onRegisterClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
-                shape = CircleShape
+                    onClick = onRegisterClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(25.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black,
+                contentColor   = Color.White
+            ),
+            border = BorderStroke(1.dp, Color(0xFFFF6600))
             ) {
-                Text(stringResource(R.string.register), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.register),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+            Spacer(Modifier.height(16.dp))
+            // Login button
             Button(
                 onClick = onLoginClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                shape = CircleShape
+                    .height(50.dp),
+                shape = RoundedCornerShape(25.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black,
+                    contentColor   = Color.White
+                ),
+                border = BorderStroke(1.dp, Color(0xFFFF6600))
             ) {
-                Text(stringResource(R.string.login), color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = stringResource(R.string.login),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
-            SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
         }
         LanguageSelectionBar(selectedLanguage) { lang ->
             prefs.edit().putString("language", lang).apply()
@@ -284,57 +309,123 @@ fun LandingScreen(
 }
 
 @Composable
-fun LanguageSelectionBar(selectedLanguage: String, onLanguageSelected: (String) -> Unit) {
-    val languages = listOf("English" to "en", "বাংলা" to "bn", "हिन्दी" to "hi")
+fun SocialSignInButtons(
+    onGoogleSignIn: () -> Unit,
+    onFacebookSignIn: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SocialSignInButton(
+            logo = R.drawable.ic_google_logo,
+            text = "Sign in with Google",
+            contentColor = Color.Black,
+            onClick = onGoogleSignIn
+        )
+        SocialSignInButton(
+            logo = R.drawable.facebook_logo,
+            text = "Sign in with Facebook",
+            contentColor = Color(0xFF1877F2), // FB blue
+            onClick = onFacebookSignIn
+        )
+        Spacer(Modifier.width(12.dp))
+    }
+}
+
+@Composable
+fun LanguageSelectionBar(
+    selectedLanguage: String,
+    onLanguageSelected: (String) -> Unit
+) {
+    // display order
+    val languages = listOf(
+        "English" to "en",
+        "हिन्दी"   to "hi",
+        "বাংলা"    to "bn",
+        // locked / coming-soon set
+        "தமிழ்"    to "ta",
+        "ଓଡ଼ିଆ"     to "or",   // ← NEW: Odia
+        "తెలుగు"  to "te",
+        "मराठी"     to "mr",
+        "ગુજરાતી"  to "gu",
+        "ಕನ್ನಡ"    to "kn",
+        "മലയാളം"  to "ml",
+        "অসমীয়া"  to "as",
+        "ਪੰਜਾਬੀ"   to "pa"
+    )
+
+    val unlockedCodes = setOf("en", "hi", "bn")          // only these are live
+    val scroll = rememberScrollState()
+
     Row(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        horizontalArrangement = Arrangement.Center
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scroll)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         languages.forEach { (label, code) ->
-            Button(
-                onClick = { onLanguageSelected(code) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedLanguage == code) Color(0xFFFF6000) else Color.Gray
-                ),
-                modifier = Modifier.padding(horizontal = 4.dp)
-            ) {
-                Text(label, color = Color.White, fontSize = 14.sp)
+            val isUnlocked = code in unlockedCodes
+            val isSelected = selectedLanguage == code
+
+            // show label + optional lock badge in a Column so the 🔒 sits “above”
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // 🔒 only for coming-soon languages
+                if (!isUnlocked) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = Color.LightGray,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                Button(
+                    onClick = { if (isUnlocked) onLanguageSelected(code) },
+                    enabled = isUnlocked,             // greys out + blocks ripple
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = when {
+                            isUnlocked && isSelected -> Color(0xFFFF6000)    // orange
+                            isUnlocked               -> Color.DarkGray
+                            else                     -> Color.Gray           // locked
+                        },
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(label, fontSize = 14.sp)
+                }
             }
         }
     }
 }
 
 @Composable
-fun SocialSignInButtons(onGoogleSignIn: () -> Unit, onFacebookSignIn: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
+fun SocialSignInButton(
+    @DrawableRes logo: Int,
+    text: String,
+    backgroundColor: Color = Color.White,
+    contentColor: Color,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height( 50.dp ),
+        shape = RoundedCornerShape(25.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor,
+            contentColor   = contentColor
+        ),
+        border = BorderStroke(1.dp, Color.LightGray),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
     ) {
-        Button(
-            onClick = onGoogleSignIn,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-            shape = CircleShape
-        ) {
-            Icon(painterResource(R.drawable.google_logo), contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.continue_with_google), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = onFacebookSignIn,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-            shape = CircleShape
-        ) {
-            Icon(painterResource(R.drawable.facebook_logo), contentDescription = null, modifier = Modifier.size(26.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.continue_with_facebook), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
+        Icon(
+            painter = painterResource(logo),
+            contentDescription = null,
+            tint = Color.Unspecified,
+            modifier = Modifier.size(25.dp)
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
 }
 

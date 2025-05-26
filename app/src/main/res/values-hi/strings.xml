@@ -20,6 +20,7 @@
     <string name="feed">फ़ीड</string>
     <string name="profile">प्रोफ़ाइल</string>
 
+    <string name="languages">भाषाएँ</string>
 
     <!-- Bottom-navigation labels -->
     <string name="nav_date">डेट</string>
@@ -1187,10 +1188,10 @@
     <string name="add_photos_button">चित्र जोड़ें</string>
     <string name="voice_bio_label">वॉयस बायो [रिकॉर्ड/पुनः रिकॉर्ड करने के लिए टैप करें]</string>
     <string name="voice_bio_duration_error">वॉयस बायो 60 सेकंड से अधिक है, कृपया कम समय का रिकॉर्ड करें</string>
-    <string name="select_day_label">दिन चुनें</string>
+    <string name="select_day_label">दिन</string>
 
-    <string name="select_month_label">माह चुनें</string>
-    <string name="select_year_label">वर्ष चुनें</string>
+    <string name="select_month_label">महीना</string>
+    <string name="select_year_label">साल</string>
     <!-- Birthdate, City & Locality -->
     <string name="enter_birthdate_city_hometown_title">जन्म तिथि, शहर और स्थानीयता दर्ज करें</string>
     <string name="select_birth_date_label">जन्म तिथि चुनें</string>

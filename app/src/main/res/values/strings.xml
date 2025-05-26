@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
-
+    <string name="languages">Languages</string>
     <string name="section_bio_and_voice">Bio &amp; Voice</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">
@@ -1187,10 +1187,10 @@
     <string name="voice_bio_label">Voice Bio [Tap icon to record/re-record]</string>
     <string name="voice_bio_duration_error">Voice Bio exceeds 60 seconds. Please record a shorter one.</string>
 
-    <string name="select_day_label">Select Day</string>
+    <string name="select_day_label">Day</string>
     <!-- values/strings.xml (English) -->
-    <string name="select_month_label">Select Month</string>
-    <string name="select_year_label">Select Year</string>
+    <string name="select_month_label">Month</string>
+    <string name="select_year_label">Year</string>
 
     <!-- Birthdate, City & Locality -->
     <string name="enter_birthdate_city_hometown_title">Enter Birthdate, City and Locality</string>

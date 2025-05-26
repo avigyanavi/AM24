@@ -84,7 +84,6 @@ import java.io.File
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.res.stringResource
-import androidx.core.net.toUri
 import com.am24.am24.util.LocaleUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -100,7 +99,6 @@ import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.Transformer
 import kotlinx.coroutines.tasks.await
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -376,20 +374,32 @@ fun ChatScreenContent(
     }
 
     val sendHandler: () -> Unit = mySend@{
-        if (isSendingMessage || isUploadingMedia) {
-            Log.d("ChatScreen", "Send blocked: isSendingMessage=$isSendingMessage, isUploadingMedia=$isUploadingMedia")
-            return@mySend
-        }
-        Log.d("ChatScreen", "Send initiated: mediaUri=$selectedMediaUri, mediaType=$selectedMediaType, text=$messageText")
+
+        if (isSendingMessage || isUploadingMedia) return@mySend
         isSendingMessage = true
 
-        fun done() {
-            isSendingMessage = false
-        }
-
+        /* ──────────────────────────────────────────────────
+           1.  PHOTO / VIDEO  (selectedMediaUri != null)
+           ────────────────────────────────────────────────── */
         if (selectedMediaUri != null && selectedMediaType != null) {
-            isUploadingMedia = true
             scope.launch {
+                /* 1-A  Moderate */
+                val flagged = when (selectedMediaType) {
+                    "photo" -> moderateImages(listOf(context.uriToBase64(selectedMediaUri!!)))
+                    "video" -> moderateImages(context.videoFramesEvery2s(selectedMediaUri!!))
+                    else    -> false
+                }
+                /* 1-B  Ask user if unsafe */
+                if (flagged && !askProceed(context,
+                        "This $selectedMediaType may be explicit.  Send anyway?")) {
+                    selectedMediaUri  = null
+                    selectedMediaType = null
+                    isSendingMessage  = false
+                    return@launch
+                }
+
+                /* 1-C  Upload + send (your old code) */
+                isUploadingMedia = true
                 try {
                     sendMediaMessage(
                         currentUserId, otherUserId, chatId,
@@ -401,15 +411,18 @@ fun ChatScreenContent(
                         "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
                     )
                 } finally {
-                    selectedMediaUri = null
+                    selectedMediaUri  = null
                     selectedMediaType = null
-                    isUploadingMedia = false
-                    done()
+                    isUploadingMedia  = false
+                    isSendingMessage  = false
                 }
             }
             return@mySend
         }
 
+        /* ──────────────────────────────────────────────────
+           2.  VOICE  (no moderation for now)
+           ────────────────────────────────────────────────── */
         if (recordedVoiceUri != null) {
             sendVoiceMessage(
                 currentUserId, otherUserId, chatId,
@@ -417,30 +430,48 @@ fun ChatScreenContent(
             )
             postNotification(notificationsRef, otherUserId, currentUserId, "[Voice Message]")
             recordedVoiceUri = null
-            recordFile = null
-            done()
-            Log.d("ChatScreen", "Voice message sent")
+            recordFile       = null
+            isSendingMessage = false
             return@mySend
         }
 
+        /* ──────────────────────────────────────────────────
+           3.  TEXT
+           ────────────────────────────────────────────────── */
         if (messageText.isNotBlank()) {
-            val newId = messagesRef.push().key ?: return@mySend
-            val msg = Message(
-                id = newId,
-                senderId = currentUserId,
-                receiverId = otherUserId,
-                text = messageText,
-                timestamp = System.currentTimeMillis()
-            )
-            messagesRef.child(newId).setValue(msg).addOnCompleteListener { done() }
-            postNotification(notificationsRef, otherUserId, currentUserId, messageText)
-            database.getReference("typing/$chatId/$currentUserId").setValue(false)
-            Log.d("ChatScreen", "Text message sent")
-            messageText = ""
-        } else {
-            done()
-            Log.d("ChatScreen", "No content to send")
+            scope.launch {
+                /* 3-A  Moderate */
+                val flagged = moderateText(messageText)
+                /* 3-B  Ask user if unsafe */
+                if (flagged && !askProceed(context,
+                        "This message may be explicit.  Send anyway?")) {
+                    isSendingMessage = false
+                    return@launch
+                }
+
+                /* 3-C  Push to Firebase (your old code) */
+                val newId = messagesRef.push().key ?: return@launch
+                val msg = Message(
+                    id          = newId,
+                    senderId    = currentUserId,
+                    receiverId  = otherUserId,
+                    text        = messageText,
+                    timestamp   = System.currentTimeMillis()
+                )
+                messagesRef.child(newId).setValue(msg).addOnCompleteListener {
+                    isSendingMessage = false
+                }
+                postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                database.getReference("typing/$chatId/$currentUserId").setValue(false)
+                messageText = ""
+            }
+            return@mySend
         }
+
+        /* ──────────────────────────────────────────────────
+           4.  Nothing to send
+           ────────────────────────────────────────────────── */
+        isSendingMessage = false
     }
 
     LaunchedEffect(Unit) {
@@ -1421,6 +1452,15 @@ fun ChatScreenContent(
     )
 }
 
+suspend fun askProceed(ctx: Context, msg: String): Boolean =
+    suspendCancellableCoroutine { cont ->
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setMessage(msg)
+            .setPositiveButton("Proceed") { _, _ -> cont.resume(true) }
+            .setNegativeButton("Cancel")  { _, _ -> cont.resume(false) }
+            .setOnCancelListener          {        cont.resume(false) }
+            .show()
+    }
 
 suspend fun copyUriToLocalFile(context: Context, uri: Uri, extension: String): Uri {
     val inputStream = context.contentResolver.openInputStream(uri)

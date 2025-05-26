@@ -76,15 +76,17 @@ fun DMScreenContent(navController: NavController) {
             }
     }
 
+// 1️⃣  Build the chip list
     val groupChatTitles = remember(currentUserProfile) {
         buildList {
-            add("West Bengal")
+            add("India")           // ← global room (was “West Bengal”)
             currentUserProfile?.city
                 ?.takeIf { it.isNotBlank() }?.let { add(it) }
             currentUserProfile?.hometown
                 ?.takeIf { it.isNotBlank() }?.let { add(it) }
         }.distinct()
     }
+
 
     var searchQuery by remember { mutableStateOf("") }
     var likedCount by remember { mutableStateOf(0) }
@@ -216,10 +218,11 @@ fun DMScreenContent(navController: NavController) {
                         .horizontalScroll(rememberScrollState()),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // 2️⃣  Map chip → chat-room ID
                     groupChatTitles.forEach { title ->
-                        GroupChatChip(title) {
+                            GroupChatChip(title) {
                             val id = when (title) {
-                                "West Bengal" -> "group_wb"
+                                "India" -> "group_india"                      // ← new constant
                                 else -> "group_${title.replace(" ", "_").lowercase()}"
                             }
                             navController.navigate("groupChat/$id")

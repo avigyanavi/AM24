@@ -40,6 +40,7 @@ android {
         jvmTarget = "1.8"
     }
     buildFeatures {
+        buildConfig = true      // should be here
         compose = true
     }
     composeOptions {
@@ -63,8 +64,10 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.analytics)
-    implementation("com.google.android.gms:play-services-auth:20.6.0")
-    implementation("com.google.firebase:firebase-auth-ktx:22.1.1")
+    implementation("com.squareup.moshi:moshi:1.15.0")          // tiny JSON helper
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation("com.google.firebase:firebase-auth-ktx:23.2.1")
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.functions)
@@ -129,6 +132,7 @@ dependencies {
 
 
     implementation("com.google.firebase:firebase-appcheck-debug:18.0.0")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity:18.0.0")
     //swipable
     implementation(libs.accompanist.swiperefresh)
     implementation (libs.androidx.foundation.v100)
@@ -140,6 +144,7 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.play.services.cast.tv)
+    implementation(libs.firebase.auth)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

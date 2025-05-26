@@ -4,6 +4,7 @@
     <string name="max_social_causes_error">
     আপনি শুধুমাত্র %1$dটি সামাজিক কারণ নির্বাচন করতে পারেন।
 </string>
+    <string name="languages">ভাষা</string>
 
     <string name="age_format">Age: %s</string>
     <string name="age_only_format">Age: %s</string>
@@ -1143,6 +1144,7 @@
     <string name="submit">জমা দিন</string>
     <string name="cancel">বাতিল করুন</string>
 
+
     <!-- Language Selection -->
     <string name="choose_language_title">ভাষা নির্বাচন করুন</string>
     <string name="select_preferred_language">আপনার পছন্দের ভাষা নির্বাচন করুন</string>
@@ -1190,11 +1192,11 @@
     <string name="add_photos_button">ছবি যোগ করুন</string>
     <string name="voice_bio_label">ভয়েস বায়ো [রিকর্ড/পুনরায় রেকর্ড করতে আইকন স্পর্শ করুন]</string>
     <string name="voice_bio_duration_error">ভয়েস বায়ো ৬০ সেকেন্ডের বেশি, দয়া করে ছোট সময়ের রেকর্ড করুন</string>
-    <string name="select_day_label">দিন নির্বাচন করুন</string>
+    <string name="select_day_label">দিন</string>
 
     <!-- values-bn/strings.xml (Bengali) -->
-    <string name="select_month_label">মাস নির্বাচন করুন</string>
-    <string name="select_year_label">বছর নির্বাচন করুন</string>
+    <string name="select_month_label">মাস</string>
+    <string name="select_year_label">বছর</string>
     <!-- Birthdate, City & Locality -->
     <string name="enter_birthdate_city_hometown_title">জন্ম তারিখ, শহর ও লোকালিটি প্রবেশ করুন</string>
     <string name="select_birth_date_label">জন্ম তারিখ নির্বাচন করুন</string>

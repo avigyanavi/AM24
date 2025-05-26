@@ -222,41 +222,62 @@ fun TextPostComposable(
                 },
                 actions = {
                     TextButton(onClick = {
-                        // Validate input
-                        if (contentText.isBlank()) {
-                            Toast.makeText(context, "Post content cannot be empty.", Toast.LENGTH_SHORT).show()
-                            return@TextButton
-                        }
+                        coroutineScope.launch {
+                            // Validate input
+                            if (contentText.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    "Post content cannot be empty.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@launch
+                            }
 
-                        if (userId == null) {
-                            Toast.makeText(context, "User not authenticated.", Toast.LENGTH_SHORT).show()
-                            return@TextButton
-                        }
+                            if (userId == null) {
+                                Toast.makeText(
+                                    context,
+                                    "User not authenticated.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@launch
+                            }
 
-                        // Convert userTags string to list
-                        val tagsList = userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                            /* suspend call is now legal */
+                            val flagged = moderateText(contentText)
+                            if (flagged && !askProceed(context, "This may be explicit. Post anyway?"))
+                                return@launch                                     // user pressed “Retake”
 
-                        postViewModel.createTextPost(
-                            userId = userId,
-                            username = username,
-                            contentText = contentText,
-                            userTags = tagsList,
-                            fontFamily = "Default", // Default font family since it's removed
-                            fontSize = 14, // Default font size since it's removed
-                            onSuccess = {
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, "Posted ✔", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack("home", inclusive = false)
+                            // Convert userTags string to list
+                            val tagsList =
+                                userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+                            postViewModel.createTextPost(
+                                userId = userId,
+                                username = username,
+                                contentText = contentText,
+                                userTags = tagsList,
+                                fontFamily = "Default", // Default font family since it's removed
+                                fontSize = 14, // Default font size since it's removed
+                                onSuccess = {
+                                    coroutineScope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "Posted ✔", Toast.LENGTH_SHORT)
+                                                .show()
+                                            navController.popBackStack("home", inclusive = false)
+                                        }
+                                    }
+                                },
+                                onFailure = { error ->
+                                    coroutineScope.launch {
+                                        Toast.makeText(
+                                            context,
+                                            "Failed to create post: $error",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
-                            },
-                            onFailure = { error ->
-                                coroutineScope.launch {
-                                    Toast.makeText(context, "Failed to create post: $error", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        )
+                            )
+                        }
                     }) {
                         Text("Post", color = Color(0xFFFF4500)) // Dark orange for the "Post" button
                     }
@@ -377,36 +398,58 @@ fun ImagePostComposable(
                 },
                 actions = {
                     TextButton(onClick = {
-                        if (imageUri == null) {
-                            Toast.makeText(ctx, "Select an image first", Toast.LENGTH_SHORT).show()
-                            return@TextButton
-                        }
-                        val tags = userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        scope.launch {
+                            if (imageUri == null) {
+                                Toast.makeText(ctx, "Select an image first", Toast.LENGTH_SHORT)
+                                    .show()
+                                return@launch
+                            }
+                            val tags =
+                                userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
-                        postViewModel.createMediaPost(
-                            userId   = userId,
-                            username = username,
-                            mediaUri = imageUri!!,
-                            mediaType= "image",
-                            caption  = caption,
-                            userTags = tags,
-                            checkIn  = selectedPlace?.let {
-                                CheckIn(it.placeId, it.name, it.address,
-                                    it.latLng.latitude, it.latLng.longitude)
-                            },
-                            onDone = {
-                                scope.launch {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack("home", inclusive = false)
+                            /* ①   moderate the single JPEG */
+                            val b64 = ctx.uriToBase64(imageUri!!)
+                            val flagged = moderateImages(listOf(b64))
+
+                            /* ②   hard-block if unsafe  */
+                            if (flagged) {
+                                Toast.makeText(
+                                    ctx,
+                                    "Image appears explicit – please retake.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                imageUri = null            // force user to pick another
+                                return@launch
+                            }
+
+                            postViewModel.createMediaPost(
+                                userId = userId,
+                                username = username,
+                                mediaUri = imageUri!!,
+                                mediaType = "image",
+                                caption = caption,
+                                userTags = tags,
+                                checkIn = selectedPlace?.let {
+                                    CheckIn(
+                                        it.placeId, it.name, it.address,
+                                        it.latLng.latitude, it.latLng.longitude
+                                    )
+                                },
+                                onDone = {
+                                    scope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT)
+                                                .show()
+                                            navController.popBackStack("home", inclusive = false)
+                                        }
                                     }
-                                }
-                            },
-                             onError = { e ->
-                                     Handler(Looper.getMainLooper()).post {
-                                             Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
-                                         }
-                                 }                        )
+                                },
+                                onError = { e ->
+                                    Handler(Looper.getMainLooper()).post {
+                                        Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
+                                    }
+                                })
+                        }
                     }) { Text("Post", color = Color(0xFFFF4500)) }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -683,40 +726,59 @@ fun VideoPostComposable(
                 },
                 actions = {
                     TextButton(onClick = {
-                        if (videoUri == null) {
-                            Toast.makeText(ctx, "Select a video first", Toast.LENGTH_SHORT).show()
-                            return@TextButton
-                        }
-                        if (videoTooLong(videoUri!!)) {
-                            Toast.makeText(ctx, "Video longer than 30 s", Toast.LENGTH_SHORT).show()
-                            return@TextButton
-                        }
-                        val tags = userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        scope.launch {
+                            if (videoUri == null) {
+                                Toast.makeText(ctx, "Select a video first", Toast.LENGTH_SHORT)
+                                    .show()
+                                return@launch
+                            }
+                            if (videoTooLong(videoUri!!)) {
+                                Toast.makeText(ctx, "Video longer than 30 s", Toast.LENGTH_SHORT)
+                                    .show()
+                                return@launch
+                            }
+                            val tags =
+                                userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
-                        postViewModel.createMediaPost(
-                            userId   = userId,
-                            username = username,
-                            mediaUri = videoUri!!,
-                            mediaType= "video",
-                            caption  = caption,
-                            userTags = tags,
-                            checkIn  = selectedPlace?.let {
-                                CheckIn(it.placeId, it.name, it.address,
-                                    it.latLng.latitude, it.latLng.longitude)
-                            },
-                            onDone = {
-                                scope.launch {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack("home", inclusive = false)
+                            /* ①   extract JPEG frames every 2 s and moderate */
+                            val frames = ctx.videoFramesEvery2s(videoUri!!)
+                            val flagged = moderateImages(frames)
+
+                            /* ②   block if unsafe */
+                            if (flagged) {
+                                Toast.makeText(ctx, "Video appears explicit – please retake.", Toast.LENGTH_LONG).show()
+                                videoUri = null
+                                return@launch
+                            }
+
+                            postViewModel.createMediaPost(
+                                userId = userId,
+                                username = username,
+                                mediaUri = videoUri!!,
+                                mediaType = "video",
+                                caption = caption,
+                                userTags = tags,
+                                checkIn = selectedPlace?.let {
+                                    CheckIn(
+                                        it.placeId, it.name, it.address,
+                                        it.latLng.latitude, it.latLng.longitude
+                                    )
+                                },
+                                onDone = {
+                                    scope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(ctx, "Posted ✔", Toast.LENGTH_SHORT)
+                                                .show()
+                                            navController.popBackStack("home", inclusive = false)
+                                        }
                                     }
-                                }
-                            },
-                             onError = { e ->
-                                     Handler(Looper.getMainLooper()).post {
-                                             Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
-                                         }
-                                 }                        )
+                                },
+                                onError = { e ->
+                                    Handler(Looper.getMainLooper()).post {
+                                        Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
+                                    }
+                                })
+                        }
                     }) { Text("Post", color = Color(0xFFFF4500)) }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)

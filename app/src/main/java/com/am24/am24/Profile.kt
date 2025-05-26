@@ -131,6 +131,7 @@ data class Profile(
     val datingAgeStart: Int = 18,
     val datingAgeEnd: Int = 30,
     val datingDistancePreference: Int = 10,
+    val phoneNumber: String? = null,          // ← new
 
     val height: Int = 169,
     val height2: List<Int> = emptyList(),

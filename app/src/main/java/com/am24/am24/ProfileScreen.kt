@@ -758,7 +758,7 @@ fun PhotoCarouselWithOverlay(
                         }
                         // 3) your name/age text, but horizontally scrollable
                         Text(
-                            text = if (age > 0) "${profile.name}, $age" else profile.name,
+                            text = if (age > 0) "${profile.username}, $age" else profile.username,
                             fontWeight = FontWeight.Bold,
                             fontSize = 26.sp,
                             color = Color.White,
@@ -921,9 +921,9 @@ fun BasicInfoSection(profile: Profile) {
         "${profile.height} cm"
 
     // --- Name, caste, gender, city, locality, username, job, work ---
-    ProfileDetailRow(stringResource(R.string.label_name),
-        profile.name,
-        Icons.Default.Person)
+    ProfileDetailRow(stringResource(R.string.label_username),
+        profile.username,
+        Icons.Default.AccountCircle)
 
     ProfileDetailRow(stringResource(R.string.label_height),
         heightString,
@@ -959,10 +959,6 @@ fun BasicInfoSection(profile: Profile) {
         stringResource(R.string.label_locality),
         localizedLocality(profile.city, profile.hometown),
         Icons.Default.LocationCity)
-
-    ProfileDetailRow(stringResource(R.string.label_username),
-        profile.username,
-        Icons.Default.AccountCircle)
 
     val displayJobRole = profile.customJobRole
         .takeUnless { it.isNullOrBlank() }
