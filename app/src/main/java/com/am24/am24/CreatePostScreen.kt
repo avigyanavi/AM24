@@ -205,10 +205,31 @@ fun TextPostComposable(
     var userTags by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
 
+    /* ───── check-in state ───── */
+    var placeQuery by remember { mutableStateOf("") }
+    var placeResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var selectedPlace by remember { mutableStateOf<PlaceResult?>(null) }
+    var searching by remember { mutableStateOf(false) }
+    val menuExpanded = placeResults.isNotEmpty()
+
     val userId = FirebaseAuth.getInstance().currentUser?.uid
     // Fetch username from the database
     LaunchedEffect(userId) {
         username = userId?.let { fetchUsernameById(it) } ?: "Anonymous"
+    }
+
+    /* side-effect: live place search (debounced) */
+    LaunchedEffect(placeQuery) {
+        if (placeQuery.length < 3) {
+            placeResults = emptyList(); return@LaunchedEffect
+        }
+        delay(400)                                       // debounce
+        searching = true
+        val bias = AM24LocationManager.getLastKnownLocation(context)
+            ?.let { LatLng(it.first, it.second) }
+            ?: LatLng(22.5726, 88.3639)                  // Kolkata fallback
+        placeResults = searchPlacesRich(placeQuery, bias)
+        searching = false
     }
 
     Scaffold(
@@ -244,7 +265,11 @@ fun TextPostComposable(
 
                             /* suspend call is now legal */
                             val flagged = moderateText(contentText)
-                            if (flagged && !askProceed(context, "This may be explicit. Post anyway?"))
+                            if (flagged && !askProceed(
+                                    context,
+                                    "This may be explicit. Post anyway?"
+                                )
+                            )
                                 return@launch                                     // user pressed “Retake”
 
                             // Convert userTags string to list
@@ -256,6 +281,12 @@ fun TextPostComposable(
                                 username = username,
                                 contentText = contentText,
                                 userTags = tagsList,
+                                checkIn = selectedPlace?.let {
+                                    CheckIn(
+                                        it.placeId, it.name, it.address,
+                                        it.latLng.latitude, it.latLng.longitude
+                                    )
+                                },
                                 fontFamily = "Default", // Default font family since it's removed
                                 fontSize = 14, // Default font size since it's removed
                                 onSuccess = {
@@ -285,47 +316,135 @@ fun TextPostComposable(
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
         },
-        content = { padding ->
-            Column(
+        content = { pad ->
+            LazyColumn(
                 modifier = Modifier
+                    .padding(pad)
+                    .padding(16.dp)
                     .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Top
+                    .imePadding(),
+                horizontalAlignment = Alignment.Start
             ) {
-                OutlinedTextField(
-                    value = contentText,
-                    onValueChange = { contentText = it },
-                    label = { Text("What's on your mind?", color = Color.Gray) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        keyboardType = KeyboardType.Text
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFFFA500), // Light orange
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color(0xFFFFA500) // Light orange
+                item {
+                    OutlinedTextField(
+                        value = contentText,
+                        onValueChange = { contentText = it },
+                        label = { Text("What's on your mind?", color = Color.Gray) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Text
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFFA500), // Light orange
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFFFFA500) // Light orange
+                        )
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = userTags,
-                    onValueChange = { userTags = it },
-                    label = { Text("Add Tags (comma separated)", color = Color.Gray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        keyboardType = KeyboardType.Text
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFFF4500),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color(0xFFFF4500)
+                item { Spacer(Modifier.height(16.dp)) }
+                item {
+                    OutlinedTextField(
+                        value = userTags, onValueChange = { userTags = it },
+                        label = { Text("Add Tags (comma separated)", color = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = otfColors()
                     )
-                )
+                }
+
+                /* ---------- CHECK-IN UI ---------- */
+                item { Spacer(Modifier.height(20.dp)) }
+                item {
+                    Text(
+                        "Add a location (optional)",
+                        fontSize = 14.sp,
+                        color = Color.LightGray
+                    )
+                }
+
+                item {
+                    ExposedDropdownMenuBox(
+                        expanded = menuExpanded,
+                        onExpandedChange = { /* menu driven by placeResults */ },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = placeQuery,
+                            onValueChange = {
+                                placeQuery = it; selectedPlace = null    // reset chip on typing
+                            },
+                            label = { Text("Search place") },
+                            singleLine = true,
+                            trailingIcon = {
+                                if (searching)
+                                    CircularProgressIndicator(
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                else Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
+                            },
+                            colors = otfColors(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()                              // Material 3 anchor
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { placeResults = emptyList() },
+                            modifier = Modifier
+                                .background(Color.White, RoundedCornerShape(6.dp))
+                                .border(
+                                    BorderStroke(1.dp, Color(0x33000000)),
+                                    RoundedCornerShape(6.dp)
+                                )
+                        ) {
+                            placeResults.forEach { res ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(res.name, color = Color.Black)
+                                            if (res.address.isNotBlank())
+                                                Text(
+                                                    res.address,
+                                                    color = Color.DarkGray,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Place,
+                                            null,
+                                            tint = Color(0xFFFFA500)
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedPlace = res
+                                        placeQuery = res.name
+                                        placeResults = emptyList()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                /* chip */
+                item {
+                    selectedPlace?.let {
+                        Spacer(Modifier.height(6.dp))
+                        AssistChip(
+                            onClick = { selectedPlace = null },
+                            label = { Text("✓ ${it.name}") },
+                            leadingIcon = { Icon(Icons.Default.Place, null) }
+                        )
+                    }
+                }
+
+                item { Spacer(Modifier.height(32.dp)) }
             }
         }
     )

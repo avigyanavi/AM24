@@ -167,7 +167,7 @@ fun EditPicAndVoiceBioScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Pictures & Voice Bio", color = Color.White) },
+                title = { Text("Edit Pictures", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
@@ -293,15 +293,6 @@ fun EditPicAndVoiceBioScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Voice Bio
-            Text(
-                text = "Voice Bio",
-                color = Color.White,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
             Spacer(modifier = Modifier.height(30.dp))
 
             // Bottom row: Cancel / Save

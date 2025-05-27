@@ -587,7 +587,7 @@ fun CollapsibleSection(
             text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
+            fontSize = 9.sp,
             modifier = Modifier.weight(1f)
         )
 
@@ -760,7 +760,7 @@ fun PhotoCarouselWithOverlay(
                         Text(
                             text = if (age > 0) "${profile.username}, $age" else profile.username,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp,
+                            fontSize = 14.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .horizontalScroll(scroll)
@@ -773,13 +773,13 @@ fun PhotoCarouselWithOverlay(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
                         modifier = Modifier.height(34.dp)
                     ) {
-                        Text(text = stringResource(R.string.posts_button), color = Color.White, fontSize = 14.sp)
+                        Text(text = stringResource(R.string.posts_button), color = Color.White, fontSize = 10.sp)
                     }
                 }
 
                 // Hometown
                 if (profile.hometown.isNotBlank()) {
-                    Text(text = stringResource(R.string.from_hometown, profile.hometown), fontSize = 16.sp, color = Color.White)
+                    Text(text = stringResource(R.string.from_hometown, profile.hometown), fontSize = 10.sp, color = Color.White)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -799,7 +799,7 @@ fun PhotoCarouselWithOverlay(
                             Text(
                                 text = zodiac,
                                 color = Color.White,
-                                fontSize = 14.sp,
+                                fontSize = 10.sp,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
@@ -864,7 +864,7 @@ fun AnimatedProfileCompletion(
         Text(
             text = stringResource(R.string.profile_percent, completion),
             color = Color.White,
-            fontSize = 12.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
         )
         LinearProgressIndicator(
@@ -894,7 +894,7 @@ fun MatrimonyToggleRow(
             text = stringResource(R.string.matrimony_mode),
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp
+            fontSize = 10.sp
         )
         Switch(
             checked = isMatrimony,
@@ -1474,15 +1474,15 @@ fun BasicInfoEditSection(
     Column(
         modifier            = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         // Name
         OutlinedTextField(
             textStyle = LocalTextStyle.current.copy(color = Color.White),
             value       = name,
             onValueChange = { name = it },
-            label       = { Text(stringResource(R.string.label_name), color = Color(0xFFFF6F00)) },
+            label       = { Text(stringResource(R.string.label_name), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
             modifier    = Modifier.fillMaxWidth(),
             colors =  OutlinedTextFieldDefaults.colors(
                 focusedBorderColor      = Color(0xFFFF6F00),
@@ -1492,7 +1492,7 @@ fun BasicInfoEditSection(
         )
 
         // Height toggle & fields…
-        Text(stringResource(R.string.height_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.height_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(checked = isFeet, onCheckedChange = { isFeet = it }, colors = SwitchDefaults.colors(
                 // thumb (the round “knob”)
@@ -1504,21 +1504,21 @@ fun BasicInfoEditSection(
             ) )
             Spacer(Modifier.width(8.dp))
             Text(if (isFeet) stringResource(R.string.feet_inches_label)
-            else stringResource(R.string.centimeters_label), color = Color.White)
+            else stringResource(R.string.centimeters_label), fontSize = 9.sp, color = Color.White)
         }
         if (isFeet) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value           = feet.toString(),
                     onValueChange   = { feet = it.toIntOrNull() ?: 0 },
-                    label           = { Text(stringResource(R.string.feet_label), color = Color(0xFFFF6F00)) },
+                    label           = { Text(stringResource(R.string.feet_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                     modifier        = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value           = inches.toString(),
                     onValueChange   = { inches = it.toIntOrNull() ?: 0 },
-                    label           = { Text(stringResource(R.string.inches_label), color = Color(0xFFFF6F00)) },
+                    label           = { Text(stringResource(R.string.inches_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                     modifier        = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
@@ -1527,14 +1527,14 @@ fun BasicInfoEditSection(
             OutlinedTextField(
                 value           = heightCm.toString(),
                 onValueChange   = { heightCm = it.toIntOrNull() ?: 0 },
-                label           = { Text(stringResource(R.string.centimeters_label), color = Color(0xFFFF6F00)) },
+                label           = { Text(stringResource(R.string.centimeters_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier        = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         }
 
         // Religion chips
-        Text(stringResource(R.string.religion_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.religion_label), fontWeight = FontWeight.Bold, fontSize = 9.sp, color = Color(0xFFFF6F00))
         val religionOpts = listOf(
             stringResource(R.string.religion_other),
             stringResource(R.string.religion_no_religion),
@@ -1556,7 +1556,7 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = religion==option,
                     onClick  = { religion = option },
-                    label    = { Text(option, color = Color.White) },
+                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -1568,7 +1568,7 @@ fun BasicInfoEditSection(
         }
 
         // Community chips
-        Text(stringResource(R.string.community_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.community_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1609,7 +1609,7 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = community==option,
                     onClick  = { community = option },
-                    label    = { Text(option, color = Color.White) },
+                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -1621,7 +1621,7 @@ fun BasicInfoEditSection(
         }
 
         // **Caste chips**
-        Text(stringResource(R.string.caste_title), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.caste_title), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1632,7 +1632,7 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = caste==option,
                     onClick  = { caste = option },
-                    label    = { Text(option, color = Color.White) },
+                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -1644,7 +1644,7 @@ fun BasicInfoEditSection(
         }
 
         // Gender chips
-        Text(stringResource(R.string.gender_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.gender_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1655,7 +1655,7 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = selectedGender==option,
                     onClick  = { selectedGender = option },
-                    label    = { Text(option, color = Color.White) },
+                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -1667,34 +1667,18 @@ fun BasicInfoEditSection(
         }
 
         // City dropdown…
-        Text(stringResource(R.string.city_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Button(
-            onClick = { cityExpanded = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(if (city.isBlank()) stringResource(R.string.select_city) else city, color = Color.White)
-        }
         SearchableDropdownWithCustomOption(
-            title               = stringResource(R.string.label_locality),
-            options             = localityOptionsList,
-            selectedOption      = locality,
+            title               = stringResource(R.string.city_label),
+            options             = cityOptionsList,
+            selectedOption      = city,
             onOptionSelected    = { sel ->
-                locality = sel
+                city = sel
             },
-            customInput         = customLocality,
-            onCustomInputChange = { customLocality = it }
+            customInput         = customCity,
+            onCustomInputChange = { customCity = it }
         )
+        Spacer(Modifier.height(6.dp))
 
-        // Locality dropdown…
-        Text(stringResource(R.string.label_locality), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Button(
-            onClick = { localityExpanded = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(if (locality.isBlank()) stringResource(R.string.locality) else locality, color = Color.White)
-        }
         SearchableDropdownWithCustomOption(
             title               = stringResource(R.string.label_locality),
             options             = localityOptionsList,
@@ -1705,9 +1689,10 @@ fun BasicInfoEditSection(
             customInput         = customLocality,
             onCustomInputChange = { customLocality = it }
         )
+        Spacer(Modifier.height(6.dp))
 
         // Job-Role & Work chips + optional customs…
-        Text(stringResource(R.string.job_role_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.job_role_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1721,7 +1706,7 @@ fun BasicInfoEditSection(
                         selectedJobRole = option
                         if (option!=jobRoleOptions.last()) customJobRole = ""
                     },
-                    label    = { Text(option, color = Color.White) },
+                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -1735,12 +1720,12 @@ fun BasicInfoEditSection(
             OutlinedTextField(
                 value       = customJobRole,
                 onValueChange = { customJobRole = it },
-                label       = { Text(stringResource(R.string.label_custom_job_role), color = Color(0xFFFF6F00)) },
+                label       = { Text(stringResource(R.string.label_custom_job_role), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier    = Modifier.fillMaxWidth()
             )
         }
 
-        Text(stringResource(R.string.label_work), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.label_work), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -1754,7 +1739,7 @@ fun BasicInfoEditSection(
                         selectedWork = option
                         if (option!=workOptions.last()) customWork = ""
                     },
-                    label    = { Text(option, color = Color.White) },
+                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors   = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -1768,22 +1753,12 @@ fun BasicInfoEditSection(
             OutlinedTextField(
                 value       = customWork,
                 onValueChange = { customWork = it },
-                label       = { Text(stringResource(R.string.label_custom_work), color = Color(0xFFFF6F00)) },
+                label       = { Text(stringResource(R.string.label_custom_work), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier    = Modifier.fillMaxWidth()
             )
         }
 
         // High-School dropdown + Year…
-        Text(stringResource(R.string.label_high_school), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Button(
-            onClick   = { highSchoolExpanded = true },
-            modifier  = Modifier.fillMaxWidth(),
-            colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(if (highSchool.isBlank())
-                stringResource(R.string.select_or_type_high_school)
-            else highSchool, color = Color.White)
-        }
         SearchableDropdownWithCustomOption(
             title               = stringResource(R.string.label_high_school),
             options             = highSchoolOptions,
@@ -1798,23 +1773,13 @@ fun BasicInfoEditSection(
             OutlinedTextField(
                 value           = highSchoolYear,
                 onValueChange   = { highSchoolYear = it.filter { c -> c.isDigit() }.take(4) },
-                label           = { Text(stringResource(R.string.high_school_graduation_year), color = Color(0xFFFF6F00)) },
+                label           = { Text(stringResource(R.string.high_school_graduation_year), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier        = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         }
 
         // College dropdown + Year + Degree…
-        Text(stringResource(R.string.college_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Button(
-            onClick   = { collegeExpanded = true },
-            modifier  = Modifier.fillMaxWidth(),
-            colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(if (college.isBlank())
-                stringResource(R.string.select_or_type_college)
-            else college, color = Color.White)
-        }
         SearchableDropdownWithCustomOption(
             title               = stringResource(R.string.college_label),
             options             = collegeOptions,
@@ -1829,30 +1794,20 @@ fun BasicInfoEditSection(
             OutlinedTextField(
                 value           = collegeYear,
                 onValueChange   = { collegeYear = it.filter { c -> c.isDigit() }.take(4) },
-                label           = { Text(stringResource(R.string.college_graduation_year), color = Color(0xFFFF6F00)) },
+                label           = { Text(stringResource(R.string.college_graduation_year), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier        = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             OutlinedTextField(
                 value           = collegeDegree,
                 onValueChange   = { if (it.length <= 50) collegeDegree = it },
-                label           = { Text(stringResource(R.string.label_college_degree), color = Color(0xFFFF6F00)) },
+                label           = { Text(stringResource(R.string.label_college_degree), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier        = Modifier.fillMaxWidth(),
                 singleLine      = true
             )
         }
 
         // Post-Grad dropdown + Year + Degree…
-        Text(stringResource(R.string.post_graduation_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Button(
-            onClick   = { postGradExpanded = true },
-            modifier  = Modifier.fillMaxWidth(),
-            colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text(if (postGrad.isBlank())
-                stringResource(R.string.select_or_type_post_grad)
-            else postGrad, color = Color.White)
-        }
         SearchableDropdownWithCustomOption(
             title               = stringResource(R.string.post_graduation_label),
             options             = postGradOptions,
@@ -1867,14 +1822,14 @@ fun BasicInfoEditSection(
             OutlinedTextField(
                 value           = postGradYear,
                 onValueChange   = { postGradYear = it.filter { c -> c.isDigit() }.take(4) },
-                label           = { Text(stringResource(R.string.select_graduation_year_label), color = Color(0xFFFF6F00)) },
+                label           = { Text(stringResource(R.string.select_graduation_year_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier        = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             OutlinedTextField(
                 value           = postGradDegree,
                 onValueChange   = { if (it.length <= 50) postGradDegree = it },
-                label           = { Text(stringResource(R.string.label_post_graduation_degree), color = Color(0xFFFF6F00)) },
+                label           = { Text(stringResource(R.string.label_post_graduation_degree), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
                 modifier        = Modifier.fillMaxWidth(),
                 singleLine      = true
             )
@@ -1915,7 +1870,6 @@ fun BasicInfoEditSection(
         )
     }
 }
-
 
 @Composable
 fun PerformanceMetricsSection(profile: Profile) {
@@ -2022,11 +1976,11 @@ fun isLifestyleEmpty(lifestyle: Lifestyle?): Boolean {
 
 @Composable
 fun LifestyleSection(profile: Profile) {
-    CompositionLocalProvider(LocalTextStyle provides TextStyle(fontSize = 12.sp)) {
+    CompositionLocalProvider(LocalTextStyle provides TextStyle(fontSize = 7.sp)) {
         Column {
             val lifestyle = profile.lifestyle
             if (isLifestyleEmpty(lifestyle)) {
-                Text("No lifestyle specified.", color = Color.Gray, fontSize = 16.sp)
+                Text("No lifestyle specified.", color = Color.Gray, fontSize = 10.sp)
             } else {
                 profile.lifestyle?.let { lifestyle ->
                     if (lifestyle.smoking_habit != -1)
@@ -2610,7 +2564,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         Text(
             text = stringResource(R.string.no_interests),
             color = Color.Gray,
-            fontSize = 16.sp
+            fontSize = 10.sp
         )
     } else {
         FlowRow {
@@ -2803,7 +2757,6 @@ fun CombinedBioVoiceEditSection(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PreferencesEditSection(
@@ -2858,13 +2811,13 @@ fun PreferencesEditSection(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- Looking For ---
-        Text(stringResource(R.string.looking_for_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.looking_for_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             lookingForOptions.forEach { option ->
                 FilterChip(
                     selected = selectedLookingFor == option,
                     onClick = { selectedLookingFor = option },
-                    label = { Text(option, color = Color.White) },
+                    label = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -2876,13 +2829,13 @@ fun PreferencesEditSection(
         }
 
         // --- Love Language ---
-        Text(stringResource(R.string.love_language_label), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.love_language_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             loveLanguageOptions.forEach { option ->
                 FilterChip(
                     selected = selectedLoveLanguage == option,
                     onClick = { selectedLoveLanguage = option },
-                    label = { Text(option, color = Color.White) },
+                    label = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -2894,13 +2847,13 @@ fun PreferencesEditSection(
         }
 
         // --- Politics ---
-        Text(stringResource(R.string.label_politics), fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.label_politics), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             politicsOptions.forEach { option ->
                 FilterChip(
                     selected = selectedPolitics == option,
                     onClick = { selectedPolitics = option },
-                    label = { Text(option, color = Color.White) },
+                    label = { Text(option, fontSize = 9.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -2927,15 +2880,14 @@ fun PreferencesEditSection(
     }
 }
 
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SocialCausesSection(profile: Profile) {
     if (profile.socialCauses.isEmpty()) {
-        Text(stringResource(R.string.no_social_causes), color = Color.Gray, fontSize = 16.sp)
+        Text(stringResource(R.string.no_social_causes), color = Color.Gray, fontSize = 10.sp)
     } else {
         Column {
-            Text(stringResource(R.string.social_causes), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.social_causes), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement   = Arrangement.spacedBy(8.dp)) {
                 profile.socialCauses.forEach { cause ->
@@ -2946,7 +2898,7 @@ fun SocialCausesSection(profile: Profile) {
                         Text(
                             text = cause,
                             color = Color.White,
-                            fontSize = 14.sp,
+                            fontSize = 10.sp,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -2981,7 +2933,7 @@ fun SocialCausesEditSection(
             text = stringResource(R.string.social_causes),
             color = Color(0xFFFF6F00),
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp
+            fontSize = 10.sp
         )
         Spacer(Modifier.height(8.dp))
 
@@ -3003,7 +2955,7 @@ fun SocialCausesEditSection(
                         }
                     },
                     enabled = isSelected || canSelectMore,
-                    label = { Text(cause, color = Color.White) },
+                    label = { Text(cause, fontSize = 9.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -3030,7 +2982,6 @@ fun SocialCausesEditSection(
         )
     }
 }
-
 
 @Composable
 fun LifestyleEditSection(
@@ -3268,13 +3219,13 @@ fun ProfileCollapsibleSections(
                 // display read‐only
                 Text(
                     text = tempProfile.bio ?: stringResource(R.string.bio_no_bio),
-                    color = Color.White, fontSize = 16.sp
+                    color = Color.White, fontSize = 10.sp
                 )
                 Spacer(Modifier.height(8.dp))
                 if (!tempProfile.voiceNoteUrl.isNullOrEmpty()) {
                     VoicePlayer(url = tempProfile.voiceNoteUrl!!)
                 } else {
-                    Text(stringResource(R.string.voice_no_voice_bio), color = Color.White, fontSize = 16.sp)
+                    Text(stringResource(R.string.voice_no_voice_bio), color = Color.White, fontSize = 10.sp)
                 }
             }
         }
@@ -3724,7 +3675,7 @@ fun InterestsEditSection(
             text = stringResource(R.string.section_interests),
             color = Color(0xFFFF6F00),
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp
+            fontSize = 10.sp
         )
         Spacer(Modifier.height(8.dp))
 
@@ -3786,11 +3737,11 @@ fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text(text = label, color = Color(0xFFFF6F00), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(text = label, color = Color(0xFFFF6F00), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 Text(
                     text = value,
                     color = Color.White,
-                    fontSize = 16.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Normal
                 )
             }
@@ -3807,7 +3758,7 @@ fun InterestTag(label: String) {
             .border(2.dp, Color(0xFFFF6F00), CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Text(text = label, color = Color.White, fontSize = 14.sp)
+        Text(text = label, color = Color.White, fontSize = 10.sp)
     }
 }
 
@@ -3830,7 +3781,7 @@ fun PostItemInProfile(post: Post) {
             post.contentText
                 .takeIf { !it.isNullOrBlank() }
                 ?.let {
-                    Text(it, color = Color.White, fontSize = 14.sp)
+                    Text(it, color = Color.White, fontSize = 10.sp)
                     Spacer(Modifier.height(6.dp))
                 }
 
@@ -3851,7 +3802,7 @@ fun PostItemInProfile(post: Post) {
                                 .takeIf { it.isNotBlank() }
                                 ?: checkIn.address,               // fallback to address if name is blank
                             color = Color(0xFFFF6F00),
-                            fontSize = 16.sp
+                            fontSize = 10.sp
                         )
                     }
                     Spacer(Modifier.height(6.dp))
@@ -3915,9 +3866,9 @@ fun PostItemInProfile(post: Post) {
 
             // — 3) UP / DOWN VOTES —
             Row {
-                Text("Upvotes: ${post.upvotes}", color = Color(0xFFFFBF00), fontSize = 12.sp)
+                Text("Upvotes: ${post.upvotes}", color = Color(0xFFFFBF00), fontSize = 10.sp)
                 Spacer(Modifier.width(8.dp))
-                Text("Downvotes: ${post.downvotes}", color = Color(0xFFFF6F00), fontSize = 12.sp)
+                Text("Downvotes: ${post.downvotes}", color = Color(0xFFFF6F00), fontSize = 10.sp)
             }
         }
     }
@@ -3935,9 +3886,10 @@ fun LifestyleSlider(label: String, value: Int, nouns: List<String>, icon: ImageV
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = icon, contentDescription = label, tint = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = label, color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = label, color = Color.White, fontSize = 9.sp,
+                fontWeight = FontWeight.Bold)
         }
-        Text(text = displayText, color = if (value == -1) Color.Gray else Color.White)
+        Text(text = displayText, fontSize = 9.sp, color = if (value == -1) Color.Gray else Color.White)
     }
     Spacer(modifier = Modifier.height(4.dp))
     Slider(
@@ -3998,7 +3950,7 @@ fun RatingBar(rating: Double, ratingCount: Int) {
             text = String.format("%.2f (%d)", rating, ratingCount),
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
+            fontSize = 10.sp
         )
     }
 }
@@ -4091,7 +4043,7 @@ fun VoicePlayer(url: String) {
             else
                 stringResource(R.string.tap_to_play),
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = 10.sp,
             modifier = Modifier.padding(start = 8.dp)
         )
         Spacer(modifier = Modifier.weight(1f))
@@ -4099,7 +4051,7 @@ fun VoicePlayer(url: String) {
             Text(
                 text = "${elapsedTime}s / ${durationInSeconds.value}s",
                 color = Color.Gray,
-                fontSize = 14.sp,
+                fontSize = 10.sp,
                 modifier = Modifier.padding(end = 8.dp)
             )
         }
@@ -4115,8 +4067,8 @@ fun LifestyleSliderEdit(label: String, value: Int, nouns: List<String>, onValueC
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = Color.White, fontWeight = FontWeight.Bold)
-        Text(displayText, color = if (value == -1) Color.Gray else Color.White)
+        Text(label, fontSize = 9.sp, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(displayText, fontSize = 9.sp, color = if (value == -1) Color.Gray else Color.White)
     }
     Spacer(modifier = Modifier.height(4.dp))
     Slider(

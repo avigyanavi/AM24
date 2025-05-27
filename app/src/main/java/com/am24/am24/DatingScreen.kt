@@ -81,6 +81,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -125,7 +127,7 @@ fun BoostedPill(modifier: Modifier = Modifier) {
         Text(
             text = "Boosted profile",
             color = Color.White,
-            fontSize = 12.sp,
+            fontSize = 9.sp,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -395,40 +397,42 @@ fun DatingScreen(
                 }
 
                 Row {
-                    /* compliment button (unchanged) */
-                    IconWithQuota(
-                        quota   = complimentsLeft,
-                        icon    = Icons.Default.AttachEmail,
-                        enabled = complimentsLeft > 0,
-                        onClick = {
+                    IconWithQuota(               // 👍 Compliments
+                        quota     = complimentsLeft,
+                        maxQuota  = 15,
+                        icon      = Icons.Default.AttachEmail,
+                        enabled   = complimentsLeft > 0,
+                        onClick   = {
                             if (complimentsLeft > 0) showComplimentDialog = true
                         }
                     )
 
                     Spacer(Modifier.width(16.dp))
 
-                    IconWithQuota(
-                        quota   = myProfile!!.availableBoosts,
-                        icon    = Icons.Default.FlashOn,
-                        tint    = if (canBoost) Color.White else Color.Gray,
-                        enabled = canBoost,
-                        onClick = {
-                        val myUid = FirebaseAuth.getInstance().uid ?: return@IconWithQuota
-                        datingViewModel.boostUser(myUid) {
-                            profileViewModel.decrementBoostsLocal()
-                            showBoostFlash = true
+                    IconWithQuota(               // ⚡ Boosts
+                        quota     = myProfile!!.availableBoosts,
+                        maxQuota  = 15,          // keep meter length consistent
+                        icon      = Icons.Default.FlashOn,
+                        tint      = if (canBoost) Color.White else Color.Gray,
+                        enabled   = canBoost,
+                        onClick   = {
+                            val myUid = FirebaseAuth.getInstance().uid ?: return@IconWithQuota
+                            datingViewModel.boostUser(myUid) {
+                                profileViewModel.decrementBoostsLocal()
+                                showBoostFlash = true
                                 profileViewModel.fetchCurrentUserProfile()       // keep server-truth
                             }
                         }
                     )
                     Spacer(Modifier.width(16.dp))
 
-                    IconWithQuota(
-                        quota   = remainingSwipes,               // how many swipes you have left
-                        icon    = Icons.Default.Swipe,
-                        onClick = { showSwipeLimitOverlay = true },
-                        tint    = Color.White,
-                        enabled = remainingSwipes > 0
+                    IconWithQuota(               // 🔄 Swipes
+                        quota     = remainingSwipes,
+                        maxQuota  = 15,          // daily swipe allowance
+                        icon      = Icons.Default.Swipe,
+                        tint      = Color.White,
+                        enabled   = remainingSwipes > 0,
+                        onClick   = { showSwipeLimitOverlay = true }
                     )
                 }
 
@@ -646,37 +650,87 @@ fun DatingScreen(
 
 @Composable
 fun IconWithQuota(
-    quota: Int,
+    quota: Int,                 // how many you still have
+    maxQuota: Int = 15,         // daily allowance
     icon: ImageVector,
     tint: Color = Color.White,
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
-    val size = 30.dp
+    val boxSide   = 30.dp       // overall size of the square
+    val strokeW   = 2.dp        // border thickness
+    val progressC = Color(0xFFFF6F00)   // orange
+    val emptyC    = Color.DarkGray      // empty perimeter
 
     Box(
         modifier = Modifier
-            .size(size)
+            .size(boxSide)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // icon
+        /* ───────  SQUARE BORDER WITH “UNITS”  ─────── */
+        Canvas(Modifier.matchParentSize()) {
+            val sidePx     = size.minDimension         // width == height
+            val perimPx    = sidePx * 4                // full perimeter
+            val progressPx = (quota.coerceIn(0, maxQuota) / maxQuota.toFloat()) * perimPx
+            val strokePx   = strokeW.toPx()
+
+            // 1) grey background border (empty units)
+            drawRect(
+                color  = emptyC,
+                style  = Stroke(width = strokePx)
+            )
+
+            // 2) orange progress, walking clockwise
+            var remain = progressPx
+
+            fun drawSeg(start: Offset, end: Offset) {
+                val segLen = (end - start).getDistance()   // ← fixed
+                val take   = min(segLen, remain)
+                if (take > 0f) {
+                    val ratio = take / segLen
+                    drawLine(
+                        color  = progressC,
+                        start  = start,
+                        end    = Offset(
+                            x = start.x + (end.x - start.x) * ratio,
+                            y = start.y + (end.y - start.y) * ratio
+                        ),
+                        strokeWidth = strokePx
+                    )
+                    remain -= take
+                }
+            }
+            val tl = Offset(0f, 0f)              // top-left
+            val tr = Offset(sidePx, 0f)          // top-right
+            val br = Offset(sidePx, sidePx)      // bottom-right
+            val bl = Offset(0f, sidePx)          // bottom-left
+
+            drawSeg(tl, tr)   // top edge
+            drawSeg(tr, br)   // right edge
+            drawSeg(br, bl)   // bottom edge
+            drawSeg(bl, tl)   // left edge
+        }
+
+        /* ───────  ICON  ─────── */
         Icon(
             icon,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(18.dp)
         )
 
-        // quota number
+        /* ───────  QUOTA NUMBER  ─────── */
         Text(
             quota.toString(),
-            fontSize = 14.sp,
-            color = Color(0xFFFF5900),
-            fontWeight = FontWeight.Bold
+            fontSize = 9.sp,
+            color      = progressC,
+            fontWeight = FontWeight.Bold,
+            modifier   = Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp)
         )
     }
 }
+
 
 /**
  * Load swipes from Firebase and reset them to 15 if a new day has started.
@@ -763,9 +817,9 @@ fun SwipeLimitOverlay(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Swipes Remaining", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Swipes Remaining", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(12.dp))
-                Text("$remainingSwipes / ${if (quota == Int.MAX_VALUE) "∞" else quota}", color = Color.White, fontSize = 32.sp)
+                Text("$remainingSwipes / ${if (quota == Int.MAX_VALUE) "∞" else quota}", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(12.dp))
                 Text("Resets in: $timeLeft", color = Color.Gray)
                 Spacer(Modifier.height(24.dp))
@@ -1365,7 +1419,7 @@ fun DropdownFilter(
     val allOptions = listOf(clearSelectionText) + options // Add "Clear Selection" option
 
     Column {
-        Text(label, color = Color.White, fontSize = 14.sp)
+        Text(label, color = Color.White, fontSize = 9.sp)
         Box {
             Button(
                 onClick = { expanded = !expanded },
@@ -1432,14 +1486,14 @@ fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 5) {
         Text(
             text = stringResource(R.string.adjust_filters),
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = 9.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         Text(
             text = stringResource(R.string.or_click_date_to_refresh),
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = 9.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -1850,7 +1904,7 @@ fun PhotoWithTwoOverlays(
                     Text(
                         text = stringResource(R.string.no_images),
                         color = Color.White,
-                        fontSize = 16.sp
+                        fontSize = 9.sp
                     )
                 }
             }
@@ -1898,7 +1952,7 @@ fun PhotoWithTwoOverlays(
                 Text(
                     text = if (age > 0) "${profile.name}, $age" else profile.name,
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -1912,7 +1966,7 @@ fun PhotoWithTwoOverlays(
                     Text(
                         text = stringResource(R.string.posts),
                         color = Color.White,
-                        fontSize = 12.sp
+                        fontSize = 8.sp
                     )
                 }
             }
@@ -1970,7 +2024,7 @@ fun PhotoWithTwoOverlays(
                         Text(
                             text = c.text,
                             color = Color.White,
-                            fontSize = 12.sp,
+                            fontSize = 9.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -2029,7 +2083,7 @@ fun TagBox(
         Text(
             text = text,
             color = Color.White,
-            fontSize = 15.sp,
+            fontSize = 9.sp,
             maxLines = 10,                      // force a single line
             softWrap = true
         )
@@ -2357,7 +2411,7 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
         Text(
             text = stringResource(R.string.analyzed_on, formatTime(result.timestamp)),
             color = Color.Gray,
-            fontSize = 12.sp
+            fontSize = 9.sp
         )
     }
 }
@@ -2429,7 +2483,7 @@ fun CollapsibleSection(
             text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
+            fontSize = 9.sp,
             modifier = Modifier.weight(1f)
         )
         IconButton(
@@ -2498,7 +2552,7 @@ fun MatchPopUp(
             ) {
                 Text(
                     text = stringResource(R.string.its_a_match),
-                    fontSize = 24.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
@@ -2968,7 +3022,7 @@ fun ComplimentDialog(
                     Text(
                         text = if (isRecording) "Recording..." else "Tap to record",
                         color = Color.White,
-                        fontSize = 14.sp
+                        fontSize = 9.sp
                     )
                 }
 
@@ -2977,7 +3031,7 @@ fun ComplimentDialog(
                     Text(
                         text = "Voice compliment ready!",
                         color = Color.Green,
-                        fontSize = 14.sp,
+                        fontSize = 9.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )

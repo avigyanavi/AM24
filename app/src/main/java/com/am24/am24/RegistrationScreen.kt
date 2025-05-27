@@ -194,7 +194,9 @@ class RegistrationViewModel : ViewModel() {
     var city by mutableStateOf("")
     var customCity by mutableStateOf("")
     var phoneNumber by mutableStateOf("")   // <── add this line
-
+    // RegistrationViewModel
+    var country       by mutableStateOf("")
+    var customCountry by mutableStateOf("")
     // Add new fields
     var loveLanguage by mutableStateOf("")
     var jobRole by mutableStateOf("")
@@ -1844,7 +1846,7 @@ fun SearchableDropdownWithCustomOption(
     var searchText by remember { mutableStateOf("") }
     var showCustomInput by remember { mutableStateOf(selectedOption == other) }
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = title, color = Color.White, fontSize = 18.sp)
+        Text(text = title, color = Color.White, fontSize = 9.sp)
 
         OutlinedButton(
             onClick = {
@@ -1857,6 +1859,7 @@ fun SearchableDropdownWithCustomOption(
         ) {
             Text(
                 text = if (showCustomInput) customInput else selectedOption.ifEmpty { stringResource(R.string.select_or_type) },
+                fontSize = 9.sp,
                 color = Color.White
             )
         }
@@ -1874,7 +1877,7 @@ fun SearchableDropdownWithCustomOption(
                     searchText = input
                     showCustomInput = false
                 },
-                label = { Text(stringResource(R.string.search_label), color = Color.White) },
+                label = { Text(stringResource(R.string.search_label), fontSize = 9.sp, color = Color.White) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
@@ -1886,7 +1889,7 @@ fun SearchableDropdownWithCustomOption(
             options.filter { it.contains(searchText, ignoreCase = true) }
                 .forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(option, color = Color.White) },
+                        text = { Text(option, fontSize = 9.sp, color = Color.White) },
                         onClick = {
                             onOptionSelected(option)
                             expanded = false
@@ -1905,7 +1908,7 @@ fun SearchableDropdownWithCustomOption(
                     onCustomInputChange(it)
                     onOptionSelected(other)
                 },
-                label = { Text(stringResource(R.string.enter_custom_value), color = Color.White) },
+                label = { Text(stringResource(R.string.enter_custom_value), fontSize = 9.sp, color = Color.White) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
@@ -2599,6 +2602,8 @@ suspend fun saveProfileToFirebase(
             phoneNumber = registrationViewModel.phoneNumber          // <── use VM first
                 .ifBlank { FirebaseAuth.getInstance().currentUser?.phoneNumber },
             userId = userId,
+            country       = if (registrationViewModel.country == other) registrationViewModel.customCountry else registrationViewModel.country,
+            customCountry = registrationViewModel.customCountry,
             username = registrationViewModel.username,
             name = registrationViewModel.name,
             dob = registrationViewModel.dob,
@@ -2963,6 +2968,9 @@ fun EnterBirthdateCityHometownScreen(
 ) {
     val context = LocalContext.current
     val resources = context.resources
+    val countries = remember { resources.getStringArray(R.array.country_names).toList() }
+    var selectedCountry  by remember { mutableStateOf(countries.first()) } // default “Other”
+    var customCountry    by remember { mutableStateOf(registrationViewModel.customCountry) }
 
     // Birthdate Setup
     val dayRange = (1..31).toList()
@@ -3050,7 +3058,6 @@ fun EnterBirthdateCityHometownScreen(
         }
     }
     var selectedLocality by remember { mutableStateOf(if (localities.isNotEmpty()) localities.first() else "") }
-    var localityExpanded by remember { mutableStateOf(false) }
     var customLocality by remember { mutableStateOf(registrationViewModel.customHometown) }
 
     // Location Permission Handling
@@ -3058,44 +3065,64 @@ fun EnterBirthdateCityHometownScreen(
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION
     )
+
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissionsResult ->
-        val allGranted = permissionsResult.values.all { it }
-        if (allGranted) {
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted ->
+        val ok = granted.values.all { it }
+        if (ok) {
             isLocating = true
-            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
-                selectedCity = city
+            fetchLocation(
+                fusedLocationClient, context, countries, other,
+                /* city constants */ kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda,
+                jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore,
+                bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar
+            ) { country, city, locality ->
+                selectedCountry  = country
+                selectedCity     = city
                 selectedLocality = locality
-                registrationViewModel.city = if (city == other) customCity else city
+
+                registrationViewModel.country  = if (country  == other) customCountry  else country
+                registrationViewModel.city     = if (city     == other) customCity     else city
                 registrationViewModel.hometown = if (locality == other) customLocality else locality
                 isLocating = false
             }
         } else {
             Toast.makeText(context, "Location permission denied", Toast.LENGTH_SHORT).show()
-            isLocating = false
         }
     }
 
-    // Auto-fetch location on screen load if permissions are granted
+    /* auto‑locate on first entry */
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             isLocating = true
-            fetchLocation(fusedLocationClient, context, other, kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda, jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore, bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar) { city, locality ->
-                selectedCity = city
+            fetchLocation(
+                fusedLocationClient, context, countries, other,
+                kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda,
+                jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore,
+                bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar
+            ) { country, city, locality ->
+                selectedCountry  = country
+                selectedCity     = city
                 selectedLocality = locality
-                registrationViewModel.city = if (city == other) customCity else city
+
+                registrationViewModel.country  = if (country  == other) customCountry  else country
+                registrationViewModel.city     = if (city     == other) customCity     else city
                 registrationViewModel.hometown = if (locality == other) customLocality else locality
                 isLocating = false
             }
         }
     }
 
+
     // Validation
-    val isCityOther = selectedCity == other
-    val isLocalityOther = selectedLocality == other
+    val isCountryOther  = selectedCountry == other
+    val isCityOther     = selectedCity    == other
+    val isLocalityOther = selectedLocality== other
+
     val isNextEnabled = registrationViewModel.dob.isNotBlank() &&
-            ((isCityOther && customCity.isNotBlank()) || (!isCityOther && selectedCity.isNotBlank())) &&
+            ((isCountryOther  && customCountry .isNotBlank()) || (!isCountryOther  && selectedCountry .isNotBlank())) &&
+            ((isCityOther     && customCity    .isNotBlank()) || (!isCityOther     && selectedCity    .isNotBlank())) &&
             ((isLocalityOther && customLocality.isNotBlank()) || (!isLocalityOther && selectedLocality.isNotBlank()))
 
     Scaffold(
@@ -3160,7 +3187,31 @@ fun EnterBirthdateCityHometownScreen(
                         )
                     }
                 }
-
+                Text(stringResource(R.string.city_label), color = Color.White, fontSize = 18.sp)
+                DropdownWithSearch(
+                    title           = stringResource(com.hbb20.R.string.select_country),
+                    options         = countries,
+                    selectedOption  = selectedCountry,
+                    onOptionSelected = { c ->
+                        selectedCountry = c
+                        registrationViewModel.country =
+                            if (c == other) customCountry else c
+                    }
+                )
+                if (selectedCountry == other) {
+                    OutlinedTextField(
+                        value = customCountry,
+                        onValueChange = {
+                            customCountry = it
+                            registrationViewModel.customCountry = it
+                            registrationViewModel.country = it
+                        },
+                        label = { Text("stringResource(R.string.country_label)", color = Color.White) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = fieldColors()
+                    )
+                }
                 // City Section
                 Text(stringResource(R.string.city_label), color = Color.White, fontSize = 18.sp)
                 Row(
@@ -3168,6 +3219,7 @@ fun EnterBirthdateCityHometownScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
+
                         DropdownWithSearch(
                             title            = stringResource(R.string.select_city_default),
                             options          = cities,
@@ -3277,102 +3329,73 @@ fun EnterBirthdateCityHometownScreen(
 
 // Helper function to fetch location and map to city/locality
 private fun fetchLocation(
-    fusedLocationClient: FusedLocationProviderClient,
-    context: Context,
+    fused: FusedLocationProviderClient,
+    ctx: Context,
+    countries: List<String>,
     other: String,
-    kolkata: String, howrah: String, durgapur: String, asansol: String, siliguri: String, darjeeling: String, malda: String, jalpaiguri: String, coochbehar: String, alipurduar: String, bankura: String, purulia: String, kharagpur: String, midnapore: String, bardhaman: String, hooghly: String, murshidabad: String, baharampur: String, haldia: String, ranaghat: String, kalyani: String, chandannagar: String,
-    onLocationFound: (String, String) -> Unit
+    kolkata: String, howrah: String, durgapur: String, asansol: String, siliguri: String,
+    darjeeling: String, malda: String, jalpaiguri: String, coochbehar: String, alipurduar: String,
+    bankura: String, purulia: String, kharagpur: String, midnapore: String, bardhaman: String,
+    hooghly: String, murshidabad: String, baharampur: String, haldia: String, ranaghat: String,
+    kalyani: String, chandannagar: String,
+    onLocationFound: (String, String, String) -> Unit // ← country, city, locality
 ) {
-    val scope = (context as? ComponentActivity)?.lifecycleScope ?: return
+    val scope = (ctx as? ComponentActivity)?.lifecycleScope ?: return
     scope.launch {
         try {
-            // Explicitly check permission before accessing location
-            if (ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Location permission not granted", Toast.LENGTH_SHORT).show()
-                    onLocationFound(other, other)
-                }
-                return@launch
+            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                onLocationFound(other, other, other); return@launch
             }
-
-
-            val location = fusedLocationClient.lastLocation.await()
-            if (location != null) {
-                val geocoder = Geocoder(context, Locale.getDefault())
-                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                if (addresses?.isNotEmpty() == true) {
-                    val address = addresses[0]
-                    val detectedCity = address.locality ?: address.subAdminArea ?: other
-                    val detectedLocality = address.subLocality ?: other
-
-                    val cities = context.resources.getStringArray(R.array.city_names).toList()
-                    val matchedCity = cities.find { it.equals(detectedCity, ignoreCase = true) } ?: other
-                    val localities = when (matchedCity) {
-                        kolkata -> context.resources.getStringArray(R.array.localities_kolkata).toList()
-                        howrah -> context.resources.getStringArray(R.array.localities_howrah).toList()
-                        durgapur -> context.resources.getStringArray(R.array.localities_durgapur).toList()
-                        asansol -> context.resources.getStringArray(R.array.localities_asansol).toList()
-                        siliguri -> context.resources.getStringArray(R.array.localities_siliguri).toList()
-                        darjeeling -> context.resources.getStringArray(R.array.localities_darjeeling).toList()
-                        malda -> context.resources.getStringArray(R.array.localities_malda).toList()
-                        jalpaiguri -> context.resources.getStringArray(R.array.localities_jalpaiguri).toList()
-                        coochbehar -> context.resources.getStringArray(R.array.localities_cooch_behar).toList()
-                        alipurduar -> context.resources.getStringArray(R.array.localities_alipurduar).toList()
-                        bankura -> context.resources.getStringArray(R.array.localities_bankura).toList()
-                        purulia -> context.resources.getStringArray(R.array.localities_purulia).toList()
-                        kharagpur -> context.resources.getStringArray(R.array.localities_kharagpur).toList()
-                        midnapore -> context.resources.getStringArray(R.array.localities_midnapore).toList()
-                        bardhaman -> context.resources.getStringArray(R.array.localities_bardhaman).toList()
-                        hooghly -> context.resources.getStringArray(R.array.localities_hooghly).toList()
-                        murshidabad -> context.resources.getStringArray(R.array.localities_murshidabad).toList()
-                        baharampur -> context.resources.getStringArray(R.array.localities_baharampur).toList()
-                        haldia -> context.resources.getStringArray(R.array.localities_haldia).toList()
-                        ranaghat -> context.resources.getStringArray(R.array.localities_ranaghat).toList()
-                        kalyani -> context.resources.getStringArray(R.array.localities_kalyani).toList()
-                        chandannagar -> context.resources.getStringArray(R.array.localities_chandannagar).toList()
-                        other -> context.resources.getStringArray(R.array.localities_other).toList()
-                        else -> emptyList()
-                    }
-                    val matchedLocality = localities.find { it.equals(detectedLocality, ignoreCase = true) } ?: other
-
-                    withContext(Dispatchers.Main) {
-                        onLocationFound(matchedCity, matchedLocality)
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Unable to determine location", Toast.LENGTH_SHORT).show()
-                        onLocationFound(other, other)
-                    }
-                }
-            } else {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Location not available", Toast.LENGTH_SHORT).show()
-                    onLocationFound(other, other)
-                }
+            val loc = fused.lastLocation.await() ?: run {
+                onLocationFound(other, other, other); return@launch
             }
-        } catch (e: SecurityException) {
-            Log.e("Location", "SecurityException: ${e.message}")
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Location access denied", Toast.LENGTH_SHORT).show()
-                onLocationFound(other, other)
+            val geo = Geocoder(ctx, Locale.getDefault())
+            val addr = geo.getFromLocation(loc.latitude, loc.longitude, 1)?.firstOrNull()
+            if (addr == null) { onLocationFound(other, other, other); return@launch }
+
+            val detectedCountry  = addr.countryName ?: other
+            val detectedCity     = addr.locality ?: addr.subAdminArea ?: other
+            val detectedLocality = addr.subLocality ?: other
+
+            val matchedCountry  = countries.find { it.equals(detectedCountry, true) } ?: other
+            val matchedCityList = ctx.resources.getStringArray(R.array.city_names).toList()
+            val matchedCity     = matchedCityList.find { it.equals(detectedCity, true) } ?: other
+
+            val localities = when (matchedCity) {
+                kolkata       -> ctx.resources.getStringArray(R.array.localities_kolkata).toList()
+                howrah        -> ctx.resources.getStringArray(R.array.localities_howrah).toList()
+                durgapur      -> ctx.resources.getStringArray(R.array.localities_durgapur).toList()
+                asansol       -> ctx.resources.getStringArray(R.array.localities_asansol).toList()
+                siliguri      -> ctx.resources.getStringArray(R.array.localities_siliguri).toList()
+                darjeeling    -> ctx.resources.getStringArray(R.array.localities_darjeeling).toList()
+                malda         -> ctx.resources.getStringArray(R.array.localities_malda).toList()
+                jalpaiguri    -> ctx.resources.getStringArray(R.array.localities_jalpaiguri).toList()
+                coochbehar    -> ctx.resources.getStringArray(R.array.localities_cooch_behar).toList()
+                alipurduar    -> ctx.resources.getStringArray(R.array.localities_alipurduar).toList()
+                bankura       -> ctx.resources.getStringArray(R.array.localities_bankura).toList()
+                purulia       -> ctx.resources.getStringArray(R.array.localities_purulia).toList()
+                kharagpur     -> ctx.resources.getStringArray(R.array.localities_kharagpur).toList()
+                midnapore     -> ctx.resources.getStringArray(R.array.localities_midnapore).toList()
+                bardhaman     -> ctx.resources.getStringArray(R.array.localities_bardhaman).toList()
+                hooghly       -> ctx.resources.getStringArray(R.array.localities_hooghly).toList()
+                murshidabad   -> ctx.resources.getStringArray(R.array.localities_murshidabad).toList()
+                baharampur    -> ctx.resources.getStringArray(R.array.localities_baharampur).toList()
+                haldia        -> ctx.resources.getStringArray(R.array.localities_haldia).toList()
+                ranaghat      -> ctx.resources.getStringArray(R.array.localities_ranaghat).toList()
+                kalyani       -> ctx.resources.getStringArray(R.array.localities_kalyani).toList()
+                chandannagar  -> ctx.resources.getStringArray(R.array.localities_chandannagar).toList()
+                other         -> ctx.resources.getStringArray(R.array.localities_other).toList()
+                else          -> emptyList()
             }
+            val matchedLocality = localities.find { it.equals(detectedLocality, true) } ?: other
+            withContext(Dispatchers.Main) { onLocationFound(matchedCountry, matchedCity, matchedLocality) }
         } catch (e: Exception) {
-            Log.e("Location", "Error fetching location: ${e.message}")
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Error fetching location", Toast.LENGTH_SHORT).show()
-                onLocationFound(other, other)
-            }
+            Log.e("fetchLocation", "${e.message}")
+            withContext(Dispatchers.Main) { onLocationFound(other, other, other) }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

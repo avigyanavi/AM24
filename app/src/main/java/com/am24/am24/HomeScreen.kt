@@ -256,7 +256,7 @@ fun HomeScreenContent(
                     ) {
                         Text(
                             text = option.replaceFirstChar { it.uppercaseChar() },
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = Color.White
                         )
                     }
@@ -478,7 +478,7 @@ fun FeedSection(
                     Text(
                         text = "No more older posts",
                         color = Color.Gray,
-                        fontSize = 14.sp
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -556,8 +556,8 @@ fun FeedItem(
 
 
     val dynamicFontSize = when {
-        screenWidth < 360.dp -> 12.sp
-        screenWidth < 600.dp -> 13.sp // Reduced font size
+        screenWidth < 360.dp -> 10.sp
+        screenWidth < 600.dp -> 12.sp // Reduced font size
         else -> 14.sp
     }
     val dynamicPadding = when {
@@ -646,7 +646,7 @@ fun FeedItem(
                     Text(
                         text  = formatRelativeTime(post.getTimestampLong()),
                         color = Color(0xFFB0B0B0),               // light‑grey
-                        fontSize = 12.sp,
+                        fontSize = 8.sp,
                         modifier = Modifier.padding(end = 2.dp)
                     )
 
@@ -732,7 +732,7 @@ fun FeedItem(
                     Text(
                         text = displayText,
                         color = Color.White,
-                        fontSize = 17.sp,
+                        fontSize = 12.sp,
                         lineHeight = 20.sp,
                         overflow = TextOverflow.Clip,
                         textAlign = TextAlign.Justify,
@@ -744,7 +744,7 @@ fun FeedItem(
                         Text(
                             text = "See more",
                             color = Color.LightGray,
-                            fontSize = 18.sp,
+                            fontSize = 10.sp,
                             modifier = Modifier
                                 .clickable { isExpanded = true }
                                 .padding(start = 8.dp, bottom = 4.dp)
@@ -901,7 +901,7 @@ fun FeedItem(
                                         Text(
                                             text = formatDuration(mediaDuration),
                                             color = Color.Gray,
-                                            fontSize = 12.sp,
+                                            fontSize = 8.sp,
                                             modifier = Modifier.padding(start = 8.dp)
                                         )
                                     }
@@ -1084,7 +1084,7 @@ fun FeedItem(
                             }
                             .padding(start = 8.dp) // Add start padding
                         ,
-                        fontSize = 12.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -1332,13 +1332,13 @@ fun CommentCard(
                     text = comment.username,
                     color = Color(0xFFFFDB00),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 10.sp,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
                     text = formatRelativeTime(comment.getCommentTimestamp()),
                     color = Color(0xFFFFDB00),
-                    fontSize = 12.sp
+                    fontSize = 8.sp
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -1375,7 +1375,7 @@ fun CommentCard(
                 Text(
                     text = comment.commentText,
                     color = Color.White,
-                    fontSize = 14.sp,
+                    fontSize = 10.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -1626,7 +1626,7 @@ fun CommentsDialog(
                         text = "Comments",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
+                        fontSize = 12.sp
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -1881,7 +1881,7 @@ fun VoiceCommentPlayer(
         Text(
             text = formatDuration(duration),
             color = Color.Gray,
-            fontSize = 12.sp,
+            fontSize = 8.sp,
             modifier = Modifier.padding(start = 8.dp)
         )
     }
@@ -2068,7 +2068,7 @@ fun CustomSearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = { onQueryChange(it) },
-        placeholder = { Text("Search tags", color = Color.Gray, fontSize = 12.sp) },
+        placeholder = { Text("Search tags", color = Color.Gray, fontSize = 10.sp) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 10.dp),

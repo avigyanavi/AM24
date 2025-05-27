@@ -246,8 +246,8 @@ fun DMScreenContent(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp, vertical = 6.dp)
-                    .height(50.dp),
-                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
+                    .defaultMinSize(minHeight = 56.dp) ,      // or just drop the size modifier
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
             )
 
             Row(
@@ -265,7 +265,7 @@ fun DMScreenContent(navController: NavController) {
                         .clickable { navController.navigate("peopleWhoLikedMe") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("+$likedCount", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("+$likedCount", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                 }
                 Spacer(Modifier.width(6.dp))
                 nonInitiatedMatches
@@ -286,7 +286,7 @@ fun DMScreenContent(navController: NavController) {
 
             if (displayedUsers.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No matches found", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("No matches found", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             } else {
                 LazyColumn(
@@ -336,7 +336,7 @@ fun DMScreenContent(navController: NavController) {
                         Text(
                             "Your Rating: ${if (tempRating >= 0) String.format("%.1f", tempRating) else "N/A"}",
                             color = Color.Gray,
-                            fontSize = 14.sp
+                            fontSize = 12.sp
                         )
                         Slider(
                             value = if (tempRating >= 0) tempRating.toFloat() else 0f,
@@ -372,14 +372,14 @@ fun DMScreenContent(navController: NavController) {
                         Text(
                             "Unmatch with ${profileToUnmatch!!.username}?",
                             color = Color.White,
-                            fontSize = 16.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "This will remove the match and delete your conversation history.",
                             color = Color.Gray,
-                            fontSize = 14.sp
+                            fontSize = 12.sp
                         )
                         Spacer(Modifier.height(16.dp))
                         Row(
@@ -455,7 +455,7 @@ fun DMUserCard(
                     Text(
                         text = profile.username,
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                     val age = profile.dob?.let { calculateAge(it) } ?: ""
@@ -464,7 +464,7 @@ fun DMUserCard(
                     } else {
                         stringResource(R.string.age_only_format, age)
                     }
-                    Text(localeInfo, fontSize = 14.sp, color = Color.White)
+                    Text(localeInfo, fontSize = 10.sp, color = Color.White)
 
                     val messageText = when {
                         lastMessage.isEmpty() -> stringResource(R.string.no_messages_yet)
@@ -487,7 +487,7 @@ fun DMUserCard(
                     }
                     Text(
                         text = styled,
-                        fontSize = 12.sp,
+                        fontSize = 8.sp,
                         color = Color.White,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -629,6 +629,6 @@ fun GroupChatChip(
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Text(title, color = Color.White, fontSize = 14.sp)
+        Text(title, color = Color.White, fontSize = 8.sp)
     }
 }

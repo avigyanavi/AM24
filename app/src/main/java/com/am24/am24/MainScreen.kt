@@ -187,11 +187,6 @@ fun TopNavBar(
     var showReportDialog by remember { mutableStateOf(false) }
     val reporteeId by datingViewModel.currentSwipeUserId.collectAsState()
     // inside your currentRoute == "dating" block, before the IconButton:
-    Text(
-        text = "RID: ${reporteeId ?: "null"}",
-        color = Color.Yellow,
-        modifier = Modifier.padding(horizontal = 8.dp)
-    )
     val context = LocalContext.current
     // anywhere before TopAppBar:
     val isOnHome = currentDestination

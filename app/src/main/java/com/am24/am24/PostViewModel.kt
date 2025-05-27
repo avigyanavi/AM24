@@ -478,6 +478,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * Sets up a real-time listener to observe changes in "posts" node.
      */
     private fun observePosts() {
+        isFeedPaused = false                // ← add this
         if (postsListener == null) { // Avoid re-adding listener if already active
             postsListener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -534,17 +535,19 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Pause observing posts
+// PostViewModel.kt
     fun pauseFeed() {
-        isFeedPaused = true
-        postsListener?.let {
-            FirebaseRefs.db.getReference("posts").removeEventListener(it)
+        if (postsListener != null) {
+            postsRef.removeEventListener(postsListener!!)
+            postsListener = null          // ←  important!
         }
+        isFeedPaused = true
     }
     // Resume observing posts
     fun resumeFeed() {
         if (!isFeedPaused) return
         isFeedPaused = false
-        observePosts()
+        observePosts()                    // will add a fresh listener
     }
 
     override fun onCleared() {
@@ -678,6 +681,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         userTags: List<String>,
         fontFamily: String,
         fontSize: Int,
+        checkIn: CheckIn? = null,                // ← NEW
         onSuccess: () -> Unit,
         onFailure: (String) -> Unit
     ) {
@@ -688,34 +692,44 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            _isUploading.value = true                       // raise
+            _isUploading.value = true
             val postId = postsRef.push().key
             if (postId == null) {
-                onFailure("Unable to generate post ID.")
-                return@launch
+                onFailure("Unable to generate post ID."); return@launch
             }
 
             val post = mapOf(
-                "postId" to postId,
-                "userId" to userId,
-                "username" to username,
+                "postId"      to postId,
+                "userId"      to userId,
+                "username"    to username,
                 "contentText" to contentText,
-                "timestamp" to ServerValue.TIMESTAMP,
-                "userTags" to userTags,
-                "fontFamily" to fontFamily,
-                "fontSize" to fontSize,
-                "mediaType" to null,
-                "mediaUrl" to null,
-                "upvotes" to 0,
-                "downvotes" to 0,
-                "upvotedUsers" to emptyMap<String, Boolean>(),
+                "timestamp"   to ServerValue.TIMESTAMP,
+                "userTags"    to userTags,
+                "fontFamily"  to fontFamily,
+                "fontSize"    to fontSize,
+                "mediaType"   to null,
+                "mediaUrl"    to null,
+                // ─── NEW block ───────────────────────────────
+                "checkIn" to checkIn?.let {
+                    mapOf(
+                        "placeId" to it.placeId,
+                        "name"    to it.name,
+                        "address" to it.address,
+                        "lat"     to it.lat,
+                        "lng"     to it.lng
+                    )
+                },
+                // ─────────────────────────────────────────────
+                "upvotes"       to 0,
+                "downvotes"     to 0,
+                "upvotedUsers"  to emptyMap<String, Boolean>(),
                 "downvotedUsers" to emptyMap<String, Boolean>(),
-                "totalComments" to 0
+                "totalComments"  to 0
             )
 
             try {
                 postsRef.child(postId).setValue(post).await()
-                clearUploadingFlag()       // lower
+                clearUploadingFlag()
                 refreshPosts()
                 onSuccess()
                 // Send notifications to friends and matches
