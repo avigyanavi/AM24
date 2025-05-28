@@ -150,6 +150,17 @@ fun MainNavGraph(
         composable("settings") {
             SettingsScreen(navController = navController)
         }
+        // new: compose a check-in feed screen, keyed by lat & lng
+        composable(
+            route = "checkinFeed/{placeId}",
+            arguments = listOf(navArgument("placeId"){ type = NavType.StringType })
+        ) { backStackEntry ->
+            val placeId = backStackEntry.arguments!!.getString("placeId")!!
+            CheckInFeedScreen(
+                placeId       = placeId,
+                navController = navController
+            )
+        }
         composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(navController = navController)
         }

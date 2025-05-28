@@ -14,6 +14,7 @@ import com.google.firebase.database.ktx.getValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -149,6 +150,35 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 "mediaViewsToday" to 0,
                 "lastMediaResetDayOfYear" to todayDayOfYear
             ))
+    }
+
+    /**
+     * Returns a StateFlow of only those posts whose checkIn matches the given lat/lng exactly.
+     */
+    /**
+     * Return only those posts whose checkIn.placeId matches.
+     */
+    fun checkInPosts(placeId: String): Flow<List<Post>> = callbackFlow {
+        val ref = FirebaseRefs.db.getReference("posts")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val posts = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                val filtered = posts.filter { it.checkIn?.placeId == placeId }
+
+                Log.d("PostViewModel", "🔍 checkInPosts($placeId): full posts size = ${posts.size}")
+                Log.d("PostViewModel", "✅ checkInPosts($placeId) → filtered size = ${filtered.size}")
+
+                trySend(filtered)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("PostViewModel", "checkInPosts error: ${error.message}")
+            }
+        }
+
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
     }
 
 

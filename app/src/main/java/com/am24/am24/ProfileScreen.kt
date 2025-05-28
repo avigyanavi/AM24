@@ -1675,7 +1675,7 @@ fun BasicInfoEditSection(
                 city = sel
             },
             customInput         = customCity,
-            onCustomInputChange = { customCity = it }
+            onCustomInputChange = { customCity = it!! }
         )
         Spacer(Modifier.height(6.dp))
 
@@ -1687,7 +1687,7 @@ fun BasicInfoEditSection(
                 locality = sel
             },
             customInput         = customLocality,
-            onCustomInputChange = { customLocality = it }
+            onCustomInputChange = { customLocality = it!! }
         )
         Spacer(Modifier.height(6.dp))
 
@@ -1767,7 +1767,7 @@ fun BasicInfoEditSection(
                 highSchool = sel
             },
             customInput         = customHighSchool,
-            onCustomInputChange = { customHighSchool = it }
+            onCustomInputChange = { customHighSchool = it!! }
         )
         if (highSchool.isNotBlank()) {
             OutlinedTextField(
@@ -1788,7 +1788,7 @@ fun BasicInfoEditSection(
                 college = sel
             },
             customInput         = customCollege,
-            onCustomInputChange = { customCollege = it }
+            onCustomInputChange = { customCollege = it!! }
         )
         if (college.isNotBlank()) {
             OutlinedTextField(
@@ -1816,7 +1816,7 @@ fun BasicInfoEditSection(
                 postGrad = sel
             },
             customInput         = customPostGrad,
-            onCustomInputChange = { customPostGrad = it }
+            onCustomInputChange = { customPostGrad = it!! }
         )
         if (postGrad.isNotBlank()) {
             OutlinedTextField(

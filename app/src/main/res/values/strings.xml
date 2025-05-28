@@ -1053,6 +1053,8 @@
     <string name="run_analysis">Run Analysis</string>
     <string name="no_bio_available">No bio available</string>
     <string name="select_label">Select %1$s</string>
+    <string name="select_country">Select Country</string>
+    <string name="type_country">Type your Country</string>
 
     <string name="performance_metrics">Performance Metrics</string>
     <string name="matches">Matches</string>
@@ -1495,7 +1497,7 @@
 
         <!-- Equality & Rights -->
         <item>Gender Equality and Women’s Safety</item>
-        <item>LGBTQ+ Inclusion</item>
+        <item>Love Freedom Advocacy - One Sexuality: Unity in Human Sexuality Across Diverse Orientations (straight, LGBTQ, etc)</item>
         <item>Digital Privacy and Online Safety</item>
 
         <!-- Opportunity & Mobility -->

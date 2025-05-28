@@ -1657,7 +1657,7 @@ fun EnterLocationAndSchoolScreen(
                         selectedOption = registrationViewModel.highSchool,
                         onOptionSelected = { registrationViewModel.highSchool = it },
                         customInput = registrationViewModel.customHighSchool,
-                        onCustomInputChange = { registrationViewModel.customHighSchool = it }
+                        onCustomInputChange = { registrationViewModel.customHighSchool = it!! }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     GraduationYearDropdown(
@@ -1681,7 +1681,7 @@ fun EnterLocationAndSchoolScreen(
                         selectedOption = registrationViewModel.college,
                         onOptionSelected = { registrationViewModel.college = it },
                         customInput = registrationViewModel.customCollege,
-                        onCustomInputChange = { registrationViewModel.customCollege = it }
+                        onCustomInputChange = { registrationViewModel.customCollege = it!! }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     GraduationYearDropdown(
@@ -1705,7 +1705,7 @@ fun EnterLocationAndSchoolScreen(
                         selectedOption = registrationViewModel.postGraduation ?: "",
                         onOptionSelected = { registrationViewModel.postGraduation = it },
                         customInput = registrationViewModel.customPostGraduation ?: "",
-                        onCustomInputChange = { registrationViewModel.customPostGraduation = it }
+                        onCustomInputChange = { registrationViewModel.customPostGraduation = it!! }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     GraduationYearDropdown(
@@ -1838,14 +1838,16 @@ fun SearchableDropdownWithCustomOption(
     options: List<String>,
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
-    customInput: String,
-    onCustomInputChange: (String) -> Unit
+    customInput: String? = null,
+    onCustomInputChange: (String?) -> Unit = {}
 ) {
-    var other = stringResource(R.string.college_other)
+    val other = stringResource(R.string.college_other)
+    // recompute when selectedOption changes
+    var showCustomInput by remember(selectedOption) { mutableStateOf(selectedOption == other) }
     var expanded by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
-    var showCustomInput by remember { mutableStateOf(selectedOption == other) }
-    Column(modifier = Modifier.fillMaxWidth()) {
+
+    Column(Modifier.fillMaxWidth()) {
         Text(text = title, color = Color.White, fontSize = 9.sp)
 
         OutlinedButton(
@@ -1858,7 +1860,8 @@ fun SearchableDropdownWithCustomOption(
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
         ) {
             Text(
-                text = if (showCustomInput) customInput else selectedOption.ifEmpty { stringResource(R.string.select_or_type) },
+                text = if (showCustomInput) customInput.orEmpty()
+                else selectedOption.ifEmpty { stringResource(R.string.select_or_type) },
                 fontSize = 9.sp,
                 color = Color.White
             )
@@ -1873,48 +1876,57 @@ fun SearchableDropdownWithCustomOption(
         ) {
             TextField(
                 value = searchText,
-                onValueChange = { input ->
-                    searchText = input
+                onValueChange = {
+                    searchText = it
                     showCustomInput = false
                 },
-                label = { Text(stringResource(R.string.search_label), fontSize = 9.sp, color = Color.White) },
+                label = {
+                    Text(stringResource(R.string.search_label), fontSize = 9.sp, color = Color.White)
+                },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
-                    cursorColor = Color(0xFFFF4500),
-                    focusedTextColor = Color.White
+                    cursorColor       = Color(0xFFFF4500),
+                    focusedTextColor  = Color.White
                 )
             )
 
-            options.filter { it.contains(searchText, ignoreCase = true) }
+            Spacer(Modifier.height(8.dp))
+
+            options
+                .filter { it.contains(searchText, ignoreCase = true) }
                 .forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option, fontSize = 9.sp, color = Color.White) },
                         onClick = {
                             onOptionSelected(option)
                             expanded = false
-                            showCustomInput = option == other
+                            showCustomInput = (option == other)
                         }
                     )
                 }
         }
 
-        // Custom Input Field
         if (showCustomInput) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
-                value = customInput,
-                onValueChange = {
-                    onCustomInputChange(it)
-                    onOptionSelected(other)
+                value = customInput.orEmpty(),
+                onValueChange = { newText ->
+                    onCustomInputChange(newText)
                 },
-                label = { Text(stringResource(R.string.enter_custom_value), fontSize = 9.sp, color = Color.White) },
+                label = {
+                    Text(
+                        stringResource(R.string.enter_custom_value),
+                        fontSize = 9.sp,
+                        color = Color.White
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
                     focusedBorderColor = Color(0xFFFF4500),
-                    cursorColor = Color(0xFFFF4500),
-                    focusedTextColor = Color.White
+                    cursorColor       = Color(0xFFFF4500),
+                    focusedTextColor  = Color.White
                 )
             )
         }
@@ -2368,7 +2380,7 @@ fun EnterGenderCommunityReligionScreen(
                         }
                     },
                     customInput = registrationViewModel.caste,
-                    onCustomInputChange = { registrationViewModel.caste = it }
+                    onCustomInputChange = { registrationViewModel.caste = it!! }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -2397,66 +2409,25 @@ fun EnterGenderCommunityReligionScreen(
     )
 }
 
-
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DropdownWithSearch(
     title: String,
     options: List<String>,
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
-    onDropdownClicked: () -> Unit = {} // Optional callback for dropdown click
+    customInput: String? = null,
+    onCustomInputChange: (String?) -> Unit = {},
+    onDropdownClicked: () -> Unit = {}
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var searchText by remember { mutableStateOf("") }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = title, color = Color.White, fontSize = 18.sp)
-        OutlinedButton(
-            onClick = {
-                onDropdownClicked() // Invoke the callback on dropdown click
-                expanded = !expanded
-            },
-            modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, Color(0xFFFF4500)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF4500))
-        ) {
-            Text(text = selectedOption.ifEmpty { stringResource(R.string.select_default) }, color = Color.White)
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF1A1A1A))
-        ) {
-            TextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                label = { Text(stringResource(R.string.search_label), color = Color.White) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedLabelColor = Color(0xFFFF4500),
-                    focusedBorderColor = Color(0xFFFF4500),
-                    cursorColor = Color(0xFFFF4500),
-                    focusedTextColor = Color.White
-                )
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            options.filter { it.contains(searchText, ignoreCase = true) }
-                .forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option, color = Color.White) },
-                        onClick = {
-                            onOptionSelected(option)
-                            expanded = false
-                        }
-                    )
-                }
-        }
-    }
+    SearchableDropdownWithCustomOption(
+        title               = title,
+        options             = options,
+        selectedOption      = selectedOption,
+        onOptionSelected    = onOptionSelected,
+        customInput         = customInput,
+        onCustomInputChange = onCustomInputChange
+    )
+    onDropdownClicked()  // preserve the side-effect
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -3187,31 +3158,21 @@ fun EnterBirthdateCityHometownScreen(
                         )
                     }
                 }
-                Text(stringResource(R.string.city_label), color = Color.White, fontSize = 18.sp)
                 DropdownWithSearch(
-                    title           = stringResource(com.hbb20.R.string.select_country),
-                    options         = countries,
-                    selectedOption  = selectedCountry,
-                    onOptionSelected = { c ->
+                    title               = stringResource(R.string.select_country),
+                    options             = countries,
+                    selectedOption      = selectedCountry,
+                    onOptionSelected    = { c ->
                         selectedCountry = c
-                        registrationViewModel.country =
-                            if (c == other) customCountry else c
+                        registrationViewModel.country = if (c == other) customCountry else c
+                    },
+                    customInput         = customCountry,
+                    onCustomInputChange = { new ->
+                        customCountry = new ?: ""
+                        registrationViewModel.customCountry = new ?: ""
                     }
                 )
-                if (selectedCountry == other) {
-                    OutlinedTextField(
-                        value = customCountry,
-                        onValueChange = {
-                            customCountry = it
-                            registrationViewModel.customCountry = it
-                            registrationViewModel.country = it
-                        },
-                        label = { Text("stringResource(R.string.country_label)", color = Color.White) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = fieldColors()
-                    )
-                }
+
                 // City Section
                 Text(stringResource(R.string.city_label), color = Color.White, fontSize = 18.sp)
                 Row(
@@ -3219,41 +3180,20 @@ fun EnterBirthdateCityHometownScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
-
                         DropdownWithSearch(
-                            title            = stringResource(R.string.select_city_default),
-                            options          = cities,
-                            selectedOption   = selectedCity,
-                            onOptionSelected = { cityName ->
+                            title               = stringResource(R.string.select_city_default),
+                            options             = cities,
+                            selectedOption      = selectedCity,
+                            onOptionSelected    = { cityName ->
                                 selectedCity = cityName
-                                registrationViewModel.city =
-                                    if (cityName == other) customCity else cityName
-                                // update localities list here…
-                                updateDob() // or whatever you need
+                                registrationViewModel.city = if (cityName == other) customCity else cityName
+                            },
+                            customInput         = customCity,
+                            onCustomInputChange = { new ->
+                                customCity = new ?: ""
+                                registrationViewModel.customCity = new ?: ""
                             }
                         )
-                        if (selectedCity == other) {
-                            OutlinedTextField(
-                                value = customCity,
-                                onValueChange = {
-                                    customCity = it
-                                    registrationViewModel.customCity = it
-                                    registrationViewModel.city = it
-                                },
-                                label = { Text(stringResource(R.string.city_label), color = Color.White) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White,
-                                    cursorColor = Color(0xFFFF6000),
-                                    focusedBorderColor = Color(0xFFFF6000),
-                                    unfocusedBorderColor = Color.White,
-                                    focusedLabelColor = Color(0xFFFF6000),
-                                    unfocusedLabelColor = Color.White
-                                )
-                            )
-                        }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -3276,37 +3216,20 @@ fun EnterBirthdateCityHometownScreen(
                 Text(stringResource(R.string.locality_label), color = Color.White, fontSize = 18.sp)
                 Box {
                     DropdownWithSearch(
-                        title            = stringResource(R.string.select_locality_default),
-                        options          = localities,
-                        selectedOption   = selectedLocality,
-                        onOptionSelected = { loc ->
+                        title               = stringResource(R.string.select_locality_default),
+                        options             = localities,
+                        selectedOption      = selectedLocality,
+                        onOptionSelected    = { loc ->
                             selectedLocality = loc
                             registrationViewModel.hometown =
                                 if (loc == other) customLocality else loc
+                        },
+                        customInput         = customLocality,
+                        onCustomInputChange = { new ->
+                            customLocality = new ?: ""
+                            registrationViewModel.customHometown = new ?: ""
                         }
                     )
-                    if (selectedLocality == other) {
-                        OutlinedTextField(
-                            value = customLocality,
-                            onValueChange = {
-                                customLocality = it
-                                registrationViewModel.customHometown = it
-                                registrationViewModel.hometown = it
-                            },
-                            label = { Text(stringResource(R.string.locality_label), color = Color.White) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = Color(0xFFFF6000),
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color.White,
-                                focusedLabelColor = Color(0xFFFF6000),
-                                unfocusedLabelColor = Color.White
-                            )
-                        )
-                    }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(

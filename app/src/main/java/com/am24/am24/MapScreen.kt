@@ -1,4 +1,3 @@
-// MapScreen.kt  — com.am24.am24
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.am24.am24
@@ -41,18 +40,24 @@ import coil.request.ImageRequest
 import com.firebase.geofire.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.*
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.firebase.database.*
 import com.google.maps.android.compose.*
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlin.math.*
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.util.*
 
 /* ——— shared helper & model ——— */
 import com.am24.am24.searchPlacesRich
 import com.am24.am24.PlaceResult
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 /*────────────────── utils ──────────────────*/
 private fun getBearing(from: LatLng, to: LatLng): Float {
@@ -65,16 +70,46 @@ private fun getBearing(from: LatLng, to: LatLng): Float {
     val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
     return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
 }
-private fun haversineKm(aLat: Double, aLng: Double, bLat: Double, bLng: Double): Double {
-    val R = 6371.0
-    val dLat = Math.toRadians(bLat - aLat)
-    val dLon = Math.toRadians(bLng - aLng)
-    val h = sin(dLat / 2).pow(2.0) +
-            cos(Math.toRadians(aLat)) * cos(Math.toRadians(bLat)) *
-            sin(dLon / 2).pow(2.0)
-    return 2 * R * atan2(sqrt(h), sqrt(1 - h))
+
+/* ────────── cache for LatLng ────────── */
+val latLngCache = mutableMapOf<String, LatLng?>()
+
+/* ────────── fetch LatLng from placeId ────────── */
+suspend fun getLatLngFromPlaceId(placeId: String, context: android.content.Context): LatLng? {
+    latLngCache[placeId]?.let { return it }
+    return try {
+        val placesClient = Places.createClient(context)
+        val request = FetchPlaceRequest.newInstance(placeId, listOf(Place.Field.LAT_LNG))
+        val response = placesClient.fetchPlace(request).await()
+        val latLng = response.place.latLng
+        Log.d("MapScreen", "Fetched LatLng for placeId: $placeId -> $latLng")
+        latLngCache[placeId] = latLng
+        latLng
+    } catch (e: Exception) {
+        Log.e("MapScreen", "Failed to fetch LatLng for placeId: $placeId", e)
+        latLngCache[placeId] = null
+        null
+    }
 }
-/*────────────────────────────────────────────*/
+
+/* ────────── fetch place name from placeId ────────── */
+suspend fun getPlaceNameFromPlaceId(placeId: String, context: android.content.Context): String? {
+    return try {
+        val placesClient = Places.createClient(context)
+        val request = FetchPlaceRequest.newInstance(placeId, listOf(Place.Field.NAME))
+        val response = placesClient.fetchPlace(request).await()
+        response.place.name
+    } catch (e: Exception) {
+        Log.e("MapScreen", "Failed to fetch name for placeId: $placeId", e)
+        null
+    }
+}
+
+/* ────────── cluster model ────────── */
+private data class CheckInCluster(
+    val placeId: String,
+    val postIds: List<String>
+)
 
 private data class TagItem(val label: String, val query: String)
 
@@ -87,56 +122,56 @@ fun MapScreen(
     onProfileMarkerClicked: (String) -> Unit,
     currentPrice: String
 ) {
-    val ctx             = LocalContext.current
-    val scope           = rememberCoroutineScope()
-    val focusManager    = LocalFocusManager.current
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     /* ───── state ───── */
-    var searchQuery       by remember { mutableStateOf("") }
-    var showSearchBar     by remember { mutableStateOf(false) }
-    val camera            = rememberCameraPositionState()
-    val matchMarkers      = remember { mutableStateListOf<MarkerData>() }
-    val searchResults     = remember { mutableStateListOf<PlaceResult>() }
-    var selectedPlace     by remember { mutableStateOf<PlaceResult?>(null) }
-    var selectedProfile   by remember { mutableStateOf<Profile?>(null) }
-    val matchUids         = remember { mutableStateListOf<String>() }
+    var searchQuery by remember { mutableStateOf("") }
+    var showSearchBar by remember { mutableStateOf(false) }
+    val camera = rememberCameraPositionState()
+    val matchMarkers = remember { mutableStateListOf<MarkerData>() }
+    val searchResults = remember { mutableStateListOf<PlaceResult>() }
+    var selectedPlace by remember { mutableStateOf<PlaceResult?>(null) }
+    var selectedProfile by remember { mutableStateOf<Profile?>(null) }
+    val matchUids = remember { mutableStateListOf<String>() }
     var navigateToProfile by remember { mutableStateOf<String?>(null) }
-    var userLatLng        by remember { mutableStateOf<LatLng?>(null) }
-    val heatPoints        = remember { mutableStateListOf<LatLng>() }
-
-    var isLoadingSearch      by remember { mutableStateOf(false) }
+    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
+    val clusters = remember { mutableStateListOf<CheckInCluster>() }
+    val heatPoints = remember { mutableStateListOf<LatLng>() }
+    var isLoadingSearch by remember { mutableStateOf(false) }
     var isLoadingQuickSearch by remember { mutableStateOf(false) }
-    var loadingTag           by remember { mutableStateOf<String?>(null) }
-    var isLoadingMatches     by remember { mutableStateOf(false) }
+    var loadingTag by remember { mutableStateOf<String?>(null) }
+    var isLoadingMatches by remember { mutableStateOf(false) }
+    var showSendOverlay by remember { mutableStateOf(false) }
+    var placeToSend by remember { mutableStateOf<PlaceResult?>(null) }
+    val matchProfiles = remember { mutableStateListOf<MatchProfile>() }
+    val clusterLatLngs = remember { mutableStateMapOf<String, LatLng?>() }
 
-    /* overlay: send place to match */
-    var showSendOverlay      by remember { mutableStateOf(false) }
-    var placeToSend          by remember { mutableStateOf<PlaceResult?>(null) }
-    val matchProfiles        = remember { mutableStateListOf<MatchProfile>() }
-
-    /* quick tags (trimmed list for brevity) */
+    /* quick tags */
     val quickTags = listOf(
-        TagItem(ctx.getString(R.string.tag_cafes),        "cafes"),
-        TagItem(ctx.getString(R.string.tag_bars),         "bars"),
-        TagItem(ctx.getString(R.string.tag_restaurants),  "restaurants"),
-        TagItem(ctx.getString(R.string.tag_hotels),       "hotels"),
-        TagItem(ctx.getString(R.string.tag_oyo),          "OYO")
+        TagItem(ctx.getString(R.string.tag_cafes), "cafes"),
+        TagItem(ctx.getString(R.string.tag_bars), "bars"),
+        TagItem(ctx.getString(R.string.tag_restaurants), "restaurants"),
+        TagItem(ctx.getString(R.string.tag_hotels), "hotels"),
+        TagItem(ctx.getString(R.string.tag_oyo), "OYO")
     )
 
-    /*──────── fetch user location ────────*/
+    /* fetch user location */
     LaunchedEffect(userId) {
         locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
             userLatLng = lat?.let { LatLng(it, lng ?: 0.0) }
         }
     }
 
-    /*──────── load matches ────────*/
+    /* load matches */
     LaunchedEffect(userId) {
         isLoadingMatches = true
         FirebaseRefs.db.getReference("matches").child(userId)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snap: DataSnapshot) {
-                    matchUids.clear(); snap.children.forEach { it.key?.let(matchUids::add) }
+                    matchUids.clear()
+                    snap.children.forEach { it.key?.let(matchUids::add) }
                     loadUserLocationAndMatches(
                         userId, locationManager, geoFireDatabaseRef,
                         matchUids, matchMarkers, camera, ctx
@@ -150,67 +185,115 @@ fun MapScreen(
             })
     }
 
+    /* load nearby check-ins for heat-map */
     /*──────── load nearby check-ins for heat-map ────────*/
     LaunchedEffect(userLatLng) {
-        userLatLng?.let { me ->
-            FirebaseRefs.db.getReference("posts").get().addOnSuccessListener { snap ->
-                heatPoints.clear()
-                snap.children.forEach { post ->
-                    val ci = post.child("checkIn")
-                    if (ci.exists()) {
-                        val lat = ci.child("lat").getValue(Double::class.java) ?: return@forEach
-                        val lng = ci.child("lng").getValue(Double::class.java) ?: return@forEach
-                        if (haversineKm(me.latitude, me.longitude, lat, lng) <= 50.0)
-                            heatPoints += LatLng(lat, lng)
+        if (userLatLng == null) return@LaunchedEffect     // just a trigger
+
+        try {
+            val snap = FirebaseRefs.db.getReference("posts").get().await()
+
+            clusters       .clear()
+            heatPoints     .clear()
+            clusterLatLngs .clear()
+
+            /* ---- 1) group posts by placeId and grab lat/lng when present ---- */
+            val grouped = mutableMapOf<String, MutableList<String>>()   // placeId → postIds
+
+            snap.children.forEach { postSnap ->
+                val postId  = postSnap.key ?: return@forEach
+                val ci      = postSnap.child("checkIn")
+                val placeId = ci.child("placeId").getValue(String::class.java) ?: return@forEach
+
+                grouped.getOrPut(placeId) { mutableListOf() }.add(postId)
+
+                // fast path: we already have coordinates
+                val lat = ci.child("lat").getValue(Double::class.java)
+                val lng = ci.child("lng").getValue(Double::class.java)
+                if (lat != null && lng != null) {
+                    val ll = LatLng(lat, lng)
+                    clusterLatLngs[placeId] = ll
+                    heatPoints            += ll
+                    return@forEach                                // done with this post
+                }
+                // else -> will resolve via Places SDK below
+            }
+
+            grouped.forEach { (pid, postIds) ->
+                clusters += CheckInCluster(pid, postIds)
+            }
+
+            /* ---- 2) resolve the *missing* ones in parallel ------------------ */
+            val toResolve = grouped.keys.filter { !clusterLatLngs.containsKey(it) }
+            if (toResolve.isNotEmpty()) {
+                val resolvedPairs = toResolve.map { pid ->
+                    async { pid to getLatLngFromPlaceId(pid, ctx) }
+                }.awaitAll()
+
+                resolvedPairs.forEach { (pid, ll) ->
+                    ll?.let {
+                        clusterLatLngs[pid] = it
+                        heatPoints        += it
                     }
                 }
             }
+
+            Log.d("MapScreen", "🌡  heatPoints = ${heatPoints.size}, clusters = ${clusters.size}")
+        } catch (e: Exception) {
+            Log.e("MapScreen", "Check-in load failed: ${e.message}", e)
         }
     }
-
-    /*──────── nav to full profile ────────*/
+    /* nav to full profile */
     LaunchedEffect(navigateToProfile) {
         navigateToProfile?.let {
             navController.navigate("matchedUserProfile/$it")
-            navigateToProfile = null; selectedProfile = null
+            navigateToProfile = null
+            selectedProfile = null
         }
     }
 
-    /*──────── helper to perform any search ────────*/
+    /* helper to perform any search */
     suspend fun runSearch(query: String) {
         if (query.isBlank()) return
         val bias = userLatLng ?: run {
-            Toast.makeText(ctx, R.string.error_location_not_available, Toast.LENGTH_SHORT).show(); return
+            Toast.makeText(ctx, R.string.error_location_not_available, Toast.LENGTH_SHORT).show()
+            return
         }
         val results = searchPlacesRich(query, bias)
         searchResults.apply { clear(); addAll(results) }
         selectedPlace = null
         if (results.isNotEmpty()) {
-            val b = LatLngBounds.builder(); results.forEach { b.include(it.latLng) }
+            val b = LatLngBounds.builder().apply { results.forEach { include(it.latLng) } }
             camera.move(CameraUpdateFactory.newLatLngBounds(b.build(), 100))
         }
     }
 
-    /*────────────────── UI ──────────────────*/
+    /* UI */
     Box(Modifier.fillMaxSize()) {
         Column(
-            Modifier.fillMaxSize()
+            Modifier
+                .fillMaxSize()
                 .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                    if (showSearchBar) { showSearchBar = false; focusManager.clearFocus() }
+                    if (showSearchBar) {
+                        showSearchBar = false
+                        focusManager.clearFocus()
+                    }
                 }
         ) {
             /* TAG / SEARCH ROW */
             val listState = rememberLazyListState()
             LazyRow(
                 state = listState,
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                /* search capsule / icon */
                 item {
                     if (showSearchBar) {
                         Box(
-                            Modifier.height(36.dp)
+                            Modifier
+                                .height(36.dp)
                                 .background(Color.White, RoundedCornerShape(18.dp))
                                 .padding(start = 12.dp, end = 40.dp, top = 8.dp, bottom = 8.dp)
                         ) {
@@ -221,62 +304,90 @@ fun MapScreen(
                                 textStyle = TextStyle(Color.Black, fontSize = 14.sp),
                                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
                                 keyboardActions = KeyboardActions(
-                                    onSearch = { scope.launch { isLoadingSearch = true; runSearch(searchQuery); isLoadingSearch = false } }
+                                    onSearch = {
+                                        scope.launch {
+                                            isLoadingSearch = true
+                                            runSearch(searchQuery)
+                                            isLoadingSearch = false
+                                        }
+                                    }
                                 )
                             )
                         }
                         IconButton(
                             onClick = {
-                                if (searchQuery.isNotBlank())
-                                    scope.launch { isLoadingSearch = true; runSearch(searchQuery); isLoadingSearch = false }
-                                else { showSearchBar = false; focusManager.clearFocus() }
+                                if (searchQuery.isNotBlank()) {
+                                    scope.launch {
+                                        isLoadingSearch = true
+                                        runSearch(searchQuery)
+                                        isLoadingSearch = false
+                                    }
+                                } else {
+                                    showSearchBar = false
+                                    focusManager.clearFocus()
+                                }
                             },
-                            modifier = Modifier.size(36.dp).offset((-36).dp)
+                            modifier = Modifier
+                                .size(36.dp)
+                                .offset((-36).dp)
                         ) {
                             Icon(
                                 if (searchQuery.isNotBlank()) Icons.Default.Search else Icons.Default.Close,
-                                null, tint = if (searchQuery.isNotBlank()) Color(0xFFFF6F00) else Color.Gray
+                                contentDescription = null,
+                                tint = if (searchQuery.isNotBlank()) Color(0xFFFF6F00) else Color.Gray
                             )
                         }
                     } else {
-                        IconButton(onClick = { showSearchBar = true }, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.Search, null, tint = Color.White)
+                        IconButton(
+                            onClick = { showSearchBar = true },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
                         }
                     }
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                /* quick tags */
                 items(quickTags) { tag ->
                     Box(
-                        Modifier.padding(end = 6.dp)
+                        Modifier
+                            .padding(end = 6.dp)
                             .background(Color.Black, RoundedCornerShape(4.dp))
                             .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
                             .clickable(enabled = !isLoadingQuickSearch) {
                                 scope.launch {
-                                    loadingTag = tag.label; isLoadingQuickSearch = true
+                                    loadingTag = tag.label
+                                    isLoadingQuickSearch = true
                                     searchQuery = tag.query
                                     runSearch(tag.query)
-                                    isLoadingQuickSearch = false; loadingTag = null
+                                    isLoadingQuickSearch = false
+                                    loadingTag = null
                                 }
                             }
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        if (isLoadingQuickSearch && tag.label == loadingTag)
+                        if (isLoadingQuickSearch && tag.label == loadingTag) {
                             CircularProgressIndicator(
-                                strokeWidth = 1.dp, modifier = Modifier.size(12.dp), color = Color.White
+                                strokeWidth = 1.dp,
+                                modifier = Modifier.size(12.dp),
+                                color = Color.White
                             )
-                        else
+                        } else {
                             Text(tag.label, color = Color.LightGray, fontSize = 10.sp)
+                        }
                     }
                 }
             }
 
             /* MAP */
             Box(Modifier.weight(1f)) {
-                val heatProvider = remember(heatPoints) {
-                    if (heatPoints.isNotEmpty())
-                        HeatmapTileProvider.Builder().data(heatPoints).radius(40).opacity(0.65).build()
-                    else null
+                val heatProvider = remember(heatPoints.size) {
+                    if (heatPoints.isNotEmpty()) {
+                        HeatmapTileProvider.Builder()
+                            .data(heatPoints)
+                            .radius(40)
+                            .opacity(0.65)
+                            .build()
+                    } else null
                 }
                 val heatState = rememberTileOverlayState()
 
@@ -295,65 +406,103 @@ fun MapScreen(
                         Marker(
                             state = MarkerState(m.position),
                             title = m.userId,
-                            icon  = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
+                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
                             onClick = {
                                 scope.launch {
                                     FirebaseRefs.db.getReference("users").child(m.userId)
                                         .get().addOnSuccessListener { snap ->
                                             snap.getValue(Profile::class.java)?.let { p ->
-                                                if (matchUids.contains(p.userId) && p.allowLocationForMatches)
+                                                if (matchUids.contains(p.userId) && p.allowLocationForMatches) {
                                                     selectedProfile = p
+                                                }
                                             }
                                         }
-                                }; true
+                                }
+                                true
                             }
                         )
                     }
+
                     /* place search markers */
                     searchResults.forEach { p ->
                         Marker(
                             state = MarkerState(p.latLng),
                             title = p.name,
-                            onClick = { selectedPlace = p; true }
+                            onClick = {
+                                selectedPlace = p
+                                true
+                            }
                         )
                     }
-                    /* heat-map */
-                    heatProvider?.let { TileOverlay(tileProvider = it, state = heatState) }
+
+                    /* heat‐map overlay */
+                    heatProvider?.let {
+                        TileOverlay(tileProvider = it, state = heatState)
+                    }
+
+                    /* clusters */
+                    clusters.forEach { cluster ->
+                        clusterLatLngs[cluster.placeId]?.let { latLng ->
+                            Marker(
+                                state = MarkerState(latLng),
+                                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED),
+                                alpha = 0f,
+                                onClick = {
+                                    Log.d("MapScreen", "Navigating to checkinFeed with placeId: ${cluster.placeId}")
+                                    navController.navigate("checkinFeed/${cluster.placeId}")
+                                    true
+                                }
+                            )
+                        }
+                    }
                 }
 
-                /* arrows */
+                /* directional arrows toward matches */
                 userLatLng?.let { me ->
                     DirectionalArrowsOverlay(
                         userLocation = me,
                         matchLocations = matchMarkers.map { it.position },
                         modifier = Modifier.fillMaxSize()
-                    ) { loc -> scope.launch { camera.animate(CameraUpdateFactory.newLatLngZoom(loc, 18f), 500) } }
+                    ) { loc ->
+                        scope.launch {
+                            camera.animate(CameraUpdateFactory.newLatLngZoom(loc, 18f), 500)
+                        }
+                    }
                 }
 
-                /* pop-ups */
+                /* place details popup */
                 selectedPlace?.let { place ->
                     PlaceDetailsPopup(
-                        latLng = place.latLng,
-                        name   = place.name,
+                        placeId = place.placeId,
+                        name = place.name,
                         onDismiss = { selectedPlace = null },
                         onSendToMatch = {
-                            placeToSend = place; showSendOverlay = true
+                            placeToSend = place
+                            showSendOverlay = true
                         }
                     )
                 }
+
+                /* profile popup */
                 selectedProfile?.let { prof ->
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .3f)), Alignment.Center) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = .3f)),
+                        Alignment.Center
+                    ) {
                         UserProfilePopup(
                             profile = prof,
                             onProfileClick = { navigateToProfile = it },
-                            onCloseClick   = { selectedProfile = null }
+                            onCloseClick = { selectedProfile = null }
                         )
                     }
                 }
+
+                /* send-to-match overlay */
                 if (showSendOverlay) {
-                    /* fetch profiles once */
                     LaunchedEffect(Unit) {
-                        if (matchProfiles.isEmpty())
+                        if (matchProfiles.isEmpty()) {
                             matchUids.forEach { uid ->
                                 FirebaseRefs.db.getReference("users").child(uid).get()
                                     .addOnSuccessListener { snap ->
@@ -368,19 +517,21 @@ fun MapScreen(
                                         }
                                     }
                             }
+                        }
                     }
                     MatchesListOverlay(
                         matches = matchProfiles,
                         onDismiss = { showSendOverlay = false },
                         onSend = { match ->
                             placeToSend?.let { pl ->
-                                val msg = "Check out this place: ${pl.name}. Directions: https://maps.google" +
-                                        ".com/?q=${pl.latLng.latitude},${pl.latLng.longitude}"
+                                val msg =
+                                    "Check out this place: ${pl.name}. Directions: https://maps.google.com/?q=place_id:${pl.placeId}"
                                 val chatId = getChatId2(userId, match.userId)
                                 val ref = FirebaseRefs.db.getReference("messages/$chatId")
                                 sendMessage2(userId, match.userId, chatId, msg, ref)
                                 Toast.makeText(ctx, "Sent to ${match.name}", Toast.LENGTH_SHORT).show()
-                                showSendOverlay = false; placeToSend = null
+                                showSendOverlay = false
+                                placeToSend = null
                             }
                         }
                     )
@@ -388,15 +539,21 @@ fun MapScreen(
             }
         }
 
+        /* global loading overlay */
         if (isLoadingMatches || isLoadingSearch || isLoadingQuickSearch) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .3f)), Alignment.Center) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = .3f)),
+                Alignment.Center
+            ) {
                 CircularProgressIndicator(color = Color.White)
             }
         }
     }
 }
 
-/*──────── DirectionalArrowsOverlay / Pop-ups / Helpers — unchanged ───────*/
+/* Supporting Composables and Functions (unchanged unless noted) */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun DirectionalArrowsOverlay(
@@ -406,47 +563,69 @@ fun DirectionalArrowsOverlay(
     onArrowClick: (LatLng) -> Unit
 ) {
     BoxWithConstraints(modifier) {
-        val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
-        val cx = w / 2f; val cy = h / 2f
+        val w = constraints.maxWidth.toFloat()
+        val h = constraints.maxHeight.toFloat()
+        val cx = w / 2f
+        val cy = h / 2f
         val radius = (min(w, h) / 2f) - with(LocalDensity.current) { 40.dp.toPx() }
         matchLocations.forEach { loc ->
-            val bearing = getBearing(userLocation, loc); val rad = Math.toRadians(bearing.toDouble())
-            val x = cx + radius * cos(rad).toFloat(); val y = cy - radius * sin(rad).toFloat()
-            Icon(Icons.Default.ArrowUpward, null, tint = Color.Red,
-                modifier = Modifier.size(40.dp)
+            val bearing = getBearing(userLocation, loc)
+            val rad = Math.toRadians(bearing.toDouble())
+            val x = cx + radius * cos(rad).toFloat()
+            val y = cy - radius * sin(rad).toFloat()
+            Icon(
+                Icons.Default.ArrowUpward, contentDescription = null, tint = Color.Red,
+                modifier = Modifier
+                    .size(40.dp)
                     .offset { IntOffset((x - 20).toInt(), (y - 20).toInt()) }
                     .graphicsLayer(rotationZ = bearing)
-                    .clickable { onArrowClick(loc) })
+                    .clickable { onArrowClick(loc) }
+            )
         }
     }
 }
 
 @Composable
 fun PlaceDetailsPopup(
-    latLng: LatLng,
-    name: String,
+    placeId: String,
+    name: String? = null,
     onDismiss: () -> Unit,
     onSendToMatch: () -> Unit
 ) {
     val ctx = LocalContext.current
+    var placeName by remember { mutableStateOf(name ?: "Loading...") }
+
+    LaunchedEffect(placeId) {
+        if (name == null) {
+            placeName = getPlaceNameFromPlaceId(placeId, ctx) ?: "Unknown Place"
+        }
+    }
+
     Column(
-        Modifier.fillMaxWidth().background(Color.White).padding(16.dp)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { },
+        Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp)
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(Modifier.fillMaxWidth(), Arrangement.End) {
-            Icon(Icons.Default.Close, null, tint = Color.Gray,
-                modifier = Modifier.size(24.dp).clickable { onDismiss() })
+            Icon(
+                Icons.Default.Close, contentDescription = null, tint = Color.Gray,
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onDismiss() }
+            )
         }
-        Text(name, color = Color.Black)
+        Text(placeName, color = Color.Black)
         Spacer(Modifier.height(8.dp))
         Row {
             Button(onClick = {
-                val gmm = Uri.parse("google.navigation:q=${latLng.latitude},${latLng.longitude}")
-                ctx.startActivity(Intent(Intent.ACTION_VIEW, gmm).apply { setPackage("com.google.android.apps.maps") })
+                val gmm = Uri.parse("google.navigation:q=place_id:$placeId")
+                ctx.startActivity(
+                    Intent(Intent.ACTION_VIEW, gmm)
+                        .apply { setPackage("com.google.android.apps.maps") }
+                )
             }) { Text("Directions") }
             Spacer(Modifier.width(8.dp))
             Button(onClick = onSendToMatch) { Text("Send to Match") }
@@ -462,14 +641,14 @@ fun MatchesListOverlay(
 ) {
     var selectedMatch by remember { mutableStateOf<MatchProfile?>(null) }
     Box(
-        modifier = Modifier
+        Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.4f))
             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxWidth(0.9f)
                 .background(Color.White, RoundedCornerShape(12.dp))
                 .padding(16.dp)
@@ -477,7 +656,7 @@ fun MatchesListOverlay(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Select a Match", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
             LazyRow {
                 items(matches) { match ->
                     Card(
@@ -488,7 +667,7 @@ fun MatchesListOverlay(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
-                            modifier = Modifier
+                            Modifier
                                 .padding(8.dp)
                                 .width(200.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -503,7 +682,7 @@ fun MatchesListOverlay(
                                     contentScale = ContentScale.Crop
                                 )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(match.name, fontWeight = FontWeight.Bold)
                                 Text("Age: ${match.age}")
@@ -513,7 +692,7 @@ fun MatchesListOverlay(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
             if (selectedMatch != null) {
                 Button(onClick = { onSend(selectedMatch!!) }) { Text("Send") }
             }
@@ -529,20 +708,17 @@ fun UserProfilePopup(
 ) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier
+        Modifier
             .background(Color.White, RoundedCornerShape(12.dp))
             .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
             .padding(16.dp)
             .width(260.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Icon(
                 imageVector = Icons.Filled.Close,
-                contentDescription = "Close",
+                contentDescription = null,
                 tint = Color.Gray,
                 modifier = Modifier
                     .size(24.dp)
@@ -566,13 +742,13 @@ fun UserProfilePopup(
                     .memoryCacheKey(url)
                     .crossfade(true)
                     .build(),
-                contentDescription = "Profile Picture",
+                contentDescription = null,
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
         }
         Text(
             text = profile.name,
@@ -580,9 +756,9 @@ fun UserProfilePopup(
             fontSize = 16.sp,
             color = Color.Black
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(Modifier.height(6.dp))
         RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
         Button(onClick = {
             Log.d("MapScreen", "View Full Profile clicked for ${profile.userId}")
             onProfileClick(profile.userId)
@@ -632,7 +808,7 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
                 )
             }
         }
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(Modifier.width(4.dp))
         Text(
             text = String.format("%.2f (%d)", rating, ratingCount),
             color = Color.Black,
@@ -641,56 +817,6 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
         )
     }
 }
-
-//suspend fun searchPlacesWithOkHttp(query: String, userLocation: LatLng): List<Pair<LatLng, String>> = withContext(Dispatchers.IO) {
-//    val client = OkHttpClient()
-//    val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ"
-//    val requestBody = JSONObject()
-//        .put("textQuery", query)
-//        .put(
-//            "locationBias",
-//            JSONObject()
-//                .put(
-//                    "circle",
-//                    JSONObject()
-//                        .put("center", JSONObject().put("latitude", userLocation.latitude).put("longitude", userLocation.longitude))
-//                        .put("radius", 10000)
-//                )
-//        )
-//        .toString()
-//        .toRequestBody("application/json".toMediaType())
-//
-//    val request = Request.Builder()
-//        .url("https://places.googleapis.com/v1/places:searchText")
-//        .addHeader("Content-Type", "application/json")
-//        .addHeader("X-Goog-Api-Key", apiKey)
-//        .addHeader("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.location")
-//        .post(requestBody)
-//        .build()
-//
-//    val results = mutableListOf<Pair<LatLng, String>>()
-//    try {
-//        client.newCall(request).execute().use { response ->
-//            if (!response.isSuccessful) {
-//                Log.e("PlacesSearch", "Error: ${response.code} - ${response.body?.string()}")
-//                return@withContext emptyList()
-//            }
-//            val json = JSONObject(response.body?.string() ?: return@withContext emptyList())
-//            val places = json.getJSONArray("places")
-//            for (i in 0 until places.length()) {
-//                val place = places.getJSONObject(i)
-//                val name = place.getJSONObject("displayName").getString("text")
-//                val location = place.getJSONObject("location")
-//                val lat = location.getDouble("latitude")
-//                val lng = location.getDouble("longitude")
-//                results.add(LatLng(lat, lng) to name)
-//            }
-//        }
-//    } catch (e: Exception) {
-//        Log.e("PlacesSearch", "Exception: ${e.message}", e)
-//    }
-//    return@withContext results
-//}
 
 fun loadUserLocationAndMatches(
     userId: String,
@@ -726,7 +852,10 @@ fun loadUserLocationAndMatches(
 
                 override fun onKeyMoved(key: String, location: GeoLocation) {
                     if (matchesSet.contains(key)) {
-                        markersState.replaceAll { if (it.userId == key) it.copy(position = LatLng(location.latitude, location.longitude)) else it }
+                        markersState.replaceAll {
+                            if (it.userId == key) it.copy(position = LatLng(location.latitude, location.longitude))
+                            else it
+                        }
                         Log.d("MapScreen", "Key moved: $key to ${location.latitude}, ${location.longitude}")
                     }
                 }
@@ -786,7 +915,7 @@ fun calculateAge(dob: String): Int {
     return age
 }
 
-/*────────────────── data classes ─────────────────*/
+/* data classes */
 data class MarkerData(val userId: String, val position: LatLng)
 data class MatchProfile(
     val userId: String,

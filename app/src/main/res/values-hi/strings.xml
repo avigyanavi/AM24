@@ -1190,6 +1190,9 @@
     <string name="voice_bio_duration_error">वॉयस बायो 60 सेकंड से अधिक है, कृपया कम समय का रिकॉर्ड करें</string>
     <string name="select_day_label">दिन</string>
 
+    <string name="select_country">देश चुनें</string>
+    <string name="type_country">अपना देश टाइप करें</string>
+
     <string name="select_month_label">महीना</string>
     <string name="select_year_label">साल</string>
     <!-- Birthdate, City & Locality -->
@@ -1496,7 +1499,7 @@
 
         <!-- समानता और अधिकार -->
         <item>लैंगिक समानता और महिलाओं की सुरक्षा</item>
-        <item>एलजीबीटीक्यू+ समावेश</item>
+        <item>प्यार स्वतंत्रता - एक कामुकता: विविध यौन अभिविन्यासों में मानव कामुकता की एकता (स्ट्रेट, एलजीबीटीक्यू, आदि)</item>
         <item>डिजिटल गोपनीयता और ऑनलाइन सुरक्षा</item>
 
         <!-- अवसर और गतिशीलता -->

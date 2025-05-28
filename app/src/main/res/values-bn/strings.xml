@@ -1194,6 +1194,9 @@
     <string name="voice_bio_duration_error">ভয়েস বায়ো ৬০ সেকেন্ডের বেশি, দয়া করে ছোট সময়ের রেকর্ড করুন</string>
     <string name="select_day_label">দিন</string>
 
+    <string name="select_country">দেশ নির্বাচন করুন</string>
+    <string name="type_country">আপনার দেশের নাম লিখুন</string>
+
     <!-- values-bn/strings.xml (Bengali) -->
     <string name="select_month_label">মাস</string>
     <string name="select_year_label">বছর</string>
@@ -1500,8 +1503,8 @@
         <item>সম্প্রদায় স্বাস্থ্যসেবা ও টিকাদান</item>
 
         <!-- সমতা ও অধিকার -->
-        <item>লিঙ্গ সমতা ও নারীর নিরাপত্তা</item>
-        <item>এলজিবিটি+ অন্তর্ভুক্তি</item>
+        <item>নারীর নিরাপত্তা</item>
+        <item>ভালোবাসা স্বাধীনতা - এক যৌনতা: বিভিন্ন যৌন প্রবৃত্তির মধ্যে মানব যৌনতার ঐক্য (স্ট্রেইট, এলজিবিটিকিউ, ইত্যাদি)</item>
         <item>ডিজিটাল গোপনীয়তা ও অনলাইন নিরাপত্তা</item>
 
         <!-- সুযোগ ও চলাচল -->
