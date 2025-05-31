@@ -451,36 +451,108 @@ fun ProfileLazyScreen(
 private fun localizedLocality(city: String, storedLocality: String): String {
     // pick the correct array for this city
     val arrayRes = when (localizedCity(city)) {
-        stringResource(R.string.city_kolkata)     -> R.array.localities_kolkata
-        stringResource(R.string.city_howrah)      -> R.array.localities_howrah
-        stringResource(R.string.city_durgapur)    -> R.array.localities_durgapur
-        stringResource(R.string.city_asansol)     -> R.array.localities_asansol
-        stringResource(R.string.city_siliguri)    -> R.array.localities_siliguri
-        stringResource(R.string.city_darjeeling)  -> R.array.localities_darjeeling
-        stringResource(R.string.city_malda)       -> R.array.localities_malda
-        stringResource(R.string.city_jalpaiguri)  -> R.array.localities_jalpaiguri
-        stringResource(R.string.city_cooch_behar) -> R.array.localities_cooch_behar
-        stringResource(R.string.city_alipurduar)  -> R.array.localities_alipurduar
-        stringResource(R.string.city_bankura)     -> R.array.localities_bankura
-        stringResource(R.string.city_purulia)     -> R.array.localities_purulia
-        stringResource(R.string.city_kharagpur)   -> R.array.localities_kharagpur
-        stringResource(R.string.city_midnapore)   -> R.array.localities_midnapore
-        stringResource(R.string.city_bardhaman)   -> R.array.localities_bardhaman
-        stringResource(R.string.city_hooghly)     -> R.array.localities_hooghly
-        stringResource(R.string.city_murshidabad) -> R.array.localities_murshidabad
-        stringResource(R.string.city_baharampur)  -> R.array.localities_baharampur
-        stringResource(R.string.city_haldia)      -> R.array.localities_haldia
-        stringResource(R.string.city_ranaghat)    -> R.array.localities_ranaghat
-        stringResource(R.string.city_kalyani)     -> R.array.localities_kalyani
-        stringResource(R.string.city_chandannagar)-> R.array.localities_chandannagar
-        // … add any remaining ones here …
-        else                                     -> R.array.localities_other
+        // West Bengal
+        stringResource(R.string.city_kolkata)        -> R.array.localities_kolkata
+        stringResource(R.string.city_howrah)         -> R.array.localities_howrah
+        stringResource(R.string.city_durgapur)       -> R.array.localities_durgapur
+        stringResource(R.string.city_asansol)        -> R.array.localities_asansol
+        stringResource(R.string.city_siliguri)       -> R.array.localities_siliguri
+        stringResource(R.string.city_darjeeling)     -> R.array.localities_darjeeling
+        stringResource(R.string.city_kharagpur)      -> R.array.localities_kharagpur
+
+        // Other Cities
+        stringResource(R.string.city_agartala)       -> R.array.localities_agartala
+        stringResource(R.string.city_ahmedabad)      -> R.array.localities_ahmedabad
+        stringResource(R.string.city_aizawl)         -> R.array.localities_aizawl
+        stringResource(R.string.city_amaravati)      -> R.array.localities_amaravati
+        stringResource(R.string.city_amritsar)       -> R.array.localities_amritsar
+        stringResource(R.string.city_bengaluru)      -> R.array.localities_bengaluru
+        stringResource(R.string.city_bhilai)         -> R.array.localities_bhilai
+        stringResource(R.string.city_bhopal)         -> R.array.localities_bhopal
+        stringResource(R.string.city_bhubaneswar)    -> R.array.localities_bhubaneswar
+        stringResource(R.string.city_bilaspur)       -> R.array.localities_bilaspur
+        stringResource(R.string.city_chandigarh)     -> R.array.localities_chandigarh
+        stringResource(R.string.city_chennai)        -> R.array.localities_chennai
+        stringResource(R.string.city_coimbatore)     -> R.array.localities_coimbatore
+        stringResource(R.string.city_cuttack)        -> R.array.localities_cuttack
+        stringResource(R.string.city_daman)          -> R.array.localities_daman
+        stringResource(R.string.city_dehradun)       -> R.array.localities_dehradun
+        stringResource(R.string.city_dibrugarh)      -> R.array.localities_dibrugarh
+        stringResource(R.string.city_dharamshala)    -> R.array.localities_dharamshala
+        stringResource(R.string.city_faridabad)      -> R.array.localities_faridabad
+        stringResource(R.string.city_gangtok)        -> R.array.localities_gangtok
+        stringResource(R.string.city_gaya)           -> R.array.localities_gaya
+        stringResource(R.string.city_gandhinagar)    -> R.array.localities_gandhinagar
+        stringResource(R.string.city_ghaziabad)      -> R.array.localities_ghaziabad
+        stringResource(R.string.city_gwalior)        -> R.array.localities_gwalior
+        stringResource(R.string.city_gyalshing)      -> R.array.localities_gyalshing
+        stringResource(R.string.city_guwahati)       -> R.array.localities_guwahati
+        stringResource(R.string.city_gurugram)       -> R.array.localities_gurugram
+        stringResource(R.string.city_haridwar)       -> R.array.localities_haridwar
+        stringResource(R.string.city_hisar)          -> R.array.localities_hisar
+        stringResource(R.string.city_hyderabad)      -> R.array.localities_hyderabad
+        stringResource(R.string.city_imphal)         -> R.array.localities_imphal
+        stringResource(R.string.city_indore)         -> R.array.localities_indore
+        stringResource(R.string.city_itanagar)       -> R.array.localities_itanagar
+        stringResource(R.string.city_jaipur)         -> R.array.localities_jaipur
+        stringResource(R.string.city_jamshedpur)     -> R.array.localities_jamshedpur
+        stringResource(R.string.city_jodhpur)        -> R.array.localities_jodhpur
+        stringResource(R.string.city_kancheepuram)   -> R.array.localities_kancheepuram
+        stringResource(R.string.city_kanpur)         -> R.array.localities_kanpur
+        stringResource(R.string.city_kargil)         -> R.array.localities_kargil
+        stringResource(R.string.city_kavaratti)      -> R.array.localities_kavaratti
+        stringResource(R.string.city_kochi)          -> R.array.localities_kochi
+        stringResource(R.string.city_kohima)         -> R.array.localities_kohima
+        stringResource(R.string.city_leh)            -> R.array.localities_leh
+        stringResource(R.string.city_ludhiana)       -> R.array.localities_ludhiana
+        stringResource(R.string.city_lucknow)        -> R.array.localities_lucknow
+        stringResource(R.string.city_madurai)        -> R.array.localities_madurai
+        stringResource(R.string.city_mumbai)         -> R.array.localities_mumbai
+        stringResource(R.string.city_mangaluru)      -> R.array.localities_mangaluru
+        stringResource(R.string.city_mysuru)         -> R.array.localities_mysuru
+        stringResource(R.string.city_nainital)       -> R.array.localities_nainital
+        stringResource(R.string.city_nagpur)         -> R.array.localities_nagpur
+        stringResource(R.string.city_namchi)         -> R.array.localities_namchi
+        stringResource(R.string.city_navi_mumbai)    -> R.array.localities_navi_mumbai
+        stringResource(R.string.city_nct_of_delhi)   -> R.array.localities_delhi_nct
+        stringResource(R.string.city_noida)          -> R.array.localities_noida
+        stringResource(R.string.city_panaji)         -> R.array.localities_panaji
+        stringResource(R.string.city_pasighat)       -> R.array.localities_pasighat
+        stringResource(R.string.city_patna)          -> R.array.localities_patna
+        stringResource(R.string.city_prayagraj)      -> R.array.localities_prayagraj
+        stringResource(R.string.city_pune)           -> R.array.localities_pune
+        stringResource(R.string.city_port_blair)     -> R.array.localities_port_blair
+        stringResource(R.string.city_puducherry)     -> R.array.localities_puducherry
+        stringResource(R.string.city_raipur)         -> R.array.localities_raipur
+        stringResource(R.string.city_ranchi)         -> R.array.localities_ranchi
+        stringResource(R.string.city_rourkela)       -> R.array.localities_rourkela
+        stringResource(R.string.city_rohtak)         -> R.array.localities_rohtak
+        stringResource(R.string.city_shillong)       -> R.array.localities_shillong
+        stringResource(R.string.city_shimla)         -> R.array.localities_shimla
+        stringResource(R.string.city_silchar)        -> R.array.localities_silchar
+        stringResource(R.string.city_sonipat)        -> R.array.localities_sonipat
+        stringResource(R.string.city_surat)          -> R.array.localities_surat
+        stringResource(R.string.city_secunderabad)   -> R.array.localities_secunderabad
+        stringResource(R.string.city_tawang)         -> R.array.localities_tawang
+        stringResource(R.string.city_thane)          -> R.array.localities_thane
+        stringResource(R.string.city_thiruvananthapuram) -> R.array.localities_thiruvananthapuram
+        stringResource(R.string.city_udaipur)        -> R.array.localities_udaipur
+        stringResource(R.string.city_vadodara)       -> R.array.localities_vadodara
+        stringResource(R.string.city_varanasi)       -> R.array.localities_varanasi
+        stringResource(R.string.city_vellore)        -> R.array.localities_vellore
+        stringResource(R.string.city_vijayawada)     -> R.array.localities_vijayawada
+        stringResource(R.string.city_visakhapatnam)  -> R.array.localities_visakhapatnam
+        stringResource(R.string.city_warangal)       -> R.array.localities_warangal
+        stringResource(R.string.city_other)          -> R.array.localities_other
+
+        // If no exact match, fall back
+        else                                         -> R.array.localities_other
     }
+
     // load that array and see if our stored value still exists
     val allLocs = stringArrayResource(id = arrayRes)
     return allLocs.firstOrNull { it == storedLocality } ?: storedLocality
 }
-
 @Composable
 private fun localizedCaste(raw: String): String =
     casteNameToRes[raw]?.let { stringResource(it) } ?: raw
@@ -1056,252 +1128,329 @@ fun BasicInfoEditSection(
     var customPostGrad by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
 
     // ─── High-School dropdown + year ────────────────────
-    val highSchoolOptions     = listOf(
-        stringResource(R.string.high_school_andrews_high_school),
-        stringResource(R.string.high_school_assembly_of_god_church_school),
-        stringResource(R.string.high_school_bdm_international),
-        stringResource(R.string.high_school_ballygunge_government_high_school),
-        stringResource(R.string.high_school_baranagar_ramakrishna_mission),
-        stringResource(R.string.high_school_barasat_mgm_high_school),
-        stringResource(R.string.high_school_barasat_peary_charan),
-        stringResource(R.string.high_school_barrackpore_government_high_school),
-        stringResource(R.string.high_school_bethune_collegiate),
-        stringResource(R.string.high_school_bidhannagar_government_high_school),
-        stringResource(R.string.high_school_birla_high_school),
-        stringResource(R.string.high_school_burdwan_cms_high_school),
-        stringResource(R.string.high_school_calcutta_boys_school),
-        stringResource(R.string.high_school_calcutta_girls_high_school),
-        stringResource(R.string.high_school_darjeeling_government_high_school),
-        stringResource(R.string.high_school_dps_durgapur),
-        stringResource(R.string.high_school_dps_newtown),
-        stringResource(R.string.high_school_dps_ruby_park),
-        stringResource(R.string.high_school_don_bosco_park_circus),
-        stringResource(R.string.high_school_goethals_memorial),
-        stringResource(R.string.high_school_hare_school),
-        stringResource(R.string.high_school_hindu_school),
-        stringResource(R.string.high_school_howrah_zilla_school),
-        stringResource(R.string.high_school_jadavpur_vidyapith),
-        stringResource(R.string.high_school_jenkins_school),
-        stringResource(R.string.high_school_kalyani_university_experimental),
-        stringResource(R.string.high_school_kendriya_vidyalaya_ballygunge),
-        stringResource(R.string.high_school_la_martiniere_boys),
-        stringResource(R.string.high_school_la_martiniere_girls),
-        stringResource(R.string.high_school_loreto_house),
-        stringResource(R.string.high_school_mahadevi_birla_world_academy),
-        stringResource(R.string.high_school_mitra_institution_main),
-        stringResource(R.string.high_school_modern_high_school_girls),
-        stringResource(R.string.high_school_nava_nalanda_high_school),
-        stringResource(R.string.high_school_north_point_darjeeling),
-        stringResource(R.string.high_school_patha_bhavan),
-        stringResource(R.string.high_school_purwanchal_vidya_mandir),
-        stringResource(R.string.high_school_rahara_ramakrishna_mission),
-        stringResource(R.string.high_school_ramakrishna_mission_narendrapur),
-        stringResource(R.string.high_school_rani_birla_girls_school),
-        stringResource(R.string.high_school_sakhawat_memorial_girls),
-        stringResource(R.string.high_school_scottish_church_collegiate),
-        stringResource(R.string.high_school_siliguri_boys_high_school),
-        stringResource(R.string.high_school_south_point_high_school),
-        stringResource(R.string.high_school_st_james_school),
-        stringResource(R.string.high_school_st_josephs_north_point),
-        stringResource(R.string.high_school_st_lawrence_high_school),
-        stringResource(R.string.high_school_st_pauls_mission_school),
-        stringResource(R.string.high_school_st_thomas_kidderpore),
-        stringResource(R.string.high_school_st_xaviers_collegiate),
-        stringResource(R.string.high_school_the_heritage_school),
-        stringResource(R.string.high_school_uttarpara_government_high_school),
-        stringResource(R.string.high_school_asansol_st_anthonys),
-        stringResource(R.string.high_school_bankura_christian_school),
-        stringResource(R.string.high_school_berhampore_girls_high_school),
-        stringResource(R.string.high_school_contai_high_school),
-        stringResource(R.string.high_school_hooghly_collegiate_school),
-        stringResource(R.string.high_school_krishnanagar_collegiate_school),
-        stringResource(R.string.high_school_malda_zilla_school),
-        stringResource(R.string.high_school_midnapore_collegiate_school),
-        stringResource(R.string.high_school_ashok_hall),
-        stringResource(R.string.high_school_mahadevi_birla_shishu_vihar),
-        stringResource(R.string.high_school_jewish_girls),
+    val highSchoolOptions = listOf(
+        stringResource(R.string.high_school_modern_school_barakhamba),
+        stringResource(R.string.high_school_dps_rk_puram),
+        stringResource(R.string.high_school_shri_ram_gurgaon),
+        stringResource(R.string.high_school_amity_noida),
+        stringResource(R.string.high_school_sanskriti_delhi),
+        stringResource(R.string.high_school_city_montessori_lucknow),
+        stringResource(R.string.high_school_la_martiniere_lucknow),
+        stringResource(R.string.high_school_doon_school),
+        stringResource(R.string.high_school_welham_girls),
+        stringResource(R.string.high_school_lawrence_sanawar),
+        stringResource(R.string.high_school_mayo_college),
+        stringResource(R.string.high_school_st_johns_chandigarh),
+        stringResource(R.string.high_school_birla_pilani),
+        stringResource(R.string.high_school_scindia_school),
+        stringResource(R.string.high_school_yds_srinagar),
+        // West India (Maharashtra, Gujarat, Madhya Pradesh, Goa)
         stringResource(R.string.high_school_cathedral_john_connon),
         stringResource(R.string.high_school_dhirubhai_ambani),
-        stringResource(R.string.high_school_doon_school),
-        stringResource(R.string.high_school_mayo_college),
-        stringResource(R.string.high_school_modern_school_barakhamba),
+        stringResource(R.string.high_school_bombay_scottish_mahim),
+        stringResource(R.string.high_school_campion_mumbai),
+        stringResource(R.string.high_school_jamnabai_narsee),
+        stringResource(R.string.high_school_st_marys_pune),
+        stringResource(R.string.high_school_symbiosis_pune),
+        stringResource(R.string.high_school_daly_college),
+        stringResource(R.string.high_school_podar_ahmedabad),
+        stringResource(R.string.high_school_anand_niketan),
+        stringResource(R.string.high_school_don_bosco_panaji),
+        stringResource(R.string.high_school_emerald_heights_indore),
+        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
+        stringResource(R.string.high_school_bishop_cotton_boys),
+        stringResource(R.string.high_school_bishop_cotton_girls),
+        stringResource(R.string.high_school_mallya_aditi),
+        stringResource(R.string.high_school_national_public_indiranagar),
+        stringResource(R.string.high_school_psbb_chennai),
+        stringResource(R.string.high_school_chettinad_vidyashram),
+        stringResource(R.string.high_school_dav_velachery),
+        stringResource(R.string.high_school_sishya_chennai),
+        stringResource(R.string.high_school_hyderabad_public),
+        stringResource(R.string.high_school_international_hyderabad),
         stringResource(R.string.high_school_rishi_valley),
-        stringResource(R.string.high_school_scindia_school),
-        stringResource(R.string.high_school_shri_ram_vasant_vihar),
-        stringResource(R.string.high_school_lawrence_sanawar),
-        stringResource(R.string.high_school_welham_girls),
+        stringResource(R.string.high_school_loyola_trivandrum),
+        stringResource(R.string.high_school_trivandrum_international),
+        stringResource(R.string.high_school_chinmaya_coimbatore),
+        stringResource(R.string.high_school_sainik_amaravathinagar),
+        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+        stringResource(R.string.high_school_st_xaviers_collegiate),
+        stringResource(R.string.high_school_la_martiniere_boys),
+        stringResource(R.string.high_school_la_martiniere_girls),
+        stringResource(R.string.high_school_modern_high_girls),
+        stringResource(R.string.high_school_south_point),
+        stringResource(R.string.high_school_don_bosco_park_circus),
+        stringResource(R.string.high_school_loreto_house),
+        stringResource(R.string.high_school_calcutta_boys),
+        stringResource(R.string.high_school_calcutta_girls),
+        stringResource(R.string.high_school_hindu_school),
+        stringResource(R.string.high_school_ramakrishna_narendrapur),
+        stringResource(R.string.high_school_st_james_kolkata),
+        stringResource(R.string.high_school_dps_bhubaneswar),
+        stringResource(R.string.high_school_sai_bhubaneswar),
+        stringResource(R.string.high_school_loyola_patna),
+        stringResource(R.string.high_school_st_michaels_patna),
+        stringResource(R.string.high_school_netarhat),
+        stringResource(R.string.high_school_chinmaya_bokaro),
+        stringResource(R.string.high_school_dps_ranchi),
+        // Northeast India (Assam, Meghalaya, Sikkim, Tripura)
+        stringResource(R.string.high_school_assam_valley),
+        stringResource(R.string.high_school_don_bosco_guwahati),
+        stringResource(R.string.high_school_spring_dale_guwahati),
+        stringResource(R.string.high_school_loreto_shillong),
+        stringResource(R.string.high_school_st_anthonys_shillong),
+        stringResource(R.string.high_school_don_bosco_agartala),
+        // Union Territories and Special Cases
+        stringResource(R.string.high_school_north_point_darjeeling),
+        stringResource(R.string.high_school_st_josephs_north_point),
+        stringResource(R.string.high_school_dr_grahams_kalimpong),
+        stringResource(R.string.high_school_lawrence_lovedale),
+        stringResource(R.string.high_school_dps_port_blair),
+        stringResource(R.string.high_school_dps_srinagar),
+        // Catch-all for other high schools
         stringResource(R.string.high_school_other)
     )
+
     var highSchool            by remember { mutableStateOf(tempProfile.highSchool) }
     var highSchoolExpanded    by remember { mutableStateOf(false) }
     var highSchoolYear        by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
 
     // ─── College dropdown + year + degree w/ limit ─────
-    val collegeOptions        = listOf(
-        stringResource(R.string.college_acharya_jagadish_chandra_bose_college),
-        stringResource(R.string.college_asutosh_college),
-        stringResource(R.string.college_bangabasi_college),
-        stringResource(R.string.college_barasat_government_college),
-        stringResource(R.string.college_barrackpore_rastraguru_surendranath_college),
-        stringResource(R.string.college_behala_college),
-        stringResource(R.string.college_bethune_college),
-        stringResource(R.string.college_bidhannagar_college),
-        stringResource(R.string.college_city_college),
-        stringResource(R.string.college_derozio_memorial_college),
-        stringResource(R.string.college_dinabandhu_andrews_college),
-        stringResource(R.string.college_dum_dum_motijheel_college),
-        stringResource(R.string.college_goenka_college),
-        stringResource(R.string.college_heramba_chandra_college),
-        stringResource(R.string.college_hooghly_mohsin_college),
-        stringResource(R.string.college_iit_kharagpur),
-        stringResource(R.string.college_iem_kolkata),
-        stringResource(R.string.college_jadavpur_university),
-        stringResource(R.string.college_jogamaya_devi_college),
-        stringResource(R.string.college_kalyani_mahavidyalaya),
-        stringResource(R.string.college_kazi_nazrul_islam_mahavidyalaya),
-        stringResource(R.string.college_krishnanagar_government_college),
-        stringResource(R.string.college_lady_brabourne_college),
-        stringResource(R.string.college_loreto_college),
-        stringResource(R.string.college_maulana_azad_college),
-        stringResource(R.string.college_nit_durgapur),
-        stringResource(R.string.college_presidency_university),
-        stringResource(R.string.college_ramakrishna_mission_narendrapur),
-        stringResource(R.string.college_ramakrishna_mission_vidyamandira),
-        stringResource(R.string.college_rishi_bankim_chandra_college),
-        stringResource(R.string.college_techno_india),
-        stringResource(R.string.college_scottish_church_college),
-        stringResource(R.string.college_serampore_college),
-        stringResource(R.string.college_seth_anandram_jaipuria_college),
-        stringResource(R.string.college_shri_shikshayatan_college),
-        stringResource(R.string.college_siliguri_college),
-        stringResource(R.string.college_southfield_college),
-        stringResource(R.string.college_st_xaviers_college),
-        stringResource(R.string.college_surendranath_college),
-        stringResource(R.string.college_university_of_calcutta),
-        stringResource(R.string.college_vidyasagar_college),
-        stringResource(R.string.college_west_bengal_state_university),
-        stringResource(R.string.college_basanti_devi_college),
-        stringResource(R.string.college_gokhale_memorial_girls_college),
-        stringResource(R.string.college_gurudas_college),
-        stringResource(R.string.college_narasinha_dutt_college),
-        stringResource(R.string.college_sivanath_sastri_college),
-        stringResource(R.string.college_christ_university),
-        stringResource(R.string.college_fergusson_college),
+    val collegeOptions = listOf(
+        // Engineering Colleges
+        stringResource(R.string.college_srm_institute_of_science_and_technology),
+        stringResource(R.string.college_vellore_institute_of_technology),
+        stringResource(R.string.college_bits_pilani),
+        stringResource(R.string.college_manipal_institute_of_technology),
+        stringResource(R.string.college_iiit_hyderabad),
+        // Private Arts/Science Colleges
+        stringResource(R.string.college_op_jindal_global_university),
+        stringResource(R.string.college_ashoka_university),
+        // Design Colleges in India
+        stringResource(R.string.college_nid_kurukshetra),
+        stringResource(R.string.college_nid_gandhinagar),
+        stringResource(R.string.college_nid_bengaluru),
+        stringResource(R.string.college_nid_bhopal),
+        stringResource(R.string.college_nid_jorhat),
+        stringResource(R.string.college_nid_vijayawada),
+        stringResource(R.string.college_nift),
+        stringResource(R.string.college_srishti_manipal),
+        stringResource(R.string.college_pearl_academy),
+        stringResource(R.string.college_symbiosis_institute_of_design),
+        stringResource(R.string.college_mit_institute_of_design),
+        stringResource(R.string.college_iiad),
+        stringResource(R.string.college_world_university_of_design),
+        stringResource(R.string.college_amity_school_of_fashion_technology),
+        stringResource(R.string.college_jd_institute_of_fashion_technology),
+        stringResource(R.string.college_arch_academy_of_design),
+        stringResource(R.string.college_daiict),
+        // Law Colleges in India
+        stringResource(R.string.college_nlu_delhi),
+        stringResource(R.string.college_wbnujs_kolkata),
+        stringResource(R.string.college_nliu_bhopal),
+        stringResource(R.string.college_gnlu_gandhinagar),
+        stringResource(R.string.college_hnlu_raipur),
+        stringResource(R.string.college_rmlnlu_lucknow),
+        stringResource(R.string.college_rgnul_patiala),
+        stringResource(R.string.college_cnlu_patna),
+        stringResource(R.string.college_nuals_kochi),
+        stringResource(R.string.college_nluo_cuttack),
+        stringResource(R.string.college_nusr_law_ranchi),
+        stringResource(R.string.college_nluja_guwahati),
+        stringResource(R.string.college_tnnlu_tiruchirappalli),
+        stringResource(R.string.college_mnlu_mumbai),
+        stringResource(R.string.college_mnlu_nagpur),
+        stringResource(R.string.college_mnlu_aurangabad),
+        stringResource(R.string.college_hpnlu_shimla),
+        stringResource(R.string.college_dnlu_jabalpur),
+        stringResource(R.string.college_dbranlu_sonipat),
+        stringResource(R.string.college_faculty_of_law_du),
+        stringResource(R.string.college_symbiosis_law_school),
+        stringResource(R.string.college_glc_mumbai),
+        stringResource(R.string.college_ils_law_pune),
+        stringResource(R.string.college_amity_law_school_noida),
+        stringResource(R.string.college_christ_univ_law),
+        stringResource(R.string.college_bhu_faculty_of_law),
+        stringResource(R.string.college_amu_faculty_of_law),
+        stringResource(R.string.college_jamia_law),
+        stringResource(R.string.college_op_jindal_law_school),
+        stringResource(R.string.college_army_institute_of_law_mohali),
+        stringResource(R.string.college_kerala_law_academy),
+        stringResource(R.string.college_school_of_law_calcutta),
+        // Arts Colleges in India
+        stringResource(R.string.college_college_of_art_du),
+        stringResource(R.string.college_sir_jj_school_of_art),
+        stringResource(R.string.college_faculty_visual_arts_bhu),
+        stringResource(R.string.college_msu_fine_arts_vadodara),
+        stringResource(R.string.college_govt_college_art_craft_kolkata),
+        stringResource(R.string.college_chennai_govt_fine_arts),
+        stringResource(R.string.college_rachana_sansad),
+        stringResource(R.string.college_goa_college_of_art),
+        stringResource(R.string.college_amity_school_fine_arts),
+        stringResource(R.string.college_kalakshetra_foundation),
+        stringResource(R.string.college_bharatiya_kala_kendra),
+        stringResource(R.string.college_gandharva_mahavidyalaya),
+        stringResource(R.string.college_nsd),
+        stringResource(R.string.college_ftii_pune),
+        stringResource(R.string.college_srfti_kolkata),
+        stringResource(R.string.college_kathak_kendra),
+        stringResource(R.string.college_drama_thrissur),
+        stringResource(R.string.college_ramjas_college),
+        stringResource(R.string.college_st_xaviers_mumbai),
+        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
+        stringResource(R.string.college_st_stephens),
+        stringResource(R.string.college_miranda_house),
         stringResource(R.string.college_hindu_college),
-        stringResource(R.string.college_iisc_bangalore),
+        stringResource(R.string.college_lady_shri_ram),
+        stringResource(R.string.college_hansraj_college),
+        stringResource(R.string.college_delhi_university),
+        stringResource(R.string.college_iit_delhi),
+        stringResource(R.string.college_jnu_delhi),
+        stringResource(R.string.college_op_jindal_global),
+        stringResource(R.string.college_amity_noida),
+        stringResource(R.string.college_nift_delhi),
+        stringResource(R.string.college_pearl_academy_delhi),
+        stringResource(R.string.college_amity_law_school),
+        stringResource(R.string.college_banaras_hindu_university),
         stringResource(R.string.college_iit_kanpur),
         stringResource(R.string.college_iit_roorkee),
-        stringResource(R.string.college_lady_shri_ram_college),
+        stringResource(R.string.college_lpu_phagwara),
+        stringResource(R.string.college_chandigarh_university),
+        // West India (Maharashtra, Gujarat, Goa)
+        stringResource(R.string.college_iit_bombay),
+        stringResource(R.string.college_mithibai_college),
+        stringResource(R.string.college_nmims_mumbai),
+        stringResource(R.string.college_university_of_mumbai),
+        stringResource(R.string.college_jj_school_arts),
+        stringResource(R.string.college_fergusson_college),
+        stringResource(R.string.college_symbiosis_liberal_arts),
+        stringResource(R.string.college_flame_university),
+        stringResource(R.string.college_savitribai_phule_pune_university),
+        stringResource(R.string.college_symbiosis_law_school),
+        stringResource(R.string.college_iit_gandhinagar),
+        stringResource(R.string.college_nid_ahmedabad),
+        stringResource(R.string.college_nirma_university),
+        stringResource(R.string.college_goa_university),
+        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
+        stringResource(R.string.college_iisc_bangalore),
+        stringResource(R.string.college_christ_university),
+        stringResource(R.string.college_mount_carmel),
+        stringResource(R.string.college_st_josephs_bangalore),
+        stringResource(R.string.college_nlsiu_bangalore),
+        stringResource(R.string.college_iit_madras),
         stringResource(R.string.college_loyola_college),
-        stringResource(R.string.college_miranda_house),
-        stringResource(R.string.college_st_stephens_college),
-        stringResource(R.string.college_hansraj_college),
-        stringResource(R.string.college_mount_carmel_college),
-        stringResource(R.string.college_australian_national_university),
-        stringResource(R.string.college_carnegie_mellon_university),
-        stringResource(R.string.college_eth_zurich),
-        stringResource(R.string.college_harvard_university),
-        stringResource(R.string.college_imperial_college_london),
-        stringResource(R.string.college_london_school_of_economics),
-        stringResource(R.string.college_mcgill_university),
-        stringResource(R.string.college_mit),
-        stringResource(R.string.college_national_university_singapore),
-        stringResource(R.string.college_purdue_university),
-        stringResource(R.string.college_sorbonne_university),
-        stringResource(R.string.college_stanford_university),
-        stringResource(R.string.college_tu_delft),
-        stringResource(R.string.college_university_college_london),
-        stringResource(R.string.college_university_of_amsterdam),
-        stringResource(R.string.college_university_of_british_columbia),
-        stringResource(R.string.college_university_of_california_berkeley),
-        stringResource(R.string.college_university_of_california_san_diego),
-        stringResource(R.string.college_university_of_cambridge),
-        stringResource(R.string.college_university_of_edinburgh),
-        stringResource(R.string.college_university_of_melbourne),
-        stringResource(R.string.college_university_of_michigan),
-        stringResource(R.string.college_university_of_oxford),
-        stringResource(R.string.college_university_of_queensland),
-        stringResource(R.string.college_university_of_sydney),
-        stringResource(R.string.college_university_of_toronto),
+        stringResource(R.string.college_madras_christian_college),
+        stringResource(R.string.college_anna_university),
+        stringResource(R.string.college_stella_maris),
+        stringResource(R.string.college_krea_university),
+        stringResource(R.string.college_osmania_university),
+        stringResource(R.string.college_manipal_academy),
+        stringResource(R.string.college_andhra_university),
+        stringResource(R.string.college_annamalai_university),
+        stringResource(R.string.college_kerala_university),
+        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+        stringResource(R.string.college_jadavpur_university),
+        stringResource(R.string.college_presidency_university),
+        stringResource(R.string.college_st_xaviers_kolkata),
+        stringResource(R.string.college_scottish_church),
+        stringResource(R.string.college_university_of_calcutta),
+        stringResource(R.string.college_iit_kharagpur),
+        stringResource(R.string.college_nit_durgapur),
+        stringResource(R.string.college_loreto_college),
+        stringResource(R.string.college_lady_brabourne),
+        stringResource(R.string.college_bethune_college),
+        stringResource(R.string.college_ramakrishna_narendrapur),
+        stringResource(R.string.college_goenka_college),
+        stringResource(R.string.college_visva_bharati),
+        stringResource(R.string.college_nit_rourkela),
+        stringResource(R.string.college_iit_dhanbad),
+        // Northeast India (Assam, Meghalaya)
+        stringResource(R.string.college_gauhati_university),
+        stringResource(R.string.college_nehu_shillong),
+        stringResource(R.string.college_cotton_university),
+        // Union Territories
+        stringResource(R.string.college_jamia_millia_islamia),
+        // Catch-all for other colleges
         stringResource(R.string.college_other)
     )
+
     var college               by remember { mutableStateOf(tempProfile.college) }
     var collegeExpanded       by remember { mutableStateOf(false) }
     var collegeYear           by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
     var collegeDegree         by remember { mutableStateOf(tempProfile.collegeDegree.orEmpty()) }
 
     // ─── Post-Grad dropdown + year + degree w/ limit ────
-    val postGradOptions       = listOf(
-        stringResource(R.string.postgrad_adamas_university),
-        stringResource(R.string.postgrad_aliah_university),
-        stringResource(R.string.postgrad_amity_university_kolkata),
-        stringResource(R.string.postgrad_bankura_university),
-        stringResource(R.string.postgrad_bidhan_chandra_krishi_viswavidyalaya),
-        stringResource(R.string.postgrad_brainware_university),
-        stringResource(R.string.postgrad_cooch_behar_panchanan_barma_university),
-        stringResource(R.string.postgrad_darjeeling_hills_university),
-        stringResource(R.string.postgrad_diamond_harbour_womens_university),
-        stringResource(R.string.postgrad_iacs),
-        stringResource(R.string.postgrad_jadavpur_university),
-        stringResource(R.string.postgrad_jis_university),
-        stringResource(R.string.postgrad_kazi_nazrul_university),
-        stringResource(R.string.postgrad_maulana_abul_kalam_azad_university_of_technology),
-        stringResource(R.string.postgrad_netaji_subhash_open_university),
-        stringResource(R.string.postgrad_north_bengal_university),
-        stringResource(R.string.postgrad_presidency_university),
-        stringResource(R.string.postgrad_rabindra_bharati_university),
-        stringResource(R.string.postgrad_raiganj_university),
-        stringResource(R.string.postgrad_ramakrishna_mission_vivekananda),
-        stringResource(R.string.postgrad_techno_india),
-        stringResource(R.string.postgrad_seacom_skills_university),
-        stringResource(R.string.postgrad_sidho_kanho_birsha_university),
-        stringResource(R.string.postgrad_sister_nivedita_university),
-        stringResource(R.string.postgrad_university_of_burdwan),
-        stringResource(R.string.postgrad_university_of_calcutta),
-        stringResource(R.string.postgrad_university_of_engineering_and_management),
-        stringResource(R.string.postgrad_university_of_kalyani),
-        stringResource(R.string.postgrad_uttar_banga_krishi_vishwavidyalaya),
-        stringResource(R.string.postgrad_vidyasagar_university),
-        stringResource(R.string.postgrad_visva_bharati_university),
-        stringResource(R.string.postgrad_west_bengal_state_university),
-        stringResource(R.string.postgrad_west_bengal_university_of_animal_and_fishery_sciences),
-        stringResource(R.string.postgrad_west_bengal_university_of_health_sciences),
-        stringResource(R.string.postgrad_west_bengal_university_of_teachers_training),
-        stringResource(R.string.postgrad_iit_bombay),
+    val postGradOptions = listOf(
+        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
+        stringResource(R.string.postgrad_delhi_university),
         stringResource(R.string.postgrad_iit_delhi),
+        stringResource(R.string.postgrad_jnu_delhi),
+        stringResource(R.string.postgrad_ashoka_university),
+        stringResource(R.string.postgrad_amity_noida),
+        stringResource(R.string.postgrad_nift_delhi),
+        stringResource(R.string.postgrad_pearl_academy_delhi),
+        stringResource(R.string.postgrad_ili_delhi),
+        stringResource(R.string.postgrad_banaras_hindu_university),
         stringResource(R.string.postgrad_iit_kanpur),
-        stringResource(R.string.postgrad_iit_kharagpur),
-        stringResource(R.string.postgrad_iit_madras),
+        stringResource(R.string.postgrad_iit_roorkee),
+        stringResource(R.string.postgrad_lpu_phagwara),
+        stringResource(R.string.postgrad_chandigarh_university),
+        stringResource(R.string.postgrad_iim_lucknow),
+        stringResource(R.string.postgrad_iim_udaipur),
+        // West India (Maharashtra, Gujarat, Goa)
+        stringResource(R.string.postgrad_iit_bombay),
+        stringResource(R.string.postgrad_university_of_mumbai),
+        stringResource(R.string.postgrad_nmims_mumbai),
+        stringResource(R.string.postgrad_tiss_mumbai),
+        stringResource(R.string.postgrad_tifr_mumbai),
+        stringResource(R.string.postgrad_jj_school_arts),
+        stringResource(R.string.postgrad_savitribai_phule_pune_university),
+        stringResource(R.string.postgrad_symbiosis_law_school),
+        stringResource(R.string.postgrad_iit_gandhinagar),
+        stringResource(R.string.postgrad_nirma_university),
         stringResource(R.string.postgrad_iim_ahmedabad),
-        stringResource(R.string.postgrad_iim_bangalore),
-        stringResource(R.string.postgrad_iim_calcutta),
+        stringResource(R.string.postgrad_goa_university),
+        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
         stringResource(R.string.postgrad_iisc_bangalore),
-        stringResource(R.string.postgrad_jnu),
-        stringResource(R.string.postgrad_university_of_delhi),
-        stringResource(R.string.postgrad_harvard_university),
-        stringResource(R.string.postgrad_stanford_university),
-        stringResource(R.string.postgrad_mit),
-        stringResource(R.string.postgrad_ucsd),
-        stringResource(R.string.postgrad_purdue_university),
-        stringResource(R.string.postgrad_uc_berkeley),
-        stringResource(R.string.postgrad_university_of_michigan),
-        stringResource(R.string.postgrad_university_of_oxford),
-        stringResource(R.string.postgrad_university_of_cambridge),
-        stringResource(R.string.postgrad_imperial_college_london),
-        stringResource(R.string.postgrad_london_school_of_economics),
-        stringResource(R.string.postgrad_university_of_toronto),
-        stringResource(R.string.postgrad_university_of_british_columbia),
-        stringResource(R.string.postgrad_mcgill_university),
-        stringResource(R.string.postgrad_university_of_melbourne),
-        stringResource(R.string.postgrad_university_of_sydney),
-        stringResource(R.string.postgrad_australian_national_university),
-        stringResource(R.string.postgrad_tu_delft),
-        stringResource(R.string.postgrad_eth_zurich),
-        stringResource(R.string.postgrad_university_college_london),
-        stringResource(R.string.postgrad_university_of_amsterdam),
-        stringResource(R.string.postgrad_sorbonne_university),
+        stringResource(R.string.postgrad_christ_university),
+        stringResource(R.string.postgrad_nlsiu_bangalore),
+        stringResource(R.string.postgrad_iim_bangalore),
+        stringResource(R.string.postgrad_iit_madras),
+        stringResource(R.string.postgrad_anna_university),
+        stringResource(R.string.postgrad_srmist_chennai),
+        stringResource(R.string.postgrad_vit_vellore),
+        stringResource(R.string.postgrad_osmania_university),
+        stringResource(R.string.postgrad_nalsar_hyderabad),
+        stringResource(R.string.postgrad_manipal_academy),
+        stringResource(R.string.postgrad_andhra_university),
+        stringResource(R.string.postgrad_annamalai_university),
+        stringResource(R.string.postgrad_kerala_university),
+        stringResource(R.string.postgrad_iim_kozhikode),
+        stringResource(R.string.postgrad_nit_warangal),
+        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+        stringResource(R.string.postgrad_jadavpur_university),
+        stringResource(R.string.postgrad_presidency_university),
+        stringResource(R.string.postgrad_university_of_calcutta),
+        stringResource(R.string.postgrad_iit_kharagpur),
+        stringResource(R.string.postgrad_nit_durgapur),
+        stringResource(R.string.postgrad_isi_kolkata),
+        stringResource(R.string.postgrad_iim_calcutta),
+        stringResource(R.string.postgrad_visva_bharati),
+        stringResource(R.string.postgrad_nit_rourkela),
+        stringResource(R.string.postgrad_iit_dhanbad),
+        stringResource(R.string.postgrad_xlri_jamshedpur),
+        // Northeast India (Assam, Meghalaya)
+        stringResource(R.string.postgrad_gauhati_university),
+        stringResource(R.string.postgrad_nehu_shillong),
+        stringResource(R.string.postgrad_cotton_university),
+        stringResource(R.string.postgrad_iim_shillong),
+        // Union Territories
+        stringResource(R.string.postgrad_jamia_millia_islamia),
+        stringResource(R.string.postgrad_iim_vishakhapatnam),
+        // Catch-all for other post-graduate institutions
         stringResource(R.string.postgrad_other)
     )
+
     var postGrad              by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
     var postGradExpanded      by remember { mutableStateOf(false) }
     var postGradYear          by remember { mutableStateOf(tempProfile.postGraduationYear) }
@@ -1313,17 +1462,28 @@ fun BasicInfoEditSection(
 
     // ─── Caste ───────────────────────────────────────────
     var caste                by remember { mutableStateOf(tempProfile.caste) }
-    val casteOptions         = listOf(
-        stringResource(R.string.caste_kulin_brahmin),
-        stringResource(R.string.caste_non_kulin_brahmin),
-        stringResource(R.string.caste_kulin_kayastha),
-        stringResource(R.string.caste_non_kulin_kayastha),
+    val casteOptions = listOf(
+        stringResource(R.string.caste_brahmin),
+        stringResource(R.string.caste_kayastha),
         stringResource(R.string.caste_baidya),
         stringResource(R.string.caste_kshatriya),
         stringResource(R.string.caste_vaishya),
-        stringResource(R.string.caste_rajbonshi),
+        stringResource(R.string.caste_rajvanshi),
         stringResource(R.string.caste_sadgop),
         stringResource(R.string.caste_mahishya),
+        stringResource(R.string.caste_jat),
+        stringResource(R.string.caste_rajput),
+        stringResource(R.string.caste_yadav),
+        stringResource(R.string.caste_vellalar),
+        stringResource(R.string.caste_naidu),
+        stringResource(R.string.caste_ezhava),
+        stringResource(R.string.caste_gowda),
+        stringResource(R.string.caste_patel),
+        stringResource(R.string.caste_maratha),
+        stringResource(R.string.caste_kurmi),
+        stringResource(R.string.caste_lingayat),
+        stringResource(R.string.caste_reddy),
+        stringResource(R.string.caste_bhil),
         stringResource(R.string.caste_scheduled_caste),
         stringResource(R.string.caste_scheduled_tribe),
         stringResource(R.string.caste_obc),
@@ -1443,433 +1603,632 @@ fun BasicInfoEditSection(
     }
 
     // ─── City & Locality arrays ──────────────────────────
+// ─── City & Locality arrays ──────────────────────────
     val cityOptionsList      = stringArrayResource(id = R.array.city_names).toList()
     val localityOptionsList: List<String> = when(city) {
-        stringResource(R.string.city_kolkata)     -> stringArrayResource(R.array.localities_kolkata).toList()
-        stringResource(R.string.city_howrah)      -> stringArrayResource(R.array.localities_howrah).toList()
-        stringResource(R.string.city_durgapur)    -> stringArrayResource(R.array.localities_durgapur).toList()
-        stringResource(R.string.city_asansol)     -> stringArrayResource(R.array.localities_asansol).toList()
-        stringResource(R.string.city_siliguri)    -> stringArrayResource(R.array.localities_siliguri).toList()
-        stringResource(R.string.city_darjeeling)  -> stringArrayResource(R.array.localities_darjeeling).toList()
-        stringResource(R.string.city_malda)       -> stringArrayResource(R.array.localities_malda).toList()
-        stringResource(R.string.city_jalpaiguri)  -> stringArrayResource(R.array.localities_jalpaiguri).toList()
-        stringResource(R.string.city_cooch_behar) -> stringArrayResource(R.array.localities_cooch_behar).toList()
-        stringResource(R.string.city_alipurduar)  -> stringArrayResource(R.array.localities_alipurduar).toList()
-        stringResource(R.string.city_bankura)     -> stringArrayResource(R.array.localities_bankura).toList()
-        stringResource(R.string.city_purulia)     -> stringArrayResource(R.array.localities_purulia).toList()
-        stringResource(R.string.city_kharagpur)   -> stringArrayResource(R.array.localities_kharagpur).toList()
-        stringResource(R.string.city_midnapore)   -> stringArrayResource(R.array.localities_midnapore).toList()
-        stringResource(R.string.city_bardhaman)   -> stringArrayResource(R.array.localities_bardhaman).toList()
-        stringResource(R.string.city_hooghly)     -> stringArrayResource(R.array.localities_hooghly).toList()
-        stringResource(R.string.city_murshidabad) -> stringArrayResource(R.array.localities_murshidabad).toList()
-        stringResource(R.string.city_baharampur)  -> stringArrayResource(R.array.localities_baharampur).toList()
-        stringResource(R.string.city_haldia)      -> stringArrayResource(R.array.localities_haldia).toList()
-        stringResource(R.string.city_ranaghat)    -> stringArrayResource(R.array.localities_ranaghat).toList()
-        stringResource(R.string.city_kalyani)     -> stringArrayResource(R.array.localities_kalyani).toList()
-        stringResource(R.string.city_chandannagar)-> stringArrayResource(R.array.localities_chandannagar).toList()
-        // … all your cities …
+        stringResource(R.string.city_kolkata) -> stringArrayResource(R.array.localities_kolkata).toList()
+        stringResource(R.string.city_howrah) -> stringArrayResource(R.array.localities_howrah).toList()
+        stringResource(R.string.city_durgapur) -> stringArrayResource(R.array.localities_durgapur).toList()
+        stringResource(R.string.city_asansol) -> stringArrayResource(R.array.localities_asansol).toList()
+        stringResource(R.string.city_siliguri) -> stringArrayResource(R.array.localities_siliguri).toList()
+        stringResource(R.string.city_darjeeling) -> stringArrayResource(R.array.localities_darjeeling).toList()
+        stringResource(R.string.city_kharagpur) -> stringArrayResource(R.array.localities_kharagpur).toList()
+        stringResource(R.string.city_agartala) -> stringArrayResource(R.array.localities_agartala).toList()
+        stringResource(R.string.city_ahmedabad) -> stringArrayResource(R.array.localities_ahmedabad).toList()
+        stringResource(R.string.city_aizawl) -> stringArrayResource(R.array.localities_aizawl).toList()
+        stringResource(R.string.city_amaravati) -> stringArrayResource(R.array.localities_amaravati).toList()
+        stringResource(R.string.city_amritsar) -> stringArrayResource(R.array.localities_amritsar).toList()
+        stringResource(R.string.city_bengaluru) -> stringArrayResource(R.array.localities_bengaluru).toList()
+        stringResource(R.string.city_bhilai) -> stringArrayResource(R.array.localities_bhilai).toList()
+        stringResource(R.string.city_bhopal) -> stringArrayResource(R.array.localities_bhopal).toList()
+        stringResource(R.string.city_bhubaneswar) -> stringArrayResource(R.array.localities_bhubaneswar).toList()
+        stringResource(R.string.city_bilaspur) -> stringArrayResource(R.array.localities_bilaspur).toList()
+        stringResource(R.string.city_chandigarh) -> stringArrayResource(R.array.localities_chandigarh).toList()
+        stringResource(R.string.city_chennai) -> stringArrayResource(R.array.localities_chennai).toList()
+        stringResource(R.string.city_coimbatore) -> stringArrayResource(R.array.localities_coimbatore).toList()
+        stringResource(R.string.city_cuttack) -> stringArrayResource(R.array.localities_cuttack).toList()
+        stringResource(R.string.city_daman) -> stringArrayResource(R.array.localities_daman).toList()
+        stringResource(R.string.city_dehradun) -> stringArrayResource(R.array.localities_dehradun).toList()
+        stringResource(R.string.city_dibrugarh) -> stringArrayResource(R.array.localities_dibrugarh).toList()
+        stringResource(R.string.city_dharamshala) -> stringArrayResource(R.array.localities_dharamshala).toList()
+        stringResource(R.string.city_faridabad) -> stringArrayResource(R.array.localities_faridabad).toList()
+        stringResource(R.string.city_gangtok) -> stringArrayResource(R.array.localities_gangtok).toList()
+        stringResource(R.string.city_gaya) -> stringArrayResource(R.array.localities_gaya).toList()
+        stringResource(R.string.city_gandhinagar) -> stringArrayResource(R.array.localities_gandhinagar).toList()
+        stringResource(R.string.city_ghaziabad) -> stringArrayResource(R.array.localities_ghaziabad).toList()
+        stringResource(R.string.city_gwalior) -> stringArrayResource(R.array.localities_gwalior).toList()
+        stringResource(R.string.city_gyalshing) -> stringArrayResource(R.array.localities_gyalshing).toList()
+        stringResource(R.string.city_guwahati) -> stringArrayResource(R.array.localities_guwahati).toList()
+        stringResource(R.string.city_gurugram) -> stringArrayResource(R.array.localities_gurugram).toList()
+        stringResource(R.string.city_haridwar) -> stringArrayResource(R.array.localities_haridwar).toList()
+        stringResource(R.string.city_hisar) -> stringArrayResource(R.array.localities_hisar).toList()
+        stringResource(R.string.city_hyderabad) -> stringArrayResource(R.array.localities_hyderabad).toList()
+        stringResource(R.string.city_imphal) -> stringArrayResource(R.array.localities_imphal).toList()
+        stringResource(R.string.city_indore) -> stringArrayResource(R.array.localities_indore).toList()
+        stringResource(R.string.city_itanagar) -> stringArrayResource(R.array.localities_itanagar).toList()
+        stringResource(R.string.city_jaipur) -> stringArrayResource(R.array.localities_jaipur).toList()
+        stringResource(R.string.city_jamshedpur) -> stringArrayResource(R.array.localities_jamshedpur).toList()
+        stringResource(R.string.city_jodhpur) -> stringArrayResource(R.array.localities_jodhpur).toList()
+        stringResource(R.string.city_kancheepuram) -> stringArrayResource(R.array.localities_kancheepuram).toList()
+        stringResource(R.string.city_kanpur) -> stringArrayResource(R.array.localities_kanpur).toList()
+        stringResource(R.string.city_kargil) -> stringArrayResource(R.array.localities_kargil).toList()
+        stringResource(R.string.city_kavaratti) -> stringArrayResource(R.array.localities_kavaratti).toList()
+        stringResource(R.string.city_kochi) -> stringArrayResource(R.array.localities_kochi).toList()
+        stringResource(R.string.city_kohima) -> stringArrayResource(R.array.localities_kohima).toList()
+        stringResource(R.string.city_leh) -> stringArrayResource(R.array.localities_leh).toList()
+        stringResource(R.string.city_ludhiana) -> stringArrayResource(R.array.localities_ludhiana).toList()
+        stringResource(R.string.city_lucknow) -> stringArrayResource(R.array.localities_lucknow).toList()
+        stringResource(R.string.city_madurai) -> stringArrayResource(R.array.localities_madurai).toList()
+        stringResource(R.string.city_mumbai) -> stringArrayResource(R.array.localities_mumbai).toList()
+        stringResource(R.string.city_mangaluru) -> stringArrayResource(R.array.localities_mangaluru).toList()
+        stringResource(R.string.city_mysuru) -> stringArrayResource(R.array.localities_mysuru).toList()
+        stringResource(R.string.city_nainital) -> stringArrayResource(R.array.localities_nainital).toList()
+        stringResource(R.string.city_nagpur) -> stringArrayResource(R.array.localities_nagpur).toList()
+        stringResource(R.string.city_namchi) -> stringArrayResource(R.array.localities_namchi).toList()
+        stringResource(R.string.city_navi_mumbai) -> stringArrayResource(R.array.localities_navi_mumbai).toList()
+        stringResource(R.string.city_nct_of_delhi) -> stringArrayResource(R.array.localities_delhi_nct).toList()
+        stringResource(R.string.city_noida) -> stringArrayResource(R.array.localities_noida).toList()
+        stringResource(R.string.city_panaji) -> stringArrayResource(R.array.localities_panaji).toList()
+        stringResource(R.string.city_pasighat) -> stringArrayResource(R.array.localities_pasighat).toList()
+        stringResource(R.string.city_patna) -> stringArrayResource(R.array.localities_patna).toList()
+        stringResource(R.string.city_prayagraj) -> stringArrayResource(R.array.localities_prayagraj).toList()
+        stringResource(R.string.city_pune) -> stringArrayResource(R.array.localities_pune).toList()
+        stringResource(R.string.city_port_blair) -> stringArrayResource(R.array.localities_port_blair).toList()
+        stringResource(R.string.city_puducherry) -> stringArrayResource(R.array.localities_puducherry).toList()
+        stringResource(R.string.city_raipur) -> stringArrayResource(R.array.localities_raipur).toList()
+        stringResource(R.string.city_ranchi) -> stringArrayResource(R.array.localities_ranchi).toList()
+        stringResource(R.string.city_rourkela) -> stringArrayResource(R.array.localities_rourkela).toList()
+        stringResource(R.string.city_rohtak) -> stringArrayResource(R.array.localities_rohtak).toList()
+        stringResource(R.string.city_shillong) -> stringArrayResource(R.array.localities_shillong).toList()
+        stringResource(R.string.city_shimla) -> stringArrayResource(R.array.localities_shimla).toList()
+        stringResource(R.string.city_silchar) -> stringArrayResource(R.array.localities_silchar).toList()
+        stringResource(R.string.city_sonipat) -> stringArrayResource(R.array.localities_sonipat).toList()
+        stringResource(R.string.city_surat) -> stringArrayResource(R.array.localities_surat).toList()
+        stringResource(R.string.city_secunderabad) -> stringArrayResource(R.array.localities_secunderabad).toList()
+        stringResource(R.string.city_tawang) -> stringArrayResource(R.array.localities_tawang).toList()
+        stringResource(R.string.city_thane) -> stringArrayResource(R.array.localities_thane).toList()
+        stringResource(R.string.city_thiruvananthapuram) -> stringArrayResource(R.array.localities_thiruvananthapuram).toList()
+        stringResource(R.string.city_udaipur) -> stringArrayResource(R.array.localities_udaipur).toList()
+        stringResource(R.string.city_vadodara) -> stringArrayResource(R.array.localities_vadodara).toList()
+        stringResource(R.string.city_varanasi) -> stringArrayResource(R.array.localities_varanasi).toList()
+        stringResource(R.string.city_vellore) -> stringArrayResource(R.array.localities_vellore).toList()
+        stringResource(R.string.city_vijayawada) -> stringArrayResource(R.array.localities_vijayawada).toList()
+        stringResource(R.string.city_visakhapatnam) -> stringArrayResource(R.array.localities_visakhapatnam).toList()
+        stringResource(R.string.city_warangal) -> stringArrayResource(R.array.localities_warangal).toList()
         else -> stringArrayResource(R.array.localities_other).toList()
     }
 
-    Column(
-        modifier            = Modifier
-            .fillMaxWidth()
-            .padding(6.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        // Name
-        OutlinedTextField(
-            textStyle = LocalTextStyle.current.copy(color = Color.White),
-            value       = name,
-            onValueChange = { name = it },
-            label       = { Text(stringResource(R.string.label_name), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-            modifier    = Modifier.fillMaxWidth(),
-            colors =  OutlinedTextFieldDefaults.colors(
-                focusedBorderColor      = Color(0xFFFF6F00),
-                unfocusedBorderColor    = Color.Gray,
-                cursorColor             = Color.White,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(6.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            // Name
+            OutlinedTextField(
+                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                value = name,
+                onValueChange = { name = it },
+                label = {
+                    Text(
+                        stringResource(R.string.label_name),
+                        fontSize = 9.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
                 )
-        )
+            )
 
-        // Height toggle & fields…
-        Text(stringResource(R.string.height_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = isFeet, onCheckedChange = { isFeet = it }, colors = SwitchDefaults.colors(
-                // thumb (the round “knob”)
-                checkedThumbColor   = Color(0xFFFF6F00),
-                uncheckedThumbColor = Color.Gray,
-                // track (the background line)
-                checkedTrackColor   = Color(0xFFFF6F00).copy(alpha = 0.54f),
-                uncheckedTrackColor = Color.Gray.copy(alpha = 0.54f)
-            ) )
-            Spacer(Modifier.width(8.dp))
-            Text(if (isFeet) stringResource(R.string.feet_inches_label)
-            else stringResource(R.string.centimeters_label), fontSize = 9.sp, color = Color.White)
-        }
-        if (isFeet) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Height toggle & fields…
+            Text(
+                stringResource(R.string.height_label),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = isFeet,
+                    onCheckedChange = { isFeet = it },
+                    colors = SwitchDefaults.colors(
+                        // thumb (the round “knob”)
+                        checkedThumbColor = Color(0xFFFF6F00),
+                        uncheckedThumbColor = Color.Gray,
+                        // track (the background line)
+                        checkedTrackColor = Color(0xFFFF6F00).copy(alpha = 0.54f),
+                        uncheckedTrackColor = Color.Gray.copy(alpha = 0.54f)
+                    )
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (isFeet) stringResource(R.string.feet_inches_label)
+                    else stringResource(R.string.centimeters_label),
+                    fontSize = 9.sp,
+                    color = Color.White
+                )
+            }
+            if (isFeet) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OutlinedTextField(
+                        value = feet.toString(),
+                        onValueChange = { feet = it.toIntOrNull() ?: 0 },
+                        label = {
+                            Text(
+                                stringResource(R.string.feet_label),
+                                fontSize = 9.sp,
+                                color = Color(0xFFFF6F00)
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    OutlinedTextField(
+                        value = inches.toString(),
+                        onValueChange = { inches = it.toIntOrNull() ?: 0 },
+                        label = {
+                            Text(
+                                stringResource(R.string.inches_label),
+                                fontSize = 9.sp,
+                                color = Color(0xFFFF6F00)
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+            } else {
                 OutlinedTextField(
-                    value           = feet.toString(),
-                    onValueChange   = { feet = it.toIntOrNull() ?: 0 },
-                    label           = { Text(stringResource(R.string.feet_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                    modifier        = Modifier.weight(1f),
+                    value = heightCm.toString(),
+                    onValueChange = { heightCm = it.toIntOrNull() ?: 0 },
+                    label = {
+                        Text(
+                            stringResource(R.string.centimeters_label),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            // Religion chips
+            Text(
+                stringResource(R.string.religion_label),
+                fontWeight = FontWeight.Bold,
+                fontSize = 9.sp,
+                color = Color(0xFFFF6F00)
+            )
+            val religionOpts = listOf(
+                stringResource(R.string.religion_hindu),
+                stringResource(R.string.religion_muslim),
+                stringResource(R.string.religion_christian),
+                stringResource(R.string.religion_buddhist),
+                stringResource(R.string.religion_jain),
+                stringResource(R.string.religion_sikh),
+                stringResource(R.string.religion_jew),
+                stringResource(R.string.religion_indigenous_tribal),
+                stringResource(R.string.religion_no_religion),
+                stringResource(R.string.religion_zoroastrian),
+                stringResource(R.string.religion_other)
+            )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                religionOpts.forEach { option ->
+                    FilterChip(
+                        selected = religion == option,
+                        onClick = { religion = option },
+                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            // Community chips
+            Text(
+                stringResource(R.string.community_label),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
+            )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val commOpts = listOf(
+                    // Northeast India
+                    stringResource(R.string.community_adi),
+                    stringResource(R.string.community_nyishi),
+                    stringResource(R.string.community_bodo),
+                    stringResource(R.string.community_assamese),
+                    stringResource(R.string.community_manipuri),
+                    stringResource(R.string.community_khasi),
+                    stringResource(R.string.community_mizo),
+                    stringResource(R.string.community_naga),
+                    stringResource(R.string.community_tripuri),
+                    // East India
+                    stringResource(R.string.community_bengali),
+                    stringResource(R.string.community_santhal),
+                    stringResource(R.string.community_oraon),
+                    stringResource(R.string.community_munda),
+                    // North India
+                    stringResource(R.string.community_punjabi),
+                    stringResource(R.string.community_marwari),
+                    stringResource(R.string.community_rajasthani),
+                    stringResource(R.string.community_kashmiri),
+                    stringResource(R.string.community_himachali),
+                    stringResource(R.string.community_haryanvi),
+                    stringResource(R.string.community_garhwali),
+                    // Central India
+                    stringResource(R.string.community_madhya_pradeshi),
+                    stringResource(R.string.community_chhattisgarhi),
+                    // South India
+                    stringResource(R.string.community_tamil),
+                    stringResource(R.string.community_telugu),
+                    stringResource(R.string.community_kannadiga),
+                    stringResource(R.string.community_malayali),
+                    // West India
+                    stringResource(R.string.community_gujarati),
+                    stringResource(R.string.community_marathi),
+                    stringResource(R.string.community_goan),
+                    stringResource(R.string.community_konkani),
+                    // Other Regions
+                    stringResource(R.string.community_odia),
+                    stringResource(R.string.community_bihari),
+                    stringResource(R.string.community_sikkimese),
+                    stringResource(R.string.community_nepali),
+                    stringResource(R.string.community_ladakhi),
+                    stringResource(R.string.community_andamanese),
+                    stringResource(R.string.community_lakhadweepi),
+                    // Catch-all
+                    stringResource(R.string.community_other)
+                )
+                commOpts.forEach { option ->
+                    FilterChip(
+                        selected = community == option,
+                        onClick = { community = option },
+                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            // **Caste chips**
+            Text(
+                stringResource(R.string.caste_title),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
+            )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                casteOptions.forEach { option ->
+                    FilterChip(
+                        selected = caste == option,
+                        onClick = { caste = option },
+                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            // Gender chips
+            Text(
+                stringResource(R.string.gender_label),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
+            )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                genderOptions.forEach { option ->
+                    FilterChip(
+                        selected = selectedGender == option,
+                        onClick = { selectedGender = option },
+                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            // City dropdown…
+            SearchableDropdownWithCustomOption(
+                title = stringResource(R.string.city_label),
+                options = cityOptionsList,
+                selectedOption = city,
+                onOptionSelected = { sel ->
+                    city = sel
+                },
+                customInput = customCity,
+                onCustomInputChange = { customCity = it!! }
+            )
+            Spacer(Modifier.height(6.dp))
+
+            SearchableDropdownWithCustomOption(
+                title = stringResource(R.string.label_locality),
+                options = localityOptionsList,
+                selectedOption = locality,
+                onOptionSelected = { sel ->
+                    locality = sel
+                },
+                customInput = customLocality,
+                onCustomInputChange = { customLocality = it!! }
+            )
+            Spacer(Modifier.height(6.dp))
+
+            // Job-Role & Work chips + optional customs…
+            Text(
+                stringResource(R.string.job_role_label),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
+            )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                jobRoleOptions.forEach { option ->
+                    FilterChip(
+                        selected = selectedJobRole == option,
+                        onClick = {
+                            selectedJobRole = option
+                            if (option != jobRoleOptions.last()) customJobRole = ""
+                        },
+                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+            if (selectedJobRole == jobRoleOptions.last()) {
+                OutlinedTextField(
+                    value = customJobRole,
+                    onValueChange = { customJobRole = it },
+                    label = {
+                        Text(
+                            stringResource(R.string.label_custom_job_role),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Text(
+                stringResource(R.string.label_work),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
+            )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                workOptions.forEach { option ->
+                    FilterChip(
+                        selected = selectedWork == option,
+                        onClick = {
+                            selectedWork = option
+                            if (option != workOptions.last()) customWork = ""
+                        },
+                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+            if (selectedWork == workOptions.last()) {
+                OutlinedTextField(
+                    value = customWork,
+                    onValueChange = { customWork = it },
+                    label = {
+                        Text(
+                            stringResource(R.string.label_custom_work),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // High-School dropdown + Year…
+            SearchableDropdownWithCustomOption(
+                title = stringResource(R.string.label_high_school),
+                options = highSchoolOptions,
+                selectedOption = highSchool,
+                onOptionSelected = { sel ->
+                    highSchool = sel
+                },
+                customInput = customHighSchool,
+                onCustomInputChange = { customHighSchool = it!! }
+            )
+            if (highSchool.isNotBlank()) {
+                OutlinedTextField(
+                    value = highSchoolYear,
+                    onValueChange = { highSchoolYear = it.filter { c -> c.isDigit() }.take(4) },
+                    label = {
+                        Text(
+                            stringResource(R.string.high_school_graduation_year),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            // College dropdown + Year + Degree…
+            SearchableDropdownWithCustomOption(
+                title = stringResource(R.string.college_label),
+                options = collegeOptions,
+                selectedOption = college,
+                onOptionSelected = { sel ->
+                    college = sel
+                },
+                customInput = customCollege,
+                onCustomInputChange = { customCollege = it!! }
+            )
+            if (college.isNotBlank()) {
+                OutlinedTextField(
+                    value = collegeYear,
+                    onValueChange = { collegeYear = it.filter { c -> c.isDigit() }.take(4) },
+                    label = {
+                        Text(
+                            stringResource(R.string.college_graduation_year),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
-                    value           = inches.toString(),
-                    onValueChange   = { inches = it.toIntOrNull() ?: 0 },
-                    label           = { Text(stringResource(R.string.inches_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                    modifier        = Modifier.weight(1f),
+                    value = collegeDegree,
+                    onValueChange = { if (it.length <= 50) collegeDegree = it },
+                    label = {
+                        Text(
+                            stringResource(R.string.label_college_degree),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
+            // Post-Grad dropdown + Year + Degree…
+            SearchableDropdownWithCustomOption(
+                title = stringResource(R.string.post_graduation_label),
+                options = postGradOptions,
+                selectedOption = postGrad,
+                onOptionSelected = { sel ->
+                    postGrad = sel
+                },
+                customInput = customPostGrad,
+                onCustomInputChange = { customPostGrad = it!! }
+            )
+            if (postGrad.isNotBlank()) {
+                OutlinedTextField(
+                    value = postGradYear,
+                    onValueChange = { postGradYear = it.filter { c -> c.isDigit() }.take(4) },
+                    label = {
+                        Text(
+                            stringResource(R.string.select_graduation_year_label),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-            }
-        } else {
-            OutlinedTextField(
-                value           = heightCm.toString(),
-                onValueChange   = { heightCm = it.toIntOrNull() ?: 0 },
-                label           = { Text(stringResource(R.string.centimeters_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier        = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-        }
-
-        // Religion chips
-        Text(stringResource(R.string.religion_label), fontWeight = FontWeight.Bold, fontSize = 9.sp, color = Color(0xFFFF6F00))
-        val religionOpts = listOf(
-            stringResource(R.string.religion_other),
-            stringResource(R.string.religion_no_religion),
-            stringResource(R.string.religion_hindu),
-            stringResource(R.string.religion_muslim),
-            stringResource(R.string.religion_christian),
-            stringResource(R.string.religion_sikh),
-            stringResource(R.string.religion_jain),
-            stringResource(R.string.religion_buddhist),
-            stringResource(R.string.religion_indigenous_tribal),
-        )
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            religionOpts.forEach { option ->
-                FilterChip(
-                    selected = religion==option,
-                    onClick  = { religion = option },
-                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
-                    colors   = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-
-        // Community chips
-        Text(stringResource(R.string.community_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val commOpts = listOf(
-                stringResource(R.string.community_other),
-                stringResource(R.string.community_bengali),
-                stringResource(R.string.community_marwari),
-                stringResource(R.string.community_bihari),
-                stringResource(R.string.community_punjabi),
-                stringResource(R.string.community_santhal),
-                stringResource(R.string.community_bangal),
-                stringResource(R.string.community_ghoti),
-                stringResource(R.string.community_gujarati),
-                stringResource(R.string.community_kannadiga),
-                stringResource(R.string.community_tamil),
-                stringResource(R.string.community_malayali),
-                stringResource(R.string.community_odia),
-                stringResource(R.string.community_telugu),
-                stringResource(R.string.community_nepali),
-                stringResource(R.string.community_munda),
-                stringResource(R.string.community_oraon),
-
-                /* ——— Himalayan neighbours ——— */
-                stringResource(R.string.community_bhutanese),
-                stringResource(R.string.community_sikkimese),
-
-                /* ——— Arunachal Pradesh ——— */
-                stringResource(R.string.community_arunachali),   // ← NEW
-
-                /* ——— Assam plains tribes ——— */
-                stringResource(R.string.community_assamese),
-                stringResource(R.string.community_sonowal_kachari)
-            )
-            commOpts.forEach { option ->
-                FilterChip(
-                    selected = community==option,
-                    onClick  = { community = option },
-                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
-                    colors   = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-
-        // **Caste chips**
-        Text(stringResource(R.string.caste_title), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            casteOptions.forEach { option ->
-                FilterChip(
-                    selected = caste==option,
-                    onClick  = { caste = option },
-                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
-                    colors   = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-
-        // Gender chips
-        Text(stringResource(R.string.gender_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            genderOptions.forEach { option ->
-                FilterChip(
-                    selected = selectedGender==option,
-                    onClick  = { selectedGender = option },
-                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
-                    colors   = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-
-        // City dropdown…
-        SearchableDropdownWithCustomOption(
-            title               = stringResource(R.string.city_label),
-            options             = cityOptionsList,
-            selectedOption      = city,
-            onOptionSelected    = { sel ->
-                city = sel
-            },
-            customInput         = customCity,
-            onCustomInputChange = { customCity = it!! }
-        )
-        Spacer(Modifier.height(6.dp))
-
-        SearchableDropdownWithCustomOption(
-            title               = stringResource(R.string.label_locality),
-            options             = localityOptionsList,
-            selectedOption      = locality,
-            onOptionSelected    = { sel ->
-                locality = sel
-            },
-            customInput         = customLocality,
-            onCustomInputChange = { customLocality = it!! }
-        )
-        Spacer(Modifier.height(6.dp))
-
-        // Job-Role & Work chips + optional customs…
-        Text(stringResource(R.string.job_role_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            jobRoleOptions.forEach { option ->
-                FilterChip(
-                    selected = selectedJobRole==option,
-                    onClick  = {
-                        selectedJobRole = option
-                        if (option!=jobRoleOptions.last()) customJobRole = ""
+                OutlinedTextField(
+                    value = postGradDegree,
+                    onValueChange = { if (it.length <= 50) postGradDegree = it },
+                    label = {
+                        Text(
+                            stringResource(R.string.label_post_graduation_degree),
+                            fontSize = 9.sp,
+                            color = Color(0xFFFF6F00)
+                        )
                     },
-                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
-                    colors   = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
             }
-        }
-        if (selectedJobRole==jobRoleOptions.last()) {
-            OutlinedTextField(
-                value       = customJobRole,
-                onValueChange = { customJobRole = it },
-                label       = { Text(stringResource(R.string.label_custom_job_role), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier    = Modifier.fillMaxWidth()
-            )
-        }
 
-        Text(stringResource(R.string.label_work), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            workOptions.forEach { option ->
-                FilterChip(
-                    selected = selectedWork==option,
-                    onClick  = {
-                        selectedWork = option
-                        if (option!=workOptions.last()) customWork = ""
-                    },
-                    label    = { Text(option, fontSize = 9.sp, color = Color.White) },
-                    colors   = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-        if (selectedWork==workOptions.last()) {
-            OutlinedTextField(
-                value       = customWork,
-                onValueChange = { customWork = it },
-                label       = { Text(stringResource(R.string.label_custom_work), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier    = Modifier.fillMaxWidth()
+            // ─── Save / Cancel ───────────────────────────────────
+            ButtonRow(
+                onSave = {
+                    onSave(
+                        tempProfile.copy(
+                        name = name,
+                        city = city,
+                        customCity = customCity.ifBlank { null },
+                        hometown = locality,
+                        customHometown = customLocality.ifBlank { null },
+                        highSchool = highSchool,
+                        customHighSchool = customHighSchool.ifBlank { null },
+                        highSchoolGraduationYear = highSchoolYear,
+                        college = college,
+                        customCollege = customCollege.ifBlank { null },
+                        collegeGraduationYear = collegeYear,
+                        collegeDegree = collegeDegree.ifBlank { null },
+                        postGraduation = postGrad.ifBlank { null },
+                        postGraduationYear = postGradYear,
+                        postGraduationDegree = postGradDegree.ifBlank { null },
+                        religion = religion,
+                        community = community,
+                        caste = caste,
+                        height = heightCm,
+                        height2 = if (isFeet) listOf(feet, inches) else emptyList(),
+                        gender = selectedGender,
+                        jobRole = selectedJobRole,
+                        customJobRole = selectedJobRole.takeIf { it == jobRoleOptions.last() }
+                            ?.let { customJobRole },
+                        work = selectedWork,
+                        customWork = selectedWork.takeIf { it == workOptions.last() }
+                            ?.let { customWork }
+                    ))
+                },
+                onCancel = onCancel
             )
         }
-
-        // High-School dropdown + Year…
-        SearchableDropdownWithCustomOption(
-            title               = stringResource(R.string.label_high_school),
-            options             = highSchoolOptions,
-            selectedOption      = highSchool,
-            onOptionSelected    = { sel ->
-                highSchool = sel
-            },
-            customInput         = customHighSchool,
-            onCustomInputChange = { customHighSchool = it!! }
-        )
-        if (highSchool.isNotBlank()) {
-            OutlinedTextField(
-                value           = highSchoolYear,
-                onValueChange   = { highSchoolYear = it.filter { c -> c.isDigit() }.take(4) },
-                label           = { Text(stringResource(R.string.high_school_graduation_year), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier        = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-        }
-
-        // College dropdown + Year + Degree…
-        SearchableDropdownWithCustomOption(
-            title               = stringResource(R.string.college_label),
-            options             = collegeOptions,
-            selectedOption      = college,
-            onOptionSelected    = { sel ->
-                college = sel
-            },
-            customInput         = customCollege,
-            onCustomInputChange = { customCollege = it!! }
-        )
-        if (college.isNotBlank()) {
-            OutlinedTextField(
-                value           = collegeYear,
-                onValueChange   = { collegeYear = it.filter { c -> c.isDigit() }.take(4) },
-                label           = { Text(stringResource(R.string.college_graduation_year), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier        = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-            OutlinedTextField(
-                value           = collegeDegree,
-                onValueChange   = { if (it.length <= 50) collegeDegree = it },
-                label           = { Text(stringResource(R.string.label_college_degree), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier        = Modifier.fillMaxWidth(),
-                singleLine      = true
-            )
-        }
-
-        // Post-Grad dropdown + Year + Degree…
-        SearchableDropdownWithCustomOption(
-            title               = stringResource(R.string.post_graduation_label),
-            options             = postGradOptions,
-            selectedOption      = postGrad,
-            onOptionSelected    = { sel ->
-                postGrad = sel
-            },
-            customInput         = customPostGrad,
-            onCustomInputChange = { customPostGrad = it!! }
-        )
-        if (postGrad.isNotBlank()) {
-            OutlinedTextField(
-                value           = postGradYear,
-                onValueChange   = { postGradYear = it.filter { c -> c.isDigit() }.take(4) },
-                label           = { Text(stringResource(R.string.select_graduation_year_label), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier        = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-            OutlinedTextField(
-                value           = postGradDegree,
-                onValueChange   = { if (it.length <= 50) postGradDegree = it },
-                label           = { Text(stringResource(R.string.label_post_graduation_degree), fontSize = 9.sp, color = Color(0xFFFF6F00)) },
-                modifier        = Modifier.fillMaxWidth(),
-                singleLine      = true
-            )
-        }
-
-        // ─── Save / Cancel ───────────────────────────────────
-        ButtonRow(
-            onSave = {
-                onSave(tempProfile.copy(
-                    name                       = name,
-                    city                       = city,
-                    customCity                 = customCity.ifBlank { null },
-                    hometown                   = locality,
-                    customHometown             = customLocality.ifBlank { null },
-                    highSchool                 = highSchool,
-                    customHighSchool           = customHighSchool.ifBlank { null },
-                    highSchoolGraduationYear   = highSchoolYear,
-                    college                    = college,
-                    customCollege              = customCollege.ifBlank { null },
-                    collegeGraduationYear      = collegeYear,
-                    collegeDegree              = collegeDegree.ifBlank { null },
-                    postGraduation             = postGrad.ifBlank { null },
-                    postGraduationYear         = postGradYear,
-                    postGraduationDegree       = postGradDegree.ifBlank { null },
-                    religion                   = religion,
-                    community                  = community,
-                    caste                      = caste,
-                    height                     = heightCm,
-                    height2                    = if (isFeet) listOf(feet, inches) else emptyList(),
-                    gender                     = selectedGender,
-                    jobRole                    = selectedJobRole,
-                    customJobRole              = selectedJobRole.takeIf { it == jobRoleOptions.last() }?.let { customJobRole },
-                    work                       = selectedWork,
-                    customWork                 = selectedWork.takeIf { it == workOptions.last() }?.let { customWork }
-                ))
-            },
-            onCancel = onCancel
-        )
     }
-}
 
 @Composable
 fun PerformanceMetricsSection(profile: Profile) {

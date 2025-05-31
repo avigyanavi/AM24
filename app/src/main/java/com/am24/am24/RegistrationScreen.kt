@@ -1158,445 +1158,315 @@ fun EnterLocationAndSchoolScreen(
     val educationLevels = listOf(stringResource(R.string.no_education_label),
         stringResource(R.string.high_school_label), stringResource(R.string.college_label), stringResource(R.string.post_graduation_label))
     val highSchoolOptions = listOf(
-        stringResource(R.string.high_school_andrews_high_school),
-        stringResource(R.string.high_school_assembly_of_god_church_school),
-        stringResource(R.string.high_school_bdm_international),
-        stringResource(R.string.high_school_ballygunge_government_high_school),
-        stringResource(R.string.high_school_baranagar_ramakrishna_mission),
-        stringResource(R.string.high_school_barasat_mgm_high_school),
-        stringResource(R.string.high_school_barasat_peary_charan),
-        stringResource(R.string.high_school_barrackpore_government_high_school),
-        stringResource(R.string.high_school_bethune_collegiate),
-        stringResource(R.string.high_school_bidhannagar_government_high_school),
-        stringResource(R.string.high_school_birla_high_school),
-        stringResource(R.string.high_school_burdwan_cms_high_school),
-        stringResource(R.string.high_school_calcutta_boys_school),
-        stringResource(R.string.high_school_calcutta_girls_high_school),
-        stringResource(R.string.high_school_darjeeling_government_high_school),
-        stringResource(R.string.high_school_dps_durgapur),
-        stringResource(R.string.high_school_dps_newtown),
-        stringResource(R.string.high_school_dps_ruby_park),
-        stringResource(R.string.high_school_don_bosco_park_circus),
-        stringResource(R.string.high_school_goethals_memorial),
-        stringResource(R.string.high_school_hare_school),
-        stringResource(R.string.high_school_hindu_school),
-        stringResource(R.string.high_school_howrah_zilla_school),
-        stringResource(R.string.high_school_jadavpur_vidyapith),
-        stringResource(R.string.high_school_jenkins_school),
-        stringResource(R.string.high_school_kalyani_university_experimental),
-        stringResource(R.string.high_school_kendriya_vidyalaya_ballygunge),
-        stringResource(R.string.high_school_la_martiniere_boys),
-        stringResource(R.string.high_school_la_martiniere_girls),
-        stringResource(R.string.high_school_loreto_house),
-        stringResource(R.string.high_school_mahadevi_birla_world_academy),
-        stringResource(R.string.high_school_mitra_institution_main),
-        stringResource(R.string.high_school_modern_high_school_girls),
-        stringResource(R.string.high_school_nava_nalanda_high_school),
-        stringResource(R.string.high_school_north_point_darjeeling),
-        stringResource(R.string.high_school_patha_bhavan),
-        stringResource(R.string.high_school_purwanchal_vidya_mandir),
-        stringResource(R.string.high_school_rahara_ramakrishna_mission),
-        stringResource(R.string.high_school_ramakrishna_mission_narendrapur),
-        stringResource(R.string.high_school_rani_birla_girls_school),
-        stringResource(R.string.high_school_sakhawat_memorial_girls),
-        stringResource(R.string.high_school_scottish_church_collegiate),
-        stringResource(R.string.high_school_siliguri_boys_high_school),
-        stringResource(R.string.high_school_south_point_high_school),
-        stringResource(R.string.high_school_st_james_school),
-        stringResource(R.string.high_school_st_josephs_north_point),
-        stringResource(R.string.high_school_st_lawrence_high_school),
-        stringResource(R.string.high_school_st_pauls_mission_school),
-        stringResource(R.string.high_school_st_thomas_kidderpore),
-        stringResource(R.string.high_school_st_xaviers_collegiate),
-        stringResource(R.string.high_school_the_heritage_school),
-        stringResource(R.string.high_school_uttarpara_government_high_school),
-        stringResource(R.string.high_school_asansol_st_anthonys),
-        stringResource(R.string.high_school_bankura_christian_school),
-        stringResource(R.string.high_school_berhampore_girls_high_school),
-        stringResource(R.string.high_school_contai_high_school),
-        stringResource(R.string.high_school_hooghly_collegiate_school),
-        stringResource(R.string.high_school_krishnanagar_collegiate_school),
-        stringResource(R.string.high_school_malda_zilla_school),
-        stringResource(R.string.high_school_midnapore_collegiate_school),
-        stringResource(R.string.high_school_ashok_hall),
-        stringResource(R.string.high_school_mahadevi_birla_shishu_vihar),
-        stringResource(R.string.high_school_jewish_girls),
+        stringResource(R.string.high_school_modern_school_barakhamba),
+        stringResource(R.string.high_school_dps_rk_puram),
+        stringResource(R.string.high_school_shri_ram_gurgaon),
+        stringResource(R.string.high_school_amity_noida),
+        stringResource(R.string.high_school_sanskriti_delhi),
+        stringResource(R.string.high_school_city_montessori_lucknow),
+        stringResource(R.string.high_school_la_martiniere_lucknow),
+        stringResource(R.string.high_school_doon_school),
+        stringResource(R.string.high_school_welham_girls),
+        stringResource(R.string.high_school_lawrence_sanawar),
+        stringResource(R.string.high_school_mayo_college),
+        stringResource(R.string.high_school_st_johns_chandigarh),
+        stringResource(R.string.high_school_birla_pilani),
+        stringResource(R.string.high_school_scindia_school),
+        stringResource(R.string.high_school_yds_srinagar),
+        // West India (Maharashtra, Gujarat, Madhya Pradesh, Goa)
         stringResource(R.string.high_school_cathedral_john_connon),
         stringResource(R.string.high_school_dhirubhai_ambani),
-        stringResource(R.string.high_school_doon_school),
-        stringResource(R.string.high_school_mayo_college),
-        stringResource(R.string.high_school_modern_school_barakhamba),
+        stringResource(R.string.high_school_bombay_scottish_mahim),
+        stringResource(R.string.high_school_campion_mumbai),
+        stringResource(R.string.high_school_jamnabai_narsee),
+        stringResource(R.string.high_school_st_marys_pune),
+        stringResource(R.string.high_school_symbiosis_pune),
+        stringResource(R.string.high_school_daly_college),
+        stringResource(R.string.high_school_podar_ahmedabad),
+        stringResource(R.string.high_school_anand_niketan),
+        stringResource(R.string.high_school_don_bosco_panaji),
+        stringResource(R.string.high_school_emerald_heights_indore),
+        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
+        stringResource(R.string.high_school_bishop_cotton_boys),
+        stringResource(R.string.high_school_bishop_cotton_girls),
+        stringResource(R.string.high_school_mallya_aditi),
+        stringResource(R.string.high_school_national_public_indiranagar),
+        stringResource(R.string.high_school_psbb_chennai),
+        stringResource(R.string.high_school_chettinad_vidyashram),
+        stringResource(R.string.high_school_dav_velachery),
+        stringResource(R.string.high_school_sishya_chennai),
+        stringResource(R.string.high_school_hyderabad_public),
+        stringResource(R.string.high_school_international_hyderabad),
         stringResource(R.string.high_school_rishi_valley),
-        stringResource(R.string.high_school_scindia_school),
-        stringResource(R.string.high_school_shri_ram_vasant_vihar),
-        stringResource(R.string.high_school_lawrence_sanawar),
-        stringResource(R.string.high_school_welham_girls),
+        stringResource(R.string.high_school_loyola_trivandrum),
+        stringResource(R.string.high_school_trivandrum_international),
+        stringResource(R.string.high_school_chinmaya_coimbatore),
+        stringResource(R.string.high_school_sainik_amaravathinagar),
+        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+        stringResource(R.string.high_school_st_xaviers_collegiate),
+        stringResource(R.string.high_school_la_martiniere_boys),
+        stringResource(R.string.high_school_la_martiniere_girls),
+        stringResource(R.string.high_school_modern_high_girls),
+        stringResource(R.string.high_school_south_point),
+        stringResource(R.string.high_school_don_bosco_park_circus),
+        stringResource(R.string.high_school_loreto_house),
+        stringResource(R.string.high_school_calcutta_boys),
+        stringResource(R.string.high_school_calcutta_girls),
+        stringResource(R.string.high_school_hindu_school),
+        stringResource(R.string.high_school_ramakrishna_narendrapur),
+        stringResource(R.string.high_school_st_james_kolkata),
+        stringResource(R.string.high_school_dps_bhubaneswar),
+        stringResource(R.string.high_school_sai_bhubaneswar),
+        stringResource(R.string.high_school_loyola_patna),
+        stringResource(R.string.high_school_st_michaels_patna),
+        stringResource(R.string.high_school_netarhat),
+        stringResource(R.string.high_school_chinmaya_bokaro),
+        stringResource(R.string.high_school_dps_ranchi),
+        // Northeast India (Assam, Meghalaya, Sikkim, Tripura)
+        stringResource(R.string.high_school_assam_valley),
+        stringResource(R.string.high_school_don_bosco_guwahati),
+        stringResource(R.string.high_school_spring_dale_guwahati),
+        stringResource(R.string.high_school_loreto_shillong),
+        stringResource(R.string.high_school_st_anthonys_shillong),
+        stringResource(R.string.high_school_don_bosco_agartala),
+        // Union Territories and Special Cases
+        stringResource(R.string.high_school_north_point_darjeeling),
+        stringResource(R.string.high_school_st_josephs_north_point),
+        stringResource(R.string.high_school_dr_grahams_kalimpong),
+        stringResource(R.string.high_school_lawrence_lovedale),
+        stringResource(R.string.high_school_dps_port_blair),
+        stringResource(R.string.high_school_dps_srinagar),
+        // Catch-all for other high schools
         stringResource(R.string.high_school_other)
     )
 
     val collegeOptions = listOf(
-        stringResource(R.string.college_other),
-        stringResource(R.string.college_acharya_jagadish_chandra_bose_college),
-        stringResource(R.string.college_asutosh_college),
-        stringResource(R.string.college_bangabasi_college),
-        stringResource(R.string.college_barasat_government_college),
-        stringResource(R.string.college_barrackpore_rastraguru_surendranath_college),
-        stringResource(R.string.college_behala_college),
-        stringResource(R.string.college_bethune_college),
-        stringResource(R.string.college_bidhannagar_college),
-        stringResource(R.string.college_city_college),
-        stringResource(R.string.college_derozio_memorial_college),
-        stringResource(R.string.college_dinabandhu_andrews_college),
-        stringResource(R.string.college_dum_dum_motijheel_college),
-        stringResource(R.string.college_goenka_college),
-        stringResource(R.string.college_heramba_chandra_college),
-        stringResource(R.string.college_hooghly_mohsin_college),
-        stringResource(R.string.college_iit_kharagpur),
-        stringResource(R.string.college_iem_kolkata),
-        stringResource(R.string.college_jadavpur_university),
-        stringResource(R.string.college_jogamaya_devi_college),
-        stringResource(R.string.college_kalyani_mahavidyalaya),
-        stringResource(R.string.college_kazi_nazrul_islam_mahavidyalaya),
-        stringResource(R.string.college_krishnanagar_government_college),
-        stringResource(R.string.college_lady_brabourne_college),
-        stringResource(R.string.college_loreto_college),
-        stringResource(R.string.college_maulana_azad_college),
-        stringResource(R.string.college_nit_durgapur),
-        stringResource(R.string.college_presidency_university),
-        stringResource(R.string.college_ramakrishna_mission_narendrapur),
-        stringResource(R.string.college_ramakrishna_mission_vidyamandira),
-        stringResource(R.string.college_rishi_bankim_chandra_college),
-        stringResource(R.string.college_techno_india),
-        stringResource(R.string.college_scottish_church_college),
-        stringResource(R.string.college_serampore_college),
-        stringResource(R.string.college_seth_anandram_jaipuria_college),
-        stringResource(R.string.college_shri_shikshayatan_college),
-        stringResource(R.string.college_siliguri_college),
-        stringResource(R.string.college_southfield_college),
-        stringResource(R.string.college_st_xaviers_college),
-        stringResource(R.string.college_surendranath_college),
-        stringResource(R.string.college_university_of_calcutta),
-        stringResource(R.string.college_vidyasagar_college),
-        stringResource(R.string.college_west_bengal_state_university),
-        stringResource(R.string.college_basanti_devi_college),
-        stringResource(R.string.college_gokhale_memorial_girls_college),
-        stringResource(R.string.college_gurudas_college),
-        stringResource(R.string.college_narasinha_dutt_college),
-        stringResource(R.string.college_sivanath_sastri_college),
-        stringResource(R.string.college_christ_university),
-        stringResource(R.string.college_fergusson_college),
+        // Engineering Colleges
+        stringResource(R.string.college_srm_institute_of_science_and_technology),
+        stringResource(R.string.college_vellore_institute_of_technology),
+        stringResource(R.string.college_bits_pilani),
+        stringResource(R.string.college_manipal_institute_of_technology),
+        stringResource(R.string.college_iiit_hyderabad),
+        // Private Arts/Science Colleges
+        stringResource(R.string.college_op_jindal_global_university),
+        stringResource(R.string.college_ashoka_university),
+        // Design Colleges in India
+        stringResource(R.string.college_nid_kurukshetra),
+        stringResource(R.string.college_nid_gandhinagar),
+        stringResource(R.string.college_nid_bengaluru),
+        stringResource(R.string.college_nid_bhopal),
+        stringResource(R.string.college_nid_jorhat),
+        stringResource(R.string.college_nid_vijayawada),
+        stringResource(R.string.college_nift),
+        stringResource(R.string.college_srishti_manipal),
+        stringResource(R.string.college_pearl_academy),
+        stringResource(R.string.college_symbiosis_institute_of_design),
+        stringResource(R.string.college_mit_institute_of_design),
+        stringResource(R.string.college_iiad),
+        stringResource(R.string.college_world_university_of_design),
+        stringResource(R.string.college_amity_school_of_fashion_technology),
+        stringResource(R.string.college_jd_institute_of_fashion_technology),
+        stringResource(R.string.college_arch_academy_of_design),
+        stringResource(R.string.college_daiict),
+        // Law Colleges in India
+        stringResource(R.string.college_nlu_delhi),
+        stringResource(R.string.college_wbnujs_kolkata),
+        stringResource(R.string.college_nliu_bhopal),
+        stringResource(R.string.college_gnlu_gandhinagar),
+        stringResource(R.string.college_hnlu_raipur),
+        stringResource(R.string.college_rmlnlu_lucknow),
+        stringResource(R.string.college_rgnul_patiala),
+        stringResource(R.string.college_cnlu_patna),
+        stringResource(R.string.college_nuals_kochi),
+        stringResource(R.string.college_nluo_cuttack),
+        stringResource(R.string.college_nusr_law_ranchi),
+        stringResource(R.string.college_nluja_guwahati),
+        stringResource(R.string.college_tnnlu_tiruchirappalli),
+        stringResource(R.string.college_mnlu_mumbai),
+        stringResource(R.string.college_mnlu_nagpur),
+        stringResource(R.string.college_mnlu_aurangabad),
+        stringResource(R.string.college_hpnlu_shimla),
+        stringResource(R.string.college_dnlu_jabalpur),
+        stringResource(R.string.college_dbranlu_sonipat),
+        stringResource(R.string.college_faculty_of_law_du),
+        stringResource(R.string.college_symbiosis_law_school),
+        stringResource(R.string.college_glc_mumbai),
+        stringResource(R.string.college_ils_law_pune),
+        stringResource(R.string.college_amity_law_school_noida),
+        stringResource(R.string.college_christ_univ_law),
+        stringResource(R.string.college_bhu_faculty_of_law),
+        stringResource(R.string.college_amu_faculty_of_law),
+        stringResource(R.string.college_jamia_law),
+        stringResource(R.string.college_op_jindal_law_school),
+        stringResource(R.string.college_army_institute_of_law_mohali),
+        stringResource(R.string.college_kerala_law_academy),
+        stringResource(R.string.college_school_of_law_calcutta),
+        // Arts Colleges in India
+        stringResource(R.string.college_college_of_art_du),
+        stringResource(R.string.college_sir_jj_school_of_art),
+        stringResource(R.string.college_faculty_visual_arts_bhu),
+        stringResource(R.string.college_msu_fine_arts_vadodara),
+        stringResource(R.string.college_govt_college_art_craft_kolkata),
+        stringResource(R.string.college_chennai_govt_fine_arts),
+        stringResource(R.string.college_rachana_sansad),
+        stringResource(R.string.college_goa_college_of_art),
+        stringResource(R.string.college_amity_school_fine_arts),
+        stringResource(R.string.college_kalakshetra_foundation),
+        stringResource(R.string.college_bharatiya_kala_kendra),
+        stringResource(R.string.college_gandharva_mahavidyalaya),
+        stringResource(R.string.college_nsd),
+        stringResource(R.string.college_ftii_pune),
+        stringResource(R.string.college_srfti_kolkata),
+        stringResource(R.string.college_kathak_kendra),
+        stringResource(R.string.college_drama_thrissur),
+        stringResource(R.string.college_ramjas_college),
+        stringResource(R.string.college_st_xaviers_mumbai),
+        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
+        stringResource(R.string.college_st_stephens),
+        stringResource(R.string.college_miranda_house),
         stringResource(R.string.college_hindu_college),
-        stringResource(R.string.college_iisc_bangalore),
+        stringResource(R.string.college_lady_shri_ram),
+        stringResource(R.string.college_hansraj_college),
+        stringResource(R.string.college_delhi_university),
+        stringResource(R.string.college_iit_delhi),
+        stringResource(R.string.college_jnu_delhi),
+        stringResource(R.string.college_op_jindal_global),
+        stringResource(R.string.college_amity_noida),
+        stringResource(R.string.college_nift_delhi),
+        stringResource(R.string.college_pearl_academy_delhi),
+        stringResource(R.string.college_amity_law_school),
+        stringResource(R.string.college_banaras_hindu_university),
         stringResource(R.string.college_iit_kanpur),
         stringResource(R.string.college_iit_roorkee),
-        stringResource(R.string.college_lady_shri_ram_college),
-        stringResource(R.string.college_loyola_college),
-        stringResource(R.string.college_miranda_house),
-        stringResource(R.string.college_st_stephens_college),
-        stringResource(R.string.college_hansraj_college),
-        stringResource(R.string.college_mount_carmel_college),
-        stringResource(R.string.college_australian_national_university),
-        stringResource(R.string.college_carnegie_mellon_university),
-        stringResource(R.string.college_eth_zurich),
-        stringResource(R.string.college_harvard_university),
-        stringResource(R.string.college_imperial_college_london),
-        stringResource(R.string.college_london_school_of_economics),
-        stringResource(R.string.college_mcgill_university),
-        stringResource(R.string.college_mit),
-        stringResource(R.string.college_national_university_singapore),
-        stringResource(R.string.college_purdue_university),
-        stringResource(R.string.college_sorbonne_university),
-        stringResource(R.string.college_stanford_university),
-        stringResource(R.string.college_tu_delft),
-        stringResource(R.string.college_university_college_london),
-        stringResource(R.string.college_university_of_amsterdam),
-        stringResource(R.string.college_university_of_british_columbia),
-        stringResource(R.string.college_university_of_california_berkeley),
-        stringResource(R.string.college_university_of_california_san_diego),
-        stringResource(R.string.college_university_of_cambridge),
-        stringResource(R.string.college_university_of_edinburgh),
-        stringResource(R.string.college_university_of_melbourne),
-        stringResource(R.string.college_university_of_michigan),
-        stringResource(R.string.college_university_of_oxford),
-        stringResource(R.string.college_university_of_queensland),
-        stringResource(R.string.college_university_of_sydney),
-        stringResource(R.string.college_university_of_toronto),
-        // — New engineering colleges —
-        stringResource(R.string.college_srm_institute_of_science_and_technology),
-        stringResource(R.string.college_vellore_institute_of_technology),
-        stringResource(R.string.college_bits_pilani),
-        stringResource(R.string.college_manipal_institute_of_technology),
-        stringResource(R.string.college_iiit_hyderabad),
-
-        // — New private Arts/Science —
-        stringResource(R.string.college_op_jindal_global_university),
-        stringResource(R.string.college_ashoka_university),
-
-        // — New Design institutes —
-        stringResource(R.string.college_nid_ahmedabad),
-        stringResource(R.string.college_nid_kurukshetra),
-        stringResource(R.string.college_nid_gandhinagar),
-        stringResource(R.string.college_nid_bengaluru),
-        stringResource(R.string.college_nid_bhopal),
-        stringResource(R.string.college_nid_jorhat),
-        stringResource(R.string.college_nid_vijayawada),
-        stringResource(R.string.college_nift),
-        stringResource(R.string.college_srishti_manipal),
-        stringResource(R.string.college_pearl_academy),
-        stringResource(R.string.college_symbiosis_institute_of_design),
-        stringResource(R.string.college_mit_institute_of_design),
-        stringResource(R.string.college_iiad),
-        stringResource(R.string.college_world_university_of_design),
-        stringResource(R.string.college_amity_school_of_fashion_technology),
-        stringResource(R.string.college_jd_institute_of_fashion_technology),
-        stringResource(R.string.college_arch_academy_of_design),
-        stringResource(R.string.college_daiict),
-
-        // — New Law schools —
-        stringResource(R.string.college_nlsiu_bangalore),
-        stringResource(R.string.college_nalsar_hyderabad),
-        stringResource(R.string.college_nlu_delhi),
-        stringResource(R.string.college_wbnujs_kolkata),
-        stringResource(R.string.college_nliu_bhopal),
-        stringResource(R.string.college_gnlu_gandhinagar),
-        stringResource(R.string.college_hnlu_raipur),
-        stringResource(R.string.college_rmlnlu_lucknow),
-        stringResource(R.string.college_rgnul_patiala),
-        stringResource(R.string.college_cnlu_patna),
-        stringResource(R.string.college_nuals_kochi),
-        stringResource(R.string.college_nluo_cuttack),
-        stringResource(R.string.college_nusr_law_ranchi),
-        stringResource(R.string.college_nluja_guwahati),
-        stringResource(R.string.college_tnnlu_tiruchirappalli),
-        stringResource(R.string.college_mnlu_mumbai),
-        stringResource(R.string.college_mnlu_nagpur),
-        stringResource(R.string.college_mnlu_aurangabad),
-        stringResource(R.string.college_hpnlu_shimla),
-        stringResource(R.string.college_dnlu_jabalpur),
-        stringResource(R.string.college_dbranlu_sonipat),
-        stringResource(R.string.college_faculty_of_law_du),
-        stringResource(R.string.college_symbiosis_law_school),
-        stringResource(R.string.college_glc_mumbai),
-        stringResource(R.string.college_ils_law_pune),
-        stringResource(R.string.college_amity_law_school_noida),
-        stringResource(R.string.college_christ_univ_law),
-        stringResource(R.string.college_bhu_faculty_of_law),
-        stringResource(R.string.college_amu_faculty_of_law),
-        stringResource(R.string.college_jamia_law),
-        stringResource(R.string.college_op_jindal_law_school),
-        stringResource(R.string.college_army_institute_of_law_mohali),
-        stringResource(R.string.college_kerala_law_academy),
-        stringResource(R.string.college_school_of_law_calcutta),
-
-        // — New Arts colleges —
-        stringResource(R.string.college_college_of_art_du),
-        stringResource(R.string.college_sir_jj_school_of_art),
-        stringResource(R.string.college_faculty_visual_arts_bhu),
-        stringResource(R.string.college_msu_fine_arts_vadodara),
-        stringResource(R.string.college_govt_college_art_craft_kolkata),
-        stringResource(R.string.college_visva_bharati_kala_bhavana),
-        stringResource(R.string.college_chennai_govt_fine_arts),
-        stringResource(R.string.college_rachana_sansad),
-        stringResource(R.string.college_goa_college_of_art),
-        stringResource(R.string.college_amity_school_fine_arts),
-        stringResource(R.string.college_kalakshetra_foundation),
-        stringResource(R.string.college_bharatiya_kala_kendra),
-        stringResource(R.string.college_gandharva_mahavidyalaya),
-        stringResource(R.string.college_nsd),
-        stringResource(R.string.college_ftii_pune),
-        stringResource(R.string.college_srfti_kolkata),
-        stringResource(R.string.college_kathak_kendra),
-        stringResource(R.string.college_drama_thrissur),
-        stringResource(R.string.college_st_stephens),
-        stringResource(R.string.college_lsr_college),
-        stringResource(R.string.college_loyola_chennai),
-        stringResource(R.string.college_christ_univ),
-        stringResource(R.string.college_miranda_house),
-        stringResource(R.string.college_presidency_university),
-        stringResource(R.string.college_jadavpur_university),
-        stringResource(R.string.college_ashoka_university),
-        stringResource(R.string.college_flame_university),
-        stringResource(R.string.college_symbiosis_liberal_arts),
-        stringResource(R.string.college_krea_university),
-        stringResource(R.string.college_hindu_college),
-        stringResource(R.string.college_ramjas_college),
+        stringResource(R.string.college_lpu_phagwara),
+        stringResource(R.string.college_chandigarh_university),
+        // West India (Maharashtra, Gujarat, Goa)
+        stringResource(R.string.college_iit_bombay),
+        stringResource(R.string.college_mithibai_college),
+        stringResource(R.string.college_nmims_mumbai),
+        stringResource(R.string.college_university_of_mumbai),
+        stringResource(R.string.college_jj_school_arts),
         stringResource(R.string.college_fergusson_college),
-        stringResource(R.string.college_st_xaviers_mumbai),
-        stringResource(R.string.college_mcc_chennai)
+        stringResource(R.string.college_symbiosis_liberal_arts),
+        stringResource(R.string.college_flame_university),
+        stringResource(R.string.college_savitribai_phule_pune_university),
+        stringResource(R.string.college_symbiosis_law_school),
+        stringResource(R.string.college_iit_gandhinagar),
+        stringResource(R.string.college_nid_ahmedabad),
+        stringResource(R.string.college_nirma_university),
+        stringResource(R.string.college_goa_university),
+        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
+        stringResource(R.string.college_iisc_bangalore),
+        stringResource(R.string.college_christ_university),
+        stringResource(R.string.college_mount_carmel),
+        stringResource(R.string.college_st_josephs_bangalore),
+        stringResource(R.string.college_nlsiu_bangalore),
+        stringResource(R.string.college_iit_madras),
+        stringResource(R.string.college_loyola_college),
+        stringResource(R.string.college_madras_christian_college),
+        stringResource(R.string.college_anna_university),
+        stringResource(R.string.college_stella_maris),
+        stringResource(R.string.college_krea_university),
+        stringResource(R.string.college_osmania_university),
+        stringResource(R.string.college_manipal_academy),
+        stringResource(R.string.college_andhra_university),
+        stringResource(R.string.college_annamalai_university),
+        stringResource(R.string.college_kerala_university),
+        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+        stringResource(R.string.college_jadavpur_university),
+        stringResource(R.string.college_presidency_university),
+        stringResource(R.string.college_st_xaviers_kolkata),
+        stringResource(R.string.college_scottish_church),
+        stringResource(R.string.college_university_of_calcutta),
+        stringResource(R.string.college_iit_kharagpur),
+        stringResource(R.string.college_nit_durgapur),
+        stringResource(R.string.college_loreto_college),
+        stringResource(R.string.college_lady_brabourne),
+        stringResource(R.string.college_bethune_college),
+        stringResource(R.string.college_ramakrishna_narendrapur),
+        stringResource(R.string.college_goenka_college),
+        stringResource(R.string.college_visva_bharati),
+        stringResource(R.string.college_nit_rourkela),
+        stringResource(R.string.college_iit_dhanbad),
+        // Northeast India (Assam, Meghalaya)
+        stringResource(R.string.college_gauhati_university),
+        stringResource(R.string.college_nehu_shillong),
+        stringResource(R.string.college_cotton_university),
+        // Union Territories
+        stringResource(R.string.college_jamia_millia_islamia),
+        // Catch-all for other colleges
+        stringResource(R.string.college_other)
     )
 
-    val postGraduationOptions = listOf(
-        stringResource(R.string.postgrad_other),
-        stringResource(R.string.postgrad_adamas_university),
-        stringResource(R.string.postgrad_aliah_university),
-        stringResource(R.string.postgrad_amity_university_kolkata),
-        stringResource(R.string.postgrad_bankura_university),
-        stringResource(R.string.postgrad_bidhan_chandra_krishi_viswavidyalaya),
-        stringResource(R.string.postgrad_brainware_university),
-        stringResource(R.string.postgrad_cooch_behar_panchanan_barma_university),
-        stringResource(R.string.postgrad_darjeeling_hills_university),
-        stringResource(R.string.postgrad_diamond_harbour_womens_university),
-        stringResource(R.string.postgrad_iacs),
-        stringResource(R.string.postgrad_jadavpur_university),
-        stringResource(R.string.postgrad_jis_university),
-        stringResource(R.string.postgrad_kazi_nazrul_university),
-        stringResource(R.string.postgrad_maulana_abul_kalam_azad_university_of_technology),
-        stringResource(R.string.postgrad_netaji_subhash_open_university),
-        stringResource(R.string.postgrad_north_bengal_university),
-        stringResource(R.string.postgrad_presidency_university),
-        stringResource(R.string.postgrad_rabindra_bharati_university),
-        stringResource(R.string.postgrad_raiganj_university),
-        stringResource(R.string.postgrad_ramakrishna_mission_vivekananda),
-        stringResource(R.string.postgrad_techno_india),
-        stringResource(R.string.postgrad_seacom_skills_university),
-        stringResource(R.string.postgrad_sidho_kanho_birsha_university),
-        stringResource(R.string.postgrad_sister_nivedita_university),
-        stringResource(R.string.postgrad_university_of_burdwan),
-        stringResource(R.string.postgrad_university_of_calcutta),
-        stringResource(R.string.postgrad_university_of_engineering_and_management),
-        stringResource(R.string.postgrad_university_of_kalyani),
-        stringResource(R.string.postgrad_uttar_banga_krishi_vishwavidyalaya),
-        stringResource(R.string.postgrad_vidyasagar_university),
-        stringResource(R.string.postgrad_visva_bharati_university),
-        stringResource(R.string.postgrad_west_bengal_state_university),
-        stringResource(R.string.postgrad_west_bengal_university_of_animal_and_fishery_sciences),
-        stringResource(R.string.postgrad_west_bengal_university_of_health_sciences),
-        stringResource(R.string.postgrad_west_bengal_university_of_teachers_training),
-        stringResource(R.string.postgrad_iit_bombay),
+    val postGradOptions = listOf(
+        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
+        stringResource(R.string.postgrad_delhi_university),
         stringResource(R.string.postgrad_iit_delhi),
+        stringResource(R.string.postgrad_jnu_delhi),
+        stringResource(R.string.postgrad_ashoka_university),
+        stringResource(R.string.postgrad_amity_noida),
+        stringResource(R.string.postgrad_nift_delhi),
+        stringResource(R.string.postgrad_pearl_academy_delhi),
+        stringResource(R.string.postgrad_ili_delhi),
+        stringResource(R.string.postgrad_banaras_hindu_university),
         stringResource(R.string.postgrad_iit_kanpur),
-        stringResource(R.string.postgrad_iit_kharagpur),
-        stringResource(R.string.postgrad_iit_madras),
+        stringResource(R.string.postgrad_iit_roorkee),
+        stringResource(R.string.postgrad_lpu_phagwara),
+        stringResource(R.string.postgrad_chandigarh_university),
+        stringResource(R.string.postgrad_iim_lucknow),
+        stringResource(R.string.postgrad_iim_udaipur),
+        // West India (Maharashtra, Gujarat, Goa)
+        stringResource(R.string.postgrad_iit_bombay),
+        stringResource(R.string.postgrad_university_of_mumbai),
+        stringResource(R.string.postgrad_nmims_mumbai),
+        stringResource(R.string.postgrad_tiss_mumbai),
+        stringResource(R.string.postgrad_tifr_mumbai),
+        stringResource(R.string.postgrad_jj_school_arts),
+        stringResource(R.string.postgrad_savitribai_phule_pune_university),
+        stringResource(R.string.postgrad_symbiosis_law_school),
+        stringResource(R.string.postgrad_iit_gandhinagar),
+        stringResource(R.string.postgrad_nirma_university),
         stringResource(R.string.postgrad_iim_ahmedabad),
-        stringResource(R.string.postgrad_iim_bangalore),
-        stringResource(R.string.postgrad_iim_calcutta),
+        stringResource(R.string.postgrad_goa_university),
+        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
         stringResource(R.string.postgrad_iisc_bangalore),
-        stringResource(R.string.postgrad_jnu),
-        stringResource(R.string.postgrad_university_of_delhi),
-        stringResource(R.string.postgrad_harvard_university),
-        stringResource(R.string.postgrad_stanford_university),
-        stringResource(R.string.postgrad_mit),
-        stringResource(R.string.postgrad_ucsd),
-        stringResource(R.string.postgrad_purdue_university),
-        stringResource(R.string.postgrad_uc_berkeley),
-        stringResource(R.string.postgrad_university_of_michigan),
-        stringResource(R.string.postgrad_university_of_oxford),
-        stringResource(R.string.postgrad_university_of_cambridge),
-        stringResource(R.string.postgrad_imperial_college_london),
-        stringResource(R.string.postgrad_london_school_of_economics),
-        stringResource(R.string.postgrad_university_of_toronto),
-        stringResource(R.string.postgrad_university_of_british_columbia),
-        stringResource(R.string.postgrad_mcgill_university),
-        stringResource(R.string.postgrad_university_of_melbourne),
-        stringResource(R.string.postgrad_university_of_sydney),
-        stringResource(R.string.postgrad_australian_national_university),
-        stringResource(R.string.postgrad_tu_delft),
-        stringResource(R.string.postgrad_eth_zurich),
-        stringResource(R.string.postgrad_university_college_london),
-        stringResource(R.string.postgrad_university_of_amsterdam),
-        stringResource(R.string.postgrad_sorbonne_university),
-                // — New engineering colleges —
-        stringResource(R.string.college_srm_institute_of_science_and_technology),
-        stringResource(R.string.college_vellore_institute_of_technology),
-        stringResource(R.string.college_bits_pilani),
-        stringResource(R.string.college_manipal_institute_of_technology),
-        stringResource(R.string.college_iiit_hyderabad),
-
-        // — New private Arts/Science —
-        stringResource(R.string.college_op_jindal_global_university),
-        stringResource(R.string.college_ashoka_university),
-
-        // — New Design institutes —
-        stringResource(R.string.college_nid_ahmedabad),
-        stringResource(R.string.college_nid_kurukshetra),
-        stringResource(R.string.college_nid_gandhinagar),
-        stringResource(R.string.college_nid_bengaluru),
-        stringResource(R.string.college_nid_bhopal),
-        stringResource(R.string.college_nid_jorhat),
-        stringResource(R.string.college_nid_vijayawada),
-        stringResource(R.string.college_nift),
-        stringResource(R.string.college_srishti_manipal),
-        stringResource(R.string.college_pearl_academy),
-        stringResource(R.string.college_symbiosis_institute_of_design),
-        stringResource(R.string.college_mit_institute_of_design),
-        stringResource(R.string.college_iiad),
-        stringResource(R.string.college_world_university_of_design),
-        stringResource(R.string.college_amity_school_of_fashion_technology),
-        stringResource(R.string.college_jd_institute_of_fashion_technology),
-        stringResource(R.string.college_arch_academy_of_design),
-        stringResource(R.string.college_daiict),
-
-        // — New Law schools —
-        stringResource(R.string.college_nlsiu_bangalore),
-        stringResource(R.string.college_nalsar_hyderabad),
-        stringResource(R.string.college_nlu_delhi),
-        stringResource(R.string.college_wbnujs_kolkata),
-        stringResource(R.string.college_nliu_bhopal),
-        stringResource(R.string.college_gnlu_gandhinagar),
-        stringResource(R.string.college_hnlu_raipur),
-        stringResource(R.string.college_rmlnlu_lucknow),
-        stringResource(R.string.college_rgnul_patiala),
-        stringResource(R.string.college_cnlu_patna),
-        stringResource(R.string.college_nuals_kochi),
-        stringResource(R.string.college_nluo_cuttack),
-        stringResource(R.string.college_nusr_law_ranchi),
-        stringResource(R.string.college_nluja_guwahati),
-        stringResource(R.string.college_tnnlu_tiruchirappalli),
-        stringResource(R.string.college_mnlu_mumbai),
-        stringResource(R.string.college_mnlu_nagpur),
-        stringResource(R.string.college_mnlu_aurangabad),
-        stringResource(R.string.college_hpnlu_shimla),
-        stringResource(R.string.college_dnlu_jabalpur),
-        stringResource(R.string.college_dbranlu_sonipat),
-        stringResource(R.string.college_faculty_of_law_du),
-        stringResource(R.string.college_symbiosis_law_school),
-        stringResource(R.string.college_glc_mumbai),
-        stringResource(R.string.college_ils_law_pune),
-        stringResource(R.string.college_amity_law_school_noida),
-        stringResource(R.string.college_christ_univ_law),
-        stringResource(R.string.college_bhu_faculty_of_law),
-        stringResource(R.string.college_amu_faculty_of_law),
-        stringResource(R.string.college_jamia_law),
-        stringResource(R.string.college_op_jindal_law_school),
-        stringResource(R.string.college_army_institute_of_law_mohali),
-        stringResource(R.string.college_kerala_law_academy),
-        stringResource(R.string.college_school_of_law_calcutta),
-
-        // — New Arts colleges —
-        stringResource(R.string.college_college_of_art_du),
-        stringResource(R.string.college_sir_jj_school_of_art),
-        stringResource(R.string.college_faculty_visual_arts_bhu),
-        stringResource(R.string.college_msu_fine_arts_vadodara),
-        stringResource(R.string.college_govt_college_art_craft_kolkata),
-        stringResource(R.string.college_visva_bharati_kala_bhavana),
-        stringResource(R.string.college_chennai_govt_fine_arts),
-        stringResource(R.string.college_rachana_sansad),
-        stringResource(R.string.college_goa_college_of_art),
-        stringResource(R.string.college_amity_school_fine_arts),
-        stringResource(R.string.college_kalakshetra_foundation),
-        stringResource(R.string.college_bharatiya_kala_kendra),
-        stringResource(R.string.college_gandharva_mahavidyalaya),
-        stringResource(R.string.college_nsd),
-        stringResource(R.string.college_ftii_pune),
-        stringResource(R.string.college_srfti_kolkata),
-        stringResource(R.string.college_kathak_kendra),
-        stringResource(R.string.college_drama_thrissur),
-        stringResource(R.string.college_st_stephens),
-        stringResource(R.string.college_lsr_college),
-        stringResource(R.string.college_loyola_chennai),
-        stringResource(R.string.college_christ_univ),
-        stringResource(R.string.college_miranda_house),
-        stringResource(R.string.college_presidency_university),
-        stringResource(R.string.college_jadavpur_university),
-        stringResource(R.string.college_ashoka_university),
-        stringResource(R.string.college_flame_university),
-        stringResource(R.string.college_symbiosis_liberal_arts),
-        stringResource(R.string.college_krea_university),
-        stringResource(R.string.college_hindu_college),
-        stringResource(R.string.college_ramjas_college),
-        stringResource(R.string.college_fergusson_college),
-        stringResource(R.string.college_st_xaviers_mumbai),
-        stringResource(R.string.college_mcc_chennai)
+        stringResource(R.string.postgrad_christ_university),
+        stringResource(R.string.postgrad_nlsiu_bangalore),
+        stringResource(R.string.postgrad_iim_bangalore),
+        stringResource(R.string.postgrad_iit_madras),
+        stringResource(R.string.postgrad_anna_university),
+        stringResource(R.string.postgrad_srmist_chennai),
+        stringResource(R.string.postgrad_vit_vellore),
+        stringResource(R.string.postgrad_osmania_university),
+        stringResource(R.string.postgrad_nalsar_hyderabad),
+        stringResource(R.string.postgrad_manipal_academy),
+        stringResource(R.string.postgrad_andhra_university),
+        stringResource(R.string.postgrad_annamalai_university),
+        stringResource(R.string.postgrad_kerala_university),
+        stringResource(R.string.postgrad_iim_kozhikode),
+        stringResource(R.string.postgrad_nit_warangal),
+        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+        stringResource(R.string.postgrad_jadavpur_university),
+        stringResource(R.string.postgrad_presidency_university),
+        stringResource(R.string.postgrad_university_of_calcutta),
+        stringResource(R.string.postgrad_iit_kharagpur),
+        stringResource(R.string.postgrad_nit_durgapur),
+        stringResource(R.string.postgrad_isi_kolkata),
+        stringResource(R.string.postgrad_iim_calcutta),
+        stringResource(R.string.postgrad_visva_bharati),
+        stringResource(R.string.postgrad_nit_rourkela),
+        stringResource(R.string.postgrad_iit_dhanbad),
+        stringResource(R.string.postgrad_xlri_jamshedpur),
+        // Northeast India (Assam, Meghalaya)
+        stringResource(R.string.postgrad_gauhati_university),
+        stringResource(R.string.postgrad_nehu_shillong),
+        stringResource(R.string.postgrad_cotton_university),
+        stringResource(R.string.postgrad_iim_shillong),
+        // Union Territories
+        stringResource(R.string.postgrad_jamia_millia_islamia),
+        stringResource(R.string.postgrad_iim_vishakhapatnam),
+        // Catch-all for other post-graduate institutions
+        stringResource(R.string.postgrad_other)
     )
 
     val isNextEnabled = registrationViewModel.educationLevel.isNotEmpty()
@@ -1701,7 +1571,7 @@ fun EnterLocationAndSchoolScreen(
                     )
                     SearchableDropdownWithCustomOption(
                         title = stringResource(R.string.select_or_type_post_grad),
-                        options = postGraduationOptions,
+                        options = postGradOptions,
                         selectedOption = registrationViewModel.postGraduation ?: "",
                         onOptionSelected = { registrationViewModel.postGraduation = it },
                         customInput = registrationViewModel.customPostGraduation ?: "",
@@ -2267,8 +2137,6 @@ fun EnterGenderCommunityReligionScreen(
         stringResource(R.string.community_bihari),
         stringResource(R.string.community_punjabi),
         stringResource(R.string.community_santhal),
-        stringResource(R.string.community_bangal),
-        stringResource(R.string.community_ghoti),
         stringResource(R.string.community_gujarati),
         stringResource(R.string.community_kannadiga),
         stringResource(R.string.community_tamil),
@@ -2278,17 +2146,6 @@ fun EnterGenderCommunityReligionScreen(
         stringResource(R.string.community_nepali),
         stringResource(R.string.community_munda),
         stringResource(R.string.community_oraon),
-
-        /* ——— Himalayan neighbours ——— */
-        stringResource(R.string.community_bhutanese),
-        stringResource(R.string.community_sikkimese),
-
-        /* ——— Arunachal Pradesh ——— */
-        stringResource(R.string.community_arunachali),   // ← NEW
-
-        /* ——— Assam plains tribes ——— */
-        stringResource(R.string.community_assamese),
-        stringResource(R.string.community_sonowal_kachari)
     )
     val religionOptions = listOf(stringResource(R.string.religion_hindu), stringResource(R.string.religion_muslim), stringResource(R.string.religion_christian), stringResource(R.string.religion_sikh), stringResource(R.string.religion_buddhist), stringResource(R.string.religion_jain), stringResource(R.string.religion_no_religion), stringResource(R.string.religion_indigenous_tribal), stringResource(R.string.religion_other))
 
@@ -2357,10 +2214,6 @@ fun EnterGenderCommunityReligionScreen(
                 SearchableDropdownWithCustomOption(
                     title = stringResource(R.string.caste_title),
                     options = listOf(
-                        stringResource(R.string.caste_kulin_brahmin),
-                        stringResource(R.string.caste_non_kulin_brahmin),
-                        stringResource(R.string.caste_kulin_kayastha),
-                        stringResource(R.string.caste_non_kulin_kayastha),
                         stringResource(R.string.caste_kshatriya),
                         stringResource(R.string.caste_baidya),
                         stringResource(R.string.caste_mahishya),
@@ -2369,7 +2222,6 @@ fun EnterGenderCommunityReligionScreen(
                         stringResource(R.string.caste_obc),
                         stringResource(R.string.caste_scheduled_caste),
                         stringResource(R.string.caste_scheduled_tribe),
-                        stringResource(R.string.caste_rajbonshi),
                         stringResource(R.string.caste_general),
                         stringResource(R.string.caste_other)
                     ),
@@ -2976,58 +2828,192 @@ fun EnterBirthdateCityHometownScreen(
     var customCity by remember { mutableStateOf(registrationViewModel.customCity) }
     var isLocating by remember { mutableStateOf(false) }
 
-    var kolkata = stringResource(R.string.city_kolkata)
-    var howrah = stringResource(R.string.city_howrah)
-    var durgapur = stringResource(R.string.city_durgapur)
+    var agartala = stringResource(R.string.city_agartala)
+    var ahmedabad = stringResource(R.string.city_ahmedabad)
+    var aizawl = stringResource(R.string.city_aizawl)
+    var amaravati = stringResource(R.string.city_amaravati)
+    var amritsar = stringResource(R.string.city_amritsar)
     var asansol = stringResource(R.string.city_asansol)
-    var siliguri = stringResource(R.string.city_siliguri)
+    var bengaluru = stringResource(R.string.city_bengaluru)
+    var bhilai = stringResource(R.string.city_bhilai)
+    var bhopal = stringResource(R.string.city_bhopal)
+    var bhubaneswar = stringResource(R.string.city_bhubaneswar)
+    var bilaspur = stringResource(R.string.city_bilaspur)
+    var chandigarh = stringResource(R.string.city_chandigarh)
+    var chennai = stringResource(R.string.city_chennai)
+    var coimbatore = stringResource(R.string.city_coimbatore)
+    var cuttack = stringResource(R.string.city_cuttack)
+    var daman = stringResource(R.string.city_daman)
     var darjeeling = stringResource(R.string.city_darjeeling)
-    var malda = stringResource(R.string.city_malda)
-    var jalpaiguri = stringResource(R.string.city_jalpaiguri)
-    var coochbehar = stringResource(R.string.city_cooch_behar)
-    var alipurduar = stringResource(R.string.city_alipurduar)
-    var bankura = stringResource(R.string.city_bankura)
-    var purulia = stringResource(R.string.city_purulia)
+    var dehradun = stringResource(R.string.city_dehradun)
+    var dibrugarh = stringResource(R.string.city_dibrugarh)
+    var dharamshala = stringResource(R.string.city_dharamshala)
+    var durgapur = stringResource(R.string.city_durgapur)
+    var faridabad = stringResource(R.string.city_faridabad)
+    var gangtok = stringResource(R.string.city_gangtok)
+    var gaya = stringResource(R.string.city_gaya)
+    var gandhinagar = stringResource(R.string.city_gandhinagar)
+    var ghaziabad = stringResource(R.string.city_ghaziabad)
+    var gwalior = stringResource(R.string.city_gwalior)
+    var gyalshing = stringResource(R.string.city_gyalshing)
+    var guwahati = stringResource(R.string.city_guwahati)
+    var gurugram = stringResource(R.string.city_gurugram)
+    var haridwar = stringResource(R.string.city_haridwar)
+    var hisar = stringResource(R.string.city_hisar)
+    var howrah = stringResource(R.string.city_howrah)
+    var hyderabad = stringResource(R.string.city_hyderabad)
+    var imphal = stringResource(R.string.city_imphal)
+    var indore = stringResource(R.string.city_indore)
+    var itanagar = stringResource(R.string.city_itanagar)
+    var jaipur = stringResource(R.string.city_jaipur)
+    var jamshedpur = stringResource(R.string.city_jamshedpur)
+    var jodhpur = stringResource(R.string.city_jodhpur)
+    var kancheepuram = stringResource(R.string.city_kancheepuram)
+    var kanpur = stringResource(R.string.city_kanpur)
+    var kargil = stringResource(R.string.city_kargil)
+    var kavaratti = stringResource(R.string.city_kavaratti)
     var kharagpur = stringResource(R.string.city_kharagpur)
-    var midnapore = stringResource(R.string.city_midnapore)
-    var bardhaman = stringResource(R.string.city_bardhaman)
-    var hooghly = stringResource(R.string.city_hooghly)
-    var murshidabad = stringResource(R.string.city_murshidabad)
-    var baharampur = stringResource(R.string.city_baharampur)
-    var haldia = stringResource(R.string.city_haldia)
-    var ranaghat = stringResource(R.string.city_ranaghat)
-    var kalyani = stringResource(R.string.city_kalyani)
-    var chandannagar = stringResource(R.string.city_chandannagar)
+    var kochi = stringResource(R.string.city_kochi)
+    var kohima = stringResource(R.string.city_kohima)
+    var kolkata = stringResource(R.string.city_kolkata)
+    var leh = stringResource(R.string.city_leh)
+    var ludhiana = stringResource(R.string.city_ludhiana)
+    var lucknow = stringResource(R.string.city_lucknow)
+    var madurai = stringResource(R.string.city_madurai)
+    var mumbai = stringResource(R.string.city_mumbai)
+    var mangaluru = stringResource(R.string.city_mangaluru)
+    var mysuru = stringResource(R.string.city_mysuru)
+    var nainital = stringResource(R.string.city_nainital)
+    var nagpur = stringResource(R.string.city_nagpur)
+    var namchi = stringResource(R.string.city_namchi)
+    var navi_mumbai = stringResource(R.string.city_navi_mumbai)
+    var nct_of_delhi = stringResource(R.string.city_nct_of_delhi)
+    var noida = stringResource(R.string.city_noida)
+    var panaji = stringResource(R.string.city_panaji)
+    var pasighat = stringResource(R.string.city_pasighat)
+    var patna = stringResource(R.string.city_patna)
+    var prayagraj = stringResource(R.string.city_prayagraj)
+    var pune = stringResource(R.string.city_pune)
+    var port_blair = stringResource(R.string.city_port_blair)
+    var puducherry = stringResource(R.string.city_puducherry)
+    var raipur = stringResource(R.string.city_raipur)
+    var ranchi = stringResource(R.string.city_ranchi)
+    var rourkela = stringResource(R.string.city_rourkela)
+    var rohtak = stringResource(R.string.city_rohtak)
+    var shillong = stringResource(R.string.city_shillong)
+    var shimla = stringResource(R.string.city_shimla)
+    var silchar = stringResource(R.string.city_silchar)
+    var siliguri = stringResource(R.string.city_siliguri)
+    var sonipat = stringResource(R.string.city_sonipat)
+    var surat = stringResource(R.string.city_surat)
+    var secunderabad = stringResource(R.string.city_secunderabad)
+    var tawang = stringResource(R.string.city_tawang)
+    var thane = stringResource(R.string.city_thane)
+    var thiruvananthapuram = stringResource(R.string.city_thiruvananthapuram)
+    var udaipur = stringResource(R.string.city_udaipur)
+    var vadodara = stringResource(R.string.city_vadodara)
+    var varanasi = stringResource(R.string.city_varanasi)
+    var vellore = stringResource(R.string.city_vellore)
+    var vijayawada = stringResource(R.string.city_vijayawada)
+    var visakhapatnam = stringResource(R.string.city_visakhapatnam)
+    var warangal = stringResource(R.string.city_warangal)
 
-    // Locality Selection
     val localities = remember(selectedCity) {
         when (selectedCity) {
-            kolkata -> resources.getStringArray(R.array.localities_kolkata).toList()
-            howrah -> resources.getStringArray(R.array.localities_howrah).toList()
-            durgapur -> resources.getStringArray(R.array.localities_durgapur).toList()
+            agartala -> resources.getStringArray(R.array.localities_agartala).toList()
+            ahmedabad -> resources.getStringArray(R.array.localities_ahmedabad).toList()
+            aizawl -> resources.getStringArray(R.array.localities_aizawl).toList()
+            amaravati -> resources.getStringArray(R.array.localities_amaravati).toList()
+            amritsar -> resources.getStringArray(R.array.localities_amritsar).toList()
             asansol -> resources.getStringArray(R.array.localities_asansol).toList()
-            siliguri -> resources.getStringArray(R.array.localities_siliguri).toList()
+            bengaluru -> resources.getStringArray(R.array.localities_bengaluru).toList()
+            bhilai -> resources.getStringArray(R.array.localities_bhilai).toList()
+            bhopal -> resources.getStringArray(R.array.localities_bhopal).toList()
+            bhubaneswar -> resources.getStringArray(R.array.localities_bhubaneswar).toList()
+            bilaspur -> resources.getStringArray(R.array.localities_bilaspur).toList()
+            chandigarh -> resources.getStringArray(R.array.localities_chandigarh).toList()
+            chennai -> resources.getStringArray(R.array.localities_chennai).toList()
+            coimbatore -> resources.getStringArray(R.array.localities_coimbatore).toList()
+            cuttack -> resources.getStringArray(R.array.localities_cuttack).toList()
+            daman -> resources.getStringArray(R.array.localities_daman).toList()
             darjeeling -> resources.getStringArray(R.array.localities_darjeeling).toList()
-            malda -> resources.getStringArray(R.array.localities_malda).toList()
-            jalpaiguri -> resources.getStringArray(R.array.localities_jalpaiguri).toList()
-            coochbehar -> resources.getStringArray(R.array.localities_cooch_behar).toList()
-            alipurduar -> resources.getStringArray(R.array.localities_alipurduar).toList()
-            bankura -> resources.getStringArray(R.array.localities_bankura).toList()
-            purulia -> resources.getStringArray(R.array.localities_purulia).toList()
+            dehradun -> resources.getStringArray(R.array.localities_dehradun).toList()
+            dibrugarh -> resources.getStringArray(R.array.localities_dibrugarh).toList()
+            dharamshala -> resources.getStringArray(R.array.localities_dharamshala).toList()
+            durgapur -> resources.getStringArray(R.array.localities_durgapur).toList()
+            faridabad -> resources.getStringArray(R.array.localities_faridabad).toList()
+            gangtok -> resources.getStringArray(R.array.localities_gangtok).toList()
+            gaya -> resources.getStringArray(R.array.localities_gaya).toList()
+            gandhinagar -> resources.getStringArray(R.array.localities_gandhinagar).toList()
+            ghaziabad -> resources.getStringArray(R.array.localities_ghaziabad).toList()
+            gwalior -> resources.getStringArray(R.array.localities_gwalior).toList()
+            gyalshing -> resources.getStringArray(R.array.localities_gyalshing).toList()
+            guwahati -> resources.getStringArray(R.array.localities_guwahati).toList()
+            gurugram -> resources.getStringArray(R.array.localities_gurugram).toList()
+            haridwar -> resources.getStringArray(R.array.localities_haridwar).toList()
+            hisar -> resources.getStringArray(R.array.localities_hisar).toList()
+            howrah -> resources.getStringArray(R.array.localities_howrah).toList()
+            hyderabad -> resources.getStringArray(R.array.localities_hyderabad).toList()
+            imphal -> resources.getStringArray(R.array.localities_imphal).toList()
+            indore -> resources.getStringArray(R.array.localities_indore).toList()
+            itanagar -> resources.getStringArray(R.array.localities_itanagar).toList()
+            jaipur -> resources.getStringArray(R.array.localities_jaipur).toList()
+            jamshedpur -> resources.getStringArray(R.array.localities_jamshedpur).toList()
+            jodhpur -> resources.getStringArray(R.array.localities_jodhpur).toList()
+            kancheepuram -> resources.getStringArray(R.array.localities_kancheepuram).toList()
+            kanpur -> resources.getStringArray(R.array.localities_kanpur).toList()
+            kargil -> resources.getStringArray(R.array.localities_kargil).toList()
+            kavaratti -> resources.getStringArray(R.array.localities_kavaratti).toList()
             kharagpur -> resources.getStringArray(R.array.localities_kharagpur).toList()
-            midnapore -> resources.getStringArray(R.array.localities_midnapore).toList()
-            bardhaman -> resources.getStringArray(R.array.localities_bardhaman).toList()
-            hooghly -> resources.getStringArray(R.array.localities_hooghly).toList()
-            murshidabad -> resources.getStringArray(R.array.localities_murshidabad).toList()
-            baharampur -> resources.getStringArray(R.array.localities_baharampur).toList()
-            haldia -> resources.getStringArray(R.array.localities_haldia).toList()
-            ranaghat -> resources.getStringArray(R.array.localities_ranaghat).toList()
-            kalyani -> resources.getStringArray(R.array.localities_kalyani).toList()
-            chandannagar -> resources.getStringArray(R.array.localities_chandannagar).toList()
+            kochi -> resources.getStringArray(R.array.localities_kochi).toList()
+            kohima -> resources.getStringArray(R.array.localities_kohima).toList()
+            kolkata -> resources.getStringArray(R.array.localities_kolkata).toList()
+            leh -> resources.getStringArray(R.array.localities_leh).toList()
+            ludhiana -> resources.getStringArray(R.array.localities_ludhiana).toList()
+            lucknow -> resources.getStringArray(R.array.localities_lucknow).toList()
+            madurai -> resources.getStringArray(R.array.localities_madurai).toList()
+            mumbai -> resources.getStringArray(R.array.localities_mumbai).toList()
+            mangaluru -> resources.getStringArray(R.array.localities_mangaluru).toList()
+            mysuru -> resources.getStringArray(R.array.localities_mysuru).toList()
+            nainital -> resources.getStringArray(R.array.localities_nainital).toList()
+            nagpur -> resources.getStringArray(R.array.localities_nagpur).toList()
+            namchi -> resources.getStringArray(R.array.localities_namchi).toList()
+            navi_mumbai -> resources.getStringArray(R.array.localities_navi_mumbai).toList()
+            nct_of_delhi -> resources.getStringArray(R.array.localities_delhi_nct).toList()
+            noida -> resources.getStringArray(R.array.localities_noida).toList()
+            panaji -> resources.getStringArray(R.array.localities_panaji).toList()
+            pasighat -> resources.getStringArray(R.array.localities_pasighat).toList()
+            patna -> resources.getStringArray(R.array.localities_patna).toList()
+            prayagraj -> resources.getStringArray(R.array.localities_prayagraj).toList()
+            pune -> resources.getStringArray(R.array.localities_pune).toList()
+            port_blair -> resources.getStringArray(R.array.localities_port_blair).toList()
+            puducherry -> resources.getStringArray(R.array.localities_puducherry).toList()
+            raipur -> resources.getStringArray(R.array.localities_raipur).toList()
+            ranchi -> resources.getStringArray(R.array.localities_ranchi).toList()
+            rourkela -> resources.getStringArray(R.array.localities_rourkela).toList()
+            rohtak -> resources.getStringArray(R.array.localities_rohtak).toList()
+            shillong -> resources.getStringArray(R.array.localities_shillong).toList()
+            shimla -> resources.getStringArray(R.array.localities_shimla).toList()
+            silchar -> resources.getStringArray(R.array.localities_silchar).toList()
+            siliguri -> resources.getStringArray(R.array.localities_siliguri).toList()
+            sonipat -> resources.getStringArray(R.array.localities_sonipat).toList()
+            surat -> resources.getStringArray(R.array.localities_surat).toList()
+            secunderabad -> resources.getStringArray(R.array.localities_secunderabad).toList()
+            tawang -> resources.getStringArray(R.array.localities_tawang).toList()
+            thane -> resources.getStringArray(R.array.localities_thane).toList()
+            thiruvananthapuram -> resources.getStringArray(R.array.localities_thiruvananthapuram).toList()
+            udaipur -> resources.getStringArray(R.array.localities_udaipur).toList()
+            vadodara -> resources.getStringArray(R.array.localities_vadodara).toList()
+            varanasi -> resources.getStringArray(R.array.localities_varanasi).toList()
+            vellore -> resources.getStringArray(R.array.localities_vellore).toList()
+            vijayawada -> resources.getStringArray(R.array.localities_vijayawada).toList()
+            visakhapatnam -> resources.getStringArray(R.array.localities_visakhapatnam).toList()
+            warangal -> resources.getStringArray(R.array.localities_warangal).toList()
             other -> resources.getStringArray(R.array.localities_other).toList()
             else -> emptyList()
         }
     }
+
     var selectedLocality by remember { mutableStateOf(if (localities.isNotEmpty()) localities.first() else "") }
     var customLocality by remember { mutableStateOf(registrationViewModel.customHometown) }
 
@@ -3045,9 +3031,18 @@ fun EnterBirthdateCityHometownScreen(
             isLocating = true
             fetchLocation(
                 fusedLocationClient, context, countries, other,
-                /* city constants */ kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda,
-                jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore,
-                bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar
+                /* city constants */
+                agartala, ahmedabad, aizawl, amaravati, amritsar, asansol, bengaluru, bhilai, bhopal,
+                bhubaneswar, bilaspur, chandigarh, chennai, coimbatore, cuttack, daman, darjeeling,
+                dehradun, dibrugarh, dharamshala, durgapur, faridabad, gangtok, gaya, gandhinagar,
+                ghaziabad, gwalior, gyalshing, guwahati, gurugram, haridwar, hisar, howrah, hyderabad,
+                imphal, indore, itanagar, jaipur, jamshedpur, jodhpur, kancheepuram, kanpur, kargil,
+                kavaratti, kharagpur, kochi, kohima, kolkata, leh, ludhiana, lucknow, madurai, mumbai,
+                mangaluru, mysuru, nainital, nagpur, namchi, navi_mumbai, nct_of_delhi, noida, panaji,
+                pasighat, patna, prayagraj, pune, port_blair, puducherry, raipur, ranchi, rourkela,
+                rohtak, shillong, shimla, silchar, siliguri, sonipat, surat, secunderabad, tawang,
+                thane, thiruvananthapuram, udaipur, vadodara, varanasi, vellore, vijayawada,
+                visakhapatnam, warangal
             ) { country, city, locality ->
                 selectedCountry  = country
                 selectedCity     = city
@@ -3069,9 +3064,18 @@ fun EnterBirthdateCityHometownScreen(
             isLocating = true
             fetchLocation(
                 fusedLocationClient, context, countries, other,
-                kolkata, howrah, durgapur, asansol, siliguri, darjeeling, malda,
-                jalpaiguri, coochbehar, alipurduar, bankura, purulia, kharagpur, midnapore,
-                bardhaman, hooghly, murshidabad, baharampur, haldia, ranaghat, kalyani, chandannagar
+                /* city constants */
+                agartala, ahmedabad, aizawl, amaravati, amritsar, asansol, bengaluru, bhilai, bhopal,
+                bhubaneswar, bilaspur, chandigarh, chennai, coimbatore, cuttack, daman, darjeeling,
+                dehradun, dibrugarh, dharamshala, durgapur, faridabad, gangtok, gaya, gandhinagar,
+                ghaziabad, gwalior, gyalshing, guwahati, gurugram, haridwar, hisar, howrah, hyderabad,
+                imphal, indore, itanagar, jaipur, jamshedpur, jodhpur, kancheepuram, kanpur, kargil,
+                kavaratti, kharagpur, kochi, kohima, kolkata, leh, ludhiana, lucknow, madurai, mumbai,
+                mangaluru, mysuru, nainital, nagpur, namchi, navi_mumbai, nct_of_delhi, noida, panaji,
+                pasighat, patna, prayagraj, pune, port_blair, puducherry, raipur, ranchi, rourkela,
+                rohtak, shillong, shimla, silchar, siliguri, sonipat, surat, secunderabad, tawang,
+                thane, thiruvananthapuram, udaipur, vadodara, varanasi, vellore, vijayawada,
+                visakhapatnam, warangal
             ) { country, city, locality ->
                 selectedCountry  = country
                 selectedCity     = city
@@ -3256,11 +3260,95 @@ private fun fetchLocation(
     ctx: Context,
     countries: List<String>,
     other: String,
-    kolkata: String, howrah: String, durgapur: String, asansol: String, siliguri: String,
-    darjeeling: String, malda: String, jalpaiguri: String, coochbehar: String, alipurduar: String,
-    bankura: String, purulia: String, kharagpur: String, midnapore: String, bardhaman: String,
-    hooghly: String, murshidabad: String, baharampur: String, haldia: String, ranaghat: String,
-    kalyani: String, chandannagar: String,
+    agartala: String,
+    ahmedabad: String,
+    aizawl: String,
+    amaravati: String,
+    amritsar: String,
+    asansol: String,
+    bengaluru: String,
+    bhilai: String,
+    bhopal: String,
+    bhubaneswar: String,
+    bilaspur: String,
+    chandigarh: String,
+    chennai: String,
+    coimbatore: String,
+    cuttack: String,
+    daman: String,
+    darjeeling: String,
+    dehradun: String,
+    dibrugarh: String,
+    dharamshala: String,
+    durgapur: String,
+    faridabad: String,
+    gangtok: String,
+    gaya: String,
+    gandhinagar: String,
+    ghaziabad: String,
+    gwalior: String,
+    gyalshing: String,
+    guwahati: String,
+    gurugram: String,
+    haridwar: String,
+    hisar: String,
+    howrah: String,
+    hyderabad: String,
+    imphal: String,
+    indore: String,
+    itanagar: String,
+    jaipur: String,
+    jamshedpur: String,
+    jodhpur: String,
+    kancheepuram: String,
+    kanpur: String,
+    kargil: String,
+    kavaratti: String,
+    kharagpur: String,
+    kochi: String,
+    kohima: String,
+    kolkata: String,
+    leh: String,
+    ludhiana: String,
+    lucknow: String,
+    madurai: String,
+    mumbai: String,
+    mangaluru: String,
+    mysuru: String,
+    nainital: String,
+    nagpur: String,
+    namchi: String,
+    navi_mumbai: String,
+    nct_of_delhi: String,
+    noida: String,
+    panaji: String,
+    pasighat: String,
+    patna: String,
+    prayagraj: String,
+    pune: String,
+    port_blair: String,
+    puducherry: String,
+    raipur: String,
+    ranchi: String,
+    rourkela: String,
+    rohtak: String,
+    shillong: String,
+    shimla: String,
+    silchar: String,
+    siliguri: String,
+    sonipat: String,
+    surat: String,
+    secunderabad: String,
+    tawang: String,
+    thane: String,
+    thiruvananthapuram: String,
+    udaipur: String,
+    vadodara: String,
+    varanasi: String,
+    vellore: String,
+    vijayawada: String,
+    visakhapatnam: String,
+    warangal: String,
     onLocationFound: (String, String, String) -> Unit // ← country, city, locality
 ) {
     val scope = (ctx as? ComponentActivity)?.lifecycleScope ?: return
@@ -3285,30 +3373,97 @@ private fun fetchLocation(
             val matchedCity     = matchedCityList.find { it.equals(detectedCity, true) } ?: other
 
             val localities = when (matchedCity) {
-                kolkata       -> ctx.resources.getStringArray(R.array.localities_kolkata).toList()
-                howrah        -> ctx.resources.getStringArray(R.array.localities_howrah).toList()
-                durgapur      -> ctx.resources.getStringArray(R.array.localities_durgapur).toList()
-                asansol       -> ctx.resources.getStringArray(R.array.localities_asansol).toList()
-                siliguri      -> ctx.resources.getStringArray(R.array.localities_siliguri).toList()
-                darjeeling    -> ctx.resources.getStringArray(R.array.localities_darjeeling).toList()
-                malda         -> ctx.resources.getStringArray(R.array.localities_malda).toList()
-                jalpaiguri    -> ctx.resources.getStringArray(R.array.localities_jalpaiguri).toList()
-                coochbehar    -> ctx.resources.getStringArray(R.array.localities_cooch_behar).toList()
-                alipurduar    -> ctx.resources.getStringArray(R.array.localities_alipurduar).toList()
-                bankura       -> ctx.resources.getStringArray(R.array.localities_bankura).toList()
-                purulia       -> ctx.resources.getStringArray(R.array.localities_purulia).toList()
-                kharagpur     -> ctx.resources.getStringArray(R.array.localities_kharagpur).toList()
-                midnapore     -> ctx.resources.getStringArray(R.array.localities_midnapore).toList()
-                bardhaman     -> ctx.resources.getStringArray(R.array.localities_bardhaman).toList()
-                hooghly       -> ctx.resources.getStringArray(R.array.localities_hooghly).toList()
-                murshidabad   -> ctx.resources.getStringArray(R.array.localities_murshidabad).toList()
-                baharampur    -> ctx.resources.getStringArray(R.array.localities_baharampur).toList()
-                haldia        -> ctx.resources.getStringArray(R.array.localities_haldia).toList()
-                ranaghat      -> ctx.resources.getStringArray(R.array.localities_ranaghat).toList()
-                kalyani       -> ctx.resources.getStringArray(R.array.localities_kalyani).toList()
-                chandannagar  -> ctx.resources.getStringArray(R.array.localities_chandannagar).toList()
-                other         -> ctx.resources.getStringArray(R.array.localities_other).toList()
-                else          -> emptyList()
+                agartala -> ctx.resources.getStringArray(R.array.localities_agartala).toList()
+                ahmedabad -> ctx.resources.getStringArray(R.array.localities_ahmedabad).toList()
+                aizawl -> ctx.resources.getStringArray(R.array.localities_aizawl).toList()
+                amaravati -> ctx.resources.getStringArray(R.array.localities_amaravati).toList()
+                amritsar -> ctx.resources.getStringArray(R.array.localities_amritsar).toList()
+                asansol -> ctx.resources.getStringArray(R.array.localities_asansol).toList()
+                bengaluru -> ctx.resources.getStringArray(R.array.localities_bengaluru).toList()
+                bhilai -> ctx.resources.getStringArray(R.array.localities_bhilai).toList()
+                bhopal -> ctx.resources.getStringArray(R.array.localities_bhopal).toList()
+                bhubaneswar -> ctx.resources.getStringArray(R.array.localities_bhubaneswar).toList()
+                bilaspur -> ctx.resources.getStringArray(R.array.localities_bilaspur).toList()
+                chandigarh -> ctx.resources.getStringArray(R.array.localities_chandigarh).toList()
+                chennai -> ctx.resources.getStringArray(R.array.localities_chennai).toList()
+                coimbatore -> ctx.resources.getStringArray(R.array.localities_coimbatore).toList()
+                cuttack -> ctx.resources.getStringArray(R.array.localities_cuttack).toList()
+                daman -> ctx.resources.getStringArray(R.array.localities_daman).toList()
+                darjeeling -> ctx.resources.getStringArray(R.array.localities_darjeeling).toList()
+                dehradun -> ctx.resources.getStringArray(R.array.localities_dehradun).toList()
+                dibrugarh -> ctx.resources.getStringArray(R.array.localities_dibrugarh).toList()
+                dharamshala -> ctx.resources.getStringArray(R.array.localities_dharamshala).toList()
+                durgapur -> ctx.resources.getStringArray(R.array.localities_durgapur).toList()
+                faridabad -> ctx.resources.getStringArray(R.array.localities_faridabad).toList()
+                gangtok -> ctx.resources.getStringArray(R.array.localities_gangtok).toList()
+                gaya -> ctx.resources.getStringArray(R.array.localities_gaya).toList()
+                gandhinagar -> ctx.resources.getStringArray(R.array.localities_gandhinagar).toList()
+                ghaziabad -> ctx.resources.getStringArray(R.array.localities_ghaziabad).toList()
+                gwalior -> ctx.resources.getStringArray(R.array.localities_gwalior).toList()
+                gyalshing -> ctx.resources.getStringArray(R.array.localities_gyalshing).toList()
+                guwahati -> ctx.resources.getStringArray(R.array.localities_guwahati).toList()
+                gurugram -> ctx.resources.getStringArray(R.array.localities_gurugram).toList()
+                haridwar -> ctx.resources.getStringArray(R.array.localities_haridwar).toList()
+                hisar -> ctx.resources.getStringArray(R.array.localities_hisar).toList()
+                howrah -> ctx.resources.getStringArray(R.array.localities_howrah).toList()
+                hyderabad -> ctx.resources.getStringArray(R.array.localities_hyderabad).toList()
+                imphal -> ctx.resources.getStringArray(R.array.localities_imphal).toList()
+                indore -> ctx.resources.getStringArray(R.array.localities_indore).toList()
+                itanagar -> ctx.resources.getStringArray(R.array.localities_itanagar).toList()
+                jaipur -> ctx.resources.getStringArray(R.array.localities_jaipur).toList()
+                jamshedpur -> ctx.resources.getStringArray(R.array.localities_jamshedpur).toList()
+                jodhpur -> ctx.resources.getStringArray(R.array.localities_jodhpur).toList()
+                kancheepuram -> ctx.resources.getStringArray(R.array.localities_kancheepuram).toList()
+                kanpur -> ctx.resources.getStringArray(R.array.localities_kanpur).toList()
+                kargil -> ctx.resources.getStringArray(R.array.localities_kargil).toList()
+                kavaratti -> ctx.resources.getStringArray(R.array.localities_kavaratti).toList()
+                kharagpur -> ctx.resources.getStringArray(R.array.localities_kharagpur).toList()
+                kochi -> ctx.resources.getStringArray(R.array.localities_kochi).toList()
+                kohima -> ctx.resources.getStringArray(R.array.localities_kohima).toList()
+                kolkata -> ctx.resources.getStringArray(R.array.localities_kolkata).toList()
+                leh -> ctx.resources.getStringArray(R.array.localities_leh).toList()
+                ludhiana -> ctx.resources.getStringArray(R.array.localities_ludhiana).toList()
+                lucknow -> ctx.resources.getStringArray(R.array.localities_lucknow).toList()
+                madurai -> ctx.resources.getStringArray(R.array.localities_madurai).toList()
+                mumbai -> ctx.resources.getStringArray(R.array.localities_mumbai).toList()
+                mangaluru -> ctx.resources.getStringArray(R.array.localities_mangaluru).toList()
+                mysuru -> ctx.resources.getStringArray(R.array.localities_mysuru).toList()
+                nainital -> ctx.resources.getStringArray(R.array.localities_nainital).toList()
+                nagpur -> ctx.resources.getStringArray(R.array.localities_nagpur).toList()
+                namchi -> ctx.resources.getStringArray(R.array.localities_namchi).toList()
+                navi_mumbai -> ctx.resources.getStringArray(R.array.localities_navi_mumbai).toList()
+                nct_of_delhi -> ctx.resources.getStringArray(R.array.localities_delhi_nct).toList()
+                noida -> ctx.resources.getStringArray(R.array.localities_noida).toList()
+                panaji -> ctx.resources.getStringArray(R.array.localities_panaji).toList()
+                pasighat -> ctx.resources.getStringArray(R.array.localities_pasighat).toList()
+                patna -> ctx.resources.getStringArray(R.array.localities_patna).toList()
+                prayagraj -> ctx.resources.getStringArray(R.array.localities_prayagraj).toList()
+                pune -> ctx.resources.getStringArray(R.array.localities_pune).toList()
+                port_blair -> ctx.resources.getStringArray(R.array.localities_port_blair).toList()
+                puducherry -> ctx.resources.getStringArray(R.array.localities_puducherry).toList()
+                raipur -> ctx.resources.getStringArray(R.array.localities_raipur).toList()
+                ranchi -> ctx.resources.getStringArray(R.array.localities_ranchi).toList()
+                rourkela -> ctx.resources.getStringArray(R.array.localities_rourkela).toList()
+                rohtak -> ctx.resources.getStringArray(R.array.localities_rohtak).toList()
+                shillong -> ctx.resources.getStringArray(R.array.localities_shillong).toList()
+                shimla -> ctx.resources.getStringArray(R.array.localities_shimla).toList()
+                silchar -> ctx.resources.getStringArray(R.array.localities_silchar).toList()
+                siliguri -> ctx.resources.getStringArray(R.array.localities_siliguri).toList()
+                sonipat -> ctx.resources.getStringArray(R.array.localities_sonipat).toList()
+                surat -> ctx.resources.getStringArray(R.array.localities_surat).toList()
+                secunderabad -> ctx.resources.getStringArray(R.array.localities_secunderabad).toList()
+                tawang -> ctx.resources.getStringArray(R.array.localities_tawang).toList()
+                thane -> ctx.resources.getStringArray(R.array.localities_thane).toList()
+                thiruvananthapuram -> ctx.resources.getStringArray(R.array.localities_thiruvananthapuram).toList()
+                udaipur -> ctx.resources.getStringArray(R.array.localities_udaipur).toList()
+                vadodara -> ctx.resources.getStringArray(R.array.localities_vadodara).toList()
+                varanasi -> ctx.resources.getStringArray(R.array.localities_varanasi).toList()
+                vellore -> ctx.resources.getStringArray(R.array.localities_vellore).toList()
+                vijayawada -> ctx.resources.getStringArray(R.array.localities_vijayawada).toList()
+                visakhapatnam -> ctx.resources.getStringArray(R.array.localities_visakhapatnam).toList()
+                warangal -> ctx.resources.getStringArray(R.array.localities_warangal).toList()
+                other -> ctx.resources.getStringArray(R.array.localities_other).toList()
+                else -> emptyList()
             }
             val matchedLocality = localities.find { it.equals(detectedLocality, true) } ?: other
             withContext(Dispatchers.Main) { onLocationFound(matchedCountry, matchedCity, matchedLocality) }
