@@ -1,9 +1,12 @@
 <resources>
+                <string name="upgrade_to_plus_to_unlock">அன்லாக் செய்ய Plus-க்கு மேம்படுத்தவும்</string>
+                <string name="upgrade_to_premium_to_unlock">அன்லாக் செய்ய Premium-க்கு மேம்படுத்தவும்</string>
+
         <!-- App Basics -->
         <string name="app_name">குப்பிட் எக்ஸ்</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
         <string name="languages">மொழிகள்</string>
-        <string name="section_bio_and_voice">சுயவிவரம் and குரல்</string>
+        <string name="section_bio_and_voice">சுயவிவரம் &amp; குரல்</string>
 
         <!-- General Strings -->
         <string name="max_social_causes_error">நீங்கள் %1$d சமூக காரணங்களை மட்டுமே தேர்ந்தெடுக்க முடியும்.</string>
@@ -149,7 +152,7 @@
         <string name="college_nid_jorhat">தேசிய வடிவமைப்பு நிறுவனம், ஜோர்ஹாட்</string>
         <string name="college_nid_vijayawada">தேசிய வடிவமைப்பு நிறுவனம், விஜயவாடா</string>
         <string name="college_nift">தேசிய ஃபேஷன் தொழில்நுட்ப நிறுவனம்</string>
-        <string name="college_srishti_manipal">ஸ்ரிஷ்டி மணிபால் கலை, வடிவமைப்பு and தொழில்நுட்ப நிறுவனம்</string>
+        <string name="college_srishti_manipal">ஸ்ரிஷ்டி மணிபால் கலை, வடிவமைப்பு &amp; தொழில்நுட்ப நிறுவனம்</string>
         <string name="college_pearl_academy">பேர்ல் அகாடமி</string>
         <string name="college_symbiosis_institute_of_design">சிம்பயோசிஸ் வடிவமைப்பு நிறுவனம்</string>
         <string name="college_mit_institute_of_design">எம்ஐடி வடிவமைப்பு நிறுவனம்</string>
@@ -171,8 +174,8 @@
         <string name="college_cnlu_patna">சானக்யா தேசிய சட்ட பல்கலைக்கழகம், பாட்னா</string>
         <string name="college_nuals_kochi">தேசிய மேம்பட்ட சட்ட ஆய்வுகள் பல்கலைக்கழகம், கொச்சி</string>
         <string name="college_nluo_cuttack">ஒடிசா தேசிய சட்ட பல்கலைக்கழகம், கட்டாக்</string>
-        <string name="college_nusr_law_ranchi">தேசிய ஆய்வு and சட்ட ஆராய்ச்சி பல்கலைக்கழகம், ராஞ்சி</string>
-        <string name="college_nluja_guwahati">NLU and நீதித்துறை அகாடமி, குவஹாத்தி</string>
+        <string name="college_nusr_law_ranchi">தேசிய ஆய்வு &amp; சட்ட ஆராய்ச்சி பல்கலைக்கழகம், ராஞ்சி</string>
+        <string name="college_nluja_guwahati">NLU &amp; நீதித்துறை அகாடமி, குவஹாத்தி</string>
         <string name="college_tnnlu_tiruchirappalli">தமிழ்நாடு தேசிய சட்ட பல்கலைக்கழகம், திருச்சிராப்பள்ளி</string>
         <string name="college_mnlu_mumbai">மகாராஷ்டிரா தேசிய சட்ட பல்கலைக்கழகம், மும்பை</string>
         <string name="college_mnlu_nagpur">மகாராஷ்டிரா தேசிய சட்ட பல்கலைக்கழகம், நாக்பூர்</string>
@@ -198,9 +201,9 @@
         <string name="college_sir_jj_school_of_art">சர் J.J. கலைப் பள்ளி, மும்பை</string>
         <string name="college_faculty_visual_arts_bhu">காட்சி கலை பீடம், BHU</string>
         <string name="college_msu_fine_arts_vadodara">MSU நுண்கலை பீடம், வடோதரா</string>
-        <string name="college_govt_college_art_craft_kolkata">அரசு கலை and கைவினை கல்லூரி, கொல்கத்தா</string>
+        <string name="college_govt_college_art_craft_kolkata">அரசு கலை &amp; கைவினை கல்லூரி, கொல்கத்தா</string>
         <string name="college_chennai_govt_fine_arts">சென்னை அரசு நுண்கலை கல்லூரி</string>
-        <string name="college_rachana_sansad">ரசனா சன்சாத் நுண்கலை and கைவினை அகாடமி</string>
+        <string name="college_rachana_sansad">ரசனா சன்சாத் நுண்கலை &amp; கைவினை அகாடமி</string>
         <string name="college_goa_college_of_art">கோவா கலை கல்லூரி</string>
         <string name="college_amity_school_fine_arts">அமிட்டி நுண்கலைப் பள்ளி</string>
         <string name="college_kalakshetra_foundation">கலாக்ஷேத்ரா அறக்கட்டளை</string>
@@ -210,7 +213,7 @@
         <string name="college_ftii_pune">FTII, புணே</string>
         <string name="college_srfti_kolkata">SRFTI, கொல்கத்தா</string>
         <string name="college_kathak_kendra">கதக் கேந்திரா</string>
-        <string name="college_drama_thrissur">நாடகம் and நுண்கலைப் பள்ளி, திரிசூர்</string>
+        <string name="college_drama_thrissur">நாடகம் &amp; நுண்கலைப் பள்ளி, திரிசூர்</string>
         <string name="college_ramjas_college">ராம்ஜாஸ் கல்லூரி, டெல்லி</string>
         <string name="college_st_xaviers_mumbai">செயிண்ட் சேவியர்ஸ் கல்லூரி, மும்பை</string>
 
@@ -233,7 +236,7 @@
         <string name="interest_technology">தொழில்நுட்பம்</string>
         <string name="interest_fashion">ஃபேஷன்</string>
         <string name="interest_volunteering">தன்னார்வப் பணி</string>
-        <string name="interest_pets">வளர்ப்பு பிராணிகள் and விலங்குகள்</string>
+        <string name="interest_pets">வளர்ப்பு பிராணிகள் &amp; விலங்குகள்</string>
         <string name="interest_charity">தொண்டு வேலை</string>
         <string name="interest_community">சமூக அமைப்பு</string>
         <string name="interest_networking">வலைப்பின்னல்</string>

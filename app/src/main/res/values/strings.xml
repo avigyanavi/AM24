@@ -1,4 +1,7 @@
 <resources>
+        <string name="upgrade_to_plus_to_unlock">Upgrade to Plus to unlock</string>
+        <string name="upgrade_to_premium_to_unlock">Upgrade to Premium to unlock</string>
+
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Languages</string>

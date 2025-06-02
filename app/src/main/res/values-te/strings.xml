@@ -1,5 +1,8 @@
 <resources>
-        <string name="app_name">క్యుపిడ్ x</string>
+        <string name="upgrade_to_plus_to_unlock">అన్లాక్ చేయడానికి ప్లస్‌కు అప్గ్రేడ్ చేయండి</string>
+        <string name="upgrade_to_premium_to_unlock">అన్లాక్ చేయడానికి ప్రీమియానికి అప్గ్రేడ్ చేయండి</string>
+
+    <string name="app_name">క్యుపిడ్ x</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
         <string name="languages">భాషలు</string>
         <string name="section_bio_and_voice">బయో &amp; వాయిస్</string>
@@ -2051,7 +2054,7 @@
 
         <!-- Institutional and Educational Areas -->
         <string name="locality_pasighat_jawaharlal_nehru_college_area">జవెహార్‌లాల్ నెహ్రూ కాలేజ్ ప్రాంతం</string>
-        <string name="locality_pasighat_college_of_horticulture_and_forestry_area">హార్టికల్చర్ and ఫారెస్ట్రీ కాలేజ్ ప్రాంతం</string>
+        <string name="locality_pasighat_college_of_horticulture_and_forestry_area">హార్టికల్చర్ &amp; ఫారెస్ట్రీ కాలేజ్ ప్రాంతం</string>
         <string name="locality_pasighat_d_ering_memorial_school_area">డి. ఎరింగ్ మెమోరియల్ స్కూల్ ప్రాంతం</string>
         <string name="locality_pasighat_igj_school_area">IGJ స్కూల్ ప్రాంతం</string>
 
@@ -3114,7 +3117,7 @@
     <string name="locality_port_blair_port_blair_airport_area">పోర్ట్ బ్లెయిర్ విమానాశ్రయ ప్రాంతం</string>
     <string name="locality_port_blair_ins_jarawa_area">ఐఎన్‌ఎస్ జారవా ప్రాంతం</string>
     <string name="locality_port_blair_gb_pant_hospital_area">జీబీ పాంట్ ఆసుపత్రి ప్రాంతం</string>
-    <string name="locality_port_blair_aniss_area">ఏఎన్‌ఐఐఎస్ (ఆండమాన్ and నికోబార్ దీవులు ఇనిస్టిట్యూట్ ఆఫ్ మెడికల్ సైన్సెస్) ప్రాంతం</string>
+    <string name="locality_port_blair_aniss_area">ఏఎన్‌ఐఐఎస్ (ఆండమాన్ &amp; నికోబార్ దీవులు ఇనిస్టిట్యూట్ ఆఫ్ మెడికల్ సైన్సెస్) ప్రాంతం</string>
     <string name="locality_port_blair_cellular_jail_area">సెల్యులర్ జైలు ప్రాంతం</string>
     <string name="locality_port_blair_anthropological_museum_area">అంట్రోపోలాజికల్ మ్యూజియం ప్రాంతం</string>
     <string name="locality_port_blair_samudrika_naval_marine_museum_area">సముద్రికా నేవల్ మరీన్ మ్యూజియం ప్రాంతం</string>
@@ -3317,7 +3320,7 @@
     <string name="locality_kharagpur_district_hospital_area">జిల్లా ఆసుపత్రి ప్రాంతం</string>
     <string name="locality_kharagpur_sub_divisional_office_area">ఉప-విభాగీయ ఆఫీస్ ప్రాంతం</string>
     <string name="locality_kharagpur_kharagpur_railway_colony">ఖరాగ్‌పూర్ రైల్వే కాలనీ</string>
-    <string name="locality_kharagpur_nehru_museum_of_science_and_technology">నెహ్రూ సైన్స్ and టెక్నాలజీ మ్యూజియం</string>
+    <string name="locality_kharagpur_nehru_museum_of_science_and_technology">నెహ్రూ సైన్స్ &amp; టెక్నాలజీ మ్యూజియం</string>
     <string name="locality_kharagpur_hijli_shahid_bhavan_area">హిజ్లీ షహీద్ భవన్ ప్రాంతం</string>
     <string name="locality_kharagpur_khargeswar_temple_area">ఖర్జేశ్వర దేవాలయ ప్రాంతం</string>
     <string name="locality_kharagpur_deer_park_iit_campus">డియర్ పార్క్ (ఐఐటీ క్యాంపస్)</string>
@@ -3944,7 +3947,7 @@
     <string name="locality_chennai_kapaleeshwarar_temple_area">కపలీశ్వర దేవాలయ ప్రాంతం</string>
     <string name="locality_chennai_santhome_basilica_area">సంతోమ్ బాసిలికా ప్రాంతం</string>
     <string name="locality_chennai_valluvar_kottam">వల్లువర్ కోటం</string>
-    <string name="locality_chennai_government_museum_area">ప్రభుత్వ మ్యూజియం and ఆర్ట్ గ్యాలరీ ప్రాంతం</string>
+    <string name="locality_chennai_government_museum_area">ప్రభుత్వ మ్యూజియం &amp; ఆర్ట్ గ్యాలరీ ప్రాంతం</string>
     <string name="locality_chennai_fort_st_george">ఫోర్ట్ సెయింట్ జార్జ్</string>
     <string name="locality_chennai_omr_old_mahabalipuram_road">OMR (ఓల్డ్ మహాబలిపురం రోడ్)</string>
     <string name="locality_chennai_guindy_industrial_estate">గుఇండి ఇండస్ట్రియల్ ఈస్టేట్</string>
@@ -4288,7 +4291,7 @@
     <string name="locality_chandigarh_rock_garden">రాక్ గార్డెన్</string>
     <string name="locality_chandigarh_rose_garden">రోజ్ గార్డెన్</string>
     <string name="locality_chandigarh_le_corbusier_centre">లే కార్బుసియర్ సెంటర్</string>
-    <string name="locality_chandigarh_government_museum_and_art_gallery_area">ప్రభుత్వ మ్యూజియం and ఆర్ట్ గ్యాలరీ ప్రాంతం</string>
+    <string name="locality_chandigarh_government_museum_and_art_gallery_area">ప్రభుత్వ మ్యూజియం &amp; ఆర్ట్ గ్యాలరీ ప్రాంతం</string>
     <string name="locality_chandigarh_sukhna_lake">సుఖ్నా సరస్సు</string>
     <string name="locality_chandigarh_shanti_kunj">శాంతికుంజ్</string>
     <string name="locality_chandigarh_terraced_garden">టెరేస్డ్ గార్డెన్</string>

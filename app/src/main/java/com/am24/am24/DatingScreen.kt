@@ -853,13 +853,17 @@ fun FiltersOverlay(
     selectedPostGrad: String,
     onPostGradChange: (String) -> Unit,
     onSaveFilters: () -> Unit,
+    onCancel: () -> Unit,
+
+    // ← no change here: these two flags come from DatingScreen’s myProfile!!.isPlus / isPremium
     isPlus: Boolean,
     isPremium: Boolean,
+
+    // the current values of each “power” filter (even if locked)
     minRating: Float,
     onMinRatingChange: (Float) -> Unit,
     maxRanking: Int,
-    onMaxRankingChange: (Int) -> Unit,
-    onCancel: () -> Unit
+    onMaxRankingChange: (Int) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -867,7 +871,7 @@ fun FiltersOverlay(
             .background(Color(0xFF1A1A1A))
             .padding(16.dp)
     ) {
-        // Save Button at the top
+        // ─── “Filters” title + Save button ───────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -881,9 +885,7 @@ fun FiltersOverlay(
                 color = Color.White
             )
             Button(
-                onClick = {
-                    onSaveFilters()
-                },
+                onClick = { onSaveFilters() },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier.height(48.dp)
@@ -893,34 +895,35 @@ fun FiltersOverlay(
         }
 
         LazyColumn {
-            // Basic Filters Section
+            // ─── BASIC Filters ─────────────────────────────────────────────
             item {
                 FilterSectionTitle(title = stringResource(R.string.basic_filters))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Gender Selection
+                // Gender pills (pre‐populated via selectedGenders)
                 Text(stringResource(R.string.gender_preference), color = Color.White)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     listOf(
-                        (stringResource(R.string.male_option)),
-                        (stringResource(R.string.female_option))
+                        stringResource(R.string.male_option),
+                        stringResource(R.string.female_option)
                     ).forEach { gender ->
                         Button(
                             onClick = {
-                                val updatedGenders = if (selectedGenders.contains(gender)) {
+                                val updated = if (selectedGenders.contains(gender)) {
                                     selectedGenders - gender
                                 } else {
                                     selectedGenders + gender
                                 }
-                                onGenderChange(updatedGenders)
+                                onGenderChange(updated)
                             },
                             colors = ButtonDefaults.buttonColors(
-                                backgroundColor = if (selectedGenders.contains(gender)) Color(
-                                    0xFFFF6000
-                                ) else Color(0xFF1A1A1A)
+                                backgroundColor = if (selectedGenders.contains(gender))
+                                    Color(0xFFFF6000)
+                                else
+                                    Color(0xFF1A1A1A)
                             ),
                             border = BorderStroke(
                                 2.dp,
@@ -938,7 +941,7 @@ fun FiltersOverlay(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Age Range Slider
+                // Age Range Slider (unchanged)
                 Text(
                     text = stringResource(
                         R.string.age_range,
@@ -950,7 +953,10 @@ fun FiltersOverlay(
                 RangeSlider(
                     value = ageRange.start.toFloat()..ageRange.endInclusive.toFloat(),
                     onValueChange = { range ->
-                        onAgeRangeChange(range.start.roundToInt()..range.endInclusive.roundToInt())
+                        onAgeRangeChange(
+                            range.start.roundToInt()..
+                                    range.endInclusive.roundToInt()
+                        )
                     },
                     valueRange = 0f..100f,
                     steps = 82,
@@ -963,92 +969,111 @@ fun FiltersOverlay(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-// Max Distance Slider  (0-100 km + Worldwide)
+                // Max Distance Slider (unchanged)
                 Text(
                     text = if (maxDistance == DatingViewModel.WORLDWIDE_DISTANCE)
-                        stringResource(R.string.worldwide)          // “Worldwide 🌍”
+                        stringResource(R.string.worldwide)
                     else
                         stringResource(R.string.max_distance, maxDistance),
                     color = Color.White
                 )
                 Slider(
-                    value           = maxDistance.toFloat(),
-                    onValueChange   = { onDistanceChange(it.roundToInt()) },
-                    valueRange      = 0f..DatingViewModel.WORLDWIDE_DISTANCE.toFloat(),
-                    // 0-100 give us 101 stops, plus one extra ⇒ 102-1 = 101 visible stops
-                    steps           = 10,
-                    colors          = SliderDefaults.colors(
-                        thumbColor        = Color(0xFFFF6000),
-                        activeTrackColor  = Color(0xFFFF6000),
-                        inactiveTrackColor= Color.Gray
+                    value = maxDistance.toFloat(),
+                    onValueChange = { onDistanceChange(it.roundToInt()) },
+                    valueRange = 0f..DatingViewModel.WORLDWIDE_DISTANCE.toFloat(),
+                    steps = 10,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFFF6000),
+                        activeTrackColor = Color(0xFFFF6000),
+                        inactiveTrackColor = Color.Gray
                     )
                 )
             }
 
-            /* ────────────────  POWER FILTERS  ────────────────────────── */
-            /* ⭐  Minimum Rating  (Plus & Premium) */
-            if (isPlus || isPremium) {
-                item {
-                    Spacer(Modifier.height(24.dp))
-                    FilterSectionTitle(stringResource(R.string.rating_label))
+            /* ───── POWER FILTERS ──────────────────────────────────────── */
 
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(R.string.min_rating, minRating),
-                        color = Color.White
-                    )
-                    Slider(
-                        value       = minRating,
-                        onValueChange = onMinRatingChange,
-                        valueRange  = 0f..5f,
-                        steps       = 4,          // 0 → 5 in 1-star steps
-                        colors      = SliderDefaults.colors(
-                            thumbColor        = Color(0xFFFF6000),
-                            activeTrackColor  = Color(0xFFFF6000),
-                            inactiveTrackColor= Color.Gray
-                        )
-                    )
-                }
-            }
-
-            /* 🏆  Top-N Ranking  (Premium only) */
-            if (isPremium) {
-                item {
-                    Spacer(Modifier.height(24.dp))
-                    FilterSectionTitle(stringResource(R.string.ranking_label))
-
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(
-                            R.string.top_n_ranking,
-                            if (maxRanking == 0) "∞" else maxRanking
-                        ),
-                        color = Color.White
-                    )
-                    Slider(
-                        value        = (if (maxRanking == 0) 10_0 else maxRanking).toFloat(),
-                        onValueChange = { onMaxRankingChange(it.roundToInt()) },
-                        valueRange   = 1f..10_0f,     // adjust upper bound if needed
-                        steps        = 9,
-                        colors       = SliderDefaults.colors(
-                            thumbColor        = Color(0xFFFF6000),
-                            activeTrackColor  = Color(0xFFFF6000),
-                            inactiveTrackColor= Color.Gray
-                        )
-                    )
-                }
-            }
-            /* ─────────────────────────────────────────────────────────── */
-
-
-            // Section: Education
+            /* 1) Minimum Rating (0..5 stars) – visible to everyone, but locked for non‐Plus users */
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
+                FilterSectionTitle(stringResource(R.string.rating_label))
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.min_rating, minRating),
+                    color = if (isPlus || isPremium) Color.White else Color.Gray
+                )
+                Slider(
+                    value = minRating,
+                    onValueChange = {
+                        if (isPlus || isPremium) {
+                            onMinRatingChange(it)
+                        }
+                    },
+                    valueRange = 0f..5f,
+                    steps = 4,
+                    enabled = (isPlus || isPremium),
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
+                        activeTrackColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
+                        inactiveTrackColor = Color.DarkGray
+                    )
+                )
+                if (!(isPlus || isPremium)) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.upgrade_to_plus_to_unlock),
+                        color = Color.Gray,
+                        fontSize = 9.sp
+                    )
+                }
+            }
+
+            /* 2) Top‐N Ranking (1..100) – visible to everyone, but locked for non‐Premium users */
+            item {
+                Spacer(Modifier.height(24.dp))
+                FilterSectionTitle(stringResource(R.string.ranking_label))
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(
+                        R.string.top_n_ranking,
+                        if (maxRanking == 0) "∞" else maxRanking
+                    ),
+                    color = if (isPremium) Color.White else Color.Gray
+                )
+                Slider(
+                    value = (if (maxRanking == 0) 100f else maxRanking.toFloat()),
+                    onValueChange = {
+                        if (isPremium) {
+                            onMaxRankingChange(it.roundToInt())
+                        }
+                    },
+                    valueRange = 1f..100f,
+                    steps = 99,
+                    enabled = isPremium,
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
+                        activeTrackColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
+                        inactiveTrackColor = Color.DarkGray
+                    )
+                )
+                if (!isPremium) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
+                        color = Color.Gray,
+                        fontSize = 9.sp
+                    )
+                }
+            }
+
+            /* ─── EDUCATION Filters ──────────────────────────────────── */
+            item {
+                Spacer(Modifier.height(24.dp))
                 FilterSectionTitle(title = stringResource(R.string.education))
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // High School
+                Spacer(Modifier.height(8.dp))
+                // ─ High School ─
                 DropdownFilter(
                     label = stringResource(R.string.high_school),
                     options = listOf(
@@ -1136,10 +1161,9 @@ fun FiltersOverlay(
                     selectedOption = selectedHighSchool,
                     onOptionChange = onHighSchoolChange
                 )
-
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // College
+                // ─ College ─
                 DropdownFilter(
                     label = stringResource(R.string.college),
                     options = listOf(
@@ -1301,10 +1325,9 @@ fun FiltersOverlay(
                     selectedOption = selectedCollege,
                     onOptionChange = onCollegeChange
                 )
-
                 Spacer(modifier = Modifier.height(8.dp))
 
-                //Post Grad
+                // ─ Post‐Grad ─
                 DropdownFilter(
                     label = stringResource(R.string.post_grad),
                     options = listOf(
@@ -1381,14 +1404,12 @@ fun FiltersOverlay(
                 )
             }
 
-            // Section: Preferences
+            /* ─── PREFERENCES Filters ───────────────────────────────── */
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 FilterSectionTitle(title = stringResource(R.string.preferences))
 
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // Community, Religion
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -1396,7 +1417,6 @@ fun FiltersOverlay(
                     DropdownFilter(
                         label = stringResource(R.string.community),
                         options = listOf(
-                            // Northeast India
                             stringResource(R.string.community_adi),
                             stringResource(R.string.community_nyishi),
                             stringResource(R.string.community_bodo),
@@ -1467,7 +1487,6 @@ fun FiltersOverlay(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Caste
                 Row(modifier = Modifier.fillMaxWidth()) {
                     DropdownFilter(
                         label = stringResource(R.string.caste),

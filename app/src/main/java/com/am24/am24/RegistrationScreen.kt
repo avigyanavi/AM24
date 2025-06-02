@@ -2461,7 +2461,8 @@ suspend fun saveProfileToFirebase(
             loveLanguage = registrationViewModel.loveLanguage,
             jobRole = registrationViewModel.jobRole,
             preferredLanguage = registrationViewModel.selectedLanguage, // NEW: Save language choice
-            zodiac = registrationViewModel.zodiac // Include zodiac in the profile
+            zodiac = registrationViewModel.zodiac, // Include zodiac in the profile
+            interestedIn = registrationViewModel.interestedIn.toList() // Include "interested in" data
         )
 
         database.child("users").child(userId).setValue(profile).await()
