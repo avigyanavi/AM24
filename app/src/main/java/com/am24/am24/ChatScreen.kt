@@ -152,7 +152,6 @@ fun ChatScreenContent(
     val notificationsRef = database.getReference("notifications")
     val ratingsRef = database.getReference("ratings")
     val reportsRef = database.getReference("reports")
-    val storageRef = FirebaseRefs.storage.reference
     var isOtherUserTyping by remember { mutableStateOf(false) }
     val typingRef = database.getReference("typing/$chatId/$otherUserId")
     var averageRating by remember { mutableStateOf(0.0) }
@@ -196,6 +195,9 @@ fun ChatScreenContent(
     val activity = context as? ComponentActivity
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+
+    // Determine if the current user is premium
+    val isPremiumUser = currentUserProfile?.isPremium == true
 
     val editLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -258,7 +260,7 @@ fun ChatScreenContent(
             isUploadingMedia = false
         }
 
-// ─── NEW single‐intent launcher for video capture ───
+    // ─── NEW single‐intent launcher for video capture ───
     val videoCaptureLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -270,7 +272,6 @@ fun ChatScreenContent(
             }
         }
     }
-
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -665,7 +666,12 @@ fun ChatScreenContent(
                         }
                     ) {
                         if (isLoadingProfiles) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(40.dp).clip(CircleShape))
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                            )
                         } else if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
@@ -675,14 +681,20 @@ fun ChatScreenContent(
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = "Profile",
-                                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray),
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
                             otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
                             AIOrProfileImage(
                                 profile = otherUserProfile ?: Profile(userId = "", username = "", name = ""),
-                                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray)
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray)
                             )
                         }
                         Spacer(Modifier.width(8.dp))
@@ -700,7 +712,15 @@ fun ChatScreenContent(
                         }
                     }
                 },
-                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = Color.White) } },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
                 actions = {
                     // ───── Chat‐Screen Language Switcher ─────
                     var pickLangMenu by remember { mutableStateOf(false) }
@@ -738,7 +758,8 @@ fun ChatScreenContent(
                                     prefs
                                         .edit()
                                         .putString("language", code)
-                                        .apply()                                    // 2) write to Firebase
+                                        .apply()
+                                    // 2) write to Firebase
                                     userRef.child("preferredLanguage")
                                         .setValue(code)
                                         .addOnCompleteListener {
@@ -750,34 +771,59 @@ fun ChatScreenContent(
                             )
                         }
                     }
+
+                    // Suggestion button – only enabled if user is premium
                     IconButton(
                         onClick = {
-                            suggestionsExpanded = true
-                            if (suggestions == null || messages.size > 10) {
-                                scope.launch {
-                                    isLoadingSuggestions = true
-                                    suggestions = fetchSuggestionsWithRetry()
-                                    isLoadingSuggestions = false
+                            if (isPremiumUser) {
+                                suggestionsExpanded = true
+                                if (suggestions == null || messages.size > 10) {
+                                    scope.launch {
+                                        isLoadingSuggestions = true
+                                        suggestions = fetchSuggestionsWithRetry()
+                                        isLoadingSuggestions = false
+                                    }
                                 }
+                            } else {
+                                Toast.makeText(context, "Upgrade to Premium to access suggestions.", Toast.LENGTH_SHORT).show()
                             }
-                        }
-                    ) { Icon(Icons.Default.Lightbulb, stringResource(R.string.btn_suggestions), tint = Color(0xFFFFA500)) }
-                    IconButton(
-                        onClick = {
-                            placeSuggestionsExpanded = true
-                            if (placeSuggestions == null || messages.size > 10) {
-                                scope.launch {
-                                    isLoadingPlaces = true
-                                    val sugg = fetchSuggestionsWithRetry()
-                                    placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
-                                    isLoadingPlaces = false
-                                }
-                            }
-                        }
+                        },
+                        enabled = isPremiumUser,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (isPremiumUser) Color(0xFFFFA500) else Color.Gray
+                        )
                     ) {
-                        Icon(Icons.Default.Place, stringResource(R.string.btn_places), tint = Color(0xFFFF6F00))
+                        Icon(Icons.Default.Lightbulb, stringResource(R.string.btn_suggestions))
                     }
-                    IconButton(onClick = { moreOptionsMenuExpanded = true }) { Icon(Icons.Default.MoreVert, "More Options", tint = Color.White) }
+
+                    // Places button – only enabled if user is premium
+                    IconButton(
+                        onClick = {
+                            if (isPremiumUser) {
+                                placeSuggestionsExpanded = true
+                                if (placeSuggestions == null || messages.size > 10) {
+                                    scope.launch {
+                                        isLoadingPlaces = true
+                                        val sugg = fetchSuggestionsWithRetry()
+                                        placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                        isLoadingPlaces = false
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(context, "Upgrade to Premium to see places.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = isPremiumUser,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (isPremiumUser) Color(0xFFFF6F00) else Color.Gray
+                        )
+                    ) {
+                        Icon(Icons.Default.Place, stringResource(R.string.btn_places))
+                    }
+
+                    IconButton(onClick = { moreOptionsMenuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, "More Options", tint = Color.White)
+                    }
                     DropdownMenu(expanded = moreOptionsMenuExpanded, onDismissRequest = { moreOptionsMenuExpanded = false }) {
                         DropdownMenuItem(
                             text = {
@@ -1105,12 +1151,21 @@ fun ChatScreenContent(
             }
             if (suggestionsExpanded) {
                 Box(
-                    Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
-                        .clickable(onClick = { suggestionsExpanded = false }, indication = null, interactionSource = remember { MutableInteractionSource() }),
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .clickable(
+                            onClick = { suggestionsExpanded = false },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Card(
-                        modifier = Modifier.width(400.dp).heightIn(max = 500.dp).padding(16.dp),
+                        modifier = Modifier
+                            .width(400.dp)
+                            .heightIn(max = 500.dp)
+                            .padding(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.Black),
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(2.dp, Color(0xFFFF6F00))
@@ -1118,7 +1173,10 @@ fun ChatScreenContent(
                         LazyColumn(Modifier.padding(16.dp)) {
                             if (isLoadingSuggestions) {
                                 item {
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
                                         CircularProgressIndicator(color = Color(0xFFFFA500))
                                     }
                                 }
@@ -1230,12 +1288,21 @@ fun ChatScreenContent(
             }
             if (placeSuggestionsExpanded) {
                 Box(
-                    Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
-                        .clickable(onClick = { placeSuggestionsExpanded = false }, indication = null, interactionSource = remember { MutableInteractionSource() }),
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .clickable(
+                            onClick = { placeSuggestionsExpanded = false },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Card(
-                        modifier = Modifier.width(400.dp).heightIn(max = 500.dp).padding(16.dp),
+                        modifier = Modifier
+                            .width(400.dp)
+                            .heightIn(max = 500.dp)
+                            .padding(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.Black),
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(2.dp, Color(0xFFFF6F00))
@@ -1243,7 +1310,10 @@ fun ChatScreenContent(
                         LazyColumn(Modifier.padding(16.dp)) {
                             if (isLoadingPlaces) {
                                 item {
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
                                         CircularProgressIndicator(color = Color(0xFFFF6F00))
                                     }
                                 }
@@ -1252,7 +1322,9 @@ fun ChatScreenContent(
                                     if (places.isNotEmpty()) {
                                         items(places.toMutableList()) { place ->
                                             Row(
-                                                Modifier.fillMaxWidth().padding(top = 8.dp),
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 8.dp),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
@@ -2034,7 +2106,15 @@ fun getChatId(userId1: String, userId2: String): String = if (userId1 < userId2)
 
 fun postNotification(notificationsRef: DatabaseReference, toUserId: String, fromUserId: String, message: String) {
     val notificationId = notificationsRef.child(toUserId).push().key ?: return
-    val noti = Notification(id = notificationId, type = "chat_message", senderId = fromUserId, senderUsername = "", message = message, timestamp = System.currentTimeMillis(), isRead = "false")
+    val noti = Notification(
+        id = notificationId,
+        type = "chat_message",
+        senderId = fromUserId,
+        senderUsername = "",
+        message = message,
+        timestamp = System.currentTimeMillis(),
+        isRead = "false"
+    )
     notificationsRef.child(toUserId).child(notificationId).setValue(noti)
         .addOnSuccessListener { Log.d("Notifications", "Notification posted: $message") }
         .addOnFailureListener { Log.e("Notifications", "Failed to post notification: ${it.message}") }
@@ -2367,10 +2447,10 @@ fun SelectedMediaFullScreen(
                     )
 
                 "video" -> {                             /* use ExoPlayer so it *always* plays */
-                            CachedFullscreenVideoPlayer(
-                                    uri       = uri,
-                                    onDismiss = onDismiss
-                                        )
+                    CachedFullscreenVideoPlayer(
+                        uri       = uri,
+                        onDismiss = onDismiss
+                    )
                 }
             }
 
@@ -2539,4 +2619,3 @@ fun buildEditIntent(uri: Uri, mediaType: String): Intent {
         )
     }
 }
-
