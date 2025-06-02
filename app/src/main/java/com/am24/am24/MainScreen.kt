@@ -133,7 +133,14 @@ fun TopNavBar(
     val ctx = LocalContext.current
     val activity = ctx as? ComponentActivity
     var appLang by rememberSaveable { mutableStateOf(LocaleUtils.getSavedLang(ctx)) }
-    val languages = listOf("English" to "en", "हिन्दी" to "hi", "বাংলা" to "bn")
+    val languages = listOf(
+        "English" to "en",
+        "हिन्दी" to "hi",
+        "বাংলা" to "bn",
+        "தமிழ்" to "ta",
+        "ಕನ್ನಡ" to "kn",
+        "తెలుగు" to "te"
+    )
 
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {

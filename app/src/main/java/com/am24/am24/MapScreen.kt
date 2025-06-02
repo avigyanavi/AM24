@@ -150,11 +150,30 @@ fun MapScreen(
 
     /* quick tags */
     val quickTags = listOf(
+        TagItem(ctx.getString(R.string.tag_budget_hotels), "budget_hotels"),
+        TagItem(ctx.getString(R.string.tag_hotels), "hotels"),
         TagItem(ctx.getString(R.string.tag_cafes), "cafes"),
         TagItem(ctx.getString(R.string.tag_bars), "bars"),
+        TagItem(ctx.getString(R.string.tag_malls), "malls"),
+        TagItem(ctx.getString(R.string.tag_parks), "parks"),
+        TagItem(ctx.getString(R.string.tag_cinemas), "cinemas"),
         TagItem(ctx.getString(R.string.tag_restaurants), "restaurants"),
-        TagItem(ctx.getString(R.string.tag_hotels), "hotels"),
-        TagItem(ctx.getString(R.string.tag_oyo), "OYO")
+        TagItem(ctx.getString(R.string.tag_street_food), "street_food"),
+        TagItem(ctx.getString(R.string.tag_clubs), "clubs"),
+        TagItem(ctx.getString(R.string.tag_bookstores), "bookstores"),
+        TagItem(ctx.getString(R.string.tag_gaming_centers), "gaming_centers"),
+        TagItem(ctx.getString(R.string.tag_amusement_parks), "amusement_parks"),
+        TagItem(ctx.getString(R.string.tag_beaches), "beaches"),
+        TagItem(ctx.getString(R.string.tag_forts), "forts"),
+        TagItem(ctx.getString(R.string.tag_temples), "temples"),
+        TagItem(ctx.getString(R.string.tag_mosques), "mosques"),
+        TagItem(ctx.getString(R.string.tag_monuments), "monuments"),
+        TagItem(ctx.getString(R.string.tag_markets), "markets"),
+        TagItem(ctx.getString(R.string.tag_art_galleries), "art_galleries"),
+        TagItem(ctx.getString(R.string.tag_lakes), "lakes"),
+        TagItem(ctx.getString(R.string.tag_sports_centers), "sports_centers"),
+        TagItem(ctx.getString(R.string.tag_night_markets), "night_markets"),
+        TagItem(ctx.getString(R.string.tag_food_courts), "food_courts")
     )
 
     /* fetch user location */

@@ -2628,296 +2628,1019 @@ fun LifestyleSection(profile: Profile) {
     }
 }
 
-/** Interests (View-Only) */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun InterestsSectionInProfile(profile: Profile) {
     val interestNameToResource = mapOf(
         // Global Interests
         "Music" to R.string.interest_music,
-        "সঙ্গীত" to R.string.interest_music, // Bengali
-        "संगीत" to R.string.interest_music, // Hindi
+        "সঙ্গীত" to R.string.interest_music,           // Bengali
+        "संगीत" to R.string.interest_music,           // Hindi
+        "இசை" to R.string.interest_music,             // Tamil
+        "ಸಂಗೀತ" to R.string.interest_music,           // Kannada
+        "సంగీతం" to R.string.interest_music,          // Telugu
+
         "Movies" to R.string.interest_movies,
-        "সিনেমা" to R.string.interest_movies, // Bengali
-        "फ़िल्में" to R.string.interest_movies, // Hindi
+        "সিনেমা" to R.string.interest_movies,          // Bengali
+        "फ़िल्में" to R.string.interest_movies,        // Hindi
+        "சினிமா" to R.string.interest_movies,         // Tamil
+        "ಸಿನೆಮಾ" to R.string.interest_movies,         // Kannada
+        "సినిమాలు" to R.string.interest_movies,       // Telugu
+
         "Sports" to R.string.interest_sports,
-        "খেলাধুলা" to R.string.interest_sports, // Bengali
-        "खेल" to R.string.interest_sports, // Hindi
+        "খেলাধুলা" to R.string.interest_sports,         // Bengali
+        "खेल" to R.string.interest_sports,              // Hindi
+        "விளையாட்டு" to R.string.interest_sports,     // Tamil
+        "ಕ್ರೀಡೆ" to R.string.interest_sports,           // Kannada
+        "క్రీడలు" to R.string.interest_sports,          // Telugu
+
         "Books" to R.string.interest_books,
-        "বই" to R.string.interest_books, // Bengali
-        "किताबें" to R.string.interest_books, // Hindi
+        "বই" to R.string.interest_books,               // Bengali
+        "किताबें" to R.string.interest_books,           // Hindi
+        "புத்தகங்கள்" to R.string.interest_books,       // Tamil
+        "ಪುಸ್ತಕಗಳು" to R.string.interest_books,        // Kannada
+        "పుస్తకాలు" to R.string.interest_books,         // Telugu
+
         "Travel" to R.string.interest_travel,
-        "ভ্রমণ" to R.string.interest_travel, // Bengali
-        "यात्रा" to R.string.interest_travel, // Hindi
+        "ভ্রমণ" to R.string.interest_travel,           // Bengali
+        "यात्रा" to R.string.interest_travel,           // Hindi
+        "பயணம்" to R.string.interest_travel,           // Tamil
+        "ಪ್ರಯಾಣ" to R.string.interest_travel,          // Kannada
+        "ప్రయాణం" to R.string.interest_travel,         // Telugu
+
         "Fitness" to R.string.interest_fitness,
-        "ফিটনেস" to R.string.interest_fitness, // Bengali
-        "फ़िटनेस" to R.string.interest_fitness, // Hindi
+        "ফিটনেস" to R.string.interest_fitness,          // Bengali
+        "फ़िटनेस" to R.string.interest_fitness,         // Hindi
+        "உடற்பயிற்சி" to R.string.interest_fitness,     // Tamil
+        "ಫಿಟ್ನೆಸ್" to R.string.interest_fitness,         // Kannada
+        "ఫిట్నెస్" to R.string.interest_fitness,        // Telugu
+
         "Art" to R.string.interest_art,
-        "শিল্প" to R.string.interest_art, // Bengali
-        "कला" to R.string.interest_art, // Hindi
+        "শিল্প" to R.string.interest_art,               // Bengali
+        "कला" to R.string.interest_art,                 // Hindi
+        "கலை" to R.string.interest_art,                 // Tamil
+        "ಕಲೆ" to R.string.interest_art,                  // Kannada
+        "కళ" to R.string.interest_art,                   // Telugu
+
         "Gaming" to R.string.interest_gaming,
-        "গেমিং" to R.string.interest_gaming, // Bengali
-        "गेमिंग" to R.string.interest_gaming, // Hindi
+        "গেমিং" to R.string.interest_gaming,             // Bengali
+        "गेमिंग" to R.string.interest_gaming,            // Hindi
+        "வீடியோ கேமிங்" to R.string.interest_gaming,     // Tamil
+        "ಗೇಮಿಂಗ್" to R.string.interest_gaming,           // Kannada
+        "వీడియో గేమింగ్" to R.string.interest_gaming,    // Telugu
+
         "Photography" to R.string.interest_photography,
-        "ফটোগ্রাফি" to R.string.interest_photography, // Bengali
-        "फ़ोटोग्राफी" to R.string.interest_photography, // Hindi
+        "ফটোগ্রাফি" to R.string.interest_photography,    // Bengali
+        "फ़ोटोग्राफी" to R.string.interest_photography,  // Hindi
+        "புகைப்படக்கலை" to R.string.interest_photography, // Tamil
+        "ಛಾಯಾಗ್ರಹಣ" to R.string.interest_photography,     // Kannada
+        "ఫోటోగ్రఫీ" to R.string.interest_photography,    // Telugu
+
         "Cooking" to R.string.interest_cooking,
-        "রান্না" to R.string.interest_cooking, // Bengali
-        "खाना बनाना" to R.string.interest_cooking, // Hindi
+        "রান্না" to R.string.interest_cooking,            // Bengali
+        "खाना बनाना" to R.string.interest_cooking,       // Hindi
+        "சமைத்தல்" to R.string.interest_cooking,          // Tamil
+        "ಅಡಿಗೆ" to R.string.interest_cooking,             // Kannada
+        "వండటం" to R.string.interest_cooking,             // Telugu
+
         "Dancing" to R.string.interest_dancing,
-        "নাচ" to R.string.interest_dancing, // Bengali
-        "नृत्य" to R.string.interest_dancing, // Hindi
+        "নাচ" to R.string.interest_dancing,               // Bengali
+        "नृत्य" to R.string.interest_dancing,             // Hindi
+        "நிறைவடைதல்" to R.string.interest_dancing,       // Tamil
+        "ನೃತ್ಯ" to R.string.interest_dancing,              // Kannada
+        "నృత్యం" to R.string.interest_dancing,            // Telugu
+
         "Gardening" to R.string.interest_gardening,
-        "বাগান করা" to R.string.interest_gardening, // Bengali
-        "बागवानी" to R.string.interest_gardening, // Hindi
+        "বাগান করা" to R.string.interest_gardening,       // Bengali
+        "बागवानी" to R.string.interest_gardening,         // Hindi
+        "தோட்டக்கலை" to R.string.interest_gardening,      // Tamil
+        "ತೋಟಗಾರಿಕೆ" to R.string.interest_gardening,       // Kannada
+        "తోటపనులు" to R.string.interest_gardening,        // Telugu
+
         "Technology" to R.string.interest_technology,
-        "প্রযুক্তি" to R.string.interest_technology, // Bengali
-        "प्रौद्योगिकी" to R.string.interest_technology, // Hindi
+        "প্রযুক্তি" to R.string.interest_technology,        // Bengali
+        "प्रौद्योगिकी" to R.string.interest_technology,     // Hindi
+        "தொழில்நுட்பம்" to R.string.interest_technology,    // Tamil
+        "ತಂತ್ರಜ್ಞಾನ" to R.string.interest_technology,      // Kannada
+        "సాంకేతికత" to R.string.interest_technology,      // Telugu
+
         "Fashion" to R.string.interest_fashion,
-        "ফ্যাশন" to R.string.interest_fashion, // Bengali
-        "फ़ैशन" to R.string.interest_fashion, // Hindi
+        "ফ্যাশন" to R.string.interest_fashion,              // Bengali
+        "फ़ैशन" to R.string.interest_fashion,               // Hindi
+        "வசுதேவம்" to R.string.interest_fashion,            // Tamil
+        "ಫ್ಯಾಷನ್" to R.string.interest_fashion,              // Kannada
+        "ఫ్యాషన్" to R.string.interest_fashion,             // Telugu
+
         "Volunteering" to R.string.interest_volunteering,
-        "স্বেচ্ছাসেবা" to R.string.interest_volunteering, // Bengali
-        "स्वयंसेवा" to R.string.interest_volunteering, // Hindi
+        "স্বেচ্ছাসেবা" to R.string.interest_volunteering,   // Bengali
+        "स्वयंसेवा" to R.string.interest_volunteering,       // Hindi
+        "தன்னார்வ சேவை" to R.string.interest_volunteering,   // Tamil
+        "ಸ್ವಯಂಸೇವೆ" to R.string.interest_volunteering,        // Kannada
+        "స్వచ్ఛంద సేవ" to R.string.interest_volunteering,     // Telugu
+
         "Pets & Animals" to R.string.interest_pets,
-        "পোষ্য" to R.string.interest_pets, // Bengali
-        "पालतू जानवर" to R.string.interest_pets, // Hindi
+        "পোষ্য" to R.string.interest_pets,                   // Bengali
+        "पालतू जानवर" to R.string.interest_pets,             // Hindi
+        "விலங்குகள்" to R.string.interest_pets,               // Tamil
+        "ಜಾನುವಾರುಗಳು" to R.string.interest_pets,             // Kannada
+        "పిల్లులు & జంతువులు" to R.string.interest_pets,      // Telugu
+
         "Food" to R.string.interest_food,
-        "খাবার" to R.string.interest_food, // Bengali
-        "भोजन" to R.string.interest_food, // Hindi
+        "খাবার" to R.string.interest_food,                     // Bengali
+        "भोजन" to R.string.interest_food,                     // Hindi
+        "உணவு" to R.string.interest_food,                      // Tamil
+        "ಆಹಾರ" to R.string.interest_food,                      // Kannada
+        "ఆహారం" to R.string.interest_food,                      // Telugu
+
         "Nature" to R.string.interest_nature,
-        "প্রকৃতি" to R.string.interest_nature, // Bengali
-        "प्रकृति" to R.string.interest_nature, // Hindi
+        "প্রকৃতি" to R.string.interest_nature,                 // Bengali
+        "प्रकृति" to R.string.interest_nature,                  // Hindi
+        "இயற்கை" to R.string.interest_nature,                   // Tamil
+        "ಪ್ರಕೃತಿ" to R.string.interest_nature,                  // Kannada
+        "ప్రకృతి" to R.string.interest_nature,                  // Telugu
+
         // Social & Community
         "Charity work" to R.string.interest_charity,
-        "দান কার্যক্রম" to R.string.interest_charity,
-        "चैरिटी कार्य" to R.string.interest_charity,
+        "দান কার্যক্রম" to R.string.interest_charity,         // Bengali
+        "चैरिटी कार्य" to R.string.interest_charity,           // Hindi
+        "நன்னை செயல்" to R.string.interest_charity,            // Tamil
+        "ಧಾರ್ಮಿಕ ಕೆಲಸ" to R.string.interest_charity,           // Kannada
+        "చారిటీ పనులు" to R.string.interest_charity,           // Telugu
 
         "Community organizing" to R.string.interest_community,
-        "কমিউনিটি সংগঠন" to R.string.interest_community,
-        "समुदाय आयोजन" to R.string.interest_community,
+        "কমিউনিটি সংগঠন" to R.string.interest_community,      // Bengali
+        "समुदाय आयोजन" to R.string.interest_community,         // Hindi
+        "சமூகம் அமைத்தல்" to R.string.interest_community,       // Tamil
+        "ಸಮುದಾಯ ಸಂಘಟನೆ" to R.string.interest_community,     // Kannada
+        "క‌మ్యూనిటీ నిర్వాహనం" to R.string.interest_community,  // Telugu
 
         "Networking" to R.string.interest_networking,
-        "নেটওয়ার্কিং" to R.string.interest_networking,
-        "नेटवर्किंग" to R.string.interest_networking,
+        "নেটওয়ার্কিং" to R.string.interest_networking,        // Bengali
+        "नेटवर्किंग" to R.string.interest_networking,           // Hindi
+        "பிணையம்" to R.string.interest_networking,              // Tamil
+        "ನೆಟ್ವರ್ಕಿಂಗ್" to R.string.interest_networking,         // Kannada
+        "నెట్‌వర్కింగ్" to R.string.interest_networking,        // Telugu
 
         "Public speaking" to R.string.interest_public_speaking,
-        "পাবলিক স্পিকিং" to R.string.interest_public_speaking,
-        "पब्लिक स्पीकिंग" to R.string.interest_public_speaking,
+        "পাবলিক স্পিকিং" to R.string.interest_public_speaking, // Bengali
+        "पब्लिक स्पीकिंग" to R.string.interest_public_speaking, // Hindi
+        "பொது பேச்சு" to R.string.interest_public_speaking,      // Tamil
+        "ಸಾರ್ವಜನಿಕ ಭಾಷಣ" to R.string.interest_public_speaking, // Kannada
+        "పబ్లిక్ స్పీకింగ్" to R.string.interest_public_speaking, // Telugu
 
         "Writing" to R.string.interest_writing,
-        "লেখা" to R.string.interest_writing,
-        "लेखन" to R.string.interest_writing,
+        "লেখা" to R.string.interest_writing,                    // Bengali
+        "लेखन" to R.string.interest_writing,                     // Hindi
+        "எழுத்து" to R.string.interest_writing,                   // Tamil
+        "ಲೇಖನ" to R.string.interest_writing,                      // Kannada
+        "రాత" to R.string.interest_writing,                       // Telugu
 
         "Blogging" to R.string.interest_blogging,
-        "ব্লগিং" to R.string.interest_blogging,
-        "ब्लॉगिंग" to R.string.interest_blogging,
+        "ব্লগিং" to R.string.interest_blogging,                  // Bengali
+        "ब्लॉगिंग" to R.string.interest_blogging,                // Hindi
+        "வலைப்பதிவு" to R.string.interest_blogging,             // Tamil
+        "ಬ್ಲಾಗಿಂಗ್" to R.string.interest_blogging,               // Kannada
+        "బ్లాగింగ్" to R.string.interest_blogging,               // Telugu
 
         "Podcasting" to R.string.interest_podcasting,
-        "পডকাস্টিং" to R.string.interest_podcasting,
-        "पॉडकास्टिंग" to R.string.interest_podcasting,
+        "পডকাস্টিং" to R.string.interest_podcasting,             // Bengali
+        "पॉडकास्टिंग" to R.string.interest_podcasting,           // Hindi
+        "பாட்காஸ்டிங்" to R.string.interest_podcasting,           // Tamil
+        "ಪಾಡ್‌ಕಾಸ್ಟಿಂಗ್" to R.string.interest_podcasting,        // Kannada
+        "పోడ్కాస్టింగ్" to R.string.interest_podcasting,         // Telugu
 
         "Social media" to R.string.interest_social_media,
-        "সোশ্যাল মিডিয়া" to R.string.interest_social_media,
-        "सोशल मीडिया" to R.string.interest_social_media,
+        "সোশ্যাল মিডিয়া" to R.string.interest_social_media,     // Bengali
+        "सोशल मीडिया" to R.string.interest_social_media,         // Hindi
+        "சமூக ஊடகம்" to R.string.interest_social_media,        // Tamil
+        "ಸೋಷಿಯಲ್ ಮೀಡಿಯಾ" to R.string.interest_social_media,     // Kannada
+        "సోషల్ మీడియా" to R.string.interest_social_media,      // Telugu
 
         "Online communities" to R.string.interest_online_communities,
-        "অনলাইন কমিউনিটি" to R.string.interest_online_communities,
-        "ऑनलाइन समुदाय" to R.string.interest_online_communities,
+        "অনলাইন কমিউনিটি" to R.string.interest_online_communities,    // Bengali
+        "ऑनलाइन समुदाय" to R.string.interest_online_communities,       // Hindi
+        "ஆன்லைன் சமூகங்கள்" to R.string.interest_online_communities,   // Tamil
+        "ಆನ್‌ಲೈನ್ ಸಮುದಾಯಗಳು" to R.string.interest_online_communities,  // Kannada
+        "ఆన్లైన్ కమ్యూనిటీస్" to R.string.interest_online_communities,  // Telugu
 
-// Adventurous & Thrilling
+        // Adventurous & Thrilling
         "Skydiving" to R.string.interest_skydiving,
-        "স্কাইডাইভিং" to R.string.interest_skydiving,
-        "स्काईडाइविंग" to R.string.interest_skydiving,
+        "স্কাইডাইভিং" to R.string.interest_skydiving,              // Bengali
+        "स्काईडाइविंग" to R.string.interest_skydiving,             // Hindi
+        "வான்வீழ்ச்சி" to R.string.interest_skydiving,               // Tamil
+        "ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,             // Kannada
+        "స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,           // Telugu
 
         "Scuba diving" to R.string.interest_scuba_diving,
-        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,
-        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,
+        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,           // Bengali
+        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,          // Hindi
+        "கடல் மூழ்குதல்" to R.string.interest_scuba_diving,           // Tamil
+        "ಸ್ಕೂಬಾ ಡೈವಿಂಗ್" to R.string.interest_scuba_diving,         // Kannada
+        "స్కూబా డైవింగ్" to R.string.interest_scuba_diving,         // Telugu
 
         "Rock climbing" to R.string.interest_rock_climbing,
-        "রক ক্লাইমিং" to R.string.interest_rock_climbing,
-        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,
+        "রক ক্লাইমিং" to R.string.interest_rock_climbing,            // Bengali
+        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,         // Hindi
+        "கல்லூரி ஏறுதல்" to R.string.interest_rock_climbing,         // Tamil
+        "ರಾಕ್ ಕ್ಲೈಂಬಿಂಗ್" to R.string.interest_rock_climbing,       // Kannada
+        "రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,         // Telugu
 
         "Surfing" to R.string.interest_surfing,
-        "সার্ফিং" to R.string.interest_surfing,
-        "सर्फिंग" to R.string.interest_surfing,
+        "সার্ফিং" to R.string.interest_surfing,                       // Bengali
+        "सर्फिंग" to R.string.interest_surfing,                       // Hindi
+        "அலைநோக்கம்" to R.string.interest_surfing,                    // Tamil
+        "ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                     // Kannada
+        "సర్ఫింగ్" to R.string.interest_surfing,                      // Telugu
 
         "Skiing" to R.string.interest_skiing,
-        "স্কিইং" to R.string.interest_skiing,
-        "स्कीयिंग" to R.string.interest_skiing,
+        "স্কিইং" to R.string.interest_skiing,                         // Bengali
+        "स्कीयिंग" to R.string.interest_skiing,                        // Hindi
+        "அறிவியல்" to R.string.interest_skiing,                        // Tamil
+        "ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                     // Kannada
+        "స్కీయింగ్" to R.string.interest_skiing,                      // Telugu
 
         "Snowboarding" to R.string.interest_snowboarding,
-        "স্নোবোর্ডিং" to R.string.interest_snowboarding,
-        "स्नोबोर्डिंग" to R.string.interest_snowboarding,
+        "স্নোবোর্ডিং" to R.string.interest_snowboarding,               // Bengali
+        "स्नोबोर्डिंग" to R.string.interest_snowboarding,              // Hindi
+        "பனிச்சறுக்கல்" to R.string.interest_snowboarding,             // Tamil
+        "ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,            // Kannada
+        "స్నోబోర్డింగ్" to R.string.interest_snowboarding,              // Telugu
 
         "Mountain biking" to R.string.interest_mountain_biking,
-        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,
-        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,
+        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,         // Bengali
+        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,           // Hindi
+        "மலை சைக்கிள் ஓட்டுதல்" to R.string.interest_mountain_biking,       // Tamil
+        "ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,       // Kannada
+        "మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,         // Telugu
 
         "Motorcycling" to R.string.interest_motorcycling,
-        "মোটরসাইক্লিং" to R.string.interest_motorcycling,
-        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,
+        "মোটরসাইক্লিং" to R.string.interest_motorcycling,                  // Bengali
+        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,                // Hindi
+        "மோட்டார் சைக்கிள் ஓட்டுதல்" to R.string.interest_motorcycling,       // Tamil
+        "ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,              // Kannada
+        "మోటార్సైక్లింగ్" to R.string.interest_motorcycling,              // Telugu
 
         "Car racing" to R.string.interest_car_racing,
-        "কার রেসিং" to R.string.interest_car_racing,
-        "कार रेसिंग" to R.string.interest_car_racing,
+        "কার রেসিং" to R.string.interest_car_racing,                       // Bengali
+        "कार रेसिंग" to R.string.interest_car_racing,                      // Hindi
+        "கார் ஓட்டப்போட்டி" to R.string.interest_car_racing,                  // Tamil
+        "ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                   // Kannada
+        "కార్ రేసింగ్" to R.string.interest_car_racing,                    // Telugu
 
         "Extreme sports" to R.string.interest_extreme_sports,
-        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,
-        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,
+        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,            // Bengali
+        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,            // Hindi
+        "கூடுதல் விளையாட்டுகள்" to R.string.interest_extreme_sports,         // Tamil
+        "ಎಕ್ಸ್ಟ್ರೀಮ್ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,             // Kannada
+        "ఎక్స్‌ట్రీమ్ స్పోర్ట్స్" to R.string.interest_extreme_sports,         // Telugu
 
-// Relaxation & Leisure
+        // Relaxation & Leisure
         "Puzzles" to R.string.interest_puzzles,
-        "ধাঁধা" to R.string.interest_puzzles,
-        "पहेलियाँ" to R.string.interest_puzzles,
+        "ধাঁধা" to R.string.interest_puzzles,                               // Bengali
+        "पहेलियाँ" to R.string.interest_puzzles,                            // Hindi
+        "முயிர்ப்போஷிட்சி" to R.string.interest_puzzles,                      // Tamil
+        "ಪ್ರಶ್ನೆಗಳು" to R.string.interest_puzzles,                           // Kannada
+        "పజిల్స్" to R.string.interest_puzzles,                              // Telugu
 
         "Board games" to R.string.interest_board_games,
-        "বোর্ড গেমস" to R.string.interest_board_games,
-        "बोर्ड गेम्स" to R.string.interest_board_games,
+        "বোর্ড গেমস" to R.string.interest_board_games,                       // Bengali
+        "बोर्ड गेम्स" to R.string.interest_board_games,                       // Hindi
+        "பிள்ளைகள் விளையாட்டு" to R.string.interest_board_games,              // Tamil
+        "ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                     // Kannada
+        "బోర్డ్ గేమ్స్" to R.string.interest_board_games,                     // Telugu
 
         "Video games" to R.string.interest_video_games,
-        "ভিডিও গেমস" to R.string.interest_video_games,
-        "वीडियो गेम्स" to R.string.interest_video_games,
+        "ভিডিও গেমস" to R.string.interest_video_games,                       // Bengali
+        "वीडियो गेम्स" to R.string.interest_video_games,                      // Hindi
+        "வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,              // Tamil
+        "ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                     // Kannada
+        "వీడియో గేమ్స్" to R.string.interest_video_games,                     // Telugu
 
         "Watching TV" to R.string.interest_watching_tv,
-        "টিভি দেখা" to R.string.interest_watching_tv,
-        "टीवी देखना" to R.string.interest_watching_tv,
+        "টিভি দেখা" to R.string.interest_watching_tv,                         // Bengali
+        "टीवी देखना" to R.string.interest_watching_tv,                        // Hindi
+        "தொலைக்காட்சி பார்ப்பது" to R.string.interest_watching_tv,             // Tamil
+        "ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                       // Kannada
+        "టీవీ వీక్షణ" to R.string.interest_watching_tv,                       // Telugu
 
         "Napping" to R.string.interest_napping,
-        "ন্যাপিং" to R.string.interest_napping,
-        "नैपिंग" to R.string.interest_napping,
+        "ন্যাপিং" to R.string.interest_napping,                                // Bengali
+        "नैपिंग" to R.string.interest_napping,                                // Hindi
+        "கண்மூசப்பொழுது" to R.string.interest_napping,                        // Tamil
+        "ನಾಪಿಂಗ್" to R.string.interest_napping,                               // Kannada
+        "నాపింగ్" to R.string.interest_napping,                               // Telugu
 
         "Spa days" to R.string.interest_spa_days,
-        "স্পা ডে" to R.string.interest_spa_days,
-        "स्पा दिन" to R.string.interest_spa_days,
+        "স্পা ডে" to R.string.interest_spa_days,                               // Bengali
+        "स्पा दिन" to R.string.interest_spa_days,                              // Hindi
+        "ஸ்பா நாட்கள்" to R.string.interest_spa_days,                          // Tamil
+        "ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                           // Kannada
+        "స్పా రోజులు" to R.string.interest_spa_days,                           // Telugu
 
         "Beach days" to R.string.interest_beach_days,
-        "বিচ ডে" to R.string.interest_beach_days,
-        "बीच डे" to R.string.interest_beach_days,
+        "বিচ ডে" to R.string.interest_beach_days,                              // Bengali
+        "बीच डे" to R.string.interest_beach_days,                               // Hindi
+        "கடல் நாட்கள்" to R.string.interest_beach_days,                          // Tamil
+        "ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                         // Kannada
+        "బీచ్ రోజులు" to R.string.interest_beach_days,                          // Telugu
 
         "Picnics" to R.string.interest_picnics,
-        "পিকনিক" to R.string.interest_picnics,
-        "पिकनिक" to R.string.interest_picnics,
+        "পিকনিক" to R.string.interest_picnics,                                 // Bengali
+        "पिकनिक" to R.string.interest_picnics,                                 // Hindi
+        "பட்ஜெட் உணவு" to R.string.interest_picnics,                            // Tamil
+        "ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                 // Kannada
+        "పిక్నిక్" to R.string.interest_picnics,                                 // Telugu
 
-// Tech & Intellectual
+        // Tech & Intellectual
         "Coding" to R.string.interest_coding,
-        "কোডিং" to R.string.interest_coding,
-        "कोडिंग" to R.string.interest_coding,
+        "কোডিং" to R.string.interest_coding,                                   // Bengali
+        "कोडिंग" to R.string.interest_coding,                                   // Hindi
+        "குறியாக்கம்" to R.string.interest_coding,                               // Tamil
+        "ಕೋಡಿಂಗ್" to R.string.interest_coding,                                   // Kannada
+        "కోడింగ్" to R.string.interest_coding,                                   // Telugu
 
         "Robotics" to R.string.interest_robotics,
-        "রোবোটিক্স" to R.string.interest_robotics,
-        "रोबोटिक्स" to R.string.interest_robotics,
+        "রোবোটিক্স" to R.string.interest_robotics,                             // Bengali
+        "रोबोटिक्स" to R.string.interest_robotics,                             // Hindi
+        "இயந்திரவியல்" to R.string.interest_robotics,                          // Tamil
+        "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                             // Kannada
+        "రోబోటిక్స్" to R.string.interest_robotics,                             // Telugu
 
         "Space exploration" to R.string.interest_space,
-        "মহাকাশ অন্বেষণ" to R.string.interest_space,
-        "अंतरिक्ष अन्वेषण" to R.string.interest_space,
+        "মহাকাশ অন্বেষণ" to R.string.interest_space,                            // Bengali
+        "अंतरिक्ष अन्वेषण" to R.string.interest_space,                           // Hindi
+        "வான் ஆய்வு" to R.string.interest_space,                                  // Tamil
+        "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,                         // Kannada
+        "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                           // Telugu
 
         "Environmentalism" to R.string.interest_environmentalism,
-        "পরিবেশবাদ" to R.string.interest_environmentalism,
-        "पर्यावरणवाद" to R.string.interest_environmentalism,
+        "পরিবেশবাদ" to R.string.interest_environmentalism,                      // Bengali
+        "पर्यावरणवाद" to R.string.interest_environmentalism,                     // Hindi
+        "சுற்றுப்புறச் சங்கம்" to R.string.interest_environmentalism,               // Tamil
+        "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,                       // Kannada
+        "పర్యావరణవాదం" to R.string.interest_environmentalism,                     // Telugu
 
-// Food & Drink
+        // Food & Drink
         "Baking" to R.string.interest_baking,
-        "বেকিং" to R.string.interest_baking,
-        "बैकिंग" to R.string.interest_baking,
+        "বেকিং" to R.string.interest_baking,                                     // Bengali
+        "बैकिंग" to R.string.interest_baking,                                    // Hindi
+        "அடக்கு" to R.string.interest_baking,                                      // Tamil
+        "ബേക്കിംഗ്" to R.string.interest_baking,                                    // Kannada
+        "బేకింగ్" to R.string.interest_baking,                                    // Telugu
 
         "Wine tasting" to R.string.interest_wine_tasting,
-        "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,
-        "वाइन चखना" to R.string.interest_wine_tasting,
+        "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,                       // Bengali
+        "वाइन चखना" to R.string.interest_wine_tasting,                            // Hindi
+        "சாரம் சுவைத்தல்" to R.string.interest_wine_tasting,                         // Tamil
+        "വൈൻ രുചി" to R.string.interest_wine_tasting,                             // Kannada
+        "వైన్ రుచిచూడడం" to R.string.interest_wine_tasting,                         // Telugu
 
         "Craft beer" to R.string.interest_craft_beer,
-        "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,
-        "क्राफ्ट बियर" to R.string.interest_craft_beer,
+        "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,                             // Bengali
+        "क्राफ्ट बियर" to R.string.interest_craft_beer,                             // Hindi
+        "கைவினை மது" to R.string.interest_craft_beer,                             // Tamil
+        "ക്രാഫ്റ്റ് ബീർ" to R.string.interest_craft_beer,                              // Kannada
+        "క్రాఫ్ట్ బీర్" to R.string.interest_craft_beer,                             // Telugu
 
         "Coffee" to R.string.interest_coffee,
-        "কফি" to R.string.interest_coffee,
-        "कॉफ़ी" to R.string.interest_coffee,
+        "কফি" to R.string.interest_coffee,                                           // Bengali
+        "कॉफ़ी" to R.string.interest_coffee,                                          // Hindi
+        "காபி" to R.string.interest_coffee,                                           // Tamil
+        "காபி" to R.string.interest_coffee,                                           // Kannada
+        "కాఫీ" to R.string.interest_coffee,                                           // Telugu
 
-// Wellness & Spiritual
+        // Wellness & Spiritual
         "Yoga" to R.string.interest_yoga,
-        "যোগ" to R.string.interest_yoga,
-        "योग" to R.string.interest_yoga,
+        "যোগ" to R.string.interest_yoga,                                             // Bengali
+        "योग" to R.string.interest_yoga,                                             // Hindi
+        "யோகா" to R.string.interest_yoga,                                            // Tamil
+        "ಯೋಗ" to R.string.interest_yoga,                                             // Kannada
+        "యోగ" to R.string.interest_yoga,                                             // Telugu
 
         "Meditation" to R.string.interest_meditation,
-        "ধ্যান" to R.string.interest_meditation,
-        "ध्यान" to R.string.interest_meditation,
+        "ধ্যান" to R.string.interest_meditation,                                      // Bengali
+        "ध्यान" to R.string.interest_meditation,                                      // Hindi
+        "தியானம்" to R.string.interest_meditation,                                   // Tamil
+        "ಧ್ಯಾನ" to R.string.interest_meditation,                                     // Kannada
+        "ధ్యానం" to R.string.interest_meditation,                                    // Telugu
 
         "Astrology" to R.string.interest_astrology,
-        "জ্যোতিষ" to R.string.interest_astrology,
-        "ज्योतिष" to R.string.interest_astrology,
+        "জ্যোতিষ" to R.string.interest_astrology,                                     // Bengali
+        "ज्योतिष" to R.string.interest_astrology,                                      // Hindi
+        "ஜோதிடம்" to R.string.interest_astrology,                                    // Tamil
+        "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,                                    // Kannada
+        "జ్యోతిష్యం" to R.string.interest_astrology,                                   // Telugu
 
         "Romance" to R.string.interest_romance,
-        "রোমান্স" to R.string.interest_romance, // Bengali
-        "रोमांस" to R.string.interest_romance, // Hindi
+        "রোমান্স" to R.string.interest_romance,                                        // Bengali
+        "रोमांस" to R.string.interest_romance,                                         // Hindi
+        "காதல்" to R.string.interest_romance,                                           // Tamil
+        "ರೊಮಾಂಸ್" to R.string.interest_romance,                                        // Kannada
+        "రోమాన్స్" to R.string.interest_romance,                                         // Telugu
 
         "Crystals" to R.string.interest_crystals,
-        "ক্রিস্টালস" to R.string.interest_crystals,
-        "क्रिस्टल" to R.string.interest_crystals,
+        "ক্রিস্টালস" to R.string.interest_crystals,                                     // Bengali
+        "क्रिस्टल" to R.string.interest_crystals,                                       // Hindi
+        "கிரிஸ்டல்கள்" to R.string.interest_crystals,                                   // Tamil
+        "ಕ್ರಿಸ್ಟಲ್ಸ್" to R.string.interest_crystals,                                    // Kannada
+        "క్రిస్టల్స్" to R.string.interest_crystals,                                    // Telugu
 
-// Style & DIY
+        // Style & DIY
         "Vintage clothing" to R.string.interest_vintage_clothing,
-        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,
-        "विंटेज कपड़े" to R.string.interest_vintage_clothing,
+        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,                         // Bengali
+        "विंटेज कपड़े" to R.string.interest_vintage_clothing,                           // Hindi
+        "பழமையான ஆடை" to R.string.interest_vintage_clothing,                         // Tamil
+        "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,                          // Kannada
+        "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing,                       // Telugu
 
         "Thrift shopping" to R.string.interest_thrift_shopping,
-        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,
-        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,
+        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,                             // Bengali
+        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,                           // Hindi
+        "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,                         // Tamil
+        "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,                        // Kannada
+        "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,                        // Telugu
 
         "DIY projects" to R.string.interest_diy,
-        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,
-        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,
+        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,                                 // Bengali
+        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,                                 // Hindi
+        "நீங்கள் செய்து கொள்ளும் திட்டங்கள்" to R.string.interest_diy,                    // Tamil
+        "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                                       // Kannada
+        "DIY ప్రాజెక్టులు" to R.string.interest_diy,                                    // Telugu
 
         "Home improvement" to R.string.interest_home_improvement,
-        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,
-        "गृह सुधार" to R.string.interest_home_improvement,
+        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,                           // Bengali
+        "गृह सुधार" to R.string.interest_home_improvement,                             // Hindi
+        "வீட்டுத் திருத்தம்" to R.string.interest_home_improvement,                      // Tamil
+        "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,                           // Kannada
+        "ఇంటిని మెరుగుపరచడం" to R.string.interest_home_improvement,                   // Telugu
 
         "Interior design" to R.string.interest_interior_design,
-        "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,
-        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,
+        "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,                         // Bengali
+        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,                        // Hindi
+        "உள்ளமைப்பு வடிவமைப்பு" to R.string.interest_interior_design,                    // Tamil
+        "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,                            // Kannada
+        "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,                        // Telugu
 
-// Intellectual
+        // Intellectual & Tech
         "History" to R.string.interest_history,
-        "ইতিহাস" to R.string.interest_history,
-        "इतिहास" to R.string.interest_history,
+        "ইতিহাস" to R.string.interest_history,                                          // Bengali
+        "इतिहास" to R.string.interest_history,                                          // Hindi
+        "வரலாறு" to R.string.interest_history,                                           // Tamil
+        "ಇತಿಹಾಸ" to R.string.interest_history,                                           // Kannada
+        "చరిత్ర" to R.string.interest_history,                                            // Telugu
 
         "Science" to R.string.interest_science,
-        "বিজ্ঞান" to R.string.interest_science,
-        "विज्ञान" to R.string.interest_science,
+        "বিজ্ঞান" to R.string.interest_science,                                         // Bengali
+        "विज्ञान" to R.string.interest_science,                                         // Hindi
+        "அறிவியல்" to R.string.interest_science,                                        // Tamil
+        "ವಿಜ್ಞಾನ" to R.string.interest_science,                                          // Kannada
+        "విజ్ఞానం" to R.string.interest_science,                                        // Telugu
 
         "Philosophy" to R.string.interest_philosophy,
-        "দর্শন শাস্ত্র" to R.string.interest_philosophy,
-        "दर्शनशास्त्र" to R.string.interest_philosophy,
+        "দর্শন শাস্ত্র" to R.string.interest_philosophy,                                  // Bengali
+        "दर्शनशास्त्र" to R.string.interest_philosophy,                                  // Hindi
+        "தத்துவம்" to R.string.interest_philosophy,                                       // Tamil
+        "ದರ್ಶನಶಾಸ್ತ್ರ" to R.string.interest_philosophy,                                   // Kannada
+        "తత్వశాస్త్రం" to R.string.interest_philosophy,                                   // Telugu
 
         "Politics" to R.string.interest_politics,
-        "রাজনীতি" to R.string.interest_politics,
-        "राजनीति" to R.string.interest_politics,
+        "রাজনীতি" to R.string.interest_politics,                                         // Bengali
+        "राजनीति" to R.string.interest_politics,                                         // Hindi
+        "அரசியல்" to R.string.interest_politics,                                         // Tamil
+        "ರಾಜಕೀಯ" to R.string.interest_politics,                                         // Kannada
+        "రాజకీయ శాస్త్రం" to R.string.interest_politics,                                // Telugu
 
         "Economics" to R.string.interest_economics,
-        "অর্থনীতি" to R.string.interest_economics,
-        "अर्थशास्त्र" to R.string.interest_economics,
+        "অর্থনীতি" to R.string.interest_economics,                                       // Bengali
+        "अर्थशास्त्र" to R.string.interest_economics,                                      // Hindi
+        "பொருளாதாரம்" to R.string.interest_economics,                                    // Tamil
+        "ಅರ್ಥಶಾಸ್ತ್ರ" to R.string.interest_economics,                                      // Kannada
+        "ఆర్థిక శాస్త్రం" to R.string.interest_economics,                                  // Telugu
 
-// Outdoor & Nature
+        // Outdoor & Nature
         "Hiking" to R.string.interest_hiking,
-        "হাইকিং" to R.string.interest_hiking,
-        "हাইকिंग" to R.string.interest_hiking,
+        "হাইকিং" to R.string.interest_hiking,                                            // Bengali
+        "हाइकिंग" to R.string.interest_hiking,                                            // Hindi
+        "ஹைகிங்" to R.string.interest_hiking,                                            // Tamil
+        "ಹೈಕಿಂಗ್" to R.string.interest_hiking,                                            // Kannada
+        "హైకింగ్" to R.string.interest_hiking,                                            // Telugu
 
         "Camping" to R.string.interest_camping,
-        "ক্যাম্পিং" to R.string.interest_camping,
-        "कैंपिंग" to R.string.interest_camping,
+        "ক্যাম্পিং" to R.string.interest_camping,                                          // Bengali
+        "कैंपिंग" to R.string.interest_camping,                                           // Hindi
+        "கேம்பிங்" to R.string.interest_camping,                                           // Tamil
+        "ಕ್ಯಾಂಪಿಂಗ್" to R.string.interest_camping,                                         // Kannada
+        "క్యాంపింగ్" to R.string.interest_camping,                                         // Telugu
 
         "Fishing" to R.string.interest_fishing,
-        "মাছ ধরা" to R.string.interest_fishing,
-        "मछली पकड़ना" to R.string.interest_fishing,
+        "মাছ ধরা" to R.string.interest_fishing,                                          // Bengali
+        "मछली पकड़ना" to R.string.interest_fishing,                                      // Hindi
+        "மீன் பிடித்தல்" to R.string.interest_fishing,                                     // Tamil
+        "ಮೀನಿಂಗ್" to R.string.interest_fishing,                                          // Kannada
+        "ఫిషింగ్" to R.string.interest_fishing,                                           // Telugu
 
         "Hunting" to R.string.interest_hunting,
-        "শিকার" to R.string.interest_hunting,
-        "शिकार" to R.string.interest_hunting,
+        "শিকার" to R.string.interest_hunting,                                            // Bengali
+        "शिकार" to R.string.interest_hunting,                                            // Hindi
+        "வேட்டை" to R.string.interest_hunting,                                            // Tamil
+        "ಹಂಟಿಂಗ್" to R.string.interest_hunting,                                          // Kannada
+        "హంటింగ్" to R.string.interest_hunting,                                           // Telugu
 
-// Global Interest
+        // Food & Drink
+        "Baking" to R.string.interest_baking,
+        "বেকিং" to R.string.interest_baking,                                            // Bengali
+        "बैकिंग" to R.string.interest_baking,                                           // Hindi
+        "அடுக்கு" to R.string.interest_baking,                                           // Tamil
+        "ബേക്കിംഗ്" to R.string.interest_baking,                                           // Kannada
+        "బేకింగ్" to R.string.interest_baking,                                           // Telugu
+
+        "Wine tasting" to R.string.interest_wine_tasting,
+        "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,                            // Bengali
+        "वाइन चखना" to R.string.interest_wine_tasting,                                 // Hindi
+        "சாரம் சுவைத்தல்" to R.string.interest_wine_tasting,                              // Tamil
+        "വൈൻ രുചി" to R.string.interest_wine_tasting,                                   // Kannada
+        "వైన్ రుచిచూడడం" to R.string.interest_wine_tasting,                              // Telugu
+
+        "Craft beer" to R.string.interest_craft_beer,
+        "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,                                 // Bengali
+        "क्राफ्ट बियर" to R.string.interest_craft_beer,                                 // Hindi
+        "கைவினை மது" to R.string.interest_craft_beer,                                 // Tamil
+        "ക്രാഫ്റ്റ് ബീർ" to R.string.interest_craft_beer,                                  // Kannada
+        "క్రాఫ్ట్ బీర్" to R.string.interest_craft_beer,                                 // Telugu
+
+        "Coffee" to R.string.interest_coffee,
+        "কফি" to R.string.interest_coffee,                                              // Bengali
+        "कॉफ़ी" to R.string.interest_coffee,                                             // Hindi
+        "காபி" to R.string.interest_coffee,                                             // Tamil
+        "ಕಾಫಿ" to R.string.interest_coffee,                                              // Kannada
+        "కాఫీ" to R.string.interest_coffee,                                              // Telugu
+
+        // Wellness & Spiritual
+        "Yoga" to R.string.interest_yoga,
+        "যোগ" to R.string.interest_yoga,                                                // Bengali
+        "योग" to R.string.interest_yoga,                                                // Hindi
+        "யோகா" to R.string.interest_yoga,                                               // Tamil
+        "ಯೋಗ" to R.string.interest_yoga,                                                // Kannada
+        "యోగ" to R.string.interest_yoga,                                                // Telugu
+
+        "Meditation" to R.string.interest_meditation,
+        "ধ্যান" to R.string.interest_meditation,                                         // Bengali
+        "ध्यान" to R.string.interest_meditation,                                         // Hindi
+        "தியானம்" to R.string.interest_meditation,                                      // Tamil
+        "ಧ್ಯಾನ" to R.string.interest_meditation,                                        // Kannada
+        "ధ్యానం" to R.string.interest_meditation,                                      // Telugu
+
+        "Astrology" to R.string.interest_astrology,
+        "জ্যোতিষ" to R.string.interest_astrology,                                        // Bengali
+        "ज्योतिष" to R.string.interest_astrology,                                         // Hindi
+        "ஜோதிடம்" to R.string.interest_astrology,                                       // Tamil
+        "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,                                       // Kannada
+        "జ్యోతిష్యం" to R.string.interest_astrology,                                      // Telugu
+
+        "Romance" to R.string.interest_romance,
+        "রোমান্স" to R.string.interest_romance,                                          // Bengali
+        "रोमांस" to R.string.interest_romance,                                           // Hindi
+        "காதல்" to R.string.interest_romance,                                             // Tamil
+        "ರೊಮಾಂಸ್" to R.string.interest_romance,                                          // Kannada
+        "రోమాన్స్" to R.string.interest_romance,                                           // Telugu
+
+        "Crystals" to R.string.interest_crystals,
+        "ক্রিস্টালস" to R.string.interest_crystals,                                       // Bengali
+        "क्रिस्टल" to R.string.interest_crystals,                                         // Hindi
+        "கிரிஸ்டல்கள்" to R.string.interest_crystals,                                     // Tamil
+        "ಕ್ರಿಸ್ಟಲ್ಸ್" to R.string.interest_crystals,                                       // Kannada
+        "క్రిస్టల్స్" to R.string.interest_crystals,                                       // Telugu
+
+        // Style & DIY
+        "Vintage clothing" to R.string.interest_vintage_clothing,
+        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,                           // Bengali
+        "विंटेज कपड़े" to R.string.interest_vintage_clothing,                             // Hindi
+        "பழமையான ஆடை" to R.string.interest_vintage_clothing,                           // Tamil
+        "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,                              // Kannada
+        "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing,                         // Telugu
+
+        "Thrift shopping" to R.string.interest_thrift_shopping,
+        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,                               // Bengali
+        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,                             // Hindi
+        "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,                           // Tamil
+        "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,                            // Kannada
+        "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,                            // Telugu
+
+        "DIY projects" to R.string.interest_diy,
+        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,                                     // Bengali
+        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,                                     // Hindi
+        "நீங்கள் செய்து கொள்ளும் திட்டங்கள்" to R.string.interest_diy,                        // Tamil
+        "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                                            // Kannada
+        "DIY ప్రాజెక్టులు" to R.string.interest_diy,                                        // Telugu
+
+        "Home improvement" to R.string.interest_home_improvement,
+        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,                               // Bengali
+        "गृह सुधार" to R.string.interest_home_improvement,                                 // Hindi
+        "வீட்டு மேம்பாடு" to R.string.interest_home_improvement,                             // Tamil
+        "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,                               // Kannada
+        "ఇంటి మెరుగుదల" to R.string.interest_home_improvement,                             // Telugu
+
+        "Interior design" to R.string.interest_interior_design,
+        "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,                             // Bengali
+        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,                            // Hindi
+        "உள்ளமைத்து வடிவமைப்பு" to R.string.interest_interior_design,                       // Tamil
+        "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,                               // Kannada
+        "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,                            // Telugu
+
+        // Adventurous & Thrilling
+        "Skydiving" to R.string.interest_skydiving,
+        "স্কাইডাইভিং" to R.string.interest_skydiving,                                      // Bengali
+        "स्काईडाइविंग" to R.string.interest_skydiving,                                     // Hindi
+        "வான்வீழ்ச்சி" to R.string.interest_skydiving,                                       // Tamil
+        "ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,                                      // Kannada
+        "స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,                                   // Telugu
+
+        "Scuba diving" to R.string.interest_scuba_diving,
+        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,                                   // Bengali
+        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,                                  // Hindi
+        "கடல் மூழ்குதல்" to R.string.interest_scuba_diving,                                   // Tamil
+        "ಸ್ಕೂಬಾ ಡೈವಿಂಗ್" to R.string.interest_scuba_diving,                                 // Kannada
+        "స్కూబా డైవింగ్" to R.string.interest_scuba_diving,                                 // Telugu
+
+        "Rock climbing" to R.string.interest_rock_climbing,
+        "রক ক্লাইমিং" to R.string.interest_rock_climbing,                                   // Bengali
+        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,                                // Hindi
+        "கல்லூரி ஏறுதல்" to R.string.interest_rock_climbing,                                // Tamil
+        "ರಾಕ್ ಕ್ಲೈಂಬಿಂಗ್" to R.string.interest_rock_climbing,                              // Kannada
+        "రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,                                // Telugu
+
+        "Surfing" to R.string.interest_surfing,
+        "সার্ফিং" to R.string.interest_surfing,                                             // Bengali
+        "सर्फिंग" to R.string.interest_surfing,                                             // Hindi
+        "அலைபாய்ச்சி" to R.string.interest_surfing,                                          // Tamil
+        "ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                                            // Kannada
+        "సర్ఫింగ్" to R.string.interest_surfing,                                             // Telugu
+
+        "Skiing" to R.string.interest_skiing,
+        "স্কিইং" to R.string.interest_skiing,                                               // Bengali
+        "स्कीयिंग" to R.string.interest_skiing,                                              // Hindi
+        "அரிசல் செலுத்துதல்" to R.string.interest_skiing,                                    // Tamil
+        "ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                                           // Kannada
+        "స్కీయింగ్" to R.string.interest_skiing,                                            // Telugu
+
+        "Snowboarding" to R.string.interest_snowboarding,
+        "স্নোবোর্ডিং" to R.string.interest_snowboarding,                                      // Bengali
+        "स्नोबोर्डिंग" to R.string.interest_snowboarding,                                     // Hindi
+        "மஞ்சுப் பலகை சறுக்குதல்" to R.string.interest_snowboarding,                          // Tamil
+        "ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,                                   // Kannada
+        "స్నోబోర్డింగ్" to R.string.interest_snowboarding,                                     // Telugu
+
+        "Mountain biking" to R.string.interest_mountain_biking,
+        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,                               // Bengali
+        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,                                 // Hindi
+        "மலை சைக்கிள் ஓட்டுதல்" to R.string.interest_mountain_biking,                          // Tamil
+        "ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,                             // Kannada
+        "మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,                             // Telugu
+
+        "Motorcycling" to R.string.interest_motorcycling,
+        "মোটরসাইক্লিং" to R.string.interest_motorcycling,                                      // Bengali
+        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,                                    // Hindi
+        "மோட்டார் சைக்கிள் ஓட்டுதல்" to R.string.interest_motorcycling,                         // Tamil
+        "ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,                                 // Kannada
+        "మోటార్సైక్లింగ్" to R.string.interest_motorcycling,                                   // Telugu
+
+        "Car racing" to R.string.interest_car_racing,
+        "কার রেসিং" to R.string.interest_car_racing,                                           // Bengali
+        "कार रेसिंग" to R.string.interest_car_racing,                                          // Hindi
+        "கார் ஓட்டப்போட்டி" to R.string.interest_car_racing,                                     // Tamil
+        "ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                                       // Kannada
+        "కార్ రేసింగ్" to R.string.interest_car_racing,                                        // Telugu
+
+        "Extreme sports" to R.string.interest_extreme_sports,
+        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,                                // Bengali
+        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,                                // Hindi
+        "அதிக விளையாட்டு" to R.string.interest_extreme_sports,                                  // Tamil
+        "ಎಕ್ಸ್ಟ್ರೀಮ್ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,                                 // Kannada
+        "ఎక్స్‌ట్రీమ్ స్పోర్ట్స్" to R.string.interest_extreme_sports,                           // Telugu
+
+        // Relaxation & Leisure
+        "Puzzles" to R.string.interest_puzzles,
+        "ধাঁধা" to R.string.interest_puzzles,                                                 // Bengali
+        "पहेलियाँ" to R.string.interest_puzzles,                                              // Hindi
+        "முதிரடைபுதிர்கள்" to R.string.interest_puzzles,                                        // Tamil
+        "ಪ್ರಶ್ನೆಗಳು" to R.string.interest_puzzles,                                            // Kannada
+        "పజిల్స్" to R.string.interest_puzzles,                                               // Telugu
+
+        "Board games" to R.string.interest_board_games,
+        "বোর্ড গেমস" to R.string.interest_board_games,                                         // Bengali
+        "बोर्ड गेम्स" to R.string.interest_board_games,                                         // Hindi
+        "தகடுப் பந்திகள்" to R.string.interest_board_games,                                    // Tamil
+        "ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                                       // Kannada
+        "బోర్డ్ గేమ్స్" to R.string.interest_board_games,                                       // Telugu
+
+        "Video games" to R.string.interest_video_games,
+        "ভিডিও গেমস" to R.string.interest_video_games,                                         // Bengali
+        "वीडियो गेम्स" to R.string.interest_video_games,                                        // Hindi
+        "வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,                                 // Tamil
+        "ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                                      // Kannada
+        "వీడియో గేమ్స్" to R.string.interest_video_games,                                       // Telugu
+
+        "Watching TV" to R.string.interest_watching_tv,
+        "টিভি দেখা" to R.string.interest_watching_tv,                                           // Bengali
+        "टीवी देखना" to R.string.interest_watching_tv,                                          // Hindi
+        "தொலைக்காட்சி பார்க்குதல்" to R.string.interest_watching_tv,                             // Tamil
+        "ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                                         // Kannada
+        "టీవీ వీక్షణ" to R.string.interest_watching_tv,                                         // Telugu
+
+        "Napping" to R.string.interest_napping,
+        "ন্যাপিং" to R.string.interest_napping,                                                  // Bengali
+        "नैपिंग" to R.string.interest_napping,                                                  // Hindi
+        "கண்மூசப்பொழுது" to R.string.interest_napping,                                          // Tamil
+        "ನಾಪಿಂಗ್" to R.string.interest_napping,                                                 // Kannada
+        "నాపింగ్" to R.string.interest_napping,                                                 // Telugu
+
+        "Spa days" to R.string.interest_spa_days,
+        "স্পা ডে" to R.string.interest_spa_days,                                                 // Bengali
+        "स्पा दिन" to R.string.interest_spa_days,                                                // Hindi
+        "ஸ்பா நாட்கள்" to R.string.interest_spa_days,                                              // Tamil
+        "ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                                             // Kannada
+        "స్పా రోజులు" to R.string.interest_spa_days,                                             // Telugu
+
+        "Beach days" to R.string.interest_beach_days,
+        "বিচ ডে" to R.string.interest_beach_days,                                                // Bengali
+        "बीच डे" to R.string.interest_beach_days,                                              // Hindi
+        "கடல் நாட்கள்" to R.string.interest_beach_days,                                           // Tamil
+        "ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                                         // Kannada
+        "బీచ్ రోజులు" to R.string.interest_beach_days,                                           // Telugu
+
+        "Picnics" to R.string.interest_picnics,
+        "পিকনিক" to R.string.interest_picnics,                                                  // Bengali
+        "पिकनिक" to R.string.interest_picnics,                                                  // Hindi
+        "புனிச்சல்பூட்டி" to R.string.interest_picnics,                                            // Tamil
+        "ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                                  // Kannada
+        "పిక్నిక్" to R.string.interest_picnics,                                                  // Telugu
+
+        // Tech & Intellectual
+        "Coding" to R.string.interest_coding,
+        "কোডিং" to R.string.interest_coding,                                                     // Bengali
+        "कोडिंग" to R.string.interest_coding,                                                     // Hindi
+        "குறியாக்கம்" to R.string.interest_coding,                                                 // Tamil
+        "ಕೋಡಿಂಗ್" to R.string.interest_coding,                                                     // Kannada
+        "కోడింగ్" to R.string.interest_coding,                                                     // Telugu
+
+        "Robotics" to R.string.interest_robotics,
+        "রোবোটিক্স" to R.string.interest_robotics,                                               // Bengali
+        "रोबोटिक्स" to R.string.interest_robotics,                                               // Hindi
+        "இயந்திரவியல்" to R.string.interest_robotics,                                            // Tamil
+        "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                                               // Kannada
+        "రోబోటిక్స్" to R.string.interest_robotics,                                               // Telugu
+
+        "Space exploration" to R.string.interest_space,
+        "মহাকাশ অন্বেষণ" to R.string.interest_space,                                              // Bengali
+        "अंतरिक्ष अन्वेषण" to R.string.interest_space,                                             // Hindi
+        "வான ஆய்வு" to R.string.interest_space,                                                    // Tamil
+        "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,                                           // Kannada
+        "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                                             // Telugu
+
+        "Environmentalism" to R.string.interest_environmentalism,
+        "পরিবেশবাদ" to R.string.interest_environmentalism,                                        // Bengali
+        "पर्यावरणवाद" to R.string.interest_environmentalism,                                      // Hindi
+        "சுற்றுச்சூழலியல்" to R.string.interest_environmentalism,                                  // Tamil
+        "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,                                           // Kannada
+        "పర్యావరణవాదం" to R.string.interest_environmentalism,                                      // Telugu
+
+        // Wellness & Spiritual
+        "Yoga" to R.string.interest_yoga,
+        "যোগ" to R.string.interest_yoga,                                                         // Bengali
+        "योग" to R.string.interest_yoga,                                                         // Hindi
+        "யோகா" to R.string.interest_yoga,                                                        // Tamil
+        "ಯೋಗ" to R.string.interest_yoga,                                                         // Kannada
+        "యోగ" to R.string.interest_yoga,                                                         // Telugu
+
+        "Meditation" to R.string.interest_meditation,
+        "ধ্যান" to R.string.interest_meditation,                                                  // Bengali
+        "ध्यान" to R.string.interest_meditation,                                                  // Hindi
+        "தியானம்" to R.string.interest_meditation,                                               // Tamil
+        "ಧ್ಯಾನ" to R.string.interest_meditation,                                                 // Kannada
+        "ధ్యానం" to R.string.interest_meditation,                                               // Telugu
+
+        "Astrology" to R.string.interest_astrology,
+        "জ্যোতিষ" to R.string.interest_astrology,                                                 // Bengali
+        "ज्योतिष" to R.string.interest_astrology,                                                  // Hindi
+        "ஜோதிடம்" to R.string.interest_astrology,                                                // Tamil
+        "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,                                                // Kannada
+        "జ్యోతిష్యం" to R.string.interest_astrology,                                               // Telugu
+
+        "Romance" to R.string.interest_romance,
+        "রোমান্স" to R.string.interest_romance,                                                   // Bengali
+        "रोमांस" to R.string.interest_romance,                                                   // Hindi
+        "காதல்" to R.string.interest_romance,                                                     // Tamil
+        "ರೊಮಾಂಸ್" to R.string.interest_romance,                                                  // Kannada
+        "రోమాన్స్" to R.string.interest_romance,                                                     // Telugu
+
+        "Crystals" to R.string.interest_crystals,
+        "ক্রিস্টালস" to R.string.interest_crystals,                                               // Bengali
+        "क्रिस्टल" to R.string.interest_crystals,                                                 // Hindi
+        "கிரிஸ்டல்கள்" to R.string.interest_crystals,                                             // Tamil
+        "ಕ್ರಿಸ್ಟಲ್ಸ್" to R.string.interest_crystals,                                              // Kannada
+        "క్రిస్టల్స్" to R.string.interest_crystals,                                              // Telugu
+
+        // Style & DIY
+        "Vintage clothing" to R.string.interest_vintage_clothing,
+        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,                                   // Bengali
+        "विंटेज कपड़े" to R.string.interest_vintage_clothing,                                     // Hindi
+        "பழமையான ஆடை" to R.string.interest_vintage_clothing,                                   // Tamil
+        "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,                                      // Kannada
+        "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing,                                 // Telugu
+
+        "Thrift shopping" to R.string.interest_thrift_shopping,
+        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,                                         // Bengali
+        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,                                       // Hindi
+        "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,                                   // Tamil
+        "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,                                    // Kannada
+        "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,                                    // Telugu
+
+        "DIY projects" to R.string.interest_diy,
+        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,                                             // Bengali
+        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,                                             // Hindi
+        "நீங்கள் செய்யும் திட்டங்கள்" to R.string.interest_diy,                                       // Tamil
+        "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                                                  // Kannada
+        "DIY ప్రాజెక్టులు" to R.string.interest_diy,                                              // Telugu
+
+        "Home improvement" to R.string.interest_home_improvement,
+        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,                                       // Bengali
+        "गृह सुधार" to R.string.interest_home_improvement,                                        // Hindi
+        "வீட்டு மேம்பாடு" to R.string.interest_home_improvement,                                     // Tamil
+        "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,                                       // Kannada
+        "ఇంటి మెరుగుదల" to R.string.interest_home_improvement,                                     // Telugu
+
+        "Interior design" to R.string.interest_interior_design,
+        "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,                                     // Bengali
+        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,                                   // Hindi
+        "உள்ளமைப்பு வடிவமைப்பு" to R.string.interest_interior_design,                               // Tamil
+        "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,                                      // Kannada
+        "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,                                   // Telugu
+
+        // Adventurous & Thrilling
+        "Skydiving" to R.string.interest_skydiving,
+        "স্কাইডাইভিং" to R.string.interest_skydiving,                                              // Bengali
+        "स्काईडाइविंग" to R.string.interest_skydiving,                                            // Hindi
+        "வான்வீழ்ச்சி" to R.string.interest_skydiving,                                             // Tamil
+        "ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,                                            // Kannada
+        "స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,                                         // Telugu
+
+        "Scuba diving" to R.string.interest_scuba_diving,
+        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,                                         // Bengali
+        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,                                        // Hindi
+        "கடல்கீழ் மூழ்குதல்" to R.string.interest_scuba_diving,                                    // Tamil
+        "ಸ್ಕೂಬಾ ಡೈವಿಂಗ್" to R.string.interest_scuba_diving,                                       // Kannada
+        "స్కూబా డైవింగ్" to R.string.interest_scuba_diving,                                       // Telugu
+
+        "Rock climbing" to R.string.interest_rock_climbing,
+        "রক ক্লাইমিং" to R.string.interest_rock_climbing,                                          // Bengali
+        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,                                       // Hindi
+        "கல்லூரிப் பறக்குது" to R.string.interest_rock_climbing,                                    // Tamil
+        "ರಾಕ್ ಕ್ಲೈಂಬಿಂಗ್" to R.string.interest_rock_climbing,                                    // Kannada
+        "రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,                                      // Telugu
+
+        "Surfing" to R.string.interest_surfing,
+        "সার্ফিং" to R.string.interest_surfing,                                                  // Bengali
+        "सर्फिंग" to R.string.interest_surfing,                                                  // Hindi
+        "அலைபாய்வு" to R.string.interest_surfing,                                                // Tamil
+        "ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                                                // Kannada
+        "సర్ఫింగ్" to R.string.interest_surfing,                                                // Telugu
+
+        "Skiing" to R.string.interest_skiing,
+        "স্কিইং" to R.string.interest_skiing,                                                    // Bengali
+        "स्कीयिंग" to R.string.interest_skiing,                                                   // Hindi
+        "மண்படா சறுக்கல்" to R.string.interest_skiing,                                              // Tamil
+        "ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                                                 // Kannada
+        "స్కీయింగ్" to R.string.interest_skiing,                                                  // Telugu
+
+        "Snowboarding" to R.string.interest_snowboarding,
+        "স্নোবোর্ডিং" to R.string.interest_snowboarding,                                          // Bengali
+        "स्नोबोर्डिंग" to R.string.interest_snowboarding,                                         // Hindi
+        "மஞ்சுப் பலகை சறுக்குதல்" to R.string.interest_snowboarding,                                 // Tamil
+        "ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,                                        // Kannada
+        "స్నోబోర్డింగ్" to R.string.interest_snowboarding,                                        // Telugu
+
+        "Mountain biking" to R.string.interest_mountain_biking,
+        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,                                   // Bengali
+        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,                                   // Hindi
+        "மலைசுழற்சி ஓட்டம்" to R.string.interest_mountain_biking,                                  // Tamil
+        "ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,                                 // Kannada
+        "మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,                                 // Telugu
+
+        "Motorcycling" to R.string.interest_motorcycling,
+        "মোটরসাইক্লিং" to R.string.interest_motorcycling,                                          // Bengali
+        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,                                        // Hindi
+        "மோட்டார் சைக்கிள் ஓட்டம்" to R.string.interest_motorcycling,                                 // Tamil
+        "ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,                                       // Kannada
+        "మోటార్సైక్లింగ్" to R.string.interest_motorcycling,                                       // Telugu
+
+        "Car racing" to R.string.interest_car_racing,
+        "কার রেসিং" to R.string.interest_car_racing,                                               // Bengali
+        "कार रेसिंग" to R.string.interest_car_racing,                                              // Hindi
+        "கார் ஓட்டப் போட்டி" to R.string.interest_car_racing,                                        // Tamil
+        "ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                                            // Kannada
+        "కార్ రేసింగ్" to R.string.interest_car_racing,                                            // Telugu
+
+        "Extreme sports" to R.string.interest_extreme_sports,
+        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,                                     // Bengali
+        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,                                     // Hindi
+        "அதிக விளையாட்டு" to R.string.interest_extreme_sports,                                       // Tamil
+        "ಎಕ್ಸ್ಟ್ರೀಮ್ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,                                     // Kannada
+        "ఎక్స్‌ట్రీమ్ స్పోర్ట్స్" to R.string.interest_extreme_sports,                                 // Telugu
+
+        // Relaxation & Leisure
+        "Puzzles" to R.string.interest_puzzles,
+        "ধাঁধা" to R.string.interest_puzzles,                                                       // Bengali
+        "पहेलियाँ" to R.string.interest_puzzles,                                                    // Hindi
+        "முதிரைபுதிர்கள்" to R.string.interest_puzzles,                                              // Tamil
+        "ಪ್ರಶ್ನೆಗಳು" to R.string.interest_puzzles,                                                   // Kannada
+        "పజిల్స్" to R.string.interest_puzzles,                                                      // Telugu
+
+        "Board games" to R.string.interest_board_games,
+        "বোর্ড গেমস" to R.string.interest_board_games,                                             // Bengali
+        "बोर्ड गेम्स" to R.string.interest_board_games,                                             // Hindi
+        "தகடுப் பந்திகள்" to R.string.interest_board_games,                                        // Tamil
+        "ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                                           // Kannada
+        "బోర్డ్ గేమ్స్" to R.string.interest_board_games,                                           // Telugu
+
+        "Video games" to R.string.interest_video_games,
+        "ভিডিও গেমস" to R.string.interest_video_games,                                             // Bengali
+        "वीडियो गेम्स" to R.string.interest_video_games,                                            // Hindi
+        "வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,                                     // Tamil
+        "ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                                          // Kannada
+        "వీడియో గేమ్స్" to R.string.interest_video_games,                                          // Telugu
+
+        "Watching TV" to R.string.interest_watching_tv,
+        "টিভি দেখা" to R.string.interest_watching_tv,                                               // Bengali
+        "टीवी देखना" to R.string.interest_watching_tv,                                              // Hindi
+        "தொலைக்காட்சி பார்ப்பது" to R.string.interest_watching_tv,                                 // Tamil
+        "ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                                            // Kannada
+        "టీవీ వీక్షణ" to R.string.interest_watching_tv,                                            // Telugu
+
+        "Napping" to R.string.interest_napping,
+        "ন্যাপিং" to R.string.interest_napping,                                                      // Bengali
+        "नैपिंग" to R.string.interest_napping,                                                      // Hindi
+        "கண்மூசப்பொழுது" to R.string.interest_napping,                                              // Tamil
+        "ನಾಪಿಂಗ್" to R.string.interest_napping,                                                     // Kannada
+        "నాపింగ్" to R.string.interest_napping,                                                     // Telugu
+
+        "Spa days" to R.string.interest_spa_days,
+        "স্পা ডে" to R.string.interest_spa_days,                                                     // Bengali
+        "स्पा दिन" to R.string.interest_spa_days,                                                    // Hindi
+        "ஸ்பா நாட்கள்" to R.string.interest_spa_days,                                                // Tamil
+        "ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                                                 // Kannada
+        "స్పా రోజులు" to R.string.interest_spa_days,                                                 // Telugu
+
+        "Beach days" to R.string.interest_beach_days,
+        "বিচ ডে" to R.string.interest_beach_days,                                                    // Bengali
+        "बीच डे" to R.string.interest_beach_days,                                                   // Hindi
+        "கடல் நாட்கள்" to R.string.interest_beach_days,                                               // Tamil
+        "ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                                              // Kannada
+        "బీచ్ రోజులు" to R.string.interest_beach_days,                                              // Telugu
+
+        "Picnics" to R.string.interest_picnics,
+        "পিকনিক" to R.string.interest_picnics,                                                        // Bengali
+        "पिकनिक" to R.string.interest_picnics,                                                        // Hindi
+        "பட்ஜெட் உணவு" to R.string.interest_picnics,                                                    // Tamil
+        "ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                                        // Kannada
+        "పిక్నిక్" to R.string.interest_picnics,                                                        // Telugu
+
+        // Technological & Intellectual
+        "Coding" to R.string.interest_coding,
+        "কোডিং" to R.string.interest_coding,                                                           // Bengali
+        "कोडिंग" to R.string.interest_coding,                                                           // Hindi
+        "குறியாக்கம்" to R.string.interest_coding,                                                         // Tamil
+        "ಕೋಡಿಂಗ್" to R.string.interest_coding,                                                           // Kannada
+        "కోడింగ్" to R.string.interest_coding,                                                           // Telugu
+
+        "Robotics" to R.string.interest_robotics,
+        "রোবোটিক্স" to R.string.interest_robotics,                                                     // Bengali
+        "रोबोटिक्स" to R.string.interest_robotics,                                                     // Hindi
+        "இயந்திரவியல்" to R.string.interest_robotics,                                                    // Tamil
+        "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                                                     // Kannada
+        "రోబోటిక్స్" to R.string.interest_robotics,                                                     // Telugu
+
+        "Space exploration" to R.string.interest_space,
+        "মহাকাশ অন্বেষণ" to R.string.interest_space,                                                    // Bengali
+        "अंतरिक्ष अन्वेषण" to R.string.interest_space,                                                   // Hindi
+        "வான ஆய்வு" to R.string.interest_space,                                                          // Tamil
+        "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,                                                 // Kannada
+        "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                                                   // Telugu
+
+        "Environmentalism" to R.string.interest_environmentalism,
+        "পরিবেশবাদ" to R.string.interest_environmentalism,                                              // Bengali
+        "पर्यावरणवाद" to R.string.interest_environmentalism,                                            // Hindi
+        "சுற்றுச்சூழலியல்" to R.string.interest_environmentalism,                                        // Tamil
+        "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,                                               // Kannada
+        "పర్యావరణవాదం" to R.string.interest_environmentalism,                                            // Telugu
+
+        // Global Interest
         "Traveling" to R.string.interest_traveling,
-        "ভ্রমণ" to R.string.interest_traveling,
-        "यात्रा" to R.string.interest_traveling,
-        )
+        "ভ্রমণ" to R.string.interest_traveling,                                                         // Bengali
+        "यात्रा" to R.string.interest_traveling,                                                         // Hindi
+        "பயணம்" to R.string.interest_traveling,                                                         // Tamil
+        "ಪ್ರಯಾಣ" to R.string.interest_traveling,                                                        // Kannada
+        "ప్రయాణం" to R.string.interest_traveling                                                          // Telugu
+    )
 
     if (profile.interests.isEmpty()) {
         Text(
@@ -2926,13 +3649,16 @@ fun InterestsSectionInProfile(profile: Profile) {
             fontSize = 10.sp
         )
     } else {
-        FlowRow {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
             profile.interests.forEach { interest ->
                 val resourceId = interestNameToResource[interest.name]
                 val interestLabel = if (resourceId != null) {
                     stringResource(resourceId)
                 } else {
-                    interest.name // Fallback to raw name if not found in map
+                    interest.name // Fallback to raw name if not found
                 }
                 InterestTag(
                     label = buildString {
@@ -2944,6 +3670,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         }
     }
 }
+
 
 @Composable
 fun CombinedBioVoiceEditSection(
@@ -3734,283 +4461,487 @@ fun InterestsEditSection(
         "Traveling" to R.string.interest_traveling,
         "ভ্রমণ" to R.string.interest_traveling,        // Bengali
         "यात्रा" to R.string.interest_traveling,       // Hindi
+        "பயணம்" to R.string.interest_traveling,       // Tamil
+        "ಪ್ರಯಾಣ" to R.string.interest_traveling,      // Kannada
+        "ప్రయాణం" to R.string.interest_traveling,     // Telugu
 
         "Music" to R.string.interest_music,
-        "সঙ্গীত" to R.string.interest_music,
-        "संगीत" to R.string.interest_music,
+        "সঙ্গীত" to R.string.interest_music,           // Bengali
+        "संगीत" to R.string.interest_music,           // Hindi
+        "இசை" to R.string.interest_music,             // Tamil
+        "ಸಂಗೀತ" to R.string.interest_music,           // Kannada
+        "సంగీతం" to R.string.interest_music,          // Telugu
 
         "Food" to R.string.interest_food,
-        "খাবার" to R.string.interest_food,
-        "भोजन" to R.string.interest_food,
+        "খাবার" to R.string.interest_food,             // Bengali
+        "भोजन" to R.string.interest_food,             // Hindi
+        "உணவு" to R.string.interest_food,              // Tamil
+        "ಆಹಾರ" to R.string.interest_food,              // Kannada
+        "ఆహారం" to R.string.interest_food,              // Telugu
 
         "Sports" to R.string.interest_sports,
-        "খেলাধুলা" to R.string.interest_sports,
-        "खेल" to R.string.interest_sports,
+        "খেলাধুলা" to R.string.interest_sports,         // Bengali
+        "खेल" to R.string.interest_sports,              // Hindi
+        "விளையாட்டு" to R.string.interest_sports,      // Tamil
+        "ಕ್ರೀಡೆ" to R.string.interest_sports,           // Kannada
+        "క్రీడలు" to R.string.interest_sports,          // Telugu
 
         "Movies" to R.string.interest_movies,
-        "সিনেমা" to R.string.interest_movies,
-        "फ़िल्में" to R.string.interest_movies,
+        "সিনেমা" to R.string.interest_movies,            // Bengali
+        "फ़िल्में" to R.string.interest_movies,          // Hindi
+        "சினிமா" to R.string.interest_movies,           // Tamil
+        "ಸಿನೆಮಾ" to R.string.interest_movies,           // Kannada
+        "సినిమాలు" to R.string.interest_movies,         // Telugu
 
         "Books" to R.string.interest_books,
-        "বই" to R.string.interest_books,
-        "किताबें" to R.string.interest_books,
+        "বই" to R.string.interest_books,                // Bengali
+        "किताबें" to R.string.interest_books,            // Hindi
+        "புத்தகங்கள்" to R.string.interest_books,        // Tamil
+        "ಪುಸ್ತಕಗಳು" to R.string.interest_books,         // Kannada
+        "పుస్తకాలు" to R.string.interest_books,         // Telugu
 
         "Art" to R.string.interest_art,
-        "শিল্প" to R.string.interest_art,
-        "कला" to R.string.interest_art,
+        "শিল্প" to R.string.interest_art,                // Bengali
+        "कला" to R.string.interest_art,                  // Hindi
+        "கலை" to R.string.interest_art,                 // Tamil
+        "ಕಲೆ" to R.string.interest_art,                  // Kannada
+        "కళ" to R.string.interest_art,                   // Telugu
 
         "Photography" to R.string.interest_photography,
-        "ফটোগ্রাফি" to R.string.interest_photography,
-        "फ़ोटोग्राफी" to R.string.interest_photography,
+        "ফটোগ্রাফি" to R.string.interest_photography,   // Bengali
+        "फ़ोटोग्राफी" to R.string.interest_photography, // Hindi
+        "புகைப்படக்கலை" to R.string.interest_photography, // Tamil
+        "ಛಾಯಾಯ ukudಕಲೆ" to R.string.interest_photography, // Kannada
+        "ఫోటోగ్రఫీ" to R.string.interest_photography,   // Telugu
 
         "Gaming" to R.string.interest_gaming,
-        "গেমিং" to R.string.interest_gaming,
-        "गेमिंग" to R.string.interest_gaming,
+        "গেমিং" to R.string.interest_gaming,              // Bengali
+        "गेमिंग" to R.string.interest_gaming,             // Hindi
+        "வீடியோ கேமிங்" to R.string.interest_gaming,      // Tamil
+        "ಗೇಮಿಂಗ್" to R.string.interest_gaming,            // Kannada
+        "వీడియో గేమింగ్" to R.string.interest_gaming,     // Telugu
 
         "Fitness" to R.string.interest_fitness,
-        "ফিটনেস" to R.string.interest_fitness,
-        "फ़िटनेस" to R.string.interest_fitness,
+        "ফিটনেস" to R.string.interest_fitness,            // Bengali
+        "फ़िटनेस" to R.string.interest_fitness,           // Hindi
+        "உடற்பயிற்சி" to R.string.interest_fitness,       // Tamil
+        "ಫಿಟ್ನೆಸ್" to R.string.interest_fitness,            // Kannada
+        "ఫిట్నెస్" to R.string.interest_fitness,           // Telugu
 
         // Specific Outdoor & Nature
         "Hiking" to R.string.interest_hiking,
-        "হাইকিং" to R.string.interest_hiking,
-        "हाइकिंग" to R.string.interest_hiking,
+        "হাইকিং" to R.string.interest_hiking,              // Bengali
+        "हाइकिंग" to R.string.interest_hiking,             // Hindi
+        "ஹைக்கிங்" to R.string.interest_hiking,            // Tamil
+        "ಹೈಕಿಂಗ್" to R.string.interest_hiking,            // Kannada
+        "హైకింగ్" to R.string.interest_hiking,             // Telugu
 
         "Camping" to R.string.interest_camping,
-        "ক্যাম্পিং" to R.string.interest_camping,
-        "कैंपिंग" to R.string.interest_camping,
+        "ক্যাম্পিং" to R.string.interest_camping,           // Bengali
+        "कैंपिंग" to R.string.interest_camping,            // Hindi
+        "கேம்பிங்" to R.string.interest_camping,            // Tamil
+        "ಕ್ಯಾಂಪಿಂಗ್" to R.string.interest_camping,          // Kannada
+        "క్యాంపింగ్" to R.string.interest_camping,          // Telugu
 
         "Fishing" to R.string.interest_fishing,
-        "মাছ ধরা" to R.string.interest_fishing,
-        "मछली पकड़ना" to R.string.interest_fishing,
+        "মাছ ধরা" to R.string.interest_fishing,            // Bengali
+        "मछली पकड़ना" to R.string.interest_fishing,        // Hindi
+        "மீன் பிடித்தல்" to R.string.interest_fishing,       // Tamil
+        "ಫಿಶಿಂಗ್" to R.string.interest_fishing,             // Kannada
+        "ఫిషింగ్" to R.string.interest_fishing,              // Telugu
 
         "Hunting" to R.string.interest_hunting,
-        "শিকার" to R.string.interest_hunting,
-        "शिकार" to R.string.interest_hunting,
+        "শিকার" to R.string.interest_hunting,               // Bengali
+        "शिकार" to R.string.interest_hunting,               // Hindi
+        "வேட்டை" to R.string.interest_hunting,              // Tamil
+        "ಹಂಟಿಂಗ್" to R.string.interest_hunting,            // Kannada
+        "హంటింగ్" to R.string.interest_hunting,             // Telugu
 
         "Gardening" to R.string.interest_gardening,
-        "বাগান করা" to R.string.interest_gardening,
-        "बागवानी" to R.string.interest_gardening,
+        "বাগান করা" to R.string.interest_gardening,         // Bengali
+        "बागवानी" to R.string.interest_gardening,           // Hindi
+        "தோட்டக்கலை" to R.string.interest_gardening,        // Tamil
+        "ತೋಟಗಾರಿಕೆ" to R.string.interest_gardening,         // Kannada
+        "తోటపనులు" to R.string.interest_gardening,          // Telugu
 
         // Food & Drink
         "Cooking" to R.string.interest_cooking,
-        "রান্না" to R.string.interest_cooking,
-        "खाना बनाना" to R.string.interest_cooking,
+        "রান্না" to R.string.interest_cooking,              // Bengali
+        "खाना बनाना" to R.string.interest_cooking,          // Hindi
+        "சமைத்தல்" to R.string.interest_cooking,            // Tamil
+        "ಅಡಿಗೆ" to R.string.interest_cooking,               // Kannada
+        "వండటం" to R.string.interest_cooking,               // Telugu
 
         "Baking" to R.string.interest_baking,
-        "বেকিং" to R.string.interest_baking,
-        "बैकिंग" to R.string.interest_baking,
+        "বেকিং" to R.string.interest_baking,                // Bengali
+        "बैकिंग" to R.string.interest_baking,               // Hindi
+        "அடுக்கு" to R.string.interest_baking,              // Tamil
+        "ಬೇಕಿಂಗ್" to R.string.interest_baking,             // Kannada
+        "బేకింగ్" to R.string.interest_baking,              // Telugu
 
         "Wine tasting" to R.string.interest_wine_tasting,
-        "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,
-        "वाइन चखना" to R.string.interest_wine_tasting,
+        "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting, // Bengali
+        "वाइन चखना" to R.string.interest_wine_tasting,      // Hindi
+        "சாரம் சுவைத்தல்" to R.string.interest_wine_tasting,  // Tamil
+        "ವೈನ್ ರುಚಿಸು" to R.string.interest_wine_tasting,    // Kannada
+        "వైన్ రుచిచూడడం" to R.string.interest_wine_tasting,  // Telugu
 
         "Craft beer" to R.string.interest_craft_beer,
-        "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,
-        "क्राफ्ट बियर" to R.string.interest_craft_beer,
+        "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,       // Bengali
+        "क्राफ्ट बियर" to R.string.interest_craft_beer,       // Hindi
+        "கைவினை மது" to R.string.interest_craft_beer,       // Tamil
+        "ಕ್ರಾಫ್ಟ್ ಬಿಯರ್" to R.string.interest_craft_beer,      // Kannada
+        "క్రాఫ్ట్ బియర్" to R.string.interest_craft_beer,     // Telugu
 
         "Coffee" to R.string.interest_coffee,
-        "কফি" to R.string.interest_coffee,
-        "कॉफ़ी" to R.string.interest_coffee,
+        "কফি" to R.string.interest_coffee,                     // Bengali
+        "कॉफ़ी" to R.string.interest_coffee,                    // Hindi
+        "காபி" to R.string.interest_coffee,                    // Tamil
+        "ಕಾಫಿ" to R.string.interest_coffee,                     // Kannada
+        "కాఫీ" to R.string.interest_coffee,                     // Telugu
 
         // Wellness & Spiritual
         "Yoga" to R.string.interest_yoga,
-        "যোগ" to R.string.interest_yoga,
-        "योग" to R.string.interest_yoga,
+        "যোগ" to R.string.interest_yoga,                       // Bengali
+        "योग" to R.string.interest_yoga,                       // Hindi
+        "யோகா" to R.string.interest_yoga,                      // Tamil
+        "ಯೋಗ" to R.string.interest_yoga,                       // Kannada
+        "యోగ" to R.string.interest_yoga,                       // Telugu
 
         "Meditation" to R.string.interest_meditation,
-        "ধ্যান" to R.string.interest_meditation,
-        "ध्यान" to R.string.interest_meditation,
+        "ধ্যান" to R.string.interest_meditation,                // Bengali
+        "ध्यान" to R.string.interest_meditation,                // Hindi
+        "தியானம்" to R.string.interest_meditation,             // Tamil
+        "ಧ್ಯಾನ" to R.string.interest_meditation,               // Kannada
+        "ధ్యానం" to R.string.interest_meditation,             // Telugu
 
         "Astrology" to R.string.interest_astrology,
-        "জ্যোতিষ" to R.string.interest_astrology,
-        "ज्योतिष" to R.string.interest_astrology,
+        "জ্যোতিষ" to R.string.interest_astrology,               // Bengali
+        "ज्योतिष" to R.string.interest_astrology,               // Hindi
+        "ஜோதிடம்" to R.string.interest_astrology,             // Tamil
+        "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,             // Kannada
+        "జ్యోతిష్యం" to R.string.interest_astrology,            // Telugu
 
         "Romance" to R.string.interest_romance,
-        "রোমান্স" to R.string.interest_romance, // Bengali
-        "रोमांस" to R.string.interest_romance, // Hindi
+        "রোমান্স" to R.string.interest_romance,                // Bengali
+        "रोमांस" to R.string.interest_romance,                 // Hindi
+        "காதல்" to R.string.interest_romance,                   // Tamil
+        "ರೊಮಾಂಸ್" to R.string.interest_romance,                // Kannada
+        "రోమాన్స్" to R.string.interest_romance,                 // Telugu
 
         "Crystals" to R.string.interest_crystals,
-        "ক্রিস্টালস" to R.string.interest_crystals,
-        "क्रिस्टल" to R.string.interest_crystals,
+        "ক্রিস্টালস" to R.string.interest_crystals,             // Bengali
+        "क्रिस्टल" to R.string.interest_crystals,               // Hindi
+        "கிரிஸ்டல்" to R.string.interest_crystals,               // Tamil
+        "ಕ್ರಿಸ್ಟಲ್" to R.string.interest_crystals,               // Kannada
+        "క్రిస్టల్" to R.string.interest_crystals,               // Telugu
 
         // Style & DIY
         "Vintage clothing" to R.string.interest_vintage_clothing,
-        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,
-        "विंटेज कपड़े" to R.string.interest_vintage_clothing,
+        "ভিন্টেজ পোশাক" to R.string.interest_vintage_clothing,  // Bengali
+        "विंटेज कपड़े" to R.string.interest_vintage_clothing,    // Hindi
+        "பழமையான ஆடை" to R.string.interest_vintage_clothing,  // Tamil
+        "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,    // Kannada
+        "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing, // Telugu
 
         "Thrift shopping" to R.string.interest_thrift_shopping,
-        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,
-        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,
+        "থ্রিফট শপিং" to R.string.interest_thrift_shopping,       // Bengali
+        "थ्रिफ्ट शॉपिंग" to R.string.interest_thrift_shopping,     // Hindi
+        "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,   // Tamil
+        "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,    // Kannada
+        "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,    // Telugu
 
         "DIY projects" to R.string.interest_diy,
-        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,
-        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,
+        "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,             // Bengali
+        "डीआईवाई प्रोजेक्ट" to R.string.interest_diy,             // Hindi
+        "நீங்கள் செய்து கொள்ளும் திட்டங்கள்" to R.string.interest_diy, // Tamil
+        "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                  // Kannada
+        "DIY ప్రాజెక్టులు" to R.string.interest_diy,               // Telugu
 
         "Home improvement" to R.string.interest_home_improvement,
-        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,
-        "गृह सुधार" to R.string.interest_home_improvement,
+        "গৃহ উন্নয়ন" to R.string.interest_home_improvement,       // Bengali
+        "गृह सुधार" to R.string.interest_home_improvement,         // Hindi
+        "வீட்டுத்துறை மேம்பாடு" to R.string.interest_home_improvement, // Tamil
+        "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,       // Kannada
+        "ఇంటిని మెరుగుపరచడం" to R.string.interest_home_improvement, // Telugu
 
         "Interior design" to R.string.interest_interior_design,
-        "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,
-        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,
+        "অভ্যন্তরীண নকশা" to R.string.interest_interior_design,    // Bengali
+        "इंटीरियर डिज़ाइन" to R.string.interest_interior_design,   // Hindi
+        "உள்ளமைப்பு வடிவமைப்பு" to R.string.interest_interior_design, // Tamil
+        "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,       // Kannada
+        "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,    // Telugu
 
         // Intellectual & Tech
         "History" to R.string.interest_history,
-        "ইতিহাস" to R.string.interest_history,
-        "इतिहास" to R.string.interest_history,
+        "ইতিহাস" to R.string.interest_history,                     // Bengali
+        "इतिहास" to R.string.interest_history,                     // Hindi
+        "வரலாறு" to R.string.interest_history,                      // Tamil
+        "ಇತಿಹಾಸ" to R.string.interest_history,                      // Kannada
+        "చరిత్ర" to R.string.interest_history,                       // Telugu
 
         "Science" to R.string.interest_science,
-        "বিজ্ঞান" to R.string.interest_science,
-        "विज्ञान" to R.string.interest_science,
+        "বিজ্ঞান" to R.string.interest_science,                     // Bengali
+        "विज्ञान" to R.string.interest_science,                     // Hindi
+        "அறிவியல்" to R.string.interest_science,                    // Tamil
+        "ವಿಜ್ಞಾನ" to R.string.interest_science,                      // Kannada
+        "విజ్ఞానం" to R.string.interest_science,                    // Telugu
 
         "Philosophy" to R.string.interest_philosophy,
-        "দর্শন শাস্ত্র" to R.string.interest_philosophy,
-        "दर्शनशास्त्र" to R.string.interest_philosophy,
+        "দর্শন শাস্ত্র" to R.string.interest_philosophy,             // Bengali
+        "दर्शनशास्त्र" to R.string.interest_philosophy,             // Hindi
+        "தத்துவம்" to R.string.interest_philosophy,                  // Tamil
+        "ದರ್ಶನಶಾಸ್ತ್ರ" to R.string.interest_philosophy,              // Kannada
+        "తత్వశాస్త్రం" to R.string.interest_philosophy,              // Telugu
 
         "Politics" to R.string.interest_politics,
-        "রাজনীতি" to R.string.interest_politics,
-        "राजनीति" to R.string.interest_politics,
+        "রাজনীতি" to R.string.interest_politics,                    // Bengali
+        "राजनीति" to R.string.interest_politics,                    // Hindi
+        "அரசியல்" to R.string.interest_politics,                    // Tamil
+        "ರಾಜಕೀಯ" to R.string.interest_politics,                     // Kannada
+        "రాజకీయ శాస్త్రం" to R.string.interest_politics,           // Telugu
 
         "Economics" to R.string.interest_economics,
-        "অর্থনীতি" to R.string.interest_economics,
-        "अर्थशास्त्र" to R.string.interest_economics,
+        "অর্থনীতি" to R.string.interest_economics,                  // Bengali
+        "अर्थशास्त्र" to R.string.interest_economics,                 // Hindi
+        "பொருளாதாரம்" to R.string.interest_economics,               // Tamil
+        "ಅರ್ಥಶಾಸ್ತ್ರ" to R.string.interest_economics,                 // Kannada
+        "ఆర్థిక శాస్త్రం" to R.string.interest_economics,             // Telugu
 
         "Technology" to R.string.interest_technology,
-        "প্রযুক্তি" to R.string.interest_technology,
-        "प्रौद्योगिकी" to R.string.interest_technology,
+        "প্রযুক্তি" to R.string.interest_technology,                  // Bengali
+        "प्रौद्योगिकी" to R.string.interest_technology,               // Hindi
+        "தொழில்நுட்பம்" to R.string.interest_technology,              // Tamil
+        "ತಂತ್ರಜ್ಞಾನ" to R.string.interest_technology,                 // Kannada
+        "సాంకేతికత" to R.string.interest_technology,                // Telugu
 
         "Coding" to R.string.interest_coding,
-        "কোডিং" to R.string.interest_coding,
-        "कोडिंग" to R.string.interest_coding,
+        "কোডিং" to R.string.interest_coding,                         // Bengali
+        "कोडिंग" to R.string.interest_coding,                         // Hindi
+        "குறியாக்கம்" to R.string.interest_coding,                     // Tamil
+        "ಕೋಡಿಂಗ್" to R.string.interest_coding,                         // Kannada
+        "కోడింగ్" to R.string.interest_coding,                         // Telugu
 
         "Robotics" to R.string.interest_robotics,
-        "রোবোটিক্স" to R.string.interest_robotics,
-        "रोबोटिक्स" to R.string.interest_robotics,
+        "রোবোটিক্স" to R.string.interest_robotics,                   // Bengali
+        "रोबोटिक्स" to R.string.interest_robotics,                   // Hindi
+        "இயந்திரவியல்" to R.string.interest_robotics,                // Tamil
+        "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                   // Kannada
+        "రోబోటిక్స్" to R.string.interest_robotics,                   // Telugu
 
         "Space exploration" to R.string.interest_space,
-        "মহাকাশ অন্বেষণ" to R.string.interest_space,
-        "अंतरिक्ष अन्वेषण" to R.string.interest_space,
+        "মহাকাশ অন্বেষণ" to R.string.interest_space,                  // Bengali
+        "अंतरिक्ष अन्वेषण" to R.string.interest_space,                 // Hindi
+        "வான்கோள் ஆய்வு" to R.string.interest_space,                   // Tamil
+        "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,               // Kannada
+        "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                // Telugu
 
         "Environmentalism" to R.string.interest_environmentalism,
-        "পরিবেশবাদ" to R.string.interest_environmentalism,
-        "पर्यावरणवाद" to R.string.interest_environmentalism,
+        "পরিবেশবাদ" to R.string.interest_environmentalism,            // Bengali
+        "पर्यावरणवाद" to R.string.interest_environmentalism,          // Hindi
+        "சுற்றுச்சூழல் பாதுகாப்பு" to R.string.interest_environmentalism, // Tamil
+        "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,             // Kannada
+        "పర్యావరణవాదం" to R.string.interest_environmentalism,         // Telugu
 
         // Social & Community
         "Volunteering" to R.string.interest_volunteering,
-        "স্বেচ্ছাসেবা" to R.string.interest_volunteering,
-        "स्वयंसेवा" to R.string.interest_volunteering,
+        "স্বেচ্ছাসেবা" to R.string.interest_volunteering,             // Bengali
+        "स्वयंसेवा" to R.string.interest_volunteering,                 // Hindi
+        "தன்னார்வ சேவை" to R.string.interest_volunteering,             // Tamil
+        "ಸ್ವಯಂಸೇವಾ" to R.string.interest_volunteering,                 // Kannada
+        "స్వచ్ఛంద సేవ" to R.string.interest_volunteering,               // Telugu
 
         "Charity work" to R.string.interest_charity,
-        "দান কার্যক্রম" to R.string.interest_charity,
-        "चैरिटी कार्य" to R.string.interest_charity,
+        "দান কার্যক্রম" to R.string.interest_charity,                 // Bengali
+        "चैरिटी कार्य" to R.string.interest_charity,                   // Hindi
+        "நன்மை செயல்" to R.string.interest_charity,                    // Tamil
+        "ಚಾರಿಟಿ ಕೆಲಸ" to R.string.interest_charity,                    // Kannada
+        "దాన పనులు" to R.string.interest_charity,                      // Telugu
 
         "Community organizing" to R.string.interest_community,
-        "কমিউনিটি সংগঠন" to R.string.interest_community,
-        "समुदाय आयोजन" to R.string.interest_community,
+        "কমিউনিটি সংগঠন" to R.string.interest_community,              // Bengali
+        "समुदाय आयोजन" to R.string.interest_community,                  // Hindi
+        "சமூக ஏற்பாடு" to R.string.interest_community,                  // Tamil
+        "ಸಮುದಾಯ ಸಂಘಟನೆ" to R.string.interest_community,             // Kannada
+        "సమాజం నిర్వహణ" to R.string.interest_community,                // Telugu
 
         "Networking" to R.string.interest_networking,
-        "নেটওয়ার্কিং" to R.string.interest_networking,
-        "नेटवर्किंग" to R.string.interest_networking,
+        "নেটওয়ার্কিং" to R.string.interest_networking,               // Bengali
+        "नेटवर्किंग" to R.string.interest_networking,                    // Hindi
+        "பிணையம்" to R.string.interest_networking,                      // Tamil
+        "ನೆಟ್ವರ್ಕಿಂಗ್" to R.string.interest_networking,                  // Kannada
+        "నెట్‌వర్కింగ్" to R.string.interest_networking,                 // Telugu
 
         "Public speaking" to R.string.interest_public_speaking,
-        "পাবলিক স্পিকিং" to R.string.interest_public_speaking,
-        "पब्लिक स्पीकिंग" to R.string.interest_public_speaking,
+        "পাবলিক স্পিকিং" to R.string.interest_public_speaking,        // Bengali
+        "पब्लिक स्पीकिंग" to R.string.interest_public_speaking,        // Hindi
+        "பொது பேச்சு" to R.string.interest_public_speaking,             // Tamil
+        "ಸಾರ್ವಜನಿಕ ಭಾಷಣ" to R.string.interest_public_speaking,       // Kannada
+        "పబ్లిక్ స్పీకింగ్" to R.string.interest_public_speaking,       // Telugu
 
         "Writing" to R.string.interest_writing,
-        "লেখা" to R.string.interest_writing,
-        "लेखन" to R.string.interest_writing,
+        "লেখা" to R.string.interest_writing,                          // Bengali
+        "लेखन" to R.string.interest_writing,                          // Hindi
+        "எழுத்து" to R.string.interest_writing,                         // Tamil
+        "ಲೇಖನ" to R.string.interest_writing,                           // Kannada
+        "రాత" to R.string.interest_writing,                             // Telugu
 
         "Blogging" to R.string.interest_blogging,
-        "ব্লগিং" to R.string.interest_blogging,
-        "ब्लॉगिंग" to R.string.interest_blogging,
+        "ব্লগিং" to R.string.interest_blogging,                        // Bengali
+        "ब्लॉगिंग" to R.string.interest_blogging,                      // Hindi
+        "வலைப்பதிவு" to R.string.interest_blogging,                   // Tamil
+        "ಬ್ಲಾಗಿಂಗ್" to R.string.interest_blogging,                      // Kannada
+        "బ్లాగింగ్" to R.string.interest_blogging,                      // Telugu
 
         "Podcasting" to R.string.interest_podcasting,
-        "পডকাস্টিং" to R.string.interest_podcasting,
-        "पॉडकास्टिंग" to R.string.interest_podcasting,
+        "পডকাস্টিং" to R.string.interest_podcasting,                   // Bengali
+        "पॉडकास्टिंग" to R.string.interest_podcasting,                 // Hindi
+        "பாட்காஸ்டிங்" to R.string.interest_podcasting,                 // Tamil
+        "ಪಾಡ್‌ಕಾಸ್ಟಿಂಗ್" to R.string.interest_podcasting,              // Kannada
+        "పొడ్కాస్టింగ్" to R.string.interest_podcasting,                // Telugu
 
         "Social media" to R.string.interest_social_media,
-        "সোশ্যাল মিডিয়া" to R.string.interest_social_media,
-        "सोशल मीडिया" to R.string.interest_social_media,
+        "সোশ্যাল মিডিয়া" to R.string.interest_social_media,            // Bengali
+        "सोशल मीडिया" to R.string.interest_social_media,                // Hindi
+        "சமூக ஊடகம்" to R.string.interest_social_media,                 // Tamil
+        "ಸುದ್ದಿ ಮಾಧ್ಯಮ" to R.string.interest_social_media,                // Kannada
+        "సోషల్ మీడియా" to R.string.interest_social_media,             // Telugu
 
-        "Online communities" to R.string.interest_online_communities,
-        "অনলাইন কমিউনিটি" to R.string.interest_online_communities,
-        "ऑनलाइन समुदाय" to R.string.interest_online_communities,
+"Online communities" to R.string.interest_online_communities,
+"অনলাইন কমিউনিটি" to R.string.interest_online_communities,    // Bengali
+"ऑनलाइन समुदाय" to R.string.interest_online_communities,       // Hindi
+"ஆன்லைன் சமூகங்கள்" to R.string.interest_online_communities,      // Tamil
+"ಆನ್‌ಲೈನ್ ಸಮುದಾಯಗಳು" to R.string.interest_online_communities,    // Kannada
+"ఆన్లైన్ కమ్యూనిటీస్" to R.string.interest_online_communities,     // Telugu
 
-        // Adventurous & Thrilling
-        "Skydiving" to R.string.interest_skydiving,
-        "স্কাইডাইভিং" to R.string.interest_skydiving,
-        "स्काईडाइविंग" to R.string.interest_skydiving,
+// Adventurous & Thrilling
+"Skydiving" to R.string.interest_skydiving,
+"স্কাইডাইভিং" to R.string.interest_skydiving,              // Bengali
+"स्काईडाइविंग" to R.string.interest_skydiving,             // Hindi
+"வான்வீழ்ச்சி" to R.string.interest_skydiving,               // Tamil
+"ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,             // Kannada
+"స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,           // Telugu
 
-        "Scuba diving" to R.string.interest_scuba_diving,
-        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,
-        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,
+"Scuba diving" to R.string.interest_scuba_diving,
+"স্কুবা ডাইভিং" to R.string.interest_scuba_diving,            // Bengali
+"स्कूबा डाइविंग" to R.string.interest_scuba_diving,           // Hindi
+"கடல் உறுள் மூழ்கல்" to R.string.interest_scuba_diving,         // Tamil
+"ಸ್ಕೂಬಾ ಹಾರಣೆ" to R.string.interest_scuba_diving,             // Kannada
+"స్కూబా డైవింగ్" to R.string.interest_scuba_diving,           // Telugu
 
-        "Rock climbing" to R.string.interest_rock_climbing,
-        "রক ক্লাইমিং" to R.string.interest_rock_climbing,
-        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,
+"Rock climbing" to R.string.interest_rock_climbing,
+"রক ক্লাইমিং" to R.string.interest_rock_climbing,             // Bengali
+"रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,          // Hindi
+"சிங்கரிச் ஏறுதல்" to R.string.interest_rock_climbing,          // Tamil
+"ರಾಕ್ ಎರಕ climbing" to R.string.interest_rock_climbing,      // Kannada
+"రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,          // Telugu
 
-        "Surfing" to R.string.interest_surfing,
-        "সার্ফিং" to R.string.interest_surfing,
-        "सर्फिंग" to R.string.interest_surfing,
+"Surfing" to R.string.interest_surfing,
+"সার্ফিং" to R.string.interest_surfing,                       // Bengali
+"सर्फिंग" to R.string.interest_surfing,                       // Hindi
+"அலைபாய்ச்சி" to R.string.interest_surfing,                     // Tamil
+"ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                      // Kannada
+"సర్ఫింగ్" to R.string.interest_surfing,                       // Telugu
 
-        "Skiing" to R.string.interest_skiing,
-        "স্কিইং" to R.string.interest_skiing,
-        "स्कीयिंग" to R.string.interest_skiing,
+"Skiing" to R.string.interest_skiing,
+"স্কিইং" to R.string.interest_skiing,                          // Bengali
+"स्कीयिंग" to R.string.interest_skiing,                         // Hindi
+"அரிசல் செலுத்துதல்" to R.string.interest_skiing,                // Tamil
+"ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                      // Kannada
+"స్కీయింగ్" to R.string.interest_skiing,                       // Telugu
 
-        "Snowboarding" to R.string.interest_snowboarding,
-        "স্নোবোর্ডিং" to R.string.interest_snowboarding,
-        "स्नोबोर्डिंग" to R.string.interest_snowboarding,
+"Snowboarding" to R.string.interest_snowboarding,
+"স্নোবোর্ডিং" to R.string.interest_snowboarding,                // Bengali
+"स्नोबोर्डिंग" to R.string.interest_snowboarding,               // Hindi
+"மஞ்சுப் பலகை சறுக்குதல்" to R.string.interest_snowboarding,       // Tamil
+"ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,             // Kannada
+"స్నోబోర్డింగ్" to R.string.interest_snowboarding,               // Telugu
 
-        "Mountain biking" to R.string.interest_mountain_biking,
-        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,
-        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,
+"Mountain biking" to R.string.interest_mountain_biking,
+"মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,         // Bengali
+"माउंटेन बाइकिंग" to R.string.interest_mountain_biking,           // Hindi
+"மலை சைக்கிள் ஓட்டுதல்" to R.string.interest_mountain_biking,       // Tamil
+"ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,       // Kannada
+"మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,         // Telugu
 
-        "Motorcycling" to R.string.interest_motorcycling,
-        "মোটরসাইক্লিং" to R.string.interest_motorcycling,
-        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,
+"Motorcycling" to R.string.interest_motorcycling,
+"মোটরসাইক্লিং" to R.string.interest_motorcycling,                  // Bengali
+"मोटरसाइक्लिंग" to R.string.interest_motorcycling,                // Hindi
+"மோட்டார் சைக்கிள் ஓட்டுதல்" to R.string.interest_motorcycling,       // Tamil
+"ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,              // Kannada
+"మోటార్సైక్లింగ్" to R.string.interest_motorcycling,              // Telugu
 
-        "Car racing" to R.string.interest_car_racing,
-        "কার রেসিং" to R.string.interest_car_racing,
-        "कार रेसिंग" to R.string.interest_car_racing,
+"Car racing" to R.string.interest_car_racing,
+"কার রেসিং" to R.string.interest_car_racing,                       // Bengali
+"कार रेसिंग" to R.string.interest_car_racing,                      // Hindi
+"கார் ஓட்டப்போட்டி" to R.string.interest_car_racing,                  // Tamil
+"ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                   // Kannada
+"కార్ రేసింగ్" to R.string.interest_car_racing,                    // Telugu
 
-        "Extreme sports" to R.string.interest_extreme_sports,
-        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,
-        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,
+"Extreme sports" to R.string.interest_extreme_sports,
+"এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,            // Bengali
+"एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,            // Hindi
+"மிகுந்த விளையாட்டு" to R.string.interest_extreme_sports,             // Tamil
+"ಅತ್ಯಂತ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,                // Kannada
+"అత్యంత క్రీడలు" to R.string.interest_extreme_sports,               // Telugu
 
-        // Relaxation & Leisure
-        "Puzzles" to R.string.interest_puzzles,
-        "ধাঁধা" to R.string.interest_puzzles,
-        "पहेलियाँ" to R.string.interest_puzzles,
+// Relaxation & Leisure
+"Puzzles" to R.string.interest_puzzles,
+"ধাঁধা" to R.string.interest_puzzles,                               // Bengali
+"पहेलियाँ" to R.string.interest_puzzles,                            // Hindi
+"முயற்சித்துப் புதிர்கள்" to R.string.interest_puzzles,              // Tamil
+"ಪುಟ들은" to R.string.interest_puzzles,                            // Kannada
+"పజిల్స్" to R.string.interest_puzzles,                              // Telugu
 
-        "Board games" to R.string.interest_board_games,
-        "বোর্ড গেমস" to R.string.interest_board_games,
-        "बोर्ड गेम्स" to R.string.interest_board_games,
+"Board games" to R.string.interest_board_games,
+"বোর্ড গেমস" to R.string.interest_board_games,                       // Bengali
+"बोर्ड गेम्स" to R.string.interest_board_games,                       // Hindi
+"தகடுப் பந்திகள்" to R.string.interest_board_games,                  // Tamil
+"ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                     // Kannada
+"బోర్డ్ గేమ్స్" to R.string.interest_board_games,                     // Telugu
 
-        "Video games" to R.string.interest_video_games,
-        "ভিডিও গেমস" to R.string.interest_video_games,
-        "वीडियो गेम्स" to R.string.interest_video_games,
+"Video games" to R.string.interest_video_games,
+"ভিডিও গেমস" to R.string.interest_video_games,                       // Bengali
+"वीडियो गेम्स" to R.string.interest_video_games,                      // Hindi
+"வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,              // Tamil
+"ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                     // Kannada
+"వీడియో గేమ్స్" to R.string.interest_video_games,                     // Telugu
 
-        "Watching TV" to R.string.interest_watching_tv,
-        "টিভি দেখা" to R.string.interest_watching_tv,
-        "टीवी देखना" to R.string.interest_watching_tv,
+"Watching TV" to R.string.interest_watching_tv,
+"টিভি দেখা" to R.string.interest_watching_tv,                         // Bengali
+"टीवी देखना" to R.string.interest_watching_tv,                        // Hindi
+"தொலைக்காட்சி பார்க்குதல்" to R.string.interest_watching_tv,           // Tamil
+"ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                       // Kannada
+"టీవీ వీక్షణ" to R.string.interest_watching_tv,                       // Telugu
 
-        "Napping" to R.string.interest_napping,
-        "ন্যাপিং" to R.string.interest_napping,
-        "नैपिंग" to R.string.interest_napping,
+"Napping" to R.string.interest_napping,
+"ন্যাপিং" to R.string.interest_napping,                                // Bengali
+"नैपिंग" to R.string.interest_napping,                                // Hindi
+"கண்மூசப்போழுது" to R.string.interest_napping,                        // Tamil
+"ನಾಪಿಂಗ್" to R.string.interest_napping,                               // Kannada
+"నాపింగ్" to R.string.interest_napping,                               // Telugu
 
-        "Spa days" to R.string.interest_spa_days,
-        "স্পা ডে" to R.string.interest_spa_days,
-        "स्पा दिन" to R.string.interest_spa_days,
+"Spa days" to R.string.interest_spa_days,
+"স্পা ডে" to R.string.interest_spa_days,                               // Bengali
+"स्पा दिन" to R.string.interest_spa_days,                              // Hindi
+"ஸ்பா நாட்கள்" to R.string.interest_spa_days,                          // Tamil
+"ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                           // Kannada
+"స్పా రోజులు" to R.string.interest_spa_days,                            // Telugu
 
-        "Beach days" to R.string.interest_beach_days,
-        "বিচ ডে" to R.string.interest_beach_days,
-        "बीच डे" to R.string.interest_beach_days,
+"Beach days" to R.string.interest_beach_days,
+"বিচ ডে" to R.string.interest_beach_days,                              // Bengali
+"बीच डे" to R.string.interest_beach_days,                               // Hindi
+"கடல் பலகை நாட்கள்" to R.string.interest_beach_days,                     // Tamil
+"ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                         // Kannada
+"బీచ్ రోజులు" to R.string.interest_beach_days,                           // Telugu
 
-        "Picnics" to R.string.interest_picnics,
-        "পিকনিক" to R.string.interest_picnics,
-        "पिकनिक" to R.string.interest_picnics
-    )
+"Picnics" to R.string.interest_picnics,
+"পিকনিক" to R.string.interest_picnics,                                 // Bengali
+"पिकनिक" to R.string.interest_picnics,                                 // Hindi
+"புண்ணிய உணவு" to R.string.interest_picnics,                              // Tamil
+"ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                 // Kannada
+"పిక్నిక్" to R.string.interest_picnics,                                 // Telugu
+)
 
     // 2) Group by resId, pick one rawName per interest
     val availableInterests = remember {

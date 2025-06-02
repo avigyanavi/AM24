@@ -301,19 +301,19 @@ fun LanguageSelectionBar(
         "English" to "en",
         "हिन्दी"   to "hi",
         "বাংলা"    to "bn",
-        /* coming soon */
         "தமிழ்"   to "ta",
-        "ଓଡ଼ିଆ"   to "or",
+        "ಕನ್ನಡ"   to "kn",
         "తెలుగు"  to "te",
+        //locked
         "मराठी"    to "mr",
         "ગુજરાતી" to "gu",
-        "ಕನ್ನಡ"   to "kn",
         "മലയാളം"  to "ml",
         "অসমীয়া" to "as",
-        "ਪੰਜਾਬੀ"  to "pa"
-    )
+        "ਪੰਜਾਬੀ"  to "pa",
+        "ଓଡ଼ିଆ"   to "or",
+        )
 
-    val unlockedCodes = setOf("en", "hi", "bn")
+    val unlockedCodes = setOf("en", "hi", "bn", "ta", "kn", "te")
     val scroll        = rememberScrollState()
 
     Row(
