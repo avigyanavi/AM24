@@ -118,8 +118,9 @@ fun CreatePostScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding), // Apply padding from Scaffold
-                verticalArrangement = Arrangement.Center,
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -128,27 +129,76 @@ fun CreatePostScreen(
                     color = Color.White
                 )
                 Spacer(modifier = Modifier.height(24.dp))
+
+                // 1) Text posts are always enabled
                 PostTypeButton(
                     icon = Icons.Default.TextFields,
                     label = "Text Post",
-                    onClick = { navController.navigate("create_post/text") }
+                    enabled = true,
+                    onClick = {
+                        navController.navigate("create_post/text")
+                    }
                 )
-                if (isPremium || isPlus) {
-                    Spacer(Modifier.height(16.dp))
-                    PostTypeButton(icon = Icons.Default.Photo, label = "Image Post", onClick = {
-                        navController.navigate("create_post/image")
-                    })
-                    Spacer(Modifier.height(16.dp))
-                    PostTypeButton(icon = Icons.Default.Videocam, label = "Video Post", onClick = {
-                        navController.navigate("create_post/video")
-                    })
-                    Spacer(modifier = Modifier.height(16.dp))
-                    PostTypeButton(
-                        icon = Icons.Default.Mic,
-                        label = "Voice Post",
-                        onClick = { navController.navigate("create_post/voice") }
-                    )
-                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 2) Image Post – locked for non-premium/non-plus
+                PostTypeButton(
+                    icon = Icons.Default.Photo,
+                    label = "Image Post",
+                    enabled = isPremium || isPlus,
+                    onClick = {
+                        if (isPremium || isPlus) {
+                            navController.navigate("create_post/image")
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Upgrade to Plus to create Image Posts",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 3) Video Post – locked for non-premium/non-plus
+                PostTypeButton(
+                    icon = Icons.Default.Videocam,
+                    label = "Video Post",
+                    enabled = isPremium || isPlus,
+                    onClick = {
+                        if (isPremium || isPlus) {
+                            navController.navigate("create_post/video")
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Upgrade to Plus to create Video Posts",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 4) Voice Post – locked for non-premium/non-plus
+                PostTypeButton(
+                    icon = Icons.Default.Mic,
+                    label = "Voice Post",
+                    enabled = isPremium || isPlus,
+                    onClick = {
+                        if (isPremium || isPlus) {
+                            navController.navigate("create_post/voice")
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Upgrade to Plus to create Voice Posts",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                )
             }
         }
     )
@@ -158,26 +208,59 @@ fun CreatePostScreen(
 fun PostTypeButton(
     icon: ImageVector,
     label: String,
+    enabled: Boolean,
     onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
             .height(60.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (enabled) Color(0xFFFFA500) else Color(0xFF888888)
+        ),
         shape = MaterialTheme.shapes.medium
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = Color.White,
+            tint = if (enabled) Color.White else Color.LightGray,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Text(text = label, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = label,
+            color = if (enabled) Color.White else Color.LightGray,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
+
+//@Composable
+//fun PostTypeButton(
+//    icon: ImageVector,
+//    label: String,
+//    onClick: () -> Unit
+//) {
+//    Button(
+//        onClick = onClick,
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .height(60.dp),
+//        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+//        shape = MaterialTheme.shapes.medium
+//    ) {
+//        Icon(
+//            imageVector = icon,
+//            contentDescription = label,
+//            tint = Color.White,
+//            modifier = Modifier.size(24.dp)
+//        )
+//        Spacer(modifier = Modifier.width(16.dp))
+//        Text(text = label, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+//    }
+//}
 
 // Add the fetchUsernameById function
 suspend fun fetchUsernameById(userId: String): String? {

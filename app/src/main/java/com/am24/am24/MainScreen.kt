@@ -128,20 +128,6 @@ fun TopNavBar(
     var priceMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedPriceRange by rememberSaveable { mutableStateOf(priceAll) }
 
-    // New: language menu
-    var pickLangMenu by remember { mutableStateOf(false) }
-    val ctx = LocalContext.current
-    val activity = ctx as? ComponentActivity
-    var appLang by rememberSaveable { mutableStateOf(LocaleUtils.getSavedLang(ctx)) }
-    val languages = listOf(
-        "English" to "en",
-        "हिन्दी" to "hi",
-        "বাংলা" to "bn",
-        "தமிழ்" to "ta",
-        "ಕನ್ನಡ" to "kn",
-        "తెలుగు" to "te"
-    )
-
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
         val profileRef = FirebaseRefs.db
@@ -353,45 +339,6 @@ fun TopNavBar(
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
-                }
-            }
-
-            // 5) **Language picker** on Dating, Map, DMs and Feed:
-            if (currentRoute in listOf("profile", "settings")) {
-                IconButton(
-                    onClick = { pickLangMenu = !pickLangMenu },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = if (pickLangMenu) Color(0xFFFF6F00) else Color.White
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Language,
-                        contentDescription = stringResource(R.string.btn_language),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = pickLangMenu,
-                    onDismissRequest = { pickLangMenu = false }
-                ) {
-                    languages.forEach { (label, code) ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    label,
-                                    color = if (appLang == code) Color(0xFFFF6F00) else Color.White
-                                )
-                            },
-                            onClick = {
-                                pickLangMenu = false
-                                if (appLang != code) {
-                                    appLang = code
-                                    LocaleUtils.setAppLocale(ctx, code)
-                                    activity?.recreate()
-                                }
-                            }
-                        )
-                    }
                 }
             }
 

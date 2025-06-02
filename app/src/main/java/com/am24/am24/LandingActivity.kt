@@ -10,12 +10,12 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -42,9 +42,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.firebase.auth.EmailAuthProvider
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.*
 import java.util.Locale
 
 /* ──────────────────────────────────────────────────────────────────────────── */
@@ -73,6 +71,7 @@ class LandingActivity : ComponentActivity() {
                 firebaseAuthWithGoogle(account?.idToken, account)
             } catch (e: ApiException) {
                 Log.w("LandingActivity", "Google sign in failed", e)
+                toast("Google sign-in failed: ${e.localizedMessage}")
             }
         }
     }
@@ -94,31 +93,165 @@ class LandingActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 LandingScreen(
-                    onLoginClick  = { startActivity(Intent(this, LoginActivity ::class.java)); finish() },
-                    onRegisterClick = { startActivity(Intent(this, RegistrationActivity::class.java)); finish() },
-                    onGoogleSignIn  = { signInWithGoogle() },
-                    onFacebookSignIn = { /* TODO */ }
+                    onLoginClick = {
+                        startActivity(Intent(this, LoginActivity::class.java))
+                        finish()
+                    },
+                    onRegisterClick = {
+                        startActivity(Intent(this, RegistrationActivity::class.java))
+                        finish()
+                    },
+                    onGoogleSignIn = { signInWithGoogle() },
+                    onFacebookSignIn = { /* TODO: add Facebook logic */ }
                 )
             }
         }
     }
 
     private fun signInWithGoogle() {
+        // Always sign out first to force a fresh account chooser
         googleSignInClient.signOut().addOnCompleteListener {
             googleSignInLauncher.launch(googleSignInClient.signInIntent)
         }
     }
 
-    /* … (no change in the auth helper methods below) … */
+    /**
+     * Called immediately after GoogleSignInAccount is retrieved.
+     * Exchanges the Google ID token for a Firebase credential, then either:
+     *  - If this email/provider already exists with Firebase, simply sign in.
+     *  - Otherwise, handle registration (email/password link or new user flow).
+     */
+    private fun firebaseAuthWithGoogle(idToken: String?, account: GoogleSignInAccount?) {
+        Log.d("LandingActivity", "firebaseAuthWithGoogle called, idToken=$idToken")
+        if (idToken.isNullOrEmpty()) {
+            Log.e("LandingActivity", "ID token was null or empty. Aborting.")
+            toast("ID token was null. Check your OAuth client / SHA-1.")
+            return
+        }
 
-    private fun firebaseAuthWithGoogle(idToken: String?, account: GoogleSignInAccount?) { /* unchanged */ }
-    private fun signInAndHandleRegistration(idToken: String?) { /* unchanged */ }
-    private fun signInAndGoMain(idToken: String?) { /* unchanged */ }
-    private fun promptForPasswordAndLink(email: String, idToken: String?) { /* unchanged */ }
-    private fun startRegistrationFlow() { /* unchanged */ }
-    private fun goToMain() { /* unchanged */ }
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        firebaseAuth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Signed in successfully—now decide if this is a new user or an existing one
+                    Log.d("LandingActivity", "Firebase signInWithCredential: succeeded.")
+                    if (task.result?.additionalUserInfo?.isNewUser == true) {
+                        // A brand-new Firebase user: run registration flow
+                        startRegistrationFlow()
+                    } else {
+                        // Existing user: go directly to MainActivity
+                        signInAndGoMain(idToken)
+                    }
+                } else {
+                    // If sign-in fails because the email already exists with a different provider,
+                    // we need to link or ask for a password.
+                    val exception = task.exception
+                    if (exception is FirebaseAuthUserCollisionException) {
+                        // Email exists with a different credential.
+                        val email = exception.email ?: ""
+                        Log.w("LandingActivity", "Collision: email exists: $email")
+                        promptForPasswordAndLink(email, idToken)
+                    } else {
+                        Log.e("LandingActivity", "Firebase signInWithCredential: failed", exception)
+                        toast("Firebase authentication failed: ${exception?.localizedMessage}")
+                    }
+                }
+            }
+    }
+
+    /**
+     * If the email returned by Google already exists in Firebase, but is not yet linked to Google,
+     * we prompt for the user’s password so we can sign in with email/password and then link the Google credential.
+     */
+    private fun promptForPasswordAndLink(email: String, idToken: String?) {
+        // Show a simple AlertDialog with an EditText to collect password
+        // Once password is collected, call collectPasswordFromUser() → link credential
+        collectPasswordFromUser(email) { password ->
+            val existingCredential = EmailAuthProvider.getCredential(email, password)
+            firebaseAuth.signInWithCredential(existingCredential)
+                .addOnCompleteListener(this) { signInTask ->
+                    if (signInTask.isSuccessful) {
+                        // Already signed in via email/password—now link Google credential
+                        val googleCred = GoogleAuthProvider.getCredential(idToken, null)
+                        firebaseAuth.currentUser
+                            ?.linkWithCredential(googleCred)
+                            ?.addOnCompleteListener(this) { linkTask ->
+                                if (linkTask.isSuccessful) {
+                                    Log.d("LandingActivity", "Successfully linked Google account.")
+                                    toast("Accounts linked! Welcome back.")
+                                    goToMain()
+                                } else {
+                                    Log.e(
+                                        "LandingActivity",
+                                        "Failed to link Google credential",
+                                        linkTask.exception
+                                    )
+                                    toast("Failed to link accounts: ${linkTask.exception?.localizedMessage}")
+                                }
+                            }
+                    } else {
+                        Log.e(
+                            "LandingActivity",
+                            "Email/Password sign in failed when linking",
+                            signInTask.exception
+                        )
+                        toast("Password incorrect or sign-in failed: ${signInTask.exception?.localizedMessage}")
+                    }
+                }
+        }
+    }
+
+    /**
+     * Called when Google-authenticated user is brand-new. Fire off any registration logic:
+     * e.g. create a Firebase user profile entry, collect additional info, etc.
+     */
+    private fun startRegistrationFlow() {
+        // You can collect additional info here (e.g. username, displayName, etc.).
+        // For simplicity, we’ll just go straight to “Main” or finish registration.
+        Log.d("LandingActivity", "Starting registration flow for new user.")
+        // … insert any “extra registration” UI/dialog if needed …
+        goToMain()
+    }
+
+    /** Called when an existing Google-linked Firebase user should be sent to MainActivity. */
+    private fun signInAndGoMain(idToken: String?) {
+        Log.d("LandingActivity", "Existing user authenticated; navigating to MainActivity.")
+        goToMain()
+    }
+
+    /** Launches the main/home screen. */
+    private fun goToMain() {
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
+    }
+
+    /** Simple Toast helper. */
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-    private fun collectPasswordFromUser(email: String, onPassword: (String) -> Unit) { /* unchanged */ }
+
+    /**
+     * Shows a password‐input dialog, then calls `onPassword(password)` once the user confirms.
+     * (This was “unchanged” in your old code; we implement it via an AlertDialog here.)
+     */
+    private fun collectPasswordFromUser(email: String, onPassword: (String) -> Unit) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Link accounts")
+        builder.setMessage("Enter password for $email to link your Google account:")
+        val input = android.widget.EditText(this).apply {
+            hint = "Password"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        builder.setView(input)
+        builder.setPositiveButton("OK") { dialog, _ ->
+            val password = input.text.toString()
+            dialog.dismiss()
+            onPassword(password)
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ ->
+            dialog.cancel()
+        }
+        builder.show()
+    }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────── */
@@ -141,9 +274,9 @@ fun LandingScreen(
     onFacebookSignIn: () -> Unit
 ) {
     val context = LocalContext.current
-    val prefs   = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
-    var shouldRestart     by remember { mutableStateOf(false) }
+    var shouldRestart by remember { mutableStateOf(false) }
 
     if (shouldRestart) {
         LaunchedEffect(Unit) {
@@ -174,44 +307,56 @@ fun LandingScreen(
         ) {
             Text(
                 stringResource(R.string.welcome_kupidx),
-                color      = Color.White,
-                fontSize   = 20.sp,
+                color = Color.White,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign  = TextAlign.Center,
-                modifier   = Modifier.padding(bottom = 24.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 24.dp)
             )
 
             SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
 
-            Spacer(Modifier.height(24.dp))          // ← NEW spacer between Meta + Register
+            Spacer(Modifier.height(24.dp)) // ← spacer between Meta + Register
 
             OutlinedButton(
-                onClick   = onRegisterClick,
-                modifier  = Modifier
+                onClick = onRegisterClick,
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                shape     = RoundedCornerShape(25.dp),
-                border    = BorderStroke(1.dp, Color(0xFFFF6600)),
-                colors    = ButtonDefaults.outlinedButtonColors(
+                shape = RoundedCornerShape(25.dp),
+                border = BorderStroke(1.dp, Color(0xFFFF6600)),
+                colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.Black,
-                    contentColor   = Color.White
+                    contentColor = Color.White
                 )
-            ) { Text(stringResource(R.string.register), fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+            ) {
+                Text(
+                    stringResource(R.string.register),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
             OutlinedButton(
-                onClick   = onLoginClick,
-                modifier  = Modifier
+                onClick = onLoginClick,
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                shape     = RoundedCornerShape(25.dp),
-                border    = BorderStroke(1.dp, Color(0xFFFF6600)),
-                colors    = ButtonDefaults.outlinedButtonColors(
+                shape = RoundedCornerShape(25.dp),
+                border = BorderStroke(1.dp, Color(0xFFFF6600)),
+                colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.Black,
-                    contentColor   = Color.White
+                    contentColor = Color.White
                 )
-            ) { Text(stringResource(R.string.login), fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+            ) {
+                Text(
+                    stringResource(R.string.login),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
         /* ───────  BOTTOM-ANCHORED LANGUAGE ROW  ─────── */
@@ -219,7 +364,7 @@ fun LandingScreen(
             selectedLanguage = selectedLanguage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .navigationBarsPadding()       // keeps row above gesture bar
+                .navigationBarsPadding() // keeps row above gesture bar
         ) { lang ->
             prefs.edit().putString("language", lang).apply()
             updateLocale(context, lang)
@@ -237,17 +382,17 @@ fun SocialSignInButtons(
 ) = Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
     SocialSignInButton(
-        logo         = R.drawable.ic_google_logo,
-        text         = stringResource(R.string.continue_with_google),
+        logo = R.drawable.ic_google_logo,
+        text = stringResource(R.string.continue_with_google),
         contentColor = Color.Black,
-        onClick      = onGoogleSignIn
+        onClick = onGoogleSignIn
     )
 
     SocialSignInButton(
-        logo         = R.drawable.facebook_logo,
-        text         = stringResource(R.string.continue_with_facebook),
+        logo = R.drawable.facebook_logo,
+        text = stringResource(R.string.continue_with_facebook),
         contentColor = Color(0xFF1877F2),
-        onClick      = onFacebookSignIn
+        onClick = onFacebookSignIn
     )
 }
 
@@ -260,31 +405,31 @@ fun SocialSignInButton(
     onClick: () -> Unit
 ) {
     Button(
-        onClick  = onClick,
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .height(50.dp),
-        shape   = RoundedCornerShape(25.dp),
-        border  = BorderStroke(1.dp, Color.LightGray),
-        colors  = ButtonDefaults.buttonColors(
+        shape = RoundedCornerShape(25.dp),
+        border = BorderStroke(1.dp, Color.LightGray),
+        colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
-            contentColor   = contentColor
+            contentColor = contentColor
         ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
     ) {
         Icon(
-            painter  = painterResource(logo),
+            painter = painterResource(logo),
             contentDescription = null,
-            tint     = Color.Unspecified,
+            tint = Color.Unspecified,
             modifier = Modifier.size(25.dp)
         )
         Spacer(Modifier.width(12.dp))
         Text(
             text,
             fontWeight = FontWeight.SemiBold,
-            fontSize   = 10.sp,
-            maxLines   = 1,                      // keeps a single row
-            overflow   = TextOverflow.Ellipsis   // fade if user pumps font scale
+            fontSize = 10.sp,
+            maxLines = 1, // keeps a single row
+            overflow = TextOverflow.Ellipsis // fade if user pumps font scale
         )
     }
 }
@@ -299,28 +444,28 @@ fun LanguageSelectionBar(
 ) {
     val languages = listOf(
         "English" to "en",
-        "हिन्दी"   to "hi",
-        "বাংলা"    to "bn",
-        "தமிழ்"   to "ta",
-        "ಕನ್ನಡ"   to "kn",
-        "తెలుగు"  to "te",
-        //locked
-        "मराठी"    to "mr",
+        "हिन्दी" to "hi",
+        "বাংলা" to "bn",
+        "தமிழ்" to "ta",
+        "ಕನ್ನಡ" to "kn",
+        "తెలుగు" to "te",
+        // locked
+        "मराठी" to "mr",
         "ગુજરાતી" to "gu",
-        "മലയാളം"  to "ml",
+        "മലയാളം" to "ml",
         "অসমীয়া" to "as",
-        "ਪੰਜਾਬੀ"  to "pa",
-        "ଓଡ଼ିଆ"   to "or",
-        )
+        "ਪੰਜਾਬੀ" to "pa",
+        "ଓଡ଼ିଆ" to "or"
+    )
 
     val unlockedCodes = setOf("en", "hi", "bn", "ta", "kn", "te")
-    val scroll        = rememberScrollState()
+    val scroll = rememberScrollState()
 
     Row(
         modifier = modifier
             .horizontalScroll(scroll)
-            .padding(bottom = 8.dp),  // ← NEW: scoot 8 dp up
-    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         languages.forEach { (label, code) ->
             val isUnlocked = code in unlockedCodes
@@ -337,20 +482,22 @@ fun LanguageSelectionBar(
                 }
 
                 Button(
-                    onClick  = { if (isUnlocked) onLanguageSelected(code) },
-                    enabled  = isUnlocked,
+                    onClick = { if (isUnlocked) onLanguageSelected(code) },
+                    enabled = isUnlocked,
                     modifier = Modifier
-                                   .defaultMinSize(minHeight = 36.dp)   // 36 dp minimum, but may grow
-                                   .padding(horizontal = 0.dp),         // keep width logic unchanged
-                    colors   = ButtonDefaults.buttonColors(
+                        .defaultMinSize(minHeight = 36.dp) // 36 dp minimum, but may grow
+                        .padding(horizontal = 0.dp), // keep width logic unchanged
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = when {
                             isUnlocked && isSelected -> Color(0xFFFF6000)
-                            isUnlocked               -> Color.DarkGray
-                            else                     -> Color.Gray
+                            isUnlocked -> Color.DarkGray
+                            else -> Color.Gray
                         },
-                        contentColor   = Color.White
+                        contentColor = Color.White
                     )
-                ) { Text(label, fontSize = 10.sp, maxLines = 1) }
+                ) {
+                    Text(label, fontSize = 10.sp, maxLines = 1)
+                }
             }
         }
     }

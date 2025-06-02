@@ -486,7 +486,7 @@
     <string name="edit_matrimony_info_cd">বিবাহ তথ্য সম্পাদনা করুন</string>
 
     <!-- PHOTO CAROUSEL OVERLAY -->
-    <string name="from_hometown">%@", "%1$s থেকে</string>
+    <string name="from_hometown">%1$s থেকে</string>
     <string name="posts_button">পোস্টসমূহ</string>
     <string name="edit_profile_cd">প্রোফাইল সম্পাদনা করুন</string>
 
