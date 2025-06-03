@@ -427,7 +427,7 @@ fun SocialSignInButton(
         Text(
             text,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             maxLines = 1, // keeps a single row
             overflow = TextOverflow.Ellipsis // fade if user pumps font scale
         )
@@ -496,7 +496,7 @@ fun LanguageSelectionBar(
                         contentColor = Color.White
                     )
                 ) {
-                    Text(label, fontSize = 10.sp, maxLines = 1)
+                    Text(label, fontSize = 11.sp, maxLines = 1)
                 }
             }
         }

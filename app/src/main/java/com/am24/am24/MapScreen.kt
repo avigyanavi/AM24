@@ -10,8 +10,10 @@ import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*       // ⬅ add this line
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -31,6 +34,7 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -58,6 +62,14 @@ import com.am24.am24.PlaceResult
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+
+// ───────── leaderboard model ─────────
+data class LeaderboardEntry(
+    val placeId: String,
+    val placeName: String,   // NEW
+    val checkInCount: Int
+)
+
 
 /*────────────────── utils ──────────────────*/
 private fun getBearing(from: LatLng, to: LatLng): Float {
@@ -108,6 +120,7 @@ suspend fun getPlaceNameFromPlaceId(placeId: String, context: android.content.Co
 /* ────────── cluster model ────────── */
 private data class CheckInCluster(
     val placeId: String,
+    val placeName: String,   // NEW
     val postIds: List<String>
 )
 
@@ -129,6 +142,7 @@ fun MapScreen(
     /* ───── state ───── */
     var searchQuery by remember { mutableStateOf("") }
     var showSearchBar by remember { mutableStateOf(false) }
+    var showLeaderboard by remember { mutableStateOf(false) }   // ⭐ new
     val camera = rememberCameraPositionState()
     val matchMarkers = remember { mutableStateListOf<MarkerData>() }
     val searchResults = remember { mutableStateListOf<PlaceResult>() }
@@ -218,11 +232,15 @@ fun MapScreen(
 
             /* ---- 1) group posts by placeId and grab lat/lng when present ---- */
             val grouped = mutableMapOf<String, MutableList<String>>()   // placeId → postIds
+            val nameCache = mutableMapOf<String, String>()            // placeId → placeName
 
             snap.children.forEach { postSnap ->
                 val postId  = postSnap.key ?: return@forEach
                 val ci      = postSnap.child("checkIn")
                 val placeId = ci.child("placeId").getValue(String::class.java) ?: return@forEach
+                val placeNm = ci.child("name").getValue(String::class.java) ?: "Unknown"
+
+                nameCache[placeId] = placeNm
 
                 grouped.getOrPut(placeId) { mutableListOf() }.add(postId)
 
@@ -239,7 +257,8 @@ fun MapScreen(
             }
 
             grouped.forEach { (pid, postIds) ->
-                clusters += CheckInCluster(pid, postIds)
+                val name = nameCache[pid] ?: "Unknown"
+                clusters += CheckInCluster(pid, name, postIds)
             }
 
             /* ---- 2) resolve the *missing* ones in parallel ------------------ */
@@ -557,7 +576,36 @@ fun MapScreen(
                 }
             }
         }
-
+        FloatingActionButton(
+            onClick = { showLeaderboard = true },
+            containerColor = Color(0xFFFF6F00),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 32.dp)
+        ) {
+            // use Icons.Outlined.Leaderboard (needs icons-extended) or fallback:
+            Icon(Icons.Outlined.Leaderboard, contentDescription = "Leaderboard")
+        }
+        if (showLeaderboard) {
+            // build a sorted snapshot whenever clusters change
+            val leaderboardEntries = remember(clusters) {
+                clusters.sortedByDescending { it.postIds.size }
+                    .map { LeaderboardEntry(it.placeId, it.placeName, it.postIds.size) }
+            }
+            LeaderboardOverlay(
+                entries = leaderboardEntries,
+                onDismiss = { showLeaderboard = false },
+                onEntryClick = { entry ->
+                    showLeaderboard = false                   // close overlay
+                    clusterLatLngs[entry.placeId]?.let { ll ->   // zoom map
+                        scope.launch {
+                            camera.animate(CameraUpdateFactory.newLatLngZoom(ll, 18f))
+                        }
+                    }
+                    navController.navigate("checkinFeed/${entry.placeId}") // open feed
+                }
+            )
+        }
         /* global loading overlay */
         if (isLoadingMatches || isLoadingSearch || isLoadingQuickSearch) {
             Box(
@@ -569,6 +617,108 @@ fun MapScreen(
                 CircularProgressIndicator(color = Color.White)
             }
         }
+    }
+}
+
+@Composable
+fun LeaderboardOverlay(
+    entries: List<LeaderboardEntry>,
+    onDismiss: () -> Unit,
+    onEntryClick: (LeaderboardEntry) -> Unit
+) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(indication = null,
+                interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth(0.85f)
+                .fillMaxHeight(0.6f)
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(16.dp)
+                .clickable(indication = null,
+                    interactionSource = remember { MutableInteractionSource() }) { },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Top Places",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp))
+            Divider()
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                // Use itemsIndexed so we know each entry’s position (i.e. rank)
+                itemsIndexed(entries) { index, entry ->
+                    // index starts at 0, so rank = index + 1
+                    LeaderboardRow(
+                        rank = index + 1,
+                        entry = entry,
+                        onClick = { onEntryClick(entry) }
+                    )
+                    Divider()
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    }
+}
+
+@Composable
+private fun LeaderboardRow(
+    rank: Int,
+    entry: LeaderboardEntry,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 1) Show the rank (e.g. “1.”)
+        Text(
+            text = "$rank.",
+            fontWeight = FontWeight.Bold,
+            // fixed width so numbers line up
+            modifier = Modifier.width(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // 2) Show placeName and count of posts
+        Column(modifier = Modifier.weight(1f)) {
+            // place name
+            Text(
+                text = entry.placeName,
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
+                color = Color.Black,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            // “12 posts” (or whatever number)
+            Text(
+                text = "${entry.checkInCount} posts",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+
+        // (Optional) If you want a chevron icon on the right to show it’s clickable:
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = "Go to feed",
+            tint = Color.Gray
+        )
     }
 }
 

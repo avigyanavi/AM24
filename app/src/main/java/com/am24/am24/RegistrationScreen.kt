@@ -1718,7 +1718,7 @@ fun SearchableDropdownWithCustomOption(
     var searchText by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxWidth()) {
-        Text(text = title, color = Color.White, fontSize = 9.sp)
+        Text(text = title, color = Color.White, fontSize = 11.sp)
 
         OutlinedButton(
             onClick = {
@@ -1732,7 +1732,7 @@ fun SearchableDropdownWithCustomOption(
             Text(
                 text = if (showCustomInput) customInput.orEmpty()
                 else selectedOption.ifEmpty { stringResource(R.string.select_or_type) },
-                fontSize = 9.sp,
+                fontSize = 11.sp,
                 color = Color.White
             )
         }
@@ -1751,7 +1751,7 @@ fun SearchableDropdownWithCustomOption(
                     showCustomInput = false
                 },
                 label = {
-                    Text(stringResource(R.string.search_label), fontSize = 9.sp, color = Color.White)
+                    Text(stringResource(R.string.search_label), fontSize = 11.sp, color = Color.White)
                 },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedLabelColor = Color(0xFFFF4500),
@@ -1767,7 +1767,7 @@ fun SearchableDropdownWithCustomOption(
                 .filter { it.contains(searchText, ignoreCase = true) }
                 .forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(option, fontSize = 9.sp, color = Color.White) },
+                        text = { Text(option, fontSize = 11.sp, color = Color.White) },
                         onClick = {
                             onOptionSelected(option)
                             expanded = false
@@ -1787,7 +1787,7 @@ fun SearchableDropdownWithCustomOption(
                 label = {
                     Text(
                         stringResource(R.string.enter_custom_value),
-                        fontSize = 9.sp,
+                        fontSize = 11.sp,
                         color = Color.White
                     )
                 },

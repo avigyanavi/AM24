@@ -127,7 +127,7 @@ fun BoostedPill(modifier: Modifier = Modifier) {
         Text(
             text = "Boosted profile",
             color = Color.White,
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -723,7 +723,7 @@ fun IconWithQuota(
         /* ───────  QUOTA NUMBER  ─────── */
         Text(
             quota.toString(),
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             color      = progressC,
             fontWeight = FontWeight.Bold,
             modifier   = Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp)
@@ -1023,7 +1023,7 @@ fun FiltersOverlay(
                     Text(
                         text = stringResource(R.string.upgrade_to_plus_to_unlock),
                         color = Color.Gray,
-                        fontSize = 9.sp
+                        fontSize = 11.sp
                     )
                 }
             }
@@ -1062,7 +1062,7 @@ fun FiltersOverlay(
                     Text(
                         text = stringResource(R.string.upgrade_to_premium_to_unlock),
                         color = Color.Gray,
-                        fontSize = 9.sp
+                        fontSize = 11.sp
                     )
                 }
             }
@@ -1550,7 +1550,7 @@ fun DropdownFilter(
     val allOptions = listOf(clearSelectionText) + options // Add "Clear Selection" option
 
     Column {
-        Text(label, color = Color.White, fontSize = 9.sp)
+        Text(label, color = Color.White, fontSize = 11.sp)
         Box {
             Button(
                 onClick = { expanded = !expanded },
@@ -1617,14 +1617,14 @@ fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 5) {
         Text(
             text = stringResource(R.string.adjust_filters),
             color = Color.White,
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         Text(
             text = stringResource(R.string.or_click_date_to_refresh),
             color = Color.White,
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -2035,7 +2035,7 @@ fun PhotoWithTwoOverlays(
                     Text(
                         text = stringResource(R.string.no_images),
                         color = Color.White,
-                        fontSize = 9.sp
+                        fontSize = 11.sp
                     )
                 }
             }
@@ -2083,7 +2083,7 @@ fun PhotoWithTwoOverlays(
                 Text(
                     text = if (age > 0) "${profile.name}, $age" else profile.name,
                     color = Color.White,
-                    fontSize = 9.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2155,7 +2155,7 @@ fun PhotoWithTwoOverlays(
                         Text(
                             text = c.text,
                             color = Color.White,
-                            fontSize = 9.sp,
+                            fontSize = 11.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -2214,7 +2214,7 @@ fun TagBox(
         Text(
             text = text,
             color = Color.White,
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             maxLines = 10,                      // force a single line
             softWrap = true
         )
@@ -2542,7 +2542,7 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
         Text(
             text = stringResource(R.string.analyzed_on, formatTime(result.timestamp)),
             color = Color.Gray,
-            fontSize = 9.sp
+            fontSize = 11.sp
         )
     }
 }
@@ -2614,7 +2614,7 @@ fun CollapsibleSection(
             text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             modifier = Modifier.weight(1f)
         )
         IconButton(
@@ -3153,7 +3153,7 @@ fun ComplimentDialog(
                     Text(
                         text = if (isRecording) "Recording..." else "Tap to record",
                         color = Color.White,
-                        fontSize = 9.sp
+                        fontSize = 11.sp
                     )
                 }
 
@@ -3162,7 +3162,7 @@ fun ComplimentDialog(
                     Text(
                         text = "Voice compliment ready!",
                         color = Color.Green,
-                        fontSize = 9.sp,
+                        fontSize = 11.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )

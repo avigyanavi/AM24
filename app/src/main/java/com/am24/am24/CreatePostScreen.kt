@@ -56,9 +56,6 @@ import androidx.core.content.FileProvider
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
 import java.io.File
-import java.io.IOException
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.window.PopupProperties
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -222,6 +219,7 @@ fun PostTypeButton(
         ),
         shape = MaterialTheme.shapes.medium
     ) {
+        // Main icon (text / photo / video / mic)
         Icon(
             imageVector = icon,
             contentDescription = label,
@@ -229,13 +227,27 @@ fun PostTypeButton(
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
+
+        // Label
         Text(
             text = label,
             color = if (enabled) Color.White else Color.LightGray,
             style = MaterialTheme.typography.bodyLarge
         )
+
+        // If disabled, show a small lock icon at the end
+        if (!enabled) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Locked",
+                tint = Color.LightGray,
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
+
 
 //@Composable
 //fun PostTypeButton(

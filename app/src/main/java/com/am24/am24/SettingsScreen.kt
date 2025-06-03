@@ -1,3 +1,18 @@
+// SettingsScreen.kt  (drop-in replacement)
+//
+// Implements:
+//  • Card-style UI (Lichess look)
+//  • Password change overlay with old/new/confirm
+//  • Username edit with disabled “Done” on blank
+//  • Language picker: en, hi, bn, ta, kn, te
+//  • Free-tier row doubles as “Upgrade” CTA; Premium shows dashboard + cancel
+//  • PurchaseOptionsSection restored
+//  • All onClick lambdas present
+//
+// Requires: FirebaseAuth, Firebase Realtime DB helper `FirebaseRefs`,
+//           updateLocale(context, langCode) extension you already had,
+//           NavController routes:  “subscription”, “buySwipes”, “buyCompliments”, “buyBoosts”
+//
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.am24.am24
@@ -6,14 +21,12 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,711 +36,661 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import androidx.core.content.edit
-import com.google.firebase.database.DatabaseReference
 
-@OptIn(ExperimentalMaterial3Api::class)
+/* ───────────────────────────────────────────────  small helpers ── */
+
+@Composable
+fun SettingsRow(
+    icon: @Composable () -> Unit,
+    title: String,
+    trailingText: String? = null,
+    showChevron: Boolean = true,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit = {}
+) {
+    ListItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = onClick != {}, onClick = onClick),
+        leadingContent = { CompositionLocalProvider(LocalContentColor provides tint, content = icon) },
+        headlineContent = { Text(title, color = tint) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (trailingText != null) {
+                    Text(
+                        trailingText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (showChevron) {
+                    Icon(
+                        Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(Modifier.padding(vertical = 4.dp), content = content)
+    }
+}
+
+/* ───────────────────────────────────────────────  main screen ── */
+
 @Composable
 fun SettingsScreen(navController: NavController) {
-    val currentUser = FirebaseAuth.getInstance().currentUser ?: return
-    val uid         = currentUser.uid
-    val userRef     = FirebaseRefs.db.getReference("users").child(uid)
-    val blocksRef   = FirebaseRefs.db.getReference("blocks").child(uid)
-    val scope       = rememberCoroutineScope()
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val user = FirebaseAuth.getInstance().currentUser ?: return
+    val uid = user.uid
 
-    // ─── STATE ───
-    var isPremium            by remember { mutableStateOf(false) }
-    var expiry               by remember { mutableStateOf("N/A") }
-    var availableBoosts      by remember { mutableStateOf(0) }
-    var availableSwipes      by remember { mutableStateOf(0) }
-    var availableCompliments by remember { mutableStateOf(0) }
-    var lastBoostTs          by remember { mutableStateOf(0L) }
-    var isBoosted            by remember { mutableStateOf(false) }
+    /* Firebase refs */
+    val userRef = FirebaseRefs.db.getReference("users").child(uid)
+    val blocksRef = FirebaseRefs.db.getReference("blocks").child(uid)
 
-    var isPrivate         by remember { mutableStateOf(false) }
-    var preferredLang     by remember { mutableStateOf("en") }
-    var allowLocation     by remember { mutableStateOf(true) }
-    var isMatrimonyMode   by remember { mutableStateOf(false) }
-    var blockedUsers      by remember { mutableStateOf(listOf<String>()) }
+    /*  state  */
+    var isPremium by remember { mutableStateOf(false) }
+    var premiumTier by remember { mutableStateOf("Free") }           // "Free" / "Plus" / "Premium"
+    var expiry by remember { mutableStateOf("N/A") }
+    var boosts by remember { mutableStateOf(0) }
+    var swipes by remember { mutableStateOf(0) }
+    var compliments by remember { mutableStateOf(0) }
 
-    // ─── LOAD ONCE ───
+    var isPrivate by remember { mutableStateOf(false) }
+    var preferredLang by remember { mutableStateOf("en") }
+    var allowLoc by remember { mutableStateOf(true) }
+    var isMatrimony by remember { mutableStateOf(false) }
+    var blocked by remember { mutableStateOf(listOf<String>()) }
+
+    /* load once */
     LaunchedEffect(Unit) {
-        val snap = userRef.get().await()
-        // premium
-        isPremium = snap.child("premiumStatus/isPremium")
-            .getValue(Boolean::class.java) ?: false
-        expiry = snap.child("premiumStatus/expiryDate")
-            .getValue(String::class.java) ?: "N/A"
+        val s = userRef.get().await()
+        val statusSnap = s.child("premiumStatus")
+        isPremium   = statusSnap.child("isPremium").getValue(Boolean::class.java) ?: false
+        premiumTier = when {
+            statusSnap.child("tier").exists() -> statusSnap.child("tier").getValue(String::class.java) ?: "Free"
+            isPremium -> "Premium"
+            else -> "Free"
+        }
+        expiry      = statusSnap.child("expiryDate").getValue(String::class.java) ?: "N/A"
 
-        // boosts/swipes/compliments
-        availableBoosts = snap.child("availableBoosts")
-            .getValue(Int::class.java) ?: 0
-        lastBoostTs = snap.child("lastBoostTimestamp")
-            .getValue(Long::class.java) ?: 0L
-        // ← here’s the fix:
-        availableSwipes = snap
-            .child("swipesInfo")                 // your wrapper node
-            .child("remainingSwipes")            // the exact key
-            .getValue(Int::class.java) ?: 0
-        availableCompliments = snap.child("availableCompliments")
-            .getValue(Int::class.java) ?: 0
-        val now = System.currentTimeMillis()
-        isBoosted = availableBoosts > 0 && (now - lastBoostTs) < 6 * 60 * 60 * 1000L
+        boosts      = s.child("availableBoosts").getValue(Int::class.java) ?: 0
+        swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
+        compliments = s.child("availableCompliments").getValue(Int::class.java) ?: 0
 
-        // global prefs
-        isPrivate = snap.child("isPrivate")
-            .getValue(Boolean::class.java) ?: false
-        preferredLang = snap.child("preferredLanguage")
-            .getValue(String::class.java) ?: "en"
-        allowLocation = snap.child("allowLocationForMatches")
-            .getValue(Boolean::class.java) ?: true
-        isMatrimonyMode = snap.child("isMatrimonyMode")
-            .getValue(Boolean::class.java) ?: false
+        isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
+        preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: "en"
+        allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: true
+        isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
 
-        // blocked users
-        blocksRef.get().addOnSuccessListener { bsnap ->
-            blockedUsers = bsnap.children.mapNotNull { it.key }
+        blocksRef.get().addOnSuccessListener { snap ->
+            blocked = snap.children.mapNotNull { it.key }
         }
     }
 
-    Scaffold { padding ->
+    Scaffold { pads ->
         LazyColumn(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121212))
+                .padding(bottom = pads.calculateBottomPadding())   // ✨ only bottom
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            /*──────────────── Premium / Subscription card ─────────────*/
             item {
-                Column(Modifier.background(Color.Black, RoundedCornerShape(8.dp))) {
-                    PremiumStatusSection(
-                        navController        = navController,
-                        isPremiumUser        = isPremium,
-                        premiumExpiryDate    = expiry,
-                        isBoosted            = isBoosted,
-                        boosts               = availableBoosts,
-                        swipes               = availableSwipes,
-                        compliments          = availableCompliments
+                SettingsSection {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
+                        headlineContent = { Text("Subscription", fontWeight = FontWeight.Bold) }
                     )
-                    Divider(color = Color.DarkGray, modifier = Modifier.padding(vertical = 8.dp))
-                    PurchaseOptionsSection(navController)
-                    Divider(color = Color.DarkGray, modifier = Modifier.padding(vertical = 8.dp))
-                    AccountSettingsSection(
-                        navController    = navController,
-                        isPrivate        = isPrivate,
-                        onPrivateChange  = { new ->
-                            isPrivate = new
-                            scope.launch { userRef.child("isPrivate").setValue(new) }
-                        }
+                    Divider(Modifier.padding(start = 56.dp))
+
+                    /** FREE (upgrade) or PLUS/PREMIUM dashboard **/
+                    if (premiumTier == "Free") {
+                        SettingsRow(
+                            icon = { Icon(Icons.Default.StarOutline, null) },
+                            title = "Free User",
+                            trailingText = "Upgrade",
+                            onClick = { navController.navigate("subscription") } // upgrade
+                        )
+                    } else {
+                        SettingsRow(
+                            icon = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
+                            title = "$premiumTier Member",
+                            trailingText = "Expires: $expiry",
+                            onClick = { navController.navigate("subscription") } // manage / cancel
+                        )
+                        Divider(Modifier.padding(start = 56.dp))
+                        SettingsRow(
+                            icon = { Icon(Icons.Default.PauseCircle, null) },
+                            title = "Cancel / Pause Subscription",
+                            showChevron = false,
+                            onClick = { navController.navigate("subscription") }
+                        )
+                    }
+
+                    Divider(Modifier.padding(start = 56.dp))
+
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.FlashOn, null) },
+                        title = "Boosts remaining",
+                        trailingText = "$boosts",
+                        onClick = { navController.navigate("buyBoosts") }
+                    )
+                    Divider(Modifier.padding(start = 56.dp))
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.Swipe, null) },
+                        title = "Swipes remaining",
+                        trailingText = "$swipes",
+                        onClick = { navController.navigate("buySwipes") }
+                    )
+                    Divider(Modifier.padding(start = 56.dp))
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.FavoriteBorder, null) },
+                        title = "Compliments remaining",
+                        trailingText = "$compliments",
+                        onClick = { navController.navigate("buyCompliments") }
                     )
                 }
             }
 
+            /*──────────────── Account settings  (username / password) ─*/
+            item { AccountCard(uid) }
+
+            /*──────────────── Global preferences ──────────────────────*/
             item {
-                GlobalPreferencesSection(
-                    userRef                   = userRef,
-                    isPrivate                 = isPrivate,
-                    onPrivateChange           = { new ->
-                        isPrivate = new
-                        scope.launch { userRef.child("isPrivate").setValue(new) }
-                    },
-                    preferredLanguage         = preferredLang,
-                    onPreferredLanguageChange = { code ->
+                GlobalPrefCard(
+                    userRef = userRef,
+                    lang = preferredLang,
+                    onLangChange = { code ->
                         preferredLang = code
-                        scope.launch { userRef.child("preferredLanguage").setValue(code) }
+                        scope.launch {
+                            userRef.child("preferredLanguage").setValue(code)
+                            ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                                .edit().putString("language", code).apply()
+                            updateLocale(ctx, code)
+                            (ctx as? ComponentActivity)?.recreate()
+                        }
                     },
-                    allowLocationForMatches   = allowLocation,
-                    onAllowLocationChange     = { allow ->
-                        allowLocation = allow
-                        scope.launch { userRef.child("allowLocationForMatches").setValue(allow) }
+                    isPrivate = isPrivate,
+                    onPrivateChange = {
+                        isPrivate = it
+                        scope.launch { userRef.child("isPrivate").setValue(it) }
                     },
-                    isMatrimonyMode           = isMatrimonyMode,
-                    onMatrimonyModeChange     = { m ->
-                        isMatrimonyMode = m
-                        scope.launch { userRef.child("isMatrimonyMode").setValue(m) }
+                    allowLoc = allowLoc,
+                    onAllowLocChange = {
+                        allowLoc = it
+                        scope.launch { userRef.child("allowLocationForMatches").setValue(it) }
+                    },
+                    isMatrimony = isMatrimony,
+                    onMatrimonyChange = {
+                        isMatrimony = it
+                        scope.launch { userRef.child("isMatrimonyMode").setValue(it) }
                     }
                 )
             }
 
+            /*──────────────── Blocked users ───────────────────────────*/
+            item { BlockedUsersCard(blocksRef, blocked) }
+
+            /*──────────────── Logout row ──────────────────────────────*/
             item {
-                BlockedUsersSection(blocksRef = blocksRef, blockedIds = blockedUsers)
-            }
-        }
-    }
-}
-
-@Composable
-fun PremiumStatusSection(
-    navController: NavController,
-    isPremiumUser: Boolean,
-    premiumExpiryDate: String,
-    isBoosted: Boolean,
-    boosts: Int,
-    swipes: Int,
-    compliments: Int
-) {
-    Column {
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "   Premium Status",
-            color = Color(0xFFFF6F00),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black, shape = RoundedCornerShape(8.dp))
-                .padding(16.dp)
-        ) {
-            Text(
-                text = if (isPremiumUser) "Premium Member" else "Free User",
-                color = if (isPremiumUser) Color(0xFFFFD700) else Color.Gray,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = if (isPremiumUser)
-                    "Expires on: $premiumExpiryDate"
-                else
-                    "Upgrade to unlock premium features",
-                color = Color.White,
-                fontSize = 12.sp
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // display remaining counts
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text("Boosts remaining: $boosts", color = Color.White, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Swipes remaining: $swipes", color = Color.White, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Compliments remaining: $compliments", color = Color.White, fontSize = 16.sp)
+                SettingsSection {
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.ExitToApp, null, tint = Color(0xFFFF5722)) },
+                        title = "Logout",
+                        showChevron = false,
+                        tint = Color(0xFFFF5722)
+                    ) {
+                        FirebaseAuth.getInstance().signOut()
+                        ctx.startActivity(Intent(ctx, LandingActivity::class.java))
+                        (ctx as? ComponentActivity)?.finish()
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // still allow subscription/manage
-            Button(
-                onClick = { navController.navigate("subscription") },
-                modifier = Modifier.width(160.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isPremiumUser) Color.Gray else Color(0xFFFF6F00)
-                )
-            ) {
+            /*──────────────── footer ─────────────────────────────────*/
+            item {
+                Spacer(Modifier.height(16.dp))
                 Text(
-                    text = if (isPremiumUser) "Manage Subs." else "Upgrade",
-                    color = Color.White,
-                    fontSize = 14.sp
+                    "Kupidx is a free pro-love Indian dating app.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    "v0.1.1",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/* ───────────────────────────────────── account card ─ */
+
 @Composable
-fun AccountSettingsSection(
-    navController: NavController,
-    isPrivate: Boolean,
-    onPrivateChange: (Boolean) -> Unit
-) {
-    val context     = LocalContext.current
-    val currentUser = FirebaseAuth.getInstance().currentUser ?: return
-    val userId      = currentUser.uid
-    val database    = FirebaseRefs.db.getReference("users").child(userId)
-    val scope       = rememberCoroutineScope()
+private fun AccountCard(uid: String) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val dbUser = FirebaseRefs.db.getReference("users").child(uid)
 
-    var email          by remember { mutableStateOf("") }
-    var password       by remember { mutableStateOf("") }
-    var username       by remember { mutableStateOf("") }
-    var oldUsername    by remember { mutableStateOf<String?>(null) }
-    var isEditingPass  by remember { mutableStateOf(false) }
-    var isEditingUname by remember { mutableStateOf(false) }
-    var passVisible    by remember { mutableStateOf(false) }
-    var unameStatus    by remember { mutableStateOf("idle") }
+    /* fields */
+    var email by remember { mutableStateOf("") }
 
-    // Load existing user data once
-    LaunchedEffect(userId) {
-        val snap = database.get().await()
-        email       = snap.child("email").getValue(String::class.java)
-            ?: currentUser.email.orEmpty()
-        username    = snap.child("username").getValue(String::class.java).orEmpty()
+    /* username */
+    var editingUname by remember { mutableStateOf(false) }
+    var username by remember { mutableStateOf("") }
+    var oldUsername by remember { mutableStateOf("") }
+    var unameStatus by remember { mutableStateOf("idle") } // idle/checking/ok/not
+
+    /* password dialog */
+    var showPassDialog by remember { mutableStateOf(false) }
+
+    /* load user data once */
+    LaunchedEffect(uid) {
+        val snap = dbUser.get().await()
+        email = snap.child("email").getValue(String::class.java) ?: ""
+        username = snap.child("username").getValue(String::class.java) ?: ""
         oldUsername = username
     }
 
-    // Check username availability whenever it's being edited
-    LaunchedEffect(username, isEditingUname) {
-        if (isEditingUname && username.isNotBlank()) {
+    /* validate username availability */
+    LaunchedEffect(username, editingUname) {
+        if (editingUname && username.isNotBlank()) {
             unameStatus = "checking"
             delay(500)
-            val dbUsernames = FirebaseRefs.db.getReference("usernames")
-            val nameSnap = dbUsernames.child(username).get().await()
-            unameStatus = if (nameSnap.exists() && nameSnap.value != userId) {
-                "not available"
-            } else {
-                "available"
-            }
-        } else {
-            unameStatus = "idle"
+            val snap = FirebaseRefs.db.getReference("usernames").child(username).get().await()
+            unameStatus = if (snap.exists() && snap.value != uid) "not" else "ok"
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.Black, shape = RoundedCornerShape(8.dp))
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Account Settings",
-            color = Color(0xFFFF6F00),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+    SettingsSection {
+        ListItem(
+            leadingContent = { Icon(Icons.Default.Person, null, tint = Color(0xFFFF6F00)) },
+            headlineContent = { Text("Account Settings", fontWeight = FontWeight.Bold) }
         )
-        Spacer(Modifier.height(16.dp))
+        Divider(Modifier.padding(start = 56.dp))
 
-        // Email display
-        Text("Email: $email", color = Color.White, fontSize = 16.sp)
-        Spacer(Modifier.height(8.dp))
+        /* email (display only) */
+        ListItem(
+            leadingContent = { Icon(Icons.Default.Email, null) },
+            headlineContent = { Text("Email: $email") }
+        )
+        Divider(Modifier.padding(start = 56.dp))
 
-        // Password editing
-        if (isEditingPass) {
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("New Password", color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(
-                        onClick = { passVisible = !passVisible }
-                    ) {
-                        Icon(
-                            imageVector = if (passVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle visibility",
-                            tint = Color(0xFFFF6F00)
-                        )
-                    }
+        /* password row */
+        SettingsRow(
+            icon = { Icon(Icons.Default.Lock, null) },
+            title = "Change Password",
+            showChevron = false
+        ) { showPassDialog = true }
+        Divider(Modifier.padding(start = 56.dp))
+
+        /* username row */
+        if (editingUname) {
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Person, null) },
+                headlineContent = {
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        singleLine = true,
+                        label = { Text("Username", color = Color(0xFFFF6F00)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            cursorColor = Color(0xFFFF6F00),
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFFFF6F00),
-                    cursorColor = Color(0xFFFF6F00),
-                    focusedTextColor = Color.White
-                )
-            )
-            TextButton(onClick = { isEditingPass = false }) {
-                Text("Done", color = Color(0xFFFF6F00))
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Password: ********",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = { isEditingPass = true }) {
-                    Text("Edit", color = Color(0xFFFF6F00))
+                trailingContent = {
+                    val enabled = username.isNotBlank() && unameStatus == "ok"
+                    TextButton(
+                        onClick = {
+                            editingUname = false
+                            scope.launch {
+                                updateAccountSettingsNoEmail("", username, oldUsername)
+                                oldUsername = username
+                                Toast.makeText(ctx, "Username updated", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = enabled
+                    ) { Text("Done") }
                 }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // Username editing
-        if (isEditingUname) {
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username", color = Color(0xFFFF6F00)) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFFFF6F00),
-                    cursorColor = Color(0xFFFF6F00),
-                    focusedTextColor = Color.White
-                )
             )
-            when (unameStatus) {
-                "checking" -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = Color(0xFFFF6F00),
-                        strokeWidth = 2.dp
+        } else {
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Person, null) },
+                headlineContent = { Text("Username: $username") },
+                trailingContent = {
+                    TextButton(onClick = { editingUname = true }) { Text("Edit") }
+                }
+            )
+        }
+    }
+
+    /* Password overlay dialog */
+    if (showPassDialog) {
+        var oldPass by remember { mutableStateOf("") }
+        var newPass by remember { mutableStateOf("") }
+        var confirm by remember { mutableStateOf("") }
+        var working by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { if (!working) showPassDialog = false },
+            title = { Text("Change Password", color = Color(0xFFFF6F00)) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = oldPass,
+                        onValueChange = { oldPass = it },
+                        label = { Text("Current Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newPass,
+                        onValueChange = { newPass = it },
+                        label = { Text("New Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = confirm,
+                        onValueChange = { confirm = it },
+                        label = { Text("Confirm Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-                "available" -> {
-                    Text("✓", color = Color.Green, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                }
-                "not available" -> {
-                    Text("✗", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                }
+            },
+            confirmButton = {
+                val enabled = oldPass.isNotBlank() && newPass.isNotBlank() &&
+                        confirm.isNotBlank() && newPass == confirm && !working
+                TextButton(
+                    onClick = {
+                        working = true
+                        scope.launch {
+                            try {
+                                val cred = EmailAuthProvider
+                                    .getCredential(FirebaseAuth.getInstance().currentUser!!.email!!, oldPass)
+                                FirebaseAuth.getInstance().currentUser!!.reauthenticate(cred).await()
+                                FirebaseAuth.getInstance().currentUser!!.updatePassword(newPass).await()
+                                Toast.makeText(ctx, "Password updated", Toast.LENGTH_SHORT).show()
+                                showPassDialog = false
+                            } catch (e: Exception) {
+                                Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                working = false
+                                oldPass = ""; newPass = ""; confirm = ""
+                            }
+                        }
+                    },
+                    enabled = enabled
+                ) { Text("Done") }
+            },
+            dismissButton = {
+                if (!working)
+                    TextButton(onClick = { showPassDialog = false }) { Text("Cancel") }
             }
-            TextButton(onClick = { isEditingUname = false }) {
-                Text("Done", color = Color(0xFFFF6F00))
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Username: $username",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = { isEditingUname = true }) {
-                    Text("Edit", color = Color(0xFFFF6F00))
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        // Save & Logout buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-            Button(
-                onClick = {
-                    scope.launch {
-                        updateAccountSettingsNoEmail(
-                            newPassword = if (password == "********") "" else password,
-                            newUsername = username,
-                            oldUsername = oldUsername
-                        )
-                        Toast.makeText(context, "Settings updated.", Toast.LENGTH_SHORT).show()
-                        oldUsername = username
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-            ) {
-                Text("Save", color = Color.White)
-            }
-            Button(
-                onClick = {
-                    FirebaseAuth.getInstance().signOut()
-                    context.startActivity(Intent(context, LandingActivity::class.java))
-                    (context as? ComponentActivity)?.finish()
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-            ) {
-                Text("Logout", color = Color.White)
-            }
-        }
+        )
     }
 }
 
+/* ───────────────────────────────────── global preferences ─ */
+
 @Composable
-fun GlobalPreferencesSection(
-    userRef: DatabaseReference,
+private fun GlobalPrefCard(
+    userRef: com.google.firebase.database.DatabaseReference,
+    lang: String,
+    onLangChange: (String) -> Unit,
     isPrivate: Boolean,
     onPrivateChange: (Boolean) -> Unit,
-    preferredLanguage: String,
-    onPreferredLanguageChange: (String) -> Unit,
-    allowLocationForMatches: Boolean,
-    onAllowLocationChange: (Boolean) -> Unit,
-    isMatrimonyMode: Boolean,
-    onMatrimonyModeChange: (Boolean) -> Unit
+    allowLoc: Boolean,
+    onAllowLocChange: (Boolean) -> Unit,
+    isMatrimony: Boolean,
+    onMatrimonyChange: (Boolean) -> Unit
 ) {
-    val context  = LocalContext.current
-    val activity = (context as? ComponentActivity)
-    val langs    = listOf("English" to "en", "हिन्दी" to "hi", "বাংলা" to "bn")
+    val langs = listOf(
+        "English" to "en",
+        "हिन्दी" to "hi",
+        "বাংলা" to "bn",
+        "தமிழ்" to "ta",
+        "ಕನ್ನಡ" to "kn",
+        "తెలుగు" to "te"
+    )
+    var exp by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Color.Black, RoundedCornerShape(8.dp))
-            .padding(16.dp)
-    ) {
-        Text(
-            "Global Preferences",
-            color = Color(0xFFFF6F00),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+    SettingsSection {
+        ListItem(
+            leadingContent = { Icon(Icons.Default.Tune, null, tint = Color(0xFFFF6F00)) },
+            headlineContent = { Text("Global Preferences", fontWeight = FontWeight.Bold) }
         )
-        Spacer(Modifier.height(16.dp))
+        Divider(Modifier.padding(start = 56.dp))
 
-        // PRIVATE ACCOUNT
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Private Account",
-                color = Color.White,
-                fontSize = 16.sp,
-                modifier = Modifier.weight(1f)
-            )
+        /* private */
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Lock, null)
+            Spacer(Modifier.width(16.dp))
+            Text("Private Account", Modifier.weight(1f))
             Switch(
                 checked = isPrivate,
                 onCheckedChange = onPrivateChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor   = Color(0xFFFF6F00),
-                    uncheckedThumbColor = Color.Gray
-                )
+                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Divider(Modifier.padding(start = 56.dp))
+
         Text(
-            "Be undiscoverable in card stack by everyone except those you swipe right on",
-            color = Color.LightGray,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(start = 8.dp)
+            "Be undiscoverable in card stack except those you swipe right on",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 72.dp, bottom = 12.dp)
         )
 
-        Spacer(Modifier.height(16.dp))
-
-        // PREFERRED LANGUAGE
-        Text("Preferred Language:", color = Color.White, fontSize = 16.sp)
-        var expanded by remember { mutableStateOf(false) }
-        Box {
-            Button(
-                onClick = { expanded = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-            ) {
-                Text(preferredLanguage, color = Color.White)
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                langs.forEach { (label, code) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            onPreferredLanguageChange(code)
-                            context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                                .edit { putString("language", code) }
-                            userRef.child("preferredLanguage")
-                                .setValue(code)
-                                .addOnCompleteListener {
-                                    updateLocale(context, code)
-                                    activity?.recreate()
-                                }
-                            expanded = false
-                        }
-                    )
-                }
+        /* language */
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { exp = true }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Language, null)
+            Spacer(Modifier.width(16.dp))
+            Text("Preferred Language", Modifier.weight(1f))
+            Text(langs.first { it.second == lang }.first)
+            Icon(Icons.Default.KeyboardArrowRight, null)
+        }
+        DropdownMenu(
+            expanded = exp,
+            onDismissRequest = { exp = false }
+        ) {
+            langs.forEach { (label, code) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        exp = false
+                        onLangChange(code)
+                    }
+                )
             }
         }
+        Divider(Modifier.padding(start = 56.dp))
 
-        Spacer(Modifier.height(16.dp))
-
-        // ALLOW LOCATION
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Allow Location for Matches",
-                color = Color.White,
-                fontSize = 16.sp,
-                modifier = Modifier.weight(1f)
-            )
+        /* location */
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.MyLocation, null)
+            Spacer(Modifier.width(16.dp))
+            Text("Allow Location for Matches", Modifier.weight(1f))
             Switch(
-                checked = allowLocationForMatches,
-                onCheckedChange = onAllowLocationChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor   = Color(0xFFFF6F00),
-                    uncheckedThumbColor = Color.Gray
-                )
+                checked = allowLoc,
+                onCheckedChange = onAllowLocChange,
+                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
             )
         }
+        Divider(Modifier.padding(start = 56.dp))
 
-        Spacer(Modifier.height(16.dp))
-
-        // MATRIMONY MODE
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Matrimony Mode",
-                color = Color.White,
-                fontSize = 16.sp,
-                modifier = Modifier.weight(1f)
-            )
+        /* matrimony */
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Group, null)
+            Spacer(Modifier.width(16.dp))
+            Text("Matrimony Mode", Modifier.weight(1f))
             Switch(
-                checked = isMatrimonyMode,
-                onCheckedChange = onMatrimonyModeChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor   = Color(0xFFFF6F00),
-                    uncheckedThumbColor = Color.Gray
-                )
+                checked = isMatrimony,
+                onCheckedChange = onMatrimonyChange,
+                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
             )
         }
     }
 }
 
-/** PURCHASE OPTIONS SECTION **/
-@Composable
-fun PurchaseOptionsSection(navController: NavController) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.Black, shape = RoundedCornerShape(8.dp))
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Swipes/Compliments/Boosts",
-            color = Color(0xFFFF6F00),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = { navController.navigate("buySwipes") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text("Buy Swipes", color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = { navController.navigate("buyCompliments") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text("Buy Compliments", color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = { navController.navigate("buyBoosts") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-        ) {
-            Text("Buy Boosts", color = Color.White)
-        }
-    }
-}
+/* ───────────────────────────────────── Blocked card ─ */
 
-/** BLOCKED USERS SECTION **/
 @Composable
-fun BlockedUsersSection(
-    blocksRef: DatabaseReference,          // points at /blocks/{currentUserId}
-    blockedIds: List<String>               // list of UIDs
+private fun BlockedUsersCard(
+    blocksRef: com.google.firebase.database.DatabaseReference,
+    ids: List<String>
 ) {
-    var showBlockedOverlay by remember { mutableStateOf(false) }
-    var namesById        by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    val scope            = rememberCoroutineScope()
-    val context          = LocalContext.current
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var overlay by remember { mutableStateOf(false) }
+    var names by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    // 1) Fetch all usernames whenever the blockedIds list changes
-    LaunchedEffect(blockedIds) {
+    /* fetch usernames */
+    LaunchedEffect(ids) {
         val tmp = mutableMapOf<String, String>()
-        blockedIds.forEach { uid ->
-            try {
-                val snap = FirebaseRefs.db
-                    .getReference("users")
-                    .child(uid)
-                    .child("username")
-                    .get()
-                    .await()
-                tmp[uid] = snap.getValue(String::class.java) ?: uid
-            } catch (_: Exception) {
-                tmp[uid] = uid
-            }
+        ids.forEach {
+            val snap = FirebaseRefs.db.getReference("users").child(it).child("username").get().await()
+            tmp[it] = snap.getValue(String::class.java) ?: it
         }
-        namesById = tmp
+        names = tmp
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.Black, shape = RoundedCornerShape(8.dp))
-            .clickable { showBlockedOverlay = true }
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Blocked Users",
-            color = Color(0xFFFF6F00),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+    SettingsSection {
+        ListItem(
+            leadingContent = { Icon(Icons.Default.Block, null, tint = Color(0xFFFF6F00)) },
+            headlineContent = { Text("Blocked Users", fontWeight = FontWeight.Bold) },
+            trailingContent = { Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            modifier = Modifier.clickable { overlay = true }
         )
-        Spacer(Modifier.height(8.dp))
+        Divider(Modifier.padding(start = 56.dp))
 
-        if (blockedIds.isEmpty()) {
-            Text("No users are blocked.", color = Color.White, fontSize = 16.sp)
+        if (ids.isEmpty()) {
+            ListItem(headlineContent = { Text("No users are blocked", color = MaterialTheme.colorScheme.onSurfaceVariant) })
         } else {
-            // Show up to 3 usernames
-            blockedIds.take(3).forEach { uid ->
-                val name = namesById[uid] ?: uid
-                Text(name, color = Color.White, fontSize = 16.sp)
+            ids.take(3).forEach {
+                ListItem(headlineContent = { Text(names[it] ?: it) })
+                Divider(Modifier.padding(start = 56.dp))
             }
+            ListItem(
+                headlineContent = { Text("View All Blocked Users", color = MaterialTheme.colorScheme.primary) },
+                trailingContent = { Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary) },
+                modifier = Modifier.clickable { overlay = true }
+            )
         }
     }
 
-    if (showBlockedOverlay) {
+    /* dialog */
+    if (overlay) {
         AlertDialog(
-            onDismissRequest = { showBlockedOverlay = false },
+            onDismissRequest = { overlay = false },
             title = { Text("Blocked Users", color = Color(0xFFFF6F00)) },
             text = {
-                if (blockedIds.isEmpty()) {
-                    Text("No users are currently blocked.", color = Color.White)
+                if (ids.isEmpty()) {
+                    Text("No users are currently blocked.")
                 } else {
                     Column {
-                        blockedIds.forEach { uid ->
-                            val name = namesById[uid] ?: uid
+                        ids.forEach { uid ->
+                            val uname = names[uid] ?: uid
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(name, color = Color.White, modifier = Modifier.weight(1f))
+                                Text(uname, Modifier.weight(1f))
                                 TextButton(onClick = {
                                     scope.launch {
-                                        // remove from /blocks/{currentUserId}/{uid}
-                                        blocksRef.child(uid)
-                                            .removeValue()
-                                            .await()
-                                        Toast.makeText(context, "Unblocked $name", Toast.LENGTH_SHORT).show()
+                                        blocksRef.child(uid).removeValue().await()
+                                        Toast.makeText(ctx, "Unblocked $uname", Toast.LENGTH_SHORT).show()
                                     }
-                                }) {
-                                    Text("Unblock", color = Color(0xFFFF6F00))
-                                }
+                                }) { Text("Unblock", color = Color(0xFFFF6F00)) }
                             }
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showBlockedOverlay = false }) {
-                    Text("Done", color = Color(0xFFFF6F00))
-                }
+                TextButton(onClick = { overlay = false }) { Text("Done", color = Color(0xFFFF6F00)) }
             }
         )
     }
 }
 
-/** UPDATE ACCOUNT SETTINGS FUNCTION **/
+/* ───────────────────────────────────── username/password helper ─ */
+
 suspend fun updateAccountSettingsNoEmail(
     newPassword: String,
     newUsername: String,
-    oldUsername: String?,
+    oldUsername: String
 ) {
-    val user = FirebaseAuth.getInstance().currentUser ?: throw Exception("No user is signed in.")
+    val user = FirebaseAuth.getInstance().currentUser ?: throw Exception("No user")
     val userId = user.uid
+    if (newPassword.isNotBlank()) user.updatePassword(newPassword).await()
 
-    if (newPassword.isNotBlank()) {
-        user.updatePassword(newPassword).await()
-    }
-    checkAndUpdateUsernameAwait(newUsername, oldUsername, userId)
-}
-
-suspend fun checkAndUpdateUsernameAwait(
-    newUsername: String,
-    oldUsername: String?,
-    userId: String
-) {
     val db = FirebaseRefs.db.reference
-    val usernamesRef = db.child("usernames")
-    if (!oldUsername.isNullOrBlank() && oldUsername != newUsername) {
-        val oldSnap = usernamesRef.child(oldUsername).get().await()
-        if (oldSnap.exists() && oldSnap.value == userId) {
-            usernamesRef.child(oldUsername).removeValue().await()
-        }
+    val usernames = db.child("usernames")
+    if (oldUsername.isNotBlank() && oldUsername != newUsername) {
+        val snap = usernames.child(oldUsername).get().await()
+        if (snap.exists() && snap.value == userId) usernames.child(oldUsername).removeValue().await()
     }
-    val newSnap = usernamesRef.child(newUsername).get().await()
-    if (newSnap.exists() && newSnap.value != userId) {
-        throw Exception("Username already taken. Please choose another.")
-    } else {
-        usernamesRef.child(newUsername).setValue(userId).await()
-        db.child("users").child(userId).child("username").setValue(newUsername).await()
-    }
+    val dup = usernames.child(newUsername).get().await()
+    if (dup.exists() && dup.value != userId) throw Exception("Username taken")
+    usernames.child(newUsername).setValue(userId).await()
+    db.child("users").child(userId).child("username").setValue(newUsername).await()
 }

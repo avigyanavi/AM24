@@ -722,7 +722,7 @@ fun ChatScreenContent(
                     }
                 },
                 actions = {
-                    // Suggestion button – only enabled if user is premium
+// 1) Suggestion button – only enabled if user is premium
                     IconButton(
                         onClick = {
                             if (isPremiumUser) {
@@ -743,10 +743,27 @@ fun ChatScreenContent(
                             contentColor = if (isPremiumUser) Color(0xFFFFA500) else Color.Gray
                         )
                     ) {
-                        Icon(Icons.Default.Lightbulb, stringResource(R.string.btn_suggestions))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Lightbulb,
+                                contentDescription = stringResource(R.string.btn_suggestions),
+                                tint = if (isPremiumUser) Color(0xFFFFA500) else Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+
+                            if (!isPremiumUser) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = "Locked",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
 
-                    // Places button – only enabled if user is premium
+// 2) Places button – only enabled if user is premium
                     IconButton(
                         onClick = {
                             if (isPremiumUser) {
@@ -768,7 +785,24 @@ fun ChatScreenContent(
                             contentColor = if (isPremiumUser) Color(0xFFFF6F00) else Color.Gray
                         )
                     ) {
-                        Icon(Icons.Default.Place, stringResource(R.string.btn_places))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Place,
+                                contentDescription = stringResource(R.string.btn_places),
+                                tint = if (isPremiumUser) Color(0xFFFF6F00) else Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+
+                            if (!isPremiumUser) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = "Locked",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
 
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) {

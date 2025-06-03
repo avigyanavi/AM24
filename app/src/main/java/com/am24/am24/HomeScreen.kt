@@ -1084,7 +1084,7 @@ fun FeedItem(
                             }
                             .padding(start = 8.dp) // Add start padding
                         ,
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -1332,7 +1332,7 @@ fun CommentCard(
                     text = comment.username,
                     color = Color(0xFFFFDB00),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
@@ -1375,7 +1375,7 @@ fun CommentCard(
                 Text(
                     text = comment.commentText,
                     color = Color.White,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -2068,7 +2068,7 @@ fun CustomSearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = { onQueryChange(it) },
-        placeholder = { Text("Search tags", color = Color.Gray, fontSize = 10.sp) },
+        placeholder = { Text("Search tags", color = Color.Gray, fontSize = 11.sp) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 10.dp),

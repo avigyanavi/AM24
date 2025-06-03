@@ -76,6 +76,9 @@ fun DMScreenContent(navController: NavController) {
             }
     }
 
+    // ← ADD THIS:
+    val isPremiumUser = currentUserProfile?.let { it.isPremium == true || it.isPlus == true } == true
+
 // 1️⃣  Build the chip list
     val groupChatTitles = remember(currentUserProfile) {
         buildList {
@@ -265,7 +268,15 @@ fun DMScreenContent(navController: NavController) {
                         .size(60.dp)
                         .clip(CircleShape)
                         .background(Color.DarkGray)
-                        .clickable { navController.navigate("peopleWhoLikedMe") },
+                        .clickable {
+                            if (isPremiumUser) {
+                            navController.navigate("peopleWhoLikedMe")
+                        } else {
+                            Toast
+                                .makeText(context, "Upgrade to Plus to see who liked you.", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                                   },
                     contentAlignment = Alignment.Center
                 ) {
                     Text("+$likedCount", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
@@ -289,7 +300,7 @@ fun DMScreenContent(navController: NavController) {
 
             if (displayedUsers.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No matches found", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("No matches found", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             } else {
                 LazyColumn(
@@ -632,6 +643,6 @@ fun GroupChatChip(
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Text(title, color = Color.White, fontSize = 8.sp)
+        Text(title, color = Color.White, fontSize = 11.sp)
     }
 }
