@@ -79,7 +79,9 @@ fun DMScreenContent(navController: NavController) {
 // 1️⃣  Build the chip list
     val groupChatTitles = remember(currentUserProfile) {
         buildList {
-            add("India")           // ← global room (was “West Bengal”)
+            currentUserProfile?.country
+                ?.takeIf { it.isNotBlank() }
+                ?.let { add(it) }
             currentUserProfile?.city
                 ?.takeIf { it.isNotBlank() }?.let { add(it) }
             currentUserProfile?.hometown
@@ -222,7 +224,8 @@ fun DMScreenContent(navController: NavController) {
                     groupChatTitles.forEach { title ->
                             GroupChatChip(title) {
                             val id = when (title) {
-                                "India" -> "group_india"                      // ← new constant
+                                "India" -> "group_india"
+                                "United States" -> "group_usa"// ← new constant
                                 else -> "group_${title.replace(" ", "_").lowercase()}"
                             }
                             navController.navigate("groupChat/$id")

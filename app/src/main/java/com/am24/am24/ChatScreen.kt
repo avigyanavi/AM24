@@ -722,56 +722,6 @@ fun ChatScreenContent(
                     }
                 },
                 actions = {
-                    // ───── Chat‐Screen Language Switcher ─────
-                    var pickLangMenu by remember { mutableStateOf(false) }
-                    val languageOptions = listOf(
-                        "English" to "en",
-                        "हिन्दी"    to "hi",
-                        "বাংলা"     to "bn"
-                    )
-
-                    IconButton(
-                        onClick = { pickLangMenu = true },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (pickLangMenu) Color(0xFFFF6F00) else Color.White
-                        )
-                    ) {
-                        Icon(Icons.Default.Language, contentDescription = "Change language")
-                    }
-
-                    DropdownMenu(
-                        expanded = pickLangMenu,
-                        onDismissRequest = { pickLangMenu = false }
-                    ) {
-                        languageOptions.forEach { (label, code) ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        label,
-                                        color = if (prefs.getString("language", "en") == code)
-                                            Color(0xFFFF6F00) else Color.White
-                                    )
-                                },
-                                onClick = {
-                                    pickLangMenu = false
-                                    // 1) save to SharedPreferences
-                                    prefs
-                                        .edit()
-                                        .putString("language", code)
-                                        .apply()
-                                    // 2) write to Firebase
-                                    userRef.child("preferredLanguage")
-                                        .setValue(code)
-                                        .addOnCompleteListener {
-                                            // 3) apply locale & 4) restart
-                                            updateLocale(context, code)
-                                            activity?.recreate()
-                                        }
-                                }
-                            )
-                        }
-                    }
-
                     // Suggestion button – only enabled if user is premium
                     IconButton(
                         onClick = {
