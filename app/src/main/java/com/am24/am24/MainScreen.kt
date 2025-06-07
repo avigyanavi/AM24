@@ -24,7 +24,6 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -34,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
 import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.graphics.TransformOrigin
@@ -47,9 +45,9 @@ import com.am24.am24.util.LocaleUtils
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
-        BottomNavItem(stringResource(R.string.date), Icons.Default.FavoriteBorder, "dating"),
+        BottomNavItem(stringResource(R.string.date), Icons.Default.Favorite, "dating"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
-        BottomNavItem(stringResource(R.string.feed), Icons.Default.Home, "home"),
+        BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.map), Icons.Default.Map, "map"),
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile")
     )
@@ -202,25 +200,36 @@ fun TopNavBar(
             }
         },
         actions = {
-            // ─── Report current deck user ───
+            // Report Button
             if (currentRoute == "dating") {
-                IconButton(onClick = {
-                    Log.d("TopNavBar", "reporteeId at click = $reporteeId")
-                    if (reporteeId != null) showReportDialog = true
-                    else Toast.makeText(context, "No user to report!", Toast.LENGTH_SHORT).show()
-                }) {
-                    Icon(Icons.Default.Warning, contentDescription = "Report", tint = Color.Yellow)
+                TextButton(
+                    onClick = {
+                        if (reporteeId != null) showReportDialog = true
+                        else Toast.makeText(context, "No user to report!", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Yellow)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Report"
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "Report")
                 }
             }
 
+            // Leaderboard Button
             if (currentRoute != "map" && currentRoute != "home" && currentRoute != "dms" && currentRoute != "profile") {
-                IconButton(onClick = { navController.navigate("leaderboard") }) {
+                TextButton(
+                    onClick = { navController.navigate("leaderboard") },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                ) {
                     Icon(
                         imageVector = Icons.Outlined.EmojiEvents,
-                        contentDescription = stringResource(R.string.cd_leaderboard),
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        contentDescription = stringResource(R.string.cd_leaderboard)
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "Leaderboard")
                 }
             }
 

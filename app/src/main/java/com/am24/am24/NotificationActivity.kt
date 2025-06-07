@@ -8,7 +8,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -111,32 +115,38 @@ fun NotificationCard(
     onAction: () -> Unit
 ) {
     val dynamicUsername = remember { mutableStateOf(notification.senderUsername) }
-    var hasBeenSeen by remember { mutableStateOf(false) } // track if already marked as seen
+    var seen by remember { mutableStateOf(false) }
 
+    /* 1️⃣  fetch senderUsername, if blank */
     LaunchedEffect(notification.senderId) {
         if (notification.senderUsername.isEmpty()) {
-            profileViewModel.fetchUsernameById(notification.senderId, { fetchedUsername ->
-                dynamicUsername.value = fetchedUsername
-            }, {
-                dynamicUsername.value = "Unknown"
-            })
+            profileViewModel.fetchUsernameById(
+                notification.senderId,
+                onSuccess = { dynamicUsername.value = it },
+                onFailure = { dynamicUsername.value = "Unknown" }
+            )
         }
     }
 
-    // Use the background color to show read vs unread notifications
-    val backgroundColor = if (notification.isRead == "true") Color.Black else Color.DarkGray
+    /* 2️⃣  icon & nav target per type */
+    val (icon, onClickRoute) = when (notification.type) {
+        "new_like"       -> Icons.Default.Favorite      to "peopleWhoLikedMe"
+        "new_compliment" -> Icons.Default.EmojiEmotions to "peopleWhoLikedMe"          // or a “compliments” inbox
+        "new_match"      -> Icons.Default.People        to "dms"
+        "boost_over"     -> Icons.Default.FlashOn       to "buyBoosts"                 // paywall / boost page
+        else             -> Icons.Default.Notifications to null                        // fallback
+    }
 
-    // Wrap the card in a Box to detect when it becomes visible
+    /* 3️⃣  card visuals */
+    val bgColor = if (notification.isRead == "true") Color.Black else Color.DarkGray
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .onGloballyPositioned { coordinates ->
-                // Since LazyColumn only composes visible items, this indicates the notification is on screen.
-                if (!hasBeenSeen) {
-                    hasBeenSeen = true
-                    if (notification.isRead != "true") {
-                        onRead()
-                    }
+            .onGloballyPositioned {
+                if (!seen) {
+                    seen = true
+                    if (notification.isRead != "true") onRead()
                 }
             }
     ) {
@@ -144,20 +154,10 @@ fun NotificationCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    // Even if the notification is already marked as read when seen,
-                    // you can still perform navigation or additional actions on click.
-                    when (notification.type) {
-                        "new_like" -> {
-                            navController.navigate("peopleWhoLikedMe")
-                        }
-                        "new_match" -> {
-                            navController.navigate("dms")
-                        }
-                        else -> { /* no navigation */ }
-                    }
-                    onAction() // If any additional action is needed on click
+                    onClickRoute?.let { navController.navigate(it) }
+                    onAction()
                 },
-            colors = CardDefaults.cardColors(containerColor = backgroundColor),
+            colors = CardDefaults.cardColors(containerColor = bgColor),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Row(
@@ -165,17 +165,18 @@ fun NotificationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notification",
+                    imageVector = icon,
+                    contentDescription = null,
                     tint = Color(0xFF00bf63),
                     modifier = Modifier.size(40.dp)
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(Modifier.width(16.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
+                Column(Modifier.weight(1f)) {
                     Text(
-                        text = notification.message.replace("senderUsername", dynamicUsername.value),
+                        text = notification.message
+                            .replace("senderUsername", dynamicUsername.value),
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )

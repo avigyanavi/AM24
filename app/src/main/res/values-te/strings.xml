@@ -1190,7 +1190,7 @@
     </string>
 
         <!-- Enter Name & Height -->
-        <string name="full_name_label">పూర్తి పేరు</string>
+        <string name="full_name_label">పేరు (ఐచ్చిక)</string>
         <string name="height_label">ఎత్తు</string>
         <string name="feet_inches_label">అడుగులు + అంగుళాలు</string>
         <string name="centimeters_label">సెంటీమీటర్లు</string>

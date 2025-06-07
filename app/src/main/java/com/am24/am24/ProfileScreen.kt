@@ -54,7 +54,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.am24.am24.ui.theme.White
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
@@ -154,7 +153,7 @@ fun ProfileScreen(
                     onDismissRequest = { showVerifyDialog = false },
                     backgroundColor  = Color(0xFF1A1A1A),
                     contentColor     = Color.White,
-                    title  = { Text("Verify Email", fontWeight = FontWeight.Bold) },
+                    title  = { Text("Verify Email", fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00)) },
                     text   = { Text("Please verify your email address to use the app.") },
 
                     /** ------------- BUTTON ROW ------------- **/
@@ -196,7 +195,7 @@ fun ProfileScreen(
                                         strokeWidth = 2.dp
                                     )
                                 } else {
-                                    Text("Resend link")
+                                    Text("Resend link", color = Color(0xFFFF6F00))
                                 }
                             }
 
@@ -236,7 +235,7 @@ fun ProfileScreen(
                                         }
                                     }
                                 }
-                            ) { Text("I’ve verified") }
+                            ) { Text("I’ve verified", color = Color(0xFFFF6F00)) }
                         }
                     }
                 )
@@ -631,8 +630,6 @@ fun VerificationBadge(
 fun CollapsibleSection(
     title: String,
     icon: ImageVector,
-    isExpanded: Boolean,
-    onToggle: () -> Unit,
     editMode: Boolean = false,
     onEditToggle: () -> Unit = {},
     editable: Boolean = true,                       // ← NEW
@@ -641,7 +638,6 @@ fun CollapsibleSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle() }
             .border(2.dp, Color(0xFFFF6F00), RoundedCornerShape(10.dp)) // ← new look
             .background(Color(0xFF1A1A1A))                              // ← new look
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -673,18 +669,7 @@ fun CollapsibleSection(
                 )
             }
         }
-
-        IconButton(onClick = onToggle) {
-            Icon(
-                imageVector = if (isExpanded)
-                    Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
-                tint = Color.White
-            )
-        }
     }
-
-    if (isExpanded) {
         Spacer(Modifier.height(8.dp))
 
         Card(
@@ -699,7 +684,6 @@ fun CollapsibleSection(
 
         Spacer(Modifier.height(8.dp))
     }
-}
 
 @Composable
 fun PhotoCarouselWithOverlay(
@@ -2237,8 +2221,6 @@ fun PerformanceMetricsSection(profile: Profile) {
     CollapsibleSection(
         title       = stringResource(R.string.performance_metrics),
         icon        = Icons.Default.Assessment,
-        isExpanded  = showPerformance,
-        onToggle    = { showPerformance = !showPerformance },
         editMode    = false,
         editable    = false                       // ← no pencil icon
     ) {
@@ -4227,13 +4209,7 @@ fun ProfileCollapsibleSections(
         tempProfile = profile
     }
 
-    var showBioVoice by rememberSaveable { mutableStateOf(false) }
     var editBioVoice by rememberSaveable { mutableStateOf(false) }
-    var showBasic by rememberSaveable { mutableStateOf(false) }
-    var showPreferences by rememberSaveable { mutableStateOf(false) }
-    var showSocialCauses by rememberSaveable { mutableStateOf(false) } // New
-    var showLifestyle by rememberSaveable { mutableStateOf(false) }
-    var showInterests by rememberSaveable { mutableStateOf(false) }
     var editBasic by rememberSaveable { mutableStateOf(false) }
     var editPreferences by rememberSaveable { mutableStateOf(false) }
     var editSocialCauses by rememberSaveable { mutableStateOf(false) } // New
@@ -4251,8 +4227,6 @@ fun ProfileCollapsibleSections(
             CollapsibleSection(
                 title = stringResource(R.string.section_matrimony_info),
                 icon = Icons.Default.Cake,
-                isExpanded = showMatrimony,
-                onToggle = { showMatrimony = !showMatrimony },
                 editMode = editMatrimony,
                 onEditToggle = { editMatrimony = !editMatrimony }
             ) {
@@ -4276,8 +4250,6 @@ fun ProfileCollapsibleSections(
         CollapsibleSection(
             title       = stringResource(R.string.section_bio_and_voice),
             icon        = Icons.Default.Mic,         // or pick a merged icon
-            isExpanded  = showBioVoice,
-            onToggle    = { showBioVoice = !showBioVoice },
             editMode    = editBioVoice,
             onEditToggle= { editBioVoice = !editBioVoice }
         ) {
@@ -4319,8 +4291,6 @@ fun ProfileCollapsibleSections(
         CollapsibleSection(
             title = stringResource(R.string.section_basic_information),
             icon = Icons.Default.Person,
-            isExpanded = showBasic,
-            onToggle = { showBasic = !showBasic },
             editMode = editBasic,
             onEditToggle = { editBasic = !editBasic }
         ) {
@@ -4345,8 +4315,6 @@ fun ProfileCollapsibleSections(
         CollapsibleSection(
             title = stringResource(R.string.section_preferences),
             icon = Icons.Default.Favorite,
-            isExpanded = showPreferences,
-            onToggle = { showPreferences = !showPreferences },
             editMode = editPreferences,
             onEditToggle = { editPreferences = !editPreferences }
         ) {
@@ -4371,8 +4339,6 @@ fun ProfileCollapsibleSections(
         CollapsibleSection(
             title = stringResource(R.string.section_lifestyle_attributes),
             icon = Icons.Default.Nature,
-            isExpanded = showLifestyle,
-            onToggle = { showLifestyle = !showLifestyle },
             editMode = editLifestyle,
             onEditToggle = { editLifestyle = !editLifestyle }
         ) {
@@ -4397,8 +4363,6 @@ fun ProfileCollapsibleSections(
         CollapsibleSection(
             title = stringResource(R.string.section_interests),
             icon = Icons.Default.Star,
-            isExpanded = showInterests,
-            onToggle = { showInterests = !showInterests },
             editMode = editInterests,
             onEditToggle = { editInterests = !editInterests }
         ) {
@@ -4423,8 +4387,6 @@ fun ProfileCollapsibleSections(
         CollapsibleSection(
             title = stringResource(R.string.section_social_causes),
             icon = Icons.Default.VolunteerActivism, // New section
-            isExpanded = showSocialCauses,
-            onToggle = { showSocialCauses = !showSocialCauses },
             editMode = editSocialCauses,
             onEditToggle = { editSocialCauses = !editSocialCauses }
         ) {
@@ -5195,15 +5157,23 @@ fun LifestyleSlider(label: String, value: Int, nouns: List<String>, icon: ImageV
 }
 
 @Composable
-fun RatingBar(rating: Double, ratingCount: Int) {
+fun RatingBar(
+    rating: Double,
+    ratingCount: Int
+) {
     val starSize = 26.dp
-    val fullStars = kotlin.math.floor(rating).toInt()
-    val fraction = rating - fullStars
     val orange = Color(0xFFFF6F00)
 
+    // Calculate how many full stars, whether there's a fractional part, and how many empty stars
+    val fullStars = kotlin.math.floor(rating).toInt()
+    val fraction = rating - fullStars
+    // Treat any tiny fractional noise as zero
+    val hasFraction = fraction > 0.01
+    val emptyStars = 5 - fullStars - if (hasFraction) 1 else 0
+
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Full stars
-        repeat(fullStars) {
+        // 1) Draw all the full stars
+        repeat(fullStars.coerceIn(0, 5)) {
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
@@ -5211,33 +5181,49 @@ fun RatingBar(rating: Double, ratingCount: Int) {
                 modifier = Modifier.size(starSize)
             )
         }
-        // Fractional star
-        if (fraction > 0) {
+
+        // 2) Draw a fractional star (outline + clipped fill) if needed
+        if (hasFraction && fullStars < 5) {
             Box(modifier = Modifier.size(starSize)) {
-                // Outline for the fractional star
+                // Outline
                 Icon(
                     imageVector = Icons.Default.StarBorder,
                     contentDescription = null,
                     tint = orange,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Filled portion of the fractional star
+                // Filled portion
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
                     tint = orange,
                     modifier = Modifier
                         .matchParentSize()
-                        .clip(RectangleShape) // Clip to a rectangle
-                        .fractionalClip(fraction.toFloat()) // Custom modifier to clip fraction
+                        .clip(RectangleShape)
+                        .fractionalClip(fraction.toFloat())
                         .align(Alignment.CenterStart)
                 )
             }
         }
-        // Spacer and rating text
+
+        // 3) Draw any remaining empty (border-only) stars
+        repeat(emptyStars.coerceAtLeast(0)) {
+            Icon(
+                imageVector = Icons.Default.StarBorder,
+                contentDescription = null,
+                tint = orange,
+                modifier = Modifier.size(starSize)
+            )
+        }
+
+        // 4) Spacer + rating text (show "0 (0)" when count is zero)
         Spacer(modifier = Modifier.width(4.dp))
         Text(
-            text = String.format("%.2f (%d)", rating, ratingCount),
+            text = if (ratingCount == 0) {
+                "0 (0)"
+            } else {
+                String.format("%.2f (%d)", rating, ratingCount)
+            },
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 10.sp
@@ -5245,15 +5231,16 @@ fun RatingBar(rating: Double, ratingCount: Int) {
     }
 }
 
-// Custom modifier to clip the icon to a fraction of its width
+// Custom modifier to clip the Icon's canvas to the given fraction of its width
 fun Modifier.fractionalClip(fraction: Float) = this.then(
     Modifier.drawWithContent {
-        val width = size.width * fraction
-        clipRect(right = width) {
+        val clipWidth = size.width * fraction
+        clipRect(right = clipWidth) {
             this@drawWithContent.drawContent()
         }
     }
 )
+
 
 @Composable
 fun VoicePlayer(url: String) {

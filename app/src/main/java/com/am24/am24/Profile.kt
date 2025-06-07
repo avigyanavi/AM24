@@ -12,6 +12,9 @@ data class Profile(
     val email: String = "",
     val password: String = "",
 
+    var premiumExpiryDate: Long? = null,      // ms-since-epoch of next renewal
+    var razorpaySubscriptionId: String? = null,
+
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),
     val preferredLanguage: String = "",

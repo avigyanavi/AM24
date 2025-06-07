@@ -1180,7 +1180,7 @@
   या रीफ़्रेश करने के लिए नीचे “♡” आइकन पर क्लिक करें।
 </string>
     <!-- Enter Name & Height -->
-    <string name="full_name_label">पूरा नाम</string>
+    <string name="full_name_label">नाम (वैकल्पिक)</string>
     <string name="height_label">ऊँचाई</string>
     <string name="feet_inches_label">फीट + इंच</string>
     <string name="centimeters_label">सेंटीमीटर</string>

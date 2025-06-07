@@ -14,14 +14,24 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 5
+        versionName = "0.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
     }
+
+    // ▼ This is the correct place
+    bundle {
+        language {
+            // Pack every strings.xml into every install (no split APKs)
+            enableSplit = false      // Kotlin-DSL: property assignment is fine
+            // Or: enableSplit.set(false)
+        }
+    }
+
 
     buildTypes {
         release {
@@ -96,6 +106,7 @@ dependencies {
     implementation("androidx.media3:media3-transformer:1.6.1")
 
 
+
     //geofire
     implementation(libs.firebase.geofire.android) // Check for the latest version
     implementation(libs.play.services.location)
@@ -122,6 +133,8 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation (libs.gson)
     implementation("com.razorpay:checkout:1.6.41")
+    implementation("com.facebook.android:facebook-login:18.0.3")
+    implementation("com.github.yalantis:ucrop:2.2.9-native")
 
 //    implementation(libs.core) // ARCore
     implementation(libs.picasso)
@@ -129,7 +142,6 @@ dependencies {
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.compose.material)
     implementation("com.google.accompanist:accompanist-placeholder-material:0.34.0")
-
 
     implementation("com.google.firebase:firebase-appcheck-debug:18.0.0")
     implementation("com.google.firebase:firebase-appcheck-playintegrity:18.0.0")

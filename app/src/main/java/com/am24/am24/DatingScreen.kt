@@ -82,6 +82,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
@@ -156,7 +157,7 @@ fun DatingScreen(
 
     /* Auto-tap counter for empty profiles */
     var autoTapCount by rememberSaveable { mutableStateOf(0) }
-    val maxAutoTaps = 5
+    val maxAutoTaps = 0
     val verificationStatuses by datingViewModel.verificationStatuses.collectAsState()
 
     /* fetch *my* Profile once */
@@ -183,7 +184,6 @@ fun DatingScreen(
     var excludedUserIds   by remember { mutableStateOf(emptySet<String>()) }
     var remainingSwipes   by remember { mutableStateOf(0) }
     var swipesLoaded      by remember { mutableStateOf(false) }
-    var showComplimentDlg by remember { mutableStateOf(false) }
     var showBoostFlash    by rememberSaveable { mutableStateOf(false) }
 
     // constants
@@ -193,7 +193,7 @@ fun DatingScreen(
     val inCooldown = now - last < BOOST_DURATION
     val canBoost = myProfile?.availableBoosts!! > 0 && !inCooldown
 
-    var showComplimentDialog by remember { mutableStateOf(false) }
+    var showComplimentDlg by remember { mutableStateOf(false) }
 
 // ── 1) replace the existing `needsVerification` val with a mutable state ─────────
     val user                 = FirebaseAuth.getInstance().currentUser
@@ -397,36 +397,41 @@ fun DatingScreen(
                 }
 
                 Row {
-                    IconWithQuota(               // 👍 Compliments
-                        quota     = complimentsLeft,
-                        maxQuota  = 15,
-                        icon      = Icons.Default.AttachEmail,
-                        enabled   = complimentsLeft > 0,
-                        onClick   = {
-                            if (complimentsLeft > 0) showComplimentDialog = true
-                        }
+                    /* 👍  Compliments */
+                    WaterIconButton(
+                        quota    = complimentsLeft,
+                        maxQuota = 15,
+                        icon     = Icons.Default.AttachEmail,
+                        enabled  = complimentsLeft > 0,
+                        onClick   =   {
+                                    if (complimentsLeft > 0) showComplimentDlg = true
+                        }   // <- see next section }
                     )
+
+
 
                     Spacer(Modifier.width(16.dp))
 
-                    IconWithQuota(               // ⚡ Boosts
-                        quota     = myProfile!!.availableBoosts,
-                        maxQuota  = 15,          // keep meter length consistent
-                        icon      = Icons.Default.FlashOn,
-                        tint      = if (canBoost) Color.White else Color.Gray,
-                        enabled   = canBoost,
-                        onClick   = {
-                            val myUid = FirebaseAuth.getInstance().uid ?: return@IconWithQuota
+                    /* ⚡  Boosts */
+                    WaterIconButton(
+                        quota    = myProfile!!.availableBoosts,
+                        maxQuota = 15,
+                        icon     = Icons.Default.FlashOn,
+                        tint     = if (canBoost) Color.White else Color.Gray,
+                        enabled  = canBoost,
+                        onClick = {
+                            val myUid = FirebaseAuth.getInstance().uid ?: return@WaterIconButton
                             datingViewModel.boostUser(myUid) {
                                 profileViewModel.decrementBoostsLocal()
                                 showBoostFlash = true
-                                profileViewModel.fetchCurrentUserProfile()       // keep server-truth
+                                profileViewModel.fetchCurrentUserProfile()
                             }
                         }
                     )
+
                     Spacer(Modifier.width(16.dp))
 
-                    IconWithQuota(               // 🔄 Swipes
+                    WaterIconButton(               // 🔄 Swipes
                         quota     = remainingSwipes,
                         maxQuota  = 15,          // daily swipe allowance
                         icon      = Icons.Default.Swipe,
@@ -648,85 +653,50 @@ fun DatingScreen(
     }
 }
 
+/* new composable – put near IconWithQuota, or in the same file */
 @Composable
-fun IconWithQuota(
-    quota: Int,                 // how many you still have
-    maxQuota: Int = 15,         // daily allowance
+fun WaterIconButton(
+    quota: Int,
+    maxQuota: Int,
     icon: ImageVector,
+    enabled: Boolean = true,
     tint: Color = Color.White,
     onClick: () -> Unit,
-    enabled: Boolean = true
+    modifier: Modifier = Modifier
 ) {
-    val boxSide   = 30.dp       // overall size of the square
-    val strokeW   = 2.dp        // border thickness
-    val progressC = Color(0xFFFF6F00)   // orange
-    val emptyC    = Color.DarkGray      // empty perimeter
-
+    val progress by animateFloatAsState(
+        targetValue = quota.coerceIn(0, maxQuota) / maxQuota.toFloat(),
+        animationSpec = tween(400)
+    )
+    val side = 38.dp
     Box(
-        modifier = Modifier
-            .size(boxSide)
+        modifier = modifier
+            .size(side)
+            .clip(CircleShape)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        /* ───────  SQUARE BORDER WITH “UNITS”  ─────── */
+        /* container + “water” fill */
         Canvas(Modifier.matchParentSize()) {
-            val sidePx     = size.minDimension         // width == height
-            val perimPx    = sidePx * 4                // full perimeter
-            val progressPx = (quota.coerceIn(0, maxQuota) / maxQuota.toFloat()) * perimPx
-            val strokePx   = strokeW.toPx()
-
-            // 1) grey background border (empty units)
+            val h = size.height
+            // dark vessel
+            drawCircle(Color.DarkGray)
+            // orange water that rises / falls
             drawRect(
-                color  = emptyC,
-                style  = Stroke(width = strokePx)
+                color = if (enabled) Color(0xFFFF6F00) else Color.Gray,
+                topLeft = Offset(0f, h * (1f - progress)),
+                size = Size(size.width, h * progress)
             )
-
-            // 2) orange progress, walking clockwise
-            var remain = progressPx
-
-            fun drawSeg(start: Offset, end: Offset) {
-                val segLen = (end - start).getDistance()   // ← fixed
-                val take   = min(segLen, remain)
-                if (take > 0f) {
-                    val ratio = take / segLen
-                    drawLine(
-                        color  = progressC,
-                        start  = start,
-                        end    = Offset(
-                            x = start.x + (end.x - start.x) * ratio,
-                            y = start.y + (end.y - start.y) * ratio
-                        ),
-                        strokeWidth = strokePx
-                    )
-                    remain -= take
-                }
-            }
-            val tl = Offset(0f, 0f)              // top-left
-            val tr = Offset(sidePx, 0f)          // top-right
-            val br = Offset(sidePx, sidePx)      // bottom-right
-            val bl = Offset(0f, sidePx)          // bottom-left
-
-            drawSeg(tl, tr)   // top edge
-            drawSeg(tr, br)   // right edge
-            drawSeg(br, bl)   // bottom edge
-            drawSeg(bl, tl)   // left edge
         }
-
-        /* ───────  ICON  ─────── */
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(18.dp)
-        )
-
-        /* ───────  QUOTA NUMBER  ─────── */
+        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
         Text(
             quota.toString(),
-            fontSize = 11.sp,
-            color      = progressC,
+            color = Color.White,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
-            modifier   = Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 2.dp, y = 2.dp)
         )
     }
 }
@@ -1595,7 +1565,7 @@ fun DropdownFilter(
 }
 
 @Composable
-fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 5) {
+fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 0) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1605,10 +1575,7 @@ fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 5) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (autoTapCount < maxAutoTaps)
-                stringResource(R.string.no_more_profiles) + " Trying again... ($autoTapCount/$maxAutoTaps)"
-            else
-                stringResource(R.string.no_more_profiles) + " No profiles found after $maxAutoTaps attempts.",
+            text = stringResource(R.string.no_more_profiles) + " No profiles found after $maxAutoTaps attempts.",
             color = Color.White,
             fontSize = 18.sp,
             textAlign = TextAlign.Center,
@@ -1699,8 +1666,8 @@ fun DatingScreenContent(
 @Composable
 fun DatingProfileCard(
     profile: Profile,
-    isVerified: Boolean,  // new param
-    isBoosted: Boolean,                         // ← NEW
+    isVerified: Boolean,
+    isBoosted: Boolean,
     aiMatchResult: AiMatchCheckResult?,
     sortedByUpvotes: List<Post>,
     onSwipeRight: () -> Unit,
@@ -1710,104 +1677,139 @@ fun DatingProfileCard(
     postViewModel: PostViewModel,
     currentProfile: Profile?
 ) {
-    val computedAvg = if (profile.numberOfUsersWhoSwiped > 0) {
-        profile.numberOfSwipeRights.toDouble() / profile.numberOfUsersWhoSwiped
-    } else 0.0
-    profile.averageSwipeRightsOnUser = computedAvg
-
+    // 1) Create a swipeableState and define anchors
     val swipeableState = rememberSwipeableState(initialValue = 0)
     val anchors = mapOf(-300f to -1, 0f to 0, 300f to 1)
     val swipeOffset = swipeableState.offset.value
 
+    // 2) Whenever the swipeableState snaps to -1 or +1, invoke callbacks and reset to 0
     LaunchedEffect(swipeableState.currentValue) {
-        if (swipeableState.currentValue == -1) {
-            onSwipeLeft()
-            swipeableState.snapTo(0)
-        } else if (swipeableState.currentValue == 1) {
-            onSwipeRight()
-            swipeableState.snapTo(0)
+        when (swipeableState.currentValue) {
+            -1 -> {
+                onSwipeLeft()
+                swipeableState.snapTo(0)
+            }
+            1 -> {
+                onSwipeRight()
+                swipeableState.snapTo(0)
+            }
         }
     }
 
-    val allPosts by postViewModel.posts.collectAsState()
-    val myPosts = allPosts.filter { it.userId == profile.userId }
-    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
-    val featuredPosts = sortedByUpvotes.take(5)
-    val remainingPosts = sortedByUpvotes.drop(5)
+    // 3) Compute an alpha for the overlay icon based on drag distance (0..300 → 0f..1f)
+    val maxDrag = 300f
+    val rawAlpha = (abs(swipeOffset) / maxDrag).coerceIn(0f, 1f)
 
-    Card(
+    // 4) Decide which overlay to show
+    val showCheck = swipeOffset > 0f
+    val showClose = swipeOffset < 0f
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp)
+            // Offset horizontally by swipeOffset
             .offset { IntOffset(swipeOffset.roundToInt(), 0) }
+            // Attach swipeable behavior
             .swipeable(
                 state = swipeableState,
                 anchors = anchors,
                 thresholds = { _, _ -> FractionalThreshold(0.3f) },
                 orientation = Orientation.Horizontal
-            ),
-        backgroundColor = Color.Black,
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
+            )
     ) {
-        LazyColumn(
+        // ─── The original Card content ───────────────────────────────────
+        Card(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .padding(8.dp),
+            backgroundColor = Color.Black,
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
         ) {
-            item {
-                PhotoWithTwoOverlays(
-                    profile = profile,
-                    isVerified = isVerified,  // new param
-                    isBoosted      = isBoosted,            // ← pass through
-                    userDistance = userDistance,
-                    aiMatchResult = aiMatchResult,
-                    sortedByUpvotes = sortedByUpvotes,
-                currentProfile = currentProfile
-                )
-            }
-            item {
-                 DatingProfileHeader(
-                         profile         = profile,
-                         userDistance    = userDistance,
-                         sortedByUpvotes = sortedByUpvotes,
-                         isBoosted       = isBoosted       // ⚡ NEW ARG
-                 )
-            }
-            item {
-                ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult)
-            }
-            if (featuredPosts.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
                 item {
-                    Text(
-                        text = stringResource(R.string.featured_posts),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    PhotoWithTwoOverlays(
+                        profile = profile,
+                        isVerified = isVerified,
+                        isBoosted = isBoosted,
+                        userDistance = userDistance,
+                        aiMatchResult = aiMatchResult,
+                        sortedByUpvotes = sortedByUpvotes,
+                        currentProfile = currentProfile
                     )
                 }
-                items(featuredPosts) { post ->
-                    PostItemInProfile(post)
-                }
-            }
-            if (remainingPosts.isNotEmpty()) {
                 item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Button(
-                            onClick = { /* Show more posts screen perhaps */ },
-                            colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
-                        ) {
-                            Text(stringResource(R.string.view_more_posts), color = Color.White)
-                        }
+                    DatingProfileHeader(
+                        profile = profile,
+                        userDistance = userDistance,
+                        sortedByUpvotes = sortedByUpvotes,
+                        isBoosted = isBoosted
+                    )
+                }
+                item {
+                    ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult)
+                }
+                if (sortedByUpvotes.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.featured_posts),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    items(sortedByUpvotes) { post ->
+                        PostItemInProfile(post)
+                    }
+                }
+                if (sortedByUpvotes.size > 5) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Button(
+                                onClick = { /* Show more posts */ },
+                                colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.view_more_posts),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
+        }
+
+        // ─── Overlay icons ───────────────────────────────────────────────
+        if (showCheck) {
+            Icon(
+                imageVector = Icons.Default.Verified,
+                contentDescription = "Swipe Right",
+                tint = Color.Green.copy(alpha = rawAlpha),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(96.dp)
+            )
+        }
+        if (showClose) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Swipe Left",
+                tint = Color.Red.copy(alpha = rawAlpha),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(96.dp)
+            )
         }
     }
 }
@@ -2252,9 +2254,7 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
     var showPerformance by rememberSaveable { mutableStateOf(false) }
     CollapsibleSection(
         title = stringResource(R.string.performance_metrics),
-        icon = Icons.Default.Assessment,
-        isExpanded = showPerformance,
-        onToggle = { showPerformance = !showPerformance },
+        icon = Icons.Default.Assessment
     ) {
         ProfileDetailRow(
             label = stringResource(R.string.matches),
@@ -2360,15 +2360,8 @@ fun ProfileCollapsibleSectionsAll(
     currentUserProfile: Profile?,
     aiMatchResult: AiMatchCheckResult?
 ) {
-    var showVoiceBio by rememberSaveable { mutableStateOf(false) }
-    var showBasic by rememberSaveable { mutableStateOf(false) }
-    var showPreferences by rememberSaveable { mutableStateOf(false) }
-    var showLifestyle by rememberSaveable { mutableStateOf(false) }
-    var showInterests by rememberSaveable { mutableStateOf(false) }
-    var showAiSection by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
-    var showSocialCauses by rememberSaveable { mutableStateOf(false) } // New state for Social Causes
     val context = LocalContext.current // ✅ declare at the top of the Composable
 
     Column(
@@ -2379,25 +2372,21 @@ fun ProfileCollapsibleSectionsAll(
     ) {
         /** ─────────── Compatibility ─────────── */
         if (currentUserProfile?.isPremium == true || currentUserProfile?.isPlus == true) {
+
+            /*  auto-run every time it OPENS  */
+            LaunchedEffect(profile.userId) {
+                runAiMatchCheck(
+                    context = context,
+                    coroutineScope = coroutineScope,
+                    currentUserId = FirebaseAuth.getInstance().uid
+                        ?: return@LaunchedEffect,
+                    currentUserProfile = currentUserProfile,
+                    otherProfile = profile
+                ) { result -> currentAiMatchResult = result }
+            }
             CollapsibleSection(
                 title = stringResource(R.string.compatibility_check),
-                icon = Icons.Default.Info,
-                isExpanded = showAiSection,
-                onToggle = {
-                    showAiSection = !showAiSection         // expand / collapse
-
-                    /*  auto-run every time it OPENS  */
-                    if (showAiSection) {
-                        runAiMatchCheck(
-                            context = context,
-                            coroutineScope = coroutineScope,
-                            currentUserId = FirebaseAuth.getInstance().uid
-                                ?: return@CollapsibleSection,
-                            currentUserProfile = currentUserProfile,
-                            otherProfile = profile
-                        ) { result -> currentAiMatchResult = result }
-                    }
-                }
+                icon = Icons.Default.Info, // expand / collapse
             ) {
                 if (currentAiMatchResult != null) {
                     ShowAiMatchAnalysis(currentAiMatchResult!!)
@@ -2414,54 +2403,42 @@ fun ProfileCollapsibleSectionsAll(
         }
         CollapsibleSection(
             title = stringResource(R.string.bio),
-            icon = Icons.Default.Mic,
-            isExpanded = showVoiceBio,
-            onToggle = { showVoiceBio = !showVoiceBio }
+            icon = Icons.Default.Mic
         ) {
             showVoiceBio(profile = profile)
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = stringResource(R.string.basic_information),
-            icon = Icons.Default.Person,
-            isExpanded = showBasic,
-            onToggle = { showBasic = !showBasic }
+            icon = Icons.Default.Person
         ) {
             BasicInfoSection(profile)
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = stringResource(R.string.preferences),
-            icon = Icons.Default.Favorite,
-            isExpanded = showPreferences,
-            onToggle = { showPreferences = !showPreferences }
+            icon = Icons.Default.Favorite
         ) {
             PreferencesSection(profile)
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = stringResource(R.string.lifestyle_attributes),
-            icon = Icons.Default.Nature,
-            isExpanded = showLifestyle,
-            onToggle = { showLifestyle = !showLifestyle }
+            icon = Icons.Default.Nature
         ) {
             LifestyleSection(profile)
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = stringResource(R.string.interests),
-            icon = Icons.Default.Star,
-            isExpanded = showInterests,
-            onToggle = { showInterests = !showInterests }
+            icon = Icons.Default.Star
         ) {
             InterestsSectionInProfile(profile)
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(
             title = stringResource(R.string.social_causes),
-            icon = Icons.Default.Favorite, // Use a suitable icon (VolunteerActivism if available)
-            isExpanded = showSocialCauses,
-            onToggle = { showSocialCauses = !showSocialCauses }
+            icon = Icons.Default.Favorite
         ) {
             SocialCausesSection(profile)
         }
@@ -2590,14 +2567,11 @@ fun showVoiceBio(profile: Profile) {
 fun CollapsibleSection(
     title: String,
     icon: ImageVector,
-    isExpanded: Boolean,
-    onToggle: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle() }
             .border(width = 1.dp, color = Color.White, shape = CircleShape)
             .background(Color.Black)
             .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -2617,23 +2591,8 @@ fun CollapsibleSection(
             fontSize = 11.sp,
             modifier = Modifier.weight(1f)
         )
-        IconButton(
-            onClick = onToggle,
-            modifier = Modifier.size(30.dp)
-        ) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) stringResource(R.string.collapse) else stringResource(
-                    R.string.expand
-                ),
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-        }
     }
-
-    if (isExpanded) {
-        Spacer(Modifier.height(4.dp))
+     Spacer(Modifier.height(4.dp))
         Card(
             backgroundColor = Color(0xFF1A1A1A),
             elevation       = 4.dp,
@@ -2656,7 +2615,6 @@ fun CollapsibleSection(
         }
         Spacer(Modifier.height(4.dp))
     }
-}
 
 /** Standard “MatchPopUp” */
 @Composable
@@ -2748,6 +2706,7 @@ fun handleSwipeRight(
     database.getReference("swipes/$currentUserId/$otherUserId").setValue(swipeData)
     database.getReference("likesGiven/$currentUserId/$otherUserId").setValue(timestamp)
     database.getReference("likesReceived/$otherUserId/$currentUserId").setValue(timestamp)
+    profileViewModel.sendLikeNotification(currentUserId, otherUserId, {}, {})
     database.getReference("swipesReceived/$otherUserId/$currentUserId").setValue(true)
 
     // 2) Increment their counters
@@ -2774,6 +2733,9 @@ fun handleSwipeRight(
                     .setValue(timestamp)
                 database.getReference("matches/$otherUserId/$currentUserId")
                     .setValue(timestamp)
+
+                profileViewModel.sendMatchNotification(currentUserId, otherUserId, {}, {})
+                profileViewModel.sendMatchNotification(otherUserId, currentUserId, {}, {})
 
                 // b) Fire the in-app “It’s a Match!” popup
                 profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)

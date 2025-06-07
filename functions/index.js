@@ -65,7 +65,7 @@ exports.createOneTimeOrder = functions
 /* ───────────────────────────── Chat suggestions ───────────────────────────── */
 
 /* maps “hi”, “bn”, … → prompt fragment */
-const LANG = { hi: "Hindi", bn: "Bengali", en: "English" };
+const LANG = { hi: "Hindi", bn: "Bengali", en: "English", ta: "Tamil", kn: "Kannada", te: "Telegu" };
 
 exports.chatSuggestions = functions
   .region("asia-south1")
@@ -142,24 +142,11 @@ exports.chatSuggestions = functions
     }
   });
 
-  const {
+const {
     geohashQueryBounds,
     distanceBetween
   } = require('geofire-common');
 
-  /**
-   * Callable: getNearbyProfiles
-   *   data = { uid, maxDistance, minRows }
-   *
-   * • Looks up the caller’s saved lat/lng in /geoFireLocations/{uid}/l
-   * • Runs one geo-hash sweep at maxDistance km
-   * • If we still have < minRows ⇒ does one extra world-wide sweep
-   * • Pulls each profile from /users/* and returns JSON
-   *
-   * Notes
-   *   – `WORLDWIDE_DISTANCE` (101 km in the app) means “no distance filter”.
-   *   – Designed for asia-south1; tweak memory / timeout if you like.
-   */
 exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
@@ -233,3 +220,80 @@ exports.getNearbyProfiles = functions
     console.log('[getNearbyProfiles] returning', profiles.length, 'profiles');
     return { profiles };
   });
+
+
+/* ─── razorpayWebhook (HTTP) ─── */
+//exports.razorpayWebhook = functions
+//  .region('asia-south1')
+//  .https.onRequest(async (req, res) => {
+//    const body = req.rawBody;              // keep raw for signature check
+//    const sig  = req.get('X-Razorpay-Signature');
+//    const crypto = require('crypto');
+//
+//    const expected = crypto
+//      .createHmac('sha256', razorpay.key_secret)
+//      .update(body)
+//      .digest('hex');
+//
+//    if (expected !== sig) return res.status(400).send('bad sig');
+//
+//    const event = req.body.event;
+//    const payload = req.body.payload || {};
+//
+//    /* handle a few key events */
+//    if (event === 'subscription.charged') {
+//      const subId  = payload.subscription.entity.id;
+//      const userId = payload.subscription.entity.notes?.firebaseUid;     // store uid in notes when you create subs
+//      const next   = payload.payment.entity.acquirer_data.next_payment_date;
+//
+//      if (userId) {
+//        await admin.database().ref(`users/${userId}/premiumStatus/expiryDate`).set(Date.parse(next));
+//      }
+//    }
+//
+//    if (event === 'subscription.cancelled') {
+//      const subId  = payload.subscription.entity.id;
+//      const userId = payload.subscription.entity.notes?.firebaseUid;
+//      if (userId) {
+//        await admin.database().ref(`users/${userId}/premiumStatus`).update({ isPremium: false });
+//      }
+//    }
+//
+//    res.send('ok');
+//  });
+//
+///* ─── verifySubscriptionPayment (callable) ─── */
+//exports.verifySubscriptionPayment = functions
+//  .region('asia-south1')
+//  .https.onCall(async (data, context) => {
+//    const { uid, paymentId, subscriptionId, signature } = data || {};
+//    if (!uid || !paymentId || !subscriptionId || !signature)
+//      throw new functions.https.HttpsError('invalid-argument', 'uid, paymentId, subscriptionId, and signature are required');
+//
+//    /* 1️⃣  verify HMAC (signature = HMAC_SHA256(subscriptionId|paymentId, secret)) */
+//    const crypto = require('crypto');
+//    const expected = crypto
+//      .createHmac('sha256', razorpay.key_secret)
+//      .update(`${subscriptionId}|${paymentId}`)
+//      .digest('hex');
+//
+//    if (expected !== signature)
+//      throw new functions.https.HttpsError('permission-denied', 'Invalid signature');
+//
+//    /* 2️⃣  fetch the payment object and ensure it is captured */
+//    const payment = await razorpay.payments.fetch(paymentId);
+//    if (payment.status !== 'captured')
+//      throw new functions.https.HttpsError('failed-precondition', `Payment not captured (${payment.status})`);
+//
+//    /* 3️⃣  write premiumStatus */
+//    const db   = admin.database();
+//    const next = Date.parse(payment.acquirer_data?.next_payment_date) || 0;
+//    await db.ref(`users/${uid}/premiumStatus`).set({
+//      isPremium: true,
+//      subscriptionId,
+//      paymentId,
+//      expiryDate: next,
+//    });
+//
+//    return { ok: true, expiryDate: next };
+//  });

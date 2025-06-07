@@ -354,6 +354,40 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /** LOW-LEVEL helper – writes one row under /notifications */
+    private suspend fun pushNotification(
+        receiverId: String,
+        type: String,
+        senderId: String,
+        message: String,
+        extra: Map<String, Any?> = emptyMap()
+    ) {
+        val ts = System.currentTimeMillis()
+        val id = notificationsRef.child(receiverId).push().key ?: return
+
+        val payload = Notification(
+            id             = id,
+            type           = type,
+            senderId       = senderId,
+            senderUsername = "",           // we resolve lazily when displaying
+            message        = message,
+            timestamp      = ts,
+            isRead         = "false"
+        )
+
+        // save the main object
+        notificationsRef.child(receiverId).child(id).setValue(payload).await()
+
+        // (optional) save extras in a side node
+        extra.forEach { (k, v) ->
+            database
+                .getReference("notificationsExtra")
+                .child(receiverId)
+                .child(id)
+                .child(k)
+                .setValue(v)
+        }
+    }
 
     // Count unread notifications for a user
     fun countUnreadNotifications(userId: String, onCountRetrieved: (Int) -> Unit) {
@@ -514,6 +548,67 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 Log.e(TAG, "Verification listener failed: ${err.message}")
             }
         })
+    }
+
+    /** A match you follow just published a regular post */
+    fun sendMatchPostNotification(
+        posterId: String,
+        receiverId: String,
+        postId: String,
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) = viewModelScope.launch {
+        try {
+            pushNotification(
+                receiverId = receiverId,
+                type       = "match_post",
+                senderId   = posterId,
+                message    = "senderUsername added a new post 📸",
+                extra      = mapOf("postId" to postId)
+            )
+            onSuccess()
+        } catch (e: Exception) { onFailure(e.message ?: "post-notification failed") }
+    }
+
+    /** A match checked-in somewhere – include venue in the message */
+    fun sendMatchCheckInNotification(
+        posterId: String,
+        receiverId: String,
+        checkInId: String,
+        placeName: String,
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) = viewModelScope.launch {
+        try {
+            pushNotification(
+                receiverId = receiverId,
+                type       = "match_checkin",
+                senderId   = posterId,
+                message    = "senderUsername checked in at $placeName 📍",
+                extra      = mapOf("checkInId" to checkInId)
+            )
+            onSuccess()
+        } catch (e: Exception) { onFailure(e.message ?: "check-in notification failed") }
+    }
+
+    /** Notify receiver that someone sent a compliment */
+    fun sendComplimentNotification(
+        senderId: String,
+        receiverId: String,
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) = viewModelScope.launch {
+        try {
+            pushNotification(
+                receiverId = receiverId,
+                type       = "new_compliment",
+                senderId   = senderId,
+                message    = "senderUsername sent you a compliment 💌"
+            )
+            onSuccess()
+        } catch (e: Exception) {
+            onFailure(e.message ?: "Failed to send compliment notification")
+        }
     }
 
     // Send a match notification

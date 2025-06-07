@@ -1,18 +1,5 @@
 // SettingsScreen.kt  (drop-in replacement)
-//
-// Implements:
-//  • Card-style UI (Lichess look)
-//  • Password change overlay with old/new/confirm
-//  • Username edit with disabled “Done” on blank
-//  • Language picker: en, hi, bn, ta, kn, te
-//  • Free-tier row doubles as “Upgrade” CTA; Premium shows dashboard + cancel
-//  • PurchaseOptionsSection restored
-//  • All onClick lambdas present
-//
-// Requires: FirebaseAuth, Firebase Realtime DB helper `FirebaseRefs`,
-//           updateLocale(context, langCode) extension you already had,
-//           NavController routes:  “subscription”, “buySwipes”, “buyCompliments”, “buyBoosts”
-//
+
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.am24.am24

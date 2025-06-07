@@ -450,11 +450,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 // ─── notify matches, same style as text/voice ───────────────
                 val matches = getMatches(userId)
                 matches.forEach { receiverId ->
-                    val msg = "$username posted a new ${if (mediaType=="image") "photo" else "video"} update."
-                    sendNotification(
-                        receiverId, type = "new_post",
-                        senderId = userId, senderUsername = username, message = msg
-                    )
+                    val notifType = if (checkIn != null) "match_checkin" else "match_post"
+                    val msg       = if (checkIn != null)
+                        "$username checked in at ${checkIn?.name} 📍"
+                    else
+                        "$username posted a new ${if (mediaType=="image") "photo" else "video"} update."
+                    sendNotification(receiverId, notifType, userId, username, msg)
                 }
 
             } catch (e: Exception) {
@@ -765,13 +766,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 // Send notifications to friends and matches
                 val matches = getMatches(userId)
                 matches.forEach { receiverId ->
-                    val message = "$username - your match posted a new text update."
+                    val isCheckIn = checkIn != null                      // 🆕
+                    val msg = if (isCheckIn)
+                        "$username checked in at ${checkIn?.name} 📍"
+                    else
+                        "$username posted a new text update."
+                    val notifType = if (isCheckIn) "match_checkin" else "match_post"   // 🆕
                     sendNotification(
-                        receiverId = receiverId,
-                        type = "new_post",
-                        senderId = userId,
-                        senderUsername = username,
-                        message = message
+                        receiverId      = receiverId,
+                        type            = notifType,       // 🆕
+                        senderId        = userId,
+                        senderUsername  = username,
+                        message         = msg
                     )
                 }
             } catch (e: Exception) {
@@ -844,13 +850,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 // Send notifications to friends and matches
                 val matches = getMatches(userId)
                 matches.forEach { receiverId ->
-                    val message = "$username - your match posted a new voice update."
+                    val msg = "$username posted a new voice note 🎤"
                     sendNotification(
-                        receiverId = receiverId,
-                        type = "new_post",
-                        senderId = userId,
-                        senderUsername = username,
-                        message = message
+                        receiverId      = receiverId,
+                        type            = "match_post",   // ← NEW type (was "new_post")
+                        senderId        = userId,
+                        senderUsername  = username,
+                        message         = msg
                     )
                 }
             } catch (e: Exception) {

@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.am24.DatingFilterSettings
 import com.am24.am24.FirebaseRefs
+import com.am24.am24.Notification
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
 import com.am24.am24.calculateAge
@@ -194,6 +195,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             complimentRef.setValue(complimentData)
             complimentReceivedRef.setValue(complimentData)
 
+            profileViewModel.sendComplimentNotification(senderId, receiverId)
+
             /* ▼▼▼ 2-d: burn one compliment quota & update the StateFlow ▼▼▼ */
             val leftNow = (_complimentsLeft.value - 1).coerceAtLeast(0)
             database.getReference("users/$senderId")
@@ -355,33 +358,52 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** rebuilds `_boostedUsers`, dropping any >6h old */
+    /** rebuilds `_boostedUsers`, dropping any >6 h old and notifying owners */
     private fun updateBoostedUsers(currentUserId: String) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
 
-            // clean out expired boosts in Firebase too (optional)
-            _allProfiles.value
+            /* 1️⃣  Find boosts that just expired */
+            val expiredUids = _allProfiles.value
                 .filter { it.isBoosted && (it.boostedAt == null || now - it.boostedAt!! > BOOST_DURATION_MS) }
-                .forEach {
-                    usersRef.child(it.userId).child("isBoosted").setValue(false)
-                }
+                .map { it.userId }
 
-            // only keep the fresh ones
+            /* 2️⃣  Clear their isBoosted flag and notify them */
+            expiredUids.forEach { uid ->
+                usersRef.child(uid).child("isBoosted").setValue(false)
+                pushBoostOverNotification(uid)              // 🔔
+            }
+
+            /* 3️⃣  Keep only still-valid boosts for the deck UI */
             val boosted = _allProfiles.value.filter {
                 it.isBoosted && it.boostedAt != null && now - it.boostedAt!! <= BOOST_DURATION_MS
             }
 
-            // compute distances…
+            /* 4️⃣  Recompute distance map & StateFlows */
             val distMap = boosted.mapNotNull { p ->
-                calculateDistance(currentUserId, p.userId, geoFire)
-                    ?.let { p.userId to it }
+                calculateDistance(currentUserId, p.userId, geoFire)?.let { p.userId to it }
             }.toMap()
 
             _userDistanceMap.value = distMap
             _boostedUsers.value    = boosted.sortedBy { distMap[it.userId] ?: Float.MAX_VALUE }
         }
     }
+
+    private suspend fun pushBoostOverNotification(receiverId: String) {
+        val notifRef = FirebaseRefs.db.getReference("notifications")
+        val id       = notifRef.child(receiverId).push().key ?: return
+        val payload  = Notification(
+            id             = id,
+            type           = "boost_over",
+            senderId       = FirebaseAuth.getInstance().uid ?: "",
+            senderUsername = "",
+            message        = "Your Boost has ended. Ready for another? ⚡",
+            timestamp      = System.currentTimeMillis(),
+            isRead         = "false"
+        )
+        notifRef.child(receiverId).child(id).setValue(payload).await()
+    }
+
 
     private suspend fun applyDatingFilters(profiles: List<Profile>, filters: DatingFilterSettings, blocked:  List<String> // ← NEW
     ): List<Profile> = coroutineScope {

@@ -1184,7 +1184,7 @@
 
     <string name="or_click_date_to_refresh">অথবা রিফ্রেশ করতে নিচের নেভিগেশনে “♡” আইকনে ক্লিক করুন।</string>
     <!-- Enter Name & Height -->
-    <string name="full_name_label">পূর্ণ নাম</string>
+    <string name="full_name_label">নাম (ঐচ্ছিক)</string>
     <string name="height_label">উচ্চতা</string>
     <string name="feet_inches_label">ফুট + ইঞ্চি</string>
     <string name="centimeters_label">সেন্টিমিটার</string>

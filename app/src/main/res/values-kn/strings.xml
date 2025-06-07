@@ -1186,7 +1186,7 @@
   ಅಥವಾ ಕೆಳಗಿನ ನ್ಯಾವ್ ಬಾರ್‌ನ “♡” ಐಕಾನ್ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ ರಿಫ್ರೆಶ್ ಮಾಡಲು.
 </string>
     <!-- Enter Name & Height -->
-    <string name="full_name_label">ಪೂರ್ಣ ಹೆಸರು</string>
+    <string name="full_name_label">ಹೆಸರು (ಐಚ್ಛಿಕ)</string>
     <string name="height_label">ಎತ್ತರ</string>
     <string name="feet_inches_label">അട + ಇಂಚುಗಳು</string>
     <string name="centimeters_label">ಸೆಂಟಿಮೀಟರ್</string>

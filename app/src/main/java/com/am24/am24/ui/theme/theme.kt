@@ -1,49 +1,73 @@
 package com.am24.am24.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Define custom colors
-val Black = Color(0xFF000000)
-val White = Color(0xFFFFFFFF)
-val AccentGreen = Color(0xFF00bf63)
+// custom colors
+private val Black       = Color(0xFF000000)
+private val White       = Color(0xFFFFFFFF)
+private val AccentGreen = Color(0xFF00BF63)
 
-// Define the color scheme for the splash theme
-private val SplashColorScheme = darkColorScheme(
-    primary = Black,
-    onPrimary = White,
-    background = Black,
-    onBackground = White,
-    surface = Black,
-    onSurface = White,
+// Light scheme
+private val LightColorScheme = lightColorScheme(
+    primary       = White,
+    onPrimary     = Black,
+    secondary     = AccentGreen,
+    onSecondary   = White,
+    background    = White,
+    onBackground  = Black,
+    surface       = White,
+    onSurface     = Black,
 )
 
-// Splash theme composable to be used during the initial load screen
+// Dark scheme
+private val DarkColorScheme = darkColorScheme(
+    primary       = Black,
+    onPrimary     = White,
+    secondary     = AccentGreen,
+    onSecondary   = Black,
+    background    = Black,
+    onBackground  = White,
+    surface       = Black,
+    onSurface     = White,
+)
+
+// Splash uses always-dark
+private val SplashColorScheme = darkColorScheme(
+    primary       = Black,
+    onPrimary     = White,
+    background    = Black,
+    onBackground  = White,
+    surface       = Black,
+    onSurface     = White,
+)
+
+/** Use for your splash screen only */
 @Composable
 fun SplashTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = SplashColorScheme,
-        typography = Typography(),  // Use default typography or customize if needed
-        content = content
+        typography  = Typography(),
+        content     = content
     )
 }
 
-// App theme composable for the rest of the app
+/**
+ * AppTheme lets you toggle light/dark via [darkTheme].
+ * Default follows system setting.
+ */
 @Composable
-fun AppTheme(content: @Composable () -> Unit) {
+fun AppTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colors = if (darkTheme) DarkColorScheme else LightColorScheme
+
     MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Black,             // Main background color for the app.
-            onPrimary = White,           // Text or icon color on primary elements.
-            secondary = AccentGreen,     // Accent color for interactive components.
-            onSecondary = White,         // Text color on secondary components.
-            background = Black,          // General background color.
-            onBackground = White,        // Text color on background.
-            surface = Black,             // Surface color for cards and other elements.
-            onSurface = White            // Text color on components that use the surface color.
-        ),
-        typography = Typography(),       // Use default typography or customize as needed.
-        content = content
+        colorScheme = colors,
+        typography  = Typography(),
+        content     = content
     )
 }
