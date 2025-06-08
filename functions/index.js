@@ -297,3 +297,107 @@ exports.getNearbyProfiles = functions
 //
 //    return { ok: true, expiryDate: next };
 //  });
+
+
+/* shorthand so we only spell it once */
+const DB = 'kupidxdefault';          // ⇐ the sub-domain before .asia-southeast1…
+
+/* ──────────────────────── Auto-disable after 5 reports ─────────────────────── */
+
+async function incrementReportCount(uid) {
+  const countRef = admin.database().ref(`reportCounts/${uid}`);
+  const res      = await countRef.transaction(c => (c || 0) + 1);
+  const total    = res.snapshot.val();
+
+  console.log(`[incrementReportCount] ${uid} now has ${total} reports`);
+  if (total >= 5) {
+    await admin.auth().updateUser(uid, { disabled: true });
+    console.log(`[incrementReportCount] Disabled user ${uid}`);
+  }
+}
+
+/* 1️⃣ user-to-user report */
+exports.onUserReport = functions
+  .region('asia-south1')
+  .database.instance(DB)                 // ← add .instance()
+  .ref('/reports/{reportedId}/{reporterId}')
+  .onCreate((_, context) =>
+    incrementReportCount(context.params.reportedId)
+  );
+
+/* 2️⃣ chat message report */
+exports.onChatReport = functions
+  .region('asia-south1')
+  .database.instance(DB)
+  .ref('/reports/{reportId}')
+  .onCreate(snapshot => {
+    const data = snapshot.val();
+    if (data?.reportedId) return incrementReportCount(data.reportedId);
+    return null;
+  });
+
+/* 3️⃣ post report */
+exports.onPostReport = functions
+  .region('asia-south1')
+  .database.instance(DB)
+  .ref('/reportedPosts/{postId}/{reportId}')
+  .onCreate(snapshot => {
+    const data = snapshot.val();
+    if (data?.reportedUser) return incrementReportCount(data.reportedUser);
+    return null;
+  });
+
+
+/** Plan you expect the user to subscribe to */
+const EXPECTED_PLAN = "P-8EV86494EK6312239NBCUGVI";
+
+/**
+ * Callable ⇢ verifyPaypalSubscription({ subscriptionId: "I-XXXX" }) → { valid:Boolean, status:String }
+ */
+exports.verifyPaypalSubscription = functions.https.onCall(async (data, context) => {
+  const subId = data?.subscriptionId;
+  if (!subId) {
+    throw new functions.https.HttpsError("invalid-argument", "subscriptionId missing");
+  }
+
+  /* ── PayPal credentials from firebase functions:config:set ── */
+  const cfg         = functions.config().paypal;
+  const clientId    = cfg.client_id;
+  const clientSecret= cfg.client_secret;
+  const env         = (cfg.environment || "sandbox").toLowerCase();
+  const apiBase     = env === "live"
+                        ? "https://api-m.paypal.com"
+                        : "https://api-m.sandbox.paypal.com";
+
+  /* ── 1) OAuth2 token ── */
+  const tokenRes = await fetch(`${apiBase}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
+    },
+    body: "grant_type=client_credentials"
+  });
+
+  if (!tokenRes.ok) {
+    throw new functions.https.HttpsError("internal", "PayPal auth failed");
+  }
+  const { access_token } = await tokenRes.json();
+
+  /* ── 2) Subscription details ── */
+  const subRes = await fetch(`${apiBase}/v1/billing/subscriptions/${subId}`, {
+    headers: { Authorization: `Bearer ${access_token}` }
+  });
+
+  if (!subRes.ok) {
+    throw new functions.https.HttpsError("internal", "Subscription lookup failed");
+  }
+
+  const subJson = await subRes.json();
+  const status  = subJson.status;    // ACTIVE | APPROVAL_PENDING | CANCELLED …
+  const planId  = subJson.plan_id;
+
+  const valid = status === "ACTIVE" && planId === EXPECTED_PLAN;
+
+  return { valid, status, planId };   // your Android code can check .valid === true
+});

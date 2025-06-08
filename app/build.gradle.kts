@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
     implementation("com.google.maps.android:android-maps-utils:2.3.0")
+    implementation("phonepe.intentsdk.android.release:IntentSDK:5.1.0")
     implementation(libs.places)
     // For Coil image loading
     implementation(libs.coil.compose.v222)
@@ -133,6 +134,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation (libs.gson)
     implementation("com.razorpay:checkout:1.6.41")
+    implementation("androidx.webkit:webkit:1.10.0")    // optional helper for modern WebView
     implementation("com.facebook.android:facebook-login:18.0.3")
     implementation("com.github.yalantis:ucrop:2.2.9-native")
 

@@ -34,6 +34,9 @@ import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -43,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -69,6 +73,7 @@ import coil.request.ImageRequest
 import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
 import com.am24.am24.util.CachedFullscreenVideoPlayer
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.tasks.await
 
 @Composable
@@ -655,7 +660,7 @@ fun CollapsibleSection(
             text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             modifier = Modifier.weight(1f)
         )
 
@@ -1092,6 +1097,1128 @@ fun BasicInfoSection(profile: Profile) {
     )
 }
 
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun BasicInfoEditSection(
+//    tempProfile: Profile,
+//    onSave: (Profile) -> Unit,
+//    onCancel: () -> Unit
+//) {
+//    // ─── State for all fields ───────────────────────────
+//    var name               by remember { mutableStateOf(tempProfile.name) }
+//    var city               by remember { mutableStateOf(tempProfile.city) }
+//    var cityExpanded       by remember { mutableStateOf(false) }
+//    var locality           by remember { mutableStateOf(tempProfile.hometown) }
+//    var localityExpanded   by remember { mutableStateOf(false) }
+//    var customCity by remember { mutableStateOf(tempProfile.customCity.orEmpty()) }
+//    var customLocality by remember { mutableStateOf(tempProfile.customHometown.orEmpty()) }
+//    var customHighSchool by remember { mutableStateOf(tempProfile.customHighSchool.orEmpty()) }
+//    var customCollege by remember { mutableStateOf(tempProfile.customCollege.orEmpty()) }
+//    var customPostGrad by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
+//
+//    // ─── High-School dropdown + year ────────────────────
+//    val highSchoolOptions = listOf(
+//        stringResource(R.string.high_school_modern_school_barakhamba),
+//        stringResource(R.string.high_school_dps_rk_puram),
+//        stringResource(R.string.high_school_shri_ram_gurgaon),
+//        stringResource(R.string.high_school_amity_noida),
+//        stringResource(R.string.high_school_sanskriti_delhi),
+//        stringResource(R.string.high_school_city_montessori_lucknow),
+//        stringResource(R.string.high_school_la_martiniere_lucknow),
+//        stringResource(R.string.high_school_doon_school),
+//        stringResource(R.string.high_school_welham_girls),
+//        stringResource(R.string.high_school_lawrence_sanawar),
+//        stringResource(R.string.high_school_mayo_college),
+//        stringResource(R.string.high_school_st_johns_chandigarh),
+//        stringResource(R.string.high_school_birla_pilani),
+//        stringResource(R.string.high_school_scindia_school),
+//        stringResource(R.string.high_school_yds_srinagar),
+//        // West India (Maharashtra, Gujarat, Madhya Pradesh, Goa)
+//        stringResource(R.string.high_school_cathedral_john_connon),
+//        stringResource(R.string.high_school_dhirubhai_ambani),
+//        stringResource(R.string.high_school_bombay_scottish_mahim),
+//        stringResource(R.string.high_school_campion_mumbai),
+//        stringResource(R.string.high_school_jamnabai_narsee),
+//        stringResource(R.string.high_school_st_marys_pune),
+//        stringResource(R.string.high_school_symbiosis_pune),
+//        stringResource(R.string.high_school_daly_college),
+//        stringResource(R.string.high_school_podar_ahmedabad),
+//        stringResource(R.string.high_school_anand_niketan),
+//        stringResource(R.string.high_school_don_bosco_panaji),
+//        stringResource(R.string.high_school_emerald_heights_indore),
+//        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
+//        stringResource(R.string.high_school_bishop_cotton_boys),
+//        stringResource(R.string.high_school_bishop_cotton_girls),
+//        stringResource(R.string.high_school_mallya_aditi),
+//        stringResource(R.string.high_school_national_public_indiranagar),
+//        stringResource(R.string.high_school_psbb_chennai),
+//        stringResource(R.string.high_school_chettinad_vidyashram),
+//        stringResource(R.string.high_school_dav_velachery),
+//        stringResource(R.string.high_school_sishya_chennai),
+//        stringResource(R.string.high_school_hyderabad_public),
+//        stringResource(R.string.high_school_international_hyderabad),
+//        stringResource(R.string.high_school_rishi_valley),
+//        stringResource(R.string.high_school_loyola_trivandrum),
+//        stringResource(R.string.high_school_trivandrum_international),
+//        stringResource(R.string.high_school_chinmaya_coimbatore),
+//        stringResource(R.string.high_school_sainik_amaravathinagar),
+//        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+//        stringResource(R.string.high_school_st_xaviers_collegiate),
+//        stringResource(R.string.high_school_la_martiniere_boys),
+//        stringResource(R.string.high_school_la_martiniere_girls),
+//        stringResource(R.string.high_school_modern_high_girls),
+//        stringResource(R.string.high_school_south_point),
+//        stringResource(R.string.high_school_don_bosco_park_circus),
+//        stringResource(R.string.high_school_loreto_house),
+//        stringResource(R.string.high_school_calcutta_boys),
+//        stringResource(R.string.high_school_calcutta_girls),
+//        stringResource(R.string.high_school_hindu_school),
+//        stringResource(R.string.high_school_ramakrishna_narendrapur),
+//        stringResource(R.string.high_school_st_james_kolkata),
+//        stringResource(R.string.high_school_dps_bhubaneswar),
+//        stringResource(R.string.high_school_sai_bhubaneswar),
+//        stringResource(R.string.high_school_loyola_patna),
+//        stringResource(R.string.high_school_st_michaels_patna),
+//        stringResource(R.string.high_school_netarhat),
+//        stringResource(R.string.high_school_chinmaya_bokaro),
+//        stringResource(R.string.high_school_dps_ranchi),
+//        // Northeast India (Assam, Meghalaya, Sikkim, Tripura)
+//        stringResource(R.string.high_school_assam_valley),
+//        stringResource(R.string.high_school_don_bosco_guwahati),
+//        stringResource(R.string.high_school_spring_dale_guwahati),
+//        stringResource(R.string.high_school_loreto_shillong),
+//        stringResource(R.string.high_school_st_anthonys_shillong),
+//        stringResource(R.string.high_school_don_bosco_agartala),
+//        // Union Territories and Special Cases
+//        stringResource(R.string.high_school_north_point_darjeeling),
+//        stringResource(R.string.high_school_st_josephs_north_point),
+//        stringResource(R.string.high_school_dr_grahams_kalimpong),
+//        stringResource(R.string.high_school_lawrence_lovedale),
+//        stringResource(R.string.high_school_dps_port_blair),
+//        stringResource(R.string.high_school_dps_srinagar),
+//        // Catch-all for other high schools
+//        stringResource(R.string.high_school_other)
+//    )
+//
+//    var highSchool            by remember { mutableStateOf(tempProfile.highSchool) }
+//    var highSchoolExpanded    by remember { mutableStateOf(false) }
+//    var highSchoolYear        by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
+//
+//    // ─── College dropdown + year + degree w/ limit ─────
+//    val collegeOptions = listOf(
+//        // Engineering Colleges
+//        stringResource(R.string.college_srm_institute_of_science_and_technology),
+//        stringResource(R.string.college_vellore_institute_of_technology),
+//        stringResource(R.string.college_bits_pilani),
+//        stringResource(R.string.college_manipal_institute_of_technology),
+//        stringResource(R.string.college_iiit_hyderabad),
+//        // Private Arts/Science Colleges
+//        stringResource(R.string.college_op_jindal_global_university),
+//        stringResource(R.string.college_ashoka_university),
+//        // Design Colleges in India
+//        stringResource(R.string.college_nid_kurukshetra),
+//        stringResource(R.string.college_nid_gandhinagar),
+//        stringResource(R.string.college_nid_bengaluru),
+//        stringResource(R.string.college_nid_bhopal),
+//        stringResource(R.string.college_nid_jorhat),
+//        stringResource(R.string.college_nid_vijayawada),
+//        stringResource(R.string.college_nift),
+//        stringResource(R.string.college_srishti_manipal),
+//        stringResource(R.string.college_pearl_academy),
+//        stringResource(R.string.college_symbiosis_institute_of_design),
+//        stringResource(R.string.college_mit_institute_of_design),
+//        stringResource(R.string.college_iiad),
+//        stringResource(R.string.college_world_university_of_design),
+//        stringResource(R.string.college_amity_school_of_fashion_technology),
+//        stringResource(R.string.college_jd_institute_of_fashion_technology),
+//        stringResource(R.string.college_arch_academy_of_design),
+//        stringResource(R.string.college_daiict),
+//        // Law Colleges in India
+//        stringResource(R.string.college_nlu_delhi),
+//        stringResource(R.string.college_wbnujs_kolkata),
+//        stringResource(R.string.college_nliu_bhopal),
+//        stringResource(R.string.college_gnlu_gandhinagar),
+//        stringResource(R.string.college_hnlu_raipur),
+//        stringResource(R.string.college_rmlnlu_lucknow),
+//        stringResource(R.string.college_rgnul_patiala),
+//        stringResource(R.string.college_cnlu_patna),
+//        stringResource(R.string.college_nuals_kochi),
+//        stringResource(R.string.college_nluo_cuttack),
+//        stringResource(R.string.college_nusr_law_ranchi),
+//        stringResource(R.string.college_nluja_guwahati),
+//        stringResource(R.string.college_tnnlu_tiruchirappalli),
+//        stringResource(R.string.college_mnlu_mumbai),
+//        stringResource(R.string.college_mnlu_nagpur),
+//        stringResource(R.string.college_mnlu_aurangabad),
+//        stringResource(R.string.college_hpnlu_shimla),
+//        stringResource(R.string.college_dnlu_jabalpur),
+//        stringResource(R.string.college_dbranlu_sonipat),
+//        stringResource(R.string.college_faculty_of_law_du),
+//        stringResource(R.string.college_symbiosis_law_school),
+//        stringResource(R.string.college_glc_mumbai),
+//        stringResource(R.string.college_ils_law_pune),
+//        stringResource(R.string.college_amity_law_school_noida),
+//        stringResource(R.string.college_christ_univ_law),
+//        stringResource(R.string.college_bhu_faculty_of_law),
+//        stringResource(R.string.college_amu_faculty_of_law),
+//        stringResource(R.string.college_jamia_law),
+//        stringResource(R.string.college_op_jindal_law_school),
+//        stringResource(R.string.college_army_institute_of_law_mohali),
+//        stringResource(R.string.college_kerala_law_academy),
+//        stringResource(R.string.college_school_of_law_calcutta),
+//        // Arts Colleges in India
+//        stringResource(R.string.college_college_of_art_du),
+//        stringResource(R.string.college_sir_jj_school_of_art),
+//        stringResource(R.string.college_faculty_visual_arts_bhu),
+//        stringResource(R.string.college_msu_fine_arts_vadodara),
+//        stringResource(R.string.college_govt_college_art_craft_kolkata),
+//        stringResource(R.string.college_chennai_govt_fine_arts),
+//        stringResource(R.string.college_rachana_sansad),
+//        stringResource(R.string.college_goa_college_of_art),
+//        stringResource(R.string.college_amity_school_fine_arts),
+//        stringResource(R.string.college_kalakshetra_foundation),
+//        stringResource(R.string.college_bharatiya_kala_kendra),
+//        stringResource(R.string.college_gandharva_mahavidyalaya),
+//        stringResource(R.string.college_nsd),
+//        stringResource(R.string.college_ftii_pune),
+//        stringResource(R.string.college_srfti_kolkata),
+//        stringResource(R.string.college_kathak_kendra),
+//        stringResource(R.string.college_drama_thrissur),
+//        stringResource(R.string.college_ramjas_college),
+//        stringResource(R.string.college_st_xaviers_mumbai),
+//        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
+//        stringResource(R.string.college_st_stephens),
+//        stringResource(R.string.college_miranda_house),
+//        stringResource(R.string.college_hindu_college),
+//        stringResource(R.string.college_lady_shri_ram),
+//        stringResource(R.string.college_hansraj_college),
+//        stringResource(R.string.college_delhi_university),
+//        stringResource(R.string.college_iit_delhi),
+//        stringResource(R.string.college_jnu_delhi),
+//        stringResource(R.string.college_op_jindal_global),
+//        stringResource(R.string.college_amity_noida),
+//        stringResource(R.string.college_nift_delhi),
+//        stringResource(R.string.college_pearl_academy_delhi),
+//        stringResource(R.string.college_amity_law_school),
+//        stringResource(R.string.college_banaras_hindu_university),
+//        stringResource(R.string.college_iit_kanpur),
+//        stringResource(R.string.college_iit_roorkee),
+//        stringResource(R.string.college_lpu_phagwara),
+//        stringResource(R.string.college_chandigarh_university),
+//        // West India (Maharashtra, Gujarat, Goa)
+//        stringResource(R.string.college_iit_bombay),
+//        stringResource(R.string.college_mithibai_college),
+//        stringResource(R.string.college_nmims_mumbai),
+//        stringResource(R.string.college_university_of_mumbai),
+//        stringResource(R.string.college_jj_school_arts),
+//        stringResource(R.string.college_fergusson_college),
+//        stringResource(R.string.college_symbiosis_liberal_arts),
+//        stringResource(R.string.college_flame_university),
+//        stringResource(R.string.college_savitribai_phule_pune_university),
+//        stringResource(R.string.college_symbiosis_law_school),
+//        stringResource(R.string.college_iit_gandhinagar),
+//        stringResource(R.string.college_nid_ahmedabad),
+//        stringResource(R.string.college_nirma_university),
+//        stringResource(R.string.college_goa_university),
+//        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
+//        stringResource(R.string.college_iisc_bangalore),
+//        stringResource(R.string.college_christ_university),
+//        stringResource(R.string.college_mount_carmel),
+//        stringResource(R.string.college_st_josephs_bangalore),
+//        stringResource(R.string.college_nlsiu_bangalore),
+//        stringResource(R.string.college_iit_madras),
+//        stringResource(R.string.college_loyola_college),
+//        stringResource(R.string.college_madras_christian_college),
+//        stringResource(R.string.college_anna_university),
+//        stringResource(R.string.college_stella_maris),
+//        stringResource(R.string.college_krea_university),
+//        stringResource(R.string.college_osmania_university),
+//        stringResource(R.string.college_manipal_academy),
+//        stringResource(R.string.college_andhra_university),
+//        stringResource(R.string.college_annamalai_university),
+//        stringResource(R.string.college_kerala_university),
+//        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+//        stringResource(R.string.college_jadavpur_university),
+//        stringResource(R.string.college_presidency_university),
+//        stringResource(R.string.college_st_xaviers_kolkata),
+//        stringResource(R.string.college_scottish_church),
+//        stringResource(R.string.college_university_of_calcutta),
+//        stringResource(R.string.college_iit_kharagpur),
+//        stringResource(R.string.college_nit_durgapur),
+//        stringResource(R.string.college_loreto_college),
+//        stringResource(R.string.college_lady_brabourne),
+//        stringResource(R.string.college_bethune_college),
+//        stringResource(R.string.college_ramakrishna_narendrapur),
+//        stringResource(R.string.college_goenka_college),
+//        stringResource(R.string.college_visva_bharati),
+//        stringResource(R.string.college_nit_rourkela),
+//        stringResource(R.string.college_iit_dhanbad),
+//        // Northeast India (Assam, Meghalaya)
+//        stringResource(R.string.college_gauhati_university),
+//        stringResource(R.string.college_nehu_shillong),
+//        stringResource(R.string.college_cotton_university),
+//        // Union Territories
+//        stringResource(R.string.college_jamia_millia_islamia),
+//        // Catch-all for other colleges
+//        stringResource(R.string.college_other)
+//    )
+//
+//    var college               by remember { mutableStateOf(tempProfile.college) }
+//    var collegeExpanded       by remember { mutableStateOf(false) }
+//    var collegeYear           by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
+//    var collegeDegree         by remember { mutableStateOf(tempProfile.collegeDegree.orEmpty()) }
+//
+//    // ─── Post-Grad dropdown + year + degree w/ limit ────
+//    val postGradOptions = listOf(
+//        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
+//        stringResource(R.string.postgrad_delhi_university),
+//        stringResource(R.string.postgrad_iit_delhi),
+//        stringResource(R.string.postgrad_jnu_delhi),
+//        stringResource(R.string.postgrad_ashoka_university),
+//        stringResource(R.string.postgrad_amity_noida),
+//        stringResource(R.string.postgrad_nift_delhi),
+//        stringResource(R.string.postgrad_pearl_academy_delhi),
+//        stringResource(R.string.postgrad_ili_delhi),
+//        stringResource(R.string.postgrad_banaras_hindu_university),
+//        stringResource(R.string.postgrad_iit_kanpur),
+//        stringResource(R.string.postgrad_iit_roorkee),
+//        stringResource(R.string.postgrad_lpu_phagwara),
+//        stringResource(R.string.postgrad_chandigarh_university),
+//        stringResource(R.string.postgrad_iim_lucknow),
+//        stringResource(R.string.postgrad_iim_udaipur),
+//        // West India (Maharashtra, Gujarat, Goa)
+//        stringResource(R.string.postgrad_iit_bombay),
+//        stringResource(R.string.postgrad_university_of_mumbai),
+//        stringResource(R.string.postgrad_nmims_mumbai),
+//        stringResource(R.string.postgrad_tiss_mumbai),
+//        stringResource(R.string.postgrad_tifr_mumbai),
+//        stringResource(R.string.postgrad_jj_school_arts),
+//        stringResource(R.string.postgrad_savitribai_phule_pune_university),
+//        stringResource(R.string.postgrad_symbiosis_law_school),
+//        stringResource(R.string.postgrad_iit_gandhinagar),
+//        stringResource(R.string.postgrad_nirma_university),
+//        stringResource(R.string.postgrad_iim_ahmedabad),
+//        stringResource(R.string.postgrad_goa_university),
+//        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
+//        stringResource(R.string.postgrad_iisc_bangalore),
+//        stringResource(R.string.postgrad_christ_university),
+//        stringResource(R.string.postgrad_nlsiu_bangalore),
+//        stringResource(R.string.postgrad_iim_bangalore),
+//        stringResource(R.string.postgrad_iit_madras),
+//        stringResource(R.string.postgrad_anna_university),
+//        stringResource(R.string.postgrad_srmist_chennai),
+//        stringResource(R.string.postgrad_vit_vellore),
+//        stringResource(R.string.postgrad_osmania_university),
+//        stringResource(R.string.postgrad_nalsar_hyderabad),
+//        stringResource(R.string.postgrad_manipal_academy),
+//        stringResource(R.string.postgrad_andhra_university),
+//        stringResource(R.string.postgrad_annamalai_university),
+//        stringResource(R.string.postgrad_kerala_university),
+//        stringResource(R.string.postgrad_iim_kozhikode),
+//        stringResource(R.string.postgrad_nit_warangal),
+//        // East India (West Bengal, Odisha, Jharkhand, Bihar)
+//        stringResource(R.string.postgrad_jadavpur_university),
+//        stringResource(R.string.postgrad_presidency_university),
+//        stringResource(R.string.postgrad_university_of_calcutta),
+//        stringResource(R.string.postgrad_iit_kharagpur),
+//        stringResource(R.string.postgrad_nit_durgapur),
+//        stringResource(R.string.postgrad_isi_kolkata),
+//        stringResource(R.string.postgrad_iim_calcutta),
+//        stringResource(R.string.postgrad_visva_bharati),
+//        stringResource(R.string.postgrad_nit_rourkela),
+//        stringResource(R.string.postgrad_iit_dhanbad),
+//        stringResource(R.string.postgrad_xlri_jamshedpur),
+//        // Northeast India (Assam, Meghalaya)
+//        stringResource(R.string.postgrad_gauhati_university),
+//        stringResource(R.string.postgrad_nehu_shillong),
+//        stringResource(R.string.postgrad_cotton_university),
+//        stringResource(R.string.postgrad_iim_shillong),
+//        // Union Territories
+//        stringResource(R.string.postgrad_jamia_millia_islamia),
+//        stringResource(R.string.postgrad_iim_vishakhapatnam),
+//        // Catch-all for other post-graduate institutions
+//        stringResource(R.string.postgrad_other)
+//    )
+//
+//    var postGrad              by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
+//    var postGradExpanded      by remember { mutableStateOf(false) }
+//    var postGradYear          by remember { mutableStateOf(tempProfile.postGraduationYear) }
+//    var postGradDegree        by remember { mutableStateOf(tempProfile.postGraduationDegree.orEmpty()) }
+//
+//    // ─── Religion & Community ────────────────────────────
+//    var religion             by remember { mutableStateOf(tempProfile.religion) }
+//    var community            by remember { mutableStateOf(tempProfile.community) }
+//
+//    // ─── Caste ───────────────────────────────────────────
+//    var caste                by remember { mutableStateOf(tempProfile.caste) }
+//    val casteOptions = listOf(
+//        stringResource(R.string.caste_brahmin),
+//        stringResource(R.string.caste_kayastha),
+//        stringResource(R.string.caste_baidya),
+//        stringResource(R.string.caste_kshatriya),
+//        stringResource(R.string.caste_vaishya),
+//        stringResource(R.string.caste_rajvanshi),
+//        stringResource(R.string.caste_sadgop),
+//        stringResource(R.string.caste_mahishya),
+//        stringResource(R.string.caste_jat),
+//        stringResource(R.string.caste_rajput),
+//        stringResource(R.string.caste_yadav),
+//        stringResource(R.string.caste_vellalar),
+//        stringResource(R.string.caste_naidu),
+//        stringResource(R.string.caste_ezhava),
+//        stringResource(R.string.caste_gowda),
+//        stringResource(R.string.caste_patel),
+//        stringResource(R.string.caste_maratha),
+//        stringResource(R.string.caste_kurmi),
+//        stringResource(R.string.caste_lingayat),
+//        stringResource(R.string.caste_reddy),
+//        stringResource(R.string.caste_bhil),
+//        stringResource(R.string.caste_scheduled_caste),
+//        stringResource(R.string.caste_scheduled_tribe),
+//        stringResource(R.string.caste_obc),
+//        stringResource(R.string.caste_general),
+//        stringResource(R.string.caste_other)
+//    )
+//
+//    // ─── Height ──────────────────────────────────────────
+//    var isFeet               by remember { mutableStateOf(tempProfile.height2.isNotEmpty()) }
+//    var feet                 by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
+//    var inches               by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
+//    var heightCm             by remember { mutableStateOf(tempProfile.height) }
+//
+//    // ─── Gender ──────────────────────────────────────────
+//    val genderOptions        = listOf(
+//        stringResource(R.string.male_option),
+//        stringResource(R.string.female_option),
+//        stringResource(R.string.college_other)
+//    )
+//    var selectedGender       by remember {
+//        mutableStateOf(genderOptions.find { it==tempProfile.gender }
+//            ?: genderOptions.first())
+//    }
+//
+//    // ─── Job & Work ──────────────────────────────────────
+//    val jobRoleOptions = listOf(
+//        stringResource(R.string.job_role_option_software_developer),
+//        stringResource(R.string.job_role_option_data_scientist),
+//        stringResource(R.string.job_role_option_ux_ui_designer),
+//        stringResource(R.string.job_role_option_civil_engineer),
+//        stringResource(R.string.job_role_option_mechanical_engineer),
+//        stringResource(R.string.job_role_option_electrical_engineer),
+//        stringResource(R.string.job_role_option_project_manager),
+//        stringResource(R.string.job_role_option_product_manager),
+//        stringResource(R.string.job_role_option_business_analyst),
+//        stringResource(R.string.job_role_option_accountant),
+//        stringResource(R.string.job_role_option_chartered_accountant),
+//        stringResource(R.string.job_role_option_hr_manager),
+//        stringResource(R.string.job_role_option_marketing_manager),
+//        stringResource(R.string.job_role_option_sales_executive),
+//        stringResource(R.string.job_role_option_director),
+//        stringResource(R.string.job_role_option_ceo),
+//        stringResource(R.string.job_role_option_teacher),
+//        stringResource(R.string.job_role_option_professor),
+//        stringResource(R.string.job_role_option_researcher),
+//        stringResource(R.string.job_role_option_scientist),
+//        stringResource(R.string.job_role_option_doctor),
+//        stringResource(R.string.job_role_option_surgeon),
+//        stringResource(R.string.job_role_option_nurse),
+//        stringResource(R.string.job_role_option_pharmacist),
+//        stringResource(R.string.job_role_option_lawyer),
+//        stringResource(R.string.job_role_option_advocate),
+//        stringResource(R.string.job_role_option_legal_consultant),
+//        stringResource(R.string.job_role_option_graphic_designer),
+//        stringResource(R.string.job_role_option_content_writer),
+//        stringResource(R.string.job_role_option_photographer),
+//        stringResource(R.string.job_role_option_journalist),
+//        stringResource(R.string.job_role_option_editor),
+//        stringResource(R.string.job_role_option_chef),
+//        stringResource(R.string.job_role_option_barista),
+//        stringResource(R.string.job_role_option_pilot),
+//        stringResource(R.string.job_role_option_flight_attendant),
+//        stringResource(R.string.job_role_option_police_officer),
+//        stringResource(R.string.job_role_option_firefighter),
+//        stringResource(R.string.job_role_option_army_officer),
+//        stringResource(R.string.job_role_option_electrician),
+//        stringResource(R.string.job_role_option_plumber),
+//        stringResource(R.string.job_role_option_carpenter),
+//        stringResource(R.string.job_role_option_mechanic),
+//        stringResource(R.string.job_role_option_entrepreneur),
+//        stringResource(R.string.job_role_option_intern),
+//        stringResource(R.string.job_role_option_other)
+//    )
+//    var selectedJobRole      by remember {
+//        mutableStateOf(jobRoleOptions.find { it==tempProfile.jobRole }
+//            ?: jobRoleOptions.first())
+//    }
+//    var customJobRole        by remember {
+//        mutableStateOf(if (selectedJobRole==jobRoleOptions.last())
+//            tempProfile.customJobRole.orEmpty() else "")
+//    }
+//
+//    val workOptions = listOf(
+//        stringResource(R.string.work_option_private_sector),
+//        stringResource(R.string.work_option_government),
+//        stringResource(R.string.work_option_information_technology),
+//        stringResource(R.string.work_option_healthcare),
+//        stringResource(R.string.work_option_education),
+//        stringResource(R.string.work_option_construction),
+//        stringResource(R.string.work_option_manufacturing),
+//        stringResource(R.string.work_option_agriculture),
+//        stringResource(R.string.work_option_pharmaceuticals),
+//        stringResource(R.string.work_option_banking),
+//        stringResource(R.string.work_option_insurance),
+//        stringResource(R.string.work_option_real_estate),
+//        stringResource(R.string.work_option_retail),
+//        stringResource(R.string.work_option_e_commerce),
+//        stringResource(R.string.work_option_telecom),
+//        stringResource(R.string.work_option_automobile),
+//        stringResource(R.string.work_option_mining),
+//        stringResource(R.string.work_option_media_entertainment),
+//        stringResource(R.string.work_option_hospitality),
+//        stringResource(R.string.work_option_logistics),
+//        stringResource(R.string.work_option_non_profit),
+//        stringResource(R.string.work_option_startup),
+//        stringResource(R.string.work_option_freelance),
+//        stringResource(R.string.work_option_unemployed),
+//        stringResource(R.string.work_option_other)
+//    )
+//    var selectedWork         by remember {
+//        mutableStateOf(workOptions.find { it==tempProfile.work }
+//            ?: workOptions.first())
+//    }
+//    var customWork           by remember {
+//        mutableStateOf(if (selectedWork==workOptions.last())
+//            tempProfile.customWork.orEmpty() else "")
+//    }
+//
+//    // ─── City & Locality arrays ──────────────────────────
+//// ─── City & Locality arrays ──────────────────────────
+//    val cityOptionsList      = stringArrayResource(id = R.array.city_names).toList()
+//    val localityOptionsList: List<String> = when(city) {
+//        stringResource(R.string.city_kolkata) -> stringArrayResource(R.array.localities_kolkata).toList()
+//        stringResource(R.string.city_howrah) -> stringArrayResource(R.array.localities_howrah).toList()
+//        stringResource(R.string.city_durgapur) -> stringArrayResource(R.array.localities_durgapur).toList()
+//        stringResource(R.string.city_asansol) -> stringArrayResource(R.array.localities_asansol).toList()
+//        stringResource(R.string.city_siliguri) -> stringArrayResource(R.array.localities_siliguri).toList()
+//        stringResource(R.string.city_darjeeling) -> stringArrayResource(R.array.localities_darjeeling).toList()
+//        stringResource(R.string.city_kharagpur) -> stringArrayResource(R.array.localities_kharagpur).toList()
+//        stringResource(R.string.city_agartala) -> stringArrayResource(R.array.localities_agartala).toList()
+//        stringResource(R.string.city_ahmedabad) -> stringArrayResource(R.array.localities_ahmedabad).toList()
+//        stringResource(R.string.city_aizawl) -> stringArrayResource(R.array.localities_aizawl).toList()
+//        stringResource(R.string.city_amaravati) -> stringArrayResource(R.array.localities_amaravati).toList()
+//        stringResource(R.string.city_amritsar) -> stringArrayResource(R.array.localities_amritsar).toList()
+//        stringResource(R.string.city_bengaluru) -> stringArrayResource(R.array.localities_bengaluru).toList()
+//        stringResource(R.string.city_bhilai) -> stringArrayResource(R.array.localities_bhilai).toList()
+//        stringResource(R.string.city_bhopal) -> stringArrayResource(R.array.localities_bhopal).toList()
+//        stringResource(R.string.city_bhubaneswar) -> stringArrayResource(R.array.localities_bhubaneswar).toList()
+//        stringResource(R.string.city_bilaspur) -> stringArrayResource(R.array.localities_bilaspur).toList()
+//        stringResource(R.string.city_chandigarh) -> stringArrayResource(R.array.localities_chandigarh).toList()
+//        stringResource(R.string.city_chennai) -> stringArrayResource(R.array.localities_chennai).toList()
+//        stringResource(R.string.city_coimbatore) -> stringArrayResource(R.array.localities_coimbatore).toList()
+//        stringResource(R.string.city_cuttack) -> stringArrayResource(R.array.localities_cuttack).toList()
+//        stringResource(R.string.city_daman) -> stringArrayResource(R.array.localities_daman).toList()
+//        stringResource(R.string.city_dehradun) -> stringArrayResource(R.array.localities_dehradun).toList()
+//        stringResource(R.string.city_dibrugarh) -> stringArrayResource(R.array.localities_dibrugarh).toList()
+//        stringResource(R.string.city_dharamshala) -> stringArrayResource(R.array.localities_dharamshala).toList()
+//        stringResource(R.string.city_faridabad) -> stringArrayResource(R.array.localities_faridabad).toList()
+//        stringResource(R.string.city_gangtok) -> stringArrayResource(R.array.localities_gangtok).toList()
+//        stringResource(R.string.city_gaya) -> stringArrayResource(R.array.localities_gaya).toList()
+//        stringResource(R.string.city_gandhinagar) -> stringArrayResource(R.array.localities_gandhinagar).toList()
+//        stringResource(R.string.city_ghaziabad) -> stringArrayResource(R.array.localities_ghaziabad).toList()
+//        stringResource(R.string.city_gwalior) -> stringArrayResource(R.array.localities_gwalior).toList()
+//        stringResource(R.string.city_gyalshing) -> stringArrayResource(R.array.localities_gyalshing).toList()
+//        stringResource(R.string.city_guwahati) -> stringArrayResource(R.array.localities_guwahati).toList()
+//        stringResource(R.string.city_gurugram) -> stringArrayResource(R.array.localities_gurugram).toList()
+//        stringResource(R.string.city_haridwar) -> stringArrayResource(R.array.localities_haridwar).toList()
+//        stringResource(R.string.city_hisar) -> stringArrayResource(R.array.localities_hisar).toList()
+//        stringResource(R.string.city_hyderabad) -> stringArrayResource(R.array.localities_hyderabad).toList()
+//        stringResource(R.string.city_imphal) -> stringArrayResource(R.array.localities_imphal).toList()
+//        stringResource(R.string.city_indore) -> stringArrayResource(R.array.localities_indore).toList()
+//        stringResource(R.string.city_itanagar) -> stringArrayResource(R.array.localities_itanagar).toList()
+//        stringResource(R.string.city_jaipur) -> stringArrayResource(R.array.localities_jaipur).toList()
+//        stringResource(R.string.city_jamshedpur) -> stringArrayResource(R.array.localities_jamshedpur).toList()
+//        stringResource(R.string.city_jodhpur) -> stringArrayResource(R.array.localities_jodhpur).toList()
+//        stringResource(R.string.city_kancheepuram) -> stringArrayResource(R.array.localities_kancheepuram).toList()
+//        stringResource(R.string.city_kanpur) -> stringArrayResource(R.array.localities_kanpur).toList()
+//        stringResource(R.string.city_kargil) -> stringArrayResource(R.array.localities_kargil).toList()
+//        stringResource(R.string.city_kavaratti) -> stringArrayResource(R.array.localities_kavaratti).toList()
+//        stringResource(R.string.city_kochi) -> stringArrayResource(R.array.localities_kochi).toList()
+//        stringResource(R.string.city_kohima) -> stringArrayResource(R.array.localities_kohima).toList()
+//        stringResource(R.string.city_leh) -> stringArrayResource(R.array.localities_leh).toList()
+//        stringResource(R.string.city_ludhiana) -> stringArrayResource(R.array.localities_ludhiana).toList()
+//        stringResource(R.string.city_lucknow) -> stringArrayResource(R.array.localities_lucknow).toList()
+//        stringResource(R.string.city_madurai) -> stringArrayResource(R.array.localities_madurai).toList()
+//        stringResource(R.string.city_mumbai) -> stringArrayResource(R.array.localities_mumbai).toList()
+//        stringResource(R.string.city_mangaluru) -> stringArrayResource(R.array.localities_mangaluru).toList()
+//        stringResource(R.string.city_mysuru) -> stringArrayResource(R.array.localities_mysuru).toList()
+//        stringResource(R.string.city_nainital) -> stringArrayResource(R.array.localities_nainital).toList()
+//        stringResource(R.string.city_nagpur) -> stringArrayResource(R.array.localities_nagpur).toList()
+//        stringResource(R.string.city_namchi) -> stringArrayResource(R.array.localities_namchi).toList()
+//        stringResource(R.string.city_navi_mumbai) -> stringArrayResource(R.array.localities_navi_mumbai).toList()
+//        stringResource(R.string.city_nct_of_delhi) -> stringArrayResource(R.array.localities_delhi_nct).toList()
+//        stringResource(R.string.city_noida) -> stringArrayResource(R.array.localities_noida).toList()
+//        stringResource(R.string.city_panaji) -> stringArrayResource(R.array.localities_panaji).toList()
+//        stringResource(R.string.city_pasighat) -> stringArrayResource(R.array.localities_pasighat).toList()
+//        stringResource(R.string.city_patna) -> stringArrayResource(R.array.localities_patna).toList()
+//        stringResource(R.string.city_prayagraj) -> stringArrayResource(R.array.localities_prayagraj).toList()
+//        stringResource(R.string.city_pune) -> stringArrayResource(R.array.localities_pune).toList()
+//        stringResource(R.string.city_port_blair) -> stringArrayResource(R.array.localities_port_blair).toList()
+//        stringResource(R.string.city_puducherry) -> stringArrayResource(R.array.localities_puducherry).toList()
+//        stringResource(R.string.city_raipur) -> stringArrayResource(R.array.localities_raipur).toList()
+//        stringResource(R.string.city_ranchi) -> stringArrayResource(R.array.localities_ranchi).toList()
+//        stringResource(R.string.city_rourkela) -> stringArrayResource(R.array.localities_rourkela).toList()
+//        stringResource(R.string.city_rohtak) -> stringArrayResource(R.array.localities_rohtak).toList()
+//        stringResource(R.string.city_shillong) -> stringArrayResource(R.array.localities_shillong).toList()
+//        stringResource(R.string.city_shimla) -> stringArrayResource(R.array.localities_shimla).toList()
+//        stringResource(R.string.city_silchar) -> stringArrayResource(R.array.localities_silchar).toList()
+//        stringResource(R.string.city_sonipat) -> stringArrayResource(R.array.localities_sonipat).toList()
+//        stringResource(R.string.city_surat) -> stringArrayResource(R.array.localities_surat).toList()
+//        stringResource(R.string.city_secunderabad) -> stringArrayResource(R.array.localities_secunderabad).toList()
+//        stringResource(R.string.city_tawang) -> stringArrayResource(R.array.localities_tawang).toList()
+//        stringResource(R.string.city_thane) -> stringArrayResource(R.array.localities_thane).toList()
+//        stringResource(R.string.city_thiruvananthapuram) -> stringArrayResource(R.array.localities_thiruvananthapuram).toList()
+//        stringResource(R.string.city_udaipur) -> stringArrayResource(R.array.localities_udaipur).toList()
+//        stringResource(R.string.city_vadodara) -> stringArrayResource(R.array.localities_vadodara).toList()
+//        stringResource(R.string.city_varanasi) -> stringArrayResource(R.array.localities_varanasi).toList()
+//        stringResource(R.string.city_vellore) -> stringArrayResource(R.array.localities_vellore).toList()
+//        stringResource(R.string.city_vijayawada) -> stringArrayResource(R.array.localities_vijayawada).toList()
+//        stringResource(R.string.city_visakhapatnam) -> stringArrayResource(R.array.localities_visakhapatnam).toList()
+//        stringResource(R.string.city_warangal) -> stringArrayResource(R.array.localities_warangal).toList()
+//        else -> stringArrayResource(R.array.localities_other).toList()
+//    }
+//
+//        Column(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(6.dp),
+//            verticalArrangement = Arrangement.spacedBy(5.dp)
+//        ) {
+//            // Name
+//            OutlinedTextField(
+//                textStyle = LocalTextStyle.current.copy(color = Color.White),
+//                value = name,
+//                onValueChange = { name = it },
+//                label = {
+//                    Text(
+//                        stringResource(R.string.label_name),
+//                        fontSize = 11.sp,
+//                        color = Color(0xFFFF6F00)
+//                    )
+//                },
+//                modifier = Modifier.fillMaxWidth(),
+//                colors = OutlinedTextFieldDefaults.colors(
+//                    focusedBorderColor = Color(0xFFFF6F00),
+//                    unfocusedBorderColor = Color.Gray,
+//                    cursorColor = Color.White,
+//                )
+//            )
+//
+//            // Height toggle & fields…
+//            Text(
+//                stringResource(R.string.height_label),
+//                fontSize = 11.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color(0xFFFF6F00)
+//            )
+//            Row(verticalAlignment = Alignment.CenterVertically) {
+//                Switch(
+//                    checked = isFeet,
+//                    onCheckedChange = { isFeet = it },
+//                    colors = SwitchDefaults.colors(
+//                        // thumb (the round “knob”)
+//                        checkedThumbColor = Color(0xFFFF6F00),
+//                        uncheckedThumbColor = Color.Gray,
+//                        // track (the background line)
+//                        checkedTrackColor = Color(0xFFFF6F00).copy(alpha = 0.54f),
+//                        uncheckedTrackColor = Color.Gray.copy(alpha = 0.54f)
+//                    )
+//                )
+//                Spacer(Modifier.width(8.dp))
+//                Text(
+//                    if (isFeet) stringResource(R.string.feet_inches_label)
+//                    else stringResource(R.string.centimeters_label),
+//                    fontSize = 11.sp,
+//                    color = Color.White
+//                )
+//            }
+//            if (isFeet) {
+//                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+//                    OutlinedTextField(
+//                        value = feet.toString(),
+//                        onValueChange = { feet = it.toIntOrNull() ?: 0 },
+//                        label = {
+//                            Text(
+//                                stringResource(R.string.feet_label),
+//                                fontSize = 11.sp,
+//                                color = Color(0xFFFF6F00)
+//                            )
+//                        },
+//                        modifier = Modifier.weight(1f),
+//                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+//                    )
+//                    OutlinedTextField(
+//                        value = inches.toString(),
+//                        onValueChange = { inches = it.toIntOrNull() ?: 0 },
+//                        label = {
+//                            Text(
+//                                stringResource(R.string.inches_label),
+//                                fontSize = 11.sp,
+//                                color = Color(0xFFFF6F00)
+//                            )
+//                        },
+//                        modifier = Modifier.weight(1f),
+//                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+//                    )
+//                }
+//            } else {
+//                OutlinedTextField(
+//                    value = heightCm.toString(),
+//                    onValueChange = { heightCm = it.toIntOrNull() ?: 0 },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.centimeters_label),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth(),
+//                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+//                )
+//            }
+//
+//            // Religion chips
+//            Text(
+//                stringResource(R.string.religion_label),
+//                fontWeight = FontWeight.Bold,
+//                fontSize = 11.sp,
+//                color = Color(0xFFFF6F00)
+//            )
+//            val religionOpts = listOf(
+//                stringResource(R.string.religion_hindu),
+//                stringResource(R.string.religion_muslim),
+//                stringResource(R.string.religion_christian),
+//                stringResource(R.string.religion_buddhist),
+//                stringResource(R.string.religion_jain),
+//                stringResource(R.string.religion_sikh),
+//                stringResource(R.string.religion_jew),
+//                stringResource(R.string.religion_indigenous_tribal),
+//                stringResource(R.string.religion_no_religion),
+//                stringResource(R.string.religion_zoroastrian),
+//                stringResource(R.string.religion_other)
+//            )
+//            Row(
+//                Modifier
+//                    .horizontalScroll(rememberScrollState())
+//                    .padding(top = 4.dp),
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                religionOpts.forEach { option ->
+//                    FilterChip(
+//                        selected = religion == option,
+//                        onClick = { religion = option },
+//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        colors = FilterChipDefaults.filterChipColors(
+//                            disabledContainerColor = Color.Transparent,
+//                            disabledLabelColor = Color(0xFFFF6F00),
+//                            selectedContainerColor = Color(0xFFFF6F00),
+//                            selectedLabelColor = Color.White
+//                        )
+//                    )
+//                }
+//            }
+//
+//            // Community chips
+//            Text(
+//                stringResource(R.string.community_label),
+//                fontSize = 11.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color(0xFFFF6F00)
+//            )
+//            Row(
+//                Modifier
+//                    .horizontalScroll(rememberScrollState())
+//                    .padding(top = 4.dp),
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                val commOpts = listOf(
+//                    // Northeast India
+//                    stringResource(R.string.community_adi),
+//                    stringResource(R.string.community_nyishi),
+//                    stringResource(R.string.community_bodo),
+//                    stringResource(R.string.community_assamese),
+//                    stringResource(R.string.community_manipuri),
+//                    stringResource(R.string.community_khasi),
+//                    stringResource(R.string.community_mizo),
+//                    stringResource(R.string.community_naga),
+//                    stringResource(R.string.community_tripuri),
+//                    // East India
+//                    stringResource(R.string.community_bengali),
+//                    stringResource(R.string.community_santhal),
+//                    stringResource(R.string.community_oraon),
+//                    stringResource(R.string.community_munda),
+//                    // North India
+//                    stringResource(R.string.community_punjabi),
+//                    stringResource(R.string.community_marwari),
+//                    stringResource(R.string.community_rajasthani),
+//                    stringResource(R.string.community_kashmiri),
+//                    stringResource(R.string.community_himachali),
+//                    stringResource(R.string.community_haryanvi),
+//                    stringResource(R.string.community_garhwali),
+//                    // Central India
+//                    stringResource(R.string.community_madhya_pradeshi),
+//                    stringResource(R.string.community_chhattisgarhi),
+//                    // South India
+//                    stringResource(R.string.community_tamil),
+//                    stringResource(R.string.community_telugu),
+//                    stringResource(R.string.community_kannadiga),
+//                    stringResource(R.string.community_malayali),
+//                    // West India
+//                    stringResource(R.string.community_gujarati),
+//                    stringResource(R.string.community_marathi),
+//                    stringResource(R.string.community_goan),
+//                    stringResource(R.string.community_konkani),
+//                    // Other Regions
+//                    stringResource(R.string.community_odia),
+//                    stringResource(R.string.community_bihari),
+//                    stringResource(R.string.community_sikkimese),
+//                    stringResource(R.string.community_nepali),
+//                    stringResource(R.string.community_ladakhi),
+//                    stringResource(R.string.community_andamanese),
+//                    stringResource(R.string.community_lakhadweepi),
+//                    // Catch-all
+//                    stringResource(R.string.community_other)
+//                )
+//                commOpts.forEach { option ->
+//                    FilterChip(
+//                        selected = community == option,
+//                        onClick = { community = option },
+//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        colors = FilterChipDefaults.filterChipColors(
+//                            disabledContainerColor = Color.Transparent,
+//                            disabledLabelColor = Color(0xFFFF6F00),
+//                            selectedContainerColor = Color(0xFFFF6F00),
+//                            selectedLabelColor = Color.White
+//                        )
+//                    )
+//                }
+//            }
+//
+//            // **Caste chips**
+//            Text(
+//                stringResource(R.string.caste_title),
+//                fontSize = 11.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color(0xFFFF6F00)
+//            )
+//            Row(
+//                Modifier
+//                    .horizontalScroll(rememberScrollState())
+//                    .padding(top = 4.dp),
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                casteOptions.forEach { option ->
+//                    FilterChip(
+//                        selected = caste == option,
+//                        onClick = { caste = option },
+//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        colors = FilterChipDefaults.filterChipColors(
+//                            disabledContainerColor = Color.Transparent,
+//                            disabledLabelColor = Color(0xFFFF6F00),
+//                            selectedContainerColor = Color(0xFFFF6F00),
+//                            selectedLabelColor = Color.White
+//                        )
+//                    )
+//                }
+//            }
+//
+//            // Gender chips
+//            Text(
+//                stringResource(R.string.gender_label),
+//                fontSize = 11.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color(0xFFFF6F00)
+//            )
+//            Row(
+//                Modifier
+//                    .horizontalScroll(rememberScrollState())
+//                    .padding(top = 4.dp),
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                genderOptions.forEach { option ->
+//                    FilterChip(
+//                        selected = selectedGender == option,
+//                        onClick = { selectedGender = option },
+//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        colors = FilterChipDefaults.filterChipColors(
+//                            disabledContainerColor = Color.Transparent,
+//                            disabledLabelColor = Color(0xFFFF6F00),
+//                            selectedContainerColor = Color(0xFFFF6F00),
+//                            selectedLabelColor = Color.White
+//                        )
+//                    )
+//                }
+//            }
+//
+//            // City dropdown…
+//            SearchableDropdownWithCustomOption(
+//                title = stringResource(R.string.city_label),
+//                options = cityOptionsList,
+//                selectedOption = city,
+//                onOptionSelected = { sel ->
+//                    city = sel
+//                },
+//                customInput = customCity,
+//                onCustomInputChange = { customCity = it!! }
+//            )
+//            Spacer(Modifier.height(6.dp))
+//
+//            SearchableDropdownWithCustomOption(
+//                title = stringResource(R.string.label_locality),
+//                options = localityOptionsList,
+//                selectedOption = locality,
+//                onOptionSelected = { sel ->
+//                    locality = sel
+//                },
+//                customInput = customLocality,
+//                onCustomInputChange = { customLocality = it!! }
+//            )
+//            Spacer(Modifier.height(6.dp))
+//
+//            // Job-Role & Work chips + optional customs…
+//            Text(
+//                stringResource(R.string.job_role_label),
+//                fontSize = 11.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color(0xFFFF6F00)
+//            )
+//            Row(
+//                Modifier
+//                    .horizontalScroll(rememberScrollState())
+//                    .padding(top = 4.dp),
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                jobRoleOptions.forEach { option ->
+//                    FilterChip(
+//                        selected = selectedJobRole == option,
+//                        onClick = {
+//                            selectedJobRole = option
+//                            if (option != jobRoleOptions.last()) customJobRole = ""
+//                        },
+//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        colors = FilterChipDefaults.filterChipColors(
+//                            disabledContainerColor = Color.Transparent,
+//                            disabledLabelColor = Color(0xFFFF6F00),
+//                            selectedContainerColor = Color(0xFFFF6F00),
+//                            selectedLabelColor = Color.White
+//                        )
+//                    )
+//                }
+//            }
+//            if (selectedJobRole == jobRoleOptions.last()) {
+//                OutlinedTextField(
+//                    value = customJobRole,
+//                    onValueChange = { customJobRole = it },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.label_custom_job_role),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth()
+//                )
+//            }
+//
+//            Text(
+//                stringResource(R.string.label_work),
+//                fontSize = 11.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color(0xFFFF6F00)
+//            )
+//            Row(
+//                Modifier
+//                    .horizontalScroll(rememberScrollState())
+//                    .padding(top = 4.dp),
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                workOptions.forEach { option ->
+//                    FilterChip(
+//                        selected = selectedWork == option,
+//                        onClick = {
+//                            selectedWork = option
+//                            if (option != workOptions.last()) customWork = ""
+//                        },
+//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        colors = FilterChipDefaults.filterChipColors(
+//                            disabledContainerColor = Color.Transparent,
+//                            disabledLabelColor = Color(0xFFFF6F00),
+//                            selectedContainerColor = Color(0xFFFF6F00),
+//                            selectedLabelColor = Color.White
+//                        )
+//                    )
+//                }
+//            }
+//            if (selectedWork == workOptions.last()) {
+//                OutlinedTextField(
+//                    value = customWork,
+//                    onValueChange = { customWork = it },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.label_custom_work),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth()
+//                )
+//            }
+//
+//            // High-School dropdown + Year…
+//            SearchableDropdownWithCustomOption(
+//                title = stringResource(R.string.label_high_school),
+//                options = highSchoolOptions,
+//                selectedOption = highSchool,
+//                onOptionSelected = { sel ->
+//                    highSchool = sel
+//                },
+//                customInput = customHighSchool,
+//                onCustomInputChange = { customHighSchool = it!! }
+//            )
+//            if (highSchool.isNotBlank()) {
+//                OutlinedTextField(
+//                    value = highSchoolYear,
+//                    onValueChange = { highSchoolYear = it.filter { c -> c.isDigit() }.take(4) },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.high_school_graduation_year),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth(),
+//                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+//                )
+//            }
+//
+//            // College dropdown + Year + Degree…
+//            SearchableDropdownWithCustomOption(
+//                title = stringResource(R.string.college_label),
+//                options = collegeOptions,
+//                selectedOption = college,
+//                onOptionSelected = { sel ->
+//                    college = sel
+//                },
+//                customInput = customCollege,
+//                onCustomInputChange = { customCollege = it!! }
+//            )
+//            if (college.isNotBlank()) {
+//                OutlinedTextField(
+//                    value = collegeYear,
+//                    onValueChange = { collegeYear = it.filter { c -> c.isDigit() }.take(4) },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.college_graduation_year),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth(),
+//                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+//                )
+//                OutlinedTextField(
+//                    value = collegeDegree,
+//                    onValueChange = { if (it.length <= 50) collegeDegree = it },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.label_college_degree),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth(),
+//                    singleLine = true
+//                )
+//            }
+//
+//            // Post-Grad dropdown + Year + Degree…
+//            SearchableDropdownWithCustomOption(
+//                title = stringResource(R.string.post_graduation_label),
+//                options = postGradOptions,
+//                selectedOption = postGrad,
+//                onOptionSelected = { sel ->
+//                    postGrad = sel
+//                },
+//                customInput = customPostGrad,
+//                onCustomInputChange = { customPostGrad = it!! }
+//            )
+//            if (postGrad.isNotBlank()) {
+//                OutlinedTextField(
+//                    value = postGradYear,
+//                    onValueChange = { postGradYear = it.filter { c -> c.isDigit() }.take(4) },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.select_graduation_year_label),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth(),
+//                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+//                )
+//                OutlinedTextField(
+//                    value = postGradDegree,
+//                    onValueChange = { if (it.length <= 50) postGradDegree = it },
+//                    label = {
+//                        Text(
+//                            stringResource(R.string.label_post_graduation_degree),
+//                            fontSize = 11.sp,
+//                            color = Color(0xFFFF6F00)
+//                        )
+//                    },
+//                    modifier = Modifier.fillMaxWidth(),
+//                    singleLine = true
+//                )
+//            }
+//
+//            // ─── Save / Cancel ───────────────────────────────────
+//            ButtonRow(
+//                onSave = {
+//                    onSave(
+//                        tempProfile.copy(
+//                        name = name,
+//                        city = city,
+//                        customCity = customCity.ifBlank { null },
+//                        hometown = locality,
+//                        customHometown = customLocality.ifBlank { null },
+//                        highSchool = highSchool,
+//                        customHighSchool = customHighSchool.ifBlank { null },
+//                        highSchoolGraduationYear = highSchoolYear,
+//                        college = college,
+//                        customCollege = customCollege.ifBlank { null },
+//                        collegeGraduationYear = collegeYear,
+//                        collegeDegree = collegeDegree.ifBlank { null },
+//                        postGraduation = postGrad.ifBlank { null },
+//                        postGraduationYear = postGradYear,
+//                        postGraduationDegree = postGradDegree.ifBlank { null },
+//                        religion = religion,
+//                        community = community,
+//                        caste = caste,
+//                        height = heightCm,
+//                        height2 = if (isFeet) listOf(feet, inches) else emptyList(),
+//                        gender = selectedGender,
+//                        jobRole = selectedJobRole,
+//                        customJobRole = selectedJobRole.takeIf { it == jobRoleOptions.last() }
+//                            ?.let { customJobRole },
+//                        work = selectedWork,
+//                        customWork = selectedWork.takeIf { it == workOptions.last() }
+//                            ?.let { customWork }
+//                    ))
+//                },
+//                onCancel = onCancel
+//            )
+//        }
+//    }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BasicInfoEditSection(
@@ -1099,400 +2226,31 @@ fun BasicInfoEditSection(
     onSave: (Profile) -> Unit,
     onCancel: () -> Unit
 ) {
-    // ─── State for all fields ───────────────────────────
-    var name               by remember { mutableStateOf(tempProfile.name) }
-    var city               by remember { mutableStateOf(tempProfile.city) }
-    var cityExpanded       by remember { mutableStateOf(false) }
-    var locality           by remember { mutableStateOf(tempProfile.hometown) }
-    var localityExpanded   by remember { mutableStateOf(false) }
+    // State for all fields
+    var name by remember { mutableStateOf(tempProfile.name) }
+    var city by remember { mutableStateOf(tempProfile.city) }
+    var locality by remember { mutableStateOf(tempProfile.hometown) }
     var customCity by remember { mutableStateOf(tempProfile.customCity.orEmpty()) }
     var customLocality by remember { mutableStateOf(tempProfile.customHometown.orEmpty()) }
-    var customHighSchool by remember { mutableStateOf(tempProfile.customHighSchool.orEmpty()) }
-    var customCollege by remember { mutableStateOf(tempProfile.customCollege.orEmpty()) }
-    var customPostGrad by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
+    var religion by remember { mutableStateOf(tempProfile.religion) }
+    var community by remember { mutableStateOf(tempProfile.community) }
+    var caste by remember { mutableStateOf(tempProfile.caste) }
+    var isFeet by remember { mutableStateOf(tempProfile.height2.isNotEmpty()) }
+    var feet by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
+    var inches by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
+    var heightCm by remember { mutableStateOf(tempProfile.height) }
 
-    // ─── High-School dropdown + year ────────────────────
-    val highSchoolOptions = listOf(
-        stringResource(R.string.high_school_modern_school_barakhamba),
-        stringResource(R.string.high_school_dps_rk_puram),
-        stringResource(R.string.high_school_shri_ram_gurgaon),
-        stringResource(R.string.high_school_amity_noida),
-        stringResource(R.string.high_school_sanskriti_delhi),
-        stringResource(R.string.high_school_city_montessori_lucknow),
-        stringResource(R.string.high_school_la_martiniere_lucknow),
-        stringResource(R.string.high_school_doon_school),
-        stringResource(R.string.high_school_welham_girls),
-        stringResource(R.string.high_school_lawrence_sanawar),
-        stringResource(R.string.high_school_mayo_college),
-        stringResource(R.string.high_school_st_johns_chandigarh),
-        stringResource(R.string.high_school_birla_pilani),
-        stringResource(R.string.high_school_scindia_school),
-        stringResource(R.string.high_school_yds_srinagar),
-        // West India (Maharashtra, Gujarat, Madhya Pradesh, Goa)
-        stringResource(R.string.high_school_cathedral_john_connon),
-        stringResource(R.string.high_school_dhirubhai_ambani),
-        stringResource(R.string.high_school_bombay_scottish_mahim),
-        stringResource(R.string.high_school_campion_mumbai),
-        stringResource(R.string.high_school_jamnabai_narsee),
-        stringResource(R.string.high_school_st_marys_pune),
-        stringResource(R.string.high_school_symbiosis_pune),
-        stringResource(R.string.high_school_daly_college),
-        stringResource(R.string.high_school_podar_ahmedabad),
-        stringResource(R.string.high_school_anand_niketan),
-        stringResource(R.string.high_school_don_bosco_panaji),
-        stringResource(R.string.high_school_emerald_heights_indore),
-        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
-        stringResource(R.string.high_school_bishop_cotton_boys),
-        stringResource(R.string.high_school_bishop_cotton_girls),
-        stringResource(R.string.high_school_mallya_aditi),
-        stringResource(R.string.high_school_national_public_indiranagar),
-        stringResource(R.string.high_school_psbb_chennai),
-        stringResource(R.string.high_school_chettinad_vidyashram),
-        stringResource(R.string.high_school_dav_velachery),
-        stringResource(R.string.high_school_sishya_chennai),
-        stringResource(R.string.high_school_hyderabad_public),
-        stringResource(R.string.high_school_international_hyderabad),
-        stringResource(R.string.high_school_rishi_valley),
-        stringResource(R.string.high_school_loyola_trivandrum),
-        stringResource(R.string.high_school_trivandrum_international),
-        stringResource(R.string.high_school_chinmaya_coimbatore),
-        stringResource(R.string.high_school_sainik_amaravathinagar),
-        // East India (West Bengal, Odisha, Jharkhand, Bihar)
-        stringResource(R.string.high_school_st_xaviers_collegiate),
-        stringResource(R.string.high_school_la_martiniere_boys),
-        stringResource(R.string.high_school_la_martiniere_girls),
-        stringResource(R.string.high_school_modern_high_girls),
-        stringResource(R.string.high_school_south_point),
-        stringResource(R.string.high_school_don_bosco_park_circus),
-        stringResource(R.string.high_school_loreto_house),
-        stringResource(R.string.high_school_calcutta_boys),
-        stringResource(R.string.high_school_calcutta_girls),
-        stringResource(R.string.high_school_hindu_school),
-        stringResource(R.string.high_school_ramakrishna_narendrapur),
-        stringResource(R.string.high_school_st_james_kolkata),
-        stringResource(R.string.high_school_dps_bhubaneswar),
-        stringResource(R.string.high_school_sai_bhubaneswar),
-        stringResource(R.string.high_school_loyola_patna),
-        stringResource(R.string.high_school_st_michaels_patna),
-        stringResource(R.string.high_school_netarhat),
-        stringResource(R.string.high_school_chinmaya_bokaro),
-        stringResource(R.string.high_school_dps_ranchi),
-        // Northeast India (Assam, Meghalaya, Sikkim, Tripura)
-        stringResource(R.string.high_school_assam_valley),
-        stringResource(R.string.high_school_don_bosco_guwahati),
-        stringResource(R.string.high_school_spring_dale_guwahati),
-        stringResource(R.string.high_school_loreto_shillong),
-        stringResource(R.string.high_school_st_anthonys_shillong),
-        stringResource(R.string.high_school_don_bosco_agartala),
-        // Union Territories and Special Cases
-        stringResource(R.string.high_school_north_point_darjeeling),
-        stringResource(R.string.high_school_st_josephs_north_point),
-        stringResource(R.string.high_school_dr_grahams_kalimpong),
-        stringResource(R.string.high_school_lawrence_lovedale),
-        stringResource(R.string.high_school_dps_port_blair),
-        stringResource(R.string.high_school_dps_srinagar),
-        // Catch-all for other high schools
-        stringResource(R.string.high_school_other)
-    )
-
-    var highSchool            by remember { mutableStateOf(tempProfile.highSchool) }
-    var highSchoolExpanded    by remember { mutableStateOf(false) }
-    var highSchoolYear        by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
-
-    // ─── College dropdown + year + degree w/ limit ─────
-    val collegeOptions = listOf(
-        // Engineering Colleges
-        stringResource(R.string.college_srm_institute_of_science_and_technology),
-        stringResource(R.string.college_vellore_institute_of_technology),
-        stringResource(R.string.college_bits_pilani),
-        stringResource(R.string.college_manipal_institute_of_technology),
-        stringResource(R.string.college_iiit_hyderabad),
-        // Private Arts/Science Colleges
-        stringResource(R.string.college_op_jindal_global_university),
-        stringResource(R.string.college_ashoka_university),
-        // Design Colleges in India
-        stringResource(R.string.college_nid_kurukshetra),
-        stringResource(R.string.college_nid_gandhinagar),
-        stringResource(R.string.college_nid_bengaluru),
-        stringResource(R.string.college_nid_bhopal),
-        stringResource(R.string.college_nid_jorhat),
-        stringResource(R.string.college_nid_vijayawada),
-        stringResource(R.string.college_nift),
-        stringResource(R.string.college_srishti_manipal),
-        stringResource(R.string.college_pearl_academy),
-        stringResource(R.string.college_symbiosis_institute_of_design),
-        stringResource(R.string.college_mit_institute_of_design),
-        stringResource(R.string.college_iiad),
-        stringResource(R.string.college_world_university_of_design),
-        stringResource(R.string.college_amity_school_of_fashion_technology),
-        stringResource(R.string.college_jd_institute_of_fashion_technology),
-        stringResource(R.string.college_arch_academy_of_design),
-        stringResource(R.string.college_daiict),
-        // Law Colleges in India
-        stringResource(R.string.college_nlu_delhi),
-        stringResource(R.string.college_wbnujs_kolkata),
-        stringResource(R.string.college_nliu_bhopal),
-        stringResource(R.string.college_gnlu_gandhinagar),
-        stringResource(R.string.college_hnlu_raipur),
-        stringResource(R.string.college_rmlnlu_lucknow),
-        stringResource(R.string.college_rgnul_patiala),
-        stringResource(R.string.college_cnlu_patna),
-        stringResource(R.string.college_nuals_kochi),
-        stringResource(R.string.college_nluo_cuttack),
-        stringResource(R.string.college_nusr_law_ranchi),
-        stringResource(R.string.college_nluja_guwahati),
-        stringResource(R.string.college_tnnlu_tiruchirappalli),
-        stringResource(R.string.college_mnlu_mumbai),
-        stringResource(R.string.college_mnlu_nagpur),
-        stringResource(R.string.college_mnlu_aurangabad),
-        stringResource(R.string.college_hpnlu_shimla),
-        stringResource(R.string.college_dnlu_jabalpur),
-        stringResource(R.string.college_dbranlu_sonipat),
-        stringResource(R.string.college_faculty_of_law_du),
-        stringResource(R.string.college_symbiosis_law_school),
-        stringResource(R.string.college_glc_mumbai),
-        stringResource(R.string.college_ils_law_pune),
-        stringResource(R.string.college_amity_law_school_noida),
-        stringResource(R.string.college_christ_univ_law),
-        stringResource(R.string.college_bhu_faculty_of_law),
-        stringResource(R.string.college_amu_faculty_of_law),
-        stringResource(R.string.college_jamia_law),
-        stringResource(R.string.college_op_jindal_law_school),
-        stringResource(R.string.college_army_institute_of_law_mohali),
-        stringResource(R.string.college_kerala_law_academy),
-        stringResource(R.string.college_school_of_law_calcutta),
-        // Arts Colleges in India
-        stringResource(R.string.college_college_of_art_du),
-        stringResource(R.string.college_sir_jj_school_of_art),
-        stringResource(R.string.college_faculty_visual_arts_bhu),
-        stringResource(R.string.college_msu_fine_arts_vadodara),
-        stringResource(R.string.college_govt_college_art_craft_kolkata),
-        stringResource(R.string.college_chennai_govt_fine_arts),
-        stringResource(R.string.college_rachana_sansad),
-        stringResource(R.string.college_goa_college_of_art),
-        stringResource(R.string.college_amity_school_fine_arts),
-        stringResource(R.string.college_kalakshetra_foundation),
-        stringResource(R.string.college_bharatiya_kala_kendra),
-        stringResource(R.string.college_gandharva_mahavidyalaya),
-        stringResource(R.string.college_nsd),
-        stringResource(R.string.college_ftii_pune),
-        stringResource(R.string.college_srfti_kolkata),
-        stringResource(R.string.college_kathak_kendra),
-        stringResource(R.string.college_drama_thrissur),
-        stringResource(R.string.college_ramjas_college),
-        stringResource(R.string.college_st_xaviers_mumbai),
-        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
-        stringResource(R.string.college_st_stephens),
-        stringResource(R.string.college_miranda_house),
-        stringResource(R.string.college_hindu_college),
-        stringResource(R.string.college_lady_shri_ram),
-        stringResource(R.string.college_hansraj_college),
-        stringResource(R.string.college_delhi_university),
-        stringResource(R.string.college_iit_delhi),
-        stringResource(R.string.college_jnu_delhi),
-        stringResource(R.string.college_op_jindal_global),
-        stringResource(R.string.college_amity_noida),
-        stringResource(R.string.college_nift_delhi),
-        stringResource(R.string.college_pearl_academy_delhi),
-        stringResource(R.string.college_amity_law_school),
-        stringResource(R.string.college_banaras_hindu_university),
-        stringResource(R.string.college_iit_kanpur),
-        stringResource(R.string.college_iit_roorkee),
-        stringResource(R.string.college_lpu_phagwara),
-        stringResource(R.string.college_chandigarh_university),
-        // West India (Maharashtra, Gujarat, Goa)
-        stringResource(R.string.college_iit_bombay),
-        stringResource(R.string.college_mithibai_college),
-        stringResource(R.string.college_nmims_mumbai),
-        stringResource(R.string.college_university_of_mumbai),
-        stringResource(R.string.college_jj_school_arts),
-        stringResource(R.string.college_fergusson_college),
-        stringResource(R.string.college_symbiosis_liberal_arts),
-        stringResource(R.string.college_flame_university),
-        stringResource(R.string.college_savitribai_phule_pune_university),
-        stringResource(R.string.college_symbiosis_law_school),
-        stringResource(R.string.college_iit_gandhinagar),
-        stringResource(R.string.college_nid_ahmedabad),
-        stringResource(R.string.college_nirma_university),
-        stringResource(R.string.college_goa_university),
-        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
-        stringResource(R.string.college_iisc_bangalore),
-        stringResource(R.string.college_christ_university),
-        stringResource(R.string.college_mount_carmel),
-        stringResource(R.string.college_st_josephs_bangalore),
-        stringResource(R.string.college_nlsiu_bangalore),
-        stringResource(R.string.college_iit_madras),
-        stringResource(R.string.college_loyola_college),
-        stringResource(R.string.college_madras_christian_college),
-        stringResource(R.string.college_anna_university),
-        stringResource(R.string.college_stella_maris),
-        stringResource(R.string.college_krea_university),
-        stringResource(R.string.college_osmania_university),
-        stringResource(R.string.college_manipal_academy),
-        stringResource(R.string.college_andhra_university),
-        stringResource(R.string.college_annamalai_university),
-        stringResource(R.string.college_kerala_university),
-        // East India (West Bengal, Odisha, Jharkhand, Bihar)
-        stringResource(R.string.college_jadavpur_university),
-        stringResource(R.string.college_presidency_university),
-        stringResource(R.string.college_st_xaviers_kolkata),
-        stringResource(R.string.college_scottish_church),
-        stringResource(R.string.college_university_of_calcutta),
-        stringResource(R.string.college_iit_kharagpur),
-        stringResource(R.string.college_nit_durgapur),
-        stringResource(R.string.college_loreto_college),
-        stringResource(R.string.college_lady_brabourne),
-        stringResource(R.string.college_bethune_college),
-        stringResource(R.string.college_ramakrishna_narendrapur),
-        stringResource(R.string.college_goenka_college),
-        stringResource(R.string.college_visva_bharati),
-        stringResource(R.string.college_nit_rourkela),
-        stringResource(R.string.college_iit_dhanbad),
-        // Northeast India (Assam, Meghalaya)
-        stringResource(R.string.college_gauhati_university),
-        stringResource(R.string.college_nehu_shillong),
-        stringResource(R.string.college_cotton_university),
-        // Union Territories
-        stringResource(R.string.college_jamia_millia_islamia),
-        // Catch-all for other colleges
-        stringResource(R.string.college_other)
-    )
-
-    var college               by remember { mutableStateOf(tempProfile.college) }
-    var collegeExpanded       by remember { mutableStateOf(false) }
-    var collegeYear           by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
-    var collegeDegree         by remember { mutableStateOf(tempProfile.collegeDegree.orEmpty()) }
-
-    // ─── Post-Grad dropdown + year + degree w/ limit ────
-    val postGradOptions = listOf(
-        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
-        stringResource(R.string.postgrad_delhi_university),
-        stringResource(R.string.postgrad_iit_delhi),
-        stringResource(R.string.postgrad_jnu_delhi),
-        stringResource(R.string.postgrad_ashoka_university),
-        stringResource(R.string.postgrad_amity_noida),
-        stringResource(R.string.postgrad_nift_delhi),
-        stringResource(R.string.postgrad_pearl_academy_delhi),
-        stringResource(R.string.postgrad_ili_delhi),
-        stringResource(R.string.postgrad_banaras_hindu_university),
-        stringResource(R.string.postgrad_iit_kanpur),
-        stringResource(R.string.postgrad_iit_roorkee),
-        stringResource(R.string.postgrad_lpu_phagwara),
-        stringResource(R.string.postgrad_chandigarh_university),
-        stringResource(R.string.postgrad_iim_lucknow),
-        stringResource(R.string.postgrad_iim_udaipur),
-        // West India (Maharashtra, Gujarat, Goa)
-        stringResource(R.string.postgrad_iit_bombay),
-        stringResource(R.string.postgrad_university_of_mumbai),
-        stringResource(R.string.postgrad_nmims_mumbai),
-        stringResource(R.string.postgrad_tiss_mumbai),
-        stringResource(R.string.postgrad_tifr_mumbai),
-        stringResource(R.string.postgrad_jj_school_arts),
-        stringResource(R.string.postgrad_savitribai_phule_pune_university),
-        stringResource(R.string.postgrad_symbiosis_law_school),
-        stringResource(R.string.postgrad_iit_gandhinagar),
-        stringResource(R.string.postgrad_nirma_university),
-        stringResource(R.string.postgrad_iim_ahmedabad),
-        stringResource(R.string.postgrad_goa_university),
-        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
-        stringResource(R.string.postgrad_iisc_bangalore),
-        stringResource(R.string.postgrad_christ_university),
-        stringResource(R.string.postgrad_nlsiu_bangalore),
-        stringResource(R.string.postgrad_iim_bangalore),
-        stringResource(R.string.postgrad_iit_madras),
-        stringResource(R.string.postgrad_anna_university),
-        stringResource(R.string.postgrad_srmist_chennai),
-        stringResource(R.string.postgrad_vit_vellore),
-        stringResource(R.string.postgrad_osmania_university),
-        stringResource(R.string.postgrad_nalsar_hyderabad),
-        stringResource(R.string.postgrad_manipal_academy),
-        stringResource(R.string.postgrad_andhra_university),
-        stringResource(R.string.postgrad_annamalai_university),
-        stringResource(R.string.postgrad_kerala_university),
-        stringResource(R.string.postgrad_iim_kozhikode),
-        stringResource(R.string.postgrad_nit_warangal),
-        // East India (West Bengal, Odisha, Jharkhand, Bihar)
-        stringResource(R.string.postgrad_jadavpur_university),
-        stringResource(R.string.postgrad_presidency_university),
-        stringResource(R.string.postgrad_university_of_calcutta),
-        stringResource(R.string.postgrad_iit_kharagpur),
-        stringResource(R.string.postgrad_nit_durgapur),
-        stringResource(R.string.postgrad_isi_kolkata),
-        stringResource(R.string.postgrad_iim_calcutta),
-        stringResource(R.string.postgrad_visva_bharati),
-        stringResource(R.string.postgrad_nit_rourkela),
-        stringResource(R.string.postgrad_iit_dhanbad),
-        stringResource(R.string.postgrad_xlri_jamshedpur),
-        // Northeast India (Assam, Meghalaya)
-        stringResource(R.string.postgrad_gauhati_university),
-        stringResource(R.string.postgrad_nehu_shillong),
-        stringResource(R.string.postgrad_cotton_university),
-        stringResource(R.string.postgrad_iim_shillong),
-        // Union Territories
-        stringResource(R.string.postgrad_jamia_millia_islamia),
-        stringResource(R.string.postgrad_iim_vishakhapatnam),
-        // Catch-all for other post-graduate institutions
-        stringResource(R.string.postgrad_other)
-    )
-
-    var postGrad              by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
-    var postGradExpanded      by remember { mutableStateOf(false) }
-    var postGradYear          by remember { mutableStateOf(tempProfile.postGraduationYear) }
-    var postGradDegree        by remember { mutableStateOf(tempProfile.postGraduationDegree.orEmpty()) }
-
-    // ─── Religion & Community ────────────────────────────
-    var religion             by remember { mutableStateOf(tempProfile.religion) }
-    var community            by remember { mutableStateOf(tempProfile.community) }
-
-    // ─── Caste ───────────────────────────────────────────
-    var caste                by remember { mutableStateOf(tempProfile.caste) }
-    val casteOptions = listOf(
-        stringResource(R.string.caste_brahmin),
-        stringResource(R.string.caste_kayastha),
-        stringResource(R.string.caste_baidya),
-        stringResource(R.string.caste_kshatriya),
-        stringResource(R.string.caste_vaishya),
-        stringResource(R.string.caste_rajvanshi),
-        stringResource(R.string.caste_sadgop),
-        stringResource(R.string.caste_mahishya),
-        stringResource(R.string.caste_jat),
-        stringResource(R.string.caste_rajput),
-        stringResource(R.string.caste_yadav),
-        stringResource(R.string.caste_vellalar),
-        stringResource(R.string.caste_naidu),
-        stringResource(R.string.caste_ezhava),
-        stringResource(R.string.caste_gowda),
-        stringResource(R.string.caste_patel),
-        stringResource(R.string.caste_maratha),
-        stringResource(R.string.caste_kurmi),
-        stringResource(R.string.caste_lingayat),
-        stringResource(R.string.caste_reddy),
-        stringResource(R.string.caste_bhil),
-        stringResource(R.string.caste_scheduled_caste),
-        stringResource(R.string.caste_scheduled_tribe),
-        stringResource(R.string.caste_obc),
-        stringResource(R.string.caste_general),
-        stringResource(R.string.caste_other)
-    )
-
-    // ─── Height ──────────────────────────────────────────
-    var isFeet               by remember { mutableStateOf(tempProfile.height2.isNotEmpty()) }
-    var feet                 by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
-    var inches               by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
-    var heightCm             by remember { mutableStateOf(tempProfile.height) }
-
-    // ─── Gender ──────────────────────────────────────────
-    val genderOptions        = listOf(
+    // Gender
+    val genderOptions = listOf(
         stringResource(R.string.male_option),
         stringResource(R.string.female_option),
         stringResource(R.string.college_other)
     )
-    var selectedGender       by remember {
-        mutableStateOf(genderOptions.find { it==tempProfile.gender }
-            ?: genderOptions.first())
+    var selectedGender by remember {
+        mutableStateOf(genderOptions.find { it == tempProfile.gender } ?: genderOptions.first())
     }
 
-    // ─── Job & Work ──────────────────────────────────────
+    // Job Role
     val jobRoleOptions = listOf(
         stringResource(R.string.job_role_option_software_developer),
         stringResource(R.string.job_role_option_data_scientist),
@@ -1541,55 +2299,53 @@ fun BasicInfoEditSection(
         stringResource(R.string.job_role_option_intern),
         stringResource(R.string.job_role_option_other)
     )
-    var selectedJobRole      by remember {
-        mutableStateOf(jobRoleOptions.find { it==tempProfile.jobRole }
-            ?: jobRoleOptions.first())
+    var selectedJobRole by remember {
+        mutableStateOf(jobRoleOptions.find { it == tempProfile.jobRole } ?: jobRoleOptions.first())
     }
-    var customJobRole        by remember {
-        mutableStateOf(if (selectedJobRole==jobRoleOptions.last())
-            tempProfile.customJobRole.orEmpty() else "")
+    var customJobRole by remember {
+        mutableStateOf(if (selectedJobRole == jobRoleOptions.last()) tempProfile.customJobRole.orEmpty() else "")
     }
 
-    val workOptions = listOf(
-        stringResource(R.string.work_option_private_sector),
-        stringResource(R.string.work_option_government),
-        stringResource(R.string.work_option_information_technology),
-        stringResource(R.string.work_option_healthcare),
-        stringResource(R.string.work_option_education),
-        stringResource(R.string.work_option_construction),
-        stringResource(R.string.work_option_manufacturing),
-        stringResource(R.string.work_option_agriculture),
-        stringResource(R.string.work_option_pharmaceuticals),
-        stringResource(R.string.work_option_banking),
-        stringResource(R.string.work_option_insurance),
-        stringResource(R.string.work_option_real_estate),
-        stringResource(R.string.work_option_retail),
-        stringResource(R.string.work_option_e_commerce),
-        stringResource(R.string.work_option_telecom),
-        stringResource(R.string.work_option_automobile),
-        stringResource(R.string.work_option_mining),
-        stringResource(R.string.work_option_media_entertainment),
-        stringResource(R.string.work_option_hospitality),
-        stringResource(R.string.work_option_logistics),
-        stringResource(R.string.work_option_non_profit),
-        stringResource(R.string.work_option_startup),
-        stringResource(R.string.work_option_freelance),
-        stringResource(R.string.work_option_unemployed),
-        stringResource(R.string.work_option_other)
-    )
-    var selectedWork         by remember {
-        mutableStateOf(workOptions.find { it==tempProfile.work }
-            ?: workOptions.first())
-    }
-    var customWork           by remember {
-        mutableStateOf(if (selectedWork==workOptions.last())
-            tempProfile.customWork.orEmpty() else "")
-    }
+    // Search states for high school
+    var highSchoolQuery by remember { mutableStateOf(tempProfile.highSchool) }
+    var highSchoolResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var highSchoolSearching by remember { mutableStateOf(false) }
+    var isHighSchoolFieldFocused by remember { mutableStateOf(false) } // Track focus state for high school
+    val highSchoolMenuExpanded = highSchoolResults.isNotEmpty() && isHighSchoolFieldFocused // Only expand if focused
+    var customHighSchool by remember { mutableStateOf(tempProfile.customHighSchool.orEmpty()) }
+    var highSchoolYear by remember { mutableStateOf(tempProfile.highSchoolGraduationYear) }
 
-    // ─── City & Locality arrays ──────────────────────────
-// ─── City & Locality arrays ──────────────────────────
-    val cityOptionsList      = stringArrayResource(id = R.array.city_names).toList()
-    val localityOptionsList: List<String> = when(city) {
+    // Search states for college
+    var collegeQuery by remember { mutableStateOf(tempProfile.college) }
+    var collegeResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var collegeSearching by remember { mutableStateOf(false) }
+    var isCollegeFieldFocused by remember { mutableStateOf(false) } // Track focus state for college
+    val collegeMenuExpanded = collegeResults.isNotEmpty() && isCollegeFieldFocused // Only expand if focused
+    var customCollege by remember { mutableStateOf(tempProfile.customCollege.orEmpty()) }
+    var collegeYear by remember { mutableStateOf(tempProfile.collegeGraduationYear) }
+    var collegeDegree by remember { mutableStateOf(tempProfile.collegeDegree.orEmpty()) }
+
+    // Search states for post-graduation
+    var postGradQuery by remember { mutableStateOf(tempProfile.postGraduation.orEmpty()) }
+    var postGradResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var postGradSearching by remember { mutableStateOf(false) }
+    var isPostGradFieldFocused by remember { mutableStateOf(false) } // Track focus state for post-grad
+    val postGradMenuExpanded = postGradResults.isNotEmpty() && isPostGradFieldFocused // Only expand if focused
+    var customPostGrad by remember { mutableStateOf(tempProfile.customPostGraduation.orEmpty()) }
+    var postGradYear by remember { mutableStateOf(tempProfile.postGraduationYear) }
+    var postGradDegree by remember { mutableStateOf(tempProfile.postGraduationDegree.orEmpty()) }
+
+    // Search states for work
+    var workQuery by remember { mutableStateOf(tempProfile.work) }
+    var workResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var workSearching by remember { mutableStateOf(false) }
+    var isWorkFieldFocused by remember { mutableStateOf(false) } // Track focus state for work
+    val workMenuExpanded = workResults.isNotEmpty() && isWorkFieldFocused // Only expand if focused
+    var customWork by remember { mutableStateOf(tempProfile.customWork.orEmpty()) }
+
+    // City and Locality options (from old code)
+    val cityOptionsList = stringArrayResource(id = R.array.city_names).toList()
+    val localityOptionsList: List<String> = when (city) {
         stringResource(R.string.city_kolkata) -> stringArrayResource(R.array.localities_kolkata).toList()
         stringResource(R.string.city_howrah) -> stringArrayResource(R.array.localities_howrah).toList()
         stringResource(R.string.city_durgapur) -> stringArrayResource(R.array.localities_durgapur).toList()
@@ -1682,112 +2438,195 @@ fun BasicInfoEditSection(
         else -> stringArrayResource(R.array.localities_other).toList()
     }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(6.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            // Name
+    // Focus management
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(Unit) {
+        // Clear focus on screen entry to prevent automatic focus on any text field
+        focusManager.clearFocus()
+    }
+
+    // Search side-effects with debouncing for high school, college, post-grad, and work
+    LaunchedEffect(highSchoolQuery) {
+        if (highSchoolQuery.length < 3) {
+            highSchoolResults = emptyList()
+            return@LaunchedEffect
+        } else {
+            delay(400)
+            highSchoolSearching = true
+            highSchoolResults = searchPlacesRich(highSchoolQuery)
+            highSchoolSearching = false
+        }
+    }
+
+    LaunchedEffect(collegeQuery) {
+        if (collegeQuery.length < 3) {
+            collegeResults = emptyList()
+            return@LaunchedEffect
+        } else {
+            delay(400)
+            collegeSearching = true
+            collegeResults = searchPlacesRich(collegeQuery)
+            collegeSearching = false
+        }
+    }
+
+    LaunchedEffect(postGradQuery) {
+        if (postGradQuery.length < 3) {
+            postGradResults = emptyList()
+            return@LaunchedEffect
+        } else {
+            delay(400)
+            postGradSearching = true
+            postGradResults = searchPlacesRich(postGradQuery)
+            postGradSearching = false
+        }
+    }
+
+    LaunchedEffect(workQuery) {
+        if (workQuery.length < 3) {
+            workResults = emptyList()
+            return@LaunchedEffect
+        } else {
+            delay(400)
+            workSearching = true
+            workResults = searchPlacesRich(workQuery)
+            workSearching = false
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        // Name
+        OutlinedTextField(
+            textStyle = LocalTextStyle.current.copy(color = Color.White),
+            value = name,
+            onValueChange = { name = it },
+            label = {
+                Text(
+                    stringResource(R.string.label_name),
+                    fontSize = 11.sp,
+                    color = Color(0xFFFF6F00)
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                unfocusedBorderColor = Color.Gray,
+                cursorColor = Color.White,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            )
+        )
+
+        // Height toggle & fields
+        Text(
+            stringResource(R.string.height_label),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = isFeet,
+                onCheckedChange = { isFeet = it },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFFFF6F00),
+                    uncheckedThumbColor = Color.Gray,
+                    checkedTrackColor = Color(0xFFFF6F00).copy(alpha = 0.54f),
+                    uncheckedTrackColor = Color.Gray.copy(alpha = 0.54f)
+                )
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (isFeet) stringResource(R.string.feet_inches_label)
+                else stringResource(R.string.centimeters_label),
+                fontSize = 11.sp,
+                color = Color.White
+            )
+        }
+        if (isFeet) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = feet.toString(),
+                    onValueChange = { feet = it.toIntOrNull() ?: 0 },
+                    label = {
+                        Text(
+                            stringResource(R.string.feet_label),
+                            fontSize = 11.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+                OutlinedTextField(
+                    value = inches.toString(),
+                    onValueChange = { inches = it.toIntOrNull() ?: 0 },
+                    label = {
+                        Text(
+                            stringResource(R.string.inches_label),
+                            fontSize = 11.sp,
+                            color = Color(0xFFFF6F00)
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+            }
+        } else {
             OutlinedTextField(
-                textStyle = LocalTextStyle.current.copy(color = Color.White),
-                value = name,
-                onValueChange = { name = it },
+                value = heightCm.toString(),
+                onValueChange = { heightCm = it.toIntOrNull() ?: 0 },
                 label = {
                     Text(
-                        stringResource(R.string.label_name),
-                        fontSize = 9.sp,
+                        stringResource(R.string.centimeters_label),
+                        fontSize = 11.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFFFF6F00),
                     unfocusedBorderColor = Color.Gray,
                     cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
                 )
             )
+        }
 
-            // Height toggle & fields…
-            Text(
-                stringResource(R.string.height_label),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF6F00)
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = isFeet,
-                    onCheckedChange = { isFeet = it },
-                    colors = SwitchDefaults.colors(
-                        // thumb (the round “knob”)
-                        checkedThumbColor = Color(0xFFFF6F00),
-                        uncheckedThumbColor = Color.Gray,
-                        // track (the background line)
-                        checkedTrackColor = Color(0xFFFF6F00).copy(alpha = 0.54f),
-                        uncheckedTrackColor = Color.Gray.copy(alpha = 0.54f)
-                    )
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (isFeet) stringResource(R.string.feet_inches_label)
-                    else stringResource(R.string.centimeters_label),
-                    fontSize = 9.sp,
-                    color = Color.White
-                )
-            }
-            if (isFeet) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    OutlinedTextField(
-                        value = feet.toString(),
-                        onValueChange = { feet = it.toIntOrNull() ?: 0 },
-                        label = {
-                            Text(
-                                stringResource(R.string.feet_label),
-                                fontSize = 9.sp,
-                                color = Color(0xFFFF6F00)
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                    OutlinedTextField(
-                        value = inches.toString(),
-                        onValueChange = { inches = it.toIntOrNull() ?: 0 },
-                        label = {
-                            Text(
-                                stringResource(R.string.inches_label),
-                                fontSize = 9.sp,
-                                color = Color(0xFFFF6F00)
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-            } else {
-                OutlinedTextField(
-                    value = heightCm.toString(),
-                    onValueChange = { heightCm = it.toIntOrNull() ?: 0 },
-                    label = {
-                        Text(
-                            stringResource(R.string.centimeters_label),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-
-            // Religion chips
-            Text(
-                stringResource(R.string.religion_label),
-                fontWeight = FontWeight.Bold,
-                fontSize = 9.sp,
-                color = Color(0xFFFF6F00)
-            )
+        // Religion chips
+        Text(
+            stringResource(R.string.religion_label),
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            color = Color(0xFFFF6F00)
+        )
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             val religionOpts = listOf(
                 stringResource(R.string.religion_hindu),
                 stringResource(R.string.religion_muslim),
@@ -1801,398 +2640,724 @@ fun BasicInfoEditSection(
                 stringResource(R.string.religion_zoroastrian),
                 stringResource(R.string.religion_other)
             )
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                religionOpts.forEach { option ->
-                    FilterChip(
-                        selected = religion == option,
-                        onClick = { religion = option },
-                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            disabledContainerColor = Color.Transparent,
-                            disabledLabelColor = Color(0xFFFF6F00),
-                            selectedContainerColor = Color(0xFFFF6F00),
-                            selectedLabelColor = Color.White
-                        )
+            religionOpts.forEach { option ->
+                FilterChip(
+                    selected = religion == option,
+                    onClick = { religion = option },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
                     )
-                }
-            }
-
-            // Community chips
-            Text(
-                stringResource(R.string.community_label),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF6F00)
-            )
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val commOpts = listOf(
-                    // Northeast India
-                    stringResource(R.string.community_adi),
-                    stringResource(R.string.community_nyishi),
-                    stringResource(R.string.community_bodo),
-                    stringResource(R.string.community_assamese),
-                    stringResource(R.string.community_manipuri),
-                    stringResource(R.string.community_khasi),
-                    stringResource(R.string.community_mizo),
-                    stringResource(R.string.community_naga),
-                    stringResource(R.string.community_tripuri),
-                    // East India
-                    stringResource(R.string.community_bengali),
-                    stringResource(R.string.community_santhal),
-                    stringResource(R.string.community_oraon),
-                    stringResource(R.string.community_munda),
-                    // North India
-                    stringResource(R.string.community_punjabi),
-                    stringResource(R.string.community_marwari),
-                    stringResource(R.string.community_rajasthani),
-                    stringResource(R.string.community_kashmiri),
-                    stringResource(R.string.community_himachali),
-                    stringResource(R.string.community_haryanvi),
-                    stringResource(R.string.community_garhwali),
-                    // Central India
-                    stringResource(R.string.community_madhya_pradeshi),
-                    stringResource(R.string.community_chhattisgarhi),
-                    // South India
-                    stringResource(R.string.community_tamil),
-                    stringResource(R.string.community_telugu),
-                    stringResource(R.string.community_kannadiga),
-                    stringResource(R.string.community_malayali),
-                    // West India
-                    stringResource(R.string.community_gujarati),
-                    stringResource(R.string.community_marathi),
-                    stringResource(R.string.community_goan),
-                    stringResource(R.string.community_konkani),
-                    // Other Regions
-                    stringResource(R.string.community_odia),
-                    stringResource(R.string.community_bihari),
-                    stringResource(R.string.community_sikkimese),
-                    stringResource(R.string.community_nepali),
-                    stringResource(R.string.community_ladakhi),
-                    stringResource(R.string.community_andamanese),
-                    stringResource(R.string.community_lakhadweepi),
-                    // Catch-all
-                    stringResource(R.string.community_other)
                 )
-                commOpts.forEach { option ->
-                    FilterChip(
-                        selected = community == option,
-                        onClick = { community = option },
-                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            disabledContainerColor = Color.Transparent,
-                            disabledLabelColor = Color(0xFFFF6F00),
-                            selectedContainerColor = Color(0xFFFF6F00),
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
             }
+        }
 
-            // **Caste chips**
-            Text(
-                stringResource(R.string.caste_title),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF6F00)
+        // Community chips
+        Text(
+            stringResource(R.string.community_label),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val commOpts = listOf(
+                stringResource(R.string.community_adi),
+                stringResource(R.string.community_nyishi),
+                stringResource(R.string.community_bodo),
+                stringResource(R.string.community_assamese),
+                stringResource(R.string.community_manipuri),
+                stringResource(R.string.community_khasi),
+                stringResource(R.string.community_mizo),
+                stringResource(R.string.community_naga),
+                stringResource(R.string.community_tripuri),
+                stringResource(R.string.community_bengali),
+                stringResource(R.string.community_santhal),
+                stringResource(R.string.community_oraon),
+                stringResource(R.string.community_munda),
+                stringResource(R.string.community_punjabi),
+                stringResource(R.string.community_marwari),
+                stringResource(R.string.community_rajasthani),
+                stringResource(R.string.community_kashmiri),
+                stringResource(R.string.community_himachali),
+                stringResource(R.string.community_haryanvi),
+                stringResource(R.string.community_garhwali),
+                stringResource(R.string.community_madhya_pradeshi),
+                stringResource(R.string.community_chhattisgarhi),
+                stringResource(R.string.community_tamil),
+                stringResource(R.string.community_telugu),
+                stringResource(R.string.community_kannadiga),
+                stringResource(R.string.community_malayali),
+                stringResource(R.string.community_gujarati),
+                stringResource(R.string.community_marathi),
+                stringResource(R.string.community_goan),
+                stringResource(R.string.community_konkani),
+                stringResource(R.string.community_odia),
+                stringResource(R.string.community_bihari),
+                stringResource(R.string.community_sikkimese),
+                stringResource(R.string.community_nepali),
+                stringResource(R.string.community_ladakhi),
+                stringResource(R.string.community_andamanese),
+                stringResource(R.string.community_lakhadweepi),
+                stringResource(R.string.community_other)
             )
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                casteOptions.forEach { option ->
-                    FilterChip(
-                        selected = caste == option,
-                        onClick = { caste = option },
-                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            disabledContainerColor = Color.Transparent,
-                            disabledLabelColor = Color(0xFFFF6F00),
-                            selectedContainerColor = Color(0xFFFF6F00),
-                            selectedLabelColor = Color.White
-                        )
+            commOpts.forEach { option ->
+                FilterChip(
+                    selected = community == option,
+                    onClick = { community = option },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
                     )
-                }
+                )
             }
+        }
 
-            // Gender chips
-            Text(
-                stringResource(R.string.gender_label),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF6F00)
+        // Caste chips
+        Text(
+            stringResource(R.string.caste_title),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val casteOptions = listOf(
+                stringResource(R.string.caste_brahmin),
+                stringResource(R.string.caste_kayastha),
+                stringResource(R.string.caste_baidya),
+                stringResource(R.string.caste_kshatriya),
+                stringResource(R.string.caste_vaishya),
+                stringResource(R.string.caste_rajvanshi),
+                stringResource(R.string.caste_sadgop),
+                stringResource(R.string.caste_mahishya),
+                stringResource(R.string.caste_jat),
+                stringResource(R.string.caste_rajput),
+                stringResource(R.string.caste_yadav),
+                stringResource(R.string.caste_vellalar),
+                stringResource(R.string.caste_naidu),
+                stringResource(R.string.caste_ezhava),
+                stringResource(R.string.caste_gowda),
+                stringResource(R.string.caste_patel),
+                stringResource(R.string.caste_maratha),
+                stringResource(R.string.caste_kurmi),
+                stringResource(R.string.caste_lingayat),
+                stringResource(R.string.caste_reddy),
+                stringResource(R.string.caste_bhil),
+                stringResource(R.string.caste_scheduled_caste),
+                stringResource(R.string.caste_scheduled_tribe),
+                stringResource(R.string.caste_obc),
+                stringResource(R.string.caste_general),
+                stringResource(R.string.caste_other)
             )
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                genderOptions.forEach { option ->
-                    FilterChip(
-                        selected = selectedGender == option,
-                        onClick = { selectedGender = option },
-                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            disabledContainerColor = Color.Transparent,
-                            disabledLabelColor = Color(0xFFFF6F00),
-                            selectedContainerColor = Color(0xFFFF6F00),
-                            selectedLabelColor = Color.White
-                        )
+            casteOptions.forEach { option ->
+                FilterChip(
+                    selected = caste == option,
+                    onClick = { caste = option },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
                     )
-                }
+                )
             }
+        }
 
-            // City dropdown…
-            SearchableDropdownWithCustomOption(
-                title = stringResource(R.string.city_label),
-                options = cityOptionsList,
-                selectedOption = city,
-                onOptionSelected = { sel ->
-                    city = sel
+        // Gender chips
+        Text(
+            stringResource(R.string.gender_label),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            genderOptions.forEach { option ->
+                FilterChip(
+                    selected = selectedGender == option,
+                    onClick = { selectedGender = option },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
+        }
+
+        // City dropdown (old logic)
+        SearchableDropdownWithCustomOption(
+            title = stringResource(R.string.city_label),
+            options = cityOptionsList,
+            selectedOption = city,
+            onOptionSelected = { sel -> city = sel },
+            customInput = customCity,
+            onCustomInputChange = { customCity = it!! }
+        )
+        Spacer(Modifier.height(6.dp))
+
+        // Locality dropdown (old logic)
+        SearchableDropdownWithCustomOption(
+            title = stringResource(R.string.label_locality),
+            options = localityOptionsList,
+            selectedOption = locality,
+            onOptionSelected = { sel -> locality = sel },
+            customInput = customLocality,
+            onCustomInputChange = { customLocality = it!! }
+        )
+        Spacer(Modifier.height(6.dp))
+
+        // Job Role chips
+        Text(
+            stringResource(R.string.job_role_label),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            jobRoleOptions.forEach { option ->
+                FilterChip(
+                    selected = selectedJobRole == option,
+                    onClick = {
+                        selectedJobRole = option
+                        if (option != jobRoleOptions.last()) customJobRole = ""
+                    },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
+        }
+        if (selectedJobRole == jobRoleOptions.last()) {
+            OutlinedTextField(
+                value = customJobRole,
+                onValueChange = { customJobRole = it },
+                label = {
+                    Text(
+                        stringResource(R.string.label_custom_job_role),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
                 },
-                customInput = customCity,
-                onCustomInputChange = { customCity = it!! }
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
             )
-            Spacer(Modifier.height(6.dp))
+        }
 
-            SearchableDropdownWithCustomOption(
-                title = stringResource(R.string.label_locality),
-                options = localityOptionsList,
-                selectedOption = locality,
-                onOptionSelected = { sel ->
-                    locality = sel
+        // Work search dropdown (new logic)
+        Text(
+            stringResource(R.string.label_work),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        ExposedDropdownMenuBox(
+            expanded = workMenuExpanded,
+            onExpandedChange = { /* Controlled by results and focus */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val focusRequester = remember { FocusRequester() } // For focus tracking
+            OutlinedTextField(
+                value = workQuery,
+                onValueChange = { query ->
+                    workQuery = query
+                    customWork = query
                 },
-                customInput = customLocality,
-                onCustomInputChange = { customLocality = it!! }
+                label = { Text(stringResource(R.string.select_work), color = Color.White) },
+                singleLine = true,
+                trailingIcon = {
+                    if (workSearching)
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    else
+                        Icon(Icons.Default.Search, null, tint = Color(0xFFFF6F00))
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedLabelColor = Color(0xFFFF6F00),
+                    unfocusedLabelColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { focusState ->
+                        isWorkFieldFocused = focusState.isFocused
+                        if (!focusState.isFocused) {
+                            workResults = emptyList() // Clear results when focus is lost
+                        }
+                    }
             )
-            Spacer(Modifier.height(6.dp))
-
-            // Job-Role & Work chips + optional customs…
-            Text(
-                stringResource(R.string.job_role_label),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF6F00)
-            )
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ExposedDropdownMenu(
+                expanded = workMenuExpanded,
+                onDismissRequest = {
+                    workResults = emptyList()
+                    focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                },
+                modifier = Modifier
+                    .background(Color.White, RoundedCornerShape(6.dp))
+                    .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
             ) {
-                jobRoleOptions.forEach { option ->
-                    FilterChip(
-                        selected = selectedJobRole == option,
-                        onClick = {
-                            selectedJobRole = option
-                            if (option != jobRoleOptions.last()) customJobRole = ""
+                workResults.forEach { res ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                if (res.address.isNotBlank())
+                                    Text(
+                                        res.address,
+                                        color = Color.DarkGray,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 8.sp
+                                    )
+                            }
                         },
-                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            disabledContainerColor = Color.Transparent,
-                            disabledLabelColor = Color(0xFFFF6F00),
-                            selectedContainerColor = Color(0xFFFF6F00),
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-            }
-            if (selectedJobRole == jobRoleOptions.last()) {
-                OutlinedTextField(
-                    value = customJobRole,
-                    onValueChange = { customJobRole = it },
-                    label = {
-                        Text(
-                            stringResource(R.string.label_custom_job_role),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Text(
-                stringResource(R.string.label_work),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF6F00)
-            )
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                workOptions.forEach { option ->
-                    FilterChip(
-                        selected = selectedWork == option,
-                        onClick = {
-                            selectedWork = option
-                            if (option != workOptions.last()) customWork = ""
+                        leadingIcon = {
+                            Icon(Icons.Default.Place, null, tint = Color(0xFFFF6F00))
                         },
-                        label = { Text(option, fontSize = 9.sp, color = Color.White) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            disabledContainerColor = Color.Transparent,
-                            disabledLabelColor = Color(0xFFFF6F00),
-                            selectedContainerColor = Color(0xFFFF6F00),
-                            selectedLabelColor = Color.White
-                        )
+                        onClick = {
+                            workQuery = res.name
+                            customWork = ""
+                            workResults = emptyList()
+                            focusManager.clearFocus() // Clear focus after selection
+                        }
                     )
                 }
             }
-            if (selectedWork == workOptions.last()) {
-                OutlinedTextField(
-                    value = customWork,
-                    onValueChange = { customWork = it },
-                    label = {
-                        Text(
-                            stringResource(R.string.label_custom_work),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+        }
 
-            // High-School dropdown + Year…
-            SearchableDropdownWithCustomOption(
-                title = stringResource(R.string.label_high_school),
-                options = highSchoolOptions,
-                selectedOption = highSchool,
-                onOptionSelected = { sel ->
-                    highSchool = sel
+        // High School search dropdown (new logic)
+        Text(
+            stringResource(R.string.label_high_school),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        ExposedDropdownMenuBox(
+            expanded = highSchoolMenuExpanded,
+            onExpandedChange = { /* Controlled by results and focus */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val focusRequester = remember { FocusRequester() } // For focus tracking
+            OutlinedTextField(
+                value = highSchoolQuery,
+                onValueChange = { query ->
+                    highSchoolQuery = query
+                    customHighSchool = query
                 },
-                customInput = customHighSchool,
-                onCustomInputChange = { customHighSchool = it!! }
-            )
-            if (highSchool.isNotBlank()) {
-                OutlinedTextField(
-                    value = highSchoolYear,
-                    onValueChange = { highSchoolYear = it.filter { c -> c.isDigit() }.take(4) },
-                    label = {
-                        Text(
-                            stringResource(R.string.high_school_graduation_year),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
+                label = { Text(stringResource(R.string.select_or_type_high_school), color = Color.White) },
+                singleLine = true,
+                trailingIcon = {
+                    if (highSchoolSearching)
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
                         )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-
-            // College dropdown + Year + Degree…
-            SearchableDropdownWithCustomOption(
-                title = stringResource(R.string.college_label),
-                options = collegeOptions,
-                selectedOption = college,
-                onOptionSelected = { sel ->
-                    college = sel
+                    else
+                        Icon(Icons.Default.Search, null, tint = Color(0xFFFF6F00))
                 },
-                customInput = customCollege,
-                onCustomInputChange = { customCollege = it!! }
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedLabelColor = Color(0xFFFF6F00),
+                    unfocusedLabelColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { focusState ->
+                        isHighSchoolFieldFocused = focusState.isFocused
+                        if (!focusState.isFocused) {
+                            highSchoolResults = emptyList() // Clear results when focus is lost
+                        }
+                    }
             )
-            if (college.isNotBlank()) {
-                OutlinedTextField(
-                    value = collegeYear,
-                    onValueChange = { collegeYear = it.filter { c -> c.isDigit() }.take(4) },
-                    label = {
-                        Text(
-                            stringResource(R.string.college_graduation_year),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = collegeDegree,
-                    onValueChange = { if (it.length <= 50) collegeDegree = it },
-                    label = {
-                        Text(
-                            stringResource(R.string.label_college_degree),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-
-            // Post-Grad dropdown + Year + Degree…
-            SearchableDropdownWithCustomOption(
-                title = stringResource(R.string.post_graduation_label),
-                options = postGradOptions,
-                selectedOption = postGrad,
-                onOptionSelected = { sel ->
-                    postGrad = sel
+            ExposedDropdownMenu(
+                expanded = highSchoolMenuExpanded,
+                onDismissRequest = {
+                    highSchoolResults = emptyList()
+                    focusManager.clearFocus() // Clear focus when dismissing the dropdown
                 },
-                customInput = customPostGrad,
-                onCustomInputChange = { customPostGrad = it!! }
-            )
-            if (postGrad.isNotBlank()) {
-                OutlinedTextField(
-                    value = postGradYear,
-                    onValueChange = { postGradYear = it.filter { c -> c.isDigit() }.take(4) },
-                    label = {
-                        Text(
-                            stringResource(R.string.select_graduation_year_label),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = postGradDegree,
-                    onValueChange = { if (it.length <= 50) postGradDegree = it },
-                    label = {
-                        Text(
-                            stringResource(R.string.label_post_graduation_degree),
-                            fontSize = 9.sp,
-                            color = Color(0xFFFF6F00)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                modifier = Modifier
+                    .background(Color.White, RoundedCornerShape(6.dp))
+                    .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+            ) {
+                highSchoolResults.forEach { res ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                if (res.address.isNotBlank())
+                                    Text(
+                                        res.address,
+                                        color = Color.DarkGray,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 8.sp
+                                    )
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Place, null, tint = Color(0xFFFF6F00))
+                        },
+                        onClick = {
+                            highSchoolQuery = res.name
+                            customHighSchool = ""
+                            highSchoolResults = emptyList()
+                            focusManager.clearFocus() // Clear focus after selection
+                        }
+                    )
+                }
             }
+        }
+        if (highSchoolQuery.isNotBlank()) {
+            OutlinedTextField(
+                value = highSchoolYear,
+                onValueChange = { highSchoolYear = it.filter { c -> c.isDigit() }.take(4) },
+                label = {
+                    Text(
+                        stringResource(R.string.high_school_graduation_year),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+        }
 
-            // ─── Save / Cancel ───────────────────────────────────
-            ButtonRow(
-                onSave = {
-                    onSave(
-                        tempProfile.copy(
+        // College search dropdown (new logic)
+        Text(
+            stringResource(R.string.college_label),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        ExposedDropdownMenuBox(
+            expanded = collegeMenuExpanded,
+            onExpandedChange = { /* Controlled by results and focus */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val focusRequester = remember { FocusRequester() } // For focus tracking
+            OutlinedTextField(
+                value = collegeQuery,
+                onValueChange = { query ->
+                    collegeQuery = query
+                    customCollege = query
+                },
+                label = { Text(stringResource(R.string.select_or_type_college), color = Color.White) },
+                singleLine = true,
+                trailingIcon = {
+                    if (collegeSearching)
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    else
+                        Icon(Icons.Default.Search, null, tint = Color(0xFFFF6F00))
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedLabelColor = Color(0xFFFF6F00),
+                    unfocusedLabelColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { focusState ->
+                        isCollegeFieldFocused = focusState.isFocused
+                        if (!focusState.isFocused) {
+                            collegeResults = emptyList() // Clear results when focus is lost
+                        }
+                    }
+            )
+            ExposedDropdownMenu(
+                expanded = collegeMenuExpanded,
+                onDismissRequest = {
+                    collegeResults = emptyList()
+                    focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                },
+                modifier = Modifier
+                    .background(Color.White, RoundedCornerShape(6.dp))
+                    .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+            ) {
+                collegeResults.forEach { res ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                if (res.address.isNotBlank())
+                                    Text(
+                                        res.address,
+                                        color = Color.DarkGray,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 8.sp
+                                    )
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Place, null, tint = Color(0xFFFF6F00))
+                        },
+                        onClick = {
+                            collegeQuery = res.name
+                            customCollege = ""
+                            collegeResults = emptyList()
+                            focusManager.clearFocus() // Clear focus after selection
+                        }
+                    )
+                }
+            }
+        }
+        if (collegeQuery.isNotBlank()) {
+            OutlinedTextField(
+                value = collegeYear,
+                onValueChange = { collegeYear = it.filter { c -> c.isDigit() }.take(4) },
+                label = {
+                    Text(
+                        stringResource(R.string.college_graduation_year),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+            OutlinedTextField(
+                value = collegeDegree,
+                onValueChange = { if (it.length <= 50) collegeDegree = it },
+                label = {
+                    Text(
+                        stringResource(R.string.label_college_degree),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+        }
+
+        // Post-Graduation search dropdown (new logic)
+        Text(
+            stringResource(R.string.post_graduation_label),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        ExposedDropdownMenuBox(
+            expanded = postGradMenuExpanded,
+            onExpandedChange = { /* Controlled by results and focus */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val focusRequester = remember { FocusRequester() } // For focus tracking
+            OutlinedTextField(
+                value = postGradQuery,
+                onValueChange = { query ->
+                    postGradQuery = query
+                    customPostGrad = query
+                },
+                label = { Text(stringResource(R.string.select_or_type_post_grad), color = Color.White) },
+                singleLine = true,
+                trailingIcon = {
+                    if (postGradSearching)
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    else
+                        Icon(Icons.Default.Search, null, tint = Color(0xFFFF6F00))
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedLabelColor = Color(0xFFFF6F00),
+                    unfocusedLabelColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { focusState ->
+                        isPostGradFieldFocused = focusState.isFocused
+                        if (!focusState.isFocused) {
+                            postGradResults = emptyList() // Clear results when focus is lost
+                        }
+                    }
+            )
+            ExposedDropdownMenu(
+                expanded = postGradMenuExpanded,
+                onDismissRequest = {
+                    postGradResults = emptyList()
+                    focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                },
+                modifier = Modifier
+                    .background(Color.White, RoundedCornerShape(6.dp))
+                    .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+            ) {
+                postGradResults.forEach { res ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                if (res.address.isNotBlank())
+                                    Text(
+                                        res.address,
+                                        color = Color.DarkGray,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 8.sp
+                                    )
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Place, null, tint = Color(0xFFFF6F00))
+                        },
+                        onClick = {
+                            postGradQuery = res.name
+                            customPostGrad = ""
+                            postGradResults = emptyList()
+                            focusManager.clearFocus() // Clear focus after selection
+                        }
+                    )
+                }
+            }
+        }
+        if (postGradQuery.isNotBlank()) {
+            OutlinedTextField(
+                value = postGradYear,
+                onValueChange = { postGradYear = it.filter { c -> c.isDigit() }.take(4) },
+                label = {
+                    Text(
+                        stringResource(R.string.select_graduation_year_label),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+            OutlinedTextField(
+                value = postGradDegree,
+                onValueChange = { if (it.length <= 50) postGradDegree = it },
+                label = {
+                    Text(
+                        stringResource(R.string.label_post_graduation_degree),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+        }
+
+        // Save / Cancel
+        ButtonRow(
+            onSave = {
+                onSave(
+                    tempProfile.copy(
                         name = name,
                         city = city,
                         customCity = customCity.ifBlank { null },
                         hometown = locality,
                         customHometown = customLocality.ifBlank { null },
-                        highSchool = highSchool,
+                        highSchool = highSchoolQuery,
                         customHighSchool = customHighSchool.ifBlank { null },
                         highSchoolGraduationYear = highSchoolYear,
-                        college = college,
+                        college = collegeQuery,
                         customCollege = customCollege.ifBlank { null },
                         collegeGraduationYear = collegeYear,
                         collegeDegree = collegeDegree.ifBlank { null },
-                        postGraduation = postGrad.ifBlank { null },
+                        postGraduation = postGradQuery.ifBlank { null },
+                        customPostGraduation = customPostGrad.ifBlank { null },
                         postGraduationYear = postGradYear,
                         postGraduationDegree = postGradDegree.ifBlank { null },
                         religion = religion,
@@ -2204,20 +3369,18 @@ fun BasicInfoEditSection(
                         jobRole = selectedJobRole,
                         customJobRole = selectedJobRole.takeIf { it == jobRoleOptions.last() }
                             ?.let { customJobRole },
-                        work = selectedWork,
-                        customWork = selectedWork.takeIf { it == workOptions.last() }
-                            ?.let { customWork }
-                    ))
-                },
-                onCancel = onCancel
-            )
-        }
+                        work = workQuery,
+                        customWork = customWork.ifBlank { null }
+                    )
+                )
+            },
+            onCancel = onCancel
+        )
     }
+}
 
 @Composable
 fun PerformanceMetricsSection(profile: Profile) {
-    var showPerformance by rememberSaveable { mutableStateOf(false) }
-
     CollapsibleSection(
         title       = stringResource(R.string.performance_metrics),
         icon        = Icons.Default.Assessment,
@@ -3654,6 +4817,7 @@ fun InterestsSectionInProfile(profile: Profile) {
 }
 
 
+
 @Composable
 fun CombinedBioVoiceEditSection(
     currentBio: String?,
@@ -3793,7 +4957,7 @@ fun CombinedBioVoiceEditSection(
         }
         Spacer(Modifier.height(8.dp))
 
-        // — Playback UI —
+        // — Playback UI with Trash Icon —
         voiceUri?.let {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = togglePlayback) {
@@ -3811,6 +4975,21 @@ fun CombinedBioVoiceEditSection(
                     valueRange = 0f..1f,
                     modifier = Modifier.weight(1f)
                 )
+                IconButton(onClick = {
+                    if (isPlaying) togglePlayback() // Stop playback if active
+                    voiceUri = null
+                    newVoiceUrl = null
+                    File(filePath).delete() // Delete the local file
+                    isVoiceValid = true
+                    voiceProgress = 0f
+                }) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete voice",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
 
@@ -3824,7 +5003,6 @@ fun CombinedBioVoiceEditSection(
         )
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PreferencesEditSection(
@@ -3879,13 +5057,13 @@ fun PreferencesEditSection(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- Looking For ---
-        Text(stringResource(R.string.looking_for_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.looking_for_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             lookingForOptions.forEach { option ->
                 FilterChip(
                     selected = selectedLookingFor == option,
                     onClick = { selectedLookingFor = option },
-                    label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -3897,13 +5075,13 @@ fun PreferencesEditSection(
         }
 
         // --- Love Language ---
-        Text(stringResource(R.string.love_language_label), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.love_language_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             loveLanguageOptions.forEach { option ->
                 FilterChip(
                     selected = selectedLoveLanguage == option,
                     onClick = { selectedLoveLanguage = option },
-                    label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -3915,13 +5093,13 @@ fun PreferencesEditSection(
         }
 
         // --- Politics ---
-        Text(stringResource(R.string.label_politics), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.label_politics), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             politicsOptions.forEach { option ->
                 FilterChip(
                     selected = selectedPolitics == option,
                     onClick = { selectedPolitics = option },
-                    label = { Text(option, fontSize = 9.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -4023,12 +5201,12 @@ fun SocialCausesEditSection(
                         }
                     },
                     enabled = isSelected || canSelectMore,
-                    label = { Text(cause, fontSize = 9.sp, color = Color.White) },
+                    label = { Text(cause, fontSize = 11.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
                         selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.Black
+                        selectedLabelColor     = Color.White
                     )
                 )
             }
@@ -5138,10 +6316,10 @@ fun LifestyleSlider(label: String, value: Int, nouns: List<String>, icon: ImageV
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = icon, contentDescription = label, tint = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = label, color = Color.White, fontSize = 9.sp,
+            Text(text = label, color = Color.White, fontSize = 11.sp,
                 fontWeight = FontWeight.Bold)
         }
-        Text(text = displayText, fontSize = 9.sp, color = if (value == -1) Color.Gray else Color.White)
+        Text(text = displayText, fontSize = 11.sp, color = if (value == -1) Color.Gray else Color.White)
     }
     Spacer(modifier = Modifier.height(4.dp))
     Slider(
@@ -5344,8 +6522,8 @@ fun LifestyleSliderEdit(label: String, value: Int, nouns: List<String>, onValueC
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, fontSize = 9.sp, color = Color.White, fontWeight = FontWeight.Bold)
-        Text(displayText, fontSize = 9.sp, color = if (value == -1) Color.Gray else Color.White)
+        Text(label, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(displayText, fontSize = 11.sp, color = if (value == -1) Color.Gray else Color.White)
     }
     Spacer(modifier = Modifier.height(4.dp))
     Slider(

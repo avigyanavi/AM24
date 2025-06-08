@@ -7,7 +7,6 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.storage.FirebaseStorage
 
-// later for production: PlayIntegrityAppCheckProviderFactory
 
 class MyApp : Application() {
     override fun onCreate() {

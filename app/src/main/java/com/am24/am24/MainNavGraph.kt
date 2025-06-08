@@ -144,6 +144,8 @@ fun MainNavGraph(
                 datingViewModel = datingViewModel // Pass the ViewModel
             )
         }
+        composable("paywall")    { SubscriptionScreen(navController) }
+        composable("paypal_web") { PayPalWebView(navController) }
         composable("editPicAndVoiceBio") {
             EditPicAndVoiceBioScreen(navController, profileViewModel)
         }

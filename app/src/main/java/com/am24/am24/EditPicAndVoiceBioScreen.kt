@@ -1,3 +1,4 @@
+import android.app.Activity
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -33,10 +34,11 @@ import com.am24.am24.ProfileViewModel
 import com.am24.am24.compressImage
 import com.am24.am24.moderateImages
 import com.google.firebase.auth.FirebaseAuth
+import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,38 +48,33 @@ fun EditPicAndVoiceBioScreen(
 ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-    // A local "Profile?" from which we will load initial data.
+    // Local profile state
     var profile by remember { mutableStateOf<Profile?>(null) }
 
-    // Up to 5 images in memory. Each item is either a string (Firebase Storage URL) or empty "".
+    // Up to 5 photo slots
     val photoItems = remember { mutableStateListOf<String>() }
 
-    // 1) Fetch the user’s profile once.
+    // Fetch user profile
     LaunchedEffect(currentUserId) {
         profileViewModel.fetchUserProfile(
             userId = currentUserId,
             onSuccess = { fetchedProfile ->
                 profile = fetchedProfile
-
-                // Build up to 5 slots from profilepicUrl + optionalPhotoUrls
                 val combined = mutableListOf<String>()
                 fetchedProfile.profilepicUrl?.let { combined.add(it) }
                 combined.addAll(fetchedProfile.optionalPhotoUrls)
-                // ensure exactly 5
                 while (combined.size < 5) combined.add("")
-                if (combined.size > 5) {
-                    combined.dropLast(combined.size - 5)
-                }
+                if (combined.size > 5) combined.dropLast(combined.size - 5)
                 photoItems.clear()
                 photoItems.addAll(combined.take(5))
-                        },
+            },
             onFailure = { error ->
                 Log.e("EditPic", "Failed to load profile: $error")
             }
         )
     }
 
-    // If the profile is not loaded yet, show a loading spinner.
+    // Loading state
     if (profile == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Color(0xFFFF6F00))
@@ -85,73 +82,83 @@ fun EditPicAndVoiceBioScreen(
         return
     }
 
-// 2) Image picking. We store which "slot index" the user clicked.
+    // Image picking and cropping setup
     var slotIndexToReplace by remember { mutableStateOf<Int?>(null) }
     val context = LocalContext.current
-    val scope   = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
-    /* ─── OpenAI image-moderation helper ─────────────────────────────── */
+    // Image moderation helper
     suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
-        val jpeg = compressImage(context, uri)                          // already have this util
-        val b64  = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
-        moderateImages(listOf(b64))                                     // true == unsafe
+        val jpeg = compressImage(context, uri)
+        val b64 = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
+        moderateImages(listOf(b64))
     }
 
+    // Crop launcher
+    val cropLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val outUri = UCrop.getOutput(result.data!!) ?: return@rememberLauncherForActivityResult
+            val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
+            scope.launch {
+                if (isExplicit(outUri)) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            "That photo looks explicit – please choose another.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    return@launch
+                }
+                try {
+                    val jpegBytes = compressImage(context, outUri)
+                    val fileName = "${System.currentTimeMillis()}.jpg"
+                    val imgRef = FirebaseRefs.storage.reference
+                        .child("users/$currentUserId/$fileName")
+
+                    imgRef.putBytes(jpegBytes)
+                        .addOnSuccessListener {
+                            it.storage.downloadUrl.addOnSuccessListener { dl ->
+                                photoItems[idx] = dl.toString()
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("PhotoUpload", "Upload failed: ${e.message}")
+                        }
+                } catch (e: Exception) {
+                    Log.e("PhotoCompress", "Compression error: ${e.message}")
+                }
+            }
+        }
+    }
+
+    // Photo picker launcher
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { rawUri: Uri? ->
         rawUri ?: return@rememberLauncherForActivityResult
         val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
-
-        scope.launch {
-            // 🔍 call OpenAI
-            if (isExplicit(rawUri)) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context,
-                        "That photo looks explicit – please choose another.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                return@launch                                            // 🚫 block upload
-            }
-
-            /* —— existing compress ▶ push to Firebase —— */
-            try {
-                val jpegBytes = compressImage(context, rawUri)
-                val fileName  = "${System.currentTimeMillis()}.jpg"
-                val imgRef    = FirebaseRefs.storage.reference
-                    .child("users/$currentUserId/$fileName")
-
-                imgRef.putBytes(jpegBytes)
-                    .addOnSuccessListener {
-                        it.storage.downloadUrl.addOnSuccessListener { dl ->
-                            photoItems[idx] = dl.toString()
-                        }
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("PhotoUpload", "Upload failed: ${e.message}")
-                    }
-            } catch (e: Exception) {
-                Log.e("PhotoCompress", "Compression error: ${e.message}")
-            }
-        }
+        val destUri = Uri.fromFile(File(context.cacheDir, "crop_${System.currentTimeMillis()}.jpg"))
+        val uCropIntent = UCrop.of(rawUri, destUri)
+            .withAspectRatio(1f, 1f)
+            .withMaxResultSize(800, 800)
+            .getIntent(context)
+        cropLauncher.launch(uCropIntent)
     }
 
-    // 4) Save function
+    // Save function
     fun onSave() {
-        // Gather non-empty photo URLs
         val nonEmpty = photoItems.filter { it.isNotBlank() }
         val mainPic = nonEmpty.firstOrNull()
         val others = if (nonEmpty.size > 1) nonEmpty.drop(1) else emptyList()
 
-        // Build updated profile
         val updatedProfile = profile!!.copy(
             profilepicUrl = mainPic,
-            optionalPhotoUrls = others,
+            optionalPhotoUrls = others
         )
 
-        // Save to Firebase (Realtime DB)
         profileViewModel.saveProfileUpdated(
             updatedProfile = updatedProfile,
             onSuccess = {
@@ -198,7 +205,6 @@ fun EditPicAndVoiceBioScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Show the 5 slots in a row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -207,13 +213,8 @@ fun EditPicAndVoiceBioScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 photoItems.forEachIndexed { index, url ->
-                    // Each slot is 100x100
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                    ) {
+                    Box(modifier = Modifier.size(100.dp)) {
                         if (url.isBlank()) {
-                            // Empty
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -227,39 +228,30 @@ fun EditPicAndVoiceBioScreen(
                                 Text("+", color = Color.Gray, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                             }
                         } else {
-                            // Non-empty. Show the image plus reorder + remove icons
                             AsyncImage(
                                 model = url,
                                 contentDescription = "Photo",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
-
-                            // Remove icon in top-right corner
                             IconButton(
                                 onClick = {
-                                    // If this is the only photo => do not remove
                                     val countNonEmpty = photoItems.count { it.isNotBlank() }
                                     if (countNonEmpty == 1 && index == photoItems.indexOfFirst { it.isNotBlank() }) {
-                                        // can't remove the only photo
                                         Log.w("EditPic", "Cannot remove the only photo.")
                                     } else {
                                         photoItems[index] = ""
                                     }
                                 },
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
+                                    .align(Alignment.TopStart)
                                     .size(24.dp)
                             ) {
                                 Icon(Icons.Default.Close, "Remove", tint = Color.Red)
                             }
-
-                            // Reorder icons (Up = move left, Down = move right for a row)
-                            // We'll place them along the bottom left
                             if (index > 0) {
                                 IconButton(
                                     onClick = {
-                                        // swap items at index & index-1
                                         val temp = photoItems[index - 1]
                                         photoItems[index - 1] = photoItems[index]
                                         photoItems[index] = temp
@@ -269,13 +261,12 @@ fun EditPicAndVoiceBioScreen(
                                         .offset(x = 4.dp, y = (-4).dp)
                                         .size(24.dp)
                                 ) {
-                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move Left", tint = Color.White)
+                                    Icon(Icons.Default.KeyboardArrowUp, "Move Left", tint = Color.White)
                                 }
                             }
                             if (index < photoItems.lastIndex) {
                                 IconButton(
                                     onClick = {
-                                        // swap items at index & index+1
                                         val temp = photoItems[index + 1]
                                         photoItems[index + 1] = photoItems[index]
                                         photoItems[index] = temp
@@ -285,7 +276,7 @@ fun EditPicAndVoiceBioScreen(
                                         .offset(x = 32.dp, y = (-4).dp)
                                         .size(24.dp)
                                 ) {
-                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move Right", tint = Color.White)
+                                    Icon(Icons.Default.KeyboardArrowDown, "Move Right", tint = Color.White)
                                 }
                             }
                         }
@@ -295,7 +286,6 @@ fun EditPicAndVoiceBioScreen(
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // Bottom row: Cancel / Save
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

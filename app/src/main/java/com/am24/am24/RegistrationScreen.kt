@@ -59,8 +59,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -559,7 +563,6 @@ fun EnterPersonalDetailsScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val lookingForOptions = listOf(
         stringResource(R.string.looking_for_not_selected),
         stringResource(R.string.looking_for_romance),
@@ -649,25 +652,31 @@ fun EnterPersonalDetailsScreen(
     var workQuery by remember { mutableStateOf(viewModel.work) }
     var workResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
     var workSearching by remember { mutableStateOf(false) }
-    val workMenuExpanded = workResults.isNotEmpty()
+    var isWorkFieldFocused by remember { mutableStateOf(false) } // Track focus state
+    val workMenuExpanded = workResults.isNotEmpty() && isWorkFieldFocused // Only expand if focused
 
     // Social Causes
     val allCauses = stringArrayResource(R.array.social_causes_list).toList()
     val maxSelections = 5
+
+    // Focus management
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(Unit) {
+        // Clear focus on screen entry to prevent automatic focus on the text field
+        focusManager.clearFocus()
+    }
 
     // Work search with debouncing
     LaunchedEffect(workQuery) {
         if (workQuery.length < 3) {
             workResults = emptyList()
             return@LaunchedEffect
+        } else {
+            delay(400) // Debounce
+            workSearching = true
+            workResults = searchPlacesRich(workQuery) // Use "establishment" for workplaces
+            workSearching = false
         }
-        delay(400) // Debounce
-        workSearching = true
-        val bias = LocationManager.getLastKnownLocation(context)
-            ?.let { LatLng(it.first, it.second) }
-            ?: LatLng(22.5726, 88.3639) // Default to Kolkata
-        workResults = searchPlacesRich(workQuery, bias) // Use "establishment" for workplaces
-        workSearching = false
     }
 
     Scaffold(
@@ -742,10 +751,11 @@ fun EnterPersonalDetailsScreen(
                 item {
                     ExposedDropdownMenuBox(
                         expanded = workMenuExpanded,
-                        onExpandedChange = { /* Controlled by results */ },
+                        onExpandedChange = { /* Controlled by results and focus */ },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         var workother = stringResource(R.string.work_option_other)
+                        val focusRequester = remember { FocusRequester() } // For focus tracking
                         OutlinedTextField(
                             value = workQuery,
                             onValueChange = { query ->
@@ -774,10 +784,20 @@ fun EnterPersonalDetailsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor()
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { focusState ->
+                                    isWorkFieldFocused = focusState.isFocused
+                                    if (!focusState.isFocused) {
+                                        workResults = emptyList() // Clear results when focus is lost
+                                    }
+                                }
                         )
                         ExposedDropdownMenu(
                             expanded = workMenuExpanded,
-                            onDismissRequest = { workResults = emptyList() },
+                            onDismissRequest = {
+                                workResults = emptyList()
+                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                            },
                             modifier = Modifier
                                 .background(Color.White, RoundedCornerShape(6.dp))
                                 .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
@@ -798,6 +818,7 @@ fun EnterPersonalDetailsScreen(
                                         workQuery = res.name
                                         workResults = emptyList()
                                         work = viewModel.work
+                                        focusManager.clearFocus() // Clear focus after selection
                                     }
                                 )
                             }
@@ -861,7 +882,6 @@ fun EnterPersonalDetailsScreen(
         }
     )
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterLifestyleScreen(
@@ -1191,7 +1211,6 @@ fun EnterLocationAndSchoolScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val educationLevels = listOf(
         stringResource(R.string.no_education_label),
         stringResource(R.string.high_school_label),
@@ -1209,9 +1228,12 @@ fun EnterLocationAndSchoolScreen(
     var highSchoolSearching by remember { mutableStateOf(false) }
     var collegeSearching by remember { mutableStateOf(false) }
     var postGradSearching by remember { mutableStateOf(false) }
-    val highSchoolMenuExpanded = highSchoolResults.isNotEmpty()
-    val collegeMenuExpanded = collegeResults.isNotEmpty()
-    val postGradMenuExpanded = postGradResults.isNotEmpty()
+    var isHighSchoolFieldFocused by remember { mutableStateOf(false) } // Track focus state for high school
+    var isCollegeFieldFocused by remember { mutableStateOf(false) } // Track focus state for college
+    var isPostGradFieldFocused by remember { mutableStateOf(false) } // Track focus state for post-grad
+    val highSchoolMenuExpanded = highSchoolResults.isNotEmpty() && isHighSchoolFieldFocused // Only expand if focused
+    val collegeMenuExpanded = collegeResults.isNotEmpty() && isCollegeFieldFocused // Only expand if focused
+    val postGradMenuExpanded = postGradResults.isNotEmpty() && isPostGradFieldFocused // Only expand if focused
 
     // Enable Next button only if education level is selected and required fields are filled
     val isNextEnabled = registrationViewModel.educationLevel.isNotEmpty() &&
@@ -1222,47 +1244,48 @@ fun EnterLocationAndSchoolScreen(
             (registrationViewModel.educationLevel != stringResource(R.string.post_graduation_label) ||
                     registrationViewModel.postGraduation.isNotEmpty())
 
+    // Focus management
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(Unit) {
+        // Clear focus on screen entry to prevent automatic focus on any text field
+        focusManager.clearFocus()
+    }
+
     // Place search side-effects with debouncing
     LaunchedEffect(highSchoolQuery) {
         if (highSchoolQuery.length < 3) {
             highSchoolResults = emptyList()
             return@LaunchedEffect
+        } else {
+            delay(400) // Debounce to prevent excessive API calls
+            highSchoolSearching = true
+            highSchoolResults = searchPlacesRich(highSchoolQuery)
+            highSchoolSearching = false
         }
-        delay(400) // Debounce to prevent excessive API calls
-        highSchoolSearching = true
-        val bias = LocationManager.getLastKnownLocation(context)
-            ?.let { LatLng(it.first, it.second) }
-            ?: LatLng(22.5726, 88.3639) // Default to Kolkata if location unavailable
-        highSchoolResults = searchPlacesRich(highSchoolQuery, bias)
-        highSchoolSearching = false
     }
 
     LaunchedEffect(collegeQuery) {
         if (collegeQuery.length < 3) {
             collegeResults = emptyList()
             return@LaunchedEffect
+        } else {
+            delay(400)
+            collegeSearching = true
+            collegeResults = searchPlacesRich(collegeQuery)
+            collegeSearching = false
         }
-        delay(400)
-        collegeSearching = true
-        val bias = LocationManager.getLastKnownLocation(context)
-            ?.let { LatLng(it.first, it.second) }
-            ?: LatLng(22.5726, 88.3639)
-        collegeResults = searchPlacesRich(collegeQuery, bias)
-        collegeSearching = false
     }
 
     LaunchedEffect(postGradQuery) {
         if (postGradQuery.length < 3) {
             postGradResults = emptyList()
             return@LaunchedEffect
+        } else {
+            delay(400)
+            postGradSearching = true
+            postGradResults = searchPlacesRich(postGradQuery)
+            postGradSearching = false
         }
-        delay(400)
-        postGradSearching = true
-        val bias = LocationManager.getLastKnownLocation(context)
-            ?.let { LatLng(it.first, it.second) }
-            ?: LatLng(22.5726, 88.3639)
-        postGradResults = searchPlacesRich(postGradQuery, bias)
-        postGradSearching = false
     }
 
     Scaffold(
@@ -1326,9 +1349,10 @@ fun EnterLocationAndSchoolScreen(
                     )
                     ExposedDropdownMenuBox(
                         expanded = highSchoolMenuExpanded,
-                        onExpandedChange = { /* Controlled by results */ },
+                        onExpandedChange = { /* Controlled by results and focus */ },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        val focusRequester = remember { FocusRequester() } // For focus tracking
                         OutlinedTextField(
                             value = highSchoolQuery,
                             onValueChange = { query ->
@@ -1359,10 +1383,20 @@ fun EnterLocationAndSchoolScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor()
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { focusState ->
+                                    isHighSchoolFieldFocused = focusState.isFocused
+                                    if (!focusState.isFocused) {
+                                        highSchoolResults = emptyList() // Clear results when focus is lost
+                                    }
+                                }
                         )
                         ExposedDropdownMenu(
                             expanded = highSchoolMenuExpanded,
-                            onDismissRequest = { highSchoolResults = emptyList() },
+                            onDismissRequest = {
+                                highSchoolResults = emptyList()
+                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                            },
                             modifier = Modifier
                                 .background(Color.White, RoundedCornerShape(6.dp))
                                 .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
@@ -1388,6 +1422,7 @@ fun EnterLocationAndSchoolScreen(
                                         registrationViewModel.customHighSchool = ""
                                         highSchoolQuery = res.name
                                         highSchoolResults = emptyList()
+                                        focusManager.clearFocus() // Clear focus after selection
                                     }
                                 )
                             }
@@ -1414,9 +1449,10 @@ fun EnterLocationAndSchoolScreen(
                     )
                     ExposedDropdownMenuBox(
                         expanded = collegeMenuExpanded,
-                        onExpandedChange = { /* Controlled by results */ },
+                        onExpandedChange = { /* Controlled by results and focus */ },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        val focusRequester = remember { FocusRequester() } // For focus tracking
                         OutlinedTextField(
                             value = collegeQuery,
                             onValueChange = { query ->
@@ -1447,10 +1483,20 @@ fun EnterLocationAndSchoolScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor()
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { focusState ->
+                                    isCollegeFieldFocused = focusState.isFocused
+                                    if (!focusState.isFocused) {
+                                        collegeResults = emptyList() // Clear results when focus is lost
+                                    }
+                                }
                         )
                         ExposedDropdownMenu(
                             expanded = collegeMenuExpanded,
-                            onDismissRequest = { collegeResults = emptyList() },
+                            onDismissRequest = {
+                                collegeResults = emptyList()
+                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                            },
                             modifier = Modifier
                                 .background(Color.White, RoundedCornerShape(6.dp))
                                 .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
@@ -1476,6 +1522,7 @@ fun EnterLocationAndSchoolScreen(
                                         registrationViewModel.customCollege = ""
                                         collegeQuery = res.name
                                         collegeResults = emptyList()
+                                        focusManager.clearFocus() // Clear focus after selection
                                     }
                                 )
                             }
@@ -1499,9 +1546,10 @@ fun EnterLocationAndSchoolScreen(
                     )
                     ExposedDropdownMenuBox(
                         expanded = postGradMenuExpanded,
-                        onExpandedChange = { /* Controlled by results */ },
+                        onExpandedChange = { /* Controlled by results and focus */ },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        val focusRequester = remember { FocusRequester() } // For focus tracking
                         OutlinedTextField(
                             value = postGradQuery,
                             onValueChange = { query ->
@@ -1532,10 +1580,20 @@ fun EnterLocationAndSchoolScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor()
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { focusState ->
+                                    isPostGradFieldFocused = focusState.isFocused
+                                    if (!focusState.isFocused) {
+                                        postGradResults = emptyList() // Clear results when focus is lost
+                                    }
+                                }
                         )
                         ExposedDropdownMenu(
                             expanded = postGradMenuExpanded,
-                            onDismissRequest = { postGradResults = emptyList() },
+                            onDismissRequest = {
+                                postGradResults = emptyList()
+                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                            },
                             modifier = Modifier
                                 .background(Color.White, RoundedCornerShape(6.dp))
                                 .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
@@ -1561,6 +1619,7 @@ fun EnterLocationAndSchoolScreen(
                                         registrationViewModel.customPostGraduation = ""
                                         postGradQuery = res.name
                                         postGradResults = emptyList()
+                                        focusManager.clearFocus() // Clear focus after selection
                                     }
                                 )
                             }

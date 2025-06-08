@@ -33,26 +33,30 @@ data class CheckIn(
  */
 suspend fun searchPlacesRich(
     query: String,
-    userLatLng: LatLng,
+    userLatLng: LatLng? = null, // Made optional with default null
     radiusMeters: Int = 10_000
 ): List<PlaceResult> = withContext(Dispatchers.IO) {
 
     val tag = "PlacesSearch"
-    Log.d(tag, "→ searchPlacesRich(q=\"$query\", bias=${userLatLng.latitude},${userLatLng.longitude})")
+    Log.d(tag, "→ searchPlacesRich(q=\"$query\", bias=${userLatLng?.latitude},${userLatLng?.longitude})")
 
-    val client  = OkHttpClient()
-    val apiKey  = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ"          // ← already in your repo
+    val client = OkHttpClient()
+    val apiKey = "AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ"
 
-    val bodyJson = JSONObject()
-        .put("textQuery", query)
-        .put("locationBias", JSONObject()
-            .put("circle", JSONObject()
-                .put("center", JSONObject()
-                    .put("latitude",  userLatLng.latitude)
-                    .put("longitude", userLatLng.longitude))
-                .put("radius", radiusMeters)
+    // Build the request body, conditionally adding locationBias if userLatLng is provided
+    val bodyJson = JSONObject().apply {
+        put("textQuery", query)
+        if (userLatLng != null) {
+            put("locationBias", JSONObject()
+                .put("circle", JSONObject()
+                    .put("center", JSONObject()
+                        .put("latitude", userLatLng.latitude)
+                        .put("longitude", userLatLng.longitude))
+                    .put("radius", radiusMeters)
+                )
             )
-        )
+        }
+    }
 
     val req = Request.Builder()
         .url("https://places.googleapis.com/v1/places:searchText")
@@ -73,14 +77,14 @@ suspend fun searchPlacesRich(
                 Log.e(tag, "HTTP ${rsp.code}: ${rsp.body?.string()}")
                 return@withContext emptyList()
             }
-            val js  = JSONObject(rsp.body?.string() ?: "")
+            val js = JSONObject(rsp.body?.string() ?: "")
             val arr = js.optJSONArray("places") ?: return@withContext emptyList()
             for (i in 0 until arr.length()) {
-                val p      = arr.getJSONObject(i)
-                val name   = p.getJSONObject("displayName").getString("text")
-                val addr   = p.optString("formattedAddress", "")
-                val id     = p.getString("id")
-                val loc    = p.getJSONObject("location")
+                val p = arr.getJSONObject(i)
+                val name = p.getJSONObject("displayName").getString("text")
+                val addr = p.optString("formattedAddress", "")
+                val id = p.getString("id")
+                val loc = p.getJSONObject("location")
                 val latLng = LatLng(loc.getDouble("latitude"), loc.getDouble("longitude"))
                 out += PlaceResult(id, name, addr, latLng)
             }
