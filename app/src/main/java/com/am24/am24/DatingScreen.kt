@@ -78,6 +78,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.CircularProgressIndicator
@@ -374,23 +375,23 @@ fun DatingScreen(
                     modifier = Modifier.size(30.dp)
                 ) {
                     Icon(
-                        Icons.Default.FilterList,
+                        Icons.Default.Settings,
                         contentDescription = null,
-                        tint = Color(0xFFFF6F00),
+                        tint = Color.White,
                         modifier = Modifier.size(27.dp)
                     )
                 }
-                Spacer(Modifier.width(16.dp))
 
-                /* ⭐  live rating of the *current* card */
+                // RatingBar centered
                 currentSwipeProfile?.let { prof ->
                     Box(
                         modifier = Modifier
-                            .weight(1f)                                 // take all free space
-                            .horizontalScroll(rememberScrollState())    // user can drag left / right
+                            .weight(1f)
+                            .horizontalScroll(rememberScrollState()),
+                        contentAlignment = Alignment.Center
                     ) {
                         RatingBar(
-                            rating      = prof.averageRating,
+                            rating = prof.averageRating,
                             ratingCount = prof.numberOfRatings
                         )
                     }
@@ -408,9 +409,7 @@ fun DatingScreen(
                         }   // <- see next section }
                     )
 
-
-
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(Modifier.width(13.dp))
 
                     /* ⚡  Boosts */
                     WaterIconButton(
@@ -427,17 +426,6 @@ fun DatingScreen(
                                 profileViewModel.fetchCurrentUserProfile()
                             }
                         }
-                    )
-
-                    Spacer(Modifier.width(16.dp))
-
-                    WaterIconButton(               // 🔄 Swipes
-                        quota     = remainingSwipes,
-                        maxQuota  = 15,          // daily swipe allowance
-                        icon      = Icons.Default.Swipe,
-                        tint      = Color.White,
-                        enabled   = remainingSwipes > 0,
-                        onClick   = { showSwipeLimitOverlay = true }
                     )
                 }
 
@@ -668,7 +656,7 @@ fun WaterIconButton(
         targetValue = quota.coerceIn(0, maxQuota) / maxQuota.toFloat(),
         animationSpec = tween(400)
     )
-    val side = 38.dp
+    val side = 34.dp
     Box(
         modifier = modifier
             .size(side)

@@ -31,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -67,17 +68,82 @@ fun DMScreenContent(navController: NavController) {
     var tempRating by remember { mutableStateOf(-1.0) }
     var showUnmatchDialog by remember { mutableStateOf(false) }
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
-
+    var isLoadingProfile by remember { mutableStateOf(true) } // Track loading state
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     LaunchedEffect(currentUserId) {
         usersRef.child(currentUserId).get()
             .addOnSuccessListener { snap ->
                 currentUserProfile = snap.getValue(Profile::class.java)
+                isLoadingProfile = false
+            }
+            .addOnFailureListener {
+                isLoadingProfile = false // Handle error appropriately
+                Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
             }
     }
 
-    // ← ADD THIS:
-    val isPremiumUser = currentUserProfile?.let { it.isPremium == true || it.isPlus == true } == true
+    // Show loading UI while profile is being fetched
+    if (isLoadingProfile) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFFFF4500))
+        }
+        return
+    }
+
+    // If profile is null after loading, handle error
+    val profile = currentUserProfile ?: run {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Error loading profile",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        return
+    }
+
+    val isPremiumUser = profile.isPremium || profile.isPlus
+
+    /* ──────  LOCATION-SELECTOR STATE  ────── */
+    var showLocationSelector by rememberSaveable { mutableStateOf(false) }
+
+    /* string-array resources → Lists */
+    val countryOptions = stringArrayResource(R.array.country_names).toList()
+    val cityOptions    = stringArrayResource(R.array.city_names).toList()
+
+    var selectedCountry  by rememberSaveable { mutableStateOf(countryOptions.first()) }
+    var countryExpanded  by remember { mutableStateOf(false) }
+
+    var selectedCity     by rememberSaveable { mutableStateOf(cityOptions.first()) }
+    var cityExpanded     by remember { mutableStateOf(false) }
+
+    /**  Dynamically look-up the correct `localities_<city>` array  */
+    val localityResId = remember(selectedCity) {
+        context.resources.getIdentifier(
+            "localities_" + selectedCity.replace(" ", "_").lowercase(),
+            "array",
+            context.packageName
+        )
+    }
+    val localityOptions = remember(localityResId) {
+        if (localityResId != 0)
+            context.resources.getStringArray(localityResId).toList()
+        else emptyList()
+    }
+
+    var selectedLocality by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(localityOptions) {
+        selectedLocality = localityOptions.firstOrNull() ?: ""
+    }
+    var localityExpanded by remember { mutableStateOf(false) }
 
 // 1️⃣  Build the chip list
     val groupChatTitles = remember(currentUserProfile) {
@@ -211,130 +277,177 @@ fun DMScreenContent(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            /* ①  COUNTRY / CITY CHIP ROW  **OR**  DROPDOWNs */
+            if (showLocationSelector) {
+                LocationSelectorComposable(navController)
+                Spacer(Modifier.height(8.dp))
+                TextButton(
+                    onClick = { showLocationSelector = false },
+                    modifier = Modifier.align(Alignment.End).padding(8.dp)
+                ) {
+                    Text("Cancel", color = Color(0xFFFF4500))
+                }
+            }
+            else {
                 Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .horizontalScroll(rememberScrollState()),
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 2️⃣  Map chip → chat-room ID
-                    groupChatTitles.forEach { title ->
-                            GroupChatChip(title) {
-                            val id = when (title) {
-                                "India" -> "group_india"
-                                "United States" -> "group_usa"// ← new constant
-                                else -> "group_${title.replace(" ", "_").lowercase()}"
-                            }
-                            navController.navigate("groupChat/$id")
-                        }
-                        Spacer(Modifier.width(6.dp))
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search matches", color = Color.Gray, fontSize = 12.sp) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFFFF4500),
-                    unfocusedBorderColor = Color.Gray,
-                    cursorColor = Color(0xFFFF4500),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.Gray
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                    .defaultMinSize(minHeight = 56.dp) ,      // or just drop the size modifier
-                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
-            )
-
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color.DarkGray)
-                        .clickable {
-                            if (isPremiumUser) {
-                            navController.navigate("peopleWhoLikedMe")
+                    val cts = LocalContext.current
+                    Log.d("DMScreen", "Change Location clicked: isPremiumUser=$isPremiumUser")
+                    GroupChatChip("Change Location") {
+                        if (isPremiumUser) {
+                            showLocationSelector = true     // 🟢 premium users see the selector
                         } else {
                             Toast
-                                .makeText(context, "Upgrade to Plus to see who liked you.", Toast.LENGTH_SHORT)
+                                .makeText(
+                                    cts,
+                                    "Upgrade to Premium to change location",
+                                    Toast.LENGTH_SHORT
+                                )
                                 .show()
                         }
-                                   },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("+$likedCount", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                }
-                Spacer(Modifier.width(6.dp))
-                nonInitiatedMatches
-                    .forEach { profile ->
-                        AIOrProfileImage(
-                            profile,
-                            Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(Color.Gray)
-                                .clickable { navController.navigate("chat/${profile.userId}") }
-                        )
-                        Spacer(Modifier.width(6.dp))
                     }
+
+                    Spacer(Modifier.width(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .horizontalScroll(rememberScrollState()),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 2️⃣  Map chip → chat-room ID
+                        groupChatTitles.forEach { title ->
+                            GroupChatChip(title) {
+                                val id = when (title) {
+                                    "India" -> "group_india"
+                                    "United States" -> "group_usa"// ← new constant
+                                    else -> "group_${title.replace(" ", "_").lowercase()}"
+                                }
+                                navController.navigate("groupChat/$id")
+                            }
+                            Spacer(Modifier.width(6.dp))
+                        }
+                    }
+                }
             }
 
-            val displayedUsers = matchedUsers
-
-            if (displayedUsers.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No matches found", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                LazyColumn(
-                    state = listState,
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search matches", color = Color.Gray, fontSize = 12.sp) },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF4500),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color(0xFFFF4500),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.Gray
+                    ),
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .defaultMinSize(minHeight = 56.dp),      // or just drop the size modifier
+                    textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
+                )
+
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(displayedUsers) { profile ->
-                        val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
-                        DMUserCard(
-                            profile = profile,
-                            navController = navController,
-                            lastMessage = lastMsg.first,
-                            lastMessageFromCurrentUser = lastMsg.second,
-                            lastMessageRead = lastMsg.third,
-                            onRateClick = { selectedProfile ->
-                                fetchUserRating(ratingsRef, selectedProfile.userId) { fetchedRating ->
-                                    tempRating = fetchedRating
-                                    profileToRate = selectedProfile
-                                    showRatingOverlay = true
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(Color.DarkGray)
+                            .clickable {
+                                if (isPremiumUser) {
+                                    navController.navigate("peopleWhoLikedMe")
+                                } else {
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            "Upgrade to Plus to see who liked you.",
+                                            Toast.LENGTH_SHORT
+                                        )
+                                        .show()
                                 }
                             },
-                            onUnmatchClick = { selectedProfile ->
-                                profileToUnmatch = selectedProfile
-                                showUnmatchDialog = true
-                            }
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "+$likedCount",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
                         )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    nonInitiatedMatches
+                        .forEach { profile ->
+                            AIOrProfileImage(
+                                profile,
+                                Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray)
+                                    .clickable { navController.navigate("chat/${profile.userId}") }
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
+                }
+
+                val displayedUsers = matchedUsers
+
+                if (displayedUsers.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            "No matches found",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(displayedUsers) { profile ->
+                            val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
+                            DMUserCard(
+                                profile = profile,
+                                navController = navController,
+                                lastMessage = lastMsg.first,
+                                lastMessageFromCurrentUser = lastMsg.second,
+                                lastMessageRead = lastMsg.third,
+                                onRateClick = { selectedProfile ->
+                                    fetchUserRating(
+                                        ratingsRef,
+                                        selectedProfile.userId
+                                    ) { fetchedRating ->
+                                        tempRating = fetchedRating
+                                        profileToRate = selectedProfile
+                                        showRatingOverlay = true
+                                    }
+                                },
+                                onUnmatchClick = { selectedProfile ->
+                                    profileToUnmatch = selectedProfile
+                                    showUnmatchDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             }
-        }
         if (showRatingOverlay && profileToRate != null) {
             Dialog(onDismissRequest = {
                 showRatingOverlay = false
@@ -434,6 +547,147 @@ fun DMScreenContent(navController: NavController) {
         }
     }
 }
+
+@Composable
+fun LocationSelectorComposable(navController: NavController) {
+    val context = LocalContext.current
+
+    val countryOptions = stringArrayResource(R.array.country_names).toList()
+    val cityOptions = stringArrayResource(R.array.city_names).toList()
+
+    var selectedCountry by rememberSaveable { mutableStateOf("") }
+    var selectedCity by rememberSaveable { mutableStateOf("") }
+    var selectedLocality by rememberSaveable { mutableStateOf("") }
+
+    var countryExpanded by remember { mutableStateOf(false) }
+    var cityExpanded by remember { mutableStateOf(false) }
+    var localityExpanded by remember { mutableStateOf(false) }
+
+    val citySelectable = selectedCountry.isNotBlank()
+    val localitySelectable = selectedCity.isNotBlank()
+
+    val localityResId = remember(selectedCity) {
+        context.resources.getIdentifier(
+            "localities_${selectedCity.replace(" ", "_").lowercase()}",
+            "array",
+            context.packageName
+        )
+    }
+
+    val localityOptions = remember(localityResId) {
+        if (localityResId != 0)
+            context.resources.getStringArray(localityResId).toList()
+        else emptyList()
+    }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        DropdownField(
+            label = "Country",
+            options = countryOptions,
+            selected = selectedCountry,
+            onSelectionChange = {
+                selectedCountry = it
+                selectedCity = ""
+                selectedLocality = ""
+            },
+            expanded = countryExpanded,
+            onExpandedChange = { countryExpanded = it }
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        DropdownField(
+            label = "City",
+            options = cityOptions,
+            selected = selectedCity,
+            onSelectionChange = {
+                selectedCity = it
+                selectedLocality = ""
+            },
+            expanded = cityExpanded,
+            onExpandedChange = { cityExpanded = it },
+            enabled = citySelectable
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        DropdownField(
+            label = "Locality",
+            options = localityOptions,
+            selected = selectedLocality,
+            onSelectionChange = { selectedLocality = it },
+            expanded = localityExpanded,
+            onExpandedChange = { localityExpanded = it },
+            enabled = localitySelectable && localityOptions.isNotEmpty()
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(onClick = {
+            val destination = when {
+                selectedLocality.isNotBlank() -> selectedLocality
+                selectedCity.isNotBlank() -> selectedCity
+                selectedCountry.isNotBlank() -> selectedCountry
+                else -> ""
+            }
+
+            if (destination.isNotBlank()) {
+                navController.navigate(
+                    "groupChat/group_${destination.replace(" ", "_").lowercase()}"
+                )
+            } else {
+                Toast.makeText(context, "Please select at least Country", Toast.LENGTH_SHORT).show()
+            }
+        }) {
+            Text("Save")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DropdownField(
+    label: String,
+    options: List<String>,
+    selected: String,
+    onSelectionChange: (String) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    enabled: Boolean = true
+) {
+    val placeholder = "Not selected"
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (enabled) onExpandedChange(!expanded) }
+    ) {
+        OutlinedTextField(
+            readOnly = true,
+            value = selected.ifEmpty { placeholder },
+            onValueChange = {},
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            enabled = enabled
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onSelectionChange(option)
+                        onExpandedChange(false)
+                    }
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun DMUserCard(

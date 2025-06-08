@@ -186,7 +186,7 @@ fun TopNavBar(
 
     TopAppBar(
         title = {
-            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
+//            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
         },
         navigationIcon = {
             Box(

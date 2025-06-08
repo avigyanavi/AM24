@@ -14,8 +14,8 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.1.2"
+        versionCode = 6
+        versionName = "0.1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -106,13 +106,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-text:1.8.0")
     implementation("androidx.media3:media3-transformer:1.6.1")
 
-
-
     //geofire
     implementation(libs.firebase.geofire.android) // Check for the latest version
     implementation(libs.play.services.location)
-
-
 
     // For Jetpack Compose Navigation
     implementation(libs.androidx.navigation.compose)
