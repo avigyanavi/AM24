@@ -42,6 +42,12 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     var voiceNoteUrl: String? = null
     var voiceNoteFilePath: String? = null
 
+    private val _isPremium = MutableStateFlow(false)
+    val isPremium: StateFlow<Boolean> = _isPremium
+
+    private val _isPlus = MutableStateFlow(false)
+    val isPlus: StateFlow<Boolean> = _isPlus
+
     // Add this function to fetch and store the current user's profile
     fun fetchCurrentUserProfile() {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
@@ -68,8 +74,41 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // ─── NEW: listen for isPremium in /users/{uid}/isPremium ─────────────────
+    private fun watchPremiumFlag() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        usersRef.child(uid)
+            .child("isPremium")
+            .addValueEventListener(object: ValueEventListener {
+                override fun onDataChange(snap: DataSnapshot) {
+                    _isPremium.value = snap.getValue(Boolean::class.java) == true
+                }
+                override fun onCancelled(err: DatabaseError) {
+                    Log.e(TAG, "watchPremiumFlag cancelled: ${err.message}")
+                }
+            })
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ─── NEW: listen for isPlus in /users/{uid}/isPlus ──────────────────────
+    private fun watchPlusFlag() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        usersRef.child(uid)
+            .child("isPlus")
+            .addValueEventListener(object: ValueEventListener {
+                override fun onDataChange(snap: DataSnapshot) {
+                    _isPlus.value = snap.getValue(Boolean::class.java) == true
+                }
+                override fun onCancelled(err: DatabaseError) {
+                    Log.e(TAG, "watchPlusFlag cancelled: ${err.message}")
+                }
+            })
+    }
+
     init {
         watchAdminFlag()    // ← start listening immediately
+        watchPremiumFlag()    // NEW
+        watchPlusFlag()       // NEW
     }
 
     fun fetchProfilesByCity(cityName: String, onResult: (List<Profile>) -> Unit) {

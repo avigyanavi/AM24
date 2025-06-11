@@ -56,7 +56,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
-import com.am24.am24.util.CachedFullscreenVideoPlayer
+import com.am24.am24.ComposeNativeAd
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.placeholder
 import com.google.accompanist.placeholder.material.shimmer
@@ -70,6 +70,7 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 import androidx.core.net.toUri
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -194,6 +195,10 @@ fun HomeScreenContent(
     onSortOptionChanged: (String) -> Unit,
     listState: LazyListState // Added listState parameter
 ) {
+    val profileViewModel: ProfileViewModel = viewModel()
+    val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
+    val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
+    val showAds = !isPremium && !isPlus
     val focusManager = LocalFocusManager.current
     val feedTabs = listOf("everyone", "matches")
     var selectedTab by remember {                   // keeps UI and VM in sync
@@ -280,7 +285,8 @@ fun HomeScreenContent(
                     onSearchQueryChanged(tag)
                 },
                 savedPostIds = savedIds,    // ← NEW
-                listState = listState // Pass listState to FeedSection
+                listState = listState, // Pass listState to FeedSection
+                showAds =  showAds
             )
         }
     }
@@ -299,7 +305,8 @@ fun FeedSection(
     userProfiles: Map<String, Profile>,
     onTagClick: (String) -> Unit,
     savedPostIds: Set<String>,           // ← NEW
-    listState: LazyListState // Added listState parameter
+    listState: LazyListState, // Added listState parameter
+    showAds: Boolean
 ) {
     val context = LocalContext.current
 
@@ -347,7 +354,7 @@ fun FeedSection(
                 }
             }
 
-            items(posts) { post ->
+            itemsIndexed(posts) { index, post ->
                 val profile = userProfiles[post.userId]
                 val isSaved = savedPostIds.contains(post.postId)
                 FeedItem(
@@ -465,6 +472,17 @@ fun FeedSection(
                     postViewModel = postViewModel,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                // ─── Native ad every 5 items ───────────────────
+                // ─── debug log + native ad every 5 items ─────────────────
+                if (showAds && (index + 1) % 5 == 0) {
+                    Log.d("HomeScreen", ">>> inserting native ad at index: $index")
+                    ComposeNativeAd(
+                        adUnitId  = "ca-app-pub-5094389629300846/4057317007",
+                        modifier  = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    )
+                }
             }
 
             // No more posts indicator

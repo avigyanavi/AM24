@@ -66,15 +66,22 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val priceTier = rememberSaveable { mutableStateOf(priceAll) }
 
     val profileViewModel: ProfileViewModel = viewModel()
+    // ─── collect both flags ───────────────────────────
+    val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
+    val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
+    // ───────────────────────────────────────────────────
 
     // 🔸 NEW – one manager for the whole screen
     val context = LocalContext.current as Activity
-    val interstitial = remember {
-        InterstitialAdManager(
-            context,
-            "ca-app-pub-5094389629300846/6822241797"   // <-- your ID
-        )
+    val interstitial = remember(isPremium, isPlus) {
+        if (!isPremium && !isPlus) {
+            InterstitialAdManager(
+                context,
+                "ca-app-pub-5094389629300846/6822241797"
+            )
+        } else null
     }
+
     Scaffold(
         topBar = {
             if (showGlobalBars) {
@@ -91,7 +98,13 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         },
         bottomBar = {
             if (showGlobalBars) {
-                BottomNavigationBar(navController = navController, items = items, interstitial = interstitial)
+                BottomNavigationBar(
+                    navController = navController,
+                    items         = items,
+                    interstitial  = interstitial,
+                    isPremium     = isPremium,
+                    isPlus        = isPlus
+                )
             }
         }
     ) { innerPadding ->
@@ -497,7 +510,13 @@ fun TopNavBar(
 data class BottomNavItem(val label: String, val icon: ImageVector, val route: String)
 
 @Composable
-fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>, interstitial: InterstitialAdManager) {
+fun BottomNavigationBar(
+    navController: NavController,
+    items: List<BottomNavItem>,
+    interstitial: InterstitialAdManager?,  // now nullable
+    isPremium: Boolean,
+    isPlus: Boolean
+) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -536,10 +555,19 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
             NavigationBarItem(
                 selected = selected,
                 onClick = {
-                    interstitial.show {
+                    if (isPremium || isPlus) {
+                        // Plus or Premium → go straight
                         navController.navigate(item.route) {
                             launchSingleTop = true
-                            restoreState = true
+                            restoreState    = true
+                            }
+                    } else {
+                    // Regular → show ad then navigate
+                    interstitial?.show {
+                        navController.navigate(item.route) {
+                            launchSingleTop = true
+                            restoreState    = true
+                            }
                         }
                     }
                 },

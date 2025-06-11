@@ -167,7 +167,7 @@ fun NotificationCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color(0xFF00bf63),
+                    tint = Color.Yellow,
                     modifier = Modifier.size(40.dp)
                 )
 
