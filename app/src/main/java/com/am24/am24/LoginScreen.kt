@@ -41,8 +41,6 @@ import java.util.Locale
 class LoginActivity : ComponentActivity() {
     private val GOOGLE_ONLY = "__GOOGLE_ONLY__"
 
-
-
     private lateinit var auth: FirebaseAuth
     private val isLoading = mutableStateOf(false)
     private val loginProgress = mutableStateOf(0f)

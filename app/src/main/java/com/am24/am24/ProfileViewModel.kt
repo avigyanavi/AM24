@@ -68,6 +68,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    init {
+        watchAdminFlag()    // ← start listening immediately
+    }
+
     fun fetchProfilesByCity(cityName: String, onResult: (List<Profile>) -> Unit) {
         val dbRef = FirebaseRefs.db.getReference("profiles")
         dbRef.orderByChild("city").equalTo(cityName)
@@ -287,6 +291,53 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private val _isAdmin = MutableStateFlow(false)
+    val isAdmin: StateFlow<Boolean> = _isAdmin
+
+    fun watchAdminFlag() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        FirebaseRefs.db
+            .getReference("users")
+            .child(uid)
+            .child("isAdmin")
+            .addValueEventListener(object: ValueEventListener {
+                override fun onDataChange(snap: DataSnapshot) {
+                    _isAdmin.value = snap.getValue(Boolean::class.java) == true
+                }
+                override fun onCancelled(e: DatabaseError) { /* log error */ }
+            })
+    }
+
+    fun uploadGovtSelfie(
+        uid: String,
+        uri: Uri,
+        onComplete: (success: Boolean, message: String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1) upload selfie image
+                val storageRef = FirebaseStorage.getInstance()
+                    .reference
+                    .child("verifications/$uid/selfie.jpg")
+                storageRef.putFile(uri).await()
+
+                // 2) get download URL
+                val downloadUrl = storageRef.downloadUrl.await().toString()
+
+                // 3) write selfieUrl into the same verifications/{uid} node
+                val verifRef = FirebaseRefs.db
+                    .getReference("verifications")
+                    .child(uid)
+                verifRef.child("selfieUrl").setValue(downloadUrl).await()
+
+                // 4) callback
+                onComplete(true, "Selfie submitted, review in 48 h")
+            } catch (e: Exception) {
+                onComplete(false, "Failed to submit selfie: ${e.message}")
+            }
+        }
+    }
+
     fun uploadVoiceToRealtime(storageRef: StorageReference, uri: Uri, onUploaded: (downloadUrl: String) -> Unit
     ) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -474,32 +525,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun watchVerificationStatus(uid: String, onUpdate: (status: String, photoUrl: String?) -> Unit) {
-        val verifRef = FirebaseRefs.db
-            .getReference("verifications")
-            .child(uid)
-        verifRef.addValueEventListener(object: ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                val status   = snap.child("status").getValue(String::class.java)
-                val photoUrl = snap.child("photoUrl").getValue(String::class.java)
-                if (status != null) onUpdate(status, photoUrl)
-            }
-            override fun onCancelled(err: DatabaseError) { /*…*/ }
-        })
-    }
-
-    fun deleteVerification(uid: String, onDone: ()->Unit) {
-        val storageRef = FirebaseStorage.getInstance()
-            .reference.child("verifications/$uid/id.jpg")
-        storageRef.delete().addOnCompleteListener {
-            FirebaseRefs.db
-                .getReference("verifications")
-                .child(uid)
-                .removeValue()
-                .addOnCompleteListener { onDone() }
-        }
-    }
-
     /**
      * Marks the user’s profile as verified by setting
      * `users/{uid}/isConsultantVerified = true`, and updates local state.
@@ -548,47 +573,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 Log.e(TAG, "Verification listener failed: ${err.message}")
             }
         })
-    }
-
-    /** A match you follow just published a regular post */
-    fun sendMatchPostNotification(
-        posterId: String,
-        receiverId: String,
-        postId: String,
-        onSuccess: () -> Unit = {},
-        onFailure: (String) -> Unit = {}
-    ) = viewModelScope.launch {
-        try {
-            pushNotification(
-                receiverId = receiverId,
-                type       = "match_post",
-                senderId   = posterId,
-                message    = "senderUsername added a new post 📸",
-                extra      = mapOf("postId" to postId)
-            )
-            onSuccess()
-        } catch (e: Exception) { onFailure(e.message ?: "post-notification failed") }
-    }
-
-    /** A match checked-in somewhere – include venue in the message */
-    fun sendMatchCheckInNotification(
-        posterId: String,
-        receiverId: String,
-        checkInId: String,
-        placeName: String,
-        onSuccess: () -> Unit = {},
-        onFailure: (String) -> Unit = {}
-    ) = viewModelScope.launch {
-        try {
-            pushNotification(
-                receiverId = receiverId,
-                type       = "match_checkin",
-                senderId   = posterId,
-                message    = "senderUsername checked in at $placeName 📍",
-                extra      = mapOf("checkInId" to checkInId)
-            )
-            onSuccess()
-        } catch (e: Exception) { onFailure(e.message ?: "check-in notification failed") }
     }
 
     /** Notify receiver that someone sent a compliment */

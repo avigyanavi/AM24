@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -110,17 +111,21 @@ fun SettingsScreen(navController: NavController) {
     var isMatrimony by remember { mutableStateOf(false) }
     var blocked by remember { mutableStateOf(listOf<String>()) }
 
+    // ── NEW STATE ──
+    var country by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var locality by remember { mutableStateOf("") }
+
+    var showLocationDialog by remember { mutableStateOf(false) }
+
     /* load once */
     LaunchedEffect(Unit) {
         val s = userRef.get().await()
-        val statusSnap = s.child("premiumStatus")
-        isPremium   = statusSnap.child("isPremium").getValue(Boolean::class.java) ?: false
-        premiumTier = when {
-            statusSnap.child("tier").exists() -> statusSnap.child("tier").getValue(String::class.java) ?: "Free"
-            isPremium -> "Premium"
-            else -> "Free"
-        }
-        expiry      = statusSnap.child("expiryDate").getValue(String::class.java) ?: "N/A"
+// pull the flat `isPremium` boolean and optional expiryDate
+        isPremium   = s.child("isPremium").getValue(Boolean::class.java) ?: false
+        premiumTier = if (isPremium) "Premium" else "Free"
+        expiry      = s.child("expiryDate").getValue(String::class.java) ?: "N/A"
+
 
         boosts      = s.child("availableBoosts").getValue(Int::class.java) ?: 0
         swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
@@ -130,6 +135,11 @@ fun SettingsScreen(navController: NavController) {
         preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: "en"
         allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: true
         isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
+
+        // ── load the new fields too ──
+        country  = s.child("country").getValue(String::class.java) ?: ""
+        city     = s.child("city").getValue(String::class.java) ?: ""
+        locality = s.child("hometown").getValue(String::class.java) ?: ""
 
         blocksRef.get().addOnSuccessListener { snap ->
             blocked = snap.children.mapNotNull { it.key }
@@ -144,6 +154,82 @@ fun SettingsScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item {
+                if (isPremium) {
+                    SettingsSection {
+                        SettingsRow(
+                            icon = { Icon(Icons.Default.Public, null, tint = Color(0xFFFF6F00)) },
+                            title = "Change Location",
+                            trailingText = listOf(country, city, locality)
+                                .filter { it.isNotBlank() }
+                                .joinToString(", ")
+                                .ifBlank { "Not set" }
+                        ) {
+                            showLocationDialog = true
+                        }
+                        var ctx = LocalContext.current
+                        if (showLocationDialog) {
+                            // pull in your arrays; you can use stringArrayResource or any provider
+                            val countryOptions = stringArrayResource(R.array.country_names).toList()
+                            val cityOptions    = stringArrayResource(R.array.city_names).toList()
+                            val localityResId  = remember(city) {
+                                ctx.resources.getIdentifier(
+                                    "localities_${city.replace(" ", "_").lowercase()}",
+                                    "array",
+                                    ctx.packageName
+                                )
+                            }
+                            val localityOptions = if (localityResId != 0)
+                                ctx.resources.getStringArray(localityResId).toList()
+                            else emptyList()
+
+                            AlertDialog(
+                                onDismissRequest = { showLocationDialog = false },
+                                title = { Text("Select your Location") },
+                                text = {
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        SearchableDropdown(
+                                            label = "Country",
+                                            options = countryOptions,
+                                            selected = country,
+                                            onSelectedChange = { country = it }
+                                        )
+                                        SearchableDropdown(
+                                            label = "City",
+                                            options = cityOptions,
+                                            selected = city,
+                                            onSelectedChange = { city = it }
+                                        )
+                                        SearchableDropdown(
+                                            label = "Locality",
+                                            options = localityOptions,
+                                            selected = locality,
+                                            onSelectedChange = { locality = it }
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        // write all three at once
+                                        scope.launch {
+                                            userRef.child("country").setValue(country)
+                                            userRef.child("city").setValue(city)
+                                            userRef.child("hometown").setValue(locality)
+                                        }
+                                        showLocationDialog = false
+                                    }) { Text("Save") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showLocationDialog = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             /*──────────────── Premium / Subscription card ─────────────*/
             item {
                 SettingsSection {
@@ -257,6 +343,17 @@ fun SettingsScreen(navController: NavController) {
                 }
             }
 
+            /* ───── Policies & Support ───── */
+            item {
+                SettingsSection {
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.Description, null, tint = Color(0xFFFF6F00)) },
+                        title = "Policies & Support",
+                        onClick = { navController.navigate("policies") }
+                    )
+                }
+            }
+
             /*──────────────── footer ─────────────────────────────────*/
             item {
                 Spacer(Modifier.height(16.dp))
@@ -275,6 +372,56 @@ fun SettingsScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchableDropdown(
+    label: String,
+    options: List<String>,
+    selected: String,
+    onSelectedChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var query    by remember { mutableStateOf("") }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = if (expanded) query else selected,
+            onValueChange = { query = it },
+            readOnly = !expanded,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+                query = ""
+            }
+        ) {
+            // filter your options by query (case-insensitive)
+            options
+                .filter { it.contains(query, ignoreCase = true) }
+                .forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onSelectedChange(option)
+                            query = ""
+                            expanded = false
+                        }
+                    )
+                }
         }
     }
 }
@@ -681,3 +828,4 @@ suspend fun updateAccountSettingsNoEmail(
     usernames.child(newUsername).setValue(userId).await()
     db.child("users").child(userId).child("username").setValue(newUsername).await()
 }
+

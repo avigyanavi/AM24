@@ -304,7 +304,7 @@ fun DMScreenContent(navController: NavController) {
                             Toast
                                 .makeText(
                                     cts,
-                                    "Upgrade to Premium to change location",
+                                    "Upgrade to Plus to change location",
                                     Toast.LENGTH_SHORT
                                 )
                                 .show()

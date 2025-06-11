@@ -151,26 +151,6 @@ fun CreatePostScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 3) Video Post – locked for non-premium/non-plus
-                PostTypeButton(
-                    icon = Icons.Default.Videocam,
-                    label = "Video Post",
-                    enabled = isPremium || isPlus,
-                    onClick = {
-                        if (isPremium || isPlus) {
-                            navController.navigate("create_post/video")
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Upgrade to Plus to create Video Posts",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 // 4) Voice Post – locked for non-premium/non-plus
                 PostTypeButton(
                     icon = Icons.Default.Mic,
@@ -183,6 +163,26 @@ fun CreatePostScreen(
                             Toast.makeText(
                                 context,
                                 "Upgrade to Plus to create Voice Posts",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 3) Video Post – locked for non-premium/non-plus
+                PostTypeButton(
+                    icon = Icons.Default.Videocam,
+                    label = "Video Post",
+                    enabled = isPremium,
+                    onClick = {
+                        if (isPremium) {
+                            navController.navigate("create_post/video")
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Upgrade to Premium to create Video Posts",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }

@@ -18,6 +18,9 @@ admin.initializeApp({
   databaseURL: "https://kupidxdefault.asia-southeast1.firebasedatabase.app"
 });
 
+// ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
+const RAZORPAY_SECRET = '27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01';
+
 /* ───────────────────────────── Razorpay callable ───────────────────────────── */
 
 const Razorpay = require("razorpay");
@@ -350,7 +353,7 @@ exports.onPostReport = functions
 
 /** Plan you expect the user to subscribe to */
 const EXPECTED_PLAN = "P-8EV86494EK6312239NBCUGVI";
-
+const crypto = require('crypto');
 /**
  * Callable ⇢ verifyPaypalSubscription({ subscriptionId: "I-XXXX" }) → { valid:Boolean, status:String }
  */
@@ -401,3 +404,49 @@ exports.verifyPaypalSubscription = functions.https.onCall(async (data, context) 
 
   return { valid, status, planId };   // your Android code can check .valid === true
 });
+
+exports.razorpayWebhook = functions
+  .region('asia-south1')
+  .https.onRequest(async (req, res) => {
+    if (req.method !== 'POST') {
+      return res.status(405).send('Method Not Allowed');
+    }
+
+    // 1) Verify HMAC
+    const signature = req.headers['x-razorpay-signature'] || '';
+    const bodyRaw   = JSON.stringify(req.body);
+    const expected  = crypto
+      .createHmac('sha256', RAZORPAY_SECRET)
+      .update(bodyRaw)
+      .digest('hex');
+    if (signature !== expected) {
+      console.error('❌ Invalid signature:', { expected, received: signature });
+      return res.status(400).send('Invalid signature');
+    }
+
+    // 2) Dispatch
+    const event   = req.body.event;
+    const payment = req.body.payload?.payment?.entity;
+    if (payment) {
+      const uid = payment.notes?.uid;
+      if (event === 'payment.captured' && uid) {
+        // 👉 Write `isPremium` at users/{uid}/isPremium
+        const expiry = new Date(Date.now() + 365*24*60*60*1000).toISOString();
+        await admin.database()
+          .ref(`users/${uid}/isPremium`)
+          .set(true);
+        // Optional: store expiry separately if you still want it
+        await admin.database()
+          .ref(`users/${uid}/expiryDate`)
+          .set(expiry);
+
+        console.log(`✅ Marked ${uid} premium until ${expiry}`);
+      }
+      else if (event === 'payment.failed' && uid) {
+        console.warn(`❌ Payment.failed for ${uid}`);
+      }
+    }
+
+    // 3) Ack
+    res.json({ status: 'ok' });
+  });

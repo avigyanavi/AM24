@@ -193,7 +193,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     val filtersLoaded: StateFlow<Boolean> get() = _filtersLoaded
 
     // 2) quota helpers
-    private val DAILY_FREE_QUOTA = 5
+    private val DAILY_FREE_QUOTA = 7
     //
     // 3) listen for changes under users/{uid}/savedPosts → true
     //

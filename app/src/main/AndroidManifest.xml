@@ -48,6 +48,11 @@
             android:name="com.facebook.sdk.ClientToken"
             android:value="c2deeaa408a6cc080a2f914008805bcd" />
 
+        <!-- 🔸 MUST be here, not inside an <activity> -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-5094389629300846~6971017275"/>
+
         <!-- deep-link catcher -->
         <!-- deep-link catcher -->
         <activity
@@ -129,6 +134,16 @@
         <activity
             android:name=".KupidXAppActivity"
             android:exported="true">
+            <!-- Razorpay callback deep-link -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <!-- Matches: kupidx://payment_callback?razorpay_payment_link_status=paid -->
+                <data
+                    android:scheme="kupidx"
+                    android:host="payment_callback"/>
+            </intent-filter>
         </activity>
 
     </application>

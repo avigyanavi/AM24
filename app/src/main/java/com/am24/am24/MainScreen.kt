@@ -3,6 +3,7 @@
 package com.am24.am24
 
 import DatingViewModel
+import android.app.Activity
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
@@ -66,6 +67,14 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
 
     val profileViewModel: ProfileViewModel = viewModel()
 
+    // 🔸 NEW – one manager for the whole screen
+    val context = LocalContext.current as Activity
+    val interstitial = remember {
+        InterstitialAdManager(
+            context,
+            "ca-app-pub-5094389629300846/6822241797"   // <-- your ID
+        )
+    }
     Scaffold(
         topBar = {
             if (showGlobalBars) {
@@ -82,7 +91,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         },
         bottomBar = {
             if (showGlobalBars) {
-                BottomNavigationBar(navController = navController, items = items)
+                BottomNavigationBar(navController = navController, items = items, interstitial = interstitial)
             }
         }
     ) { innerPadding ->
@@ -183,6 +192,7 @@ fun TopNavBar(
     val isOnHome = currentDestination
         ?.hierarchy
         ?.any { it.route == "home" } == true
+    val isAdmin by profileViewModel.isAdmin.collectAsState()
 
     TopAppBar(
         title = {
@@ -200,6 +210,11 @@ fun TopNavBar(
             }
         },
         actions = {
+            if (isAdmin) {
+                IconButton(onClick = { navController.navigate("verifications_review") }) {
+                    Icon(Icons.Default.VerifiedUser, contentDescription = "Review IDs")
+                }
+            }
             // Report Button
             if (currentRoute == "dating") {
                 TextButton(
@@ -482,7 +497,7 @@ fun TopNavBar(
 data class BottomNavItem(val label: String, val icon: ImageVector, val route: String)
 
 @Composable
-fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>) {
+fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>, interstitial: InterstitialAdManager) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -521,9 +536,11 @@ fun BottomNavigationBar(navController: NavController, items: List<BottomNavItem>
             NavigationBarItem(
                 selected = selected,
                 onClick = {
-                    navController.navigate(item.route) {
-                        launchSingleTop = true
-                        restoreState = true
+                    interstitial.show {
+                        navController.navigate(item.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 },
                 icon = {

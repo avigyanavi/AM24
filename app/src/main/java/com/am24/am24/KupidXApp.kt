@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.android.gms.ads.MobileAds
 import com.google.firebase.storage.FirebaseStorage
 import java.util.Locale
 
@@ -66,6 +67,7 @@ class KupidXAppActivity : ComponentActivity(), PaymentResultListener {
     @RequiresApi(Build.VERSION_CODES.O_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MobileAds.initialize(this)
         FirebaseStorage.getInstance("gs://am-twentyfour.com")
 
         auth = FirebaseAuth.getInstance()

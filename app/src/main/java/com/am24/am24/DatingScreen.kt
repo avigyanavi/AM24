@@ -677,15 +677,6 @@ fun WaterIconButton(
             )
         }
         Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
-        Text(
-            quota.toString(),
-            color = Color.White,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = 2.dp, y = 2.dp)
-        )
     }
 }
 

@@ -14,8 +14,8 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.1.3"
+        versionCode = 9
+        versionName = "0.1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.analytics)
+    implementation("com.google.android.gms:play-services-ads:24.3.0")
     implementation("com.squareup.moshi:moshi:1.15.0")          // tiny JSON helper
     implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
     implementation("com.google.android.gms:play-services-auth:21.3.0")

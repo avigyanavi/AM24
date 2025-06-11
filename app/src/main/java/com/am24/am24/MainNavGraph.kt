@@ -6,7 +6,9 @@ package com.am24.am24
 import DatingViewModel
 import EditPicAndVoiceBioScreen
 import android.app.Application
+import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +35,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.am24.am24.ui.purchase.OneTimePurchaseScreen
 import com.am24.am24.ui.purchase.PurchaseType
 import com.firebase.geofire.GeoFire
@@ -146,11 +149,49 @@ fun MainNavGraph(
         }
         composable("paywall")    { SubscriptionScreen(navController) }
         composable("paypal_web") { PayPalWebView(navController) }
+
+        composable("razorpay_web") {
+            // rebuild your URL with redirect & callback
+            val callback = Uri.encode("kupidx://payment_callback")
+            val link = "https://rzp.io/rzp/Qkm9oLK?redirect=true&callback_url=$callback"
+            RazorpayWebView(navController, razorpayUrl = link)
+        }
+        composable(
+            route = "payment_callback?status={status}",
+            arguments = listOf(navArgument("status") {
+                type = NavType.StringType
+            }),
+            deepLinks = listOf(navDeepLink {
+                uriPattern = "kupidx://payment_callback?razorpay_payment_link_status={status}"
+            })
+        ) { backStack ->
+            val status = backStack.arguments?.getString("status") ?: "unknown"
+            PaymentResultScreen(
+                status = status,
+                navController = navController
+                // you can also pass onPaymentSuccess = { /* update Firestore, etc */ }
+            )
+        }
+        composable("policies") {
+            PoliciesScreen(navController)
+        }
         composable("editPicAndVoiceBio") {
             EditPicAndVoiceBioScreen(navController, profileViewModel)
         }
         composable("settings") {
             SettingsScreen(navController = navController)
+        }
+        composable("verifications_review") { backStackEntry ->
+            val isAdmin by profileViewModel.isAdmin.collectAsState()
+            if (isAdmin) {
+                VerificationReviewScreen()
+            } else {
+                // redirect back or show error
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                    Toast.makeText(context, "Unauthorized", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         // new: compose a check-in feed screen, keyed by lat & lng
         composable(
