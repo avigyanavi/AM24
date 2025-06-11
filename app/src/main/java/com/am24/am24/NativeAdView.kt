@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -73,6 +74,47 @@ fun ComposeNativeAd(
             modifier = modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
+        )
+    }
+}
+
+@Composable
+fun ComposeDatingNativeAd(
+    adUnitId: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+
+    LaunchedEffect(adUnitId) {
+        AdLoader.Builder(context, adUnitId)
+            .forNativeAd { ad ->
+                nativeAd?.destroy()
+                nativeAd = ad
+            }
+            .build()
+            .loadAd(AdRequest.Builder().build())
+    }
+
+    if (nativeAd == null) {
+        // smaller placeholder
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .background(Color(0xFF121212)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFFFF6F00), strokeWidth = 2.dp)
+        }
+    } else {
+        // once loaded, slot in the existing NativeAdCard
+        NativeAdCard(
+            ad = nativeAd!!,
+            modifier = modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
 }

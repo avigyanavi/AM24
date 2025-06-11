@@ -186,6 +186,9 @@ fun DatingScreen(
     var remainingSwipes   by remember { mutableStateOf(0) }
     var swipesLoaded      by remember { mutableStateOf(false) }
     var showBoostFlash    by rememberSaveable { mutableStateOf(false) }
+    val isPremium by profileViewModel.isPremium.collectAsState(false)
+    val isPlus    by profileViewModel.isPlus   .collectAsState(false)
+    val showAds = !isPremium && !isPlus
 
     // constants
     val BOOST_DURATION = 6 * 60 * 60 * 1000L
@@ -236,6 +239,7 @@ fun DatingScreen(
     //   BUILD DISPLAY LIST  (must come *before* we use it)
     // ─────────────────────────────────────────────────────────────────
     val base = filteredProfiles
+        .filter { it.userId.isNotBlank() }          //  ← NEW
         .filter { it.userId !in excludedUserIds }
         // hide private profiles, unless *they* liked you:
         .filter { prof ->
@@ -485,7 +489,9 @@ fun DatingScreen(
                         onSwipeLeft      = {
                             if (remainingSwipes > 0) remainingSwipes--
                             currentIndex++
-                        }
+                        },
+                        showAds  = showAds,
+                        adUnitId = "ca-app-pub-5094389629300846/4057317007"
                     )
                 }
                 // ── if they’ve exhausted swipes, show your overlay (below) ──
@@ -1588,29 +1594,33 @@ fun DatingScreenContent(
     currentIndex: Int,                 // 🔹  index is now owned by parent
     boostedUsers: List<Profile>,
     onSwipeRight: () -> Unit,
-    onSwipeLeft: () -> Unit
+    onSwipeLeft: () -> Unit,
+    showAds: Boolean,            // ← pass this in from DatingScreen()
+    adUnitId: String
 ) {
     if (profiles.isEmpty() || currentIndex >= profiles.size) {
         NoMoreProfilesScreen()
         return
     }
 
-    val currentUserId      = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
-    val currentProfile     = profiles[currentIndex]
-    val isBoostedProfile   = boostedUsers.any { it.userId == currentProfile.userId }
+    val currentProfile = profiles[currentIndex]
+    val isBoostedProfile = boostedUsers.any { it.userId == currentProfile.userId }
     val isVerified = verificationStatuses[currentProfile.userId] == "accepted"
 
     Log.d("VERIF", "isVerified = $isVerified")
     /* distance + AI check – unchanged */
-    var userDistance  by remember { mutableStateOf<Float?>(null) }
+    var userDistance by remember { mutableStateOf<Float?>(null) }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
     // in DatingProfileCard, before Card:
-    val allPosts       by postViewModel.posts.collectAsState()
-    val myPosts         = allPosts.filter { it.userId == currentProfile.userId }
+    val allPosts by postViewModel.posts.collectAsState()
+    val myPosts = allPosts.filter { it.userId == currentProfile.userId }
     val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
 
     LaunchedEffect(currentProfile.userId) {
+        if (currentProfile.userId.isBlank()) return@LaunchedEffect   // <-- guard
+        Log.d("DS-FLOW", "calculateDistance: from $currentUserId to ${currentProfile.userId}")
         userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
         val ref = FirebaseRefs.db
             .getReference("aiMatchCheck/$currentUserId/${currentProfile.userId}")
@@ -1618,27 +1628,39 @@ fun DatingScreenContent(
         aiMatchResult = snap.getValue(AiMatchCheckResult::class.java)
     }
 
-    userDistance?.let { distance ->
+    Box(Modifier.fillMaxSize()) {
+        // 1️⃣ Insert your ad *underneath* the card
+        if (showAds && currentIndex > 0 && currentIndex % 3 == 0) {
+            ComposeDatingNativeAd(
+                adUnitId = adUnitId,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(vertical = 16.dp)
+            )
+        }
+        userDistance?.let { distance ->
         DatingProfileCard(
-            profile        = currentProfile,
-            isVerified    = isVerified,
-            isBoosted      = isBoostedProfile,
-            aiMatchResult  = aiMatchResult,
-            sortedByUpvotes  = sortedByUpvotes,      // ← pass it i
-            userDistance   = distance,
-            navController  = navController,
-            postViewModel  = postViewModel,
+            profile = currentProfile,
+            isVerified = isVerified,
+            isBoosted = isBoostedProfile,
+            aiMatchResult = aiMatchResult,
+            sortedByUpvotes = sortedByUpvotes,      // ← pass it i
+            userDistance = distance,
+            navController = navController,
+            postViewModel = postViewModel,
             currentProfile = currentUserProfile,
-            onSwipeRight   = {
+            onSwipeRight = {
                 onSwipeRight()
                 handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
             },
-            onSwipeLeft    = {
+            onSwipeLeft = {
                 onSwipeLeft()
                 handleSwipeLeft(currentUserId, currentProfile.userId)
             }
         )
     }
+}
 }
 
 // Updated DatingProfileCard
