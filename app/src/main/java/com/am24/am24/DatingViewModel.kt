@@ -307,11 +307,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         maxDistanceKm: Int
     ): List<Profile> = withContext(Dispatchers.IO) {
 
+
         val payload = hashMapOf(
             "uid"         to me,
             "maxDistance" to maxDistanceKm,
             "minRows"     to DESIRED_MIN_ROWS
         )
+        Log.d("VM", "➡️  Calling getNearbyProfiles with $payload")
 
         // 1️⃣  get the callable reference …
         val callable: HttpsCallableReference =

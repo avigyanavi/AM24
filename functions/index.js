@@ -154,25 +154,40 @@ exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onCall(async (data, context) => {
-    const {
-      uid,
-      minRows = 50
-    } = data || {};
 
+    /* ───────── arguments ───────── */
+    const { uid, minRows = 50 } = data || {};
+    console.log('[getNearbyProfiles] called by uid:', uid ?? '<none>');
     if (!uid)
-      throw new functions.https.HttpsError('invalid-argument', 'uid is required');
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'uid is required'
+      );
 
+    /* ───────── helpers ─────────── */
     const db = admin.database();
-    const locSnap = await db.ref(`geoFireLocations/${uid}/l`).get();
-    const latLng = locSnap.val();  // [lat, lng]
 
+    /* ───────── 1. where am I? ───── */
+    const locSnap = await db.ref(`geoFireLocations/${uid}/l`).get();
+    const latLng  = locSnap.val();            // [lat, lng]
+
+    /* ──────── 2. if caller has no location, just grab N users … ─────── */
     if (!Array.isArray(latLng) || latLng.length < 2) {
       const all = await db.ref('users').get();
       const list = [];
-      all.forEach(ss => { if (ss.key !== uid) list.push(ss.val()); });
+      all.forEach(ss => {
+        if (ss.key !== uid) {
+          const p = ss.val();
+          if (p) {
+            p.userId = ss.key;                //  ← NEW (uid)
+            list.push(p);
+          }
+        }
+      });
       return { profiles: list.slice(0, minRows) };
     }
 
+    /* ───────── 3. geo-sweep as you had it ───────── */
     const center = { lat: latLng[0], lng: latLng[1] };
     const collectedUids = new Set();
 
@@ -182,14 +197,12 @@ exports.getNearbyProfiles = functions
         all.forEach(s => collectedUids.add(s.key));
         return;
       }
-
       const bounds = geohashQueryBounds([center.lat, center.lng], radiusKm * 1000);
-      const tasks = bounds.map(b =>
+      const tasks  = bounds.map(b =>
         db.ref('geoFireLocations')
           .orderByChild('g').startAt(b[0]).endAt(b[1]).get()
       );
       const snaps = await Promise.all(tasks);
-
       snaps.forEach(snap => {
         snap.forEach(child => {
           const [lat, lng] = child.child('l').val() || [];
@@ -200,26 +213,34 @@ exports.getNearbyProfiles = functions
       });
     };
 
-    /* ✅ TEMP: override radius to 15000 km */
+    /* force-wide sweep (your TEMP line) */
     const firstRadius = 15000;
     console.log(`[getNearbyProfiles] TEMP radius forced to ${firstRadius}km`);
     await sweep(firstRadius);
 
     if (collectedUids.size < minRows) {
-      console.log(`[getNearbyProfiles] Fewer than ${minRows} users found, sweeping globally...`);
+      console.log(`[getNearbyProfiles] Fewer than ${minRows} users found, sweeping globally…`);
       await sweep(Infinity);
     }
 
-    collectedUids.delete(uid); // drop self
+    collectedUids.delete(uid);                          // drop self
     const uids = Array.from(collectedUids).slice(0, minRows);
-
     console.log('[getNearbyProfiles] Final UID list:', uids);
 
+    /* ───────── 4. fetch user docs & add uid field ───────── */
     const docs = await Promise.all(
       uids.map(id => db.ref(`users/${id}`).get())
     );
 
-    const profiles = docs.map(s => s.val()).filter(Boolean);
+    const profiles = docs
+      .map(snap => {
+        const p = snap.val();
+        if (!p) return null;
+        p.userId = snap.key;                            //  ← NEW (uid)
+        return p;
+      })
+      .filter(Boolean);
+
     console.log('[getNearbyProfiles] returning', profiles.length, 'profiles');
     return { profiles };
   });

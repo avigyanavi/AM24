@@ -601,7 +601,7 @@ fun VerificationBadge(
             .size(32.dp)
             .background(
                 if (verified) Color(0xFF00C853)          // green when verified
-                else Color.Gray.copy(alpha = .55f),       // grey when not
+                else Color.Yellow.copy(alpha = .55f),       // grey when not
                 shape = CircleShape
             )
     ) {
@@ -821,7 +821,7 @@ fun PhotoCarouselWithOverlay(
                         Text(
                             text = if (age > 0) "${profile.username}, $age" else profile.username,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
+                            fontSize = 18.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .horizontalScroll(scroll)
@@ -832,7 +832,7 @@ fun PhotoCarouselWithOverlay(
                     Button(
                         onClick = onPostsClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
-                        modifier = Modifier.height(34.dp)
+                        modifier = Modifier.height(30.dp)
                     ) {
                         Text(text = stringResource(R.string.posts_button), color = Color.White, fontSize = 10.sp)
                     }
@@ -876,9 +876,9 @@ fun PhotoCarouselWithOverlay(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
                 .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
-                .size(32.dp)
+                .size(28.dp)
         ) {
-            Icon(Icons.Default.Edit, stringResource(R.string.edit_profile_cd), tint = Color.White)
+            Icon(Icons.Default.Edit, stringResource(R.string.edit_profile_cd), tint = Color(0xFFFF6F00))
         }
     }
 }
