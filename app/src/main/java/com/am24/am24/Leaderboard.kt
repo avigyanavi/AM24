@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -30,6 +31,7 @@ import kotlin.math.roundToInt
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SliderDefaults
 
+
 @Composable
 fun LeaderboardScreen(
     navController: NavHostController,
@@ -37,6 +39,7 @@ fun LeaderboardScreen(
 ) {
     val profiles by viewModel.leaderboard.collectAsState()
 
+    var countryFilter    by remember { mutableStateOf("") }   // NEW
     // local UI filter state
     var selectedGender   by remember { mutableStateOf("") }
     var cityFilter       by remember { mutableStateOf("") }
@@ -53,6 +56,7 @@ fun LeaderboardScreen(
 
     // sync back into VM
     LaunchedEffect(selectedGender) { viewModel.setGenderFilter(selectedGender.ifBlank { null }) }
+    LaunchedEffect(countryFilter)  { viewModel.setCountryFilter(countryFilter.ifBlank { null }) } // NEW
     LaunchedEffect(cityFilter)     { viewModel.setCityFilter(cityFilter.ifBlank { null }) }
     LaunchedEffect(localityFilter) { viewModel.setLocalityFilter(localityFilter.ifBlank { null }) }
     LaunchedEffect(highSchoolFilter) { viewModel.setHighSchoolFilter(highSchoolFilter.ifBlank { null }) }
@@ -111,6 +115,8 @@ fun LeaderboardScreen(
                             LeaderboardFilters(
                                 selectedGender       = selectedGender,
                                 onGenderChange       = { selectedGender = it },
+                                countryFilter        = countryFilter,       // NEW
+                                onCountryChange      = { countryFilter = it }, // NEW
                                 cityFilter           = cityFilter,
                                 onCityChange         = { cityFilter = it },
                                 localityFilter       = localityFilter,
@@ -143,6 +149,8 @@ fun LeaderboardScreen(
 fun LeaderboardFilters(
     selectedGender: String,
     onGenderChange: (String) -> Unit,
+    countryFilter: String,                     // NEW
+    onCountryChange: (String) -> Unit,         // NEW
     cityFilter: String,
     onCityChange: (String) -> Unit,
     localityFilter: String,
@@ -175,6 +183,41 @@ fun LeaderboardFilters(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        /* ------------------ Country (ExposedDropdownMenuBox) ------------------ */
+        var countryExpanded by remember { mutableStateOf(false) }
+        val countryOptions = listOf("India", "United States", "United Kingdom", "Other")   // placeholder
+        ExposedDropdownMenuBox(
+            expanded = countryExpanded,
+            onExpandedChange = { countryExpanded = it }
+        ) {
+            TextField(
+                value = countryFilter,
+                onValueChange = {},            // read-only – selection comes from menu
+                readOnly = true,
+                label = { Text("Country") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(countryExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = countryExpanded,
+                onDismissRequest = { countryExpanded = false }
+            ) {
+                countryOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onCountryChange(option)
+                            countryExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
 
         // 2️⃣ Dropdowns instead of free-text
         // Example: City
@@ -346,7 +389,6 @@ fun LeaderboardFilters(
         )
     }
 }
-
 
 @Composable
 fun LeaderboardRow(rank: Int, profile: Profile) {

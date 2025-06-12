@@ -23,6 +23,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
 
     // ─── filter states ──────────────────────────────────────────────
+    private val _countryFilter   = MutableStateFlow<String?>(null)
     private val _genderFilter     = MutableStateFlow<String?>(null)
     private val _cityFilter       = MutableStateFlow<String?>(null)
     private val _localityFilter   = MutableStateFlow<String?>(null)
@@ -35,6 +36,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
 
 
     /** Filter setters */
+    fun setCountryFilter(c: String?)    { _countryFilter.value    = c }
     fun setGenderFilter(g: String?)      { _genderFilter.value     = g }
     fun setCityFilter(c: String?)        { _cityFilter.value       = c }
     fun setLocalityFilter(l: String?)    { _localityFilter.value   = l }
@@ -48,11 +50,19 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
 
     // combine string filters
     private val stringFilters = combine(
-        _genderFilter, _cityFilter, _localityFilter,
+        _genderFilter, _countryFilter, _cityFilter, _localityFilter,
         _highSchoolFilter, _collegeFilter
-    ) { gender, city, locality, hs, col ->
-        Filters(gender, city, locality, hs, col)
-    }
+    ) { values ->                                   // values: Array<Any?>
+    @Suppress("UNCHECKED_CAST")
+    Filters(
+    gender      = values[0] as String?,
+    country     = values[1] as String?,
+    city        = values[2] as String?,
+    locality    = values[3] as String?,
+    highSchool  = values[4] as String?,
+    college     = values[5] as String?
+    )
+}
     // combine numeric filters
     private val numericFilters = combine(
         _minAgeFilter, _maxAgeFilter, _minCompositePct
@@ -67,6 +77,11 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
         var list = all.filterNot { it.userId.endsWith("Ai") }
 
         sf.gender?.takeIf(String::isNotBlank)?.let { g -> list = list.filter { it.gender == g }}
+
+        sf.country?.takeIf(String::isNotBlank)?.let { ct ->         // ➍ NEW
+                 list = list.filter { it.country.equals(ct, true) }      //  your Profile has `country`
+             }
+
         sf.city?.takeIf(String::isNotBlank)?.let { c -> list = list.filter { it.city.equals(c, true) }}
         sf.locality?.takeIf(String::isNotBlank)?.let { l ->
             list = list.filter {
@@ -196,6 +211,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
 
 private data class Filters(
     val gender: String?,
+    val country: String?,
     val city: String?,
     val locality: String?,
     val highSchool: String?,

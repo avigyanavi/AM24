@@ -1,6 +1,6 @@
 @file:OptIn(
     ExperimentalMaterialApi::class, ExperimentalMaterialApi::class,
-    ExperimentalLayoutApi::class
+    ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class
 )
 
 package com.am24.am24
@@ -9,8 +9,20 @@ import DatingViewModel
 import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
-import androidx.compose.material.icons.filled.FilterList
 import android.util.Log
+/* Material 3 (add these – they won’t clash with existing M2 widgets) */
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme     as M3Theme
+
+/* Icons */
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Search
+
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
@@ -32,8 +44,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.EmojiEmotions  // or whichever icon you prefer for “Compliment”
 import androidx.compose.material.icons.filled.FlashOn         // for “Boost”
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
@@ -81,10 +91,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -820,6 +832,56 @@ fun FiltersOverlay(
     maxRanking: Int,
     onMaxRankingChange: (Int) -> Unit
 ) {
+    // Local state for place search
+    var highSchoolQuery by remember { mutableStateOf(selectedHighSchool) }
+    var collegeQuery by remember { mutableStateOf(selectedCollege) }
+    var postGradQuery by remember { mutableStateOf(selectedPostGrad) }
+
+    var highSchoolResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var collegeResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var postGradResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+
+    var highSchoolSearching by remember { mutableStateOf(false) }
+    var collegeSearching by remember { mutableStateOf(false) }
+    var postGradSearching by remember { mutableStateOf(false) }
+
+    var isHighSchoolFieldFocused by remember { mutableStateOf(false) }
+    var isCollegeFieldFocused by remember { mutableStateOf(false) }
+    var isPostGradFieldFocused by remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(highSchoolQuery) {
+        if (highSchoolQuery.length < 3) {
+            highSchoolResults = emptyList()
+        } else {
+            delay(400)
+            highSchoolSearching = true
+            highSchoolResults = searchPlacesRich(highSchoolQuery)
+            highSchoolSearching = false
+        }
+    }
+
+    LaunchedEffect(collegeQuery) {
+        if (collegeQuery.length < 3) {
+            collegeResults = emptyList()
+        } else {
+            delay(400)
+            collegeSearching = true
+            collegeResults = searchPlacesRich(collegeQuery)
+            collegeSearching = false
+        }
+    }
+
+    LaunchedEffect(postGradQuery) {
+        if (postGradQuery.length < 3) {
+            postGradResults = emptyList()
+        } else {
+            delay(400)
+            postGradSearching = true
+            postGradResults = searchPlacesRich(postGradQuery)
+            postGradSearching = false
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1029,333 +1091,62 @@ fun FiltersOverlay(
 
                 Spacer(Modifier.height(8.dp))
                 // ─ High School ─
-                DropdownFilter(
+                PlaceSearchDropdown(
                     label = stringResource(R.string.high_school),
-                    options = listOf(
-                        stringResource(R.string.high_school_modern_school_barakhamba),
-                        stringResource(R.string.high_school_dps_rk_puram),
-                        stringResource(R.string.high_school_shri_ram_gurgaon),
-                        stringResource(R.string.high_school_amity_noida),
-                        stringResource(R.string.high_school_sanskriti_delhi),
-                        stringResource(R.string.high_school_city_montessori_lucknow),
-                        stringResource(R.string.high_school_la_martiniere_lucknow),
-                        stringResource(R.string.high_school_doon_school),
-                        stringResource(R.string.high_school_welham_girls),
-                        stringResource(R.string.high_school_lawrence_sanawar),
-                        stringResource(R.string.high_school_mayo_college),
-                        stringResource(R.string.high_school_st_johns_chandigarh),
-                        stringResource(R.string.high_school_birla_pilani),
-                        stringResource(R.string.high_school_scindia_school),
-                        stringResource(R.string.high_school_yds_srinagar),
-                        // West India (Maharashtra, Gujarat, Madhya Pradesh, Goa)
-                        stringResource(R.string.high_school_cathedral_john_connon),
-                        stringResource(R.string.high_school_dhirubhai_ambani),
-                        stringResource(R.string.high_school_bombay_scottish_mahim),
-                        stringResource(R.string.high_school_campion_mumbai),
-                        stringResource(R.string.high_school_jamnabai_narsee),
-                        stringResource(R.string.high_school_st_marys_pune),
-                        stringResource(R.string.high_school_symbiosis_pune),
-                        stringResource(R.string.high_school_daly_college),
-                        stringResource(R.string.high_school_podar_ahmedabad),
-                        stringResource(R.string.high_school_anand_niketan),
-                        stringResource(R.string.high_school_don_bosco_panaji),
-                        stringResource(R.string.high_school_emerald_heights_indore),
-                        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
-                        stringResource(R.string.high_school_bishop_cotton_boys),
-                        stringResource(R.string.high_school_bishop_cotton_girls),
-                        stringResource(R.string.high_school_mallya_aditi),
-                        stringResource(R.string.high_school_national_public_indiranagar),
-                        stringResource(R.string.high_school_psbb_chennai),
-                        stringResource(R.string.high_school_chettinad_vidyashram),
-                        stringResource(R.string.high_school_dav_velachery),
-                        stringResource(R.string.high_school_sishya_chennai),
-                        stringResource(R.string.high_school_hyderabad_public),
-                        stringResource(R.string.high_school_international_hyderabad),
-                        stringResource(R.string.high_school_rishi_valley),
-                        stringResource(R.string.high_school_loyola_trivandrum),
-                        stringResource(R.string.high_school_trivandrum_international),
-                        stringResource(R.string.high_school_chinmaya_coimbatore),
-                        stringResource(R.string.high_school_sainik_amaravathinagar),
-                        // East India (West Bengal, Odisha, Jharkhand, Bihar)
-                        stringResource(R.string.high_school_st_xaviers_collegiate),
-                        stringResource(R.string.high_school_la_martiniere_boys),
-                        stringResource(R.string.high_school_la_martiniere_girls),
-                        stringResource(R.string.high_school_modern_high_girls),
-                        stringResource(R.string.high_school_south_point),
-                        stringResource(R.string.high_school_don_bosco_park_circus),
-                        stringResource(R.string.high_school_loreto_house),
-                        stringResource(R.string.high_school_calcutta_boys),
-                        stringResource(R.string.high_school_calcutta_girls),
-                        stringResource(R.string.high_school_hindu_school),
-                        stringResource(R.string.high_school_ramakrishna_narendrapur),
-                        stringResource(R.string.high_school_st_james_kolkata),
-                        stringResource(R.string.high_school_dps_bhubaneswar),
-                        stringResource(R.string.high_school_sai_bhubaneswar),
-                        stringResource(R.string.high_school_loyola_patna),
-                        stringResource(R.string.high_school_st_michaels_patna),
-                        stringResource(R.string.high_school_netarhat),
-                        stringResource(R.string.high_school_chinmaya_bokaro),
-                        stringResource(R.string.high_school_dps_ranchi),
-                        // Northeast India (Assam, Meghalaya, Sikkim, Tripura)
-                        stringResource(R.string.high_school_assam_valley),
-                        stringResource(R.string.high_school_don_bosco_guwahati),
-                        stringResource(R.string.high_school_spring_dale_guwahati),
-                        stringResource(R.string.high_school_loreto_shillong),
-                        stringResource(R.string.high_school_st_anthonys_shillong),
-                        stringResource(R.string.high_school_don_bosco_agartala),
-                        // Union Territories and Special Cases
-                        stringResource(R.string.high_school_north_point_darjeeling),
-                        stringResource(R.string.high_school_st_josephs_north_point),
-                        stringResource(R.string.high_school_dr_grahams_kalimpong),
-                        stringResource(R.string.high_school_lawrence_lovedale),
-                        stringResource(R.string.high_school_dps_port_blair),
-                        stringResource(R.string.high_school_dps_srinagar),
-                        // Catch-all for other high schools
-                        stringResource(R.string.high_school_other)
-                    ),
-                    selectedOption = selectedHighSchool,
-                    onOptionChange = onHighSchoolChange
+                    query = highSchoolQuery,
+                    onQueryChange = {
+                        highSchoolQuery = it
+                        onHighSchoolChange(it)
+                    },
+                    results = highSchoolResults,
+                    searching = highSchoolSearching,
+                    onResultSelect = {
+                        highSchoolQuery = it
+                        onHighSchoolChange(it)
+                        highSchoolResults = emptyList()
+                    },
+                    isFieldFocused = isHighSchoolFieldFocused,
+                    onFieldFocusChange = { isHighSchoolFieldFocused = it }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // ─ College ─
-                DropdownFilter(
+                PlaceSearchDropdown(
                     label = stringResource(R.string.college),
-                    options = listOf(
-                        stringResource(R.string.college_srm_institute_of_science_and_technology),
-                        stringResource(R.string.college_vellore_institute_of_technology),
-                        stringResource(R.string.college_bits_pilani),
-                        stringResource(R.string.college_manipal_institute_of_technology),
-                        stringResource(R.string.college_iiit_hyderabad),
-                        // Private Arts/Science Colleges
-                        stringResource(R.string.college_op_jindal_global_university),
-                        stringResource(R.string.college_ashoka_university),
-                        // Design Colleges in India
-                        stringResource(R.string.college_nid_kurukshetra),
-                        stringResource(R.string.college_nid_gandhinagar),
-                        stringResource(R.string.college_nid_bengaluru),
-                        stringResource(R.string.college_nid_bhopal),
-                        stringResource(R.string.college_nid_jorhat),
-                        stringResource(R.string.college_nid_vijayawada),
-                        stringResource(R.string.college_nift),
-                        stringResource(R.string.college_srishti_manipal),
-                        stringResource(R.string.college_pearl_academy),
-                        stringResource(R.string.college_symbiosis_institute_of_design),
-                        stringResource(R.string.college_mit_institute_of_design),
-                        stringResource(R.string.college_iiad),
-                        stringResource(R.string.college_world_university_of_design),
-                        stringResource(R.string.college_amity_school_of_fashion_technology),
-                        stringResource(R.string.college_jd_institute_of_fashion_technology),
-                        stringResource(R.string.college_arch_academy_of_design),
-                        stringResource(R.string.college_daiict),
-                        // Law Colleges in India
-                        stringResource(R.string.college_nlu_delhi),
-                        stringResource(R.string.college_wbnujs_kolkata),
-                        stringResource(R.string.college_nliu_bhopal),
-                        stringResource(R.string.college_gnlu_gandhinagar),
-                        stringResource(R.string.college_hnlu_raipur),
-                        stringResource(R.string.college_rmlnlu_lucknow),
-                        stringResource(R.string.college_rgnul_patiala),
-                        stringResource(R.string.college_cnlu_patna),
-                        stringResource(R.string.college_nuals_kochi),
-                        stringResource(R.string.college_nluo_cuttack),
-                        stringResource(R.string.college_nusr_law_ranchi),
-                        stringResource(R.string.college_nluja_guwahati),
-                        stringResource(R.string.college_tnnlu_tiruchirappalli),
-                        stringResource(R.string.college_mnlu_mumbai),
-                        stringResource(R.string.college_mnlu_nagpur),
-                        stringResource(R.string.college_mnlu_aurangabad),
-                        stringResource(R.string.college_hpnlu_shimla),
-                        stringResource(R.string.college_dnlu_jabalpur),
-                        stringResource(R.string.college_dbranlu_sonipat),
-                        stringResource(R.string.college_faculty_of_law_du),
-                        stringResource(R.string.college_symbiosis_law_school),
-                        stringResource(R.string.college_glc_mumbai),
-                        stringResource(R.string.college_ils_law_pune),
-                        stringResource(R.string.college_amity_law_school_noida),
-                        stringResource(R.string.college_christ_univ_law),
-                        stringResource(R.string.college_bhu_faculty_of_law),
-                        stringResource(R.string.college_amu_faculty_of_law),
-                        stringResource(R.string.college_jamia_law),
-                        stringResource(R.string.college_op_jindal_law_school),
-                        stringResource(R.string.college_army_institute_of_law_mohali),
-                        stringResource(R.string.college_kerala_law_academy),
-                        stringResource(R.string.college_school_of_law_calcutta),
-                        // Arts Colleges in India
-                        stringResource(R.string.college_college_of_art_du),
-                        stringResource(R.string.college_sir_jj_school_of_art),
-                        stringResource(R.string.college_faculty_visual_arts_bhu),
-                        stringResource(R.string.college_msu_fine_arts_vadodara),
-                        stringResource(R.string.college_govt_college_art_craft_kolkata),
-                        stringResource(R.string.college_chennai_govt_fine_arts),
-                        stringResource(R.string.college_rachana_sansad),
-                        stringResource(R.string.college_goa_college_of_art),
-                        stringResource(R.string.college_amity_school_fine_arts),
-                        stringResource(R.string.college_kalakshetra_foundation),
-                        stringResource(R.string.college_bharatiya_kala_kendra),
-                        stringResource(R.string.college_gandharva_mahavidyalaya),
-                        stringResource(R.string.college_nsd),
-                        stringResource(R.string.college_ftii_pune),
-                        stringResource(R.string.college_srfti_kolkata),
-                        stringResource(R.string.college_kathak_kendra),
-                        stringResource(R.string.college_drama_thrissur),
-                        stringResource(R.string.college_ramjas_college),
-                        stringResource(R.string.college_st_xaviers_mumbai),
-                        // North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Punjab, Rajasthan)
-                        stringResource(R.string.college_st_stephens),
-                        stringResource(R.string.college_miranda_house),
-                        stringResource(R.string.college_hindu_college),
-                        stringResource(R.string.college_lady_shri_ram),
-                        stringResource(R.string.college_hansraj_college),
-                        stringResource(R.string.college_delhi_university),
-                        stringResource(R.string.college_iit_delhi),
-                        stringResource(R.string.college_jnu_delhi),
-                        stringResource(R.string.college_op_jindal_global),
-                        stringResource(R.string.college_amity_noida),
-                        stringResource(R.string.college_nift_delhi),
-                        stringResource(R.string.college_pearl_academy_delhi),
-                        stringResource(R.string.college_amity_law_school),
-                        stringResource(R.string.college_banaras_hindu_university),
-                        stringResource(R.string.college_iit_kanpur),
-                        stringResource(R.string.college_iit_roorkee),
-                        stringResource(R.string.college_lpu_phagwara),
-                        stringResource(R.string.college_chandigarh_university),
-                        // West India (Maharashtra, Gujarat, Goa)
-                        stringResource(R.string.college_iit_bombay),
-                        stringResource(R.string.college_mithibai_college),
-                        stringResource(R.string.college_nmims_mumbai),
-                        stringResource(R.string.college_university_of_mumbai),
-                        stringResource(R.string.college_jj_school_arts),
-                        stringResource(R.string.college_fergusson_college),
-                        stringResource(R.string.college_symbiosis_liberal_arts),
-                        stringResource(R.string.college_flame_university),
-                        stringResource(R.string.college_savitribai_phule_pune_university),
-                        stringResource(R.string.college_symbiosis_law_school),
-                        stringResource(R.string.college_iit_gandhinagar),
-                        stringResource(R.string.college_nid_ahmedabad),
-                        stringResource(R.string.college_nirma_university),
-                        stringResource(R.string.college_goa_university),
-                        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
-                        stringResource(R.string.college_iisc_bangalore),
-                        stringResource(R.string.college_christ_university),
-                        stringResource(R.string.college_mount_carmel),
-                        stringResource(R.string.college_st_josephs_bangalore),
-                        stringResource(R.string.college_nlsiu_bangalore),
-                        stringResource(R.string.college_iit_madras),
-                        stringResource(R.string.college_loyola_college),
-                        stringResource(R.string.college_madras_christian_college),
-                        stringResource(R.string.college_anna_university),
-                        stringResource(R.string.college_stella_maris),
-                        stringResource(R.string.college_krea_university),
-                        stringResource(R.string.college_osmania_university),
-                        stringResource(R.string.college_manipal_academy),
-                        stringResource(R.string.college_andhra_university),
-                        stringResource(R.string.college_annamalai_university),
-                        stringResource(R.string.college_kerala_university),
-                        // East India (West Bengal, Odisha, Jharkhand, Bihar)
-                        stringResource(R.string.college_jadavpur_university),
-                        stringResource(R.string.college_presidency_university),
-                        stringResource(R.string.college_st_xaviers_kolkata),
-                        stringResource(R.string.college_scottish_church),
-                        stringResource(R.string.college_university_of_calcutta),
-                        stringResource(R.string.college_iit_kharagpur),
-                        stringResource(R.string.college_nit_durgapur),
-                        stringResource(R.string.college_loreto_college),
-                        stringResource(R.string.college_lady_brabourne),
-                        stringResource(R.string.college_bethune_college),
-                        stringResource(R.string.college_ramakrishna_narendrapur),
-                        stringResource(R.string.college_goenka_college),
-                        stringResource(R.string.college_visva_bharati),
-                        stringResource(R.string.college_nit_rourkela),
-                        stringResource(R.string.college_iit_dhanbad),
-                        // Northeast India (Assam, Meghalaya)
-                        stringResource(R.string.college_gauhati_university),
-                        stringResource(R.string.college_nehu_shillong),
-                        stringResource(R.string.college_cotton_university),
-                        // Union Territories
-                        stringResource(R.string.college_jamia_millia_islamia),
-                        // Catch-all for other colleges
-                        stringResource(R.string.college_other)
-                    ),
-                    selectedOption = selectedCollege,
-                    onOptionChange = onCollegeChange
+                    query = collegeQuery,
+                    onQueryChange = {
+                        collegeQuery = it
+                        onCollegeChange(it)
+                    },
+                    results = collegeResults,
+                    searching = collegeSearching,
+                    onResultSelect = {
+                        collegeQuery = it
+                        onCollegeChange(it)
+                        collegeResults = emptyList()
+                    },
+                    isFieldFocused = isCollegeFieldFocused,
+                    onFieldFocusChange = { isCollegeFieldFocused = it }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // ─ Post‐Grad ─
-                DropdownFilter(
+                PlaceSearchDropdown(
                     label = stringResource(R.string.post_grad),
-                    options = listOf(
-                        stringResource(R.string.postgrad_delhi_university),
-                        stringResource(R.string.postgrad_iit_delhi),
-                        stringResource(R.string.postgrad_jnu_delhi),
-                        stringResource(R.string.postgrad_ashoka_university),
-                        stringResource(R.string.postgrad_amity_noida),
-                        stringResource(R.string.postgrad_nift_delhi),
-                        stringResource(R.string.postgrad_pearl_academy_delhi),
-                        stringResource(R.string.postgrad_ili_delhi),
-                        stringResource(R.string.postgrad_banaras_hindu_university),
-                        stringResource(R.string.postgrad_iit_kanpur),
-                        stringResource(R.string.postgrad_iit_roorkee),
-                        stringResource(R.string.postgrad_lpu_phagwara),
-                        stringResource(R.string.postgrad_chandigarh_university),
-                        stringResource(R.string.postgrad_iim_lucknow),
-                        stringResource(R.string.postgrad_iim_udaipur),
-                        // West India (Maharashtra, Gujarat, Goa)
-                        stringResource(R.string.postgrad_iit_bombay),
-                        stringResource(R.string.postgrad_university_of_mumbai),
-                        stringResource(R.string.postgrad_nmims_mumbai),
-                        stringResource(R.string.postgrad_tiss_mumbai),
-                        stringResource(R.string.postgrad_tifr_mumbai),
-                        stringResource(R.string.postgrad_jj_school_arts),
-                        stringResource(R.string.postgrad_savitribai_phule_pune_university),
-                        stringResource(R.string.postgrad_symbiosis_law_school),
-                        stringResource(R.string.postgrad_iit_gandhinagar),
-                        stringResource(R.string.postgrad_nirma_university),
-                        stringResource(R.string.postgrad_iim_ahmedabad),
-                        stringResource(R.string.postgrad_goa_university),
-                        // South India (Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, Kerala)
-                        stringResource(R.string.postgrad_iisc_bangalore),
-                        stringResource(R.string.postgrad_christ_university),
-                        stringResource(R.string.postgrad_nlsiu_bangalore),
-                        stringResource(R.string.postgrad_iim_bangalore),
-                        stringResource(R.string.postgrad_iit_madras),
-                        stringResource(R.string.postgrad_anna_university),
-                        stringResource(R.string.postgrad_srmist_chennai),
-                        stringResource(R.string.postgrad_vit_vellore),
-                        stringResource(R.string.postgrad_osmania_university),
-                        stringResource(R.string.postgrad_nalsar_hyderabad),
-                        stringResource(R.string.postgrad_manipal_academy),
-                        stringResource(R.string.postgrad_andhra_university),
-                        stringResource(R.string.postgrad_annamalai_university),
-                        stringResource(R.string.postgrad_kerala_university),
-                        stringResource(R.string.postgrad_iim_kozhikode),
-                        stringResource(R.string.postgrad_nit_warangal),
-                        // East India (West Bengal, Odisha, Jharkhand, Bihar)
-                        stringResource(R.string.postgrad_jadavpur_university),
-                        stringResource(R.string.postgrad_presidency_university),
-                        stringResource(R.string.postgrad_university_of_calcutta),
-                        stringResource(R.string.postgrad_iit_kharagpur),
-                        stringResource(R.string.postgrad_nit_durgapur),
-                        stringResource(R.string.postgrad_isi_kolkata),
-                        stringResource(R.string.postgrad_iim_calcutta),
-                        stringResource(R.string.postgrad_visva_bharati),
-                        stringResource(R.string.postgrad_nit_rourkela),
-                        stringResource(R.string.postgrad_iit_dhanbad),
-                        stringResource(R.string.postgrad_xlri_jamshedpur),
-                        // Northeast India (Assam, Meghalaya)
-                        stringResource(R.string.postgrad_gauhati_university),
-                        stringResource(R.string.postgrad_nehu_shillong),
-                        stringResource(R.string.postgrad_cotton_university),
-                        stringResource(R.string.postgrad_iim_shillong),
-                        // Union Territories
-                        stringResource(R.string.postgrad_jamia_millia_islamia),
-                        stringResource(R.string.postgrad_iim_vishakhapatnam),
-                        // Catch-all for other post-graduate institutions
-                        stringResource(R.string.postgrad_other)
-                    ),
-                    selectedOption = selectedPostGrad,
-                    onOptionChange = onPostGradChange
+                    query = postGradQuery,
+                    onQueryChange = {
+                        postGradQuery = it
+                        onPostGradChange(it)
+                    },
+                    results = postGradResults,
+                    searching = postGradSearching,
+                    onResultSelect = {
+                        postGradQuery = it
+                        onPostGradChange(it)
+                        postGradResults = emptyList()
+                    },
+                    isFieldFocused = isPostGradFieldFocused,
+                    onFieldFocusChange = { isPostGradFieldFocused = it }
                 )
             }
 
@@ -1477,6 +1268,111 @@ fun FiltersOverlay(
                         onOptionChange = onCasteChange
                     )
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlaceSearchDropdown(
+    label: String,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    results: List<PlaceResult>,
+    searching: Boolean,
+    onResultSelect: (String) -> Unit,
+    isFieldFocused: Boolean,
+    onFieldFocusChange: (Boolean) -> Unit
+) {
+    val focusManager   = LocalFocusManager.current
+    val expanded       = results.isNotEmpty() && isFieldFocused
+    val clearSelection = stringResource(R.string.clear_selection)
+
+    /* Material-3 dropdown */
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { /* focus drives the menu – keep empty */ }
+    ) {
+        val focusRequester = remember { FocusRequester() }
+
+        /* ---- the anchor text-field ---- */
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            label        = { Text(label) },
+            singleLine   = true,
+            trailingIcon = {
+                if (searching) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier    = Modifier.size(18.dp)
+                    )
+                } else {
+                    Icon(Icons.Default.Search, contentDescription = null)
+                }
+            },
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor   = Color(0xFFFF6000),
+                unfocusedBorderColor = Color.White,
+                cursorColor          = Color.White,
+                focusedLabelColor    = Color(0xFFFF6000),
+                unfocusedLabelColor  = Color.White
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()                 // <- Material-3 helper
+                .focusRequester(focusRequester)
+                .onFocusChanged { state ->
+                    onFieldFocusChange(state.isFocused)
+                    if (!state.isFocused) onResultSelect(query)    // commit whatever is typed
+                }
+        )
+
+        /* ---- the menu itself ---- */
+        ExposedDropdownMenu(
+            expanded          = expanded,
+            onDismissRequest  = {
+                onFieldFocusChange(false)
+                focusManager.clearFocus()
+            },
+            modifier = Modifier
+                .background(Color.White, RoundedCornerShape(6.dp))
+                .border(BorderStroke(1.dp, Color.Black.copy(alpha = .15f)),
+                    RoundedCornerShape(6.dp))
+        ) {
+            /* first row – “Clear selection” */
+            if (query.isNotBlank()) {
+                DropdownMenuItem(
+                    text   = { Text(clearSelection) },
+                    onClick = {
+                        onQueryChange("")
+                        onResultSelect("")
+                        focusManager.clearFocus()
+                    }
+                )
+            }
+
+            /* the Places results */
+            results.forEach { res ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(res.name)
+                            if (res.address.isNotBlank()) {
+                                Text(res.address,
+                                    style = M3Theme.typography.bodySmall,
+                                    color = Color.DarkGray)
+                            }
+                        }
+                    },
+                    leadingIcon = { Icon(Icons.Default.Place, contentDescription = null) },
+                    onClick = {
+                        onQueryChange(res.name)
+                        onResultSelect(res.name)
+                        focusManager.clearFocus()
+                    }
+                )
             }
         }
     }
@@ -3070,7 +2966,7 @@ fun ComplimentDialog(
                         focusedBorderColor = Color(0xFFFF6F00),
                         unfocusedBorderColor = Color.Gray,
                         cursorColor = Color.White,
-                        textColor = Color.White
+                        focusedTextColor = Color.White
                     )
                 )
 

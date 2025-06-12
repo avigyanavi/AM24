@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.analytics)
+    implementation("androidx.compose.material3:material3:1.2.1")
     implementation("com.google.android.gms:play-services-ads:24.3.0")
     implementation("com.squareup.moshi:moshi:1.15.0")          // tiny JSON helper
     implementation("com.squareup.moshi:moshi-kotlin:1.15.0")

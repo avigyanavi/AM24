@@ -38,7 +38,6 @@ private val gson = com.google.gson.Gson()
 private fun Map<*, *>.toProfile(): Profile =
     gson.fromJson(gson.toJson(this), Profile::class.java)
 
-
 // ─── NEW: data class for holding incoming compliment ───
 data class ComplimentData(
     val text: String = "",
