@@ -72,6 +72,9 @@ data class Profile(
     /** when that profile was boosted (ms since epoch) */
     var boostedAt: Long? = null,
 
+    /** NEW  ➜  running total of GPT / Places-AI requests made by this user */
+    var aiMessagesSent: Int = 0,
+
     /** only on *your* own profile: how many boosts you have left */
     var availableBoosts: Int = 0,
     /** when *you* last hit “Boost” (ms since epoch) */

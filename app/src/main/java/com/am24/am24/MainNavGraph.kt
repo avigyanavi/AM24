@@ -250,17 +250,21 @@ fun MainNavGraph(
             val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
             GroupChatScreen(navController = navController, groupId = groupId)
         }
+        composable("buyAiMessages")  { OneTimePurchaseScreen(PurchaseType.AiMessages,  navController) { navController.popBackStack() } }
 
         composable("buySwipes") { OneTimePurchaseScreen(
             type = PurchaseType.Swipes,
+            navController,
             onBack = { navController.popBackStack() }
         ) }
         composable("buyCompliments") { OneTimePurchaseScreen(
             type = PurchaseType.Compliments,
+            navController,
             onBack = { navController.popBackStack() }
         ) }
         composable("buyBoosts") { OneTimePurchaseScreen(
             type = PurchaseType.Boosts,
+            navController,
             onBack = { navController.popBackStack() }
         ) }
         composable("saved_posts") {

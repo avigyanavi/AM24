@@ -1,12 +1,20 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.am24.am24.ui.purchase
 
+/* Android & Compose */
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBarDefaults.centerAlignedTopAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,226 +23,155 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.functions.ktx.functions
-import com.google.firebase.ktx.Firebase
-import com.razorpay.Checkout
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import org.json.JSONObject
+import com.google.firebase.database.ServerValue.increment
 
-/**
- * Defines the different one-time purchase categories, with per-unit price in paise.
- */
-enum class PurchaseType(val displayName: String, val unitPricePaise: Int) {
-    Swipes("Swipes", 100),
-    Compliments("Compliments", 150),
-    Boosts("Boosts", 200)
+/* ────────────────────────────────────── */
+/* 1.  UPI links (ALL pasted verbatim)    */
+/* ────────────────────────────────────── */
+enum class PurchaseType(val displayName: String, val links: Map<Int, String>) {
+    Swipes("Swipes", mapOf(
+        5  to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjYGAINicGve6qrv2&cu=INR&mc=7372&qrMedium=04&tn=Swipes-5&am=10.00",
+        10 to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjaNILnj4LKQqqrv2&cu=INR&mc=7372&qrMedium=04&tn=Swipes-10&am=18.00",
+        20 to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjcrCLtNjHCtqqrv2&cu=INR&mc=7372&qrMedium=04&tn=Swipes-20&am=32.00"
+    )),
+    Compliments("Compliments", mapOf(
+        5  to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjdzL2lBW0SMDqrv2&cu=INR&mc=7372&qrMedium=04&tn=Compliments-5&am=125.00",
+        10 to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjfwgPpggRKm4qrv2&cu=INR&mc=7372&qrMedium=04&tn=Compliments-10&am=225.00",
+        20 to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgji6EACLzWXIiqrv2&cu=INR&mc=7372&qrMedium=04&tn=Compliments-20&am=400.00"
+    )),
+    Boosts("Boosts", mapOf(
+        5  to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjkz6ziUHsURoqrv2&cu=INR&mc=7372&qrMedium=04&tn=Boosts-5&am=750.00",
+        10 to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjmyHzduzC7n8qrv2&cu=INR&mc=7372&qrMedium=04&tn=Boosts-10&am=1350.00",
+        20 to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgjp52HudCEZvzqrv2&cu=INR&mc=7372&qrMedium=04&tn=Boosts-20&am=2400.00"
+    )),
+    AiMessages("AI messages", mapOf(
+        5  to "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPQgkLDAKUFLMdguqrv2&cu=INR&mc=7372&qrMedium=04&tn=AIMsg-5&am=50.00",
+        10 to "upi://pay?ver=01&mode=19&pa=rzpzlgmukherjeealliancesinfotechprivatelimited@yesbank&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPYQgkNTHrsRqHYOmqrv2&cu=INR&mc=7372&qrMedium=04&tn=AIMsg-10&am=100.00",
+        20 to "upi://pay?ver=01&mode=19&pa=rzpzlgmukherjeealliancesinfotechprivatelimited@yesbank&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED&tr=RZPYQgkOKjPbDGPfRCqrv2&cu=INR&mc=7372&qrMedium=04&tn=AIMsg-20&am=200.00"
+    ));
+
+    fun link(qty: Int) = links[qty]
+        ?: error("Unsupported qty $qty for $displayName")
 }
 
-/**
- * UI state for the purchase flow: quantity and payment details.
- */
-data class PurchaseUiState(
-    val selectedQty: Int = 5,
-    val orderId: String? = null,
-    val keyId: String? = null,
-    val isLoading: Boolean = false,
-    val isSuccess: Boolean = false,
-    val error: String? = null
-)
+/* ─────────────────────────── */
+/* 2.  simple UI state         */
+/* ─────────────────────────── */
+private data class UiState(val selectedQty: Int = 5, val isProcessing: Boolean = false)
 
-/**
- * ViewModel to call Firebase Cloud Functions and apply the purchase.
- */
-class PurchaseViewModel : ViewModel() {
-    private val functions = Firebase.functions("asia-south1")
-    var uiState by mutableStateOf(PurchaseUiState())
-        private set
-
-    fun onQtySelected(qty: Int) {
-        uiState = uiState.copy(selectedQty = qty)
-    }
-
-    /**
-     * Calls `createOneTimeOrder` to generate a Razorpay order.
-     */
-    fun createOrder(type: PurchaseType) = viewModelScope.launch {
-        uiState = uiState.copy(isLoading = true, error = null)
-        try {
-            val data = mapOf(
-                "type" to type.name.lowercase(),
-                "quantity" to uiState.selectedQty
-            )
-            val result = functions
-                .getHttpsCallable("createOneTimeOrder")
-                .call(data)
-                .await().data as Map<*, *>
-
-            uiState = uiState.copy(
-                orderId = result["id"] as String,
-                keyId   = result["key"] as String,
-                isLoading = false
-            )
-        } catch (e: Exception) {
-            uiState = uiState.copy(isLoading = false, error = e.message)
-        }
-    }
-
-    /**
-     * Verifies captured payment and updates the user's counters in RTDB.
-     */
-    fun verifyAndApplyPayment(type: PurchaseType, paymentId: String) = viewModelScope.launch {
-        uiState = uiState.copy(isLoading = true, error = null)
-        try {
-            val verify = mapOf("paymentId" to paymentId)
-            val captured = functions
-                .getHttpsCallable("verifyPayment")
-                .call(verify)
-                .await().data as Boolean
-            if (!captured) throw Exception("Payment not captured")
-
-            val uid = FirebaseAuth.getInstance().currentUser?.uid
-                ?: throw Exception("No authenticated user")
-            val dbRef = FirebaseDatabase.getInstance().getReference("users/$uid")
-
-            when (type) {
-                PurchaseType.Swipes ->
-                    dbRef.child("swipesInfo/remainingSwipes").get()
-                        .addOnSuccessListener { snap ->
-                            val current = snap.getValue(Int::class.java) ?: 0
-                            dbRef.child("swipesInfo/remainingSwipes")
-                                .setValue(current + uiState.selectedQty)
-                        }
-
-                PurchaseType.Compliments ->
-                    dbRef.child("complimentsLeft").get()
-                        .addOnSuccessListener { snap ->
-                            val current = snap.getValue(Int::class.java) ?: 0
-                            dbRef.child("complimentsLeft")
-                                .setValue(current + uiState.selectedQty)
-                        }
-
-                PurchaseType.Boosts ->
-                    dbRef.child("availableBoosts").get()
-                        .addOnSuccessListener { snap ->
-                            val current = snap.getValue(Int::class.java) ?: 0
-                            dbRef.child("availableBoosts")
-                                .setValue(current + uiState.selectedQty)
-                        }
-            }
-
-            uiState = uiState.copy(isLoading = false, isSuccess = true)
-        } catch (e: Exception) {
-            uiState = uiState.copy(isLoading = false, error = e.message)
-        }
-    }
-}
-
-/**
- * Screen to run a single one-time purchase of [type].
- */
+/* ─────────────────────────── */
+/* 3.  Purchase screen         */
+/* ─────────────────────────── */
 @Composable
 fun OneTimePurchaseScreen(
     type: PurchaseType,
-    onBack: () -> Unit,
-    viewModel: PurchaseViewModel = viewModel()
+    navController: NavController,
+    onBack: () -> Unit
 ) {
-    val ui = viewModel.uiState
-    val context = LocalContext.current
-    val activity = context as? Activity
+    val ctx      = LocalContext.current
+    val uid      = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val userRoot = FirebaseDatabase.getInstance().getReference("users/$uid")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        TopAppBar(
-            backgroundColor = Color(0xFFFF6F00),
-            contentColor = Color.White,
-            title = { Text("Buy ${type.displayName}", color = Color.White) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+    var ui by remember { mutableStateOf(UiState()) }
+
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { res ->
+        ui = ui.copy(isProcessing = false)
+        if (res.resultCode != Activity.RESULT_OK) {
+            Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show(); return@rememberLauncherForActivityResult
+        }
+        val status = parseUpiStatus(res.data?.getStringExtra("response"))
+        if (status !in listOf("SUCCESS", "SUBMITTED")) {
+            Toast.makeText(ctx, "Payment failed: $status", Toast.LENGTH_LONG).show(); return@rememberLauncherForActivityResult
+        }
+
+        val qty = ui.selectedQty.toLong()
+        val updates = when (type) {
+            PurchaseType.Swipes      -> mapOf("swipesInfo/remainingSwipes" to increment(qty))
+            PurchaseType.Compliments -> mapOf("complimentsLeft"            to increment(qty))
+            PurchaseType.Boosts      -> mapOf("availableBoosts"            to increment(qty))
+            PurchaseType.AiMessages  -> mapOf("availableAiMessages"        to increment(qty))
+        }
+        userRoot.updateChildren(updates).addOnCompleteListener {
+            Toast.makeText(ctx, "Added $qty ${type.displayName}", Toast.LENGTH_LONG).show()
+            navController.popBackStack()
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Buy ${type.displayName}") },
+                colors = centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFF1E1E1E),
+                    titleContentColor = Color.White
+                ),
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                    }
+                }
+            )
+        },
+        containerColor = Color(0xFF121212)
+    ) { inner ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(32.dp))
+            Text("Select quantity", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Spacer(Modifier.height(16.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                listOf(5, 10, 20).forEach { qty ->
+                    FilterChip(
+                        selected = ui.selectedQty == qty,
+                        onClick  = { ui = ui.copy(selectedQty = qty) },
+                        label    = { Text(qty.toString()) },
+                        colors   = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor     = Color.White,
+                            containerColor         = Color(0xFF2A2A2A),
+                            labelColor             = Color.White
+                        )
+                    )
                 }
             }
-        )
 
-        Spacer(Modifier.height(24.dp))
-        Text(
-            text = "Quantity:",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White
-        )
-        Spacer(Modifier.height(8.dp))
-        listOf(5, 10, 20).forEach { qty ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = ui.selectedQty == qty,
-                    onClick = { viewModel.onQtySelected(qty) },
-                    colors = RadioButtonDefaults.colors(
-                        selectedColor = Color(0xFFFF6F00),
-                        unselectedColor = Color.White
-                    )
-                )
-                Text(qty.toString(), color = Color.White)
-            }
-        }
+            Spacer(Modifier.height(40.dp))
 
-        Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = { viewModel.createOrder(type) },
-            enabled = !ui.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color(0xFFFF6F00),
-                contentColor = Color.White
-            )
-        ) {
-            if (ui.isLoading) CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                color = Color.White
-            ) else Text("Create Order")
-        }
-
-        ui.orderId?.let { orderId ->
-            Spacer(Modifier.height(16.dp))
             Button(
                 onClick = {
-                    val checkout = Checkout().apply {
-                        setKeyID(ui.keyId!!)
-                    }
-                    val options = JSONObject().apply {
-                        put("order_id", orderId)
-                        put("name", "AM24 Bengal")
-                        put("description", "${ui.selectedQty} ${type.displayName}")
-                        put("currency", "INR")
-                        put("amount", type.unitPricePaise * ui.selectedQty)
-                    }
-                    activity?.let { checkout.open(it, options) }
+                    ui = ui.copy(isProcessing = true)
+                    launcher.launch(Intent(Intent.ACTION_VIEW, Uri.parse(type.link(ui.selectedQty))))
                 },
-                modifier = Modifier.fillMaxWidth(),
+                enabled = !ui.isProcessing,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color(0xFFFF6F00),
-                    contentColor = Color.White
+                    containerColor = Color(0xFFFF6F00),
+                    contentColor   = Color.White
                 )
             ) {
-                Text("Pay Now")
+                if (ui.isProcessing)
+                    CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                else
+                    Text("Pay via UPI", fontSize = 16.sp)
             }
-        }
-
-        ui.isSuccess.takeIf { it }?.let {
-            Spacer(Modifier.height(16.dp))
-            Text("Purchase successful!", color = Color(0xFFFF6F00))
-        }
-        ui.error?.let { err ->
-            Spacer(Modifier.height(16.dp))
-            Text("Error: $err", color = Color.White)
         }
     }
 }
+
+/* ───────── helper ───────── */
+fun parseUpiStatus(raw: String?): String =
+    raw?.split('&')
+        ?.mapNotNull { it.split('=', limit = 2).takeIf { p -> p.size == 2 }?.let { p -> p[0].uppercase() to p[1] } }
+        ?.toMap()
+        ?.get("STATUS") ?: "UNKNOWN"

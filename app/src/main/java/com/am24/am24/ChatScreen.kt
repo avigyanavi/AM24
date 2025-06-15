@@ -83,6 +83,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.am24.am24.util.LocaleUtils
 import kotlinx.coroutines.Dispatchers
@@ -105,6 +106,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.transformer.*
 import com.am24.am24.util.CachedFullscreenVideoPlayer
 import java.io.IOException
+import kotlin.compareTo
+import kotlin.dec
 
 // Updated Message data class (without viewed field)
 data class Message(
@@ -186,15 +189,37 @@ fun ChatScreenContent(
     var isVoicePlaying by remember { mutableStateOf(false) }
     var voiceProgress by remember { mutableStateOf(0f) }
     var voicePlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-    var pickLangMenu by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     var chatLang by rememberSaveable { mutableStateOf(LocaleUtils.getSavedLang(ctx)) }
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaType by remember { mutableStateOf<String?>(null) }
     var showReportDialog by remember { mutableStateOf(false) } // Added for report dialog
-    val activity = context as? ComponentActivity
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+    // add next to the other top-level state vars
+    var aiMessagesLeft by remember { mutableStateOf(0) }          // ★
+
+    /* ───────────────────  LOAD THE INITIAL BALANCE  ────────────────── */
+// place this *once* near your other LaunchedEffect(Unit) blocks
+    LaunchedEffect(Unit) {                                                       // ★ BEGIN AI-LOAD ★
+        try {
+            val snap = userRef.get().await()
+            aiMessagesLeft = snap.child("availableAiMessages")
+                .getValue(Int::class.java) ?: 0
+        } catch (e: Exception) {
+            Log.e("ChatScreen", "Failed loading AiMessages", e)
+        }
+    } // ★ END AI-LOAD ★
+
+    /* ─────────────────────  CREDIT-CONSUME HELPER  ─────────────────── */
+    fun consumeAiMessage(doWork: suspend () -> Unit) = scope.launch {            // ★ BEGIN AI-FUN ★
+        if (aiMessagesLeft <= 0) {
+            navController.navigate("buyAiMessages")      // bounce to top-up screen
+            return@launch
+        }
+        aiMessagesLeft--
+        userRef.child("availableAiMessages").setValue(aiMessagesLeft)            // atomic RTDB update
+        doWork()
+    }                                                                            // ★ END AI-FUN ★
 
     // Determine if the current user is premium
     val isPremiumUser = currentUserProfile?.isPremium == true
@@ -725,7 +750,14 @@ fun ChatScreenContent(
 // 1) Suggestion button – only enabled if user is premium
                     IconButton(
                         onClick = {
-                            if (isPremiumUser) {
+                            // only need to check premium; credits are handled by the helper
+                            if (!isPremiumUser) {
+                                Toast.makeText(context,
+                                    "Upgrade to Premium to access suggestions.", Toast.LENGTH_SHORT).show()
+                                return@IconButton
+                            }
+
+                            consumeAiMessage {
                                 suggestionsExpanded = true
                                 if (suggestions == null || messages.size > 10) {
                                     scope.launch {
@@ -734,75 +766,46 @@ fun ChatScreenContent(
                                         isLoadingSuggestions = false
                                     }
                                 }
-                            } else {
-                                Toast.makeText(context, "Upgrade to Premium to access suggestions.", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        enabled = isPremiumUser,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (isPremiumUser) Color(0xFFFFA500) else Color.Gray
+                        enabled = isPremiumUser && aiMessagesLeft > 0,
+                        colors  = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (isPremiumUser && aiMessagesLeft > 0)
+                                Color(0xFFFFA500) else Color.Gray
                         )
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Lightbulb,
-                                contentDescription = stringResource(R.string.btn_suggestions),
-                                tint = if (isPremiumUser) Color(0xFFFFA500) else Color.Gray,
-                                modifier = Modifier.size(24.dp)
-                            )
-
-                            if (!isPremiumUser) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    Icons.Default.Lock,
-                                    contentDescription = "Locked",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(24.dp))
                     }
 
-// 2) Places button – only enabled if user is premium
+                    // 2) Places button – only enabled if user is premium
                     IconButton(
                         onClick = {
-                            if (isPremiumUser) {
+                            if (!isPremiumUser) {
+                                Toast.makeText(context,
+                                    "Upgrade to Premium to see places.", Toast.LENGTH_SHORT).show()
+                                return@IconButton
+                            }
+
+                            consumeAiMessage {
                                 placeSuggestionsExpanded = true
                                 if (placeSuggestions == null || messages.size > 10) {
                                     scope.launch {
                                         isLoadingPlaces = true
                                         val sugg = fetchSuggestionsWithRetry()
-                                        placeSuggestions = sugg?.topics?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                        placeSuggestions = sugg?.topics
+                                            ?.let { getPlaceSuggestions(it, otherUserProfile, context) }
                                         isLoadingPlaces = false
                                     }
                                 }
-                            } else {
-                                Toast.makeText(context, "Upgrade to Premium to see places.", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        enabled = isPremiumUser,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (isPremiumUser) Color(0xFFFF6F00) else Color.Gray
+                        enabled = isPremiumUser && aiMessagesLeft > 0,
+                        colors  = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (isPremiumUser && aiMessagesLeft > 0)
+                                Color(0xFFFF6F00) else Color.Gray
                         )
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Place,
-                                contentDescription = stringResource(R.string.btn_places),
-                                tint = if (isPremiumUser) Color(0xFFFF6F00) else Color.Gray,
-                                modifier = Modifier.size(24.dp)
-                            )
-
-                            if (!isPremiumUser) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    Icons.Default.Lock,
-                                    contentDescription = "Locked",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        Icon(Icons.Default.Place, null, modifier = Modifier.size(24.dp))
                     }
 
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) {

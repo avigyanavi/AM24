@@ -245,47 +245,6 @@ exports.getNearbyProfiles = functions
     return { profiles };
   });
 
-
-/* ─── razorpayWebhook (HTTP) ─── */
-//exports.razorpayWebhook = functions
-//  .region('asia-south1')
-//  .https.onRequest(async (req, res) => {
-//    const body = req.rawBody;              // keep raw for signature check
-//    const sig  = req.get('X-Razorpay-Signature');
-//    const crypto = require('crypto');
-//
-//    const expected = crypto
-//      .createHmac('sha256', razorpay.key_secret)
-//      .update(body)
-//      .digest('hex');
-//
-//    if (expected !== sig) return res.status(400).send('bad sig');
-//
-//    const event = req.body.event;
-//    const payload = req.body.payload || {};
-//
-//    /* handle a few key events */
-//    if (event === 'subscription.charged') {
-//      const subId  = payload.subscription.entity.id;
-//      const userId = payload.subscription.entity.notes?.firebaseUid;     // store uid in notes when you create subs
-//      const next   = payload.payment.entity.acquirer_data.next_payment_date;
-//
-//      if (userId) {
-//        await admin.database().ref(`users/${userId}/premiumStatus/expiryDate`).set(Date.parse(next));
-//      }
-//    }
-//
-//    if (event === 'subscription.cancelled') {
-//      const subId  = payload.subscription.entity.id;
-//      const userId = payload.subscription.entity.notes?.firebaseUid;
-//      if (userId) {
-//        await admin.database().ref(`users/${userId}/premiumStatus`).update({ isPremium: false });
-//      }
-//    }
-//
-//    res.send('ok');
-//  });
-//
 ///* ─── verifySubscriptionPayment (callable) ─── */
 //exports.verifySubscriptionPayment = functions
 //  .region('asia-south1')
@@ -426,48 +385,164 @@ exports.verifyPaypalSubscription = functions.https.onCall(async (data, context) 
   return { valid, status, planId };   // your Android code can check .valid === true
 });
 
-exports.razorpayWebhook = functions
-  .region('asia-south1')
-  .https.onRequest(async (req, res) => {
-    if (req.method !== 'POST') {
-      return res.status(405).send('Method Not Allowed');
-    }
 
-    // 1) Verify HMAC
-    const signature = req.headers['x-razorpay-signature'] || '';
-    const bodyRaw   = JSON.stringify(req.body);
-    const expected  = crypto
-      .createHmac('sha256', RAZORPAY_SECRET)
-      .update(bodyRaw)
-      .digest('hex');
-    if (signature !== expected) {
-      console.error('❌ Invalid signature:', { expected, received: signature });
-      return res.status(400).send('Invalid signature');
-    }
+exports.grantWeeklyQuotas = functions.pubsub
+  .schedule('every monday 00:00')
+  .timeZone('Asia/Kolkata')
+  .onRun(async () => {
+    const usersRef = admin.database().ref('users');
+    const snap     = await usersRef.once('value');
+    const updates  = {};
 
-    // 2) Dispatch
-    const event   = req.body.event;
-    const payment = req.body.payload?.payment?.entity;
-    if (payment) {
-      const uid = payment.notes?.uid;
-      if (event === 'payment.captured' && uid) {
-        // 👉 Write `isPremium` at users/{uid}/isPremium
-        const expiry = new Date(Date.now() + 365*24*60*60*1000).toISOString();
-        await admin.database()
-          .ref(`users/${uid}/isPremium`)
-          .set(true);
-        // Optional: store expiry separately if you still want it
-        await admin.database()
-          .ref(`users/${uid}/expiryDate`)
-          .set(expiry);
+    snap.forEach(userSnap => {
+      const uid  = userSnap.key;
+      const data = userSnap.val() || {};
+      let boosts, compliments;
 
-        console.log(`✅ Marked ${uid} premium until ${expiry}`);
+      if (data.isPremium) {
+        boosts      = 5;
+        compliments = 5;
+      } else if (data.isPlus) {
+        boosts      = 3;
+        compliments = 3;
+      } else {
+        return; // skip free users
       }
-      else if (event === 'payment.failed' && uid) {
-        console.warn(`❌ Payment.failed for ${uid}`);
-      }
-    }
 
-    // 3) Ack
-    res.json({ status: 'ok' });
+      updates[`users/${uid}/availableBoosts`]      = boosts;
+      updates[`users/${uid}/availableCompliments`] = compliments;
+    });
+
+    // perform all updates in one go
+    await admin.database().ref().update(updates);
+    console.log("Weekly quotas granted.");
   });
+
+//exports.razorpayWebhook = functions
+//  .region('asia-south1')
+//  .https.onRequest(async (req, res) => {
+//    if (req.method !== 'POST') {
+//      return res.status(405).send('Method Not Allowed');
+//    }
+//
+//    // 1) Verify HMAC
+//    const signature = req.headers['x-razorpay-signature'] || '';
+//    const bodyRaw   = JSON.stringify(req.body);
+//    const expected  = crypto
+//      .createHmac('sha256', RAZORPAY_SECRET)
+//      .update(bodyRaw)
+//      .digest('hex');
+//    if (signature !== expected) {
+//      console.error('❌ Invalid signature:', { expected, received: signature });
+//      return res.status(400).send('Invalid signature');
+//    }
+//
+//    // 2) Dispatch by event type
+//    const event = req.body.event;
+//    const payload = req.body.payload || {};
+//    const db = admin.database();
+//
+//    // Helper: mark a user active + clear any pending badge
+//    async function activate(uid, expiryDate = null) {
+//      await db.ref(`users/${uid}`).update({
+//        subscription_status: 'active',
+//        isPremium: true,
+//        subscription_requested_at: null,
+//        strikes: 0
+//      });
+//      if (expiryDate) {
+//        await db.ref(`users/${uid}/expiryDate`).set(expiryDate);
+//      }
+//      console.log(`✅ Activated ${uid} via ${event}`);
+//    }
+//
+//    // Helper: revoke access + increment strike
+//    async function failAndStrike(uid) {
+//      const userRef = db.ref(`users/${uid}`);
+//      const { strikes = 0 } = (await userRef.once('value')).val() || {};
+//      const newStrikes = strikes + 1;
+//      const updates = {
+//        subscription_status: 'none',
+//        strikes: newStrikes
+//      };
+//      if (newStrikes >= 3) updates.is_banned = true;
+//      await userRef.update(updates);
+//      console.warn(`❌ ${event} failure for ${uid}. Strikes: ${newStrikes}`);
+//    }
+//
+//    // Extract uid (we assume you set notes.uid when creating links)
+//    const entity = payload.subscription?.entity || payload.payment?.entity || payload.qr_code?.entity;
+//    const uid    = entity?.notes?.uid;
+//
+//    try {
+//      switch (event) {
+//
+//        // ── Subscription link lifecycle ──
+//        case 'subscription.created':
+//          // user clicked the link → mark pending + grant trial
+//          await db.ref(`users/${uid}`).update({
+//            subscription_status: 'pending',
+//            subscription_requested_at: Date.now()
+//          });
+//          console.log(`🔔 subscription.created for ${uid}`);
+//          break;
+//
+//        case 'subscription.activated':
+//          // subscription fully active
+//          await activate(uid, entity?.current_end);
+//          break;
+//
+//        case 'subscription.charged':
+//          // recurring payment succeeded
+//          await activate(uid, entity.acquirer_data?.next_payment_date);
+//          break;
+//
+//        case 'subscription.charged.failed':
+//          // renewal failed → strike
+//          await failAndStrike(uid);
+//          break;
+//
+//        case 'subscription.cancelled':
+//          await db.ref(`users/${uid}`).update({
+//             subscription_status: 'none',
+//            isPremium: false
+//           });
+//        case 'subscription.completed':
+//          // subscription ended or cancelled
+//          await db.ref(`users/${uid}`).update({
+//            subscription_status: 'none',
+//            isPremium: false
+//          });
+//          console.log(`⚠️ ${event} for ${uid}: revoked`);
+//          break;
+//
+//        // ── One-time UPI/QR payments ──
+//        case 'qr_code.created':
+//          // you could mark a pending UPI payment here if you like
+//          await db.ref(`users/${uid}`).update({
+//            subscription_status: 'pending',
+//            subscription_requested_at: Date.now()
+//          });
+//          console.log(`🔔 qr_code.created for ${uid}`);
+//          break;
+//
+//        case 'qr_code.credited':
+//          // one-time UPI payment succeeded
+//          await activate(uid);
+//          break;
+//
+//        // ── Catch-all payment failure ──
+//        case 'payment.failed':
+//          await failAndStrike(uid);
+//          break;
+//
+//        default:
+//          console.log(`ℹ️ Unhandled event: ${event}`);
+//      }
+//
+//      res.status(200).send('ok');
+//    } catch (err) {
+//      console.error(`🔥 Error handling ${event}`, err);
+//      res.status(500).send('internal error');
+//    }
+//  });

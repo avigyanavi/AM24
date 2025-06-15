@@ -30,6 +30,8 @@ import coil.compose.AsyncImage
 import kotlin.math.roundToInt
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 
 
 @Composable
@@ -186,7 +188,7 @@ fun LeaderboardFilters(
 
         /* ------------------ Country (ExposedDropdownMenuBox) ------------------ */
         var countryExpanded by remember { mutableStateOf(false) }
-        val countryOptions = listOf("India", "United States", "United Kingdom", "Other")   // placeholder
+        val countryOptions = stringArrayResource(R.array.country_names).toList()
         ExposedDropdownMenuBox(
             expanded = countryExpanded,
             onExpandedChange = { countryExpanded = it }
@@ -222,7 +224,7 @@ fun LeaderboardFilters(
         // 2️⃣ Dropdowns instead of free-text
         // Example: City
         var cityExpanded by remember { mutableStateOf(false) }
-        val cityOptions = listOf("Kolkata", "Howrah", "Durgapur", "Other")
+        val cityOptions = stringArrayResource(R.array.city_names).toList()
         ExposedDropdownMenuBox(
             expanded = cityExpanded,
             onExpandedChange = { cityExpanded = it }
@@ -256,7 +258,21 @@ fun LeaderboardFilters(
 
         // Locality dropdown (same pattern)
         var localityExpanded by remember { mutableStateOf(false) }
-        val localityOptions = listOf("North", "South", "East", "West", "Other")
+        /* ------------------ Locality ------------------ */
+        val ctx = LocalContext.current
+        val localityArrayName =
+            "localities_" + cityFilter
+                .lowercase()
+                .replace(' ', '_')        // “New Town” → “new_town”
+                .replace('-', '_')        // “Secunderabad-Jubilee” → …
+        val localityResId = remember(cityFilter) {
+            ctx.resources.getIdentifier(localityArrayName, "array", ctx.packageName)
+        }
+        val localityOptions: List<String> =
+            if (localityResId != 0)
+                stringArrayResource(id = localityResId).toList()
+            else
+                listOf("Other")           // graceful fallback
         ExposedDropdownMenuBox(
             expanded = localityExpanded,
             onExpandedChange = { localityExpanded = it }

@@ -1,15 +1,19 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.am24.am24
 
 /* Android & Compose */
-import android.content.Context
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import android.telephony.TelephonyManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -26,132 +30,166 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import kotlinx.coroutines.tasks.await
-import java.util.Locale
+import com.google.firebase.database.ServerValue.increment
 
+/* ───────── Subscription screen ───────── */
 
 @Composable
 fun SubscriptionScreen(navController: NavController) {
-    val ctx   = LocalContext.current
-    val user  = FirebaseAuth.getInstance().currentUser ?: return
-    val uid   = user.uid
 
-    // 0) Live‐listen for isPremium
-    var isPremium by remember { mutableStateOf<Boolean?>(null) }
-    val premiumRef = FirebaseRefs.db
-        .getReference("users")
-        .child(uid)
-        .child("isPremium")
+    /* Firebase handles */
+    val ctx       = LocalContext.current
+    val uid       = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val db        = FirebaseDatabase.getInstance()
+    val userRoot  = db.getReference("users/$uid")
+    val plusRef     = userRoot.child("isPlus")
+    val premiumRef  = userRoot.child("isPremium")
 
-    DisposableEffect(premiumRef) {
-        val listener = object: ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                isPremium = snap.getValue(Boolean::class.java) ?: false
+    /* 1️⃣  Listen for either flag so we leave once subscribed */
+    var isPlusState    by remember { mutableStateOf<Boolean?>(null) }
+    var isPremiumState by remember { mutableStateOf<Boolean?>(null) }
+
+    DisposableEffect(plusRef, premiumRef) {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                isPlusState    = s.child("isPlus").getValue(Boolean::class.java)
+                isPremiumState = s.child("isPremium").getValue(Boolean::class.java)
             }
-            override fun onCancelled(err: DatabaseError) {
-                isPremium = false
-            }
+            override fun onCancelled(error: DatabaseError) { /* ignore */ }
         }
-        premiumRef.addValueEventListener(listener)
-        onDispose { premiumRef.removeEventListener(listener) }
+        userRoot.addValueEventListener(listener)
+        onDispose { userRoot.removeEventListener(listener) }
     }
 
-    // 1) Already premium? pop back
-    if (isPremium == true) {
-        LaunchedEffect(Unit) {
-            navController.popBackStack()
+    /* 2️⃣  Auto-exit if already subscribed */
+    when {
+        isPremiumState == null || isPlusState == null -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF00BF63))
+            }
+            return
         }
-        return
-    } else if (isPremium == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFF00bf63))
+        isPremiumState == true || isPlusState == true -> {
+            LaunchedEffect(Unit) { navController.popBackStack() }
+            return
         }
-        return
     }
 
-    // 2) Not premium → show payment buttons
-    val tm             = ctx.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-    val simCountry     = tm.simCountryIso
-    val networkCountry = tm.networkCountryIso
-    val localeCountry  = Locale.getDefault().country
-    val countryCode = when {
-        simCountry.isNotBlank()     -> simCountry
-        networkCountry.isNotBlank() -> networkCountry
-        else                         -> localeCountry
-    }.uppercase(Locale.ROOT)
-    val usePaypal = countryCode in setOf("US","CA","AU","GB")
-
-    // razorpay short link (no callback)
-    val razorpayUrl = "https://rzp.io/rzp/x1zwA1qz"
-
-    // UPI deep-link unchanged
-    val upiLink = "upi://pay?ver=01&mode=19&pa=mukherjeeallian718511.rzp@icici" +
+    /* 3️⃣  Deep links */
+    val PLUS_UPI_LINK = "upi://pay?ver=01&mode=19" +
+            "&pa=mukherjeeallian718511.rzp@icici" +
             "&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
-            "&tr=RZPQf5yHb5NdEjERFqrv2&cu=INR&mc=7372&qrMedium=04" +
+            "&tr=RZPQgdtoAmnwI2kJSqrv2" +
+            "&cu=INR&mc=7372&qrMedium=04" +
             "&tn=PaymenttoMUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
-            "&am=29.00"
+            "&am=500.00"
 
+    val PREMIUM_UPI_LINK = "upi://pay?ver=01&mode=19" +
+            "&pa=mukherjeeallian718511.rzp@icici" +
+            "&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
+            "&tr=RZPQgj6iMP00wbDP9qrv2" +          // ← new transaction ID
+            "&cu=INR&mc=7372&qrMedium=04" +
+            "&tn=PaymenttoMUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
+            "&am=1000.00"
+
+    val plusIntent     = remember { Intent(Intent.ACTION_VIEW, Uri.parse(PLUS_UPI_LINK)) }
+    val premiumIntent  = remember { Intent(Intent.ACTION_VIEW, Uri.parse(PREMIUM_UPI_LINK)) }
+
+    /* 4️⃣  Launchers */
+    val plusLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val resp = result.data?.getStringExtra("response")
+            if (parseUpiStatus(resp) in listOf("SUCCESS", "SUBMITTED")) {
+                userRoot.updateChildren(
+                    mapOf(
+                        "isPlus"              to true,
+                        "availableBoosts"     to increment(3L),
+                        "availableCompliments" to increment(3L)
+                    )
+                )
+            } else {
+                Toast.makeText(ctx, "Payment failed or cancelled", Toast.LENGTH_LONG).show()
+            }
+        } else Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
+    }
+
+    val premiumLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val resp = result.data?.getStringExtra("response")
+            if (parseUpiStatus(resp) in listOf("SUCCESS", "SUBMITTED")) {
+                userRoot.updateChildren(
+                    mapOf(
+                        "isPremium"           to true,
+                        "availableBoosts"     to increment(5L),
+                        "availableCompliments" to increment(5L)
+                    )
+                )
+            } else {
+                Toast.makeText(ctx, "Payment failed or cancelled", Toast.LENGTH_LONG).show()
+            }
+        } else Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
+    }
+
+    /* 5️⃣  UI */
     Column(
         Modifier
             .fillMaxSize()
             .background(Color(0xFF121212))
-            .padding(16.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement  = Arrangement.Center
     ) {
-        Text(
-            "Upgrade to Premium",
-            color      = Color(0xFF00bf63),
-            fontSize   = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(16.dp))
-        Text("Subscribe once • auto-renew yearly", color = Color.White, fontSize = 16.sp)
-        Spacer(Modifier.height(32.dp))
+        Text("Choose your plan", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
 
-        if (usePaypal) {
-            Button(
-                onClick  = { navController.navigate("paypal_web") },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-            ) {
-                Text("Pay with PayPal – \$3.00", color = Color.White, fontSize = 16.sp)
-            }
-        } else {
-            Button(
-                onClick  = {
-                    ctx.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(razorpayUrl))
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-            ) {
-                Text("Pay with Razorpay – ₹29.00", color = Color.White, fontSize = 16.sp)
-            }
+        Spacer(Modifier.height(28.dp))
 
-            Spacer(Modifier.height(12.dp))
-
-            Button(
-                onClick  = {
-                    ctx.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(upiLink))
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF005CDB))
-            ) {
-                Text("Pay via UPI – ₹29.00", color = Color.White, fontSize = 16.sp)
-            }
+        Button(
+            onClick = { plusLauncher.launch(plusIntent) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            Text("Get Plus — ₹500", fontSize = 16.sp, color = Color.White)
         }
 
         Spacer(Modifier.height(16.dp))
+
+        Button(
+            onClick = { premiumLauncher.launch(premiumIntent) },
+            colors  = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BF63)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            Text("Get Premium — ₹1 000", fontSize = 16.sp, color = Color.White)
+        }
+
+        Spacer(Modifier.height(24.dp))
+
         TextButton(onClick = { navController.popBackStack() }) {
-            Text("Cancel", color = Color(0xFF00bf63), fontSize = 16.sp)
+            Text("Cancel", color = Color(0xFF00BF63))
         }
     }
 }
-/* ─── WebView screen for Smart Button ─── */
+
+/* Helper – parses the UPI callback string */
+fun parseUpiStatus(raw: String?): String =
+    raw
+        ?.split('&')
+        ?.mapNotNull {
+            val parts = it.split('=', limit = 2)
+            if (parts.size == 2) parts[0].uppercase() to parts[1] else null
+        }
+        ?.toMap()
+        ?.get("STATUS")
+        ?: "UNKNOWN"
+
+/* ───────── PayPal Smart-Button WebView (unchanged) ───────── */
+
 @Composable
 fun PayPalWebView(navController: NavController) {
     val ctx        = LocalContext.current

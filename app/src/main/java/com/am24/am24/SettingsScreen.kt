@@ -104,6 +104,7 @@ fun SettingsScreen(navController: NavController) {
     var boosts by remember { mutableStateOf(0) }
     var swipes by remember { mutableStateOf(0) }
     var compliments by remember { mutableStateOf(0) }
+    var aiMessages    by remember { mutableStateOf(0) }       // ★ NEW ★
 
     var isPrivate by remember { mutableStateOf(false) }
     var preferredLang by remember { mutableStateOf("en") }
@@ -130,6 +131,7 @@ fun SettingsScreen(navController: NavController) {
         boosts      = s.child("availableBoosts").getValue(Int::class.java) ?: 0
         swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
         compliments = s.child("availableCompliments").getValue(Int::class.java) ?: 0
+        aiMessages    = s.child("availableAiMessages").getValue(Int::class.java) ?: 0   // ← NEW
 
         isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
         preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: "en"
@@ -235,55 +237,62 @@ fun SettingsScreen(navController: NavController) {
                 SettingsSection {
                     ListItem(
                         leadingContent = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
-                        headlineContent = { Text("Subscription", fontWeight = FontWeight.Bold) }
+                        headlineContent = { Text("Membership", fontWeight = FontWeight.Bold) }
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
                     /** FREE (upgrade) or PLUS/PREMIUM dashboard **/
                     if (premiumTier == "Free") {
                         SettingsRow(
-                            icon = { Icon(Icons.Default.StarOutline, null) },
+                            icon  = { Icon(Icons.Default.StarOutline, null) },
                             title = "Free User",
                             trailingText = "Upgrade",
-                            onClick = { navController.navigate("subscription") } // upgrade
+                            onClick = { navController.navigate("subscription") }
                         )
                     } else {
+                        /* display tier information – no expiry date */
                         SettingsRow(
-                            icon = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
+                            icon  = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
                             title = "$premiumTier Member",
                             trailingText = "Expires: $expiry",
                             onClick = { navController.navigate("subscription") } // manage / cancel
-                        )
-                        Divider(Modifier.padding(start = 56.dp))
-                        SettingsRow(
-                            icon = { Icon(Icons.Default.PauseCircle, null) },
-                            title = "Cancel / Pause Subscription",
-                            showChevron = false,
-                            onClick = { navController.navigate("subscription") }
                         )
                     }
 
                     Divider(Modifier.padding(start = 56.dp))
 
+                    /* STATIC BOOSTS ROW  */
                     SettingsRow(
-                        icon = { Icon(Icons.Default.FlashOn, null) },
-                        title = "Boosts remaining",
+                        icon         = { Icon(Icons.Default.FlashOn, null) },
+                        title        = "Boosts remaining",
                         trailingText = "$boosts",
                         onClick = { navController.navigate("buyBoosts") }
                     )
                     Divider(Modifier.padding(start = 56.dp))
+
+                    /* STATIC SWIPES ROW  */
                     SettingsRow(
-                        icon = { Icon(Icons.Default.Swipe, null) },
-                        title = "Swipes remaining",
+                        icon         = { Icon(Icons.Default.Swipe, null) },
+                        title        = "Swipes remaining",
                         trailingText = "$swipes",
                         onClick = { navController.navigate("buySwipes") }
                     )
                     Divider(Modifier.padding(start = 56.dp))
+
+                    /* STATIC COMPLIMENTS ROW  */
                     SettingsRow(
-                        icon = { Icon(Icons.Default.FavoriteBorder, null) },
-                        title = "Compliments remaining",
+                        icon         = { Icon(Icons.Default.FavoriteBorder, null) },
+                        title        = "Compliments remaining",
                         trailingText = "$compliments",
                         onClick = { navController.navigate("buyCompliments") }
+                    )
+
+                    /* AI messages  ★ NEW ★ */
+                    SettingsRow(
+                        icon         = { Icon(Icons.Default.SmartToy, null) },
+                        title        = "AI messages remaining",
+                        trailingText = aiMessages.toString(),
+                        onClick      = { navController.navigate("buyAiMessages") }
                     )
                 }
             }
