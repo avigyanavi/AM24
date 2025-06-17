@@ -1019,6 +1019,29 @@
         <string name="community_lakhadweepi">லக்ஷத்வீபி</string>
         <string name="community_other">மற்றவை</string>
 
+        <string name="community_urdu_speaker">உருது பேசுபவர்</string>
+        <string name="community_tibetan">திபெத்தியர்</string>
+        <string name="community_sindhi">சிந்தி</string>
+        <string name="community_parsi">பார்சி</string>
+        <string name="community_malayali_mappila">மலையாளி மப்பிள</string>
+        <string name="community_lepcha">லெப்சா</string>
+        <string name="community_kumaoni">குமௌனி</string>
+        <string name="community_gond">கோண்ட்</string>
+        <string name="community_coorgi">கோடவ</string>
+        <string name="community_dogra">டோக்ரா</string>
+        <string name="community_bhojpuri">போஜ்புரி</string>
+        <string name="community_bhil">பீல்</string>
+        <string name="community_banjara">பஞ்சாரா</string>
+        <string name="community_awadhi">அவதி</string>
+        <string name="community_anglo_indian">ஆங்கிலோ இந்தியர்</string>
+
+        <string name="religion_parsi">பார்சி</string>
+        <string name="religion_jewish">யூத</string>
+
+        <string name="caste_nair">நாயர்</string>
+        <string name="caste_gurjar">குஜ்ஜர்</string>
+        <string name="caste_bhumihar">பூமிஹார்</string>
+
         <!-- Religion Dropdown -->
         <string name="religion_hindu">இந்து</string>
         <string name="religion_muslim">முஸ்லிம்</string>
@@ -1026,10 +1049,8 @@
         <string name="religion_buddhist">புத்தமதம்</string>
         <string name="religion_jain">ஜைனம்</string>
         <string name="religion_sikh">சீக்கியர்</string>
-        <string name="religion_jew">யூதர்</string>
         <string name="religion_indigenous_tribal">பழங்குடி/உள்நாட்டு</string>
         <string name="religion_no_religion">மதம் இல்லை</string>
-        <string name="religion_zoroastrian">ஜோரோஸ்ட்ரியன்</string>
         <string name="religion_other">மற்றவை</string>
 
         <!-- Caste Dropdown -->

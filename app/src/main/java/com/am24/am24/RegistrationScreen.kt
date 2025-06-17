@@ -38,6 +38,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +70,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
@@ -117,8 +120,11 @@ class RegistrationActivity : ComponentActivity() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Check if this registration was initiated via Google sign-up.
-        val isGoogleSignUp = intent.getBooleanExtra("isGoogleSignUp", false)
-        val initialStep = if (isGoogleSignUp) 2 else 1
+        val provider      = intent.getStringExtra("signInProvider") ?: "emailPassword"
+        val requested     = intent.getIntExtra("requestedStartStep", 1)
+        val initialStep   = if (provider != "emailPassword" && requested == 1) 2 else requested
+
+
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
 
         setContent {
@@ -131,6 +137,7 @@ class RegistrationActivity : ComponentActivity() {
                         // ① first save the whole profile under /users/{uid}
                         lifecycleScope.launch {
                             saveProfileToFirebase(
+                                this@RegistrationActivity,
                                 registrationViewModel,
                                 /* other-string = */ getString(R.string.college_other)
                             ) {
@@ -141,7 +148,7 @@ class RegistrationActivity : ComponentActivity() {
                                     db.child("users").child(uid).child("username").get()
                                         .addOnSuccessListener { snap ->
                                             val username = snap.getValue(String::class.java) ?: return@addOnSuccessListener
-                                            val signInMethod = if (isGoogleSignUp) "google" else "emailPassword"
+                                            val signInMethod = provider          // already one of the three strings
                                             db.child("publicUsers")
                                                 .child(username)
                                                 .setValue(mapOf(
@@ -149,6 +156,7 @@ class RegistrationActivity : ComponentActivity() {
                                                     "signInMethod"         to signInMethod,
                                                     "registrationFinished" to true
                                                 ))
+                                            FirebaseRefs.db.reference.child("users/$uid/registrationStep").removeValue()
                                                 .addOnSuccessListener {
                                                     startActivity(Intent(this@RegistrationActivity, MainActivity::class.java))
                                                     finish()
@@ -165,11 +173,6 @@ class RegistrationActivity : ComponentActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        deleteIncompleteRegistration()
-    }
-
     override fun attachBaseContext(newBase: Context) {
         // Retrieve the language code from SharedPreferences (default "en")
         val prefs = newBase.getSharedPreferences("settings", MODE_PRIVATE)
@@ -177,31 +180,37 @@ class RegistrationActivity : ComponentActivity() {
         val updatedContext = updateLocale(newBase, languageCode)
         super.attachBaseContext(updatedContext)
     }
+}
 
-    private fun deleteIncompleteRegistration() {
-        val currentUser = auth.currentUser
-
-        // Check if the user exists and has not completed the registration
-        if (currentUser != null) {
-            val userId = currentUser.uid
-            FirebaseRefs.db.reference
-                .child("users")
-                .child(userId)
-                .child("username")
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    if (!snapshot.exists()) {
-                        // If username does not exist, delete the unverified account
-                        currentUser.delete()
-                            .addOnSuccessListener {
-                                Log.d("RegistrationActivity", "Unverified user account deleted successfully.")
-                            }
-                            .addOnFailureListener { exception ->
-                                Log.e("RegistrationActivity", "Failed to delete unverified user: ${exception.message}")
-                            }
-                    }
+suspend fun claimPhoneNumber(
+    db: DatabaseReference,
+    e164: String,      // “+919876543210”
+    uid: String
+): Boolean = suspendCancellableCoroutine { cont ->
+    db.child("phoneNumbers").child(e164)
+        .runTransaction(object : Transaction.Handler {
+            override fun doTransaction(current: MutableData): Transaction.Result {
+                return if (current.value == null) {
+                    current.value = uid                 // reserve it
+                    Transaction.success(current)
+                } else {
+                    Transaction.abort()                 // someone else has it
                 }
-        }
+            }
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                snapshot: DataSnapshot?
+            ) {
+                cont.resume(committed) {}               // true = success
+            }
+        })
+}
+
+private fun saveStep(step: Int) {
+    FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+        FirebaseRefs.db.reference.child("users/$uid/registrationStep")
+            .setValue(step)
     }
 }
 
@@ -236,8 +245,8 @@ class RegistrationViewModel : ViewModel() {
     var voiceNoteUrl by mutableStateOf<String?>(null)
     var optionalPhotoUrls = mutableStateListOf<String>()
 
-    var height by mutableStateOf(169)            // Height in centimeters
-    var height2 by mutableStateOf(listOf(5, 7))  // Height in feet + inches (default example: 5'7")
+    var height by mutableStateOf(0)            // Height in centimeters
+    var height2 by mutableStateOf(listOf(0, 0))  // Height in feet + inches (default example: 5'7")
     var isHeightInFeet by mutableStateOf(false)  // Toggle for height unit preference (cm or feet+inches)
     var caste by mutableStateOf("")              // User's caste
 
@@ -338,7 +347,10 @@ fun RegistrationScreen(
     val progress = currentStep.toFloat() / totalSteps.toFloat()
 
     val context = LocalContext.current
-    val onNext = { currentStep += 1 }
+    val onNext = {
+        currentStep += 1
+        saveStep(currentStep)
+    }
     val onBack: () -> Unit = {
         when {
             // BACK from Step 2 → Step 1: delete half-baked account, clear email/password, go to step 1
@@ -355,6 +367,7 @@ fun RegistrationScreen(
             // any other back (steps > 2) just go back a step
             currentStep > 2 -> {
                 currentStep -= 1
+                saveStep(currentStep)
             }
             // BACK from Step 1 → exit: also delete incomplete auth right here, then finish
             else -> {
@@ -1760,99 +1773,99 @@ fun SearchableDropdownWithCustomOption(
     onCustomInputChange: (String?) -> Unit = {}
 ) {
     val other = stringResource(R.string.college_other)
-    var showCustomInput by remember(selectedOption) { mutableStateOf(selectedOption == other) }
-    var expanded by remember { mutableStateOf(false) }
-    var searchText by remember { mutableStateOf("") }
 
+    // ── state ───────────────────────────────────────────────────────────────
+    var showCustomInput by remember(selectedOption) {
+        mutableStateOf(selectedOption == other)
+    }
+    var expanded    by remember { mutableStateOf(false) }
+    var searchText  by rememberSaveable { mutableStateOf("") }
+
+    // local copy of the custom text
+    var customText  by rememberSaveable(selectedOption) {
+        mutableStateOf(customInput.orEmpty())
+    }
+
+    // ── UI ──────────────────────────────────────────────────────────────────
     Column(Modifier.fillMaxWidth()) {
-        Text(text = title, color = Color.White, fontSize = 11.sp)
+        Text(title, fontSize = 11.sp, color = Color.White)
 
+        /* ---------- Button that opens the menu ---------- */
         OutlinedButton(
-            onClick = {
-                expanded = !expanded
-                searchText = ""
-            },
+            onClick = { expanded = !expanded; searchText = "" },
             modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
+            border   = BorderStroke(1.dp, Color(0xFFFF6000)),
+            colors   = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
         ) {
-            val displayText = if (showCustomInput) {
-                if (!customInput.isNullOrEmpty()) customInput else "Custom"
+            val display = if (showCustomInput) {
+                if (customText.isNotBlank()) customText else "Custom"
             } else {
                 selectedOption.ifEmpty { stringResource(R.string.select_or_type) }
             }
-            Text(
-                text = displayText,
-                fontSize = 11.sp,
-                color = Color.White
-            )
+            Text(display, fontSize = 11.sp, color = Color.White)
         }
 
+        /* ---------- Drop-down ---------- */
         DropdownMenu(
-            expanded = expanded,
+            expanded         = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier
+            modifier         = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF1A1A1A))
         ) {
             TextField(
-                value = searchText,
-                onValueChange = {
-                    searchText = it
-                    showCustomInput = false
-                },
-                label = {
-                    Text(stringResource(R.string.search_label), fontSize = 11.sp, color = Color.White)
-                },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedLabelColor = Color(0xFFFF4500),
+                value         = searchText,
+                onValueChange = { searchText = it },
+                label         = { Text(stringResource(R.string.search_label), fontSize = 11.sp) },
+                colors        = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Color(0xFFFF4500),
-                    cursorColor       = Color(0xFFFF4500),
-                    focusedTextColor  = Color.White
-                )
+                    cursorColor        = Color(0xFFFF4500),
+                    focusedTextColor          = Color.White,
+                    focusedLabelColor  = Color(0xFFFF4500)
+                ),
+                singleLine    = true
             )
 
             Spacer(Modifier.height(8.dp))
 
-            options
-                .filter { it.contains(searchText, ignoreCase = true) }
-                .forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option, fontSize = 11.sp, color = Color.White) },
-                        onClick = {
-                            onOptionSelected(option)
-                            expanded = false
-                            showCustomInput = (option == other)
-                        }
-                    )
-                }
+            options.filter { it.contains(searchText, true) }.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option, fontSize = 11.sp) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded        = false
+                        showCustomInput = option == other
+                    }
+                )
+            }
         }
 
+        /* ---------- Custom value ---------- */
         if (showCustomInput) {
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
-                value = customInput.orEmpty(),
-                onValueChange = { newText ->
-                    onCustomInputChange(newText)
+                value         = customText,
+                onValueChange = { new ->
+                    customText = new               // update instantly for smooth typing
+                    onCustomInputChange(new.ifBlank { null })
                 },
-                label = {
-                    Text(
-                        stringResource(R.string.enter_custom_value),
-                        fontSize = 11.sp,
-                        color = Color.White
-                    )
+                label         = {
+                    Text(stringResource(R.string.enter_custom_value), fontSize = 11.sp)
                 },
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedLabelColor = Color(0xFFFF4500),
+                singleLine    = true,
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                modifier      = Modifier.fillMaxWidth(),
+                colors        = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Color(0xFFFF4500),
-                    cursorColor       = Color(0xFFFF4500),
-                    focusedTextColor  = Color.White
+                    cursorColor        = Color(0xFFFF4500),
+                    focusedTextColor          = Color.White,
+                    focusedLabelColor  = Color(0xFFFF4500)
                 )
             )
         }
     }
 }
+
 
 // ─── replace your old EnterEmailAndPasswordScreen with this ───
 enum class AuthTab { PHONE, EMAIL }
@@ -2203,25 +2216,72 @@ fun EnterGenderCommunityReligionScreen(
     // Predefined lists for dropdown options
     val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), other)
     val communityOptions = listOf(
-        /* ——— Fallback / custom entry ——— */
-        other,
-        /* ——— Mainstream Bengal & pan‑India ——— */
+        stringResource(R.string.community_other),
+        stringResource(R.string.community_adi),
+        stringResource(R.string.community_anglo_indian),
+        stringResource(R.string.community_andamanese),
+        stringResource(R.string.community_assamese),
+        stringResource(R.string.community_awadhi),
+        stringResource(R.string.community_banjara),
         stringResource(R.string.community_bengali),
-        stringResource(R.string.community_marwari),
+        stringResource(R.string.community_bhil),
+        stringResource(R.string.community_bhojpuri),
         stringResource(R.string.community_bihari),
-        stringResource(R.string.community_punjabi),
-        stringResource(R.string.community_santhal),
+        stringResource(R.string.community_bodo),
+        stringResource(R.string.community_chhattisgarhi),
+        stringResource(R.string.community_coorgi),
+        stringResource(R.string.community_dogra),
+        stringResource(R.string.community_garhwali),
+        stringResource(R.string.community_goan),      // “Goan”
+        stringResource(R.string.community_gond),
         stringResource(R.string.community_gujarati),
+        stringResource(R.string.community_haryanvi),
+        stringResource(R.string.community_himachali),
         stringResource(R.string.community_kannadiga),
-        stringResource(R.string.community_tamil),
+        stringResource(R.string.community_kashmiri),
+        stringResource(R.string.community_khasi),
+        stringResource(R.string.community_konkani),
+        stringResource(R.string.community_kumaoni),
+        stringResource(R.string.community_ladakhi),
+        stringResource(R.string.community_lakhadweepi),
+        stringResource(R.string.community_lepcha),
+        stringResource(R.string.community_madhya_pradeshi),
         stringResource(R.string.community_malayali),
-        stringResource(R.string.community_odia),
-        stringResource(R.string.community_telugu),
-        stringResource(R.string.community_nepali),
+        stringResource(R.string.community_malayali_mappila),
+        stringResource(R.string.community_manipuri),
+        stringResource(R.string.community_marathi),
+        stringResource(R.string.community_marwari),
+        stringResource(R.string.community_mizo),
         stringResource(R.string.community_munda),
+        stringResource(R.string.community_naga),
+        stringResource(R.string.community_nepali),
+        stringResource(R.string.community_nyishi),
+        stringResource(R.string.community_odia),
         stringResource(R.string.community_oraon),
+        stringResource(R.string.community_parsi),
+        stringResource(R.string.community_punjabi),
+        stringResource(R.string.community_rajasthani),
+        stringResource(R.string.community_santhal),
+        stringResource(R.string.community_sikkimese),
+        stringResource(R.string.community_sindhi),
+        stringResource(R.string.community_tamil),
+        stringResource(R.string.community_telugu),
+        stringResource(R.string.community_tibetan),
+        stringResource(R.string.community_tripuri),
+        stringResource(R.string.community_urdu_speaker),
     )
-    val religionOptions = listOf(stringResource(R.string.religion_hindu), stringResource(R.string.religion_muslim), stringResource(R.string.religion_christian), stringResource(R.string.religion_sikh), stringResource(R.string.religion_buddhist), stringResource(R.string.religion_jain), stringResource(R.string.religion_no_religion), stringResource(R.string.religion_indigenous_tribal), stringResource(R.string.religion_other))
+    val religionOptions = listOf(
+        stringResource(R.string.religion_other),
+        stringResource(R.string.religion_buddhist),
+        stringResource(R.string.religion_christian),
+        stringResource(R.string.religion_hindu),
+        stringResource(R.string.religion_indigenous_tribal),
+        stringResource(R.string.religion_jain),
+        stringResource(R.string.religion_jewish),
+        stringResource(R.string.religion_muslim),
+        stringResource(R.string.religion_no_religion),
+        stringResource(R.string.religion_parsi),
+        stringResource(R.string.religion_sikh),)
 
     // Validation for enabling the "Next" button
     val isNextEnabled = registrationViewModel.gender.isNotEmpty()
@@ -2288,17 +2348,34 @@ fun EnterGenderCommunityReligionScreen(
                 SearchableDropdownWithCustomOption(
                     title = stringResource(R.string.caste_title),
                     options = listOf(
-                        stringResource(R.string.caste_brahmin),
-                        stringResource(R.string.caste_kshatriya),
+                        stringResource(R.string.caste_other),
                         stringResource(R.string.caste_baidya),
+                        stringResource(R.string.caste_bhumihar),
+                        stringResource(R.string.caste_bhil),
+                        stringResource(R.string.caste_brahmin),
+                        stringResource(R.string.caste_ezhava),
+                        stringResource(R.string.caste_general),
+                        stringResource(R.string.caste_gowda),
+                        stringResource(R.string.caste_gurjar),
+                        stringResource(R.string.caste_jat),
+                        stringResource(R.string.caste_kayastha),
+                        stringResource(R.string.caste_kshatriya),
+                        stringResource(R.string.caste_kurmi),
+                        stringResource(R.string.caste_lingayat),
                         stringResource(R.string.caste_mahishya),
-                        stringResource(R.string.caste_sadgop),
-                        stringResource(R.string.caste_vaishya),
+                        stringResource(R.string.caste_maratha),
+                        stringResource(R.string.caste_naidu),
+                        stringResource(R.string.caste_nair),
                         stringResource(R.string.caste_obc),
+                        stringResource(R.string.caste_patel),
+                        stringResource(R.string.caste_rajvanshi),
+                        stringResource(R.string.caste_reddy),
+                        stringResource(R.string.caste_sadgop),
                         stringResource(R.string.caste_scheduled_caste),
                         stringResource(R.string.caste_scheduled_tribe),
-                        stringResource(R.string.caste_general),
-                        stringResource(R.string.caste_other)
+                        stringResource(R.string.caste_vaishya),
+                        stringResource(R.string.caste_vellalar),
+                        stringResource(R.string.caste_yadav)
                     ),
                     selectedOption = registrationViewModel.caste,
                     onOptionSelected = { selectedOption ->
@@ -2630,6 +2707,7 @@ fun EnterUsernameScreen(
 }
 
 suspend fun saveProfileToFirebase(
+    context: Context,                          // ★ new
     registrationViewModel: RegistrationViewModel,
     other: String,
     onRegistrationComplete: () -> Unit
@@ -2637,6 +2715,24 @@ suspend fun saveProfileToFirebase(
     try {
         val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val e164   = registrationViewModel.phoneNumber
+            .ifBlank { FirebaseAuth.getInstance().currentUser?.phoneNumber }
+            ?.let { formatPhoneNumber(it) }          // “+91…”
+            ?: ""
+
+        /* ── NEW: atomic claim ─────────────────────────────────── */
+        if (e164.isNotBlank()) {
+            val ok = claimPhoneNumber(database, e164, userId)
+            if (!ok) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context, "That mobile number is already linked to another account.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return                                             // abort registration
+            }
+        }
 
         val finalHeightCm = if (registrationViewModel.isHeightInFeet) {
             registrationViewModel.feetInchesToCm(

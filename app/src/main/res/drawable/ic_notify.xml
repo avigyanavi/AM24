@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- “Notifications” outline, single-tone white -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,22
+                          c1.1,0 2,-0.9 2,-2h-4
+                          c0,1.1 0.9,2 2,2zM18.29,17l1.71,1.71
+                          c0.14,0.14 0.22,0.33 0.22,0.53
+                          0,0.41 -0.34,0.75 -0.75,0.75H4.53
+                          c-0.42,0 -0.75,-0.34 -0.75,-0.75
+                          0,-0.2 0.08,-0.39 0.22,-0.53L5.71,17H6
+                          v-5c0,-3.07 1.63,-5.64 4.5,-6.32V5
+                          c0,-0.83 0.67,-1.5 1.5,-1.5
+                          s1.5,0.67 1.5,1.5v0.68
+                          C16.37,6.36 18,8.92 18,12v5h0.29z"/>
+</vector>

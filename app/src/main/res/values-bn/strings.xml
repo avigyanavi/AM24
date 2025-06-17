@@ -984,6 +984,29 @@
 
     <!-- Community options for dropdown -->
     <!-- Community Dropdown -->
+    <string name="community_urdu_speaker">উর্দু ভাষী</string>
+    <string name="community_tibetan">তিব্বতি</string>
+    <string name="community_sindhi">সিন্ধি</string>
+    <string name="community_parsi">পারসি</string>
+    <string name="community_malayali_mappila">মালয়ালি মাপ্পিলা</string>
+    <string name="community_lepcha">লেপ্চা</string>
+    <string name="community_kumaoni">কুমাউনি</string>
+    <string name="community_gond">গোন্ড</string>
+    <string name="community_coorgi">কুর্গি</string>
+    <string name="community_dogra">ডোগরা</string>
+    <string name="community_bhojpuri">ভোজপুরি</string>
+    <string name="community_bhil">ভীল</string>
+    <string name="community_banjara">বাঞ্জারা</string>
+    <string name="community_awadhi">আওধি</string>
+    <string name="community_anglo_indian">অ্যাংলো-ইন্ডিয়ান</string>
+
+    <string name="religion_parsi">পারসি</string>
+    <string name="religion_jewish">ইহুদি</string>
+
+    <string name="caste_nair">নায়ার</string>
+    <string name="caste_gurjar">গুজর</string>
+    <string name="caste_bhumihar">ভূমিহার</string>
+
     <string name="community_adi">আদি</string> <!-- Arunachal Pradesh -->
     <string name="community_nyishi">ন্য়িশি</string> <!-- Arunachal Pradesh -->
     <string name="community_bodo">বড়ো</string> <!-- Assam -->
@@ -1030,10 +1053,8 @@
     <string name="religion_buddhist">বৌদ্ধ</string>
     <string name="religion_jain">জৈন</string>
     <string name="religion_sikh">সিখ</string>
-    <string name="religion_jew">ইহুদি</string>
     <string name="religion_indigenous_tribal">আদিবাসী/উপজাতি</string>
     <string name="religion_no_religion">কোনও ধর্ম নেই</string>
-    <string name="religion_zoroastrian">জোরোয়াস্ট্রিয়ান</string>
     <string name="religion_other">অন্যান্য</string>
 
     <!-- Caste Dropdown -->

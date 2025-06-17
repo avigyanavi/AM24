@@ -1,12 +1,21 @@
 package com.am24.am24
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult      // 🔸
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts       // 🔸
+import androidx.compose.runtime.Composable                             // 🔸
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,6 +36,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
 
+        // 🔸 Show a tiny Compose surface ONLY to ask for the runtime permission once.
+        setContent { AskNotificationPermission() }
+
+        // Propagate deep-link info from push tap
+        val openNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
+
         lifecycleScope.launch(Dispatchers.IO) {
             val dbRef       = FirebaseDatabase.getInstance().reference
             val currentUser = auth.currentUser
@@ -36,39 +51,26 @@ class MainActivity : ComponentActivity() {
                 currentUser == null -> {
                     Intent(this@MainActivity, LandingActivity::class.java)
                 }
-
                 else -> {
-                    val uid      = currentUser.uid
-                    // 1) Check if they've ever set a username
-                    val usernameSnap = dbRef
-                        .child("users")
-                        .child(uid)
-                        .child("username")
-                        .get()
-                        .await()
+                    val uid  = currentUser.uid
+                    val usernameSnap = dbRef.child("users").child(uid)
+                        .child("username").get().await()
                     val username = usernameSnap.getValue(String::class.java)
 
                     if (username.isNullOrBlank()) {
-                        // ── Never chose a username: send back into registration at step 11
                         Intent(this@MainActivity, RegistrationActivity::class.java)
-                            .putExtra("initialStep", 11)
+                            .putExtra("requestedStartStep", 2)
                     } else {
-                        // 2) If they did, make sure registrationFinished == true
-                        val finished = dbRef
-                            .child("publicUsers")
-                            .child(username)
-                            .child("registrationFinished")
-                            .get()
-                            .await()
+                        val finished = dbRef.child("publicUsers").child(username)
+                            .child("registrationFinished").get().await()
                             .getValue(Boolean::class.java) ?: false
 
                         if (finished) {
-                            // Fully registered → main app
                             Intent(this@MainActivity, KupidXAppActivity::class.java)
+                                .putExtra("open_notifications", openNotifications)   // 🔸 forward
                         } else {
-                            // Username exists but not marked finished → back to username screen
                             Intent(this@MainActivity, RegistrationActivity::class.java)
-                                .putExtra("initialStep", 11)
+                                .putExtra("requestedStartStep", 2)
                         }
                     }
                 }
@@ -77,6 +79,24 @@ class MainActivity : ComponentActivity() {
             withContext(Dispatchers.Main) {
                 startActivity(nextIntent)
                 finish()
+            }
+        }
+    }
+    @Composable
+    private fun AskNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33) return          // nothing to do pre-Tiramisu
+
+        val context  = LocalContext.current
+        val launcher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { /* granted / denied callback */ }
+
+        LaunchedEffect(Unit) {                         // ← runs AFTER composition
+            if (ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }

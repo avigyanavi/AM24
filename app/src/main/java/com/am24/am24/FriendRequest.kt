@@ -12,7 +12,10 @@ class Notification(
     var senderUsername: String = "",
     message: String = "",
     var timestamp: Long = 0,
-    isRead: String = "false"
+    isRead: String = "false",
+    /* NEW: lets the app deep-link straight to a post / comment */
+    val postId:    String? = null,
+    val commentId: String? = null
 ) {
     var message by mutableStateOf(message)
 

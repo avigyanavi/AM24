@@ -28,6 +28,7 @@ import com.am24.am24.ui.theme.AppTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.Dispatchers
@@ -35,15 +36,21 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import java.util.concurrent.TimeUnit
 
 /* ─────────────────────────── Activity ─────────────────────────── */
 
 class LoginActivity : ComponentActivity() {
-    private val GOOGLE_ONLY = "__GOOGLE_ONLY__"
+    private val NO_EMAIL = "__NO_EMAIL__"
 
     private lateinit var auth: FirebaseAuth
     private val isLoading = mutableStateOf(false)
     private val loginProgress = mutableStateOf(0f)
+    private var storedVerificationId: String? = null
+    private lateinit var resendToken: PhoneAuthProvider.ForceResendingToken
 
     // 1) Google Sign-In launcher
     private val googleSignInLauncher =
@@ -78,26 +85,82 @@ class LoginActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
 
-        // 1️⃣ Check for a cached GoogleSignIn account
-        val lastAccount = GoogleSignIn.getLastSignedInAccount(this)
-        // Prefer a “username” string (you could also pull displayName if you like)
-        val cachedUser = lastAccount?.email
-
         val prefill = intent.getStringExtra("prefill_email") ?: ""
 
         setContent {
             AppTheme {
                 LoginScreen(
-                    cachedUser        = cachedUser,           // ◀︎ pass it in
+                    cachedUser        = null,           // ◀︎ pass it in
                     initialUserOrEmail = prefill,
                     isLoading         = isLoading.value,
                     progress          = loginProgress.value,
                     onLoginClick      = ::handleLogin,
                     onForgotPassword  = ::handlePasswordReset,
-                    onGoogleSignIn    = ::startGoogleSignIn      // <-- pass it in
+                    onPhoneLogin       = ::handlePhoneLogin      // Add this // <-- pass it in
                 )
             }
         }
+    }
+
+    private fun handlePhoneLogin(input: String) {
+        // If it's a phone number, start OTP
+        if (input.all { it.isDigit() } && input.length >= 10) {
+            startPhoneNumberVerification("+91$input")
+        }
+        // If it's an OTP, verify
+        else if (input.length == 6 && storedVerificationId != null) {
+            verifyPhoneNumberWithCode(storedVerificationId!!, input)
+        } else {
+            toast("Invalid input")
+        }
+    }
+
+    private fun startPhoneNumberVerification(phoneNumber: String) {
+        isLoading.value = true
+        val options = PhoneAuthOptions.newBuilder(auth)
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(this)
+            .setCallbacks(phoneAuthCallbacks)
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    private val phoneAuthCallbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+        override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+            signInWithPhoneAuthCredential(credential)
+        }
+
+        override fun onVerificationFailed(e: FirebaseException) { // <- FIX: FirebaseException, not Exception
+            isLoading.value = false
+            toast("Verification failed: ${e.message}")
+        }
+
+        override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+            storedVerificationId = verificationId
+            resendToken = token
+            isLoading.value = false
+            toast("OTP sent to your phone.")
+        }
+    }
+
+    private fun verifyPhoneNumberWithCode(verificationId: String, code: String) {
+        isLoading.value = true
+        val credential = PhoneAuthProvider.getCredential(verificationId, code)
+        signInWithPhoneAuthCredential(credential)
+    }
+
+    private fun signInWithPhoneAuthCredential(credential: PhoneAuthCredential) {
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                isLoading.value = false
+                if (task.isSuccessful) {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
+                } else {
+                    toast("Sign-in failed: ${task.exception?.message}")
+                }
+            }
     }
 
     private fun toast(msg: String) =
@@ -138,9 +201,9 @@ class LoginActivity : ComponentActivity() {
                     isLoading.value = false
                     toast("Username not found")
                 }
-                GOOGLE_ONLY -> return@launch withContext(Dispatchers.Main) {
+                NO_EMAIL -> return@launch withContext(Dispatchers.Main) {
                     isLoading.value = false
-                    startGoogleSignIn()
+                    toast("This account was created with phone-OTP or Social Sign-In. Please log in using that method.")
                 }
             }
 
@@ -201,7 +264,7 @@ class LoginActivity : ComponentActivity() {
             .await()
         val signInMethod = methodSnap.getValue(String::class.java)
         if (signInMethod == "google") {
-            return GOOGLE_ONLY
+            return NO_EMAIL
         }
 
         // ── 1) normal username → uid lookup ──
@@ -225,7 +288,7 @@ class LoginActivity : ComponentActivity() {
 
         return when {
             email == null         -> null
-            email.isBlank()       -> GOOGLE_ONLY   // should never happen now, but safe
+            email.isBlank()       -> NO_EMAIL   // should never happen now, but safe
             else                  -> email
         }
     }
@@ -241,78 +304,19 @@ fun LoginScreen(
     progress: Float,
     onLoginClick: (String, String) -> Unit,
     onForgotPassword: (String) -> Unit,
-    onGoogleSignIn: () -> Unit
+    onPhoneLogin: (String) -> Unit,           // ◀︎ New param for phone OTP login
 ) {
-    // ▷ state to flip between “cached-user” view vs. full form
-    var showFullForm by remember { mutableStateOf(false) }
+    // OTP dialog state
+    var showOtpDialog by remember { mutableStateOf(false) }
+    var otpInput     by remember { mutableStateOf("") }
+    var phoneForOtp  by remember { mutableStateOf("") }
 
-    // ── 1) If we have a cached Google account *and* the user hasn’t tapped “Show login screen”:
-    if (cachedUser != null && !showFullForm) {
-        // ◁ lookup the username key whose value == currentUid
-        val username by produceState<String?>(initialValue = null, cachedUser) {
-            // this block runs once when cachedUser changes
-            val uid = FirebaseAuth.getInstance().currentUser?.uid
-            if (uid != null) {
-                val snap = FirebaseRefs.db.reference
-                    .child("usernames")
-                    .orderByValue()
-                    .equalTo(uid)
-                    .get()
-                    .await()
-                // first matching key is your “username”
-                value = snap.children.firstOrNull()?.key
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // ▷ Button #1: tap to sign in with Google immediately
-                Button(
-                    onClick = onGoogleSignIn,
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
-                    shape = CircleShape
-                ) {
-                    // show the username if we found one, else fallback to the email
-                    Text(
-                        text = "Sign in with " + (username ?: cachedUser),
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // ▷ Button #2: flip over to the normal login form
-                OutlinedButton(
-                    onClick = { showFullForm = true },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp),
-                    shape = CircleShape,
-                ) {
-                    Text("Or Show Login Screen Instead", color = Color.White)
-                }
-            }
-        }
-        return  // don’t render the rest until they’ve tapped “Show Login Screen”
-    }
-
-
-    val context = LocalContext.current
+    var phoneNumber by remember { mutableStateOf(TextFieldValue("")) }
 
     var userOrEmail by remember { mutableStateOf(TextFieldValue(initialUserOrEmail)) }
     var password    by remember { mutableStateOf(TextFieldValue("")) }
 
+    val context = LocalContext.current
 
     /* dialogs */
     var showPwdDialog   by remember { mutableStateOf(false) }
@@ -325,6 +329,23 @@ fun LoginScreen(
 
     val db    = FirebaseRefs.db
     val scope = rememberCoroutineScope()
+
+    // OTP Dialog
+    if (showOtpDialog) {
+        SimpleInputDialog(
+            title = "Enter OTP",
+            hint  = "6-digit OTP",
+            input = otpInput,
+            onInputChange = { otpInput = it },
+            onDismiss = { showOtpDialog = false },
+            onConfirm = {
+                // You’ll handle OTP verification in Activity, pass to callback
+                onPhoneLogin(otpInput)
+                showOtpDialog = false
+                otpInput = ""
+            }
+        )
+    }
 
     /* ---------- Dialog builders ---------- */
 
@@ -459,6 +480,49 @@ fun LoginScreen(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Phone OTP Section
+            Text(
+                text = "OR",
+                color = Color.White,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            OutlinedTextField(
+                value = phoneNumber,
+                onValueChange = { phoneNumber = it },
+                label = { Text("Phone Number", color = Color(0xFFFF6600)) },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = orangeOutlinedColors()
+            )
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    // You can validate and start OTP flow here
+                    if (phoneNumber.text.length >= 10) {
+                        onPhoneLogin(phoneNumber.text)
+                        phoneForOtp = phoneNumber.text
+                        showOtpDialog = true   // Show OTP dialog for user input
+                    } else {
+                        Toast.makeText(context, "Enter valid phone number", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
+                shape = CircleShape,
+                elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+            ) {
+                Text("Login with OTP", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(Modifier.height(16.dp))

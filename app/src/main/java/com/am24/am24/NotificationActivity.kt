@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FlashOn
@@ -130,6 +131,24 @@ fun NotificationCard(
 
     /* 2️⃣  icon & nav target per type */
     val (icon, onClickRoute) = when (notification.type) {
+        /* ——— POSTS ——— */
+        "match_post", "match_checkin" ->
+            Icons.Default.Notifications to
+                    notification.postId?.let { "post/$it" }          // deep-link
+
+        /* ——— COMMENTS ——— */
+        "post_comment" ->
+            Icons.Default.ChatBubbleOutline to
+                    notification.postId?.let { "post/$it" }
+
+        "comment_upvote", "comment_downvote" ->
+            Icons.Default.ChatBubbleOutline to
+                    notification.postId?.let { post ->
+                        val c  = notification.commentId             // may be null
+                        if (c != null) "post/$post/comment/$c" else "post/$post"
+                    }
+        /* ─── POST-related ─── */
+        "chat_message" -> Icons.Default.ChatBubbleOutline to "dms"
         "new_like"       -> Icons.Default.Favorite      to "peopleWhoLikedMe"
         "new_compliment" -> Icons.Default.EmojiEmotions to "peopleWhoLikedMe"          // or a “compliments” inbox
         "new_match"      -> Icons.Default.People        to "dms"

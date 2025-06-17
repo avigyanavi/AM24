@@ -418,6 +418,66 @@ exports.grantWeeklyQuotas = functions.pubsub
     console.log("Weekly quotas granted.");
   });
 
+// functions/src/unread-counter.ts
+// ✅ correct
+exports.bumpUnreadCounter = functions.firestore
+  .document('users/{uid}/notifications/{nid}')
+  .onWrite(async (change, ctx) => {
+    const uid = ctx.params.uid;
+    const before = change.before.exists ? change.before.data() : null;
+    const after  = change.after.exists  ? change.after.data()  : null;
+
+    const inc = (() => {
+      if (!before &&  after &&  !after.isRead) return +1;      // created unread
+      if ( before && !before.isRead && after?.isRead) return -1; // marked read
+      return 0;
+    })();
+    if (inc === 0) return null;
+
+    await admin.firestore().doc(`users/${uid}`).update({
+      notifUnreadCount: admin.firestore.FieldValue.increment(inc)
+    });
+  });
+// ✅ CommonJS export syntax
+exports.pushSummary = functions.pubsub
+  .schedule('every 15 minutes')
+  .timeZone('Asia/Kolkata')
+  .onRun(async () => {
+
+    const usersSnap = await admin.firestore()
+      .collection('users')
+      .where('notifUnreadCount', '>', 0)
+      .get();
+
+    const now = admin.firestore.Timestamp.now();
+    const pushes = usersSnap.docs.map(async userDoc => {
+      const { notifUnreadCount, lastSummaryPush } = userDoc.data();
+
+      // skip if we already pushed in the last 15 min
+      if (lastSummaryPush &&
+          now.seconds - lastSummaryPush.seconds < 14 * 60) return;
+
+      // fetch tokens once
+      const tokenDocs = await admin.firestore()
+        .collection(`users/${userDoc.id}/fcmTokens`).listDocuments();
+      const tokens = tokenDocs.map(d => d.id);
+      if (!tokens.length) return;
+
+      await admin.messaging().sendMulticast({
+        tokens,
+        data: {
+          type:  'notif_summary',
+          count: notifUnreadCount.toString()
+        },
+        android: { priority: 'high' }
+      });
+
+      await userDoc.ref.update({ lastSummaryPush: now });
+    });
+
+    await Promise.all(pushes);
+  });
+
 //exports.razorpayWebhook = functions
 //  .region('asia-south1')
 //  .https.onRequest(async (req, res) => {

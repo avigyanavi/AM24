@@ -1123,18 +1123,18 @@ val religionNameToRes = mapOf(
     "ਸਿੱਖ" to R.string.religion_sikh, // Punjabi
 
     // Jew
-    "Jew" to R.string.religion_jew,
-    "ইহুদি" to R.string.religion_jew, // Bengali
-    "यहूदी" to R.string.religion_jew, // Hindi
-    "யூதர்" to R.string.religion_jew, // Tamil
-    "ଯିହୁଦୀ" to R.string.religion_jew, // Odia
-    "యూదు" to R.string.religion_jew, // Telugu
-    "यहूदी" to R.string.religion_jew, // Marathi
-    "યહૂદી" to R.string.religion_jew, // Gujarati
-    "ಯಹೂದಿ" to R.string.religion_jew, // Kannada
-    "യഹൂദ" to R.string.religion_jew, // Malayalam
-    "ইহুদী" to R.string.religion_jew, // Assamese
-    "ਯਹੂਦੀ" to R.string.religion_jew, // Punjabi
+    "Jew" to R.string.religion_jewish,
+    "ইহুদি" to R.string.religion_jewish, // Bengali
+    "यहूदी" to R.string.religion_jewish, // Hindi
+    "யூதர்" to R.string.religion_jewish, // Tamil
+    "ଯିହୁଦୀ" to R.string.religion_jewish, // Odia
+    "యూదు" to R.string.religion_jewish, // Telugu
+    "यहूदी" to R.string.religion_jewish, // Marathi
+    "યહૂદી" to R.string.religion_jewish, // Gujarati
+    "ಯಹೂದಿ" to R.string.religion_jewish, // Kannada
+    "യഹൂദ" to R.string.religion_jewish, // Malayalam
+    "ইহুদী" to R.string.religion_jewish, // Assamese
+    "ਯਹੂਦੀ" to R.string.religion_jewish, // Punjabi
 
     // Indigenous/Tribal
     "Indigenous/Tribal" to R.string.religion_indigenous_tribal,
@@ -1165,18 +1165,18 @@ val religionNameToRes = mapOf(
     "ਕੋਈ ਧਰਮ ਨਹੀਂ" to R.string.religion_no_religion, // Punjabi
 
     // Zoroastrian
-    "Zoroastrian" to R.string.religion_zoroastrian,
-    "জরথ্রুস্ট্রিয়ান" to R.string.religion_zoroastrian, // Bengali
-    "पारसी" to R.string.religion_zoroastrian, // Hindi
-    "ஜரோஸ்ட்ரியன்" to R.string.religion_zoroastrian, // Tamil
-    "ଜୋରୋଆଷ୍ଟ୍ରିଆନ" to R.string.religion_zoroastrian, // Odia
-    "జొరాస్ట్రియన్" to R.string.religion_zoroastrian, // Telugu
-    "पारशी" to R.string.religion_zoroastrian, // Marathi
-    "ઝોરોસ્ટ્રિયન" to R.string.religion_zoroastrian, // Gujarati
-    "ಜೊರಾಸ್ಟ್ರಿಯನ್" to R.string.religion_zoroastrian, // Kannada
-    "സോറോസ്‌ട്രിയൻ" to R.string.religion_zoroastrian, // Malayalam
-    "জৰোষ্ট্ৰিয়ান" to R.string.religion_zoroastrian, // Assamese
-    "ਜ਼ੋਰੋਆਸਟਰੀ" to R.string.religion_zoroastrian, // Punjabi
+    "Zoroastrian" to R.string.religion_parsi,
+    "জরথ্রুস্ট্রিয়ান" to R.string.religion_parsi, // Bengali
+    "पारसी" to R.string.religion_parsi, // Hindi
+    "ஜரோஸ்ட்ரியன்" to R.string.religion_parsi, // Tamil
+    "ଜୋରୋଆଷ୍ଟ୍ରିଆନ" to R.string.religion_parsi, // Odia
+    "జొరాస్ట్రియన్" to R.string.religion_parsi, // Telugu
+    "पारशी" to R.string.religion_parsi, // Marathi
+    "ઝોરોસ્ટ્રિયન" to R.string.religion_parsi, // Gujarati
+    "ಜೊರಾಸ್ಟ್ರಿಯನ್" to R.string.religion_parsi, // Kannada
+    "സോറോസ്‌ട്രിയൻ" to R.string.religion_parsi, // Malayalam
+    "জৰোষ্ট্ৰিয়ান" to R.string.religion_parsi, // Assamese
+    "ਜ਼ੋਰੋਆਸਟਰੀ" to R.string.religion_parsi, // Punjabi
 
     // Other
     "Other" to R.string.religion_other,

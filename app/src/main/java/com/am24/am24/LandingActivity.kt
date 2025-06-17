@@ -64,6 +64,17 @@ class LandingActivity : ComponentActivity() {
         val languageCode = prefs.getString("language", "en") ?: "en"
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
+    // 1️⃣  Add a tiny util (inside LandingActivity)
+    private fun currentProvider(): String {
+        val p = FirebaseAuth.getInstance().currentUser?.providerData?.map { it.providerId } ?: return "unknown"
+        return when {
+            GoogleAuthProvider.PROVIDER_ID   in p -> "google"
+            FacebookAuthProvider.PROVIDER_ID in p -> "facebook"
+            PhoneAuthProvider.PROVIDER_ID    in p -> "phone"
+            EmailAuthProvider.PROVIDER_ID    in p -> "emailPassword"
+            else                                   -> "unknown"
+        }
+    }
 
     /* Google Activity-result launcher */
     private val googleSignInLauncher =
@@ -80,13 +91,54 @@ class LandingActivity : ComponentActivity() {
             }
         }
 
+    private fun continueIntoApp() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+            ?: run { goToMain(); return }
+
+        FirebaseRefs.db.reference.child("users/$uid/username").get()
+            .addOnSuccessListener { snap ->
+                if (snap.exists()) {
+                    goToMain()                              // profile already finished
+                } else {
+                    FirebaseRefs.db.reference
+                        .child("users/$uid/registrationStep").get()
+                        .addOnSuccessListener { stepSnap ->
+                            /*  ─── THIS LINE CHANGED ───  */
+                            val startAt = stepSnap.getValue(Long::class.java)?.toInt() ?: 1
+                            launchRegistration(startAt, currentProvider())
+                        }
+                        .addOnFailureListener {
+                            launchRegistration(1, currentProvider())
+                        }
+                }
+            }
+            .addOnFailureListener { goToMain() }
+    }
+
+
+    /* tiny one-liner that starts RegistrationActivity at a given step */
+    /** Fire up RegistrationActivity with the right extras */
+    private fun launchRegistration(startAt: Int, provider: String) {
+        startActivity(
+            Intent(this, RegistrationActivity::class.java)
+                .putExtra("requestedStartStep", startAt)
+                .putExtra("signInProvider",    provider)   //  ← NEW
+        )
+        finish()
+    }
+
     /* ─────────  onCreate  ───────── */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        /* Firebase */
-        firebaseAuth = FirebaseAuth.getInstance()
+        firebaseAuth = FirebaseAuth.getInstance()          // ➊ keep this first
+
+        /* ── NEW: skip landing if cached user exists ── */
+        if (firebaseAuth.currentUser != null) {            // <- user is already signed-in
+            continueIntoApp()                              //    jump straight to next screen
+            return                                         //    do NOT render LandingScreen
+        }
 
         /* Google */
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -108,7 +160,7 @@ class LandingActivity : ComponentActivity() {
                         finish()
                     },
                     onRegisterClick = {
-                        startActivity(Intent(this, RegistrationActivity::class.java))
+                        launchRegistration(startAt = 1, provider = "emailPassword")
                         finish()
                     },
                     onGoogleSignIn = { signInWithGoogle() },
@@ -192,9 +244,15 @@ class LandingActivity : ComponentActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     if (task.result?.additionalUserInfo?.isNewUser == true) {
-                        startRegistrationFlow(acct)
+                        // brand-new social account → skip E-mail/Phone step
+                        val prov = when (credential) {
+                            is GoogleAuthCredential    -> "google"
+                            is FacebookAuthCredential  -> "facebook"
+                            else                       -> "unknown"
+                        }
+                        launchRegistration(startAt = 2, provider = prov)   //  ← NEW
                     } else {
-                        goToMain()
+                        continueIntoApp()
                     }
                 } else {
                     val ex = task.exception
@@ -219,7 +277,7 @@ class LandingActivity : ComponentActivity() {
                             ?.addOnCompleteListener(this) { linkTask ->
                                 if (linkTask.isSuccessful) {
                                     toast("Accounts linked! Welcome back.")
-                                    goToMain()
+                                    continueIntoApp()
                                 } else {
                                     toast("Link failed: ${linkTask.exception?.localizedMessage}")
                                 }
@@ -238,7 +296,7 @@ class LandingActivity : ComponentActivity() {
             Log.d("LandingActivity", "New Firebase user: ${it.displayName}")
             // TODO: store displayName / photoURL / etc. in your user DB
         }
-        goToMain()
+        continueIntoApp()
     }
 
     private fun goToMain() {
@@ -381,6 +439,7 @@ fun LandingScreen(
         }
     }
 }
+
 
 /* ───────── Social buttons ───────── */
 

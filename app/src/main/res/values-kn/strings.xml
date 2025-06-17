@@ -983,6 +983,33 @@
     <!-- Catch-all for other post-graduate institutions -->
     <string name="postgrad_other">ಇತರೆ</string>
 
+    <!-- Communities -->
+    <string name="community_urdu_speaker">ಉರ್ದು ಭಾಷಿಕ</string>
+    <string name="community_tibetan">ಟಿಬೇಟನ್</string>
+    <string name="community_sindhi">ಸಿಂಧಿ</string>
+    <string name="community_parsi">ಪಾರ್ಸಿ / ಝರೋಅಸ್ಟ್ರಿಯನ್</string>
+    <string name="community_malayali_mappila">ಮಲಯಾಳಿ-ಮಪ್ಪಿಳ</string>
+    <string name="community_lepcha">ಲೆಪ್ಚಾ</string>
+    <string name="community_kumaoni">ಕುಮಾಓನಿ</string>
+    <string name="community_gond">ಗೋಂಡ್</string>
+    <string name="community_coorgi">ಕೂರ್ಗಿ / ಕೊಡವ</string>
+    <string name="community_dogra">ಡೋಗ್ರಾ</string>
+    <string name="community_bhojpuri">ಭೋಜ್‌ಪುರಿ</string>
+    <string name="community_bhil">ಭಿಲ್</string>
+    <string name="community_banjara">ಬಂಜಾರಾ</string>
+    <string name="community_awadhi">ಅವಧಿ</string>
+    <string name="community_anglo_indian">ಆಂಗ್ಲೋ-ಇಂಡಿಯನ್</string>
+
+    <!-- Religions -->
+    <string name="religion_parsi">ಝರೋಅಸ್ಟ್ರಿಯನ್ / ಪಾರ್ಸಿ</string>
+    <string name="religion_jewish">ಯಹೂದಿ</string>
+
+    <!-- Castes -->
+    <string name="caste_nair">ನಾಯರ್</string>
+    <string name="caste_gurjar">ಗುರ್ಜರ್ / ಗುಜ್ಜರ್</string>
+    <string name="caste_bhumihar">ಭೂಮಿಹಾರ್</string>
+
+
     <!-- Community Dropdown -->
     <string name="community_adi">ಆದಿ</string> <!-- Arunachal Pradesh -->
     <string name="community_nyishi">ನಿಷಿ</string> <!-- Arunachal Pradesh -->
@@ -1030,10 +1057,8 @@
     <string name="religion_buddhist">ಬೌದ್ಧ</string>
     <string name="religion_jain">ಜೈನ</string>
     <string name="religion_sikh">ಸಿಖ್</string>
-    <string name="religion_jew">ಜ್ಯೂ</string>
     <string name="religion_indigenous_tribal">ಮೂಲವಾಸಿ/ಜನಜಾತಿ</string>
     <string name="religion_no_religion">ಧರ್ಮವಿಲ್ಲ</string>
-    <string name="religion_zoroastrian">ಜೋರಾಸ್ಟ್ರಿಯನ್</string>
     <string name="religion_other">ಇತರೆ</string>
 
     <!-- Caste Dropdown -->

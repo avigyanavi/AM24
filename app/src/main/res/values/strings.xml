@@ -987,87 +987,107 @@
     <!-- Catch-all for other post-graduate institutions -->
     <string name="postgrad_other">Other</string>
 
-    <!-- Community options for dropdown -->
-    <!-- Community Dropdown -->
-    <string name="community_adi">Adi</string> <!-- Arunachal Pradesh -->
-    <string name="community_nyishi">Nyishi</string> <!-- Arunachal Pradesh -->
-    <string name="community_bodo">Bodo</string> <!-- Assam -->
-    <string name="community_assamese">Assamese</string> <!-- Assam -->
-    <string name="community_manipuri">Manipuri</string> <!-- Manipur -->
-    <string name="community_khasi">Khasi</string> <!-- Meghalaya -->
-    <string name="community_mizo">Mizo</string> <!-- Mizoram -->
-    <string name="community_naga">Naga</string> <!-- Nagaland -->
-    <string name="community_tripuri">Tripuri</string> <!-- Tripura -->
-    <string name="community_bengali">Bengali</string> <!-- West Bengal -->
-    <string name="community_santhal">Santhal</string> <!-- Jharkhand, Odisha, West Bengal -->
-    <string name="community_oraon">Oraon</string> <!-- Jharkhand, Chhattisgarh -->
-    <string name="community_munda">Munda</string> <!-- Jharkhand, Odisha -->
-    <string name="community_punjabi">Punjabi</string> <!-- Punjab -->
-    <string name="community_tamil">Tamil</string> <!-- Tamil Nadu -->
-    <string name="community_telugu">Telugu</string> <!-- Andhra Pradesh, Telangana -->
-    <string name="community_kannadiga">Kannadiga</string> <!-- Karnataka -->
-    <string name="community_malayali">Malayali</string> <!-- Kerala -->
-    <string name="community_gujarati">Gujarati</string> <!-- Gujarat -->
-    <string name="community_marathi">Marathi</string> <!-- Maharashtra -->
-    <string name="community_odia">Odia</string> <!-- Odisha -->
-    <string name="community_bihari">Bihari</string> <!-- Bihar -->
-    <string name="community_marwari">Marwari</string> <!-- Rajasthan -->
-    <string name="community_rajasthani">Rajasthani</string> <!-- Rajasthan -->
-    <string name="community_kashmiri">Kashmiri</string> <!-- Jammu & Kashmir -->
-    <string name="community_himachali">Himachali</string> <!-- Himachal Pradesh -->
-    <string name="community_haryanvi">Haryanvi</string> <!-- Haryana -->
-    <string name="community_garhwali">Garhwali</string> <!-- Uttarakhand -->
-    <string name="community_madhya_pradeshi">Madhya Pradeshi</string> <!-- Madhya Pradesh -->
-    <string name="community_chhattisgarhi">Chhattisgarhi</string> <!-- Chhattisgarh -->
-    <string name="community_goan">Goan</string> <!-- Goa -->
-    <string name="community_konkani">Konkani</string> <!-- Goa, Karnataka -->
-    <string name="community_sikkimese">Sikkimese</string> <!-- Sikkim -->
-    <string name="community_nepali">Nepali</string> <!-- Sikkim, West Bengal -->
-    <string name="community_ladakhi">Ladakhi</string> <!-- Ladakh -->
-    <string name="community_andamanese">Andamanese</string> <!-- Andaman & Nicobar -->
-    <string name="community_lakhadweepi">Lakhadweepi</string> <!-- Lakshadweep -->
-    <string name="community_other">Other</string>
+    <!-- ─────────── Communities / Regional-Identity Master List (pan-India, A-Z) ─────────── -->
+    <string name="community_other">All Other</string>
+    <string name="community_adi">Adi</string>
+    <string name="community_andamanese">Andamanese</string>
+    <string name="community_anglo_indian">Anglo-Indian</string>
+    <string name="community_assamese">Assamese</string>
+    <string name="community_awadhi">Awadhi</string>
+    <string name="community_banjara">Banjara</string>
+    <string name="community_bengali">Bengali</string>
+    <string name="community_bhil">Bhil</string>
+    <string name="community_bihari">Bihari</string>
+    <string name="community_bodo">Bodo</string>
+    <string name="community_bhojpuri">Bhojpuri</string>
+    <string name="community_chhattisgarhi">Chhattisgarhi</string>
+    <string name="community_coorgi">Coorgi / Kodava</string>
+    <string name="community_dogra">Dogra</string>
+    <string name="community_garhwali">Garhwali</string>
+    <string name="community_goan">Goan</string>
+    <string name="community_gond">Gond</string>
+    <string name="community_gujarati">Gujarati</string>
+    <string name="community_haryanvi">Haryanvi</string>
+    <string name="community_himachali">Himachali</string>
+    <string name="community_kannadiga">Kannadiga</string>
+    <string name="community_kashmiri">Kashmiri</string>
+    <string name="community_khasi">Khasi</string>
+    <string name="community_konkani">Konkani</string>
+    <string name="community_kumaoni">Kumaoni</string>
+    <string name="community_ladakhi">Ladakhi</string>
+    <string name="community_lakhadweepi">Lakshadweepi</string>
+    <string name="community_lepcha">Lepcha</string>
+    <string name="community_madhya_pradeshi">Madhya Pradeshi</string>
+    <string name="community_malayali">Malayali</string>
+    <string name="community_malayali_mappila">Malayali-Mappila</string>
+    <string name="community_manipuri">Manipuri / Meitei</string>
+    <string name="community_marathi">Marathi</string>
+    <string name="community_marwari">Marwari</string>
+    <string name="community_mizo">Mizo</string>
+    <string name="community_munda">Munda</string>
+    <string name="community_naga">Naga</string>
+    <string name="community_nepali">Nepali / Gorkha</string>
+    <string name="community_nyishi">Nyishi</string>
+    <string name="community_odia">Odia</string>
+    <string name="community_oraon">Oraon</string>
+    <string name="community_parsi">Parsi / Zoroastrian</string>
+    <string name="community_punjabi">Punjabi</string>
+    <string name="community_rajasthani">Rajasthani</string>
+    <string name="community_santhal">Santhal</string>
+    <string name="community_sikkimese">Sikkimese (Bhutia)</string>
+    <string name="community_sindhi">Sindhi</string>
+    <string name="community_tamil">Tamil</string>
+    <string name="community_telugu">Telugu</string>
+    <string name="community_tibetan">Tibetan</string>
+    <string name="community_tripuri">Tripuri</string>
+    <string name="community_urdu_speaker">Urdu-speaker</string>
+
 
     <!-- Religion Dropdown -->
-    <string name="religion_hindu">Hindu</string>
-    <string name="religion_muslim">Muslim</string>
-    <string name="religion_christian">Christian</string>
+    <!-- ─────────── Religion (pan-Indian master list) ─────────── -->
+    <string name="religion_other">All Other</string>
     <string name="religion_buddhist">Buddhist</string>
+    <string name="religion_christian">Christian</string>
+    <string name="religion_hindu">Hindu</string>
+    <string name="religion_indigenous_tribal">Indigenous / Tribal</string>
     <string name="religion_jain">Jain</string>
+    <string name="religion_jewish">Jewish</string>
+    <string name="religion_muslim">Muslim</string>
+    <string name="religion_no_religion">No Religion / Secular</string>
+    <string name="religion_parsi">Zoroastrian / Parsi</string> <!-- keeps your Zoroastrian entry -->
     <string name="religion_sikh">Sikh</string>
-    <string name="religion_jew">Jew</string>
-    <string name="religion_indigenous_tribal">Indigenous/Tribal</string>
-    <string name="religion_no_religion">No Religion</string>
-    <string name="religion_zoroastrian">Zoroastrian</string>
-    <string name="religion_other">Other</string>
 
     <!-- Caste Dropdown -->
-    <string name="caste_brahmin">Brahmin</string>
-    <string name="caste_kayastha">Kayastha</string>
+    <!-- ─────────── Caste / Jāti (master list) ─────────── -->
+    <string name="caste_other">All Other</string>
     <string name="caste_baidya">Baidya</string>
-    <string name="caste_kshatriya">Kshatriya</string> <!-- Retained as varna/caste identifier -->
-    <string name="caste_vaishya">Vaishya</string>
-    <string name="caste_rajvanshi">Rajvanshi</string> <!-- Updated from Rajbonshi -->
-    <string name="caste_sadgop">Sadgop</string>
-    <string name="caste_mahishya">Mahishya</string>
-    <string name="caste_jat">Jat</string>
-    <string name="caste_rajput">Rajput</string> <!-- Specific caste under Kshatriya varna -->
-    <string name="caste_yadav">Yadav</string>
-    <string name="caste_vellalar">Vellalar</string>
-    <string name="caste_naidu">Naidu</string>
-    <string name="caste_ezhava">Ezhava</string>
+    <string name="caste_bhumihar">Bhumihar</string>
+    <string name="caste_bhil">Bhil</string>
+    <string name="caste_brahmin">Brahmin</string>
+    <string name="caste_ezhava">Ezhava / Thiyya</string>
+    <string name="caste_general">General / Open Category</string>
     <string name="caste_gowda">Gowda</string>
-    <string name="caste_patel">Patel</string>
-    <string name="caste_maratha">Maratha</string>
+    <string name="caste_gurjar">Gurjar / Gujjar</string>
+    <string name="caste_jat">Jat</string>
+    <string name="caste_kayastha">Kayastha</string>
+    <string name="caste_kshatriya">Kshatriya / Rajput</string>
     <string name="caste_kurmi">Kurmi</string>
-    <string name="caste_lingayat">Lingayat</string> <!-- Karnataka -->
-    <string name="caste_reddy">Reddy</string> <!-- Andhra Pradesh, Telangana -->
-    <string name="caste_bhil">Bhil</string> <!-- Rajasthan, Madhya Pradesh -->
+    <string name="caste_lingayat">Lingayat / Veerashaiva</string>
+    <string name="caste_mahishya">Mahishya</string>
+    <string name="caste_maratha">Maratha</string>
+    <string name="caste_naidu">Naidu</string>
+    <string name="caste_nair">Nair</string>
+    <string name="caste_obc">Other Backward Class (OBC)</string>
+    <string name="caste_patel">Patel / Patidar</string>
+    <string name="caste_rajput">Rajput</string>
+    <string name="caste_rajvanshi">Rajvanshi (Rajbanshi)</string>
+    <string name="caste_reddy">Reddy</string>
+    <string name="caste_sadgop">Sadgop</string>
     <string name="caste_scheduled_caste">Scheduled Caste (SC)</string>
     <string name="caste_scheduled_tribe">Scheduled Tribe (ST)</string>
-    <string name="caste_obc">Other Backward Class (OBC)</string>
-    <string name="caste_general">General</string>
-    <string name="caste_other">Other</string>
+    <string name="caste_vaishya">Vaishya / Bania</string>
+    <string name="caste_vellalar">Vellalar</string>
+    <string name="caste_yadav">Yadav</string>
 
     <!--- Dating -->
     <string name="profile_photo">Profile Photo</string>
@@ -1117,7 +1137,7 @@
     <string name="preferences">Preferences</string>
     <string name="community">Community</string>
     <string name="religion">Religion</string>
-    <string name="caste">Caste</string>
+    <string name="caste">Caste/Jati</string>
 
     <!-- No profiles / posts -->
     <string name="no_more_profiles">No more profiles available.</string>

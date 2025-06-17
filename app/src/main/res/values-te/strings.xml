@@ -987,7 +987,30 @@
 
         <!-- Community options for dropdown -->
         <!-- Community Dropdown -->
-        <string name="community_adi">ఆది</string> <!-- Arunachal Pradesh -->
+    <string name="community_urdu_speaker">ఉర్దూ మాట్లాడేవారు</string>
+    <string name="community_tibetan">టిబెటన్</string>
+    <string name="community_sindhi">సింధీ</string>
+    <string name="community_parsi">పార్సీ</string>
+    <string name="community_malayali_mappila">మలయాళి మప్పిళ్ళ</string>
+    <string name="community_lepcha">లెప్چا</string>
+    <string name="community_kumaoni">కుమاؤںని</string>
+    <string name="community_gond">గోండ్</string>
+    <string name="community_coorgi">కూర్గి</string>
+    <string name="community_dogra">డోగ్రా</string>
+    <string name="community_bhojpuri">భోజ్‌పురి</string>
+    <string name="community_bhil">భీల్</string>
+    <string name="community_banjara">బంజారా</string>
+    <string name="community_awadhi">అవధీ</string>
+    <string name="community_anglo_indian">ఆంగ్లో-ఇండియన్</string>
+
+    <string name="religion_parsi">పార్సీ</string>
+    <string name="religion_jewish">యూదు</string>
+
+    <string name="caste_nair">నాయర్</string>
+    <string name="caste_gurjar">గుర్జర్</string>
+    <string name="caste_bhumihar">భూమిహార్</string>
+
+    <string name="community_adi">ఆది</string> <!-- Arunachal Pradesh -->
         <string name="community_nyishi">న్యిషి</string> <!-- Arunachal Pradesh -->
         <string name="community_bodo">బోడొ</string> <!-- Assam -->
         <string name="community_assamese">ఆస్సామీ</string> <!-- Assam -->
@@ -1033,10 +1056,8 @@
         <string name="religion_buddhist">బౌద్ధ</string>
         <string name="religion_jain">జైనీ</string>
         <string name="religion_sikh">సిక్కు</string>
-        <string name="religion_jew">జ్యూడా</string>
         <string name="religion_indigenous_tribal">స్థానిక/అడివాసీ</string>
         <string name="religion_no_religion">ఏమొద్దరు కూడా లేరు</string>
-        <string name="religion_zoroastrian">జొరాస్ట్రియన్</string>
         <string name="religion_other">ఇతర</string>
 
         <!-- Caste Dropdown -->

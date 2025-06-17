@@ -14,6 +14,10 @@
     <!-- Camera & microphone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
+    <!-- 🔸 Android 13+ needs this to show system-tray notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
+        tools:targetApi="33" />
+
     <!-- Granular media access, API 33+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
@@ -39,6 +43,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AM24"
         tools:targetApi="31">
+
+        <!-- 🔸 FCM receiver service -->
+        <service
+            android:name=".PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"

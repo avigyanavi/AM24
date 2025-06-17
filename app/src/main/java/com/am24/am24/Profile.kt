@@ -3,6 +3,7 @@ package com.am24.am24
 import android.net.Uri
 import com.google.firebase.database.Exclude
 import com.google.firebase.database.IgnoreExtraProperties
+import com.google.firebase.database.PropertyName
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -79,10 +80,12 @@ data class Profile(
     var availableBoosts: Int = 0,
     /** when *you* last hit “Boost” (ms since epoch) */
     var lastBoostTimestamp: Long? = null,
+    @get:PropertyName("isPremium") @set:PropertyName("isPremium")
     var isPremium: Boolean = false,
+    @get:PropertyName("isPlus") @set:PropertyName("isPlus")
     var isPlus: Boolean = false,
     var isPrivate: Boolean = false,
-    var availableCompliments: Int = 10,          // resets daily
+    var availableCompliments: Int = 0,          // resets daily
     var lastComplimentResetDayOfYear: Int? = null,
 
     // NEW: New variables for location preferences
@@ -135,11 +138,11 @@ data class Profile(
 
     // Keep these three for the user's personal dating prefs from registration
     val datingAgeStart: Int = 18,
-    val datingAgeEnd: Int = 30,
+    val datingAgeEnd: Int = 40,
     val datingDistancePreference: Int = 10,
     val phoneNumber: String? = null,          // ← new
 
-    val height: Int = 169,
+    val height: Int = 0,
     val height2: List<Int> = emptyList(),
     var caste: String = "",
     var relationship: String? = null, // Add this to hold "friend", "match", etc.
@@ -148,6 +151,8 @@ data class Profile(
 
     var mediaViewsToday: Int? = null,
     var lastMediaResetDayOfYear: Int? = null,
+    var notifUnreadCount: Int = 0,
+    var lastSummaryPush: Long? = null,
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
 

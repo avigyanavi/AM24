@@ -83,6 +83,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.am24.am24.util.LocaleUtils
@@ -163,7 +164,14 @@ fun ChatScreenContent(
     var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
-    var showRating by remember { mutableStateOf(false) }
+    var showRating by remember { mutableStateOf(true) }
+    LaunchedEffect(messages.size, yourRating) {
+        if (yourRating < 0       // not yet rated
+            && messages.size >= 5
+            && showRating) {
+            showRating = false   // auto-hide after 5 chat messages
+        }
+    }
     var moreOptionsMenuExpanded by remember { mutableStateOf(false) }
     var showClearChatMenu by remember { mutableStateOf(false) }
     var showDeleteTimerMenu by remember { mutableStateOf(false) }
@@ -747,17 +755,11 @@ fun ChatScreenContent(
                     }
                 },
                 actions = {
-// 1) Suggestion button – only enabled if user is premium
+                    val outOfCredits = aiMessagesLeft <= 0        // helper
+
                     IconButton(
                         onClick = {
-                            // only need to check premium; credits are handled by the helper
-                            if (!isPremiumUser) {
-                                Toast.makeText(context,
-                                    "Upgrade to Premium to access suggestions.", Toast.LENGTH_SHORT).show()
-                                return@IconButton
-                            }
-
-                            consumeAiMessage {
+                            consumeAiMessage {                    // WILL navigate if credits == 0
                                 suggestionsExpanded = true
                                 if (suggestions == null || messages.size > 10) {
                                     scope.launch {
@@ -768,24 +770,19 @@ fun ChatScreenContent(
                                 }
                             }
                         },
-                        enabled = isPremiumUser && aiMessagesLeft > 0,
-                        colors  = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (isPremiumUser && aiMessagesLeft > 0)
-                                Color(0xFFFFA500) else Color.Gray
+                        enabled = true,                           // ← always clickable
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (outOfCredits)
+                                Color.Gray                        // grey look when exhausted
+                            else
+                                Color(0xFFFFA500)                 // orange when you still have credits
                         )
                     ) {
                         Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(24.dp))
                     }
 
-                    // 2) Places button – only enabled if user is premium
                     IconButton(
                         onClick = {
-                            if (!isPremiumUser) {
-                                Toast.makeText(context,
-                                    "Upgrade to Premium to see places.", Toast.LENGTH_SHORT).show()
-                                return@IconButton
-                            }
-
                             consumeAiMessage {
                                 placeSuggestionsExpanded = true
                                 if (placeSuggestions == null || messages.size > 10) {
@@ -799,10 +796,12 @@ fun ChatScreenContent(
                                 }
                             }
                         },
-                        enabled = isPremiumUser && aiMessagesLeft > 0,
-                        colors  = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (isPremiumUser && aiMessagesLeft > 0)
-                                Color(0xFFFF6F00) else Color.Gray
+                        enabled = true,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (outOfCredits)
+                                Color.Gray
+                            else
+                                Color(0xFFFF6F00)
                         )
                     ) {
                         Icon(Icons.Default.Place, null, modifier = Modifier.size(24.dp))
@@ -902,19 +901,14 @@ fun ChatScreenContent(
                             color = Color.Gray,
                             fontSize = 14.sp
                         )
-                        Slider(
-                            value = if (yourRating >= 0) yourRating.toFloat() else 0f,
-                            onValueChange = { yourRating = it.toDouble() },
-                            onValueChangeFinished = {
-                                if (yourRating >= 0) updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context)
-                                showRating = false
+                        StarSelector(
+                            rating = if (yourRating >= 0) yourRating.toInt() else 0,
+                            onSelect = { selected ->
+                                yourRating = selected.toDouble()
+                                updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context)
+                                showRating = false          // hide once a rating is given
                             },
-                            valueRange = 0f..5f,
-                            steps = 4,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFFFF4500),
-                                activeTrackColor = Color(0xFFFF4500)
-                            )
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }
@@ -1510,6 +1504,33 @@ fun ChatScreenContent(
         reportsRef = reportsRef
     )
 }
+
+@Composable
+fun StarSelector(
+    rating: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    starColor: Color = Color(0xFFFF4500)
+) {
+    Row(modifier) {
+        for (index in 1..5) {
+            IconButton(
+                onClick = { onSelect(index) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = if (index <= rating)
+                        Icons.Filled.Star       // filled
+                    else
+                        Icons.Outlined.StarBorder, // empty
+                    contentDescription = "$index star",
+                    tint = if (index <= rating) starColor else Color.Gray
+                )
+            }
+        }
+    }
+}
+
 
 suspend fun askProceed(ctx: Context, msg: String): Boolean =
     suspendCancellableCoroutine { cont ->

@@ -655,7 +655,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         type: String,
         senderId: String,
         senderUsername: String,
-        message: String
+        message: String,
+        postId:          String? = null,     // NEW
+        commentId:       String? = null      // NEW
     ) {
         try {
             val timestamp = System.currentTimeMillis()
@@ -669,7 +671,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 senderUsername = senderUsername,
                 message = message,
                 timestamp = timestamp,
-                isRead = "false"
+                isRead = "false",
+                postId          = postId,        // ⬅
+                commentId       = commentId      // ⬅
             )
             notificationsRef.child(receiverId).child(notificationId).setValue(notification).await()
         } catch (e: Exception) {
