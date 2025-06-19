@@ -703,9 +703,19 @@ fun WaterIconButton(
  * Load swipes from Firebase and reset them to 15 if a new day has started.
  */
 suspend fun loadAndResetSwipesDaily(userId: String): Int {
-    val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
-    val snapshot = swipesRef.get().await()
-    var remainingSwipes = 15
+    val userRef   = FirebaseRefs.db.getReference("users/$userId")
+    val userSnap  = userRef.get().await()
+    val isPremium = userSnap.child("isPremium").getValue(Boolean::class.java) ?: false
+    val isPlus    = userSnap.child("isPlus").getValue(Boolean::class.java) ?: false
+    val quota = when {
+        isPremium -> Int.MAX_VALUE
+        isPlus    -> 50
+        else      -> 15
+    }
+
+    val swipesRef = userRef.child("swipesInfo")
+    val snapshot  = swipesRef.get().await()
+    var remainingSwipes = quota
     var lastResetDayOfYear = -1
     snapshot.child("remainingSwipes").getValue(Int::class.java)?.let {
         remainingSwipes = it
@@ -717,6 +727,7 @@ suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val todayDayOfYear = calendar.get(Calendar.DAY_OF_YEAR)
     if (todayDayOfYear != lastResetDayOfYear) {
         remainingSwipes = 15
+        remainingSwipes = quota
         lastResetDayOfYear = todayDayOfYear
     }
     swipesRef.child("remainingSwipes").setValue(remainingSwipes)
@@ -730,6 +741,7 @@ fun updateSwipesInFirebase(newSwipesCount: Int) {
     val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
     swipesRef.child("remainingSwipes").setValue(newSwipesCount)
 }
+
 
 @Composable
 fun SwipeLimitOverlay(

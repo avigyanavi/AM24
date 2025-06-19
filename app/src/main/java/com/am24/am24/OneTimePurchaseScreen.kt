@@ -92,7 +92,7 @@ fun OneTimePurchaseScreen(
         val qty = ui.selectedQty.toLong()
         val updates = when (type) {
             PurchaseType.Swipes      -> mapOf("swipesInfo/remainingSwipes" to increment(qty))
-            PurchaseType.Compliments -> mapOf("complimentsLeft"            to increment(qty))
+            PurchaseType.Compliments -> mapOf("availableCompliments"            to increment(qty))
             PurchaseType.Boosts      -> mapOf("availableBoosts"            to increment(qty))
             PurchaseType.AiMessages  -> mapOf("availableAiMessages"        to increment(qty))
         }

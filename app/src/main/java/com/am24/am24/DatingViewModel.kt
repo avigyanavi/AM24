@@ -48,7 +48,6 @@ data class ComplimentData(
 class DatingViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
-        internal const val COMPLIMENT_DAILY_QUOTA = 10
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
         const val WORLDWIDE_DISTANCE = 101
         private const val DESIRED_MIN_ROWS       = 50
@@ -64,7 +63,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
     val allProfiles: StateFlow<List<Profile>> get() = _allProfiles
 
-    private val _complimentsLeft = MutableStateFlow(COMPLIMENT_DAILY_QUOTA)
+    private val _complimentsLeft = MutableStateFlow(0)
     val complimentsLeft: StateFlow<Int> get() = _complimentsLeft
 
     private val _datingFilters = MutableStateFlow(DatingFilterSettings().copy(distance = WORLDWIDE_DISTANCE))
@@ -133,7 +132,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         FirebaseAuth.getInstance().currentUser?.uid?.let { me ->
             viewModelScope.launch {
                 _blockedUsers.value    = fetchBlockedUsers(me)    // ← NEW (must precede refresh)
-                _complimentsLeft.value = loadAndResetComplimentsDaily(me)
+                _complimentsLeft.value = fetchComplimentsBalance(me)
             }
             updateBoostedUsers(me)
             loadCompliments(me)
@@ -211,23 +210,10 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             handleSwipeRight(senderId, receiverId, profileViewModel)
         }
     }
-    suspend fun loadAndResetComplimentsDaily(userId: String): Int {
-        val ref   = database.getReference("users/$userId")
-        val snap  = ref.get().await()
 
-        var left  = snap.child("availableCompliments")
-            .getValue(Int::class.java) ?: COMPLIMENT_DAILY_QUOTA
-        var day   = snap.child("lastComplimentResetDayOfYear")
-            .getValue(Int::class.java) ?: -1
-
-        val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-        if (today != day) {
-            left = COMPLIMENT_DAILY_QUOTA
-            day  = today
-            ref.child("availableCompliments").setValue(left)
-            ref.child("lastComplimentResetDayOfYear").setValue(day)
-        }
-        return left
+    suspend fun fetchComplimentsBalance(userId: String): Int {
+        val ref  = database.getReference("users/$userId/availableCompliments")
+        return ref.get().await().getValue(Int::class.java) ?: 0
     }
 
     // ─── NEW: load complimentsReceived/$me into _complimentsReceived ───────────

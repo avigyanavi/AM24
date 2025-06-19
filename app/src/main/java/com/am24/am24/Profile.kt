@@ -85,8 +85,8 @@ data class Profile(
     @get:PropertyName("isPlus") @set:PropertyName("isPlus")
     var isPlus: Boolean = false,
     var isPrivate: Boolean = false,
-    var availableCompliments: Int = 0,          // resets daily
-    var lastComplimentResetDayOfYear: Int? = null,
+    var availableCompliments: Int = 0,          // compliment balance
+    var lastComplimentResetDayOfYear: Int? = null, // legacy, no longer used
 
     // NEW: New variables for location preferences
     var allowLocationForMatches: Boolean = false,

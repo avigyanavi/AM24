@@ -81,8 +81,8 @@ class MainActivity : ComponentActivity() {
 
             val finished = snap.child("registrationFinished")
                 .getValue(Boolean::class.java) ?: false
-            val step = snap.child("registrationStep")
-                .getValue(Int::class.java) ?: 0
+            val step = (snap.child("registrationStep")
+                .getValue(Long::class.java) ?: 0L).toInt()
 
             val target = if (finished) {
                 Intent(this@MainActivity, KupidXAppActivity::class.java)

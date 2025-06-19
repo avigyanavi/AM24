@@ -154,6 +154,7 @@ fun PreviewUserProfileScreen(
 private suspend fun updateDailySwipeCount() {
     val uid = FirebaseAuth.getInstance().uid ?: return
     val ref = FirebaseRefs.db.getReference("users/$uid/swipesInfo/remainingSwipes")
-    val current = (ref.get().await().getValue(Int::class.java) ?: 15) - 1
+    val current = (ref.get().await().getValue(Int::class.java)
+        ?: loadAndResetSwipesDaily(uid)) - 1
     ref.setValue(current.coerceAtLeast(0))
 }
