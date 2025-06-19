@@ -32,54 +32,26 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
 
+    // ----- launch -----
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
 
-        // 🔸 Show a tiny Compose surface ONLY to ask for the runtime permission once.
+        // Tiny Compose surface that only requests POST_NOTIFICATIONS once
         setContent { AskNotificationPermission() }
 
-        // Propagate deep-link info from push tap
-        val openNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
+        // Flag injected by a push-notification tap
+        val openNotifications =
+            intent?.getBooleanExtra("open_notifications", false) ?: false
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            val dbRef       = FirebaseDatabase.getInstance().reference
-            val currentUser = auth.currentUser
-
-            val nextIntent = when {
-                // ── Not signed in at all ──
-                currentUser == null -> {
-                    Intent(this@MainActivity, LandingActivity::class.java)
-                }
-                else -> {
-                    val uid  = currentUser.uid
-                    val usernameSnap = dbRef.child("users").child(uid)
-                        .child("username").get().await()
-                    val username = usernameSnap.getValue(String::class.java)
-
-                    if (username.isNullOrBlank()) {
-                        Intent(this@MainActivity, RegistrationActivity::class.java)
-                            .putExtra("requestedStartStep", 2)
-                    } else {
-                        val finished = dbRef.child("publicUsers").child(username)
-                            .child("registrationFinished").get().await()
-                            .getValue(Boolean::class.java) ?: false
-
-                        if (finished) {
-                            Intent(this@MainActivity, KupidXAppActivity::class.java)
-                                .putExtra("open_notifications", openNotifications)   // 🔸 forward
-                        } else {
-                            Intent(this@MainActivity, RegistrationActivity::class.java)
-                                .putExtra("requestedStartStep", 2)
-                        }
-                    }
-                }
-            }
-
-            withContext(Dispatchers.Main) {
-                startActivity(nextIntent)
-                finish()
-            }
+        val cachedUser = auth.currentUser
+        if (cachedUser == null) {
+            // --> not signed in at all
+            startActivity(Intent(this, LandingActivity::class.java))
+            finish()
+        } else {
+            // --> we know the UID immediately; let the helper decide where to go
+            routeBasedOnUid(cachedUser.uid, openNotifications)
         }
     }
     @Composable
@@ -100,4 +72,27 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun routeBasedOnUid(uid: String, openNotifications: Boolean) =
+        lifecycleScope.launch(Dispatchers.IO) {
+
+            val db   = FirebaseDatabase.getInstance().reference
+            val snap = db.child("users").child(uid).get().await()
+
+            val finished = snap.child("registrationFinished")
+                .getValue(Boolean::class.java) ?: false
+            val step = snap.child("registrationStep")
+                .getValue(Int::class.java) ?: 0
+
+            val target = if (finished) {
+                Intent(this@MainActivity, KupidXAppActivity::class.java)
+                    .putExtra("open_notifications", openNotifications)
+            } else {
+                Intent(this@MainActivity, RegistrationActivity::class.java)
+                    .putExtra("requestedStartStep", step)
+            }
+
+            withContext(Dispatchers.Main) { startActivity(target); finish() }
+        }
 }
+

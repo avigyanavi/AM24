@@ -24,6 +24,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.VisualTransformation
 import com.am24.am24.ui.theme.AppTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -315,6 +319,7 @@ fun LoginScreen(
 
     var userOrEmail by remember { mutableStateOf(TextFieldValue(initialUserOrEmail)) }
     var password    by remember { mutableStateOf(TextFieldValue("")) }
+    var passwordVisible by remember { mutableStateOf(false) }   // ⬅ NEW
 
     val context = LocalContext.current
 
@@ -458,10 +463,20 @@ fun LoginScreen(
                 onValueChange = { password = it },
                 label = { Text(stringResource(id = R.string.password), color = Color(0xFFFF6600)) },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible)
+                    VisualTransformation.None        // 👁 show plain text
+                else
+                    PasswordVisualTransformation(),  // •••••••
+                trailingIcon = {                     // 👁 toggle
+                    val icon =
+                        if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(icon, contentDescription = null, tint = Color(0xFFFF6600))
+                    }
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
                 colors = orangeOutlinedColors()
             )
 
