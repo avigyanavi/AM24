@@ -4,8 +4,10 @@ package com.am24.am24
 
 /* Android & Compose */
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.telephony.TelephonyManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -31,14 +33,27 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.database.ServerValue.increment
+import java.util.Locale
+import androidx.core.content.getSystemService
 
 /* ───────── Subscription screen ───────── */
 
 @Composable
 fun SubscriptionScreen(navController: NavController) {
 
+    /* ───────── Early country split ───────── */
+    val ctx      = LocalContext.current
+    val inIndia  = remember { isProbablyInIndia(ctx) }
+
+    if (!inIndia) {
+        // 👉 Foreign user: jump straight into the Pay-Pal WebView route
+        LaunchedEffect(Unit) {
+            navController.navigate("paypal")        // ← make sure this route exists
+        }
+        // We return so no UPI UI is even composed
+        return
+    }
     /* Firebase handles */
-    val ctx       = LocalContext.current
     val uid       = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val db        = FirebaseDatabase.getInstance()
     val userRoot  = db.getReference("users/$uid")
@@ -187,6 +202,20 @@ fun parseUpiStatus(raw: String?): String =
         ?.toMap()
         ?.get("STATUS")
         ?: "UNKNOWN"
+
+
+fun isProbablyInIndia(ctx: Context): Boolean {
+    // ① SIM / network country if available
+    val telephony = ctx.getSystemService<TelephonyManager>()
+    val simIso    = telephony?.simCountryIso ?: ""
+    val netIso    = telephony?.networkCountryIso ?: ""
+
+    // ② Device UI locale fallback
+    val localeIso = Locale.getDefault().country
+
+    return listOf(simIso, netIso, localeIso).any { it.equals("IN", true) }
+}
+
 
 /* ───────── PayPal Smart-Button WebView (unchanged) ───────── */
 
