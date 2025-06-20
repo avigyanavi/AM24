@@ -85,7 +85,9 @@ import com.am24.am24.ui.theme.AppTheme
 import com.firebase.geofire.GeoFire
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.libraries.places.api.Places
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.EmailAuthProvider
@@ -156,6 +158,10 @@ class RegistrationActivity : ComponentActivity() {
                                                     "signInMethod"         to signInMethod,
                                                     "registrationFinished" to true
                                                 ))
+                                            db.child("users")
+                                                .child(uid)
+                                                .child("registrationFinished")
+                                                .setValue(true)
                                             FirebaseRefs.db.reference.child("users/$uid/registrationStep").removeValue()
                                                 .addOnSuccessListener {
                                                     startActivity(Intent(this@RegistrationActivity, MainActivity::class.java))
@@ -369,15 +375,6 @@ fun RegistrationScreen(
                 currentStep -= 1
                 saveStep(currentStep)
             }
-            // BACK from Step 1 → exit: also delete incomplete auth right here, then finish
-            else -> {
-                cleanupIncompleteUser(
-                    FirebaseAuth.getInstance(),
-                    FirebaseDatabase.getInstance(),
-                    FirebaseStorage.getInstance()
-                )
-                (context as? ComponentActivity)?.finish()
-            }
         }
     }
 
@@ -451,8 +448,8 @@ private fun tryRegister(
                             .addOnSuccessListener { snap ->
                                 if (!snap.exists()) {
                                     // 🗑️  Incomplete!  Wipe it:
-                                    cleanupIncompleteUser(auth, FirebaseDatabase.getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/"),
-                                        storage)
+//                                    cleanupIncompleteUser(auth, FirebaseDatabase.getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/"),
+//                                        storage)
                                     // after it’s deleted, create the new one:
                                     createFreshAccount(typedEmail, typedPassword, onSuccess, onError)
                                 } else {
@@ -1291,17 +1288,6 @@ fun EnterLocationAndSchoolScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         content = { innerPadding ->
             Column(
                 modifier = Modifier
@@ -3322,13 +3308,17 @@ fun EnterBirthdateCityHometownScreen(
                 )
 
                 // City Section
-                Text(stringResource(R.string.city_label), color = Color.White, fontSize = 18.sp)
+//                Text(stringResource(R.string.city_label), color = Color.White, fontSize = 18.sp)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        DropdownWithSearch(
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {                        DropdownWithSearch(
                             title               = stringResource(R.string.select_city_default),
                             options             = cities,
                             selectedOption      = selectedCity,
@@ -3346,6 +3336,7 @@ fun EnterBirthdateCityHometownScreen(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
+                        modifier = Modifier      .fillMaxHeight(),
                         onClick = {
                             isLocating = true
                             permissionLauncher.launch(permissions)
@@ -3362,7 +3353,7 @@ fun EnterBirthdateCityHometownScreen(
                 }
 
                 // Locality Section
-                Text(stringResource(R.string.locality_label), color = Color.White, fontSize = 18.sp)
+//                Text(stringResource(R.string.locality_label), color = Color.White, fontSize = 18.sp)
                 Box {
                     DropdownWithSearch(
                         title               = stringResource(R.string.select_locality_default),
@@ -3496,28 +3487,59 @@ private fun fetchLocation(
     warangal: String,
     onLocationFound: (String, String, String) -> Unit // ← country, city, locality
 ) {
-    val scope = (ctx as? ComponentActivity)?.lifecycleScope ?: return
-    scope.launch {
+    val TAG = "fetchLocation"                       // <- new tag
+    val activityScope = (ctx as? ComponentActivity)?.lifecycleScope ?: return
+    activityScope.launch(Dispatchers.IO) {
         try {
-            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                onLocationFound(other, other, other); return@launch
+            // 1) Permission check
+            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.d(TAG, "No location permission → defaulting to OTHER/OTHER/OTHER")
+                withContext(Dispatchers.Main) { onLocationFound(other, other, other) }
+                return@launch
             }
-            val loc = fused.lastLocation.await() ?: run {
-                onLocationFound(other, other, other); return@launch
+
+            // 2) Try the cached “last” fix
+            var loc = fused.lastLocation.await()
+            Log.d(TAG, "lastLocation.await() returned → $loc")
+
+            // 3) If that was null, fall back to a fresh one‐shot request
+            if (loc == null) {
+                Log.d(TAG, "lastLocation was null → calling getCurrentLocation()")
+                loc = fused.getCurrentLocation(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    CancellationTokenSource().token
+                ).await()
+                Log.d(TAG, "getCurrentLocation() returned → $loc")
             }
+
+            // 4) If still null, give up
+            if (loc == null) {
+                Log.d(TAG, "Both location calls null → defaulting to OTHER/OTHER/OTHER")
+                withContext(Dispatchers.Main) { onLocationFound(other, other, other) }
+                return@launch
+            }
+
+            // 5) We have a valid Location!
+            Log.d(TAG, "Have Location → lat=${loc.latitude}, lon=${loc.longitude}")
+
             val geo = Geocoder(ctx, Locale.getDefault())
             val addr = withContext(Dispatchers.IO) {
                 geo.getFromLocation(loc.latitude, loc.longitude, 1)
             }?.firstOrNull()
-            if (addr == null) { onLocationFound(other, other, other); return@launch }
+            if (addr == null) {                 Log.d(TAG, "Geocoder returned no address, defaulting to OTHER/OTHER/OTHER")
+                onLocationFound(other, other, other); return@launch }
 
             val detectedCountry  = addr.countryName ?: other
             val detectedCity     = addr.locality ?: addr.subAdminArea ?: other
             val detectedLocality = addr.subLocality ?: other
+            Log.d(TAG, "Geocoder → $detectedCountry / $detectedCity / $detectedLocality")
 
-            val matchedCountry  = countries.find { it.equals(detectedCountry, true) } ?: other
+            val matchedCountry = countries.find { it.equals(detectedCountry, ignoreCase = true) } ?: other
             val matchedCityList = ctx.resources.getStringArray(R.array.city_names).toList()
-            val matchedCity     = matchedCityList.find { it.equals(detectedCity, true) } ?: other
+            val matchedCity     = matchedCityList.find { it.equals(detectedCity, ignoreCase = true) } ?: other
+            Log.d(TAG, "Matched country='$matchedCountry'")
 
             val localities = when (matchedCity) {
                 agartala -> ctx.resources.getStringArray(R.array.localities_agartala).toList()
@@ -3612,7 +3634,7 @@ private fun fetchLocation(
                 other -> ctx.resources.getStringArray(R.array.localities_other).toList()
                 else -> emptyList()
             }
-            val matchedLocality = localities.find { it.equals(detectedLocality, true) } ?: other
+            val matchedLocality = localities.find { it.equals(detectedLocality, ignoreCase = true) } ?: other
             withContext(Dispatchers.Main) { onLocationFound(matchedCountry, matchedCity, matchedLocality) }
         } catch (e: Exception) {
             Log.e("fetchLocation", "${e.message}")
