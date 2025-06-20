@@ -693,17 +693,6 @@ fun EnterPersonalDetailsScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.tell_us_more_about_yourself), color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         content = { innerPadding ->
             LazyColumn(
                 modifier = Modifier
@@ -1989,17 +1978,6 @@ fun EnterEmailAndPasswordScreen(
 
     /* ───────────────────────  UI  ──────────────────────────────── */
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        }
     ) { pad ->
         Column(
             modifier = Modifier
@@ -2287,12 +2265,6 @@ fun EnterGenderCommunityReligionScreen(
     val isNextEnabled = registrationViewModel.gender.isNotEmpty()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         content = { innerPadding ->
             Column(
                 modifier = Modifier
@@ -2462,17 +2434,6 @@ fun EnterUsernameScreen(
     var isLoading  by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         containerColor = Color(0xFF1A1A1A)
     ) { innerPadding ->
         Column(
@@ -2880,14 +2841,6 @@ fun EnterNameScreen(
     val canProceed = registrationViewModel.interestedIn.isNotEmpty()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1A1A1A)
-                )
-            )
-        },
         content = { innerPadding ->
             Box(
                 modifier = Modifier
@@ -3298,12 +3251,6 @@ fun EnterBirthdateCityHometownScreen(
             ((isLocalityOther && customLocality.isNotBlank()) || (!isLocalityOther && selectedLocality.isNotBlank()))
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.enter_birthdate_city_hometown_title), color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         content = { innerPadding ->
             Column(
                 modifier = Modifier
@@ -3764,12 +3711,6 @@ fun EnterInterestsScreen(
     val interestsOverLimit = registrationViewModel.interests.size > maxInterests
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.enter_interests_title), color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         content = { innerPadding ->
             Column(
                 modifier = Modifier
@@ -3872,12 +3813,17 @@ fun UploadMediaComposable(
 
     val mediaPlayer = remember { MediaPlayer() }
 
-    // Helper: combined list of URIs (first = profile, rest = optional)
-    val combinedPhotoUris: List<Uri> = listOfNotNull(registrationViewModel.profilePictureUri) +
-            registrationViewModel.optionalPhotoUris
+    // Helper: combined list of URIs (first = profile or placeholder)
+    val placeholderUriString =
+        "android.resource://${context.packageName}/drawable/local_placeholder"
+    val combinedPhotoUris: List<Uri> =
+        if (registrationViewModel.profilePictureUri == null)
+            listOf(Uri.parse(placeholderUriString)) + registrationViewModel.optionalPhotoUris
+        else
+            listOf(registrationViewModel.profilePictureUri!!) + registrationViewModel.optionalPhotoUris
 
-    // Only allow “Next” once at least one photo exists
-    val canProceed = registrationViewModel.profilePictureUri != null
+    // Always allow proceeding from this screen
+    val canProceed = true
 
     suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
         val jpeg = compressImage(context, uri)
@@ -4012,17 +3958,6 @@ fun UploadMediaComposable(
     DisposableEffect(Unit) { onDispose { mediaPlayer.release() } }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.upload_media_title), color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         containerColor = Color(0xFF1A1A1A)
     ) { padding ->
         LazyColumn(
@@ -4057,39 +3992,50 @@ fun UploadMediaComposable(
                                         shape = CircleShape
                                     )
                             )
-                            IconButton(
-                                onClick = {
-                                    if (index == 0) {
-                                        registrationViewModel.profilePictureUri = null
-                                        if (registrationViewModel.optionalPhotoUris.isNotEmpty()) {
-                                            val newProfile =
-                                                registrationViewModel.optionalPhotoUris.removeAt(0)
-                                            registrationViewModel.profilePictureUri = newProfile
-                                            uploadProfilePicToFirebase(
-                                                context,
-                                                storageRef,
-                                                newProfile,
-                                                registrationViewModel
+                            if (!(index == 0 && registrationViewModel.profilePictureUri == null)) {
+                                IconButton(
+                                    onClick = {
+                                        if (index == 0) {
+                                            registrationViewModel.profilePictureUri = null
+                                            if (registrationViewModel.optionalPhotoUris.isNotEmpty()) {
+                                                val newProfile =
+                                                    registrationViewModel.optionalPhotoUris.removeAt(
+                                                        0
+                                                    )
+                                                registrationViewModel.profilePictureUri = newProfile
+                                                uploadProfilePicToFirebase(
+                                                    context,
+                                                    storageRef,
+                                                    newProfile,
+                                                    registrationViewModel
+                                                )
+                                            }
+                                        } else {
+                                            val optIndex = index - 1
+                                            registrationViewModel.optionalPhotoUris.removeAt(
+                                                optIndex
+                                            )
+                                            registrationViewModel.optionalPhotoUrls.removeAt(
+                                                optIndex
                                             )
                                         }
-                                    } else {
-                                        val optIndex = index - 1
-                                        registrationViewModel.optionalPhotoUris.removeAt(optIndex)
-                                        registrationViewModel.optionalPhotoUrls.removeAt(optIndex)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .size(24.dp)
-                                    .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
-                                    .padding(2.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .size(24.dp)
+                                        .background(
+                                            Color.Black.copy(alpha = 0.5f),
+                                            shape = CircleShape
+                                        )
+                                        .padding(2.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -4174,7 +4120,13 @@ fun UploadMediaComposable(
             /* ---------------- Next button ---------------- */
             item {
                 Button(
-                    onClick = { if (canProceed) onNext() },
+                    onClick = {
+                        if (registrationViewModel.profilePictureUri == null && registrationViewModel.profilePicUrl.isNullOrBlank()) {
+                            registrationViewModel.profilePicUrl =
+                                "android.resource://${context.packageName}/drawable/local_placeholder"
+                        }
+                        if (canProceed) onNext()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
@@ -4228,12 +4180,6 @@ fun EnterProfileHeadlineScreen(
     var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
-            )
-        },
         content = { innerPadding ->
             Box(
                 modifier = Modifier

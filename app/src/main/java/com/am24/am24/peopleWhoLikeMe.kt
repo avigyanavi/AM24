@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -163,10 +164,13 @@ fun PeopleWhoLikeMeScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val placeholder = painterResource(R.drawable.local_placeholder)
                                 // Profile Picture
                                 AsyncImage(
-                                    model = profile.profilepicUrl,
+                                    model = profile.profilepicUrl.takeIf { !it.isNullOrBlank() },
                                     contentDescription = "Profile Picture",
+                                    placeholder = placeholder,
+                                    error = placeholder,
                                     modifier = Modifier.size(50.dp)
                                 )
                                 Spacer(modifier = Modifier.width(16.dp))

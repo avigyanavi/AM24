@@ -85,6 +85,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.am24.am24.util.LocaleUtils
 import kotlinx.coroutines.Dispatchers
@@ -706,6 +707,7 @@ fun ChatScreenContent(
                                     .clip(CircleShape)
                             )
                         } else if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
+                            val placeholder = painterResource(R.drawable.local_placeholder)
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(otherUserProfile!!.profilepicUrl)
@@ -714,6 +716,8 @@ fun ChatScreenContent(
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = "Profile",
+                                placeholder = placeholder,
+                                error = placeholder,
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
@@ -2200,6 +2204,7 @@ fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit, modifier: Modifier
 @Composable
 fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val placeholder = painterResource(R.drawable.local_placeholder)
     profile.profilepicUrl?.takeIf { it.isNotBlank() }?.let { url ->
         AsyncImage(
             model = ImageRequest.Builder(context)
@@ -2209,10 +2214,17 @@ fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
                 .crossfade(true)
                 .build(),
             contentDescription = profile.username,
+            placeholder = placeholder,
+            error = placeholder,
             modifier = modifier,
             contentScale = ContentScale.Crop
         )
-    } ?: Box(modifier = modifier.background(Color.Gray))
+    } ?: Image(
+        painter = placeholder,
+        contentDescription = profile.username,
+        modifier = modifier,
+        contentScale = ContentScale.Crop
+    )
 }
 
 @Composable

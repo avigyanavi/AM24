@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -894,31 +895,19 @@ fun UserProfilePopup(
                     .clickable { onCloseClick() }
             )
         }
-        profile.profilepicUrl?.let { url ->
-            LaunchedEffect(url) {
-                val request = ImageRequest.Builder(context)
-                    .data(url)
-                    .diskCacheKey(url)
-                    .memoryCacheKey(url)
-                    .crossfade(true)
-                    .build()
-                context.imageLoader.enqueue(request)
-            }
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(url)
-                    .diskCacheKey(url)
-                    .memoryCacheKey(url)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(Modifier.height(12.dp))
-        }
+        val placeholder = painterResource(R.drawable.local_placeholder)
+        val url = profile.profilepicUrl
+        AsyncImage(
+            model = url.takeIf { !it.isNullOrBlank() },
+            contentDescription = null,
+            placeholder = placeholder,
+            error = placeholder,
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(Modifier.height(12.dp))
         Text(
             text = profile.name,
             fontWeight = FontWeight.Bold,

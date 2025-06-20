@@ -51,6 +51,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -622,23 +623,17 @@ fun FeedItem(
                         .padding(start = 8.dp, bottom = dynamicPadding)
                 ) {
                     // User profile picture
-                    if (userProfile?.profilepicUrl != null) {
-                        AsyncImage(
-                            model = userProfile.profilepicUrl,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier
-                                .size(if (screenWidth < 360.dp) 32.dp else 40.dp)
-                                .clip(CircleShape)
-                                .background(Color.Gray)
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color.Gray)
-                        )
-                    }
+                    val placeholder = painterResource(R.drawable.local_placeholder)
+                    AsyncImage(
+                        model = userProfile?.profilepicUrl.takeIf { !it.isNullOrBlank() },
+                        contentDescription = "Profile Picture",
+                        placeholder = placeholder,
+                        error = placeholder,
+                        modifier = Modifier
+                            .size(if (screenWidth < 360.dp) 32.dp else 40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray)
+                    )
                     Spacer(modifier = Modifier.width(dynamicPadding))
                     Column {
                         Row {

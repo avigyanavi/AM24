@@ -31,6 +31,7 @@ import kotlin.math.roundToInt
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 
 
@@ -429,9 +430,12 @@ fun LeaderboardRow(rank: Int, profile: Profile) {
 
             Spacer(Modifier.width(8.dp))
 
+            val placeholder = painterResource(R.drawable.local_placeholder)
             AsyncImage(
-                model = profile.profilepicUrl.orEmpty(),
+                model = profile.profilepicUrl.takeIf { !it.isNullOrBlank() },
                 contentDescription = profile.name,
+                placeholder = placeholder,
+                error = placeholder,
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(24.dp))

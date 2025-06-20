@@ -97,6 +97,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -1840,7 +1841,9 @@ fun PhotoWithTwoOverlays(
     sortedByUpvotes: List<Post>,
     currentProfile: Profile? = null
 ) {
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    val firstPhoto = profile.profilepicUrl.takeIf { !it.isNullOrBlank() }
+        ?: "android.resource://${LocalContext.current.packageName}/drawable/local_placeholder"
+    val photoUrls = listOf(firstPhoto) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember(photoUrls) { mutableStateOf(0) }
     val context = LocalContext.current
     val datingViewModel: DatingViewModel = viewModel()
@@ -2570,9 +2573,12 @@ fun MatchPopUp(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(horizontalArrangement = Arrangement.Center) {
+                    val placeholder = painterResource(R.drawable.local_placeholder)
                     AsyncImage(
-                        model = currentUserProfilePic,
+                        model = currentUserProfilePic.takeIf { it.isNotBlank() },
                         contentDescription = stringResource(R.string.your_profile_picture),
+                        placeholder = placeholder,
+                        error = placeholder,
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
@@ -2580,8 +2586,10 @@ fun MatchPopUp(
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     AsyncImage(
-                        model = otherUserProfilePic,
+                        model = otherUserProfilePic.takeIf { it.isNotBlank() },
                         contentDescription = stringResource(R.string.matched_profile_picture),
+                        placeholder = placeholder,
+                        error = placeholder,
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)

@@ -699,7 +699,9 @@ fun PhotoCarouselWithOverlay(
     onVerifyClick: () -> Unit        // ➊ new
 ) {
     val context = LocalContext.current
-    val photoUrls = listOfNotNull(profile.profilepicUrl) + profile.optionalPhotoUrls
+    val firstPhoto = profile.profilepicUrl.takeIf { !it.isNullOrBlank() }
+        ?: "android.resource://${context.packageName}/drawable/local_placeholder"
+    val photoUrls = listOf(firstPhoto) + profile.optionalPhotoUrls
     var currentPhotoIndex by remember { mutableStateOf(0) }
 
     // Pre-cache images
