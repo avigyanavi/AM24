@@ -3559,7 +3559,9 @@ private fun fetchLocation(
                 onLocationFound(other, other, other); return@launch
             }
             val geo = Geocoder(ctx, Locale.getDefault())
-            val addr = geo.getFromLocation(loc.latitude, loc.longitude, 1)?.firstOrNull()
+            val addr = withContext(Dispatchers.IO) {
+                geo.getFromLocation(loc.latitude, loc.longitude, 1)
+            }?.firstOrNull()
             if (addr == null) { onLocationFound(other, other, other); return@launch }
 
             val detectedCountry  = addr.countryName ?: other

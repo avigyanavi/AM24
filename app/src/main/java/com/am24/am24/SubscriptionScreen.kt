@@ -48,7 +48,7 @@ fun SubscriptionScreen(navController: NavController) {
     if (!inIndia) {
         // 👉 Foreign user: jump straight into the Pay-Pal WebView route
         LaunchedEffect(Unit) {
-            navController.navigate("paypal")        // ← make sure this route exists
+            navController.navigate("paypal_web")        // ← make sure this route exists
         }
         // We return so no UPI UI is even composed
         return
