@@ -291,14 +291,6 @@ class LandingActivity : ComponentActivity() {
 
     /* ───────── Misc helpers ───────── */
 
-    private fun startRegistrationFlow(acct: GoogleSignInAccount?) {
-        acct?.let {
-            Log.d("LandingActivity", "New Firebase user: ${it.displayName}")
-            // TODO: store displayName / photoURL / etc. in your user DB
-        }
-        continueIntoApp()
-    }
-
     private fun goToMain() {
         startActivity(Intent(this, MainActivity::class.java))
         finish()

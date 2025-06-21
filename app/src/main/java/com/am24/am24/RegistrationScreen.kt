@@ -604,66 +604,10 @@ fun EnterPersonalDetailsScreen(
         stringResource(R.string.politics_option_communist),
         stringResource(R.string.politics_option_other)
     )
-    val jobRoleOptions = listOf(
-        stringResource(R.string.job_role_option_software_developer),
-        stringResource(R.string.job_role_option_data_scientist),
-        stringResource(R.string.job_role_option_ux_ui_designer),
-        stringResource(R.string.job_role_option_civil_engineer),
-        stringResource(R.string.job_role_option_mechanical_engineer),
-        stringResource(R.string.job_role_option_electrical_engineer),
-        stringResource(R.string.job_role_option_project_manager),
-        stringResource(R.string.job_role_option_product_manager),
-        stringResource(R.string.job_role_option_business_analyst),
-        stringResource(R.string.job_role_option_accountant),
-        stringResource(R.string.job_role_option_chartered_accountant),
-        stringResource(R.string.job_role_option_hr_manager),
-        stringResource(R.string.job_role_option_marketing_manager),
-        stringResource(R.string.job_role_option_sales_executive),
-        stringResource(R.string.job_role_option_director),
-        stringResource(R.string.job_role_option_ceo),
-        stringResource(R.string.job_role_option_teacher),
-        stringResource(R.string.job_role_option_professor),
-        stringResource(R.string.job_role_option_researcher),
-        stringResource(R.string.job_role_option_scientist),
-        stringResource(R.string.job_role_option_doctor),
-        stringResource(R.string.job_role_option_surgeon),
-        stringResource(R.string.job_role_option_nurse),
-        stringResource(R.string.job_role_option_pharmacist),
-        stringResource(R.string.job_role_option_lawyer),
-        stringResource(R.string.job_role_option_advocate),
-        stringResource(R.string.job_role_option_legal_consultant),
-        stringResource(R.string.job_role_option_graphic_designer),
-        stringResource(R.string.job_role_option_content_writer),
-        stringResource(R.string.job_role_option_photographer),
-        stringResource(R.string.job_role_option_journalist),
-        stringResource(R.string.job_role_option_editor),
-        stringResource(R.string.job_role_option_chef),
-        stringResource(R.string.job_role_option_barista),
-        stringResource(R.string.job_role_option_pilot),
-        stringResource(R.string.job_role_option_flight_attendant),
-        stringResource(R.string.job_role_option_police_officer),
-        stringResource(R.string.job_role_option_firefighter),
-        stringResource(R.string.job_role_option_army_officer),
-        stringResource(R.string.job_role_option_electrician),
-        stringResource(R.string.job_role_option_plumber),
-        stringResource(R.string.job_role_option_carpenter),
-        stringResource(R.string.job_role_option_mechanic),
-        stringResource(R.string.job_role_option_entrepreneur),
-        stringResource(R.string.job_role_option_intern),
-        stringResource(R.string.job_role_option_other)
-    )
+
     var lookingFor by remember { mutableStateOf(viewModel.lookingFor) }
     var loveLanguage by remember { mutableStateOf(viewModel.loveLanguage) }
     var politics by remember { mutableStateOf(viewModel.politics) }
-    var jobRole by remember { mutableStateOf(viewModel.jobRole) }
-    var work by remember { mutableStateOf(viewModel.work) }
-
-    // Work search state
-    var workQuery by remember { mutableStateOf(viewModel.work) }
-    var workResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-    var workSearching by remember { mutableStateOf(false) }
-    var isWorkFieldFocused by remember { mutableStateOf(false) } // Track focus state
-    val workMenuExpanded = workResults.isNotEmpty() && isWorkFieldFocused // Only expand if focused
 
     // Social Causes
     val allCauses = stringArrayResource(R.array.social_causes_list).toList()
@@ -674,19 +618,6 @@ fun EnterPersonalDetailsScreen(
     LaunchedEffect(Unit) {
         // Clear focus on screen entry to prevent automatic focus on the text field
         focusManager.clearFocus()
-    }
-
-    // Work search with debouncing
-    LaunchedEffect(workQuery) {
-        if (workQuery.length < 3) {
-            workResults = emptyList()
-            return@LaunchedEffect
-        } else {
-            delay(400) // Debounce
-            workSearching = true
-            workResults = searchPlacesRich(workQuery) // Use "establishment" for workplaces
-            workSearching = false
-        }
     }
 
     Scaffold(
@@ -733,96 +664,6 @@ fun EnterPersonalDetailsScreen(
                             viewModel.politics = it
                         }
                     )
-                }
-
-                item {
-                    DropdownWithStaticOptions(
-                        label = stringResource(R.string.job_role_label),
-                        options = jobRoleOptions,
-                        selectedOption = jobRole,
-                        onOptionSelected = {
-                            jobRole = it
-                            viewModel.jobRole = it
-                        }
-                    )
-                }
-
-                item {
-                    ExposedDropdownMenuBox(
-                        expanded = workMenuExpanded,
-                        onExpandedChange = { /* Controlled by results and focus */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        var workother = stringResource(R.string.work_option_other)
-                        val focusRequester = remember { FocusRequester() } // For focus tracking
-                        OutlinedTextField(
-                            value = workQuery,
-                            onValueChange = { query ->
-                                workQuery = query
-                                viewModel.work = workother
-                                viewModel.customWork = query
-                                work = viewModel.work
-                            },
-                            label = { Text(stringResource(R.string.select_work)) },
-                            singleLine = true,
-                            trailingIcon = {
-                                if (workSearching)
-                                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                                else
-                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
-                            },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color.White,
-                                cursorColor = Color.White,
-                                focusedLabelColor = Color(0xFFFF6000),
-                                unfocusedLabelColor = Color.White,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { focusState ->
-                                    isWorkFieldFocused = focusState.isFocused
-                                    if (!focusState.isFocused) {
-                                        workResults = emptyList() // Clear results when focus is lost
-                                    }
-                                }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = workMenuExpanded,
-                            onDismissRequest = {
-                                workResults = emptyList()
-                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
-                            },
-                            modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(6.dp))
-                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
-                        ) {
-                            workResults.forEach { res ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(res.name, color = Color.Black)
-                                            if (res.address.isNotBlank())
-                                                Text(res.address, color = Color.DarkGray, style = MaterialTheme.typography.bodySmall)
-                                        }
-                                    },
-                                    leadingIcon = { Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500)) },
-                                    onClick = {
-                                        viewModel.work = res.name
-                                        viewModel.customWork = ""
-                                        workQuery = res.name
-                                        workResults = emptyList()
-                                        work = viewModel.work
-                                        focusManager.clearFocus() // Clear focus after selection
-                                    }
-                                )
-                            }
-                        }
-                    }
                 }
 
                 item {
@@ -897,15 +738,6 @@ fun EnterLifestyleScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
-                    Text(
-                        text = stringResource(R.string.section_lifestyle_attributes),
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
                 // 1. Exercise Frequency
                 item {
                     LifestyleSlider(
@@ -1173,14 +1005,14 @@ fun DropdownWithStaticOptions(
     var expanded by remember { mutableStateOf(false) }
 
     Column {
-        Text(text = label, color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(bottom = 4.dp))
+        Text(text = label, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
         OutlinedButton(
             onClick = { expanded = !expanded },
             modifier = Modifier.fillMaxWidth(),
             border = BorderStroke(1.dp, Color(0xFFFF6000)),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
         ) {
-            Text(text = selectedOption.ifEmpty { stringResource(R.string.select_default) }, color = Color(0xFFFF6000))
+            Text(text = selectedOption.ifEmpty { stringResource(R.string.select_default) }, fontSize = 12.sp, color = Color.White)
         }
 
         DropdownMenu(
@@ -1216,6 +1048,67 @@ fun EnterLocationAndSchoolScreen(
         stringResource(R.string.college_label),
         stringResource(R.string.post_graduation_label)
     )
+
+    val other = stringResource(R.string.job_role_option_other)
+
+    val jobRoleOptions = listOf(
+        stringResource(R.string.job_role_option_software_developer),
+        stringResource(R.string.job_role_option_data_scientist),
+        stringResource(R.string.job_role_option_ux_ui_designer),
+        stringResource(R.string.job_role_option_civil_engineer),
+        stringResource(R.string.job_role_option_mechanical_engineer),
+        stringResource(R.string.job_role_option_electrical_engineer),
+        stringResource(R.string.job_role_option_project_manager),
+        stringResource(R.string.job_role_option_product_manager),
+        stringResource(R.string.job_role_option_business_analyst),
+        stringResource(R.string.job_role_option_accountant),
+        stringResource(R.string.job_role_option_chartered_accountant),
+        stringResource(R.string.job_role_option_hr_manager),
+        stringResource(R.string.job_role_option_marketing_manager),
+        stringResource(R.string.job_role_option_sales_executive),
+        stringResource(R.string.job_role_option_director),
+        stringResource(R.string.job_role_option_ceo),
+        stringResource(R.string.job_role_option_teacher),
+        stringResource(R.string.job_role_option_professor),
+        stringResource(R.string.job_role_option_researcher),
+        stringResource(R.string.job_role_option_scientist),
+        stringResource(R.string.job_role_option_doctor),
+        stringResource(R.string.job_role_option_surgeon),
+        stringResource(R.string.job_role_option_nurse),
+        stringResource(R.string.job_role_option_pharmacist),
+        stringResource(R.string.job_role_option_lawyer),
+        stringResource(R.string.job_role_option_advocate),
+        stringResource(R.string.job_role_option_legal_consultant),
+        stringResource(R.string.job_role_option_graphic_designer),
+        stringResource(R.string.job_role_option_content_writer),
+        stringResource(R.string.job_role_option_photographer),
+        stringResource(R.string.job_role_option_journalist),
+        stringResource(R.string.job_role_option_editor),
+        stringResource(R.string.job_role_option_chef),
+        stringResource(R.string.job_role_option_barista),
+        stringResource(R.string.job_role_option_pilot),
+        stringResource(R.string.job_role_option_flight_attendant),
+        stringResource(R.string.job_role_option_police_officer),
+        stringResource(R.string.job_role_option_firefighter),
+        stringResource(R.string.job_role_option_army_officer),
+        stringResource(R.string.job_role_option_electrician),
+        stringResource(R.string.job_role_option_plumber),
+        stringResource(R.string.job_role_option_carpenter),
+        stringResource(R.string.job_role_option_mechanic),
+        stringResource(R.string.job_role_option_entrepreneur),
+        stringResource(R.string.job_role_option_intern),
+        other
+    )
+
+    var work by remember { mutableStateOf(registrationViewModel.work) }
+
+    // Work search state
+    var workQuery by remember { mutableStateOf(registrationViewModel.work) }
+    var workResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var workSearching by remember { mutableStateOf(false) }
+    var isWorkFieldFocused by remember { mutableStateOf(false) } // Track focus state
+    val workMenuExpanded = workResults.isNotEmpty() && isWorkFieldFocused // Only expand if focused
+
 
     // State for place search queries and results
     var highSchoolQuery by remember { mutableStateOf(registrationViewModel.highSchool) }
@@ -1287,6 +1180,21 @@ fun EnterLocationAndSchoolScreen(
         }
     }
 
+
+    // Work search with debouncing
+    LaunchedEffect(workQuery) {
+        if (workQuery.length < 3) {
+            workResults = emptyList()
+            return@LaunchedEffect
+        } else {
+            delay(400) // Debounce
+            workSearching = true
+            workResults = searchPlacesRich(workQuery) // Use "establishment" for workplaces
+            workSearching = false
+        }
+    }
+
+
     Scaffold(
         content = { innerPadding ->
             Column(
@@ -1300,21 +1208,21 @@ fun EnterLocationAndSchoolScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Section Title
-                Text(
-                    text = stringResource(R.string.education_and_location_title),
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
+//                Text(
+//                    text = stringResource(R.string.education_and_location_title),
+//                    color = Color.White,
+//                    fontSize = 24.sp,
+//                    fontWeight = FontWeight.Bold,
+//                    modifier = Modifier.padding(bottom = 24.dp)
+//                )
 
-                // Education Level Dropdown
-                Text(
-                    text = stringResource(R.string.education_level_label),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+//                // Education Level Dropdown
+//                Text(
+//                    text = stringResource(R.string.education_level_label),
+//                    color = Color.White,
+//                    fontSize = 18.sp,
+//                    fontWeight = FontWeight.Bold
+//                )
                 DropdownWithSearch(
                     title = stringResource(R.string.select_education_level),
                     options = educationLevels,
@@ -1619,6 +1527,104 @@ fun EnterLocationAndSchoolScreen(
                         onYearSelected = { registrationViewModel.postGraduationYear = it }
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                DropdownWithSearch(
+                    title                = stringResource(R.string.job_role_label),
+                        options = jobRoleOptions,
+                        selectedOption = registrationViewModel.jobRole,
+                        onOptionSelected = {
+                                selected ->
+                            registrationViewModel.jobRole = selected
+                        },
+                    /* ---- let the user type a custom role when “Other” is picked ---- */
+                    customInput         = if (registrationViewModel.jobRole != other &&
+                        !jobRoleOptions.contains(registrationViewModel.jobRole))
+                        registrationViewModel.jobRole      // show typed text
+                    else null,
+                    onCustomInputChange = { typed ->
+                        registrationViewModel.jobRole = typed ?: ""              // keep in VM
+                    }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ExposedDropdownMenuBox(
+                        expanded = workMenuExpanded,
+                        onExpandedChange = { /* Controlled by results and focus */ },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        var workother = stringResource(R.string.work_option_other)
+                        val focusRequester = remember { FocusRequester() } // For focus tracking
+                        OutlinedTextField(
+                            value = workQuery,
+                            onValueChange = { query ->
+                                workQuery = query
+                                registrationViewModel.work = workother
+                                registrationViewModel.customWork = query
+                                work = registrationViewModel.work
+                            },
+                            label = { Text(stringResource(R.string.select_work)) },
+                            singleLine = true,
+                            trailingIcon = {
+                                if (workSearching)
+                                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                else
+                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
+                            },
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedBorderColor = Color(0xFFFF6000),
+                                unfocusedBorderColor = Color(0xFFFF6000),
+                                cursorColor = Color.White,
+                                focusedLabelColor = Color(0xFFFF6000),
+                                unfocusedLabelColor = Color.White,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { focusState ->
+                                    isWorkFieldFocused = focusState.isFocused
+                                    if (!focusState.isFocused) {
+                                        workResults = emptyList() // Clear results when focus is lost
+                                    }
+                                }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = workMenuExpanded,
+                            onDismissRequest = {
+                                workResults = emptyList()
+                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+                            },
+                            modifier = Modifier
+                                .background(Color.White, RoundedCornerShape(6.dp))
+                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+                        ) {
+                            workResults.forEach { res ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(res.name, color = Color.Black)
+                                            if (res.address.isNotBlank())
+                                                Text(res.address, color = Color.DarkGray, style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500)) },
+                                    onClick = {
+                                        registrationViewModel.work = res.name
+                                        registrationViewModel.customWork = ""
+                                        workQuery = res.name
+                                        workResults = emptyList()
+                                        work = registrationViewModel.work
+                                        focusManager.clearFocus() // Clear focus after selection
+                                    }
+                                )
+                            }
+                        }
+                    }
+
 
                 // Next Button
                 Spacer(modifier = Modifier.height(24.dp))
@@ -1763,7 +1769,7 @@ fun SearchableDropdownWithCustomOption(
 
     // ── UI ──────────────────────────────────────────────────────────────────
     Column(Modifier.fillMaxWidth()) {
-        Text(title, fontSize = 11.sp, color = Color.White)
+        Text(title, fontSize = 14.sp, color = Color.White)
 
         /* ---------- Button that opens the menu ---------- */
         OutlinedButton(
@@ -2262,14 +2268,14 @@ fun EnterGenderCommunityReligionScreen(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Title
-                Text(
-                    text = stringResource(R.string.enter_gender_community_religion_title),
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
+//                // Title
+//                Text(
+//                    text = stringResource(R.string.enter_gender_community_religion_title),
+//                    color = Color.White,
+//                    fontSize = 24.sp,
+//                    fontWeight = FontWeight.Bold,
+//                    modifier = Modifier.padding(bottom = 24.dp)
+//                )
 
                 // Gender Dropdown
                 DropdownWithSearch(
@@ -2409,14 +2415,6 @@ fun EnterUsernameScreen(
     var isValid    by remember { mutableStateOf(true) }
     var errorMsg   by remember { mutableStateOf("") }
 
-    // Local state for name & height to mirror registrationViewModel
-    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
-    var feetText   by remember {
-        mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "")
-    }
-    var inchText   by remember {
-        mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "")
-    }
     var isLoading  by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -2445,7 +2443,7 @@ fun EnterUsernameScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFFFF6000),
-                    unfocusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color(0xFFFF6000),
                     cursorColor = Color.White,
                     focusedLabelColor = Color(0xFFFF6000),
                     unfocusedLabelColor = Color.White
@@ -2453,124 +2451,6 @@ fun EnterUsernameScreen(
             )
 
             Spacer(Modifier.height(24.dp))
-
-            // ---- Full Name (optional) ----
-            TextFieldWithLabel(
-                label = stringResource(R.string.full_name_label),
-                value = registrationViewModel.name,
-                onValueChange = { registrationViewModel.name = it }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // ---- Height (optional) ----
-            Text(
-                text = stringResource(R.string.height_label),
-                color = Color.White,
-                fontSize = 18.sp
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = registrationViewModel.isHeightInFeet,
-                    onCheckedChange = { useFeet ->
-                        registrationViewModel.isHeightInFeet = useFeet
-                        if (useFeet) {
-                            val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
-                            feetText = f.toString()
-                            inchText = i.toString()
-                        } else {
-                            val f = feetText.toIntOrNull() ?: 0
-                            val i = inchText.toIntOrNull() ?: 0
-                            heightText = registrationViewModel.feetInchesToCm(f, i).toString()
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color(0xFFFF6000),
-                        uncheckedThumbColor = Color.White
-                    )
-                )
-                Text(
-                    text = if (registrationViewModel.isHeightInFeet)
-                        stringResource(R.string.feet_inches_label)
-                    else
-                        stringResource(R.string.centimeters_label),
-                    color = Color.White
-                )
-            }
-
-            if (registrationViewModel.isHeightInFeet) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = feetText,
-                        onValueChange = { newFeet ->
-                            feetText = newFeet
-                            registrationViewModel.height2 = listOf(
-                                newFeet.toIntOrNull() ?: 0,
-                                registrationViewModel.height2.getOrNull(1) ?: 0
-                            )
-                        },
-                        label = { Text(stringResource(R.string.feet_label), color = Color.White) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(56.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6000),
-                            unfocusedBorderColor = Color.White,
-                            cursorColor = Color.White,
-                            focusedLabelColor = Color(0xFFFF6000),
-                            unfocusedLabelColor = Color.White
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = inchText,
-                        onValueChange = { newInch ->
-                            inchText = newInch
-                            registrationViewModel.height2 = listOf(
-                                registrationViewModel.height2.getOrNull(0) ?: 0,
-                                newInch.toIntOrNull() ?: 0
-                            )
-                        },
-                        label = {
-                            Text(
-                                stringResource(R.string.inches_label),
-                                color = Color.White
-                            )
-                        },
-                        singleLine = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(56.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6000),
-                            unfocusedBorderColor = Color.White,
-                            cursorColor = Color.White,
-                            focusedLabelColor = Color(0xFFFF6000),
-                            unfocusedLabelColor = Color.White
-                        )
-                    )
-                }
-            } else {
-                TextFieldWithLabel(
-                    label = stringResource(R.string.height_cm_label),
-                    value = heightText,
-                    onValueChange = { newCm ->
-                        heightText = newCm
-                        registrationViewModel.height = newCm.toIntOrNull()
-                            ?: registrationViewModel.height
-                    }
-                )
-            }
-
-            // Add a spacer after height ✔
-            Spacer(modifier = Modifier.height(24.dp))
 
             // ---- Finish Button ----
             Button(
@@ -3649,109 +3529,151 @@ fun EnterInterestsScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
-    // Global interests (static list)
-    val globalInterests = listOf(
-        Interest(stringResource(R.string.interest_music), "🎵"),
-        Interest(stringResource(R.string.interest_movies), "🎥"),
-        Interest(stringResource(R.string.interest_sports), "⚽"),
-        Interest(stringResource(R.string.interest_books), "📚"),
-        Interest(stringResource(R.string.interest_travel), "✈️"),
-        Interest(stringResource(R.string.interest_fitness), "💪"),
-        Interest(stringResource(R.string.interest_art), "🎨"),
-        Interest(stringResource(R.string.interest_gaming), "🎮"),
-        Interest(stringResource(R.string.interest_photography), "📷"),
-        Interest(stringResource(R.string.interest_cooking), "🍳"),
-        Interest(stringResource(R.string.interest_dancing), "💃"),
-        Interest(stringResource(R.string.interest_gardening), "🌱"),
-        Interest(stringResource(R.string.interest_technology), "💻"),
-        Interest(stringResource(R.string.interest_fashion), "👗"),
-        Interest(stringResource(R.string.interest_volunteering), "🤝"),
-        Interest(stringResource(R.string.interest_pets), "🐾"),
-        Interest(stringResource(R.string.interest_food), "🍔"),
-        Interest(stringResource(R.string.interest_nature), "🌳"),
-        Interest(stringResource(R.string.interest_charity), "❤️"),
-        Interest(stringResource(R.string.interest_community), "👥"),
-        Interest(stringResource(R.string.interest_networking), "🤝"),
-        Interest(stringResource(R.string.interest_public_speaking), "🎤"),
-        Interest(stringResource(R.string.interest_writing), "✍️"),
-        Interest(stringResource(R.string.interest_blogging), "📝"),
-        Interest(stringResource(R.string.interest_podcasting), "🎙️"),
-        Interest(stringResource(R.string.interest_social_media), "📱"),
-        Interest(stringResource(R.string.interest_online_communities), "💬"),
-        Interest(stringResource(R.string.interest_skydiving), "🪂"),
-        Interest(stringResource(R.string.interest_scuba_diving), "🤿"),
-        Interest(stringResource(R.string.interest_rock_climbing), "🧗"),
-        Interest(stringResource(R.string.interest_surfing), "🏄"),
-        Interest(stringResource(R.string.interest_skiing), "⛷️"),
-        Interest(stringResource(R.string.interest_snowboarding), "🏂"),
-        Interest(stringResource(R.string.interest_mountain_biking), "🚵"),
-        Interest(stringResource(R.string.interest_motorcycling), "🏍️"),
-        Interest(stringResource(R.string.interest_car_racing), "🏎️"),
-        Interest(stringResource(R.string.interest_extreme_sports), "🏂"),
-        Interest(stringResource(R.string.interest_puzzles), "🧩"),
-        Interest(stringResource(R.string.interest_board_games), "🎲"),
-        Interest(stringResource(R.string.interest_video_games), "🎮"),
-        Interest(stringResource(R.string.interest_watching_tv), "📺"),
-        Interest(stringResource(R.string.interest_napping), "😴"),
-        Interest(stringResource(R.string.interest_spa_days), "💆"),
-        Interest(stringResource(R.string.interest_beach_days), "🏖️"),
-        Interest(stringResource(R.string.interest_picnics), "🧺"),
-        Interest(stringResource(R.string.interest_coding), "⌨️"),
-        Interest(stringResource(R.string.interest_robotics), "🤖"),
-        Interest(stringResource(R.string.interest_space), "🚀"),
-        Interest(stringResource(R.string.interest_environmentalism), "🌍"),
-        Interest(stringResource(R.string.interest_baking), "🍰"),
-        Interest(stringResource(R.string.interest_wine_tasting), "🍷"),
-        Interest(stringResource(R.string.interest_craft_beer), "🍺"),
-        Interest(stringResource(R.string.interest_coffee), "☕"),
-        Interest(stringResource(R.string.interest_yoga), "🧘"),
-        Interest(stringResource(R.string.interest_meditation), "🧘‍♂️"),
-        Interest(stringResource(R.string.interest_astrology), "♈"),
-        Interest(stringResource(R.string.interest_romance), "💋"), // Example emoji; choose based on app tone
-        Interest(stringResource(R.string.interest_crystals), "💎"),
-        Interest(stringResource(R.string.interest_vintage_clothing), "🧥"),
-        Interest(stringResource(R.string.interest_thrift_shopping), "🛍️"),
-        Interest(stringResource(R.string.interest_diy), "🛠️"),
-        Interest(stringResource(R.string.interest_home_improvement), "🏠"),
-        Interest(stringResource(R.string.interest_interior_design), "🛋️"),
-        Interest(stringResource(R.string.interest_history), "📜"),
-        Interest(stringResource(R.string.interest_science), "🔬"),
-        Interest(stringResource(R.string.interest_philosophy), "🧠"),
-        Interest(stringResource(R.string.interest_politics), "🗳️"),
-        Interest(stringResource(R.string.interest_economics), "💰"),
-        Interest(stringResource(R.string.interest_hiking), "🥾"),
-        Interest(stringResource(R.string.interest_camping), "⛺"),
-        Interest(stringResource(R.string.interest_fishing), "🎣"),
-        Interest(stringResource(R.string.interest_hunting), "🏹"),
-        Interest(stringResource(R.string.interest_traveling), "🧳")
+    val maxInterests = 9
+
+    /* ───── 1) Bucket your interests here ───── */
+    val categorized = mapOf(
+
+        // ─────────── Arts & Entertainment ───────────
+        "Arts & Entertainment" to listOf(
+            Interest(stringResource(R.string.interest_art),            "🎨"),
+            Interest(stringResource(R.string.interest_blogging),       "📝"),
+            Interest(stringResource(R.string.interest_books),          "📚"),
+            Interest(stringResource(R.string.interest_dancing),        "💃"),
+            Interest(stringResource(R.string.interest_fashion),        "👗"),
+            Interest(stringResource(R.string.interest_movies),         "🎥"),
+            Interest(stringResource(R.string.interest_music),          "🎵"),
+            Interest(stringResource(R.string.interest_photography),    "📷"),
+            Interest(stringResource(R.string.interest_podcasting),     "🎙️"),
+            Interest(stringResource(R.string.interest_watching_tv),    "📺"),
+            Interest(stringResource(R.string.interest_writing),        "✍️")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Food & Drink ───────────
+        "Food & Drink" to listOf(
+            Interest(stringResource(R.string.interest_baking),         "🍰"),
+            Interest(stringResource(R.string.interest_coffee),         "☕"),
+            Interest(stringResource(R.string.interest_cooking),        "🍳"),
+            Interest(stringResource(R.string.interest_craft_beer),     "🍺"),
+            Interest(stringResource(R.string.interest_food),           "🍔"),
+            Interest(stringResource(R.string.interest_wine_tasting),   "🍷")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Games & Puzzles ───────────
+        "Games & Puzzles" to listOf(
+            Interest(stringResource(R.string.interest_board_games),    "🎲"),
+            Interest(stringResource(R.string.interest_gaming),         "🎮"),
+            Interest(stringResource(R.string.interest_puzzles),        "🧩"),
+            Interest(stringResource(R.string.interest_video_games),    "🎮")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Home & DIY ───────────
+        "Home & DIY" to listOf(
+            Interest(stringResource(R.string.interest_diy),            "🛠️"),
+            Interest(stringResource(R.string.interest_gardening),      "🌱"),
+            Interest(stringResource(R.string.interest_home_improvement),"🏠"),
+            Interest(stringResource(R.string.interest_interior_design),"🛋️"),
+            Interest(stringResource(R.string.interest_thrift_shopping),"🛍️"),
+            Interest(stringResource(R.string.interest_vintage_clothing),"🧥")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Mind & Knowledge ───────────
+        "Mind & Knowledge" to listOf(
+            Interest(stringResource(R.string.interest_economics),      "💰"),
+            Interest(stringResource(R.string.interest_history),        "📜"),
+            Interest(stringResource(R.string.interest_philosophy),     "🧠"),
+            Interest(stringResource(R.string.interest_politics),       "🗳️"),
+            Interest(stringResource(R.string.interest_science),        "🔬")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Nature & Animals ───────────
+        "Nature & Animals" to listOf(
+            Interest(stringResource(R.string.interest_gardening),      "🌱"),
+            Interest(stringResource(R.string.interest_nature),         "🌳"),
+            Interest(stringResource(R.string.interest_pets),           "🐾")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Sports & Outdoors ───────────
+        "Sports & Outdoors" to listOf(
+            Interest(stringResource(R.string.interest_beach_days),     "🏖️"),
+            Interest(stringResource(R.string.interest_camping),        "⛺"),
+            Interest(stringResource(R.string.interest_car_racing),     "🏎️"),
+            Interest(stringResource(R.string.interest_extreme_sports), "🏂"),
+            Interest(stringResource(R.string.interest_fishing),        "🎣"),
+            Interest(stringResource(R.string.interest_hiking),         "🥾"),
+            Interest(stringResource(R.string.interest_hunting),        "🏹"),
+            Interest(stringResource(R.string.interest_mountain_biking),"🚵"),
+            Interest(stringResource(R.string.interest_motorcycling),   "🏍️"),
+            Interest(stringResource(R.string.interest_rock_climbing),  "🧗"),
+            Interest(stringResource(R.string.interest_scuba_diving),   "🤿"),
+            Interest(stringResource(R.string.interest_skiing),         "⛷️"),
+            Interest(stringResource(R.string.interest_skydiving),      "🪂"),
+            Interest(stringResource(R.string.interest_snowboarding),   "🏂"),
+            Interest(stringResource(R.string.interest_sports),         "⚽"),
+            Interest(stringResource(R.string.interest_surfing),        "🏄"),
+            Interest(stringResource(R.string.interest_travel),         "✈️"),
+            Interest(stringResource(R.string.interest_traveling),      "🧳")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Tech & Science ───────────
+        "Tech & Innovation" to listOf(
+            Interest(stringResource(R.string.interest_coding),         "⌨️"),
+            Interest(stringResource(R.string.interest_robotics),       "🤖"),
+            Interest(stringResource(R.string.interest_space),          "🚀"),
+            Interest(stringResource(R.string.interest_technology),     "💻")
+        ).sortedBy { it.name.lowercase() },
+
+        // ─────────── Wellness & Lifestyle ───────────
+        "Wellness & Lifestyle" to listOf(
+            Interest(stringResource(R.string.interest_astrology),      "♈"),
+            Interest(stringResource(R.string.interest_charity),        "❤️"),
+            Interest(stringResource(R.string.interest_crystals),       "💎"),
+            Interest(stringResource(R.string.interest_environmentalism),"🌍"),
+            Interest(stringResource(R.string.interest_fitness),        "💪"),
+            Interest(stringResource(R.string.interest_meditation),     "🧘‍♂️"),
+            Interest(stringResource(R.string.interest_napping),        "😴"),
+            Interest(stringResource(R.string.interest_networking),     "🤝"),
+            Interest(stringResource(R.string.interest_picnics),        "🧺"),
+            Interest(stringResource(R.string.interest_public_speaking),"🎤"),
+            Interest(stringResource(R.string.interest_romance),        "💋"),
+            Interest(stringResource(R.string.interest_social_media),   "📱"),
+            Interest(stringResource(R.string.interest_online_communities),"💬"),
+            Interest(stringResource(R.string.interest_spa_days),       "💆"),
+            Interest(stringResource(R.string.interest_volunteering),   "🤝"),
+            Interest(stringResource(R.string.interest_yoga),           "🧘")
+        ).sortedBy { it.name.lowercase() }
     )
 
-    // Combine global and locality-based interests and remove duplicates (by name)
-    val allInterests = (globalInterests).distinctBy { it.name }
-
-    val maxInterests = 9
+    /* ───── 2) Flatten once for validation ───── */
+    val allInterests = remember { categorized.values.flatten() }
     val interestsOverLimit = registrationViewModel.interests.size > maxInterests
 
-    Scaffold(
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A1A))
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 32.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    stringResource(R.string.global_interests_label),
-                    color = Color.White,
-                    fontSize = 18.sp
-                )
+    /* ───── 3) UI ───── */
+    Scaffold { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF1A1A1A))
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
 
-                // Render all the interests (both global and locality-based)
-                allInterests.forEach { interest ->
+            categorized.forEach { (header, list) ->
+                /* section header */
+                Text(
+                    text = header,
+                    color = Color(0xFFFF6000),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+
+                /* interests inside the section */
+                list.forEach { interest ->
                     val isSelected = registrationViewModel.interests.contains(interest)
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -3769,50 +3691,54 @@ fun EnterInterestsScreen(
                             checked = isSelected,
                             onCheckedChange = null,
                             colors = CheckboxDefaults.colors(
-                                checkedColor = Color(0xFFFF6000),
+                                checkedColor   = Color(0xFFFF6000),
                                 uncheckedColor = Color.White
                             )
                         )
                         Text(
-                            text = "${interest.emoji} ${interest.name}",
+                            text  = "${interest.emoji}  ${interest.name}",
                             color = if (isSelected) Color(0xFFFF6000) else Color.White
                         )
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+            }
 
-                if (interestsOverLimit) {
-                    Text(
-                        stringResource(R.string.max_interests_error),
-                        color = Color.Red
-                    )
-                }
+            if (interestsOverLimit) {
+                Text(
+                    text  = stringResource(R.string.max_interests_error, maxInterests),
+                    color = Color.Red
+                )
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = { onNext() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = registrationViewModel.interests.isNotEmpty() &&
-                            registrationViewModel.interests.size <= maxInterests,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (registrationViewModel.interests.isNotEmpty() &&
-                            registrationViewModel.interests.size <= maxInterests)
+            Spacer(Modifier.height(24.dp))
+
+            /* Next button */
+            Button(
+                onClick  = onNext,
+                enabled  = registrationViewModel.interests.isNotEmpty() && !interestsOverLimit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor =
+                        if (registrationViewModel.interests.isNotEmpty() && !interestsOverLimit)
                             Color(0xFFFF6000) else Color.DarkGray
-                    ),
-                    shape = CircleShape
-                ) {
-                    Text(
-                        stringResource(R.string.next_button),
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                ),
+                shape = CircleShape
+            ) {
+                Text(
+                    text = stringResource(R.string.next_button),
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
-    )
+    }
 }
+
+
 
 @Composable
 fun UploadMediaComposable(
@@ -4199,6 +4125,14 @@ fun EnterProfileHeadlineScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
+    // Local state for name & height to mirror registrationViewModel
+    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
+    var feetText   by remember {
+        mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "")
+    }
+    var inchText   by remember {
+        mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "")
+    }
     var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
 
     Scaffold(
@@ -4217,6 +4151,123 @@ fun EnterProfileHeadlineScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // ---- Full Name (optional) ----
+                    TextFieldWithLabel(
+                        label = stringResource(R.string.full_name_label),
+                        value = registrationViewModel.name,
+                        onValueChange = { registrationViewModel.name = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // ---- Height (optional) ----
+                    Text(
+                        text = stringResource(R.string.height_label),
+                        color = Color.White,
+                        fontSize = 18.sp
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = registrationViewModel.isHeightInFeet,
+                            onCheckedChange = { useFeet ->
+                                registrationViewModel.isHeightInFeet = useFeet
+                                if (useFeet) {
+                                    val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
+                                    feetText = f.toString()
+                                    inchText = i.toString()
+                                } else {
+                                    val f = feetText.toIntOrNull() ?: 0
+                                    val i = inchText.toIntOrNull() ?: 0
+                                    heightText = registrationViewModel.feetInchesToCm(f, i).toString()
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFFFF6000),
+                                uncheckedThumbColor = Color.White
+                            )
+                        )
+                        Text(
+                            text = if (registrationViewModel.isHeightInFeet)
+                                stringResource(R.string.feet_inches_label)
+                            else
+                                stringResource(R.string.centimeters_label),
+                            color = Color.White
+                        )
+                    }
+
+                    if (registrationViewModel.isHeightInFeet) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = feetText,
+                                onValueChange = { newFeet ->
+                                    feetText = newFeet
+                                    registrationViewModel.height2 = listOf(
+                                        newFeet.toIntOrNull() ?: 0,
+                                        registrationViewModel.height2.getOrNull(1) ?: 0
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.feet_label), color = Color.White) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(56.dp),
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedBorderColor = Color(0xFFFF6000),
+                                    unfocusedBorderColor = Color.White,
+                                    cursorColor = Color.White,
+                                    focusedLabelColor = Color(0xFFFF6000),
+                                    unfocusedLabelColor = Color.White
+                                )
+                            )
+
+                            OutlinedTextField(
+                                value = inchText,
+                                onValueChange = { newInch ->
+                                    inchText = newInch
+                                    registrationViewModel.height2 = listOf(
+                                        registrationViewModel.height2.getOrNull(0) ?: 0,
+                                        newInch.toIntOrNull() ?: 0
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.inches_label),
+                                        color = Color.White
+                                    )
+                                },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(56.dp),
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedBorderColor = Color(0xFFFF6000),
+                                    unfocusedBorderColor = Color.White,
+                                    cursorColor = Color.White,
+                                    focusedLabelColor = Color(0xFFFF6000),
+                                    unfocusedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    } else {
+                        TextFieldWithLabel(
+                            label = stringResource(R.string.height_cm_label),
+                            value = heightText,
+                            onValueChange = { newCm ->
+                                heightText = newCm
+                                registrationViewModel.height = newCm.toIntOrNull()
+                                    ?: registrationViewModel.height
+                            }
+                        )
+                    }
+
+                    // Add a spacer after height ✔
+                    Spacer(modifier = Modifier.height(24.dp))
                     // Headline/Bio TextField
                     OutlinedTextField(
                         value = headline,

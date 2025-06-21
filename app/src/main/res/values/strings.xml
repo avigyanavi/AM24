@@ -1256,7 +1256,7 @@
     <string name="max_interests_error">You can select up to 15 interests only.</string>
 
     <!-- Education and Location -->
-    <string name="education_and_location_title">Enter Education and Location</string>
+    <string name="education_and_location_title">Enter Education</string>
     <string name="education_level_label">Education Level</string>
     <string name="select_education_level">Select Education Level</string>
     <string name="high_school_label">High School</string>
