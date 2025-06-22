@@ -355,6 +355,29 @@ const PLAN_TIERS = {
   plan_QjmpS4xg31rg:       { plus: false, premium: true  },  // ₹999 / year
 };
 
+exports.checkExpiredOneTimeSubscriptions = functions.pubsub
+  .schedule('every day 00:00')
+  .timeZone('Asia/Kolkata')
+  .onRun(async () => {
+    const now = Date.now();
+    const usersRef = admin.database().ref('users');
+
+    const snapshot = await usersRef.orderByChild('nextRenewal').endAt(now).once('value');
+
+    const updates = {};
+    snapshot.forEach(userSnap => {
+      const user = userSnap.val();
+      if (user.isPlus || user.isPremium) {
+        updates[`${userSnap.key}/isPlus`] = false;
+        updates[`${userSnap.key}/isPremium`] = false;
+      }
+    });
+
+    await usersRef.update(updates);
+    console.log("Expired one-time subscriptions reset.");
+  });
+
+
 exports.kupidxPlusWebhook = functions
   .region("asia-south1")
   .https.onRequest(async (req, res) => {

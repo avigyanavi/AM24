@@ -266,7 +266,7 @@ fun SettingsScreen(navController: NavController) {
                             icon  = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
                             title = "$premiumTier Member",
                             trailingText = "Expires: $expiry",
-                            onClick = { navController.navigate("subscription") }   // unchanged
+                            onClick = { navController.navigate("manageSubscription") } // <-- UPDATED ROUTE
                         )
                     }
 

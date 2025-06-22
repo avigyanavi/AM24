@@ -1191,8 +1191,8 @@
         <string name="welcome_kupidx">కుపిడెక్స్‌కి స్వాగతం</string>
         <string name="register">నమోదు చేసుకోండి</string>
         <string name="login">లాగిన్</string>
-        <string name="continue_with_google">గూగుల్‌తో కొనసాగండి</string>
-        <string name="continue_with_facebook">మెటాతో కొనసాగండి</string>
+        <string name="continue_with_google">గూగుల్</string>
+        <string name="continue_with_facebook">ఫేస్బుక్</string>
 
         <!-- Language Selection -->
         <string name="choose_language_title">భాషను ఎంచుకోండి</string>

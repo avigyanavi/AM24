@@ -6,6 +6,7 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.database.FirebaseDatabase
 
 // later for production: PlayIntegrityAppCheckProviderFactory
 
@@ -21,7 +22,15 @@ class MyApp : Application() {
                 PlayIntegrityAppCheckProviderFactory.getInstance()  // Play-store builds
         )
 
-        FirebaseApp.initializeApp(this)            // usually auto-init
+//        FirebaseApp.initializeApp(this)            // usually auto-init
+
+        // ✅ Enable persistence — critical line
+        try {
+            FirebaseDatabase.getInstance().setPersistenceEnabled(true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         FirebaseStorage.getInstance("gs://am-twentyfour")
     }
 }

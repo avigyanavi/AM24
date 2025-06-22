@@ -17,6 +17,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -371,26 +372,20 @@ fun LandingScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
-
-            SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
-
-            Spacer(Modifier.height(24.dp))
-
             OutlinedButton(
                 onClick = onRegisterClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
-                border = BorderStroke(1.dp, Color(0xFFFF6600)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Black,
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 )
             ) {
                 Text(
                     stringResource(R.string.register),
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -403,18 +398,20 @@ fun LandingScreen(
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
-                border = BorderStroke(1.dp, Color(0xFFFF6600)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Black,
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 )
             ) {
                 Text(
                     stringResource(R.string.login),
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
+            Spacer(Modifier.height(40.dp))
+
+            SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
         }
 
         /* Bottom language bar */
@@ -439,23 +436,32 @@ fun LandingScreen(
 fun SocialSignInButtons(
     onGoogleSignIn: () -> Unit,
     onFacebookSignIn: () -> Unit
-) = Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-    SocialSignInButton(
-        logo = R.drawable.ic_google_logo,
+) = Row(
+    modifier = Modifier
+    .fillMaxWidth()                                   // 1️⃣
+    .padding(horizontal = 16.dp),
+    horizontalArrangement = Arrangement.spacedBy(16.dp)   // 3️⃣
+){
+        SocialSignInButton(
+            modifier   = Modifier.weight(1f),
+            logo = R.drawable.ic_google_logo,
         text = stringResource(R.string.continue_with_google),
         contentColor = Color.Black,
         onClick = onGoogleSignIn
     )
+    Spacer(Modifier.width(30.dp))
     SocialSignInButton(
+        modifier   = Modifier.weight(1f),
         logo = R.drawable.facebook_logo,
         text = stringResource(R.string.continue_with_facebook),
-        contentColor = Color(0xFF1877F2),
+        contentColor = Color.Black,
         onClick = onFacebookSignIn
     )
 }
 
 @Composable
 fun SocialSignInButton(
+    modifier: Modifier = Modifier,           // ← NEW
     @DrawableRes logo: Int,
     text: String,
     backgroundColor: Color = Color.White,
@@ -465,7 +471,6 @@ fun SocialSignInButton(
     Button(
         onClick,
         modifier = Modifier
-            .fillMaxWidth()
             .height(50.dp),
         shape = RoundedCornerShape(25.dp),
         border = BorderStroke(1.dp, Color.LightGray),
@@ -481,11 +486,11 @@ fun SocialSignInButton(
             tint = Color.Unspecified,
             modifier = Modifier.size(25.dp)
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
             text,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 11.sp,
+            fontSize = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

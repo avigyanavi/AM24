@@ -216,6 +216,9 @@ fun MainNavGraph(
                 profileViewModel  = profileViewModel
             )
         }
+        composable("manageSubscription") {
+            ManageSubscriptionScreen(navController)
+        }
         composable("notifications") {
             NotificationsScreen(navController = navController)
         }

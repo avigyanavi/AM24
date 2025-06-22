@@ -1184,8 +1184,8 @@
                 <string name="welcome_kupidx">Kupidx-க்கு வரவேற்கிறோம்</string>
                 <string name="register">பதிவு செய்</string>
                 <string name="login">உள்நுழை</string>
-                <string name="continue_with_google">Google-உடன் தொடரவு</string>
-                <string name="continue_with_facebook">Meta-உடன் தொடரவு</string>
+                <string name="continue_with_google">கூகுள்</string>
+                <string name="continue_with_facebook">பேஸ்புக்</string>
 
                 <!-- Language Selection -->
                 <string name="choose_language_title">மொழியை தேர்ந்தெடு</string>

@@ -105,7 +105,7 @@ fun UpgradeLandingScreen(nav: NavController) {
                             mapOf(
                                 "isPlus" to (tier == Tier.PLUS),
                                 "isPremium" to (tier == Tier.PREMIUM),
-                                "subExpiry" to (now + validityMs)
+                                "nextRenewal" to (now + validityMs) // <-- FIXED KEY HERE
                             )
                         )
                     Toast.makeText(ctx, "Thanks! Enjoy your perks.", Toast.LENGTH_LONG).show()

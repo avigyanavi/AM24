@@ -1183,8 +1183,8 @@
     <string name="welcome_kupidx">Kupidx में आपका स्वागत है</string>
     <string name="register">रजिस्टर करें</string>
     <string name="login">लॉगिन करें</string>
-    <string name="continue_with_google">Google से जारी रखें</string>
-    <string name="continue_with_facebook">Meta से जारी रखें</string>
+    <string name="continue_with_google">गूगल</string>
+    <string name="continue_with_facebook">फेसबुक</string>
 
     <!-- Language Selection -->
     <string name="choose_language_title">भाषा चुनें</string>

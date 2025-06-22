@@ -28,9 +28,12 @@ import com.razorpay.Checkout                       // NEW
 import com.razorpay.ExternalWalletListener        // NEW
 import com.razorpay.PaymentData                   // NEW
 import com.razorpay.PaymentResultWithDataListener // NEW
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import java.util.Locale
 
 class KupidXAppActivity : ComponentActivity(),
@@ -40,6 +43,7 @@ class KupidXAppActivity : ComponentActivity(),
 
     /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
+    private var authListener: FirebaseAuth.AuthStateListener? = null
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
 
@@ -76,25 +80,34 @@ class KupidXAppActivity : ComponentActivity(),
 
         auth = FirebaseAuth.getInstance()
 
+        // Show a loading UI while waiting for auth state
+        setContent {
+            AppTheme {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color(0xFFFF6F00))
+                }
+            }
+        }
+
         // read push-flag once
         pendingOpenNotifications =
             intent?.getBooleanExtra("open_notifications", false) ?: false
 
-        // install a one-shot listener that fires once Firebase has reloaded its cached user
-        auth.addAuthStateListener(object : FirebaseAuth.AuthStateListener {
-            override fun onAuthStateChanged(firebaseAuth: FirebaseAuth) {
-                auth.removeAuthStateListener(this)
-                val user = firebaseAuth.currentUser
-                if (user == null) {
-                    // no cached user → go to login
-                    startActivity(Intent(this@KupidXAppActivity, LandingActivity::class.java))
-                    finish()
-                } else {
-                    // we have a user → finish setup
-                    continueInitialization(user.uid)
-                }
+        // Keep listener active until we get a user or confirm sign-out
+        authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            val user = firebaseAuth.currentUser
+            auth.removeAuthStateListener(authListener!!)
+            if (user != null) {
+                continueInitialization(user.uid)
+            } else {
+                startActivity(Intent(this@KupidXAppActivity, LandingActivity::class.java))
+                finish()
             }
-        })
+        }
+        auth.addAuthStateListener(authListener!!)
     }
 
     @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -208,6 +221,11 @@ class KupidXAppActivity : ComponentActivity(),
             this,              // PaymentResultWithDataListener
             this               // ExternalWalletListener
         )
+    }
+
+    override fun onDestroy() {
+        authListener?.let { auth.removeAuthStateListener(it) }
+        super.onDestroy()
     }
 }
 

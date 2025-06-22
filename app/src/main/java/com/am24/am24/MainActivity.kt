@@ -21,8 +21,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import com.am24.am24.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
+    private var authListener: FirebaseAuth.AuthStateListener? = null
 
     private lateinit var auth: FirebaseAuth
 
@@ -36,27 +44,33 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
 
-        // Tiny Compose surface for notification permission
-        setContent { AskNotificationPermission() }
+        // Tiny Compose surface for notification permission + loading UI
+        setContent {
+            AppTheme {
+                AskNotificationPermission()
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color(0xFFFF6F00))
+                }
+            }
+        }
 
         val openNotifications =
             intent?.getBooleanExtra("open_notifications", false) ?: false
 
-        // Robustly handle Firebase auth initialization
-        auth.addAuthStateListener(object : FirebaseAuth.AuthStateListener {
-            override fun onAuthStateChanged(firebaseAuth: FirebaseAuth) {
-                auth.removeAuthStateListener(this) // remove immediately after first trigger
-                val user = firebaseAuth.currentUser
-                if (user == null) {
-                    // --> definitely not signed in
-                    startActivity(Intent(this@MainActivity, LandingActivity::class.java))
-                    finish()
-                } else {
-                    // Now safely route based on UID
-                    routeBasedOnUid(user.uid, openNotifications)
-                }
+        authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            val user = firebaseAuth.currentUser
+            auth.removeAuthStateListener(authListener!!)
+            if (user != null) {
+                routeBasedOnUid(user.uid, openNotifications)
+            } else {
+                startActivity(Intent(this@MainActivity, LandingActivity::class.java))
+                finish()
             }
-        })
+        }
+        auth.addAuthStateListener(authListener!!)
     }
 
     @Composable
@@ -99,5 +113,10 @@ class MainActivity : ComponentActivity() {
 
             withContext(Dispatchers.Main) { startActivity(target); finish() }
         }
+
+    override fun onDestroy() {
+        authListener?.let { auth.removeAuthStateListener(it) }
+        super.onDestroy()
+    }
 }
 

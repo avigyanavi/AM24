@@ -1188,8 +1188,8 @@
     <string name="welcome_kupidx">কুপিডক্স-এ আপনাকে স্বাগতম</string>
     <string name="register">নিবন্ধন</string>
     <string name="login">লগইন</string>
-    <string name="continue_with_google">গুগল দিয়ে চালিয়ে যান</string>
-    <string name="continue_with_facebook">মেটা দিয়ে চালিয়ে যান</string>
+    <string name="continue_with_google">গুগল</string>
+    <string name="continue_with_facebook">ফেসবুক</string>
 
     <!-- Language Selection -->
     <string name="choose_language_title">ভাষা নির্বাচন করুন</string>
