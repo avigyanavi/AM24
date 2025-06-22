@@ -528,6 +528,7 @@ fun BottomNavigationBar(
                     currentRoute?.startsWith("dms") == true ||
                             currentRoute?.startsWith("chat/") == true ||
                             currentRoute == "peopleWhoLikedMe" ||
+                            currentRoute?.startsWith("matchedUserProfile/") == true || // Add this line
                             (currentRoute?.startsWith("previewUserProfile/") == true &&
                                     navController.previousBackStackEntry?.destination?.route == "peopleWhoLikedMe")
                 }

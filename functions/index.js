@@ -378,58 +378,107 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
   });
 
 
+// 1️⃣ Add a cancel function
+exports.cancelKupidxPlusSub = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Must be signed in to cancel."
+      );
+    }
+
+    // look up stored subscription ID
+    const snap = await admin
+      .database()
+      .ref(`users/${uid}/subscription/id`)
+      .get();
+    const subId = snap.val();
+    if (!subId) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "No active subscription found for this user."
+      );
+    }
+
+    // call Razorpay’s cancel endpoint
+    await razorpay.subscriptions.cancel(subId);
+
+    // immediately update your own DB state
+    await admin
+      .database()
+      .ref(`users/${uid}`)
+      .update({
+        isPlus: false,
+        isPremium: false,
+        subscriptionStatus: "inactive",
+      });
+
+    return { cancelled: true };
+  });
+
 exports.kupidxPlusWebhook = functions
   .region("asia-south1")
   .https.onRequest(async (req, res) => {
-    // 1) verify HMAC
-    const body     = JSON.stringify(req.body);
-    const received = req.headers["x-razorpay-signature"] || "";
-    const calc     = crypto.createHmac("sha256", RAZORPAY_SECRET).update(body).digest("hex");
-    if (calc !== received) return res.status(400).send("bad signature");
-
-    // 2) extract event and subscription/payment entity
-    const ev  = req.body.event;
-    /* subscription entity may arrive as part of payment.captured */
-    const ent = req.body.payload.subscription?.entity ||
-                req.body.payload.payment?.entity?.subscription ||
-                {};
-    const uid    = ent.notes?.uid;
-    const planId = ent.notes?.planId;
-    if (!uid || !planId) return res.status(400).send("missing data");
-
-    // 3) look up tier flags
-    const tier = PLAN_TIERS[planId] || { plus: false, premium: false };
-    const db   = admin.database();
-
+    const sig = req.headers["x-razorpay-signature"];
+    let ev;
     try {
-      switch (ev) {
-                case "subscription.activated":
-                case "subscription.charged":
-                  await db.ref(`users/${uid}`).update({
-                    isPlus:             tier.plus,
-                    isPremium:          tier.premium,
-                    subscriptionStatus: "active",
-                    nextRenewal:        ent.current_end * 1000
-                  });
-
-        case "subscription.charged.failed":
-        case "subscription.cancelled":
-        case "subscription.completed":
-          await db.ref(`users/${uid}`).update({
-            isPlus:             false,
-            isPremium:          false,
-            subscriptionStatus: "inactive"
-          });
-          break;
-      }
-      res.send("ok");
-    } catch (e) {
-      console.error("webhook err", e);
-      res.status(500).send("err");
+      ev = razorpay.webhooks.verify(
+        req.rawBody,
+        sig,
+        functions.config().razorpay.webhook_secret
+      );
+    } catch (err) {
+      logger.error("Webhook signature mismatch", err);
+      return res.status(400).send("fail");
     }
+
+    const { event, payload } = req.body;
+    const uid = payload.subscription.entity.customer_id;
+    const db  = admin.database().ref(`users/${uid}`);
+
+    switch (event) {
+      case "subscription.activated":
+      case "subscription.charged": {
+        const planId = payload.subscription.entity.plan_id;
+        const tier   = PLAN_TIERS[planId] || { plus: false, premium: false };
+        await db.update({
+          isPlus:           tier.plus,
+          isPremium:        tier.premium,
+          subscriptionStatus:"active",
+          nextRenewal:      payload.subscription.entity.current_end,
+        });
+        break;
+      }
+
+      case "subscription.charged.failed":
+      case "subscription.cancelled": {
+        // user explicitly cancelled or failed payment
+        await db.update({
+          isPlus:           false,
+          isPremium:        false,
+          subscriptionStatus:"inactive",
+          nextRenewal:      null,
+        });
+        break;
+      }
+
+      case "subscription.completed": {
+        // subscription ran its full course (total_count reached)
+        await db.update({
+          isPlus:           false,
+          isPremium:        false,
+          subscriptionStatus:"completed",
+          nextRenewal:      null,
+        });
+        break;
+      }
+    }
+
+    res.status(200).send("ok");
   });
-
-
 
 /* shorthand so we only spell it once */
 const DB = 'kupidxdefault';          // ⇐ the sub-domain before .asia-southeast1…

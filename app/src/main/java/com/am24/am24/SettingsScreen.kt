@@ -120,6 +120,7 @@ fun SettingsScreen(navController: NavController) {
     var locality by remember { mutableStateOf("") }
 
     var showLocationDialog by remember { mutableStateOf(false) }
+    var subscriptionId by remember { mutableStateOf<String?>(null) }
 
     /* load once */
     LaunchedEffect(Unit) {
@@ -135,6 +136,9 @@ fun SettingsScreen(navController: NavController) {
         expiry = s.child("nextRenewal").getValue(Long::class.java)
               ?.let { DateFormat.getDateInstance().format(Date(it)) }
               ?: "N/A"
+
+        subscriptionId = s.child("subscription").child("id")
+            .getValue(String::class.java)
 
         boosts      = s.child("availableBoosts").getValue(Int::class.java) ?: 0
         swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0

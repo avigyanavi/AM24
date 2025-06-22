@@ -244,6 +244,19 @@ class LandingActivity : ComponentActivity() {
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
+                    // ① grab the freshly-signed-in user
+                    val user = firebaseAuth.currentUser!!
+                    val uid  = user.uid
+
+                    // ② pull their e-mail out of the FirebaseUser
+                    val email = user.email
+                        ?: acct?.email            // fallback in the rare case FirebaseUser.email is null
+                        ?: ""
+
+                    // ③ write it to your DB under users/$uid/email
+                    FirebaseRefs.db.reference
+                        .child("users/$uid/email")
+                        .setValue(email)
                     if (task.result?.additionalUserInfo?.isNewUser == true) {
                         // brand-new social account → skip E-mail/Phone step
                         val prov = when (credential) {
