@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,174 +36,206 @@ import com.google.firebase.database.*
 import com.google.firebase.database.ServerValue.increment
 import java.util.Locale
 import androidx.core.content.getSystemService
+import com.google.firebase.functions.FirebaseFunctions
+import com.razorpay.Checkout
+import com.razorpay.PaymentResultListener
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import org.json.JSONObject
 
-/* ───────── Subscription screen ───────── */
+/* ────────  PLAN IDS (create these in dashboard → Plans) ──────── */
+private const val PLAN_ID_WEEK_PLUS     = "plan_QjnGf6wdQAmyi2"
+private const val PLAN_ID_WEEK_PREMIUM  = "plan_QjpkdErsuewaUJ"
+private const val PLAN_ID_MONTH_PLUS    = "plan_QjpkKQ5S3ur64Q"
+private const val PLAN_ID_MONTH_PREMIUM = "plan_QjplxIqveB0BVS"
+private const val PLAN_ID_YEAR_PLUS     = "plan_QjpmNjEkEPlObK"
+private const val PLAN_ID_YEAR_PREMIUM  = "plan_QjmpS4xg31rg"
 
+/* ────────  Public key (only key_id!) ──────── */
+private const val RZP_KEY_ID = "rzp_live_DsoxJLeiCw940M"
+
+/* ─────────  model for UI  ───────── */
+enum class Tier { PLUS, PREMIUM }
+private data class Plan(
+    val period: Period,
+    val tier: Tier,
+    val price: Int,          // in rupees
+    val planId: String
+)
+
+/* all 6 plans */
+private val PLANS = listOf(
+    Plan(Period.WEEK,  Tier.PLUS,    9,   PLAN_ID_WEEK_PLUS),
+    Plan(Period.WEEK,  Tier.PREMIUM, 29,  PLAN_ID_WEEK_PREMIUM),
+    Plan(Period.MONTH, Tier.PLUS,    39,  PLAN_ID_MONTH_PLUS),
+    Plan(Period.MONTH, Tier.PREMIUM, 99,  PLAN_ID_MONTH_PREMIUM),
+    Plan(Period.YEAR,  Tier.PLUS,    399, PLAN_ID_YEAR_PLUS),
+    Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM),
+)
+
+/* ───────── Subscription screen – new version ───────── */
 @Composable
 fun SubscriptionScreen(navController: NavController) {
 
-    /* ───────── Early country split ───────── */
-    val ctx      = LocalContext.current
-    val inIndia  = remember { isProbablyInIndia(ctx) }
-
-    if (!inIndia) {
-        // 👉 Foreign user: jump straight into the Pay-Pal WebView route
-        LaunchedEffect(Unit) {
-            navController.navigate("paypal_web")        // ← make sure this route exists
-        }
-        // We return so no UPI UI is even composed
+    /* geo-gate exactly like before */
+    val ctx = LocalContext.current
+    if (!isProbablyInIndia(ctx)) {
+        LaunchedEffect(Unit) { navController.navigate("paypal_web") }
         return
     }
-    /* Firebase handles */
-    val uid       = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val db        = FirebaseDatabase.getInstance()
-    val userRoot  = db.getReference("users/$uid")
-    val plusRef     = userRoot.child("isPlus")
-    val premiumRef  = userRoot.child("isPremium")
 
-    /* 1️⃣  Listen for either flag so we leave once subscribed */
-    var isPlusState    by remember { mutableStateOf<Boolean?>(null) }
-    var isPremiumState by remember { mutableStateOf<Boolean?>(null) }
+    /* -------------------------------------------------- */
+    val uid    = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val db     = FirebaseDatabase.getInstance().reference
+    val scope  = rememberCoroutineScope()
+    val host   = ctx as? KupidXAppActivity           // for callback hookup
+    val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID) } }
+    val fx     = FirebaseFunctions.getInstance("asia-south1")
 
-    DisposableEffect(plusRef, premiumRef) {
-        val listener = object : ValueEventListener {
+    /* real-time flags to hide the screen if user already subscribed */
+    var plus    by remember { mutableStateOf<Boolean?>(null) }
+    var premium by remember { mutableStateOf<Boolean?>(null) }
+
+    DisposableEffect(uid) {
+        val l = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
-                isPlusState    = s.child("isPlus").getValue(Boolean::class.java)
-                isPremiumState = s.child("isPremium").getValue(Boolean::class.java)
+                plus    = s.child("isPlus").getValue(Boolean::class.java)
+                premium = s.child("isPremium").getValue(Boolean::class.java)
             }
-            override fun onCancelled(error: DatabaseError) { /* ignore */ }
+            override fun onCancelled(e: DatabaseError) {}
         }
-        userRoot.addValueEventListener(listener)
-        onDispose { userRoot.removeEventListener(listener) }
+        db.child("users/$uid").addValueEventListener(l)
+        onDispose { db.child("users/$uid").removeEventListener(l) }
     }
 
-    /* 2️⃣  Auto-exit if already subscribed */
-    when {
-        isPremiumState == null || isPlusState == null -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF00BF63))
-            }
-            return
+    if (plus == null || premium == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color =             Color(0xFFFF6F00)          // ← Kupidx orange
+         )
         }
-        isPremiumState == true || isPlusState == true -> {
-            LaunchedEffect(Unit) { navController.popBackStack() }
-            return
+        return
+    }
+    /* already subscribed → leave */
+    if (plus == true || premium == true) {
+        LaunchedEffect(Unit) { navController.popBackStack() }
+        return
+    }
+
+    /* ---------- Razorpay helpers ---------- */
+
+    suspend fun createSub(plan: Plan): String {
+        val data = hashMapOf(
+            "uid"     to uid,
+            "planId"  to plan.planId       // we pass which of the 6 plans the user picked
+        )
+        @Suppress("UNCHECKED_CAST")
+        val res = fx.getHttpsCallable("createKupidxPlusSub").call(data).await().data as Map<*, *>
+        return res["subscriptionId"] as String
+    }
+
+    fun launchCheckout(plan: Plan) = scope.launch {
+        try {
+            val subId = createSub(plan)                 // ① create on backend
+            /* ② open native checkout for first charge */
+            val opts = JSONObject().apply {
+                put("subscription_id", subId)
+                put("name",      "Kupidx ${plan.tier.name.lowercase().capitalize()}")
+                put("description", "${plan.price} ₹ / ${plan.period.label.lowercase()}")
+                put("prefill", JSONObject().apply {        // nice to have
+                    put("email", FirebaseAuth.getInstance().currentUser?.email)
+                })
+            }
+            co.open(ctx as Activity, opts)
+        } catch (e: Exception) {
+            Toast.makeText(ctx, e.message ?: "Something went wrong", Toast.LENGTH_LONG).show()
         }
     }
 
-    /* 3️⃣  Deep links */
-    val PLUS_UPI_LINK = "upi://pay?ver=01&mode=19" +
-            "&pa=mukherjeeallian718511.rzp@icici" +
-            "&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
-            "&tr=RZPQgdtoAmnwI2kJSqrv2" +
-            "&cu=INR&mc=7372&qrMedium=04" +
-            "&tn=PaymenttoMUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
-            "&am=500.00"
-
-    val PREMIUM_UPI_LINK = "upi://pay?ver=01&mode=19" +
-            "&pa=mukherjeeallian718511.rzp@icici" +
-            "&pn=MUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
-            "&tr=RZPQgj6iMP00wbDP9qrv2" +          // ← new transaction ID
-            "&cu=INR&mc=7372&qrMedium=04" +
-            "&tn=PaymenttoMUKHERJEEALLIANCESINFOTECHPRIVATELIMITED" +
-            "&am=1000.00"
-
-    val plusIntent     = remember { Intent(Intent.ACTION_VIEW, Uri.parse(PLUS_UPI_LINK)) }
-    val premiumIntent  = remember { Intent(Intent.ACTION_VIEW, Uri.parse(PREMIUM_UPI_LINK)) }
-
-    /* 4️⃣  Launchers */
-    val plusLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val resp = result.data?.getStringExtra("response")
-            if (parseUpiStatus(resp) in listOf("SUCCESS", "SUBMITTED")) {
-                userRoot.updateChildren(
-                    mapOf(
-                        "isPlus"              to true,
-                        "availableBoosts"     to increment(3L),
-                        "availableCompliments" to increment(3L)
-                    )
-                )
-            } else {
-                Toast.makeText(ctx, "Payment failed or cancelled", Toast.LENGTH_LONG).show()
+    /* ---------- attach success / error to the host activity ---------- */
+    DisposableEffect(Unit) {
+        host?.setPaymentCallbacks(
+            onSuccess = { paymentId ->
+                /* Optional toast – actual flag flip happens in the Cloud Function
+                   `verifyKupidxSub` which your webhook calls immediately. */
+                Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
+                navController.popBackStack()            // dismiss the screen
+            },
+            onError = { msg ->
+                Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
             }
-        } else Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
+        )
+        onDispose { host?.setPaymentCallbacks({},{}) }
     }
 
-    val premiumLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val resp = result.data?.getStringExtra("response")
-            if (parseUpiStatus(resp) in listOf("SUCCESS", "SUBMITTED")) {
-                userRoot.updateChildren(
-                    mapOf(
-                        "isPremium"           to true,
-                        "availableBoosts"     to increment(5L),
-                        "availableCompliments" to increment(5L)
-                    )
-                )
-            } else {
-                Toast.makeText(ctx, "Payment failed or cancelled", Toast.LENGTH_LONG).show()
-            }
-        } else Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
-    }
+    /* ---------- UI ---------- */
 
-    /* 5️⃣  UI */
+    var currentPeriod by remember { mutableStateOf(Period.WEEK) }
+
     Column(
-        Modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF121212))
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement  = Arrangement.Center
+            .padding(16.dp)
     ) {
-        Text("Choose your plan", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
+        Text("Upgrade your experience",
+            fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(24.dp))
 
-        Button(
-            onClick = { plusLauncher.launch(plusIntent) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-        ) {
-            Text("Get Plus — ₹500", fontSize = 16.sp, color = Color.White)
+        /* period tabs */
+        TabRow(selectedTabIndex = Period.values().indexOf(currentPeriod),     containerColor   = Color.Transparent,            // keep background dark
+            contentColor     = Color.White     ) {
+            Period.values().forEach { p ->
+                val selected = p == currentPeriod
+                Tab(
+                    selected =             selected,
+                    onClick  = { currentPeriod = p },
+                    text     = { Text(p.label, color = if (selected) Color.White else Color.LightGray   // ✔ white / grey
+                    ) })
+            }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        Button(
-            onClick = { premiumLauncher.launch(premiumIntent) },
-            colors  = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BF63)),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-        ) {
-            Text("Get Premium — ₹1 000", fontSize = 16.sp, color = Color.White)
+        /* plan cards for the selected period */
+        PLANS.filter { it.period == currentPeriod }.forEach { plan ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .clickable { launchCheckout(plan) },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (plan.tier == Tier.PREMIUM)
+                        Color(0xFFFF6F00)          // ← Kupidx orange
+                         else Color(0xFF1E1E1E)
+                )
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(plan.tier.name.lowercase().replaceFirstChar(Char::uppercase),
+                            fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("${plan.price} ₹ / ${plan.period.label.lowercase()}",
+                            color = Color.LightGray, fontSize = 14.sp)
+                    }
+                    Button(onClick = { launchCheckout(plan) }) {
+                        Text("Choose", color = Color.White)
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(24.dp))
-
         TextButton(onClick = { navController.popBackStack() }) {
-            Text("Cancel", color = Color(0xFF00BF63))
+            Text("Not now", color =             Color(0xFFFF6F00)          // ← Kupidx orange
+            )
         }
     }
 }
-
-/* Helper – parses the UPI callback string */
-fun parseUpiStatus(raw: String?): String =
-    raw
-        ?.split('&')
-        ?.mapNotNull {
-            val parts = it.split('=', limit = 2)
-            if (parts.size == 2) parts[0].uppercase() to parts[1] else null
-        }
-        ?.toMap()
-        ?.get("STATUS")
-        ?: "UNKNOWN"
-
 
 fun isProbablyInIndia(ctx: Context): Boolean {
     // ① SIM / network country if available

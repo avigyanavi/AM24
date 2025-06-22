@@ -13,6 +13,8 @@ import com.am24.am24.calculateDistance
 import com.am24.am24.handleSwipeRight
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
@@ -29,6 +31,7 @@ import java.util.UUID
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.HttpsCallableReference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
@@ -63,8 +66,12 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
     val allProfiles: StateFlow<List<Profile>> get() = _allProfiles
 
+    /* ─────────── Live inventory counts ─────────── */
     private val _complimentsLeft = MutableStateFlow(0)
-    val complimentsLeft: StateFlow<Int> get() = _complimentsLeft
+    private val _boostsLeft      = MutableStateFlow(0)
+
+    val complimentsLeft: StateFlow<Int> = _complimentsLeft.asStateFlow()
+    val boostsLeft     : StateFlow<Int> = _boostsLeft     .asStateFlow()
 
     private val _datingFilters = MutableStateFlow(DatingFilterSettings().copy(distance = WORLDWIDE_DISTANCE))
     val datingFilters: StateFlow<DatingFilterSettings> get() = _datingFilters
@@ -140,26 +147,38 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         refreshFilteredProfiles()    // keep this AFTER the launch block        }
     }
 
-    /**
-     * Load dating filters from Firebase
-     */
     private fun loadFilters() {
         viewModelScope.launch {
-            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
             try {
-                val snapshot = usersRef.child(userId)
-                    .child("datingFilters")
-                    .get()
-                    .await()
-                snapshot.getValue(DatingFilterSettings::class.java)?.let {
-                    _datingFilters.value = it
-                }
+                /* grab profile + filters in one round-trip */
+                val userSnap  = usersRef.child(uid).get().await()
+                val profile   = userSnap.getValue(Profile::class.java)
+                val filtersDb = userSnap.child("datingFilters")
+                    .getValue(DatingFilterSettings::class.java)
+                    ?: DatingFilterSettings().copy(distance = WORLDWIDE_DISTANCE)
+
+                /* ▶︎ if gender not set yet, seed it from profile.interestedIn */
+                val seededFilters = if (filtersDb.gender.isBlank()) {
+                    val list = profile?.interestedIn.orEmpty()
+                        .filter { it.isNotBlank() }
+
+                    if (list.isNotEmpty()) {
+                        filtersDb.copy(gender = list.joinToString(",")).also { updated ->
+                            // persist the new default so we don’t do this again
+                            usersRef.child(uid)
+                                .child("datingFilters")
+                                .setValue(updated)
+                        }
+                    } else filtersDb
+                } else filtersDb
+
+                _datingFilters.value = seededFilters          // flow update
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading filters: ${e.message}")
+                Log.e(TAG, "Error loading filters: ${e.message}", e)
             }
         }
     }
-
     fun sendCompliment(
         receiverId: String,
         textMessage: String?,
@@ -210,6 +229,26 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             handleSwipeRight(senderId, receiverId, profileViewModel)
         }
     }
+
+    /** Call this once (e.g. from DatingScreen’s LaunchedEffect) */
+    fun startInventoryWatcher(uid: String) {
+        val root = FirebaseDatabase.getInstance().reference.child("users/$uid")
+
+        root.child("availableCompliments")
+            .addValueEventListener(simpleIntListener { _complimentsLeft.value = it })
+
+        root.child("availableBoosts")
+            .addValueEventListener(simpleIntListener { _boostsLeft.value = it })
+    }
+    /** helper that turns a ValueEventListener into a one-liner */
+    private fun simpleIntListener(setter: (Int) -> Unit) =
+        object : ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                setter(s.getValue(Int::class.java) ?: 0)
+            }
+            override fun onCancelled(e: DatabaseError) { /* ignore */ }
+        }
+
 
     suspend fun fetchComplimentsBalance(userId: String): Int {
         val ref  = database.getReference("users/$userId/availableCompliments")

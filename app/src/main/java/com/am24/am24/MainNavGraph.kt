@@ -207,6 +207,9 @@ fun MainNavGraph(
         composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(navController = navController)
         }
+        composable("upgradeLanding") {
+            UpgradeLandingScreen(navController)
+        }
         composable("govtIdVerification") {
             GovtIdVerificationScreen(
                 navController     = navController,

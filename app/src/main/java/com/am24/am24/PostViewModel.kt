@@ -58,6 +58,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      */
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> get() = _posts.asStateFlow()
+    private val _postsLoaded = MutableStateFlow(false)
+    val postsLoaded: StateFlow<Boolean> = _postsLoaded
 
     private val _userProfiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
     val userProfiles: StateFlow<Map<String, Profile>> get() = _userProfiles
@@ -336,9 +338,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             Log.d("PostViewModel", "Starting fetchPosts")
             _isLoading.value = true
             _profilePosts.value = emptyList() // Reset to avoid stale data
-            val currentUserId = _currentUserId.value ?: return@launch
+            _postsLoaded.value = false      // ✅ finished – even if list is empty
             // Fetch blocked users
-            val blockedUsers = fetchBlockedUsers(currentUserId)
+            val blockedUsers = if (_currentUserId.value != null)
+                fetchBlockedUsers(_currentUserId.value!!)
+            else emptyList()   // <- still proceed!
+
+            if (_currentUserId.value == null) {
+                _isLoading.value = false
+                _postsLoaded.value = true
+            }
 
             postsRef.addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -359,11 +368,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     Log.d("PostViewModel", "Setting _profilePosts to ${postsList.size} posts: $postsList")
                     _profilePosts.value = postsList
                     _isLoading.value = false
+                    _postsLoaded.value = true      // ✅ finished – even if list is empty
                     Log.d("PostViewModel", "Fetched ${postsList.size} posts, _profilePosts.value.size=${_profilePosts.value.size}")
                 }
 
                 override fun onCancelled(error: DatabaseError) {
                     _isLoading.value = false
+                    _postsLoaded.value = true      // ✅ finished – even if list is empty
                     Log.e("PostViewModel", "Failed to fetch posts: ${error.message}")
                 }
             })

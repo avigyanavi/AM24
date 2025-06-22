@@ -11,80 +11,99 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
-import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import coil.Coil
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.am24.am24.ui.theme.AppTheme
 import com.google.android.gms.ads.MobileAds
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
-import com.razorpay.PaymentResultListener
+import com.razorpay.Checkout                       // NEW
+import com.razorpay.ExternalWalletListener        // NEW
+import com.razorpay.PaymentData                   // NEW
+import com.razorpay.PaymentResultWithDataListener // NEW
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.Locale
-import androidx.compose.runtime.*
-import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
-class KupidXAppActivity : ComponentActivity(), PaymentResultListener {
+class KupidXAppActivity : ComponentActivity(),
+    PaymentResultWithDataListener,          // replaces old PaymentResultListener
+    ExternalWalletListener,                 // required because we pass wallet listener
+    PaymentResultListenerHost {             // used by OneTimePurchaseScreen
 
+    /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
 
-    // Payment callbacks
+    // callbacks wired from the Composable screen
     private var paymentSuccessCallback: ((String) -> Unit)? = null
     private var paymentErrorCallback:  ((String) -> Unit)? = null
 
-    // Deep-link flag (set in onCreate / onNewIntent)
+    // deep-link flag
     private var pendingOpenNotifications = false
 
-    // ------------------------------------------------------------------ locale
+    /* ------------------------------------------------------------------ locale */
     override fun attachBaseContext(newBase: Context) {
-        val prefs         = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val languageCode  = prefs.getString("language", "en") ?: "en"
-        val locale        = Locale(languageCode)
-        val updatedCtx    = newBase.createConfigurationContext(
-            newBase.resources.configuration.apply { setLocale(locale) }
+        val prefs        = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val languageCode = prefs.getString("language", "en") ?: "en"
+        val updatedCtx   = newBase.createConfigurationContext(
+            newBase.resources.configuration.apply { setLocale(Locale(languageCode)) }
         )
         super.attachBaseContext(updatedCtx)
     }
 
-    // ------------------------------------------------------------------ permissions
+    /* ---------------------------------------------------------------- permissions */
     private val requestLocationPerms =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
-            val fine  = perms[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-            val coarse= perms[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+            val fine   = perms[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+            val coarse = perms[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
             if (fine || coarse) auth.currentUser?.uid?.let { locationManager.updateUserLocation(it) }
             else Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show()
         }
 
-    // ------------------------------------------------------------------ lifecycle
+    /* ---------------------------------------------------------------- lifecycle */
     @RequiresApi(Build.VERSION_CODES.O_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔸 read the flag the very first time
-        pendingOpenNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
+        auth = FirebaseAuth.getInstance()
 
+        // read push-flag once
+        pendingOpenNotifications =
+            intent?.getBooleanExtra("open_notifications", false) ?: false
+
+        // install a one-shot listener that fires once Firebase has reloaded its cached user
+        auth.addAuthStateListener(object : FirebaseAuth.AuthStateListener {
+            override fun onAuthStateChanged(firebaseAuth: FirebaseAuth) {
+                auth.removeAuthStateListener(this)
+                val user = firebaseAuth.currentUser
+                if (user == null) {
+                    // no cached user → go to login
+                    startActivity(Intent(this@KupidXAppActivity, LandingActivity::class.java))
+                    finish()
+                } else {
+                    // we have a user → finish setup
+                    continueInitialization(user.uid)
+                }
+            }
+        })
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O_MR1)
+    private fun continueInitialization(uid: String) {
         MobileAds.initialize(this)
         FirebaseStorage.getInstance("gs://am-twentyfour.com")
-
-        auth = FirebaseAuth.getInstance()
-        val currentUser = auth.currentUser
-        if (currentUser == null) {
-            startActivity(Intent(this, LandingActivity::class.java))
-            finish()
-            return
-        }
-
         locationManager = LocationManager(this)
-        checkLocationPermissionsAndUpdate(currentUser.uid)
-        postViewModel.loadFiltersFromFirebase(currentUser.uid)
+        checkLocationPermissionsAndUpdate(uid)
+        postViewModel.loadFiltersFromFirebase(uid)
 
         Coil.setImageLoader(
             ImageLoader.Builder(applicationContext)
@@ -95,18 +114,21 @@ class KupidXAppActivity : ComponentActivity(), PaymentResultListener {
                         .maxSizePercent(0.05)
                         .build()
                 }
-                .memoryCache { MemoryCache.Builder(applicationContext).maxSizePercent(0.25).build() }
+                .memoryCache {
+                    MemoryCache.Builder(applicationContext)
+                        .maxSizePercent(0.25)
+                        .build()
+                }
                 .build()
         )
 
-        // ----------------------------- COMPOSE UI
         setContent {
             AppTheme {
                 KupidXApp(
-                    postViewModel = postViewModel,
-                    openNotifications = pendingOpenNotifications,          // 🔸 inject flag
-                    onFlagConsumed = { pendingOpenNotifications = false }, // 🔸 reset after nav
-                    onLogout = {
+                    postViewModel       = postViewModel,
+                    openNotifications   = pendingOpenNotifications,
+                    onFlagConsumed      = { pendingOpenNotifications = false },
+                    onLogout            = {
                         auth.signOut()
                         startActivity(Intent(this, LandingActivity::class.java))
                         finish()
@@ -115,18 +137,15 @@ class KupidXAppActivity : ComponentActivity(), PaymentResultListener {
             }
         }
     }
-
-    // handles subsequent taps when activity already alive ----------------- 🔸
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.getBooleanExtra("open_notifications", false)) {
             pendingOpenNotifications = true
-            // trigger ui update; simplest is to recreate() since Compose is already state-safe
             recreate()
         }
     }
 
-    // ------------------------------------------------------------------ helpers
+    /* ---------------------------------------------------------------- helpers */
     private fun checkLocationPermissionsAndUpdate(uid: String) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED
@@ -142,24 +161,57 @@ class KupidXAppActivity : ComponentActivity(), PaymentResultListener {
         }
     }
 
-    // Payment callback hooks ----------------------------------------------
-    fun setPaymentCallbacks(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
-        paymentSuccessCallback = onSuccess; paymentErrorCallback = onError
-    }
-    override fun onPaymentSuccess(p0: String?) {
-        if (p0 != null) {
-            paymentSuccessCallback?.invoke(p0)
-        } else {
-            paymentErrorCallback?.invoke("Payment succeeded but no payment ID received.")
-        }
+    /* ---------------------------------------------------------------- Razorpay */
+    /** Exposed to the Composable so it can register callbacks */
+    override fun setPaymentCallbacks(
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        paymentSuccessCallback = onSuccess
+        paymentErrorCallback   = onError
     }
 
-    override fun onPaymentError(code: Int, response: String?) {
-        paymentErrorCallback?.invoke("Payment failed: $response")
+    /* mandatory overrides for the new listener types */
+    override fun onPaymentSuccess(
+        razorpayPaymentId: String?,
+        paymentData: PaymentData?
+    ) {
+        val id = razorpayPaymentId ?: paymentData?.paymentId
+        if (id != null) paymentSuccessCallback?.invoke(id)
+        else paymentErrorCallback?.invoke("Success but paymentId == null")
+    }
+
+    override fun onPaymentError(
+        code: Int,
+        description: String?,
+        paymentData: PaymentData?
+    ) {
+        paymentErrorCallback?.invoke("Payment error $code: $description")
+    }
+
+    override fun onExternalWalletSelected(
+        externalWalletName: String?,
+        paymentData: PaymentData?
+    ) {
+        Toast.makeText(this,
+            "Selected wallet: $externalWalletName", Toast.LENGTH_SHORT).show()
+    }
+
+    /* feed Razorpay result back to the SDK */
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        Checkout.handleActivityResult(
+            this,              // Activity
+            requestCode,
+            resultCode,
+            data,
+            this,              // PaymentResultWithDataListener
+            this               // ExternalWalletListener
+        )
     }
 }
 
-/*───────────────────────────────────────────────────────────────────────────*/
+/* ────────────────────────────────────────────────────────────────────────── */
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
@@ -171,17 +223,16 @@ fun KupidXApp(
 ) {
     val navController = rememberNavController()
 
-    // 🔸 Navigate once when flag is true
     LaunchedEffect(openNotifications) {
         if (openNotifications) {
             navController.navigate("notifications")
-            onFlagConsumed()           // clear so configuration changes don’t re-fire
+            onFlagConsumed()
         }
     }
 
     MainScreen(
         navController = navController,
-        onLogout = onLogout,
+        onLogout      = onLogout,
         postViewModel = postViewModel
     )
 }

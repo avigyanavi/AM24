@@ -33,6 +33,8 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.DateFormat
+import java.util.Date
 
 /* ───────────────────────────────────────────────  small helpers ── */
 
@@ -123,10 +125,16 @@ fun SettingsScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         val s = userRef.get().await()
 // pull the flat `isPremium` boolean and optional expiryDate
-        isPremium   = s.child("isPremium").getValue(Boolean::class.java) ?: false
-        premiumTier = if (isPremium) "Premium" else "Free"
-        expiry      = s.child("expiryDate").getValue(String::class.java) ?: "N/A"
-
+            val plusFlag    = s.child("isPlus").getValue(Boolean::class.java) ?: false
+            val premiumFlag = s.child("isPremium").getValue(Boolean::class.java) ?: false
+            premiumTier = when {
+                  premiumFlag -> "Premium"
+                  plusFlag    -> "Plus"
+                  else         -> "Free"
+                }
+        expiry = s.child("nextRenewal").getValue(Long::class.java)
+              ?.let { DateFormat.getDateInstance().format(Date(it)) }
+              ?: "N/A"
 
         boosts      = s.child("availableBoosts").getValue(Int::class.java) ?: 0
         swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
@@ -241,21 +249,24 @@ fun SettingsScreen(navController: NavController) {
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
-                    /** FREE (upgrade) or PLUS/PREMIUM dashboard **/
+                    /**  FREE  → go to the NEW UpgradeLandingScreen  */
                     if (premiumTier == "Free") {
                         SettingsRow(
                             icon  = { Icon(Icons.Default.StarOutline, null) },
                             title = "Free User",
                             trailingText = "Upgrade",
-                            onClick = { navController.navigate("subscription") }
+                            onClick = {                 // ⬅️ change only this line
+                                navController.navigate("upgradeLanding")
+                            }
                         )
+
+                        /**  PLUS / PREMIUM  → keep old manage page  */
                     } else {
-                        /* display tier information – no expiry date */
                         SettingsRow(
                             icon  = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
                             title = "$premiumTier Member",
                             trailingText = "Expires: $expiry",
-                            onClick = { navController.navigate("subscription") } // manage / cancel
+                            onClick = { navController.navigate("subscription") }   // unchanged
                         )
                     }
 

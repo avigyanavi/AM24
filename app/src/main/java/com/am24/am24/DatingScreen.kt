@@ -177,6 +177,7 @@ fun DatingScreen(
     /* fetch *my* Profile once */
     LaunchedEffect(Unit) {
         profileViewModel.fetchCurrentUserProfile()
+        datingViewModel.startInventoryWatcher(myUid)        // NEW  ←───────────────★
     }
 
     // ── StateFlows ────────────────────────────────────────────────────
@@ -418,12 +419,18 @@ fun DatingScreen(
                     /* 👍  Compliments */
                     WaterIconButton(
                         quota    = complimentsLeft,
-                        maxQuota = 15,
+                        maxQuota = 5,
                         icon     = Icons.Default.AttachEmail,
                         enabled  = complimentsLeft > 0,
-                        onClick   =   {
-                                    if (complimentsLeft > 0) showComplimentDlg = true
-                        }   // <- see next section }
+                        tint     = if (complimentsLeft > 0) Color.White else Color.Gray,
+                        onClick  = {
+                            if (complimentsLeft > 0) {
+                                showComplimentDlg = true
+                            } else {
+                                // zero left → go buy more
+                                navController.navigate("buyCompliments")
+                            }
+                        }
                     )
 
                     Spacer(Modifier.width(13.dp))
@@ -431,16 +438,21 @@ fun DatingScreen(
                     /* ⚡  Boosts */
                     WaterIconButton(
                         quota    = myProfile!!.availableBoosts,
-                        maxQuota = 15,
+                        maxQuota = 5,
                         icon     = Icons.Default.FlashOn,
                         tint     = if (canBoost) Color.White else Color.Gray,
                         enabled  = canBoost,
-                        onClick = {
-                            val myUid = FirebaseAuth.getInstance().uid ?: return@WaterIconButton
-                            datingViewModel.boostUser(myUid) {
-                                profileViewModel.decrementBoostsLocal()
-                                showBoostFlash = true
-                                profileViewModel.fetchCurrentUserProfile()
+                        onClick  = {
+                            if (canBoost) {
+                                val myUid = FirebaseAuth.getInstance().uid ?: return@WaterIconButton
+                                datingViewModel.boostUser(myUid) {
+                                    profileViewModel.decrementBoostsLocal()
+                                    showBoostFlash = true
+                                    profileViewModel.fetchCurrentUserProfile()
+                                }
+                            } else {
+                                // no boosts → go buy more
+                                navController.navigate("buyBoosts")
                             }
                         }
                     )
@@ -680,7 +692,7 @@ fun WaterIconButton(
         modifier = modifier
             .size(side)
             .clip(CircleShape)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         /* container + “water” fill */
@@ -704,36 +716,37 @@ fun WaterIconButton(
  * Load swipes from Firebase and reset them to 15 if a new day has started.
  */
 suspend fun loadAndResetSwipesDaily(userId: String): Int {
-    val userRef   = FirebaseRefs.db.getReference("users/$userId")
-    val userSnap  = userRef.get().await()
+    val userRef  = FirebaseRefs.db.getReference("users/$userId")
+    val userSnap = userRef.get().await()
+
     val isPremium = userSnap.child("isPremium").getValue(Boolean::class.java) ?: false
     val isPlus    = userSnap.child("isPlus").getValue(Boolean::class.java) ?: false
-    val quota = when {
+    val quota     = when {
         isPremium -> Int.MAX_VALUE
         isPlus    -> 50
         else      -> 15
     }
 
     val swipesRef = userRef.child("swipesInfo")
-    val snapshot  = swipesRef.get().await()
-    var remainingSwipes = quota
-    var lastResetDayOfYear = -1
-    snapshot.child("remainingSwipes").getValue(Int::class.java)?.let {
-        remainingSwipes = it
+    val snap      = swipesRef.get().await()
+
+    var remaining = snap.child("remainingSwipes").getValue(Int::class.java) ?: quota
+    var lastReset = snap.child("lastResetDayOfYear").getValue(Int::class.java) ?: -1
+
+    val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+
+    /* ── New day?  Top-up only if user was below their quota ─────── */
+    if (today != lastReset && remaining < quota) {
+        remaining = quota
     }
-    snapshot.child("lastResetDayOfYear").getValue(Int::class.java)?.let {
-        lastResetDayOfYear = it
+
+    /* ── Persist back if anything changed ────────────────────────── */
+    if (today != lastReset || remaining != snap.child("remainingSwipes").getValue(Int::class.java)) {
+        swipesRef.child("remainingSwipes").setValue(remaining)
+        swipesRef.child("lastResetDayOfYear").setValue(today)
     }
-    val calendar = Calendar.getInstance()
-    val todayDayOfYear = calendar.get(Calendar.DAY_OF_YEAR)
-    if (todayDayOfYear != lastResetDayOfYear) {
-        remainingSwipes = 15
-        remainingSwipes = quota
-        lastResetDayOfYear = todayDayOfYear
-    }
-    swipesRef.child("remainingSwipes").setValue(remainingSwipes)
-    swipesRef.child("lastResetDayOfYear").setValue(lastResetDayOfYear)
-    return remainingSwipes
+
+    return remaining
 }
 
 /** Updates the user's remainingSwipes in Firebase. */

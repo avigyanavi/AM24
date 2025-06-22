@@ -32,28 +32,33 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
 
-    // ----- launch -----
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
 
-        // Tiny Compose surface that only requests POST_NOTIFICATIONS once
+        // Tiny Compose surface for notification permission
         setContent { AskNotificationPermission() }
 
-        // Flag injected by a push-notification tap
         val openNotifications =
             intent?.getBooleanExtra("open_notifications", false) ?: false
 
-        val cachedUser = auth.currentUser
-        if (cachedUser == null) {
-            // --> not signed in at all
-            startActivity(Intent(this, LandingActivity::class.java))
-            finish()
-        } else {
-            // --> we know the UID immediately; let the helper decide where to go
-            routeBasedOnUid(cachedUser.uid, openNotifications)
-        }
+        // Robustly handle Firebase auth initialization
+        auth.addAuthStateListener(object : FirebaseAuth.AuthStateListener {
+            override fun onAuthStateChanged(firebaseAuth: FirebaseAuth) {
+                auth.removeAuthStateListener(this) // remove immediately after first trigger
+                val user = firebaseAuth.currentUser
+                if (user == null) {
+                    // --> definitely not signed in
+                    startActivity(Intent(this@MainActivity, LandingActivity::class.java))
+                    finish()
+                } else {
+                    // Now safely route based on UID
+                    routeBasedOnUid(user.uid, openNotifications)
+                }
+            }
+        })
     }
+
     @Composable
     private fun AskNotificationPermission() {
         if (Build.VERSION.SDK_INT < 33) return          // nothing to do pre-Tiramisu

@@ -153,6 +153,8 @@ data class Profile(
     var lastMediaResetDayOfYear: Int? = null,
     var notifUnreadCount: Int = 0,
     var lastSummaryPush: Long? = null,
+    var deleteTimerOverride: Boolean = false,     // premium users can set TRUE to keep chat forever
+    var allowExplicitPics: Boolean = false,       // personal preference – must be TRUE **for both** sides
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
 

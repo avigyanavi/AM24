@@ -13,10 +13,6 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        FirebaseApp.initializeApp(this)            // usually auto-init
-        FirebaseStorage.getInstance("gs://am-twentyfour")
-
-
         val appCheck = FirebaseAppCheck.getInstance()
         appCheck.installAppCheckProviderFactory(
             if (BuildConfig.DEBUG)
@@ -25,5 +21,7 @@ class MyApp : Application() {
                 PlayIntegrityAppCheckProviderFactory.getInstance()  // Play-store builds
         )
 
+        FirebaseApp.initializeApp(this)            // usually auto-init
+        FirebaseStorage.getInstance("gs://am-twentyfour")
     }
 }

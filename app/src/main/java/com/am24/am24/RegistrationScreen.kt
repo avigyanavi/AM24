@@ -2576,6 +2576,7 @@ suspend fun saveProfileToFirebase(
             userId = userId,
             country       = if (registrationViewModel.country == other) registrationViewModel.customCountry else registrationViewModel.country,
             customCountry = registrationViewModel.customCountry,
+
             username = registrationViewModel.username,
             name = registrationViewModel.name,
             dob = registrationViewModel.dob,

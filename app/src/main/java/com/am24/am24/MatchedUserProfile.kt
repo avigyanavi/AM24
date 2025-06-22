@@ -57,7 +57,7 @@ fun MatchedUserProfileScreen(
 
     // Update postsLoaded when fetch completes
     LaunchedEffect(isLoading) {
-        if (!isLoading && allPosts.isNotEmpty()) {
+        if (!isLoading && !postsLoaded) {
             postsLoaded = true
             println("MatchedUserProfileScreen: Posts loaded, size=${allPosts.size}")
         }

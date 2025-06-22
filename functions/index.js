@@ -7,6 +7,7 @@ const admin      = require("firebase-admin");
 const OpenAI     = require("openai").default;
 const Busboy = require("busboy");
 const { v4: uuidv4 } = require("uuid");
+const crypto  = require("crypto");
 
 const fetch = require("node-fetch");
 
@@ -21,15 +22,21 @@ admin.initializeApp({
 // ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
 const RAZORPAY_SECRET = '27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01';
 
+/* LIVE keys (hard-coded for now) */
+const RZP_KEY_ID     = "rzp_live_DsoxJLeiCw940M";
+const RZP_KEY_SECRET = "AjQhp4QXqa6XmUJmabpxHEuo";
+
 /* ───────────────────────────── Razorpay callable ───────────────────────────── */
 
 const Razorpay = require("razorpay");
 const razorpay = new Razorpay({
-  key_id:     "rzp_test_PEBgJvcT9jIT7O",
-  key_secret: "HM0OOCqESrzteQG1oRO7Lplz",
+  key_id:     RZP_KEY_ID,
+  key_secret: RZP_KEY_SECRET,
 });
 
-exports.verifyPayment = functions.https.onCall(async (data, context) => {
+exports.verifyPayment = functions
+.region("asia-south1")
+.https.onCall(async (data, context) => {
   try {
     const { paymentId } = data;
     if (!paymentId) {
@@ -245,41 +252,160 @@ exports.getNearbyProfiles = functions
     return { profiles };
   });
 
-///* ─── verifySubscriptionPayment (callable) ─── */
-//exports.verifySubscriptionPayment = functions
-//  .region('asia-south1')
-//  .https.onCall(async (data, context) => {
-//    const { uid, paymentId, subscriptionId, signature } = data || {};
-//    if (!uid || !paymentId || !subscriptionId || !signature)
-//      throw new functions.https.HttpsError('invalid-argument', 'uid, paymentId, subscriptionId, and signature are required');
-//
-//    /* 1️⃣  verify HMAC (signature = HMAC_SHA256(subscriptionId|paymentId, secret)) */
-//    const crypto = require('crypto');
-//    const expected = crypto
-//      .createHmac('sha256', razorpay.key_secret)
-//      .update(`${subscriptionId}|${paymentId}`)
-//      .digest('hex');
-//
-//    if (expected !== signature)
-//      throw new functions.https.HttpsError('permission-denied', 'Invalid signature');
-//
-//    /* 2️⃣  fetch the payment object and ensure it is captured */
-//    const payment = await razorpay.payments.fetch(paymentId);
-//    if (payment.status !== 'captured')
-//      throw new functions.https.HttpsError('failed-precondition', `Payment not captured (${payment.status})`);
-//
-//    /* 3️⃣  write premiumStatus */
-//    const db   = admin.database();
-//    const next = Date.parse(payment.acquirer_data?.next_payment_date) || 0;
-//    await db.ref(`users/${uid}/premiumStatus`).set({
-//      isPremium: true,
-//      subscriptionId,
-//      paymentId,
-//      expiryDate: next,
-//    });
-//
-//    return { ok: true, expiryDate: next };
-//  });
+// Near the top, replace your dummy VALID_PLANS with the real ones:
+const VALID_PLANS = new Set([
+  "plan_QjnGf6wdQAmyi2",    // ₹9 / week       (Plus)
+  "plan_QjpkdErsuewaUJ",    // ₹29 / week      (Premium)
+  "plan_QjpkKQ5S3ur64Q",    // ₹39 / month     (Plus)
+  "plan_QjplxIqveB0BVS",    // ₹99 / month     (Premium)
+  "plan_QjpmNjEkEPlObK",    // ₹399 / year     (Plus)
+  "plan_QjmpS4xg31rg"       // ₹999 / year     (Premium)
+]);
+
+exports.createKupidxPlusSub = functions
+  .region("asia-south1")
+  .https.onCall(async (data) => {
+    const { uid, planId } = data;               // ← pull planId from the client
+    if (!uid || !planId) {
+      throw new functions.https.HttpsError("invalid-argument","uid+planId required");
+    }
+    // create using the exact plan they selected:
+    const sub = await razorpay.subscriptions.create({
+      plan_id: planId,
+      customer_notify: 1,
+      total_count: getCountForPlan(planId),     // e.g. 52, 12, or 1
+      notes: { uid, planId }
+    });
+
+    // store everything up front:
+    await admin
+      .database()
+      .ref(`users/${uid}/subscription`)
+      .set({
+        id: sub.id,
+        planId,
+        status: "created",
+        nextCharge: sub.current_end
+      });
+
+/*  👆  Don’t grant Plus/Premium yet – wait for webhook  */
+   return { subscriptionId: sub.id, keyId: RZP_KEY_ID };
+  });
+
+const PLAN_CYCLES = {
+  plan_QjnGf6wdQAmyi2: 52,   // weekly plus
+  plan_QjpkdErsuewaUJ: 52,   // weekly premium
+  plan_QjpkKQ5S3ur64Q: 12,   // monthly plus
+  plan_QjplxIqveB0BVS: 12,   // monthly premium
+  plan_QjpmNjEkEPlObK: 1,    // yearly plus
+  plan_QjmpS4xg31rg:   1,    // yearly premium
+};
+
+function getCountForPlan(planId) {
+  return PLAN_CYCLES[planId] || 1;  // sensible default
+}
+
+/* ───────── verify first-payment signature (optional client call) ──────── */
+exports.verifyKupidxPlusPayment = functions
+.region("asia-south1")
+.https.onCall(async (data) => {
+  const { paymentId, subscriptionId, signature } = data || {};
+  if (!paymentId || !subscriptionId || !signature)
+    throw new functions.https.HttpsError("invalid-argument", "all fields required");
+
+  /* HMAC-SHA256(subscriptionId|paymentId, key_secret) */
+  const expected = crypto
+    .createHmac("sha256", RZP_KEY_SECRET)
+    .update(`${subscriptionId}|${paymentId}`)
+    .digest("hex");
+
+  if (expected !== signature)
+    throw new functions.https.HttpsError("permission-denied", "Bad signature");
+
+  return { ok: true };
+});
+
+exports.createManualSubscriptionOrder = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const { amount, label } = data;
+
+    if (!amount || !label) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Amount and label are required"
+      );
+    }
+
+    const order = await razorpay.orders.create({
+      amount: amount * 100, // convert INR to paise
+      currency: "INR",
+      receipt: `manual_sub_${label}_${Date.now()}`,
+    });
+
+    return { id: order.id, key: razorpay.key_id };
+  });
+
+const PLAN_TIERS = {
+  plan_QjnGf6wdQAmyi2:    { plus: true,  premium: false },  // ₹9 / week
+  plan_QjpkdErsuewaUJ:    { plus: false, premium: true  },  // ₹29 / week
+  plan_QjpkKQ5S3ur64Q:     { plus: true,  premium: false },  // ₹39 / month
+  plan_QjplxIqveB0BVS:     { plus: false, premium: true  },  // ₹99 / month
+  plan_QjpmNjEkEPlObK:     { plus: true,  premium: false },  // ₹399 / year
+  plan_QjmpS4xg31rg:       { plus: false, premium: true  },  // ₹999 / year
+};
+
+exports.kupidxPlusWebhook = functions
+  .region("asia-south1")
+  .https.onRequest(async (req, res) => {
+    // 1) verify HMAC
+    const body     = JSON.stringify(req.body);
+    const received = req.headers["x-razorpay-signature"] || "";
+    const calc     = crypto.createHmac("sha256", RAZORPAY_SECRET).update(body).digest("hex");
+    if (calc !== received) return res.status(400).send("bad signature");
+
+    // 2) extract event and subscription/payment entity
+    const ev  = req.body.event;
+    /* subscription entity may arrive as part of payment.captured */
+    const ent = req.body.payload.subscription?.entity ||
+                req.body.payload.payment?.entity?.subscription ||
+                {};
+    const uid    = ent.notes?.uid;
+    const planId = ent.notes?.planId;
+    if (!uid || !planId) return res.status(400).send("missing data");
+
+    // 3) look up tier flags
+    const tier = PLAN_TIERS[planId] || { plus: false, premium: false };
+    const db   = admin.database();
+
+    try {
+      switch (ev) {
+                case "subscription.activated":
+                case "subscription.charged":
+                  await db.ref(`users/${uid}`).update({
+                    isPlus:             tier.plus,
+                    isPremium:          tier.premium,
+                    subscriptionStatus: "active",
+                    nextRenewal:        ent.current_end * 1000
+                  });
+
+        case "subscription.charged.failed":
+        case "subscription.cancelled":
+        case "subscription.completed":
+          await db.ref(`users/${uid}`).update({
+            isPlus:             false,
+            isPremium:          false,
+            subscriptionStatus: "inactive"
+          });
+          break;
+      }
+      res.send("ok");
+    } catch (e) {
+      console.error("webhook err", e);
+      res.status(500).send("err");
+    }
+  });
+
 
 
 /* shorthand so we only spell it once */
@@ -333,7 +459,7 @@ exports.onPostReport = functions
 
 /** Plan you expect the user to subscribe to */
 const EXPECTED_PLAN = "P-8EV86494EK6312239NBCUGVI";
-const crypto = require('crypto');
+
 /**
  * Callable ⇢ verifyPaypalSubscription({ subscriptionId: "I-XXXX" }) → { valid:Boolean, status:String }
  */
@@ -438,6 +564,7 @@ exports.bumpUnreadCounter = functions.firestore
       notifUnreadCount: admin.firestore.FieldValue.increment(inc)
     });
   });
+
 // ✅ CommonJS export syntax
 exports.pushSummary = functions.pubsub
   .schedule('every 15 minutes')
@@ -477,132 +604,3 @@ exports.pushSummary = functions.pubsub
 
     await Promise.all(pushes);
   });
-
-//exports.razorpayWebhook = functions
-//  .region('asia-south1')
-//  .https.onRequest(async (req, res) => {
-//    if (req.method !== 'POST') {
-//      return res.status(405).send('Method Not Allowed');
-//    }
-//
-//    // 1) Verify HMAC
-//    const signature = req.headers['x-razorpay-signature'] || '';
-//    const bodyRaw   = JSON.stringify(req.body);
-//    const expected  = crypto
-//      .createHmac('sha256', RAZORPAY_SECRET)
-//      .update(bodyRaw)
-//      .digest('hex');
-//    if (signature !== expected) {
-//      console.error('❌ Invalid signature:', { expected, received: signature });
-//      return res.status(400).send('Invalid signature');
-//    }
-//
-//    // 2) Dispatch by event type
-//    const event = req.body.event;
-//    const payload = req.body.payload || {};
-//    const db = admin.database();
-//
-//    // Helper: mark a user active + clear any pending badge
-//    async function activate(uid, expiryDate = null) {
-//      await db.ref(`users/${uid}`).update({
-//        subscription_status: 'active',
-//        isPremium: true,
-//        subscription_requested_at: null,
-//        strikes: 0
-//      });
-//      if (expiryDate) {
-//        await db.ref(`users/${uid}/expiryDate`).set(expiryDate);
-//      }
-//      console.log(`✅ Activated ${uid} via ${event}`);
-//    }
-//
-//    // Helper: revoke access + increment strike
-//    async function failAndStrike(uid) {
-//      const userRef = db.ref(`users/${uid}`);
-//      const { strikes = 0 } = (await userRef.once('value')).val() || {};
-//      const newStrikes = strikes + 1;
-//      const updates = {
-//        subscription_status: 'none',
-//        strikes: newStrikes
-//      };
-//      if (newStrikes >= 3) updates.is_banned = true;
-//      await userRef.update(updates);
-//      console.warn(`❌ ${event} failure for ${uid}. Strikes: ${newStrikes}`);
-//    }
-//
-//    // Extract uid (we assume you set notes.uid when creating links)
-//    const entity = payload.subscription?.entity || payload.payment?.entity || payload.qr_code?.entity;
-//    const uid    = entity?.notes?.uid;
-//
-//    try {
-//      switch (event) {
-//
-//        // ── Subscription link lifecycle ──
-//        case 'subscription.created':
-//          // user clicked the link → mark pending + grant trial
-//          await db.ref(`users/${uid}`).update({
-//            subscription_status: 'pending',
-//            subscription_requested_at: Date.now()
-//          });
-//          console.log(`🔔 subscription.created for ${uid}`);
-//          break;
-//
-//        case 'subscription.activated':
-//          // subscription fully active
-//          await activate(uid, entity?.current_end);
-//          break;
-//
-//        case 'subscription.charged':
-//          // recurring payment succeeded
-//          await activate(uid, entity.acquirer_data?.next_payment_date);
-//          break;
-//
-//        case 'subscription.charged.failed':
-//          // renewal failed → strike
-//          await failAndStrike(uid);
-//          break;
-//
-//        case 'subscription.cancelled':
-//          await db.ref(`users/${uid}`).update({
-//             subscription_status: 'none',
-//            isPremium: false
-//           });
-//        case 'subscription.completed':
-//          // subscription ended or cancelled
-//          await db.ref(`users/${uid}`).update({
-//            subscription_status: 'none',
-//            isPremium: false
-//          });
-//          console.log(`⚠️ ${event} for ${uid}: revoked`);
-//          break;
-//
-//        // ── One-time UPI/QR payments ──
-//        case 'qr_code.created':
-//          // you could mark a pending UPI payment here if you like
-//          await db.ref(`users/${uid}`).update({
-//            subscription_status: 'pending',
-//            subscription_requested_at: Date.now()
-//          });
-//          console.log(`🔔 qr_code.created for ${uid}`);
-//          break;
-//
-//        case 'qr_code.credited':
-//          // one-time UPI payment succeeded
-//          await activate(uid);
-//          break;
-//
-//        // ── Catch-all payment failure ──
-//        case 'payment.failed':
-//          await failAndStrike(uid);
-//          break;
-//
-//        default:
-//          console.log(`ℹ️ Unhandled event: ${event}`);
-//      }
-//
-//      res.status(200).send('ok');
-//    } catch (err) {
-//      console.error(`🔥 Error handling ${event}`, err);
-//      res.status(500).send('internal error');
-//    }
-//  });

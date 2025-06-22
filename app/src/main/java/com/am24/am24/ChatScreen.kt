@@ -84,7 +84,9 @@ import java.io.File
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.am24.am24.util.LocaleUtils
@@ -127,6 +129,10 @@ data class Message(
     var isPost: Boolean = false // Add this field to flag shared posts
 )
 
+private object RatingPromptSession {
+    val shownForChat = mutableSetOf<String>()   // chatId → prompt already shown
+}
+
 @Composable
 fun ChatScreen(navController: NavController, otherUserId: String) {
     val profileViewModel: ProfileViewModel = viewModel()
@@ -163,9 +169,21 @@ fun ChatScreenContent(
     var yourRating by rememberSaveable(otherUserId) { mutableStateOf(-1.0) }
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
+
+    val explicitAllowedMe       = currentUserProfile?.allowExplicitPics  == true
+    val explicitAllowedPartner  = otherUserProfile ?.allowExplicitPics  == true
+    var deleteForever           = currentUserProfile?.deleteTimerOverride == true
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
     var showRating by remember { mutableStateOf(true) }
+
+    // decide *once* per session
+    LaunchedEffect(Unit) {
+        if (yourRating < 0 && chatId !in RatingPromptSession.shownForChat) {
+            showRating = true
+            RatingPromptSession.shownForChat += chatId     // remember for the session
+        }
+    }
     LaunchedEffect(messages.size, yourRating) {
         if (yourRating < 0       // not yet rated
             && messages.size >= 5
@@ -418,15 +436,32 @@ fun ChatScreenContent(
            ────────────────────────────────────────────────── */
         if (selectedMediaUri != null && selectedMediaType != null) {
             scope.launch {
-                /* 1-A  Moderate */
+                /* 1-A  Moderate content */
                 val flagged = when (selectedMediaType) {
                     "photo" -> moderateImages(listOf(context.uriToBase64(selectedMediaUri!!)))
                     "video" -> moderateImages(context.videoFramesEvery2s(selectedMediaUri!!))
                     else    -> false
                 }
-                /* 1-B  Ask user if unsafe */
-                if (flagged && !askProceed(context,
-                        "This $selectedMediaType may be explicit.  Send anyway?")) {
+
+                /* 1-B  If explicit but one side blocks it → cancel */
+                if (flagged && !(explicitAllowedMe && explicitAllowedPartner)) {
+                    Toast.makeText(
+                        context,
+                        "Explicit media blocked – both users must enable it.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    selectedMediaUri  = null
+                    selectedMediaType = null
+                    isSendingMessage  = false
+                    return@launch
+                }
+
+                /* 1-C  If both allow, still ask the sender for consent */
+                if (flagged && !askProceed(
+                        context,
+                        "This ${selectedMediaType} looks explicit. Send anyway?"
+                    )
+                ) {
                     selectedMediaUri  = null
                     selectedMediaType = null
                     isSendingMessage  = false
@@ -679,6 +714,7 @@ fun ChatScreenContent(
 
     Scaffold(
         topBar = {
+            var showExplicitMenu by remember { mutableStateOf(false) }
             TopAppBar(
                 title = {
                     val scrollState = rememberScrollState()
@@ -724,6 +760,18 @@ fun ChatScreenContent(
                                     .background(Color.Gray),
                                 contentScale = ContentScale.Crop
                             )
+                            if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
+                                Icon(
+                                    Icons.Default.Block,
+                                    contentDescription = null,
+                                    tint = Color.Red,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)      // RowScope.align – vertical only
+                                        .offset(x = (-6).dp, y = (-10).dp)
+                                        .size(14.dp)
+                                        .pointerInput(Unit) { /* consume nothing */ }
+                                )
+                            }
                         } else {
                             otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
                             AIOrProfileImage(
@@ -733,6 +781,18 @@ fun ChatScreenContent(
                                     .clip(CircleShape)
                                     .background(Color.Gray)
                             )
+                            if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
+                                Icon(
+                                    Icons.Default.Block,
+                                    contentDescription = null,
+                                    tint = Color.Red,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterVertically)      // RowScope.align – vertical only
+                                        .offset(x = (-6).dp, y = (-10).dp)
+                                        .size(14.dp)
+                                        .pointerInput(Unit) { /* consume nothing */ }
+                                )
+                            }
                         }
                         Spacer(Modifier.width(8.dp))
                         Box(
@@ -760,7 +820,42 @@ fun ChatScreenContent(
                 },
                 actions = {
                     val outOfCredits = aiMessagesLeft <= 0        // helper
-
+// ----------------  explicit-pics button  ----------------
+                    IconButton(onClick = { showExplicitMenu = true }) {
+                        Icon(
+                            if (explicitAllowedMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Explicit-pics settings",
+                            tint = if (explicitAllowedMe) Color(0xFFFF5252) else LocalContentColor.current
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showExplicitMenu,
+                        onDismissRequest = { showExplicitMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Allow explicit photos")
+                                    Spacer(Modifier.weight(1f))
+                                    Switch(
+                                        checked = explicitAllowedMe,
+                                        onCheckedChange = { allowed ->
+                                            // ① update local state so UI changes immediately
+                                            currentUserProfile =
+                                                currentUserProfile?.copy(allowExplicitPics = allowed)
+                                            // ② write to Firebase
+                                            currentUserProfile?.userId?.let { uid ->
+                                                FirebaseRefs.db.getReference("users/$uid")
+                                                    .child("allowExplicitPics")
+                                                    .setValue(allowed)
+                                            }
+                                        }
+                                    )
+                                }
+                            },
+                            onClick = { /* nothing – switch above handles it */ }
+                        )
+                    }
                     IconButton(
                         onClick = {
                             consumeAiMessage {                    // WILL navigate if credits == 0
@@ -849,6 +944,46 @@ fun ChatScreenContent(
                             onClick = { moreOptionsMenuExpanded = false; showDeleteTimerMenu = true }
                         )
                         DropdownMenuItem(
+                            enabled     = isPremiumUser,              // still greyed-out for non-premium
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Timer,              // same timer glyph either way
+                                    contentDescription = null,
+                                    tint = if (isPremiumUser) Color(0xFFFFC107) else Color.Gray
+                                )
+                            },
+                            text = {
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Keep chat forever")
+                                    Spacer(Modifier.weight(1f))
+                                    when {
+                                        !isPremiumUser -> Icon(        // 🔒 for locked users
+                                            Icons.Default.Lock, null, tint = Color.Gray
+                                        )
+                                        deleteForever  -> Icon(        // ✔ when ON
+                                            Icons.Default.Check, null, tint = Color(0xFFFFC107)
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = {
+                                moreOptionsMenuExpanded = false          // close the menu
+
+                                if (!isPremiumUser) return@DropdownMenuItem  // locked → ignore tap
+
+                                /* ⟵ TOGGLE both ways */
+                                deleteForever = !deleteForever
+                                currentUserProfile?.userId?.let { uid ->
+                                    FirebaseRefs.db.getReference("users/$uid")
+                                        .child("deleteTimerOverride")
+                                        .setValue(deleteForever)
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.Close, "Unmatch", tint = Color.Red)
@@ -915,6 +1050,30 @@ fun ChatScreenContent(
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
+                }
+
+                if (!deleteForever) {
+                    AssistChip(
+                        onClick = { showDeleteTimerMenu = true },
+                        label = {
+                            val txt = deleteTimer?.let { millis ->
+                                when (millis) {
+                                    24L * 60 * 60 * 1000 -> "after 1 day"
+                                    7L  * 24 * 60 * 60 * 1000 -> "after 1 week"
+                                    30L * 24 * 60 * 60 * 1000 -> "after 1 month"
+                                    else -> "soon"
+                                }
+                            } ?: "disabled"
+                            Text("Messages delete $txt")
+                        },
+                        leadingIcon = { Icon(Icons.Default.Timer, null) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color.DarkGray, labelColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(bottom = 4.dp)
+                    )
                 }
 
                 if (isLoadingMessages) {
