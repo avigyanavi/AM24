@@ -1035,80 +1035,7 @@ fun FiltersOverlay(
 
             /* ───── POWER FILTERS ──────────────────────────────────────── */
 
-            /* 1) Minimum Rating (0..5 stars) – visible to everyone, but locked for non‐Plus users */
-            item {
-                Spacer(Modifier.height(24.dp))
-                FilterSectionTitle(stringResource(R.string.rating_label))
-
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.min_rating, minRating),
-                    color = if (isPlus || isPremium) Color.White else Color.Gray
-                )
-                Slider(
-                    value = minRating,
-                    onValueChange = {
-                        if (isPlus || isPremium) {
-                            onMinRatingChange(it)
-                        }
-                    },
-                    valueRange = 0f..5f,
-                    steps = 4,
-                    enabled = (isPlus || isPremium),
-                    colors = SliderDefaults.colors(
-                        thumbColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
-                        activeTrackColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
-                        inactiveTrackColor = Color.DarkGray
-                    )
-                )
-                if (!(isPlus || isPremium)) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.upgrade_to_plus_to_unlock),
-                        color = Color.Gray,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-
             /* 2) Top‐N Ranking (1..100) – visible to everyone, but locked for non‐Premium users */
-            item {
-                Spacer(Modifier.height(24.dp))
-                FilterSectionTitle(stringResource(R.string.ranking_label))
-
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(
-                        R.string.top_n_ranking,
-                        if (maxRanking == 0) "∞" else maxRanking
-                    ),
-                    color = if (isPremium) Color.White else Color.Gray
-                )
-                Slider(
-                    value = (if (maxRanking == 0) 100f else maxRanking.toFloat()),
-                    onValueChange = {
-                        if (isPremium) {
-                            onMaxRankingChange(it.roundToInt())
-                        }
-                    },
-                    valueRange = 1f..100f,
-                    steps = 99,
-                    enabled = isPremium,
-                    colors = SliderDefaults.colors(
-                        thumbColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
-                        activeTrackColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
-                        inactiveTrackColor = Color.DarkGray
-                    )
-                )
-                if (!isPremium) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
-                        color = Color.Gray,
-                        fontSize = 11.sp
-                    )
-                }
-            }
 
             /* ─── EDUCATION Filters ──────────────────────────────────── */
             item {
@@ -1172,7 +1099,7 @@ fun FiltersOverlay(
                         postGradResults = emptyList()
                     },
                     isFieldFocused = isPostGradFieldFocused,
-                    onFieldFocusChange = { isPostGradFieldFocused = it }
+                    onFieldFocusChange = { isPostGradFieldFocused = it },
                 )
             }
 
@@ -1308,6 +1235,79 @@ fun FiltersOverlay(
                     )
                 }
             }
+            /* 1) Minimum Rating (0..5 stars) – visible to everyone, but locked for non‐Plus users */
+            item {
+                Spacer(Modifier.height(24.dp))
+                FilterSectionTitle(stringResource(R.string.rating_label))
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.min_rating, minRating),
+                    color = if (isPremium) Color.White else Color.Gray
+                )
+                Slider(
+                    value = minRating,
+                    onValueChange = {
+                        if (isPlus || isPremium) {
+                            onMinRatingChange(it)
+                        }
+                    },
+                    valueRange = 0f..5f,
+                    steps = 4,
+                    enabled = (isPremium),
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
+                        activeTrackColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
+                        inactiveTrackColor = Color.DarkGray
+                    )
+                )
+                if (!(isPremium)) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+            item {
+                Spacer(Modifier.height(24.dp))
+                FilterSectionTitle(stringResource(R.string.ranking_label))
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(
+                        R.string.top_n_ranking,
+                        if (maxRanking == 0) "∞" else maxRanking
+                    ),
+                    color = if (isPremium) Color.White else Color.Gray
+                )
+                Slider(
+                    value = (if (maxRanking == 0) 100f else maxRanking.toFloat()),
+                    onValueChange = {
+                        if (isPremium) {
+                            onMaxRankingChange(it.roundToInt())
+                        }
+                    },
+                    valueRange = 1f..100f,
+                    steps = 99,
+                    enabled = isPremium,
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
+                        activeTrackColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
+                        inactiveTrackColor = Color.DarkGray
+                    )
+                )
+                if (!isPremium) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
         }
     }
 }
@@ -1352,11 +1352,15 @@ fun PlaceSearchDropdown(
                 }
             },
             colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedTextColor= Color.White,
+                unfocusedTextColor= Color.Gray,
                 focusedBorderColor   = Color(0xFFFF6000),
                 unfocusedBorderColor = Color.White,
                 cursorColor          = Color.White,
                 focusedLabelColor    = Color(0xFFFF6000),
-                unfocusedLabelColor  = Color.White
+                unfocusedLabelColor  = Color.White,
+                focusedPlaceholderColor = Color.White,
+                unfocusedPlaceholderColor = Color.White
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -2103,6 +2107,33 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
+            // ─── NEW: compatibility gauge on FIRST photo ───────────────────
+            if (currentPhotoIndex == 0 && aiMatchResult != null) {
+                // pull out the score once
+                val score = aiMatchResult.totalMatchPercentage.coerceIn(0, 100)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(36.dp)
+                ) {
+                    // circular “meter” background
+                    CircularProgressIndicator(
+                        progress = score / 100f,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    // percentage text
+                    Text(
+                        text = "$score%",
+                        modifier = Modifier.align(Alignment.Center),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
             // Boost icon
             if (isBoosted) {
                 Icon(
@@ -2309,8 +2340,6 @@ fun ProfileCollapsibleSectionsAll(
             .padding(8.dp)
     ) {
         /** ─────────── Compatibility ─────────── */
-        if (currentUserProfile?.isPremium == true || currentUserProfile?.isPlus == true) {
-
             /*  auto-run every time it OPENS  */
             LaunchedEffect(profile.userId) {
                 runAiMatchCheck(
@@ -2318,7 +2347,7 @@ fun ProfileCollapsibleSectionsAll(
                     coroutineScope = coroutineScope,
                     currentUserId = FirebaseAuth.getInstance().uid
                         ?: return@LaunchedEffect,
-                    currentUserProfile = currentUserProfile,
+                    currentUserProfile = currentUserProfile!!,
                     otherProfile = profile
                 ) { result -> currentAiMatchResult = result }
             }
@@ -2333,7 +2362,6 @@ fun ProfileCollapsibleSectionsAll(
                     Text(stringResource(R.string.run_analysis), color = Color.White)
                 }
             }
-        }
         Spacer(modifier = Modifier.height(8.dp))
         if (currentUserProfile?.isPremium == true) {
             PerformanceMetricsSectionDating(profile)

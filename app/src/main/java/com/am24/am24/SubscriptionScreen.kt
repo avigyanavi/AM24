@@ -43,6 +43,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 
+private val PLUS_FEATURES = listOf(
+    "No ads",
+    "Unlock People Who Liked Me",
+    "Minimum 50 Swipes a day",
+    "3 compliments per week",
+    "3 boosts per week"
+)
+private val PREMIUM_FEATURES = listOf(
+    "Unlock Picture, Video and Voice posts",
+    "Priority Profile in the dating stack",
+    "Unlimited Swipes",
+    "5 compliments per week",
+    "5 boosts per week",
+    "Unlocked Performance Metrics per profile",
+    "Everything in Plus"
+)
+
 /* ────────  PLAN IDS (create these in dashboard → Plans) ──────── */
 private const val PLAN_ID_WEEK_PLUS     = "plan_QjnGf6wdQAmyi2"
 private const val PLAN_ID_WEEK_PREMIUM  = "plan_QjpkdErsuewaUJ"
@@ -217,10 +234,25 @@ fun SubscriptionScreen(navController: NavController) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(plan.tier.name.lowercase().replaceFirstChar(Char::uppercase),
-                            fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text(
+                            plan.tier.name.lowercase().replaceFirstChar(Char::uppercase),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
                         Text("${plan.price} ₹ / ${plan.period.label.lowercase()}",
-                            color = Color.LightGray, fontSize = 14.sp)
+                            color = Color.LightGray,
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        val features = if (plan.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
+                        features.forEach { bullet ->
+                            Text("• $bullet",
+                                color = Color.LightGray,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
                     }
                     Button(onClick = { launchCheckout(plan) }) {
                         Text("Choose", color = Color.White)

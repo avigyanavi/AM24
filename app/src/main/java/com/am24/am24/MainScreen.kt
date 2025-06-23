@@ -40,16 +40,15 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.am24.am24.util.LocaleUtils
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
+        BottomNavItem(stringResource(R.string.leaderboard), Icons.Outlined.EmojiEvents, "leaderboard"),
+        BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.date), Icons.Default.Favorite, "dating"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
-        BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
-        BottomNavItem(stringResource(R.string.map), Icons.Default.Map, "map"),
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile")
     )
 
@@ -246,18 +245,18 @@ fun TopNavBar(
                 }
             }
 
-            // Leaderboard Button
-            if (currentRoute != "map" && currentRoute != "home" && currentRoute != "dms" && currentRoute != "profile") {
+            // ← new Map button in place of the old leaderboard button
+            if (currentRoute != "leaderboard") {
                 TextButton(
-                    onClick = { navController.navigate("leaderboard") },
+                    onClick = { navController.navigate("map") },
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.EmojiEvents,
-                        contentDescription = stringResource(R.string.cd_leaderboard)
+                        imageVector = Icons.Default.Map,
+                        contentDescription = stringResource(R.string.map)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Leaderboard")
+                    Text(text = stringResource(R.string.map))
                 }
             }
 
@@ -316,12 +315,31 @@ fun TopNavBar(
                 }
             }
             if (isOnHome) {
-                // Create Post
-                IconButton(onClick = { navController.navigate("create_post") }) {
+                // Create Post with a subtle pulsing animation
+                val infiniteTransition = rememberInfiniteTransition()
+                val scale by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.2f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 600, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    )
+                )
+
+                IconButton(
+                    onClick = { navController.navigate("create_post") },
+                    modifier = Modifier
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            transformOrigin = TransformOrigin.Center
+                        )
+                ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.cd_create_post),
-                        tint = Color(0xFFFF6F00)
+                        tint = Color(0xFFFF6F00),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }

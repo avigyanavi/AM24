@@ -21,6 +21,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,6 +48,23 @@ enum class Period(val label: String) { WEEK("Weekly"), MONTH("Monthly"), YEAR("Y
 
 /** public key-id used by Razorpay’s Checkout SDK */
 const val RZP_KEY_ID_PUBLIC = "rzp_live_DsoxJLeiCw940M"
+
+private val PLUS_FEATURES = listOf(
+    "No ads",
+    "Unlock People Who Liked Me",
+    "Minimum 50 Swipes a day",
+    "3 compliments per week",
+    "3 boosts per week"
+)
+private val PREMIUM_FEATURES = listOf(
+    "Unlock Picture, Video and Voice posts",
+    "Priority Profile in the dating stack",
+    "Unlimited Swipes",
+    "5 compliments per week",
+    "5 boosts per week",
+    "Unlocked Performance Metrics per profile",
+    "Everything in Plus"
+)
 
 /* ╔════════════════════════════════════════════════════════════╗ */
 /* ║                        ENTRY SCREEN                        ║ */
@@ -125,6 +144,7 @@ fun UpgradeLandingScreen(nav: NavController) {
     Column(
         Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())      // ← enable scrolling
             .background(Color(0xFF121212))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -178,11 +198,17 @@ private fun TierCard(
 
             Spacer(Modifier.height(8.dp))
 
-            /* TODO replace with your real feature list */
-            listOf("✔ 50 daily swipes","✔ 3 boosts / week","✔ See who liked you")
-                .forEach { bullet ->
-                    Text(bullet, color = Color.White, fontSize = 13.sp)
-                }
+            val features = when (tier) {
+                Tier.PREMIUM -> PREMIUM_FEATURES
+                else         -> PLUS_FEATURES
+            }
+            features.forEach { bullet ->
+                Text("• $bullet",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -197,7 +223,7 @@ private fun TierCard(
                 OutlinedButton(
                     onClick  = { expand = true },
                     modifier = Modifier.weight(1f)
-                ) { Text("Pay once with UPI") }
+                ) { Text("Pay once", color = if (tier == Tier.PLUS) Color(0xFFFF6F00) else Color.White) }
 
                 DropdownMenu(expanded = expand, onDismissRequest = { expand = false }) {
                     DropdownMenuItem(

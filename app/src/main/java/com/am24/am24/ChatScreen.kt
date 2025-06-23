@@ -877,7 +877,7 @@ fun ChatScreenContent(
                                 Color(0xFFFFA500)                 // orange when you still have credits
                         )
                     ) {
-                        Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.SmartToy, null, modifier = Modifier.size(24.dp))
                     }
 
                     IconButton(
@@ -903,7 +903,7 @@ fun ChatScreenContent(
                                 Color(0xFFFF6F00)
                         )
                     ) {
-                        Icon(Icons.Default.Place, null, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.LocationCity, null, modifier = Modifier.size(24.dp))
                     }
 
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) {

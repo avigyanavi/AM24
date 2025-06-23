@@ -1191,6 +1191,8 @@
     <string name="continue_with_google">গুগল</string>
     <string name="continue_with_facebook">ফেসবুক</string>
 
+    <string name="leaderboard">লিডারবোর্ড</string>
+
     <!-- Language Selection -->
     <string name="choose_language_title">ভাষা নির্বাচন করুন</string>
     <string name="select_preferred_language">আপনার পছন্দের ভাষা নির্বাচন করুন</string>

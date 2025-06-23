@@ -1187,6 +1187,8 @@
                 <string name="continue_with_google">கூகுள்</string>
                 <string name="continue_with_facebook">பேஸ்புக்</string>
 
+        <string name="leaderboard">தலைவர் பட்டியல்</string>
+
                 <!-- Language Selection -->
                 <string name="choose_language_title">மொழியை தேர்ந்தெடு</string>
                 <string name="select_preferred_language">உங்கள் விருப்பமான மொழியை தேர்ந்தெடுக்கவும்</string>

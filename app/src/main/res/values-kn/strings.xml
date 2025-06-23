@@ -1195,6 +1195,7 @@
     <string name="continue_with_google">ಗೂಗಲ್</string>
     <string name="continue_with_facebook">ಫೇಸ್ಬುಕ್</string>
 
+    <string name="leaderboard">ಲೀಡರ್‌ಬೋರ್ಡ್</string>
     <!-- Language Selection -->
     <string name="choose_language_title">ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ</string>
     <string name="select_preferred_language">ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ</string>

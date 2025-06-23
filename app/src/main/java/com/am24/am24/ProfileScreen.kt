@@ -601,7 +601,7 @@ fun VerificationBadge(
             .size(32.dp)
             .background(
                 if (verified) Color(0xFF00C853)          // green when verified
-                else Color.Yellow.copy(alpha = .55f),       // grey when not
+                else Color.Yellow.copy(alpha = .20f),       // grey when not
                 shape = CircleShape
             )
     ) {
@@ -5496,8 +5496,6 @@ fun ProfileCollapsibleSections(
                 Spacer(Modifier.height(8.dp))
                 if (!tempProfile.voiceNoteUrl.isNullOrEmpty()) {
                     VoicePlayer(url = tempProfile.voiceNoteUrl!!)
-                } else {
-                    Text(stringResource(R.string.voice_no_voice_bio), color = Color.White, fontSize = 10.sp)
                 }
             }
         }
