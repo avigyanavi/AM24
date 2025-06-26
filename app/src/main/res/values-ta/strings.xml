@@ -1187,7 +1187,7 @@
                 <string name="continue_with_google">கூகுள்</string>
                 <string name="continue_with_facebook">பேஸ்புக்</string>
 
-        <string name="leaderboard">தலைவர் பட்டியல்</string>
+        <string name="leaderboard">ரேங்க்</string>
 
                 <!-- Language Selection -->
                 <string name="choose_language_title">மொழியை தேர்ந்தெடு</string>

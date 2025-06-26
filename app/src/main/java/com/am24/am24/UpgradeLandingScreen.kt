@@ -51,13 +51,13 @@ const val RZP_KEY_ID_PUBLIC = "rzp_live_DsoxJLeiCw940M"
 
 private val PLUS_FEATURES = listOf(
     "No ads",
-    "Unlock People Who Liked Me",
-    "Minimum 50 Swipes a day",
+    "Unlock People Who Liked Me and Change Location",
+    "Unlock Picture and Voice posts",
     "3 compliments per week",
     "3 boosts per week"
 )
 private val PREMIUM_FEATURES = listOf(
-    "Unlock Picture, Video and Voice posts",
+    "Unlock Video posts",
     "Priority Profile in the dating stack",
     "Unlimited Swipes",
     "5 compliments per week",
@@ -114,20 +114,24 @@ fun UpgradeLandingScreen(nav: NavController) {
             host?.setPaymentCallbacks(
                 onSuccess = {
                     val validityMs = when (period) {
-                        Period.WEEK -> 7L * 24 * 60 * 60 * 1_000
+                        Period.WEEK  -> 7L  * 24 * 60 * 60 * 1_000
                         Period.MONTH -> 30L * 24 * 60 * 60 * 1_000
-                        Period.YEAR -> 365L * 24 * 60 * 60 * 1_000
+                        Period.YEAR  -> 365L* 24 * 60 * 60 * 1_000
                     }
                     val now = System.currentTimeMillis()
-                    FirebaseRefs.db.getReference("users/$uid")
-                        .updateChildren(
-                            mapOf(
-                                "isPlus" to (tier == Tier.PLUS),
-                                "isPremium" to (tier == Tier.PREMIUM),
-                                "nextRenewal" to (now + validityMs) // <-- FIXED KEY HERE
-                            )
+                    FirebaseRefs.db.getReference("users/$uid").updateChildren(
+                        mapOf(
+                            "isPlus"      to (tier == Tier.PLUS),
+                            "isPremium"   to (tier == Tier.PREMIUM),
+                            "nextRenewal" to (now + validityMs)
                         )
+                    )
                     Toast.makeText(ctx, "Thanks! Enjoy your perks.", Toast.LENGTH_LONG).show()
+
+                    /* ← NEW: jump to Settings and clear this screen */
+                    nav.navigate("settings") {
+                        popUpTo("upgradeLanding") { inclusive = true }
+                    }
                 },
                 onError = { msg ->
                     Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()

@@ -91,6 +91,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -98,6 +99,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -1312,6 +1314,8 @@ fun FiltersOverlay(
     }
 }
 
+val BrandOrange = Color(0xFFFF6600)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaceSearchDropdown(
@@ -1324,70 +1328,85 @@ fun PlaceSearchDropdown(
     isFieldFocused: Boolean,
     onFieldFocusChange: (Boolean) -> Unit
 ) {
-    val focusManager   = LocalFocusManager.current
-    val expanded       = results.isNotEmpty() && isFieldFocused
-    val clearSelection = stringResource(R.string.clear_selection)
+    val focusManager = LocalFocusManager.current
+    val expanded     = results.isNotEmpty() && isFieldFocused
+    val clearLabel   = stringResource(R.string.clear_selection)
 
-    /* Material-3 dropdown */
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { /* focus drives the menu – keep empty */ }
+        onExpandedChange = { /* menu is driven by focus – leave empty */ },
     ) {
         val focusRequester = remember { FocusRequester() }
 
-        /* ---- the anchor text-field ---- */
+        /* ---- anchor text-field ---- */
         OutlinedTextField(
-            value = query,
+            value         = query,
             onValueChange = onQueryChange,
-            label        = { Text(label) },
-            singleLine   = true,
-            trailingIcon = {
+            label         = { Text(label) },
+            singleLine    = true,
+            trailingIcon  = {
                 if (searching) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
-                        modifier    = Modifier.size(18.dp)
+                        modifier    = Modifier.size(18.dp),
+                        color       = BrandOrange               // tint spinner
                     )
                 } else {
-                    Icon(Icons.Default.Search, contentDescription = null)
+                    Icon(
+                        imageVector      = Icons.Default.Search,
+                        contentDescription = null,
+                        tint              = BrandOrange        // tint search icon
+                    )
                 }
             },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedTextColor= Color.White,
-                unfocusedTextColor= Color.Gray,
-                focusedBorderColor   = Color(0xFFFF6000),
-                unfocusedBorderColor = Color.White,
-                cursorColor          = Color.White,
-                focusedLabelColor    = Color(0xFFFF6000),
-                unfocusedLabelColor  = Color.White,
-                focusedPlaceholderColor = Color.White,
-                unfocusedPlaceholderColor = Color.White
+
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(   // <- CHANGE
+                /* input text */
+                textColor   = Color.White,
+                /* border */
+                focusedBorderColor   = BrandOrange,
+                unfocusedBorderColor = BrandOrange,
+
+                /* label (the in-field “College / Post Grad” you see before typing) */
+                focusedLabelColor   = BrandOrange,
+                unfocusedLabelColor = BrandOrange,
+
+                /* placeholder (if you use it) */
+                placeholderColor   = Color.White,
+
+                /* cursor & icons for completeness */
+                cursorColor                = Color.White,
+                focusedTrailingIconColor   = BrandOrange,
             ),
+
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor()                 // <- Material-3 helper
+                .menuAnchor()
                 .focusRequester(focusRequester)
                 .onFocusChanged { state ->
                     onFieldFocusChange(state.isFocused)
-                    if (!state.isFocused) onResultSelect(query)    // commit whatever is typed
+                    if (!state.isFocused) onResultSelect(query)
                 }
         )
 
-        /* ---- the menu itself ---- */
+        /* ---- dropdown menu ---- */
         ExposedDropdownMenu(
-            expanded          = expanded,
-            onDismissRequest  = {
+            expanded = expanded,
+            onDismissRequest = {
                 onFieldFocusChange(false)
                 focusManager.clearFocus()
             },
             modifier = Modifier
                 .background(Color.White, RoundedCornerShape(6.dp))
-                .border(BorderStroke(1.dp, Color.Black.copy(alpha = .15f)),
-                    RoundedCornerShape(6.dp))
+                .border(
+                    BorderStroke(1.dp, Color.Black.copy(alpha = .15f)),
+                    RoundedCornerShape(6.dp)
+                )
         ) {
-            /* first row – “Clear selection” */
+            /* clear-selection row */
             if (query.isNotBlank()) {
                 DropdownMenuItem(
-                    text   = { Text(clearSelection) },
+                    text = { Text(clearLabel) },
                     onClick = {
                         onQueryChange("")
                         onResultSelect("")
@@ -1396,20 +1415,28 @@ fun PlaceSearchDropdown(
                 )
             }
 
-            /* the Places results */
+            /* places results */
             results.forEach { res ->
                 DropdownMenuItem(
                     text = {
                         Column {
                             Text(res.name)
                             if (res.address.isNotBlank()) {
-                                Text(res.address,
+                                Text(
+                                    res.address,
                                     style = M3Theme.typography.bodySmall,
-                                    color = Color.DarkGray)
+                                    color = Color.DarkGray
+                                )
                             }
                         }
                     },
-                    leadingIcon = { Icon(Icons.Default.Place, contentDescription = null) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            tint = BrandOrange
+                        )
+                    },
                     onClick = {
                         onQueryChange(res.name)
                         onResultSelect(res.name)
@@ -1851,37 +1878,31 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
-    isVerified: Boolean,  // new param
+    isVerified: Boolean,
     isBoosted: Boolean,
     userDistance: Float,
     aiMatchResult: AiMatchCheckResult?,
     sortedByUpvotes: List<Post>,
     currentProfile: Profile? = null
 ) {
-    val firstPhoto = profile.profilepicUrl.takeIf { !it.isNullOrBlank() }
-        ?: "android.resource://${LocalContext.current.packageName}/drawable/local_placeholder"
-    val photoUrls = listOf(firstPhoto) + profile.optionalPhotoUrls
-    var currentPhotoIndex by remember(photoUrls) { mutableStateOf(0) }
-    val context = LocalContext.current
+    val ctx = LocalContext.current
+    val placeholderRes = R.drawable.local_placeholder
+    val photoUrls: List<Any> = buildList {
+        if (profile.profilepicUrl.isNullOrBlank()) add(placeholderRes) else add(profile.profilepicUrl!!)
+        addAll(profile.optionalPhotoUrls)
+    }
+    var idx by remember(photoUrls) { mutableStateOf(0) }
     val datingViewModel: DatingViewModel = viewModel()
     val compliments by datingViewModel.complimentsReceived.collectAsState()
     val compliment = compliments[profile.userId]
-    // bring in age calculation
     val age = calculateAge(profile.dob)
-
-    // bring in posts state
     var showPostsOverlay by remember { mutableStateOf(false) }
-
-    // Prepare interest strings
     val interestsTexts = profile.interests.map { "${it.emoji} ${it.name}" }
-    // Prepare preference strings
     val preferencesTexts = listOfNotNull(
         profile.lookingFor.takeIf(String::isNotBlank)?.let { "🎯 $it" },
         profile.loveLanguage.takeIf(String::isNotBlank)?.let { "🗣️ $it" },
-        profile.jobRole.takeIf(String::isNotBlank)?.let            { "💼 $it" }
+        profile.jobRole.takeIf(String::isNotBlank)?.let { "💼 $it" }
     )
-
-    // Prepare lifestyle entries (value, nounList, emoji)
     val smokingNouns = listOf(
         stringResource(R.string.non_smoker),
         stringResource(R.string.rare_smoker),
@@ -1903,129 +1924,93 @@ fun PhotoWithTwoOverlays(
         stringResource(R.string.active),
         stringResource(R.string.very_active)
     )
-    // You can add more lifestyle attributes similarly if needed
-
     val lifestyleList = listOfNotNull(
         profile.lifestyle?.smoking_habit?.takeIf { it >= 0 }?.let { Triple(it, smokingNouns, "🚬") },
         profile.lifestyle?.drinking_habit?.takeIf { it >= 0 }?.let { Triple(it, drinkingNouns, "🍷") },
         profile.lifestyle?.exercise_frequency?.takeIf { it >= 0 }?.let { Triple(it, exerciseNouns, "🏃") }
     )
-    // Sort by highest numeric rating and take top 3
-    val lifestyleTexts = lifestyleList
-        .sortedByDescending { it.first }
-        .take(3)
-        .map { (value, nouns, emoji) -> "$emoji ${nouns.getOrNull(value) ?: ""}" }
+    val lifestyleTexts = lifestyleList.sortedByDescending { it.first }.take(3)
+        .map { (v, nouns, e) -> "$e ${nouns.getOrNull(v) ?: ""}" }
+    val lifestyleTexts2 = lifestyleList.sortedByDescending { it.first }.drop(3).take(6)
+        .map { (v, nouns, e) -> "$e ${nouns.getOrNull(v) ?: ""}" }
 
-    // Sort by highest numeric rating and take top 3
-    val lifestyleTexts2 = lifestyleList
-        .sortedByDescending { it.first }
-        .drop(3)
-        .take(6)
-        .map { (value, nouns, emoji) -> "$emoji ${nouns.getOrNull(value) ?: ""}" }
-
-    // Prefetch images
     LaunchedEffect(photoUrls) {
-        photoUrls.forEach { url ->
-            context.imageLoader.enqueue(
-                ImageRequest.Builder(context)
-                    .data(url)
-                    .diskCacheKey(url)
-                    .memoryCacheKey(url)
-                    .build()
-            )
+        photoUrls.filterIsInstance<String>().forEach { url ->
+            ctx.imageLoader.enqueue(ImageRequest.Builder(ctx).data(url).build())
         }
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth()) {
         Box(
-            modifier = Modifier
+            Modifier
                 .fillMaxWidth()
                 .aspectRatio(0.75f)
                 .background(Color.Black)
                 .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                 .pointerInput(photoUrls) {
-                    detectTapGestures { offset ->
+                    detectTapGestures {
                         if (photoUrls.size > 1) {
-                            currentPhotoIndex = if (offset.x > size.width / 2)
-                                (currentPhotoIndex + 1) % photoUrls.size
-                            else
-                                (currentPhotoIndex - 1 + photoUrls.size) % photoUrls.size
+                            idx = if (it.x > size.width / 2) (idx + 1) % photoUrls.size
+                            else (idx - 1 + photoUrls.size) % photoUrls.size
                         }
                     }
                 }
         ) {
-            // Main photo or placeholder
-            if (photoUrls.isNotEmpty()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(photoUrls[currentPhotoIndex])
-                        .diskCacheKey(photoUrls[currentPhotoIndex])
-                        .memoryCacheKey(photoUrls[currentPhotoIndex])
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = stringResource(R.string.profile_photo),
+            when (val model = photoUrls[idx]) {
+                is Int -> Image(
+                    painter = painterResource(model),
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 300.dp)
+                    modifier = Modifier.fillMaxSize()
                 )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.no_images),
-                        color = Color.White,
-                        fontSize = 11.sp
-                    )
-                }
+                else -> AsyncImage(
+                    model = model,
+                    placeholder = painterResource(placeholderRes),
+                    error = painterResource(placeholderRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
-            // Photo-position indicators
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
                     .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                photoUrls.forEachIndexed { idx, _ ->
+                photoUrls.forEachIndexed { i, _ ->
                     Box(
-                        modifier = Modifier
-                            .width(if (idx == currentPhotoIndex) 30.dp else 10.dp)
+                        Modifier
+                            .width(if (i == idx) 30.dp else 10.dp)
                             .height(4.dp)
                             .padding(horizontal = 2.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(if (idx == currentPhotoIndex) Color.White else Color.Gray)
+                            .background(if (i == idx) Color.White else Color.Gray)
                     )
                 }
             }
-            // ─── NEW NAME & AGE OVERLAY ─────────────────────
+
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopStart)
                     .background(Color.Black.copy(alpha = 0.4f))
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                Arrangement.SpaceBetween,
+                Alignment.CenterVertically
             ) {
-                // Verified tick
                 if (isVerified) {
                     Icon(
                         Icons.Default.Verified,
-                        contentDescription = "Verified",
+                        null,
                         tint = Color(0xFF2196F3),
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .size(24.dp)
+                        modifier = Modifier.padding(10.dp).size(24.dp)
                     )
                 }
                 Text(
-                    text = if (age > 0) "${profile.name}, $age" else profile.name,
+                    if (age > 0) "${profile.name}, $age" else profile.name,
                     color = Color.White,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -2034,55 +2019,50 @@ fun PhotoWithTwoOverlays(
                 )
                 Button(
                     onClick = { showPostsOverlay = true },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                    colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00)),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.posts),
                         color = Color.White,
-                        fontSize = 8.sp
+                        fontSize = 8.sp,
+                        textDecoration = TextDecoration.None
                     )
                 }
             }
 
-            // Bottom overlay (always three slots)
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .height(60.dp)
                     .align(Alignment.BottomCenter)
                     .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black)
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black)
                         )
                     )
             ) {
                 AutoMarqueeRow(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    val overlayStrings = when (currentPhotoIndex) {
-                        0 -> lifestyleTexts                 // top 3 lifestyle nouns
+                    val overlayStrings = when (idx) {
+                        0 -> lifestyleTexts
                         1 -> preferencesTexts.take(3)
                         2 -> interestsTexts.take(4)
                         3 -> interestsTexts.drop(4).take(5)
                         4 -> lifestyleTexts2
                         else -> emptyList()
                     }
-                    overlayStrings
-                        .filter { it.isNotBlank() }
-                        .forEach { text ->
-                            TagBox(text = text)
-                        }
+                    overlayStrings.filter { it.isNotBlank() }.forEach { TagBox(it) }
                 }
             }
 
-            // Compliment badge
             compliment?.let { c ->
                 Box(
-                    modifier = Modifier
+                    Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
                         .background(Color(0xFFE91E63), RoundedCornerShape(12.dp))
@@ -2091,13 +2071,13 @@ fun PhotoWithTwoOverlays(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.EmojiEmotions,
-                            contentDescription = null,
+                            null,
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = c.text,
+                            c.text,
                             color = Color.White,
                             fontSize = 11.sp,
                             maxLines = 1,
@@ -2107,26 +2087,22 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
-            // ─── NEW: compatibility gauge on FIRST photo ───────────────────
-            if (currentPhotoIndex == 0 && aiMatchResult != null) {
-                // pull out the score once
+            if (idx == 0 && aiMatchResult != null) {
                 val score = aiMatchResult.totalMatchPercentage.coerceIn(0, 100)
                 Box(
-                    modifier = Modifier
+                    Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .size(36.dp)
                 ) {
-                    // circular “meter” background
                     CircularProgressIndicator(
                         progress = score / 100f,
                         strokeWidth = 3.dp,
                         modifier = Modifier.fillMaxSize()
                     )
-                    // percentage text
                     Text(
-                        text = "$score%",
-                        modifier = Modifier.align(Alignment.Center),
+                        "$score%",
+                        Modifier.align(Alignment.Center),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -2134,11 +2110,10 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
-            // Boost icon
             if (isBoosted) {
                 Icon(
                     Icons.Default.FlashOn,
-                    contentDescription = null,
+                    null,
                     tint = Color(0xFFFF6F00),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -2147,27 +2122,23 @@ fun PhotoWithTwoOverlays(
                 )
             }
         }
-        // ─── HOOK UP THE OVERLAY DIALOG ─────────────────
+
         if (showPostsOverlay) {
-            PostsOverlay(
-                posts = sortedByUpvotes,
-                onDismiss = { showPostsOverlay = false }
-            )
+            PostsOverlay(sortedByUpvotes) { showPostsOverlay = false }
         }
 
-        // Distance string below the photo
         Text(
-            text = if (userDistance.isNaN())
-                stringResource(R.string.worldwide)          // 🔶
+            if (userDistance.isNaN())
+                stringResource(R.string.worldwide)
             else
                 stringResource(R.string.max_distance, userDistance.roundToInt()),
             color = Color.White,
             fontSize = 18.sp,
-            modifier = Modifier
-                .padding(start = 14.dp, top = 8.dp)
+            modifier = Modifier.padding(start = 14.dp, top = 8.dp)
         )
     }
 }
+
 
 @Composable
 fun TagBox(

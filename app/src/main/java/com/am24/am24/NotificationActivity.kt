@@ -148,7 +148,7 @@ fun NotificationCard(
                         if (c != null) "post/$post/comment/$c" else "post/$post"
                     }
         /* ─── POST-related ─── */
-        "chat_message" -> Icons.Default.ChatBubbleOutline to "dms"
+        "chat_message" -> Icons.Default.ChatBubbleOutline to "chat/${notification.senderId}"
         "new_like"       -> Icons.Default.Favorite      to "peopleWhoLikedMe"
         "new_compliment" -> Icons.Default.EmojiEmotions to "peopleWhoLikedMe"          // or a “compliments” inbox
         "new_match"      -> Icons.Default.People        to "dms"

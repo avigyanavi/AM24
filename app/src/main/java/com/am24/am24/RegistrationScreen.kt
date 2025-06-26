@@ -363,8 +363,8 @@ fun RegistrationScreen(
             currentStep == 2 -> {
                 cleanupIncompleteUser(
                     FirebaseAuth.getInstance(),
-                    FirebaseDatabase.getInstance(),
-                    FirebaseStorage.getInstance()
+                    FirebaseRefs.db,       //  ✨ NO “.getInstance()” here
+                    FirebaseRefs.storage   // instead of FirebaseStorage.getInstance()
                 )
                 registrationViewModel.email = ""
                 registrationViewModel.password = ""
@@ -403,6 +403,13 @@ fun RegistrationScreen(
                     color = Color(0xFFFF6000),
                     trackColor = Color.Gray
                 )
+                 Spacer(Modifier.height(4.dp))
+                 Text(
+                     text = "${(progress * 100).roundToInt()}% completed",
+                     color = Color.White,
+                     fontSize = 12.sp,
+                     modifier = Modifier.align(Alignment.End)
+                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 when (currentStep) {
                     1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
@@ -432,7 +439,6 @@ private fun tryRegister(
     val db   = FirebaseDatabase
         .getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/")
         .getReference()
-    val storage = FirebaseStorage.getInstance()
 
     // 1) See if an email/password account already exists for this email
     auth.fetchSignInMethodsForEmail(typedEmail)
@@ -1529,23 +1535,17 @@ fun EnterLocationAndSchoolScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                DropdownWithSearch(
-                    title                = stringResource(R.string.job_role_label),
-                        options = jobRoleOptions,
-                        selectedOption = registrationViewModel.jobRole,
-                        onOptionSelected = {
-                                selected ->
-                            registrationViewModel.jobRole = selected
-                        },
-                    /* ---- let the user type a custom role when “Other” is picked ---- */
-                    customInput         = if (registrationViewModel.jobRole != other &&
-                        !jobRoleOptions.contains(registrationViewModel.jobRole))
-                        registrationViewModel.jobRole      // show typed text
-                    else null,
-                    onCustomInputChange = { typed ->
-                        registrationViewModel.jobRole = typed ?: ""              // keep in VM
-                    }
-                    )
+                SearchableDropdownWithCustomOption(
+                    title            = stringResource(R.string.job_role_label),
+                    options          = jobRoleOptions,
+                    selectedOption   = registrationViewModel.jobRole,
+                    onOptionSelected = { sel -> registrationViewModel.jobRole = sel },
+                    customInput      = if (
+                        registrationViewModel.jobRole != other &&
+                        !jobRoleOptions.contains(registrationViewModel.jobRole)
+                    ) registrationViewModel.jobRole else null,
+                    onCustomInputChange = { typed -> registrationViewModel.jobRole = typed ?: "" }
+                )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -4021,7 +4021,7 @@ fun UploadMediaComposable(
                         Icon(
                             imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
                             contentDescription = null,
-                            tint = if (isRecording) Color.Red else Color.White,
+                            tint = if (isRecording) Color.Red else Color(0xFFFF6000),
                             modifier = Modifier.size(32.dp)
                         )
                     }

@@ -582,8 +582,8 @@ private fun SimpleInputDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(id = R.string.submit)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.cancel)) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(id = R.string.submit), color = Color(0xFFFF6600)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.cancel), color = Color(0xFFFF6600)) } },
         title = { Text(title) },
         text = {
             OutlinedTextField(

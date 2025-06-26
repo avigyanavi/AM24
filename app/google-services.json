@@ -1,9 +1,9 @@
 {
   "project_info": {
     "project_number": "412327263",
-    "firebase_url": "https://kupidxdefault.asia-southeast1.firebasedatabase.app/",
+    "firebase_url": "https://kupidxdefault.asia-southeast1.firebasedatabase.app",
     "project_id": "am-twentyfour",
-    "storage_bucket": "am-twentyfour.appspot.com"
+    "storage_bucket": "gs://am-twentyfour"
   },
   "client": [
     {
@@ -15,11 +15,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "412327263-8m0ppcvh631p0le6pql738824bv4ev3a.apps.googleusercontent.com",
+          "client_id": "412327263-isrgkhdmalpq9chsojpda9q5e479sdgp.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.am24.am24",
-            "certificate_hash": "107fd1cfe63fdd6d79fd769eb6b1341b0efbe59c"
+            "certificate_hash": "37df6b2605585b2e7ce2bae1a949f8ee739077b1"
           }
         },
         {
@@ -41,7 +41,8 @@
             }
           ]
         }
-      }
+      },
+      "admob_app_id": "ca-app-pub-5094389629300846~6971017275"
     }
   ],
   "configuration_version": "1"

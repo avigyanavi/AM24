@@ -43,7 +43,6 @@ class KupidXAppActivity : ComponentActivity(),
 
     /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
-    private var authListener: FirebaseAuth.AuthStateListener? = null
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
 
@@ -80,38 +79,30 @@ class KupidXAppActivity : ComponentActivity(),
 
         auth = FirebaseAuth.getInstance()
 
-        // Show a loading UI while waiting for auth state
+        // Splash UI
         setContent {
             AppTheme {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color(0xFFFF6F00))
-                }
+                ) { CircularProgressIndicator(color = Color(0xFFFF6F00)) }
             }
         }
 
-        // read push-flag once
         pendingOpenNotifications =
             intent?.getBooleanExtra("open_notifications", false) ?: false
 
-        // Keep listener active until we get a user or confirm sign-out
-        authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-            val user = firebaseAuth.currentUser
-            auth.removeAuthStateListener(authListener!!)
-            if (user != null) {
-                continueInitialization(user.uid)
-            } else {
-                startActivity(Intent(this@KupidXAppActivity, LandingActivity::class.java))
+        // 🔸 Start the real setup right away — no extra listener needed
+        auth.currentUser?.uid?.let { continueInitialization(it) }
+            ?: run {              // should never happen, but stay safe
+                startActivity(Intent(this, LandingActivity::class.java))
                 finish()
             }
-        }
-        auth.addAuthStateListener(authListener!!)
     }
 
     @RequiresApi(Build.VERSION_CODES.O_MR1)
     private fun continueInitialization(uid: String) {
+        PushService.uploadCurrentToken()          // <-- add this line
         MobileAds.initialize(this)
         FirebaseStorage.getInstance("gs://am-twentyfour.com")
         locationManager = LocationManager(this)
@@ -221,11 +212,6 @@ class KupidXAppActivity : ComponentActivity(),
             this,              // PaymentResultWithDataListener
             this               // ExternalWalletListener
         )
-    }
-
-    override fun onDestroy() {
-        authListener?.let { auth.removeAuthStateListener(it) }
-        super.onDestroy()
     }
 }
 

@@ -840,15 +840,27 @@ fun ChatScreenContent(
                                     Switch(
                                         checked = explicitAllowedMe,
                                         onCheckedChange = { allowed ->
-                                            // ① update local state so UI changes immediately
-                                            currentUserProfile =
-                                                currentUserProfile?.copy(allowExplicitPics = allowed)
-                                            // ② write to Firebase
+                                            // ① Update local state + Firebase
+                                            currentUserProfile = currentUserProfile?.copy(allowExplicitPics = allowed)
                                             currentUserProfile?.userId?.let { uid ->
                                                 FirebaseRefs.db.getReference("users/$uid")
                                                     .child("allowExplicitPics")
                                                     .setValue(allowed)
                                             }
+
+                                            // ② Notify the other user
+                                            val name = currentUserProfile?.name ?: "Your match"
+                                            val notifMsg = if (allowed)
+                                                "$name has enabled explicit pics"
+                                            else
+                                                "$name has disabled explicit pics"
+
+                                            postNotification(
+                                                notificationsRef,          // your "notifications" ref
+                                                otherUserId,                // to the partner
+                                                currentUserId,              // from you
+                                                notifMsg
+                                            )
                                         }
                                     )
                                 }

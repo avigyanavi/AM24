@@ -4,90 +4,100 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase        // ✅ RTDB (matches Cloud Function)
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import android.content.pm.PackageManager           // ← add
-import androidx.core.app.ActivityCompat.requestPermissions
-import androidx.core.content.ContextCompat        // ← add
-
 
 class PushService : FirebaseMessagingService() {
 
     companion object {
         private const val CHANNEL_ID = "am24_notif"
+
+        /** Call right after login (or on app start) so the current token is always in RTDB */
+        fun uploadCurrentToken() {
+            FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@addOnSuccessListener
+                FirebaseDatabase.getInstance().reference
+                    .child("users").child(uid)
+                    .child("fcmTokens").child(token)
+                    .setValue(true)            // Boolean flag is enough for pushSummary
+            }
+        }
     }
 
-    /** Called when the FCM registration token changes */
+    /** Fires if FCM rotates the token (rare). Mirrors it to RTDB. */
     override fun onNewToken(token: String) {
-        // Save token under /users/{uid}/fcmTokens/{token}
-        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().uid ?: return
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-            .collection("users").document(uid)
-            .collection("fcmTokens").document(token)
-            .set(mapOf("createdAt" to com.google.firebase.Timestamp.now()))
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        FirebaseDatabase.getInstance().reference
+            .child("users").child(uid)
+            .child("fcmTokens").child(token)
+            .setValue(true)
     }
 
-    /** Called for every incoming data-only message */
+    /** Handles data-only summary messages from pushSummary */
     override fun onMessageReceived(msg: RemoteMessage) {
-        val data = msg.data                         // {type: notif_summary, count: "3"}
+        val data = msg.data                            // e.g. {type=notif_summary, count=3}
         if (data["type"] != "notif_summary") return
 
         val unread = data["count"]?.toIntOrNull() ?: return
         if (unread <= 0) return
 
-        /* ── NEW: permission guard ───────────────────────────── */
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {   // API 33
-            if (ContextCompat.checkSelfPermission(
-                    this, android.Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED) {
-                // User hasn’t granted notification permission → just bail out
-                return
-            }
+        /* Android 13+ runtime permission guard */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED) {
+            return
         }
 
-        // Deep-link to your NotificationsScreen
-        val tapIntent = Intent(this, MainActivity::class.java).apply {
-            putExtra("open_notifications", true)
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
+        /* Tap action → open notifications screen */
         val pending = PendingIntent.getActivity(
-            this, 0, tapIntent, PendingIntent.FLAG_IMMUTABLE
+            this, 0,
+            Intent(this, MainActivity::class.java).apply {
+                putExtra("open_notifications", true)
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE
         )
 
         ensureChannel()
 
-        NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notify)    // supply your own icon
-            .setContentTitle("AM24")
-            .setContentText("You have $unread unread notification${if (unread > 1) "s" else ""}")
-            .setNumber(unread)                     // badge count
-            .setAutoCancel(true)
-            .setContentIntent(pending)
-            .build()
-            .also { NotificationManagerCompat.from(this).notify(99, it) }
+        NotificationManagerCompat.from(this).notify(
+            99,    // static ID → replaces the previous summary
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notify)     // ensure this icon exists
+                .setContentTitle(getString(R.string.app_name))   // ← change was here
+                .setContentText(
+                    "You have $unread unread notification" +
+                            if (unread > 1) "s" else ""
+                )
+                .setNumber(unread)                      // badge count on some launchers
+                .setAutoCancel(true)
+                .setContentIntent(pending)
+                .build()
+        )
     }
 
-    /** One-time channel setup (needed on Android 8+) */
+    /** Creates the notification channel once (Android 8+) */
     private fun ensureChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(
-                this, android.Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return          // permission missing → don’t crash, just bail out
-        }
-        val mgr = getSystemService(NotificationManager::class.java)
-        if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
-            mgr.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    "AM24 notifications",
-                    NotificationManager.IMPORTANCE_DEFAULT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val mgr = getSystemService(NotificationManager::class.java)
+            if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
+                mgr.createNotificationChannel(
+                    NotificationChannel(
+                        CHANNEL_ID,
+                        "AM24 notifications",
+                        NotificationManager.IMPORTANCE_HIGH
+                    )
                 )
-            )
+            }
         }
     }
 }

@@ -1194,7 +1194,7 @@
         <string name="continue_with_google">గూగుల్</string>
         <string name="continue_with_facebook">ఫేస్బుక్</string>
 
-        <string name="leaderboard">లీడర్‌బోర్డ్</string>
+    <string name="leaderboard">ర్యాంక్</string>
         <!-- Language Selection -->
         <string name="choose_language_title">భాషను ఎంచుకోండి</string>
         <string name="select_preferred_language">మీ ప్రాధాన్యతా భాషను ఎంచుకోండి</string>
