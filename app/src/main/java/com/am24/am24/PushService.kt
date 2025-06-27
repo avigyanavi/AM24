@@ -72,7 +72,7 @@ class PushService : FirebaseMessagingService() {
         NotificationManagerCompat.from(this).notify(
             99,    // static ID → replaces the previous summary
             NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notify)     // ensure this icon exists
+                .setSmallIcon(R.drawable.kupidx_logo)     // ensure this icon exists
                 .setContentTitle(getString(R.string.app_name))   // ← change was here
                 .setContentText(
                     "You have $unread unread notification" +

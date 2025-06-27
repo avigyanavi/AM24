@@ -234,7 +234,7 @@ fun TopNavBar(
                         if (reporteeId != null) showReportDialog = true
                         else Toast.makeText(context, "No user to report!", Toast.LENGTH_SHORT).show()
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Yellow)
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Warning,

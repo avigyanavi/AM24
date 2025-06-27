@@ -1,129 +1,255 @@
+const logger = require("firebase-functions/logger");
+const axios = require("axios");
 /* eslint-disable camelcase */
-// ────────────────────────────────────────────────────────────────
-// index.js — ALL 9 HTTPS/Callable functions migrated to GCF Gen-2
-//  (verifyPayment, createOneTimeOrder, chatSuggestions, getNearbyProfiles,
-//   createKupidxPlusSub, verifyKupidxPlusPayment, createManualSubscriptionOrder,
-//   cancelKupidxPlusSub, kupidxPlusWebhook)
-//  Other RTDB/Firestore/PubSub triggers remain Gen-1.
-// ────────────────────────────────────────────────────────────────
-
-// Gen-2 builders
-const { onRequest, onCall }  = require("firebase-functions/v2/https");
-// Gen-1 import kept for HttpsError, config, and non-HTTP triggers
-const functions               = require("firebase-functions");
-const logger                  = require("firebase-functions/logger");
-
-const admin   = require("firebase-admin");
-const axios   = require("axios");
-const OpenAI  = require("openai").default;
-const Busboy  = require("busboy");
+const functions  = require("firebase-functions");
+const admin      = require("firebase-admin");
+const OpenAI     = require("openai").default;
+const Busboy = require("busboy");
 const { v4: uuidv4 } = require("uuid");
 const crypto  = require("crypto");
-const fetch   = require("node-fetch");
-const Razorpay = require("razorpay");
-const {
-  geohashQueryBounds,
-  distanceBetween,
-} = require("geofire-common");
 
-/* ─────────────────────── ENV / INITIALISATION ─────────────────────── */
-admin.initializeApp({
-  databaseURL:
-    "https://kupidxdefault.asia-southeast1.firebasedatabase.app/",
-});
+const fetch = require("node-fetch");
 
-// Keep hard-coded keys for now (consider functions:secrets:set in prod)
 const openai = new OpenAI({
-  apiKey:
-    "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",
+  apiKey: "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"   // make sure this env var is set
 });
 
-const RAZORPAY_SECRET =
-  "27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01";
+admin.initializeApp({
+  databaseURL: "https://kupidxdefault.asia-southeast1.firebasedatabase.app"
+});
+
+// ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
+const RAZORPAY_SECRET = '27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01';
+
+/* LIVE keys (hard-coded for now) */
 const RZP_KEY_ID     = "rzp_live_DsoxJLeiCw940M";
 const RZP_KEY_SECRET = "AjQhp4QXqa6XmUJmabpxHEuo";
 
-const razorpay = new Razorpay({ key_id: RZP_KEY_ID, key_secret: RZP_KEY_SECRET });
+/* ───────────────────────────── Razorpay callable ───────────────────────────── */
 
-/* Shared options for Gen-2 HTTPS/Callable */
-const defaultOpts = {
-  region: "asia-south1",
-  memory: "1GiB",
-  cpu: 1,
-  timeoutSeconds: 540,
-};
-
-exports.verifyPayment = onCall({ ...defaultOpts }, async ({ paymentId }) => {
-  if (!paymentId) throw new functions.https.HttpsError("invalid-argument", "Payment ID required");
-  const payment  = await razorpay.payments.fetch(paymentId);
-  return payment.status === "captured";
+const Razorpay = require("razorpay");
+const razorpay = new Razorpay({
+  key_id:     RZP_KEY_ID,
+  key_secret: RZP_KEY_SECRET,
 });
 
-exports.createOneTimeOrder = onCall({ ...defaultOpts }, async ({ type, quantity }) => {
-  const pricing = {
-    swipes:      { amount: quantity * 100, receipt: `swipes_${quantity}` },
-    compliments: { amount: quantity * 150, receipt: `compliments_${quantity}` },
-    boosts:      { amount: quantity * 200, receipt: `boosts_${quantity}` },
-  };
-  const p = pricing[type];
-  if (!p) throw new functions.https.HttpsError("invalid-argument", "Unknown type");
-  const order = await razorpay.orders.create({ amount: p.amount, currency: "INR", receipt: p.receipt });
-  return { id: order.id, key: RZP_KEY_ID };
+exports.verifyPayment = functions
+.region("asia-south1")
+.https.onCall(async (data, context) => {
+  try {
+    const { paymentId } = data;
+    if (!paymentId) {
+      throw new functions.https.HttpsError("invalid-argument", "Payment ID required");
+    }
+    const payment  = await razorpay.payments.fetch(paymentId);
+    const captured = payment.status === "captured";
+    console.log(`[verifyPayment] ${paymentId} → ${payment.status}`);
+    return captured;
+  } catch (err) {
+    console.error("verifyPayment error:", err);
+    throw new functions.https.HttpsError("internal", err.message);
+  }
 });
+
+// New: create one-time order
+exports.createOneTimeOrder = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const { type, quantity } = data;
+    const pricing = {
+      swipes:      { amount: quantity * 100,  receipt: `swipes_${quantity}` },
+      compliments: { amount: quantity * 150,  receipt: `compliments_${quantity}` },
+      boosts:      { amount: quantity * 200,  receipt: `boosts_${quantity}` },
+    };
+    const p = pricing[type];
+    if (!p) throw new functions.https.HttpsError("invalid-argument", "Unknown purchase type");
+    const order = await razorpay.orders.create({
+      amount: p.amount,
+      currency: "INR",
+      receipt: p.receipt,
+    });
+    return { id: order.id, key: razorpay.key_id };
+  });
 
 /* ───────────────────────────── Chat suggestions ───────────────────────────── */
 
 /* maps “hi”, “bn”, … → prompt fragment */
 const LANG = { hi: "Hindi", bn: "Bengali", en: "English", ta: "Tamil", kn: "Kannada", te: "Telegu" };
 
-exports.chatSuggestions = onRequest({ ...defaultOpts, cpu: 2 }, async (req, res) => {
-  if (req.method === "OPTIONS") return res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST", "Access-Control-Allow-Headers": "Content-Type" }).status(204).send("");
-  if (req.method !== "POST") return res.status(405).send("POST only");
-  try {
-    const { messages = [], lang } = req.body || {};
-    const language = LANG[(lang || "en").slice(0,2).toLowerCase()] || "English";
-    const gptMsgs = [
-      { role: "system", content: `You are a Chat‑Suggestion Engine; ALWAYS reply in ${language}. Return JSON only.` },
-      { role: "user",   content: messages.slice(-10).map(m => `${m.role}: ${m.text ?? "[image]"}`).join("\n") },
-    ];
-    const completion = await openai.chat.completions.create({ model: "gpt-4.1", messages: gptMsgs, temperature: 0.7, max_tokens: 400, response_format: { type: "json_object" } });
-    return res.set("Access-Control-Allow-Origin", "*").send(completion.choices[0].message.content.trim());
-  } catch (e) { return res.status(500).send(e.message); }
-});
+exports.chatSuggestions = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 540, memory: "512MB" })
+  .https.onRequest(async (req, res) => {
+    /* CORS */
+    if (req.method === "OPTIONS") {
+      return res
+        .set({
+          "Access-Control-Allow-Origin":  "*",
+          "Access-Control-Allow-Methods": "POST",
+          "Access-Control-Allow-Headers": "Content-Type",
+        })
+        .status(204).send("");
+    }
+    if (req.method !== "POST") return res.status(405).send("POST only");
 
-exports.getNearbyProfiles = onCall({ ...defaultOpts, memory: "2GiB", cpu: 2 }, async ({ uid, minRows = 50 }) => {
-  if (!uid) throw new functions.https.HttpsError("invalid-argument", "uid required");
-  const db = admin.database();
-  const locSnap = await db.ref(`geoFireLocations/${uid}/l`).get();
-  const latLng = locSnap.val();
-  if (!Array.isArray(latLng)) {
-    const all = await db.ref("users").get();
-    const list = [];
-    all.forEach(s => { if (s.key !== uid) { const p = s.val(); if (p) { p.userId = s.key; list.push(p); } } });
-    return { profiles: list.slice(0, minRows) };
-  }
-  const center = { lat: latLng[0], lng: latLng[1] };
-  const collected = new Set();
-  const sweep = async rKm => {
-    if (rKm === Infinity) { (await db.ref("geoFireLocations").get()).forEach(s => collected.add(s.key)); return; }
-    const bounds = geohashQueryBounds([center.lat, center.lng], rKm*1000);
-    await Promise.all(bounds.map(async b => {
-      const snap = await db.ref("geoFireLocations").orderByChild("g").startAt(b[0]).endAt(b[1]).get();
-      snap.forEach(c => {
-        const [lat,lng] = c.child("l").val() || [];
-        if (lat == null) return;
-        if (distanceBetween([lat,lng],[center.lat,center.lng]) <= rKm) collected.add(c.key);
+    try {
+      const {
+        messages       = [],
+        lang            // 🆕 preferred
+      } = req.body || {};
+
+    console.log("[chatSuggestions] got lang:", lang);
+
+      const code     = (lang).toLowerCase().slice(0, 2);
+      const language = LANG[code] || "English";
+
+      /* ─── build GPT messages ─── */
+      const gptMsgs = [
+        {
+          role: "system",
+          content:
+            `You are a “Chat-Suggestion Engine” for a dating app.\n` +
+            `⚠️  ALWAYS reply *exclusively* in ${language}.\n\n` +
+            `Return **JSON only** in this exact schema (no other text):\n` +
+            `{"topics":[],"activities":[{"placeName":"","integration":""}],"integrationTips":[]}`,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text:
+                `Recent messages:\n` +
+                messages
+                  .slice(-10)
+                  .map((m) => `${m.role}: ${m.text ?? "[image]"}`)
+            },
+            /* ≤3 pictures */
+            ...messages
+              .filter((m) => m.imageUrl)
+              .slice(-3)
+              .map((m) => ({ type: "image_url", image_url: { url: m.imageUrl } })),
+          ],
+        }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1",
+        messages: gptMsgs,
+        temperature: 0.7,
+        max_tokens: 400,
+        /* NEW: ask the API itself to enforce JSON */
+        response_format: { type: "json_object" },
       });
-    }));
-  };
-  await sweep(15000);
-  if (collected.size < minRows) await sweep(Infinity);
-  collected.delete(uid);
-  const profiles = (await Promise.all(Array.from(collected).slice(0,minRows).map(id => db.ref(`users/${id}`).get())))
-    .map(s => { const p = s.val(); if (p) { p.userId = s.key; return p; } return null; })
-    .filter(Boolean);
-  return { profiles };
-});
+
+      const json = completion.choices[0].message.content.trim();   // already pure JSON
+
+      return res.set("Access-Control-Allow-Origin", "*").send(json);
+    } catch (err) {
+      console.error("chatSuggestions error:", err);
+      return res.status(500).send(err.message || "internal error");
+    }
+  });
+
+const {
+    geohashQueryBounds,
+    distanceBetween
+  } = require('geofire-common');
+
+exports.getNearbyProfiles = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .https.onCall(async (data, context) => {
+
+    /* ───────── arguments ───────── */
+    const { uid, minRows = 50 } = data || {};
+    console.log('[getNearbyProfiles] called by uid:', uid ?? '<none>');
+    if (!uid)
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'uid is required'
+      );
+
+    /* ───────── helpers ─────────── */
+    const db = admin.database();
+
+    /* ───────── 1. where am I? ───── */
+    const locSnap = await db.ref(`geoFireLocations/${uid}/l`).get();
+    const latLng  = locSnap.val();            // [lat, lng]
+
+    /* ──────── 2. if caller has no location, just grab N users … ─────── */
+    if (!Array.isArray(latLng) || latLng.length < 2) {
+      const all = await db.ref('users').get();
+      const list = [];
+      all.forEach(ss => {
+        if (ss.key !== uid) {
+          const p = ss.val();
+          if (p) {
+            p.userId = ss.key;                //  ← NEW (uid)
+            list.push(p);
+          }
+        }
+      });
+      return { profiles: list.slice(0, minRows) };
+    }
+
+    /* ───────── 3. geo-sweep as you had it ───────── */
+    const center = { lat: latLng[0], lng: latLng[1] };
+    const collectedUids = new Set();
+
+    const sweep = async radiusKm => {
+      if (radiusKm === Infinity) {
+        const all = await db.ref('geoFireLocations').get();
+        all.forEach(s => collectedUids.add(s.key));
+        return;
+      }
+      const bounds = geohashQueryBounds([center.lat, center.lng], radiusKm * 1000);
+      const tasks  = bounds.map(b =>
+        db.ref('geoFireLocations')
+          .orderByChild('g').startAt(b[0]).endAt(b[1]).get()
+      );
+      const snaps = await Promise.all(tasks);
+      snaps.forEach(snap => {
+        snap.forEach(child => {
+          const [lat, lng] = child.child('l').val() || [];
+          if (lat == null) return;
+          const dist = distanceBetween([lat, lng], [center.lat, center.lng]);
+          if (dist <= radiusKm) collectedUids.add(child.key);
+        });
+      });
+    };
+
+    /* force-wide sweep (your TEMP line) */
+    const firstRadius = 15000;
+    console.log(`[getNearbyProfiles] TEMP radius forced to ${firstRadius}km`);
+    await sweep(firstRadius);
+
+    if (collectedUids.size < minRows) {
+      console.log(`[getNearbyProfiles] Fewer than ${minRows} users found, sweeping globally…`);
+      await sweep(Infinity);
+    }
+
+    collectedUids.delete(uid);                          // drop self
+    const uids = Array.from(collectedUids).slice(0, minRows);
+    console.log('[getNearbyProfiles] Final UID list:', uids);
+
+    /* ───────── 4. fetch user docs & add uid field ───────── */
+    const docs = await Promise.all(
+      uids.map(id => db.ref(`users/${id}`).get())
+    );
+
+    const profiles = docs
+      .map(snap => {
+        const p = snap.val();
+        if (!p) return null;
+        p.userId = snap.key;                            //  ← NEW (uid)
+        return p;
+      })
+      .filter(Boolean);
+
+    console.log('[getNearbyProfiles] returning', profiles.length, 'profiles');
+    return { profiles };
+  });
 
 // Near the top, replace your dummy VALID_PLANS with the real ones:
 const VALID_PLANS = new Set([
@@ -135,12 +261,35 @@ const VALID_PLANS = new Set([
   "plan_QjmpS4xg31rg"       // ₹999 / year     (Premium)
 ]);
 
-exports.createKupidxPlusSub = onCall({ ...defaultOpts }, async ({ uid, planId }) => {
-  if (!uid || !planId) throw new functions.https.HttpsError("invalid-argument", "uid+planId required");
-  const sub = await razorpay.subscriptions.create({ plan_id: planId, customer_notify: 1, total_count: PLAN_CYCLES[planId]||1, notes: { uid, planId } });
-  await admin.database().ref(`users/${uid}/subscription`).set({ id: sub.id, planId, status: "created", nextCharge: sub.current_end });
-  return { subscriptionId: sub.id, keyId: RZP_KEY_ID };
-});
+exports.createKupidxPlusSub = functions
+  .region("asia-south1")
+  .https.onCall(async (data) => {
+    const { uid, planId } = data;               // ← pull planId from the client
+    if (!uid || !planId) {
+      throw new functions.https.HttpsError("invalid-argument","uid+planId required");
+    }
+    // create using the exact plan they selected:
+    const sub = await razorpay.subscriptions.create({
+      plan_id: planId,
+      customer_notify: 1,
+      total_count: getCountForPlan(planId),     // e.g. 52, 12, or 1
+      notes: { uid, planId }
+    });
+
+    // store everything up front:
+    await admin
+      .database()
+      .ref(`users/${uid}/subscription`)
+      .set({
+        id: sub.id,
+        planId,
+        status: "created",
+        nextCharge: sub.current_end
+      });
+
+/*  👆  Don’t grant Plus/Premium yet – wait for webhook  */
+   return { subscriptionId: sub.id, keyId: RZP_KEY_ID };
+  });
 
 const PLAN_CYCLES = {
   plan_QjnGf6wdQAmyi2: 52,   // weekly plus
@@ -156,18 +305,45 @@ function getCountForPlan(planId) {
 }
 
 /* ───────── verify first-payment signature (optional client call) ──────── */
-exports.verifyKupidxPlusPayment = onCall({ ...defaultOpts }, async ({ paymentId, subscriptionId, signature }) => {
-  if (!paymentId || !subscriptionId || !signature) throw new functions.https.HttpsError("invalid-argument", "all fields required");
-  const expected = crypto.createHmac("sha256", RZP_KEY_SECRET).update(`${subscriptionId}|${paymentId}`).digest("hex");
-  if (expected !== signature) throw new functions.https.HttpsError("permission-denied", "Bad signature");
+exports.verifyKupidxPlusPayment = functions
+.region("asia-south1")
+.https.onCall(async (data) => {
+  const { paymentId, subscriptionId, signature } = data || {};
+  if (!paymentId || !subscriptionId || !signature)
+    throw new functions.https.HttpsError("invalid-argument", "all fields required");
+
+  /* HMAC-SHA256(subscriptionId|paymentId, key_secret) */
+  const expected = crypto
+    .createHmac("sha256", RZP_KEY_SECRET)
+    .update(`${subscriptionId}|${paymentId}`)
+    .digest("hex");
+
+  if (expected !== signature)
+    throw new functions.https.HttpsError("permission-denied", "Bad signature");
+
   return { ok: true };
 });
 
-exports.createManualSubscriptionOrder = onCall({ ...defaultOpts }, async ({ amount, label }) => {
-  if (!amount || !label) throw new functions.https.HttpsError("invalid-argument", "amount & label required");
-  const order = await razorpay.orders.create({ amount: amount*100, currency: "INR", receipt: `manual_sub_${label}_${Date.now()}` });
-  return { id: order.id, key: RZP_KEY_ID };
-});
+exports.createManualSubscriptionOrder = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const { amount, label } = data;
+
+    if (!amount || !label) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Amount and label are required"
+      );
+    }
+
+    const order = await razorpay.orders.create({
+      amount: amount * 100, // convert INR to paise
+      currency: "INR",
+      receipt: `manual_sub_${label}_${Date.now()}`,
+    });
+
+    return { id: order.id, key: razorpay.key_id };
+  });
 
 const PLAN_TIERS = {
   plan_QjnGf6wdQAmyi2:    { plus: true,  premium: false },  // ₹9 / week
@@ -200,46 +376,108 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
     console.log("Expired one-time subscriptions reset.");
   });
 
-exports.cancelKupidxPlusSub = onCall({ ...defaultOpts }, async (_data, ctx) => {
-  const uid = ctx.auth?.uid;
-  if (!uid) throw new functions.https.HttpsError("unauthenticated", "login required");
-  const subId = (await admin.database().ref(`users/${uid}/subscription/id`).get()).val();
-  if (!subId) throw new functions.https.HttpsError("not-found", "No subscription");
-  await razorpay.subscriptions.cancel(subId);
-  await admin.database().ref(`users/${uid}`).update({ isPlus:false, isPremium:false, subscriptionStatus:"inactive" });
-  return { cancelled:true };
-});
-
-exports.kupidxPlusWebhook = onRequest({ ...defaultOpts, memory:'512MiB', cpu:0.25, maxInstances:5 }, async (req, res) => {
-  const sig = req.headers["x-razorpay-signature"];
-  try { razorpay.webhooks.verify(req.rawBody, sig, RAZORPAY_SECRET); }
-  catch { return res.status(400).send("fail"); }
-
-  const { event, payload } = req.body;
-  const uid = payload.subscription.entity.customer_id;
-  const db  = admin.database().ref(`users/${uid}`);
-  const PLAN_TIERS = {
-    plan_QjnGf6wdQAmyi2:{plus:true, premium:false}, plan_QjpkdErsuewaUJ:{plus:false,premium:true},
-    plan_QjpkKQ5S3ur64Q:{plus:true, premium:false}, plan_QjplxIqveB0BVS:{plus:false,premium:true},
-    plan_QjpmNjEkEPlObK:{plus:true, premium:false}, plan_QjmpS4xg31rg:{plus:false,premium:true},
-  };
-  switch (event) {
-    case "subscription.activated":
-    case "subscription.charged": {
-      const planId = payload.subscription.entity.plan_id;
-      const tier = PLAN_TIERS[planId] || { plus:false, premium:false };
-      await db.update({ isPlus:tier.plus, isPremium:tier.premium, subscriptionStatus:"active", nextRenewal:payload.subscription.entity.current_end });
-      break;
+// 1️⃣ Add a cancel function
+exports.cancelKupidxPlusSub = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Must be signed in to cancel."
+      );
     }
-    case "subscription.charged.failed":
-    case "subscription.cancelled":
-    case "subscription.completed": {
-      await db.update({ isPlus:false, isPremium:false, subscriptionStatus:event.includes("failed")?"payment_failed":"inactive", nextRenewal:null });
-      break;
+
+    // look up stored subscription ID
+    const snap = await admin
+      .database()
+      .ref(`users/${uid}/subscription/id`)
+      .get();
+    const subId = snap.val();
+    if (!subId) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "No active subscription found for this user."
+      );
     }
-  }
-  return res.status(200).send("ok");
-});
+
+    // call Razorpay’s cancel endpoint
+    await razorpay.subscriptions.cancel(subId);
+
+    // immediately update your own DB state
+    await admin
+      .database()
+      .ref(`users/${uid}`)
+      .update({
+        isPlus: false,
+        isPremium: false,
+        subscriptionStatus: "inactive",
+      });
+
+    return { cancelled: true };
+  });
+
+
+exports.kupidxPlusWebhook = functions
+  .region("asia-south1")
+  .https.onRequest(async (req, res) => {
+    const sig = req.headers["x-razorpay-signature"];
+    let ev;
+    try {
+      ev = razorpay.webhooks.verify(
+        req.rawBody,
+        sig,
+        functions.config().razorpay.webhook_secret
+      );
+    } catch (err) {
+      logger.error("Webhook signature mismatch", err);
+      return res.status(400).send("fail");
+    }
+
+    const { event, payload } = req.body;
+    const uid = payload.subscription.entity.customer_id;
+    const db  = admin.database().ref(`users/${uid}`);
+
+    switch (event) {
+      case "subscription.activated":
+      case "subscription.charged": {
+        const planId = payload.subscription.entity.plan_id;
+        const tier   = PLAN_TIERS[planId] || { plus: false, premium: false };
+        await db.update({
+          isPlus:           tier.plus,
+          isPremium:        tier.premium,
+          subscriptionStatus:"active",
+          nextRenewal:      payload.subscription.entity.current_end,
+        });
+        break;
+      }
+
+      case "subscription.charged.failed":
+      case "subscription.cancelled": {
+        // user explicitly cancelled or failed payment
+        await db.update({
+          isPlus:           false,
+          isPremium:        false,
+          subscriptionStatus:"inactive",
+          nextRenewal:      null,
+        });
+        break;
+      }
+
+      case "subscription.completed": {
+        // subscription ran its full course (total_count reached)
+        await db.update({
+          isPlus:           false,
+          isPremium:        false,
+          subscriptionStatus:"completed",
+          nextRenewal:      null,
+        });
+        break;
+      }
+    }
+
+    res.status(200).send("ok");
+  });
 
 /* shorthand so we only spell it once */
 const DB = 'kupidxdefault';          // ⇐ the sub-domain before .asia-southeast1…
@@ -288,7 +526,6 @@ exports.onPostReport = functions
     if (data?.reportedUser) return incrementReportCount(data.reportedUser);
     return null;
   });
-
 
 /** Plan you expect the user to subscribe to */
 const EXPECTED_PLAN = "P-8EV86494EK6312239NBCUGVI";
@@ -343,7 +580,6 @@ exports.verifyPaypalSubscription = functions.https.onCall(async (data, context) 
 
   return { valid, status, planId };   // your Android code can check .valid === true
 });
-
 
 exports.grantWeeklyQuotas = functions.pubsub
   .schedule('every monday 00:00')
@@ -400,7 +636,10 @@ exports.bumpUnreadCounter = functions
 
     await admin.database()
       .ref(`users/${uid}/notifUnreadCount`)
-      .transaction(c => (c || 0) + delta);
+      .transaction(c => {
+         const next = (c || 0) + delta;   // old value ±1
+         return next < 0 ? 0 : next;      // ⟵ clamp to 0
+       });
   });
 
     /* 🔸 one extra line: a *named* secondary app for the US instance */
@@ -416,13 +655,13 @@ exports.replicaUnreadCounter = functions
     .ref('/users/{uid}/notifUnreadCount')
     .onWrite((change, ctx) => {
       return dbUS.ref(`/users/${ctx.params.uid}/notifUnreadCount`)
-                 .set(change.after.val());
+        .set(Math.max(0, change.after.val() || 0));
     });
 
         // secondary instance
 
 exports.pushSummary = functions.pubsub
-  .schedule('every 15 minutes')
+  .schedule('every 120 minutes')
   .timeZone('Asia/Kolkata')
   .onRun(async () => {
     const usersSnap = await dbUS

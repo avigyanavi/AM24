@@ -6,7 +6,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -877,10 +876,10 @@ private fun fetchUsersFromNode(
 
 fun getLevelBorderColor(rating: Double): Color {
     return when {
-        rating in 0.0..1.0 -> Color(0xFF1A1A1A)
-        rating in 1.1..2.1 -> Color(0x88FFFF00)
-        rating in 2.1..3.6 -> Color.White
-        rating in 3.6..4.7 -> Color(0xFFFF6F00)
+        rating in 0.0..1.1 -> Color(0xFFFF6F00)
+        rating in 1.1..2.1 -> Color.Green
+        rating in 2.1..3.6 -> Color.Blue
+        rating in 3.6..4.7 -> Color.Yellow
         rating in 4.7..5.0 -> Color(0xFFE91E63)
         else -> Color.Gray
     }
