@@ -135,6 +135,35 @@ fun MainNavGraph(
                 initialQuery = initialQuery
             )
         }
+        composable(
+            route = "post/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            PostDetailScreen(
+                navController = navController,
+                postId = postId,
+                commentId = null,
+                postViewModel = postViewModel
+            )
+        }
+
+        composable(
+            route = "post/{postId}/comment/{commentId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType },
+                navArgument("commentId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            val commentId = backStackEntry.arguments?.getString("commentId")
+            PostDetailScreen(
+                navController = navController,
+                postId = postId,
+                commentId = commentId,
+                postViewModel = postViewModel
+            )
+        }
         composable("create_post/image") { ImagePostComposable(navController, postViewModel) }
         composable("create_post/video") { VideoPostComposable(navController, postViewModel) }
         composable("subscription") {

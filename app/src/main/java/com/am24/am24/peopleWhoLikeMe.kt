@@ -177,8 +177,9 @@ fun PeopleWhoLikeMeScreen(
 
                                 // (2) Show user's name, username, and numberOfUsersWhoSwiped
                                 Column {
+                                    val displayName = profile.name.ifBlank { profile.username }
                                     Text(
-                                        text = profile.name,
+                                        text = displayName,
                                         color = Color.White,
                                         style = MaterialTheme.typography.bodyLarge
                                     )

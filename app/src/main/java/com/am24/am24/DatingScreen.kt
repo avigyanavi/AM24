@@ -105,6 +105,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
 import java.util.Calendar
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -1004,10 +1007,10 @@ fun FiltersOverlay(
                         )
                     },
                     valueRange = 0f..100f,
-                    steps = 82,
+                    steps = 20,
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFFFF6000),
-                        activeTrackColor = Color(0xFFFF6000),
+                        activeTrackColor = Color.White,
                         inactiveTrackColor = Color.Gray
                     )
                 )
@@ -1029,7 +1032,7 @@ fun FiltersOverlay(
                     steps = 10,
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFFFF6000),
-                        activeTrackColor = Color(0xFFFF6000),
+                        activeTrackColor = Color.White,
                         inactiveTrackColor = Color.Gray
                     )
                 )
@@ -1292,7 +1295,7 @@ fun FiltersOverlay(
                         }
                     },
                     valueRange = 1f..100f,
-                    steps = 99,
+                    steps = 30,
                     enabled = isPremium,
                     colors = SliderDefaults.colors(
                         thumbColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
@@ -1526,7 +1529,7 @@ fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 0) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = stringResource(R.string.no_more_profiles) + " No profiles found after $maxAutoTaps attempts.",
+            text = stringResource(R.string.no_more_profiles),
             color = Color.White,
             fontSize = 18.sp,
             textAlign = TextAlign.Center,
@@ -2009,27 +2012,15 @@ fun PhotoWithTwoOverlays(
                         modifier = Modifier.padding(10.dp).size(24.dp)
                     )
                 }
+                val displayName = profile.name.ifBlank { profile.username }
                 Text(
-                    if (age > 0) "${profile.name}, $age" else profile.name,
+                    text = if (age > 0) "$displayName, $age" else displayName,
                     color = Color.White,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Button(
-                    onClick = { showPostsOverlay = true },
-                    colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00)),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.posts),
-                        color = Color.White,
-                        fontSize = 8.sp,
-                        textDecoration = TextDecoration.None
-                    )
-                }
             }
 
             Box(
@@ -2127,15 +2118,35 @@ fun PhotoWithTwoOverlays(
             PostsOverlay(sortedByUpvotes) { showPostsOverlay = false }
         }
 
-        Text(
-            if (userDistance.isNaN())
-                stringResource(R.string.worldwide)
-            else
-                stringResource(R.string.max_distance, userDistance.roundToInt()),
-            color = Color.White,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(start = 14.dp, top = 8.dp)
-        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                if (userDistance.isNaN())
+                    stringResource(R.string.worldwide)
+                else
+                    stringResource(R.string.max_distance, userDistance.roundToInt()),
+                color = Color.White,
+                fontSize = 18.sp
+            )
+            Button(
+                onClick = { showPostsOverlay = true },
+                colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00)),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.posts),
+                    color = Color.White,
+                    fontSize = 8.sp,
+                    textDecoration = TextDecoration.None
+                )
+            }
+        }
     }
 }
 
@@ -2679,6 +2690,9 @@ fun handleSwipeRight(
                 profileViewModel.sendMatchNotification(currentUserId, otherUserId, {}, {})
                 profileViewModel.sendMatchNotification(otherUserId, currentUserId, {}, {})
 
+                incrementMatchStats(currentUserId)
+                incrementMatchStats(otherUserId)
+
                 // b) Fire the in-app “It’s a Match!” popup
                 profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
 
@@ -2735,6 +2749,34 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
         otherUserProfileRef.setValue(currentCount + 1)
     }
 }
+
+private fun incrementMatchStats(userId: String) {
+    val db = FirebaseRefs.db
+    val matchCountRef = db.getReference("users/$userId/matchCount")
+    matchCountRef.runTransaction(object : Transaction.Handler {
+        override fun doTransaction(mutableData: MutableData): Transaction.Result {
+            val current = mutableData.getValue(Int::class.java) ?: 0
+            mutableData.value = current + 1
+            return Transaction.success(mutableData)
+        }
+
+        override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
+            if (!committed) {
+                Log.e("incrementMatchStats", "Failed for $userId: ${error?.message}")
+                return
+            }
+            val newCount = snapshot?.getValue(Int::class.java) ?: 0
+            db.getReference("users/$userId/numberOfSwipeRights")
+                .get().addOnSuccessListener { srSnap ->
+                    val swipes = srSnap.getValue(Int::class.java) ?: 0
+                    val ratio = if (swipes > 0) newCount.toDouble() / swipes else 0.0
+                    db.getReference("users/$userId/matchCountPerSwipeRight")
+                        .setValue(ratio)
+                }
+        }
+    })
+}
+
 
 /**
  * fetchExcludedUsers => matched or liked recently

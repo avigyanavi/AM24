@@ -99,6 +99,25 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         observeMyProfile(userId)
     }
 
+    fun fetchPostById(
+        postId: String,
+        onSuccess: (Post?) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val snapshot = postsRef.child(postId).get().await()
+                val post = snapshot.getValue(Post::class.java)
+                withContext(Dispatchers.Main) { onSuccess(post) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching post: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onFailure(e.message ?: "Failed to fetch post")
+                }
+            }
+        }
+    }
+
     private fun observeMyProfile(userId: String) {
         val ref = db.getReference("users").child(userId)
         ref.addValueEventListener(object: ValueEventListener {
@@ -466,7 +485,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         "$username checked in at ${checkIn?.name} 📍"
                     else
                         "$username posted a new ${if (mediaType=="image") "photo" else "video"} update."
-                    sendNotification(receiverId, notifType, userId, username, msg)
+                    sendNotification(
+                        receiverId     = receiverId,
+                        type           = notifType,
+                        senderId       = userId,
+                        senderUsername = username,
+                        message        = msg,
+                        postId         = postId
+                    )
                 }
 
             } catch (e: Exception) {
@@ -788,11 +814,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         "$username posted a new text update."
                     val notifType = if (isCheckIn) "match_checkin" else "match_post"   // 🆕
                     sendNotification(
-                        receiverId      = receiverId,
-                        type            = notifType,       // 🆕
-                        senderId        = userId,
-                        senderUsername  = username,
-                        message         = msg
+                        receiverId     = receiverId,
+                        type           = notifType,       // 🆕
+                        senderId       = userId,
+                        senderUsername = username,
+                        message        = msg,
+                        postId         = postId
                     )
                 }
             } catch (e: Exception) {
@@ -867,11 +894,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 matches.forEach { receiverId ->
                     val msg = "$username posted a new voice note 🎤"
                     sendNotification(
-                        receiverId      = receiverId,
-                        type            = "match_post",   // ← NEW type (was "new_post")
-                        senderId        = userId,
-                        senderUsername  = username,
-                        message         = msg
+                        receiverId     = receiverId,
+                        type           = "match_post",   // ← NEW type (was "new_post")
+                        senderId       = userId,
+                        senderUsername = username,
+                        message        = msg,
+                        postId         = postId
                     )
                 }
             } catch (e: Exception) {
@@ -1022,11 +1050,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                     val upvoterUsername = fetchUsernameById(userId)
                                     val message = "$upvoterUsername upvoted your post."
                                     sendNotification(
-                                        receiverId = post.userId,
-                                        type = "post_upvote",
-                                        senderId = userId,
+                                        receiverId     = post.userId,
+                                        type           = "post_upvote",
+                                        senderId       = userId,
                                         senderUsername = upvoterUsername,
-                                        message = message
+                                        message        = message,
+                                        postId         = postId
                                     )
                                 }
                             }
@@ -1110,11 +1139,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                     val downvoterUsername = fetchUsernameById(userId)
                                     val message = "$downvoterUsername downvoted your post."
                                     sendNotification(
-                                        receiverId = post.userId,
-                                        type = "post_downvote",
-                                        senderId = userId,
+                                        receiverId     = post.userId,
+                                        type           = "post_downvote",
+                                        senderId       = userId,
                                         senderUsername = downvoterUsername,
-                                        message = message
+                                        message        = message,
+                                        postId         = postId
                                     )
                                 }
                             }
@@ -1196,11 +1226,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                     val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
                                     val message = "$upvoterUsername$relationshipText upvoted your comment."
                                     sendNotification(
-                                        receiverId = comment.userId,
-                                        type = "comment_upvote",
-                                        senderId = userId,
+                                        receiverId     = comment.userId,
+                                        type           = "comment_upvote",
+                                        senderId       = userId,
                                         senderUsername = upvoterUsername,
-                                        message = message
+                                        message        = message,
+                                        postId         = postId,
+                                        commentId      = commentId
                                     )
                                 }
                             }
@@ -1283,11 +1315,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                     val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
                                     val message = "$downvoterUsername$relationshipText downvoted your comment."
                                     sendNotification(
-                                        receiverId = comment.userId,
-                                        type = "comment_downvote",
-                                        senderId = userId,
+                                        receiverId     = comment.userId,
+                                        type           = "comment_downvote",
+                                        senderId       = userId,
                                         senderUsername = downvoterUsername,
-                                        message = message
+                                        message        = message,
+                                        postId         = postId,
+                                        commentId      = commentId
                                     )
                                 }
                             }
@@ -1353,11 +1387,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                     val commenterUsername = fetchUsernameById(comment.userId)
                                     val message = "$commenterUsername commented on your post."
                                     sendNotification(
-                                        receiverId = post.userId,
-                                        type = "post_comment",
-                                        senderId = comment.userId,
+                                        receiverId     = post.userId,
+                                        type           = "post_comment",
+                                        senderId       = comment.userId,
                                         senderUsername = commenterUsername,
-                                        message = message
+                                        message        = message,
+                                        postId         = postId,
+                                        commentId      = commentId
                                     )
                                 }
                             }

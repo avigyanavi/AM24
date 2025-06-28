@@ -24,9 +24,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.VisualTransformation
 import com.am24.am24.ui.theme.AppTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -100,8 +103,8 @@ class LoginActivity : ComponentActivity() {
                     progress          = loginProgress.value,
                     onLoginClick      = ::handleLogin,
                     onForgotPassword  = ::handlePasswordReset,
-                    onPhoneLogin       = ::handlePhoneLogin      // Add this // <-- pass it in
-                )
+                    onPhoneLogin       = ::handlePhoneLogin,     // Add this
+                    onBackToLanding   = ::onBackToLanding                )
             }
         }
     }
@@ -254,6 +257,13 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
+    private fun onBackToLanding() {
+        val intent = Intent(this, LandingActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        startActivity(intent)
+        finish()
+    }
+
     private suspend fun resolveToEmail(userOrEmail: String): String? {
         val trimmed = userOrEmail.trim()
         if (trimmed.contains("@")) return trimmed
@@ -309,6 +319,7 @@ fun LoginScreen(
     onLoginClick: (String, String) -> Unit,
     onForgotPassword: (String) -> Unit,
     onPhoneLogin: (String) -> Unit,           // ◀︎ New param for phone OTP login
+    onBackToLanding: () -> Unit
 ) {
     // OTP dialog state
     var showOtpDialog by remember { mutableStateOf(false) }
@@ -428,12 +439,21 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
-        contentAlignment = Alignment.Center
+            .background(Color.Black)
     ) {
+        IconButton(
+            onClick = onBackToLanding,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .align(Alignment.Center)
                 .padding(horizontal = 32.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -480,18 +500,20 @@ fun LoginScreen(
                 colors = orangeOutlinedColors()
             )
 
-            Button(
+            OutlinedButton(
                 onClick = { onLoginClick(userOrEmail.text, password.text) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
-                shape = CircleShape,
-                elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black
+                ),
+                shape = RoundedCornerShape(25.dp)
             ) {
                 Text(
                     text = stringResource(id = R.string.login),
-                    color = Color.White,
+                    color = Color.Black,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -519,7 +541,7 @@ fun LoginScreen(
             )
             Spacer(Modifier.height(16.dp))
 
-            Button(
+            OutlinedButton(
                 onClick = {
                     // You can validate and start OTP flow here
                     if (phoneNumber.text.length >= 10) {
@@ -533,11 +555,18 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
-                shape = CircleShape,
-                elevation = ButtonDefaults.elevatedButtonElevation(8.dp)
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black
+                ),
+                shape = RoundedCornerShape(25.dp)
             ) {
-                Text("Login with OTP", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Login with OTP",
+                    color = Color.Black,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(Modifier.height(16.dp))

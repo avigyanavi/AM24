@@ -431,9 +431,10 @@ fun LeaderboardRow(rank: Int, profile: Profile) {
             Spacer(Modifier.width(8.dp))
 
             val placeholder = painterResource(R.drawable.local_placeholder)
+            val displayName = profile.name.ifBlank { profile.username }
             AsyncImage(
                 model = profile.profilepicUrl.takeIf { !it.isNullOrBlank() },
-                contentDescription = profile.name,
+                contentDescription = displayName,
                 placeholder = placeholder,
                 error = placeholder,
                 modifier = Modifier
@@ -445,7 +446,7 @@ fun LeaderboardRow(rank: Int, profile: Profile) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = profile.name,
+                    text = displayName,
                     style = MaterialTheme.typography.headlineSmall,
                     color = Color.White
                 )
@@ -458,6 +459,10 @@ fun LeaderboardRow(rank: Int, profile: Profile) {
                     text = "Matches: ${profile.matchCount}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
+                )
+                RatingBar(
+                    rating = profile.averageRating,
+                    ratingCount = profile.numberOfRatings
                 )
             }
         }

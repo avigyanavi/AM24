@@ -719,8 +719,9 @@ fun DMUserCard(
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
+                    val displayName = profile.name.ifBlank { profile.username }
                     Text(
-                        text = profile.username,
+                        text = displayName,
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold

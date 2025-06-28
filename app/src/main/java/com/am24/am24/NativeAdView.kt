@@ -143,7 +143,7 @@ fun NativeAdCard(
 
             // 2) Asset views
             val headlineView = TextView(ctx).apply {
-                setTextColor(AndroidColor.WHITE); textSize = 16f
+                setTextColor(AndroidColor.WHITE); textSize = 4f
             }
             val bodyView     = TextView(ctx).apply {
                 setTextColor(AndroidColor.LTGRAY); textSize = 14f
@@ -178,7 +178,6 @@ fun NativeAdCard(
             val container = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 addView(headlineView)
-                addView(bodyView)
                 addView(iconView)
                 addView(mediaView)
                 addView(ctaView)

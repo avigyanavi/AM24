@@ -20,6 +20,25 @@ import kotlinx.coroutines.tasks.await
 import java.text.DateFormat
 import java.util.Date
 
+private val PLUS_FEATURES = listOf(
+    "No ads",
+    "Unlock People Who Liked Me and Change Location",
+    "Unlock Picture and Voice posts",
+    "3 compliments per week",
+    "3 boosts per week"
+)
+
+private val PREMIUM_FEATURES = listOf(
+    "Unlock Video posts",
+    "Priority Profile in the dating stack",
+    "Unlimited Swipes",
+    "5 compliments per week",
+    "5 boosts per week",
+    "Unlocked Performance Metrics per profile",
+    "Everything in Plus"
+)
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageSubscriptionScreen(navController: NavController) {
@@ -71,6 +90,24 @@ fun ManageSubscriptionScreen(navController: NavController) {
         ) {
             Text("Membership: $premiumTier", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text("Expires on: $expiry",   fontSize = 16.sp)
+
+            val featureList = when {
+                isPremium -> PREMIUM_FEATURES
+                isPlus    -> PLUS_FEATURES
+                else      -> emptyList()
+            }
+            if (featureList.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text("Your Benefits:", fontWeight = FontWeight.SemiBold)
+                featureList.forEach { bullet ->
+                    Text(
+                        "• $bullet",
+                        color = Color.LightGray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
 
             Spacer(Modifier.height(24.dp))
 

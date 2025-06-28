@@ -908,8 +908,9 @@ fun UserProfilePopup(
             contentScale = ContentScale.Crop
         )
         Spacer(Modifier.height(12.dp))
+        val displayName = profile.name.ifBlank { profile.username }
         Text(
-            text = profile.name,
+            text = displayName,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
             color = Color.Black

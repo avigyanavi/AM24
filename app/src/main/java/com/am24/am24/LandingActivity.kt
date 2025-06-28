@@ -462,7 +462,6 @@ fun SocialSignInButtons(
         contentColor = Color.Black,
         onClick = onGoogleSignIn
     )
-    Spacer(Modifier.width(30.dp))
     SocialSignInButton(
         modifier   = Modifier.weight(1f),
         logo = R.drawable.facebook_logo,
@@ -483,8 +482,7 @@ fun SocialSignInButton(
 ) {
     Button(
         onClick,
-        modifier = Modifier
-            .height(50.dp),
+        modifier = modifier.height(50.dp),
         shape = RoundedCornerShape(25.dp),
         border = BorderStroke(1.dp, Color.LightGray),
         colors = ButtonDefaults.buttonColors(

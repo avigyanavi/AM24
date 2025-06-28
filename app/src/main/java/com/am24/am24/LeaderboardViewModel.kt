@@ -22,6 +22,9 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
     // ─── raw & processed profiles ───────────────────────────────────
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
 
+    private var listener: ValueEventListener? = null
+    private var usersRef: com.google.firebase.database.DatabaseReference? = null
+
     // ─── filter states ──────────────────────────────────────────────
     private val _countryFilter   = MutableStateFlow<String?>(null)
     private val _genderFilter     = MutableStateFlow<String?>(null)
@@ -112,18 +115,27 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
     init {
         // fetch and compute metrics
         Log.d("LeaderboardVM", ">>> init LeaderboardViewModel")
-        FirebaseDatabase.getInstance()
+        val ref = FirebaseDatabase.getInstance()
             .getReference("users")
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-
+            listener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     Log.d("LeaderboardVM", "Using RTDB instance: $db")
                     Log.d("LeaderboardVM", "Root ref URL: ${db.reference.root}")
                     viewModelScope.launch {
                         // raw
                         Log.d("LeaderboardVM", "Got ${snapshot.childrenCount} users from Firebase")
-                        val raw = snapshot.children
-                            .mapNotNull { it.getValue(Profile::class.java) }
+                        val raw = snapshot.children.mapNotNull { child ->
+                            child.getValue(Profile::class.java)?.let { p ->
+                                val matchCount     = child.child("matchCount").getValue(Int::class.java)      ?: p.matchCount
+                                val averageRating  = child.child("averageRating").getValue(Double::class.java) ?: p.averageRating
+                                val numberOfRatings = child.child("numberOfRatings").getValue(Int::class.java) ?: p.numberOfRatings
+                                p.copy(
+                                    matchCount = matchCount,
+                                    averageRating = averageRating,
+                                    numberOfRatings = numberOfRatings
+                                )
+                            }
+                        }
                         Log.d("LeaderboardVM", "Mapped to ${raw.size} Profile objects")
 
                         // compute various rank maps
@@ -184,8 +196,8 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
                                 am24RankingHighSchool     = hsRankMap[p.userId]           ?: 0,
                                 am24RankingCollege        = colRankMap[p.userId]          ?: 0,
 
-                                averageSwipeRightsOnUser  = if (p.numberOfSwipeRights > 0)
-                                    p.matchCount.toDouble() / p.numberOfSwipeRights
+                                averageSwipeRightsOnUser  = if (p.numberOfUsersWhoSwiped > 0)
+                                    p.numberOfSwipeRights.toDouble() / p.numberOfUsersWhoSwiped
                                 else 0.0,
                                 matchCountPerSwipeRight   = if (p.numberOfSwipeRights > 0)
                                     p.matchCount.toDouble() / p.numberOfSwipeRights
@@ -197,16 +209,17 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
                 override fun onCancelled(error: DatabaseError) {
                     // TODO: handle error
                 }
-            })
+            }
+        ref.addValueEventListener(listener!!)
+        usersRef = ref
     }
 
-    /** dynamic composite rank flow */
-    fun compositeRankFor(userId: String): Flow<Int> =
-        _allProfiles.map { list ->
-            list.sortedByDescending { it.compositeScore }
-                .indexOfFirst { it.userId == userId }
-                .let { idx -> if (idx >= 0) idx + 1 else -1 }
-        }.stateIn(viewModelScope, SharingStarted.Lazily, -1)
+    override fun onCleared() {
+        super.onCleared()
+        listener?.let { l -> usersRef?.removeEventListener(l) }
+        listener = null
+        usersRef = null
+    }
 }
 
 private data class Filters(
