@@ -2532,7 +2532,7 @@ fun ChatInputBar(
         TextField(
             value = messageText,
             onValueChange = onTextChange,
-            placeholder = { Text(stringResource(R.string.hint_type_message), color = Color.Gray) },
+            placeholder = { Text(stringResource(R.string.hint_type_message), color = Color.White) },
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 48.dp)
@@ -2542,14 +2542,11 @@ fun ChatInputBar(
                 focusedTextColor = Color.White,
                 focusedPlaceholderColor = Color.Gray,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = Color.White
             ),
-            singleLine = true,
+//            singleLine = true,
 
-            // ← HERE: make Enter act as “Send”
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Send
-            ),
             keyboardActions = KeyboardActions(
                 onSend = {
                     if (sendEnabled) onSend()
