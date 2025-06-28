@@ -455,8 +455,7 @@ exports.kupidxPlusWebhook = functions
                   updates.availableCompliments = tier.premium ? 5 : 3;
                   if (tier.premium) updates.availableAiMessages = 2;
                 }
-                await db.update(updates);
-        });
+        await db.update(updates);
         break;
       }
 
