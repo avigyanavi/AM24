@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,12 +21,46 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun PeopleWhoLikeMeScreen(
     navController: NavController,
     currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 ) {
+    val context = LocalContext.current
+    var isPlus by remember { mutableStateOf<Boolean?>(null) }
+    var isPremium by remember { mutableStateOf<Boolean?>(null) }
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotBlank()) {
+            try {
+                val db = FirebaseDatabase.getInstance()
+                val premiumSnap = db.getReference("users")
+                    .child(currentUserId)
+                    .child("isPremium")
+                    .get()
+                    .await()
+                val plusSnap = db.getReference("users")
+                    .child(currentUserId)
+                    .child("isPlus")
+                    .get()
+                    .await()
+                isPremium = premiumSnap.getValue(Boolean::class.java) ?: false
+                isPlus = plusSnap.getValue(Boolean::class.java) ?: false
+            } catch (e: Exception) {
+                isPremium = false
+                isPlus = false
+            }
+
+            if (isPremium == false && isPlus == false) {
+                Toast
+                    .makeText(context, "Upgrade to Plus to see who liked you", Toast.LENGTH_SHORT)
+                    .show()
+                navController.popBackStack()
+            }
+        }
+    }
     val blockedRef = FirebaseRefs.db
         .getReference("blocks/$currentUserId")
 

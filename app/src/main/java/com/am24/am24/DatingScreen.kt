@@ -741,7 +741,8 @@ suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
 
     /* ── New day?  Top-up only if user was below their quota ─────── */
-    if (today != lastReset && remaining < quota) {
+    /* ── New day or tier upgrade?  Always restore to quota ────────── */
+    if (today != lastReset || remaining < quota) {
         remaining = quota
     }
 

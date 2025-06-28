@@ -443,11 +443,19 @@ exports.kupidxPlusWebhook = functions
       case "subscription.charged": {
         const planId = payload.subscription.entity.plan_id;
         const tier   = PLAN_TIERS[planId] || { plus: false, premium: false };
-        await db.update({
-          isPlus:           tier.plus,
-          isPremium:        tier.premium,
+        const updates = {
+          isPlus:            tier.plus,
+          isPremium:         tier.premium,
           subscriptionStatus:"active",
-          nextRenewal:      payload.subscription.entity.current_end,
+          nextRenewal:       payload.subscription.entity.current_end,
+        };
+        if (tier.plus || tier.premium) {
+                  updates["swipesInfo/remainingSwipes"] = tier.premium ? 2147483647 : 50;
+                  updates.availableBoosts      = tier.premium ? 5 : 3;
+                  updates.availableCompliments = tier.premium ? 5 : 3;
+                  if (tier.premium) updates.availableAiMessages = 2;
+                }
+                await db.update(updates);
         });
         break;
       }
@@ -592,11 +600,12 @@ exports.grantWeeklyQuotas = functions.pubsub
     snap.forEach(userSnap => {
       const uid  = userSnap.key;
       const data = userSnap.val() || {};
-      let boosts, compliments;
+      let boosts, compliments, ai;
 
       if (data.isPremium) {
         boosts      = 5;
         compliments = 5;
+        ai          = 2;
       } else if (data.isPlus) {
         boosts      = 3;
         compliments = 3;
@@ -606,6 +615,9 @@ exports.grantWeeklyQuotas = functions.pubsub
 
       updates[`users/${uid}/availableBoosts`]      = boosts;
       updates[`users/${uid}/availableCompliments`] = compliments;
+      if (ai !== undefined) {
+              updates[`users/${uid}/availableAiMessages`] = ai;
+            }
     });
 
     // perform all updates in one go
