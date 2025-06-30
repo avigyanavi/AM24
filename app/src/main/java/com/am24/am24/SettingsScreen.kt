@@ -121,6 +121,9 @@ fun SettingsScreen(navController: NavController) {
 
     var showLocationDialog by remember { mutableStateOf(false) }
     var subscriptionId by remember { mutableStateOf<String?>(null) }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
+    var feedbackText      by remember { mutableStateOf("") }
+    var working           by remember { mutableStateOf(false) }
 
     /* load once */
     LaunchedEffect(Unit) {
@@ -367,6 +370,15 @@ fun SettingsScreen(navController: NavController) {
                 }
             }
 
+            item {
+                SettingsSection {
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.Feedback, null, tint = Color(0xFFFF6F00)) },
+                        title = "Give Feedback",
+                        showChevron = false
+                    ) { showFeedbackDialog = true }
+                }
+            }
             /* ───── Policies & Support ───── */
             item {
                 SettingsSection {
@@ -377,6 +389,7 @@ fun SettingsScreen(navController: NavController) {
                     )
                 }
             }
+
 
             /*──────────────── footer ─────────────────────────────────*/
             item {
@@ -396,6 +409,59 @@ fun SettingsScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             }
+        }
+        val kupidxOrange = Color(0xFFFF6F00)
+        if (showFeedbackDialog) {
+            AlertDialog(
+                onDismissRequest = { if (!working) showFeedbackDialog = false },
+                title = { Text("Send Feedback", color = kupidxOrange) },
+                text = {
+                    OutlinedTextField(
+                        value = feedbackText,
+                        onValueChange = { feedbackText = it },
+                        placeholder = { Text("Your feedback") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            containerColor       = Color(0xFF1A1A1A),
+                            cursorColor          = Color.White,
+                            focusedBorderColor   = kupidxOrange,   // ← orange outline (focused)
+                            unfocusedBorderColor = kupidxOrange.copy(alpha = 0.4f), // ← subtler outline (unfocused)
+                            focusedLabelColor    = kupidxOrange
+                        )
+                    )
+                },
+                confirmButton = {
+                    // button NEVER vanishes; just gets disabled
+                    TextButton(
+                        onClick = {
+                            working = true
+                            scope.launch {
+                                try {
+                                    submitFeedback(uid, feedbackText)
+                                    Toast.makeText(ctx, "Feedback sent", Toast.LENGTH_SHORT).show()
+                                    showFeedbackDialog = false
+                                } catch (e: Exception) {
+                                    Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                } finally {
+                                    working = false
+                                    feedbackText = ""
+                                }
+                            }
+                        },
+                        enabled = feedbackText.isNotBlank() && !working
+                    ) {
+                        Text("Send", color = kupidxOrange)        // ← orange text
+                    }
+                },
+                dismissButton = {
+                    if (!working)
+                        TextButton(onClick = { showFeedbackDialog = false }) {
+                            Text("Cancel", color = kupidxOrange)
+                        }
+                }
+            )
         }
     }
 }

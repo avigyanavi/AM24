@@ -741,72 +741,80 @@ exports.pushSummary = functions.pubsub
   });
 
 exports.pushUpgradePrompt = functions.pubsub
-    .schedule('every 24 hours')
-    .timeZone('Asia/Kolkata')
-    .onRun(async () => {
-      const usersSnap = await admin.database()
-        .ref('users')
-        .orderByChild('isPlus')
-        .equalTo(false)
-        .once('value');
+  .schedule('0 10 * * 1')          // cron: mm hh DD MM DOW   → Monday 10:00
+  .timeZone('Asia/Kolkata')
+  .onRun(async () => {
+    const usersSnap = await admin.database()
+      .ref('users')
+      .orderByChild('isPlus')
+      .equalTo(false)
+      .once('value');
 
-      const now = Date.now();
-      const day = 24 * 60 * 60 * 1000;
-      const jobs = [];
+    const now  = Date.now();
+    const week = 7 * 24 * 60 * 60 * 1000;
 
-      usersSnap.forEach(userSnap => {
-        const uid  = userSnap.key;
-        const user = userSnap.val() || {};
-        const last = user.lastUpgradePush || 0;
+    const jobs = [];
 
-        if (user.isPremium === true) return;
-        if (now - last < day) return;         // skip if pushed < 24h ago
+    usersSnap.forEach(userSnap => {
+      const uid  = userSnap.key;
+      const user = userSnap.val() || {};
+      const last = user.lastUpgradePush || 0;
 
-        jobs.push((async () => {
-          const tSnap  = await admin.database()
-            .ref(`users/${uid}/fcmTokens`).once('value');
-          const tokens = Object.keys(tSnap.val() || {});
+      // Already paying? Skip.
+      if (user.isPremium || user.isPlus) return;
 
-          logger.info('pushUpgradePrompt candidate', {
-            uid,
-            tokenCount: tokens.length,
-          });
+      // Already nudged in the last 7 days? Skip.
+      if (now - last < week) return;
 
-          if (tokens.length === 0) return;
+      jobs.push((async () => {
+        const tSnap  = await admin.database()
+          .ref(`users/${uid}/fcmTokens`).once('value');
+        const tokens = Object.keys(tSnap.val() || {});
 
-          const res = await admin.messaging().sendEachForMulticast({
-            tokens,
-            notification: {
-              body: 'Upgrade for unlimited swipes and an ad-free experience',
-            },
-            data: { type: 'upgrade_prompt' },
-            android: { priority: 'high' },
-          });
+        logger.info('pushUpgradePrompt candidate', {
+          uid,
+          tokenCount: tokens.length,
+        });
 
-          const updates = {};
-          res.responses.forEach((r, i) => {
-            if (!r.success &&
-                r.error?.code === 'messaging/registration-token-not-registered') {
-              updates[tokens[i]] = null;
-            }
-          });
-          if (Object.keys(updates).length) {
-            await admin.database().ref(`users/${uid}/fcmTokens`).update(updates);
+        if (tokens.length === 0) return;
+
+        const res = await admin.messaging().sendEachForMulticast({
+          tokens,
+          notification: {
+            body: 'Upgrade for unlimited swipes and an ad-free experience',
+          },
+          data: { type: 'upgrade_prompt' },
+          android: { priority: 'high' },
+        });
+
+        // Prune invalid tokens
+        const updates = {};
+        res.responses.forEach((r, i) => {
+          if (!r.success &&
+              r.error?.code === 'messaging/registration-token-not-registered') {
+            updates[tokens[i]] = null;
           }
+        });
+        if (Object.keys(updates).length) {
+          await admin.database()
+            .ref(`users/${uid}/fcmTokens`)
+            .update(updates);
+        }
 
-          logger.info('pushUpgradePrompt result', {
-            uid,
-            success: res.successCount,
-            failure: res.failureCount,
-          });
+        logger.info('pushUpgradePrompt result', {
+          uid,
+          success: res.successCount,
+          failure: res.failureCount,
+        });
 
-          await Promise.all([
-            userSnap.ref.child('lastUpgradePush').set(now),             // India copy
-            dbUS.ref(`users/${uid}/lastUpgradePush`).set(now),           // US copy
-          ]);
-        })());
-      });
-
-      await Promise.all(jobs);
-      logger.info(`pushUpgradePrompt: processed ${jobs.length} users`);
+        // Mirror the timestamp in both DB copies
+        await Promise.all([
+          userSnap.ref.child('lastUpgradePush').set(now),   // India copy
+          dbUS.ref(`users/${uid}/lastUpgradePush`).set(now) // US copy
+        ]);
+      })());
     });
+
+    await Promise.all(jobs);
+    logger.info(`pushUpgradePrompt: processed ${jobs.length} users`);
+  });

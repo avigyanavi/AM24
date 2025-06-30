@@ -125,6 +125,17 @@ fun MainNavGraph(
                 postViewModel = postViewModel
             )
         }
+        composable("feedback_list") {
+            val isAdmin by profileViewModel.isAdmin.collectAsState()
+            if (isAdmin) {
+                FeedbackListScreen()
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                    Toast.makeText(context, "Unauthorized", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
         composable("dating_screen?initialQuery={initialQuery}") { backStackEntry ->
             val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
             DatingScreen(

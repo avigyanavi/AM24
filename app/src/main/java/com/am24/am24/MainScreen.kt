@@ -226,6 +226,9 @@ fun TopNavBar(
                 IconButton(onClick = { navController.navigate("verifications_review") }) {
                     Icon(Icons.Default.VerifiedUser, contentDescription = "Review IDs")
                 }
+                IconButton(onClick = { navController.navigate("feedback_list") }) {
+                    Icon(Icons.Default.Feedback, contentDescription = "View Feedback")
+                }
             }
             // Report Button
             if (currentRoute == "dating") {
