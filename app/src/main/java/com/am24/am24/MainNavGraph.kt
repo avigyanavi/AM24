@@ -58,12 +58,6 @@ fun MainNavGraph(
     postViewModel: PostViewModel,
     currentPrice  : String
 ) {
-    // Re-initialize postViewModel
-    val postViewModel: PostViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-            LocalContext.current.applicationContext as Application
-        )
-    )
     var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     // Read in the current user's matches from Firebase
@@ -82,6 +76,11 @@ fun MainNavGraph(
                 // Handle error if needed
             }
         })
+    }
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {              // only when logged-in
+            postViewModel.setCurrentUserId(userId)
+        }
     }
 
 

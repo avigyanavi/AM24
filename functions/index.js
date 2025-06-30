@@ -354,6 +354,8 @@ const PLAN_TIERS = {
   plan_QjmpS4xg31rg:       { plus: false, premium: true  },  // ₹999 / year
 };
 
+
+const FREE_SWIPE_QUOTA = 15;
 exports.checkExpiredOneTimeSubscriptions = functions.pubsub
   .schedule('every day 00:00')
   .timeZone('Asia/Kolkata')
@@ -369,6 +371,7 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
       if (user.isPlus || user.isPremium) {
         updates[`${userSnap.key}/isPlus`] = false;
         updates[`${userSnap.key}/isPremium`] = false;
+        updates[`${userSnap.key}/swipesInfo/remainingSwipes`] = FREE_SWIPE_QUOTA;
       }
     });
 
@@ -736,3 +739,74 @@ exports.pushSummary = functions.pubsub
     await Promise.all(jobs);
     logger.info(`pushSummary: processed ${jobs.length} users`);
   });
+
+exports.pushUpgradePrompt = functions.pubsub
+    .schedule('every 24 hours')
+    .timeZone('Asia/Kolkata')
+    .onRun(async () => {
+      const usersSnap = await admin.database()
+        .ref('users')
+        .orderByChild('isPlus')
+        .equalTo(false)
+        .once('value');
+
+      const now = Date.now();
+      const day = 24 * 60 * 60 * 1000;
+      const jobs = [];
+
+      usersSnap.forEach(userSnap => {
+        const uid  = userSnap.key;
+        const user = userSnap.val() || {};
+        const last = user.lastUpgradePush || 0;
+
+        if (user.isPremium === true) return;
+        if (now - last < day) return;         // skip if pushed < 24h ago
+
+        jobs.push((async () => {
+          const tSnap  = await admin.database()
+            .ref(`users/${uid}/fcmTokens`).once('value');
+          const tokens = Object.keys(tSnap.val() || {});
+
+          logger.info('pushUpgradePrompt candidate', {
+            uid,
+            tokenCount: tokens.length,
+          });
+
+          if (tokens.length === 0) return;
+
+          const res = await admin.messaging().sendEachForMulticast({
+            tokens,
+            notification: {
+              body: 'Upgrade for unlimited swipes and an ad-free experience',
+            },
+            data: { type: 'upgrade_prompt' },
+            android: { priority: 'high' },
+          });
+
+          const updates = {};
+          res.responses.forEach((r, i) => {
+            if (!r.success &&
+                r.error?.code === 'messaging/registration-token-not-registered') {
+              updates[tokens[i]] = null;
+            }
+          });
+          if (Object.keys(updates).length) {
+            await admin.database().ref(`users/${uid}/fcmTokens`).update(updates);
+          }
+
+          logger.info('pushUpgradePrompt result', {
+            uid,
+            success: res.successCount,
+            failure: res.failureCount,
+          });
+
+          await Promise.all([
+            userSnap.ref.child('lastUpgradePush').set(now),             // India copy
+            dbUS.ref(`users/${uid}/lastUpgradePush`).set(now),           // US copy
+          ]);
+        })());
+      });
+
+      await Promise.all(jobs);
+      logger.info(`pushUpgradePrompt: processed ${jobs.length} users`);
+    });

@@ -107,16 +107,11 @@ fun CreatePostScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
+                    .padding(innerPadding),
+//                    .padding(16.dp),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Choose Post Type",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
-                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // 1) Text posts are always enabled
@@ -404,7 +399,7 @@ fun TextPostComposable(
             LazyColumn(
                 modifier = Modifier
                     .padding(pad)
-                    .padding(16.dp)
+//                    .padding(16.dp)
                     .fillMaxSize()
                     .imePadding(),
                 horizontalAlignment = Alignment.Start
@@ -689,7 +684,7 @@ fun ImagePostComposable(
         LazyColumn(
             modifier = Modifier
                 .padding(pad)
-                .padding(16.dp)
+//                .padding(16.dp)
                 .fillMaxSize()
                 .imePadding()
                 .navigationBarsPadding(),
@@ -1028,7 +1023,7 @@ fun VideoPostComposable(
         LazyColumn(
             modifier = Modifier
                 .padding(pad)
-                .padding(16.dp)
+//                .padding(16.dp)
                 .fillMaxSize()
                 .imePadding()
                 .navigationBarsPadding(),

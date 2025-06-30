@@ -52,6 +52,7 @@ class KupidXAppActivity : ComponentActivity(),
 
     // deep-link flag
     private var pendingOpenNotifications = false
+    private var pendingOpenUpgradeLanding = false
 
     /* ------------------------------------------------------------------ locale */
     override fun attachBaseContext(newBase: Context) {
@@ -91,6 +92,8 @@ class KupidXAppActivity : ComponentActivity(),
 
         pendingOpenNotifications =
             intent?.getBooleanExtra("open_notifications", false) ?: false
+        pendingOpenUpgradeLanding =
+            intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
 
         // 🔸 Start the real setup right away — no extra listener needed
         auth.currentUser?.uid?.let { continueInitialization(it) }
@@ -129,10 +132,12 @@ class KupidXAppActivity : ComponentActivity(),
         setContent {
             AppTheme {
                 KupidXApp(
-                    postViewModel       = postViewModel,
-                    openNotifications   = pendingOpenNotifications,
-                    onFlagConsumed      = { pendingOpenNotifications = false },
-                    onLogout            = {
+                    postViewModel          = postViewModel,
+                    openNotifications      = pendingOpenNotifications,
+                    openUpgradeLanding     = pendingOpenUpgradeLanding,
+                    onNotificationsConsumed= { pendingOpenNotifications = false },
+                    onUpgradeConsumed      = { pendingOpenUpgradeLanding = false },
+                    onLogout               = {
                         auth.signOut()
                         startActivity(Intent(this, LandingActivity::class.java))
                         finish()
@@ -143,10 +148,16 @@ class KupidXAppActivity : ComponentActivity(),
     }
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        var changed = false
         if (intent.getBooleanExtra("open_notifications", false)) {
             pendingOpenNotifications = true
-            recreate()
+            changed = true
         }
+        if (intent.getBooleanExtra("open_upgrade_landing", false)) {
+            pendingOpenUpgradeLanding = true
+            changed = true
+        }
+        if (changed) recreate()
     }
 
     /* ---------------------------------------------------------------- helpers */
@@ -222,7 +233,9 @@ class KupidXAppActivity : ComponentActivity(),
 fun KupidXApp(
     postViewModel: PostViewModel,
     openNotifications: Boolean,
-    onFlagConsumed: () -> Unit,
+    openUpgradeLanding: Boolean,
+    onNotificationsConsumed: () -> Unit,
+    onUpgradeConsumed: () -> Unit,
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -230,7 +243,14 @@ fun KupidXApp(
     LaunchedEffect(openNotifications) {
         if (openNotifications) {
             navController.navigate("notifications")
-            onFlagConsumed()
+            onNotificationsConsumed()
+        }
+    }
+
+    LaunchedEffect(openUpgradeLanding) {
+        if (openUpgradeLanding) {
+            navController.navigate("upgradeLanding")
+            onUpgradeConsumed()
         }
     }
 

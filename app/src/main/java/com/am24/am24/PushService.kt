@@ -43,46 +43,73 @@ class PushService : FirebaseMessagingService() {
 
     /** Handles data-only summary messages from pushSummary */
     override fun onMessageReceived(msg: RemoteMessage) {
-        val data = msg.data                            // e.g. {type=notif_summary, count=3}
-        if (data["type"] != "notif_summary") return
+        val data = msg.data
+        when (data["type"]) {
+            "notif_summary" -> {
+                val unread = data["count"]?.toIntOrNull() ?: return
+                if (unread <= 0) return
 
-        val unread = data["count"]?.toIntOrNull() ?: return
-        if (unread <= 0) return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this, android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED) return
 
         /* Android 13+ runtime permission guard */
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(
-                this, android.Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
-
-        /* Tap action → open notifications screen */
-        val pending = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java).apply {
-                putExtra("open_notifications", true)
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
-        ensureChannel()
-
-        NotificationManagerCompat.from(this).notify(
-            99,    // static ID → replaces the previous summary
-            NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.kupidx_logo)     // ensure this icon exists
-                .setContentTitle(getString(R.string.app_name))   // ← change was here
-                .setContentText(
-                    "You have $unread unread notification" +
-                            if (unread > 1) "s" else ""
+                val pending = PendingIntent.getActivity(
+                    this, 0,
+                    Intent(this, MainActivity::class.java).apply {
+                        putExtra("open_notifications", true)
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
+                    PendingIntent.FLAG_IMMUTABLE
                 )
-                .setNumber(unread)                      // badge count on some launchers
-                .setAutoCancel(true)
-                .setContentIntent(pending)
-                .build()
-        )
+
+                ensureChannel()
+
+                NotificationManagerCompat.from(this).notify(
+                    99,
+                    NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.kupidx_logo)
+                        .setContentTitle(getString(R.string.app_name))
+                        .setContentText(
+                            "You have $unread unread notification" +
+                                    if (unread > 1) "s" else ""
+                        )
+                        .setNumber(unread)
+                        .setAutoCancel(true)
+                        .setContentIntent(pending)
+                        .build()
+                )
+            }
+            "upgrade_prompt" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this, android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED) return
+
+                val pending = PendingIntent.getActivity(
+                    this, 1,
+                    Intent(this, MainActivity::class.java).apply {
+                        putExtra("open_upgrade_landing", true)
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+                ensureChannel()
+
+                NotificationManagerCompat.from(this).notify(
+                    98,
+                    NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.kupidx_logo)
+                        .setContentTitle(getString(R.string.app_name))
+                        .setContentText("Check out our latest upgrade options")
+                        .setAutoCancel(true)
+                        .setContentIntent(pending)
+                        .build()
+                )
+            }
+            else -> return
+        }
     }
 
     /** Creates the notification channel once (Android 8+) */

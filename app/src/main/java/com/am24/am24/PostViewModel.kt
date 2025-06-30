@@ -83,6 +83,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _myProfile = MutableStateFlow<Profile?>(null)
     val myProfile: StateFlow<Profile?> = _myProfile.asStateFlow()
 
+    private val _postFlow = MutableStateFlow<Post?>(null)
+    val    postFlow: StateFlow<Post?> = _postFlow.asStateFlow()
+
     fun setCurrentUserId(userId: String?) {
         _currentUserId.value = userId
 
@@ -99,23 +102,56 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         observeMyProfile(userId)
     }
 
-    fun fetchPostById(
-        postId: String,
-        onSuccess: (Post?) -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val snapshot = postsRef.child(postId).get().await()
-                val post = snapshot.getValue(Post::class.java)
-                withContext(Dispatchers.Main) { onSuccess(post) }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error fetching post: ${e.message}", e)
-                withContext(Dispatchers.Main) {
-                    onFailure(e.message ?: "Failed to fetch post")
-                }
+    private var currentPostId: String? = null          // <— NEW
+    private var singlePostListener: ValueEventListener? = null
+
+    /** Starts (or switches) a realtime listener for one post. */
+    fun startPostListener(postId: String) {
+        // Already listening to this post?  Nothing to do
+        if (currentPostId == postId && singlePostListener != null) return
+
+        // 1️⃣  Detach the old listener (if any)
+        singlePostListener?.let { listener ->
+            currentPostId?.let { postsRef.child(it).removeEventListener(listener) }
+        }
+
+        // 2️⃣  Attach a fresh listener to the requested post
+        currentPostId = postId
+        singlePostListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                _postFlow.value = snapshot.getValue(Post::class.java)
+            }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "post listener cancelled", error.toException())
             }
         }
+        postsRef.child(postId).addValueEventListener(singlePostListener!!)
+    }
+
+    /** Call when the screen/ViewModel is done */
+    private fun stopPostListener() {
+        singlePostListener?.let { listener ->
+            currentPostId?.let { postsRef.child(it).removeEventListener(listener) }
+        }
+        singlePostListener = null
+        currentPostId     = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+
+        // ─── 1. main feed listener (your existing code) ───────────────
+        postsListener?.let { postsRef.removeEventListener(it) }
+
+        // ─── 2. single-post listener we added for PostDetailScreen ────
+        singlePostListener?.let { listener ->
+            currentPostId?.let { postsRef.child(it).removeEventListener(listener) }
+        }
+        singlePostListener = null
+        currentPostId     = null          // <- also clear the flag
+
+        // ─── 3. any additional cleanup you already perform ────────────
+        pauseFeed()                       // keeps your existing behaviour
     }
 
     private fun observeMyProfile(userId: String) {
@@ -171,6 +207,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 "mediaViewsToday" to 0,
                 "lastMediaResetDayOfYear" to todayDayOfYear
             ))
+    }
+
+    private fun refreshSinglePost(postId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val snap   = postsRef.child(postId).get().await()
+                val latest = snap.getValue(Post::class.java)
+                if (latest != null) _postFlow.value = latest
+            } catch (_: Exception) { /* ignore – listener will catch up */ }
+        }
     }
 
     /**
@@ -618,14 +664,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         observePosts()                    // will add a fresh listener
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        // Remove the listener to prevent memory leaks
-        postsListener?.let { postsRef.removeEventListener(it) }
-        pauseFeed() // Cleanup listeners to prevent memory leaks
-    }
-
-
     /**
      * Remove the mutual match, then delete their chat/thread entry.
      */
@@ -1044,6 +1082,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                 onFailure("Upvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
+                                refreshSinglePost(postId)                //  ← ★ NEW
                                 // Send notification to post owner
                                 val post = currentData?.getValue(Post::class.java)
                                 if (post != null && post.userId != userId) {
@@ -1133,6 +1172,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                 onFailure("Downvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
+                                refreshSinglePost(postId)                //  ← ★ NEW
                                 // Send notification to post owner
                                 val post = currentData?.getValue(Post::class.java)
                                 if (post != null && post.userId != userId) {
@@ -1218,6 +1258,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                 onFailure("Upvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
+                                refreshSinglePost(postId)                //  ← ★ NEW
                                 // Send notification to comment owner
                                 val comment = currentData?.getValue(Comment::class.java)
                                 if (comment != null && comment.userId != userId) {
@@ -1307,6 +1348,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                                 onFailure("Downvote failed: ${error.message}")
                             } else if (committed) {
                                 onSuccess()
+                                refreshSinglePost(postId)                //  ← ★ NEW
                                 // Send notification to comment owner
                                 val comment = currentData?.getValue(Comment::class.java)
                                 if (comment != null && comment.userId != userId) {
@@ -1378,6 +1420,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                             onFailure("Failed to update comment count.")
                         } else if (committed) {
                             onSuccess()
+                            refreshSinglePost(postId)                //  ← ★ NEW
                             // Send notification to post owner
                             viewModelScope.launch(Dispatchers.Main) {
                                 val postSnapshot = postsRef.child(postId).get().await()

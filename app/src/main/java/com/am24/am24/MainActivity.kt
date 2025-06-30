@@ -61,13 +61,14 @@ class MainActivity : ComponentActivity() {
         }
 
         val openNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
+        val openUpgradeLanding = intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
 
         // Define the listener
         authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
             if (user != null) {
                 // User is signed in, route them
-                routeBasedOnUid(user, openNotifications)
+                routeBasedOnUid(user, openNotifications, openUpgradeLanding)
             } else {
                 // User is signed out, go to Landing
                 navigateToLanding()
@@ -114,7 +115,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun routeBasedOnUid(user: FirebaseUser, openNotifications: Boolean) {
+    private fun routeBasedOnUid(
+        user: FirebaseUser,
+        openNotifications: Boolean,
+        openUpgradeLanding: Boolean
+    ) {
         if (isNavigationInProgress) return
         isNavigationInProgress = true
 
@@ -128,6 +133,7 @@ class MainActivity : ComponentActivity() {
             val target = if (finished) {
                 Intent(this@MainActivity, KupidXAppActivity::class.java)
                     .putExtra("open_notifications", openNotifications)
+                    .putExtra("open_upgrade_landing", openUpgradeLanding)
             } else {
                 Intent(this@MainActivity, RegistrationActivity::class.java)
                     .putExtra("requestedStartStep", step)

@@ -2089,6 +2089,7 @@ fun PhotoWithTwoOverlays(
                 ) {
                     CircularProgressIndicator(
                         progress = score / 100f,
+                        color = Color(0xFFFF6F00),
                         strokeWidth = 3.dp,
                         modifier = Modifier.fillMaxSize()
                     )
