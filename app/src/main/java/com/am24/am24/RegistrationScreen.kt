@@ -2021,7 +2021,7 @@ fun EnterEmailAndPasswordScreen(
                             phoneNumber = tfValue
                             registrationViewModel.phoneNumber = tfValue.text
                         },
-                        label = { Text("Mobile (+1…)", color = Color.White) },
+                        label = { Text("Mobile (+91…)", color = Color.White) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = fieldColors()
@@ -2170,7 +2170,7 @@ fun EnterEmailAndPasswordScreen(
 
 fun formatPhoneNumber(input: String): String {
     val trimmed = input.trim()
-    return if (trimmed.startsWith("+")) trimmed else "+1$trimmed"
+    return if (trimmed.startsWith("+")) trimmed else "+91$trimmed"
 }
 /* ---------- tiny helper for terse field-colors ---------- */
 @Composable
