@@ -562,7 +562,7 @@ fun LoginScreen(
                 shape = RoundedCornerShape(25.dp)
             ) {
                 Text(
-                    "Login with OTP",
+                    "(For +91 users only) Login with OTP",
                     color = Color.Black,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold

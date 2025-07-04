@@ -19,6 +19,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -93,6 +95,7 @@ private val PLANS = listOf(
 /* ───────── Subscription screen – new version ───────── */
 @Composable
 fun SubscriptionScreen(navController: NavController) {
+    val scrollState = rememberScrollState()          // ← add
 
     /* geo-gate exactly like before */
     val ctx = LocalContext.current
@@ -191,6 +194,7 @@ fun SubscriptionScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)             // ← add this line
             .background(Color(0xFF121212))
             .padding(16.dp)
     ) {

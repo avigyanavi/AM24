@@ -395,7 +395,7 @@ fun SettingsScreen(navController: NavController) {
             item {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Kupidx is a free pro-love Indian dating app.",
+                    "Kupidx™",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -213,10 +214,11 @@ private fun TierCard(
 
             val features = when (tier) {
                 Tier.PREMIUM -> PREMIUM_FEATURES
-                else         -> PLUS_FEATURES
+                else -> PLUS_FEATURES
             }
             features.forEach { bullet ->
-                Text("• $bullet",
+                Text(
+                    "• $bullet",
                     color = Color.White,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 2.dp)
@@ -232,26 +234,36 @@ private fun TierCard(
                     Text("Subscribe with Card")
                 }
 
-                var expand by remember { mutableStateOf(false) }
-                OutlinedButton(
-                    onClick  = { expand = true },
-                    modifier = Modifier.weight(1f)
-                ) { Text("Pay once", color = if (tier == Tier.PLUS) Color(0xFFFF6F00) else Color.White) }
+                /* 2 ▸ one-time-payment button + its menu */
+                var expanded by remember { mutableStateOf(false) }
 
-                DropdownMenu(expanded = expand, onDismissRequest = { expand = false }) {
+                Box(                               // <- this is now the anchor
+                    modifier = Modifier.weight(1f) // keep the 50-50 width split
+                ) {
+                    OutlinedButton(
+                        onClick = { expanded = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        val accent = if (tier == Tier.PLUS) Color(0xFFFF6F00) else Color.White
+                        Text("Pay once", color = accent)
+                    }
+
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(
-                        text   = { Text("₹$priceWeekly / week") },
-                        onClick = { expand = false; onManual(Period.WEEK) }
+                        text = { Text("₹$priceWeekly / week") },
+                        onClick = { expanded = false; onManual(Period.WEEK) }
                     )
                     DropdownMenuItem(
-                        text   = { Text("₹$priceMonth / month") },
-                        onClick = { expand = false; onManual(Period.MONTH) }
+                        text = { Text("₹$priceMonth / month") },
+                        onClick = { expanded = false; onManual(Period.MONTH) }
                     )
                     DropdownMenuItem(
-                        text   = { Text("₹$priceYear / year") },
-                        onClick = { expand = false; onManual(Period.YEAR) }
+                        text = { Text("₹$priceYear / year") },
+                        onClick = { expanded = false; onManual(Period.YEAR) }
                     )
                 }
+            }
             }
         }
     }

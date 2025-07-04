@@ -117,6 +117,7 @@ class RegistrationActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val allowPhoneAuth = CountryUtil.isProbablyInIndia(this)
 
         auth = FirebaseAuth.getInstance()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -172,6 +173,7 @@ class RegistrationActivity : ComponentActivity() {
                             }
                         }
                     },
+                    allowPhoneAuth   = allowPhoneAuth,
                     fusedLocationClient = fusedLocationClient,
                     initialStep = initialStep
                 )
@@ -344,6 +346,7 @@ class RegistrationViewModel : ViewModel() {
 @Composable
 fun RegistrationScreen(
     onRegistrationComplete: () -> Unit,
+    allowPhoneAuth: Boolean,
     fusedLocationClient: FusedLocationProviderClient,
     initialStep: Int
 ) {
@@ -412,7 +415,7 @@ fun RegistrationScreen(
                  )
                 Spacer(modifier = Modifier.height(16.dp))
                 when (currentStep) {
-                    1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext, onBack)
+                    1 -> EnterEmailAndPasswordScreen(registrationViewModel, allowPhoneAuth, onNext, onBack)
                     2 -> EnterNameScreen(registrationViewModel, onNext)
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
@@ -1855,11 +1858,19 @@ enum class AuthTab { PHONE, EMAIL }
 @Composable
 fun EnterEmailAndPasswordScreen(
     registrationViewModel: RegistrationViewModel,
+    allowPhoneAuth: Boolean,          // ← NEW
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
     /* ───────────────────────── TAB STATE ───────────────────────── */
-    var selectedTab by remember { mutableStateOf(AuthTab.PHONE) }   // ← default = Phone
+    var selectedTab by remember {
+        mutableStateOf(
+            if (allowPhoneAuth) AuthTab.PHONE else AuthTab.EMAIL
+        )
+    }
+    /* When we build the TabRow we only include PHONE if allowed */
+    val visibleTabs = if (allowPhoneAuth)
+        listOf(AuthTab.PHONE, AuthTab.EMAIL) else listOf(AuthTab.EMAIL)
 
     /* ─────────────── EMAIL/PASSWORD local state ────────────────── */
     var email           by remember { mutableStateOf(TextFieldValue(registrationViewModel.email)) }
@@ -1980,19 +1991,21 @@ fun EnterEmailAndPasswordScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+            val selectedIndex = visibleTabs.indexOf(selectedTab)
+
             /* ─── TAB STRIP ─────────────────────────────────────── */
             TabRow(
-                selectedTabIndex = selectedTab.ordinal,
+                selectedTabIndex = selectedIndex,
                 containerColor = Color(0xFF262626),
                 contentColor   = Color.White,
                 indicator = { tabPositions ->
                     TabRowDefaults.Indicator(
-                        Modifier.tabIndicatorOffset(tabPositions[selectedTab.ordinal]),
+                        Modifier.tabIndicatorOffset(tabPositions[selectedIndex]),
                         color = Color(0xFFFF6000)
                     )
                 }
             ) {
-                AuthTab.values().forEach { tab ->
+                visibleTabs.forEach { tab ->
                     Tab(
                         selected = tab == selectedTab,
                         onClick  = { selectedTab = tab },
