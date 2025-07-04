@@ -176,9 +176,18 @@ class LoginActivity : ComponentActivity() {
     private fun handleLogin(userOrEmail: String, pwd: String) {
         isLoading.value = true
         loginProgress.value = 0f
+        val trimmed = userOrEmail.trim()
+
+        if (trimmed.isBlank()) {        // 🆕 guard ①
+            toast("Please enter your username or e-mail.")
+            return
+        }
+        if (pwd.isBlank()) {            // optional, but nice
+            toast("Password can’t be empty.")
+            return
+        }
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val trimmed = userOrEmail.trim()
 
             // ── 0) if it’s a “username” (no @), see if publicUsers says “google” ──
             if (!trimmed.contains("@")) {
@@ -242,9 +251,15 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun handlePasswordReset(userOrEmail: String) {
+        val trimmed = userOrEmail.trim()
+
+        if (trimmed.isBlank()) {        // 🆕 guard ②
+            toast("Please enter your username or e-mail.")
+            return
+        }
         lifecycleScope.launch(Dispatchers.IO) {
-            val email = resolveToEmail(userOrEmail) ?: run {
-                withContext(Dispatchers.Main) { toast("No account found for that entry.") }
+            val email = resolveToEmail(trimmed) ?: run {
+                withContext(Dispatchers.Main) { toast("No account found.") }
                 return@launch
             }
 

@@ -402,7 +402,7 @@ fun SettingsScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "v0.1.1",
+                    "v0.1",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
