@@ -256,7 +256,6 @@ class RegistrationViewModel : ViewModel() {
     var height by mutableStateOf(0)            // Height in centimeters
     var height2 by mutableStateOf(listOf(0, 0))  // Height in feet + inches (default example: 5'7")
     var isHeightInFeet by mutableStateOf(false)  // Toggle for height unit preference (cm or feet+inches)
-    var caste by mutableStateOf("")              // User's caste
 
     // Hometown and Education
     var hometown by mutableStateOf("")     // Treated as Locality
@@ -352,7 +351,7 @@ fun RegistrationScreen(
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel()
     var currentStep by remember { mutableStateOf(initialStep) }
-    val totalSteps = 11 // Updated total steps (language screen removed)
+    val totalSteps = 8 // Updated total steps (language screen removed)
     val progress = currentStep.toFloat() / totalSteps.toFloat()
 
     val context = LocalContext.current
@@ -420,12 +419,9 @@ fun RegistrationScreen(
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
                     5 -> EnterInterestsScreen(registrationViewModel, onNext)
-                    6 -> EnterLocationAndSchoolScreen(registrationViewModel, onNext, onBack)
-                    7 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
-                    8 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    9 -> EnterPersonalDetailsScreen(registrationViewModel, onNext, onBack)
-                    10 -> EnterProfileHeadlineScreen(registrationViewModel, onNext)
-                    11 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
+                    7 -> EnterLifestyleScreen(registrationViewModel, onNext)
+                    8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }
@@ -575,162 +571,162 @@ private fun createFreshAccount(
         }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
-@Composable
-fun EnterPersonalDetailsScreen(
-    viewModel: RegistrationViewModel,
-    onNext: () -> Unit,
-    onBack: () -> Unit
-) {
-    val lookingForOptions = listOf(
-        stringResource(R.string.looking_for_not_selected),
-        stringResource(R.string.looking_for_romance),
-        stringResource(R.string.looking_for_connection),
-        stringResource(R.string.looking_for_partner),
-        stringResource(R.string.looking_for_marriage)
-    )
-    val loveLanguageOptions = listOf(
-        stringResource(R.string.love_language_option_not_selected),
-        stringResource(R.string.love_language_option_words_of_affirmation),
-        stringResource(R.string.love_language_option_acts_of_service),
-        stringResource(R.string.love_language_option_receiving_gifts),
-        stringResource(R.string.love_language_option_quality_time),
-        stringResource(R.string.love_language_option_physical_touch),
-        stringResource(R.string.love_language_option_other),
-    )
-    val politicsOptions = listOf(
-        stringResource(R.string.politics_option_far_left),
-        stringResource(R.string.politics_option_left),
-        stringResource(R.string.politics_option_centre_left),
-        stringResource(R.string.politics_option_centre),
-        stringResource(R.string.politics_option_centre_right),
-        stringResource(R.string.politics_option_right),
-        stringResource(R.string.politics_option_far_right),
-        stringResource(R.string.politics_option_liberal),
-        stringResource(R.string.politics_option_conservative),
-        stringResource(R.string.politics_option_moderate),
-        stringResource(R.string.politics_option_socialist),
-        stringResource(R.string.politics_option_communist),
-        stringResource(R.string.politics_option_other)
-    )
-
-    var lookingFor by remember { mutableStateOf(viewModel.lookingFor) }
-    var loveLanguage by remember { mutableStateOf(viewModel.loveLanguage) }
-    var politics by remember { mutableStateOf(viewModel.politics) }
-
-    // Social Causes
-    val allCauses = stringArrayResource(R.array.social_causes_list).toList()
-    val maxSelections = 5
-
-    // Focus management
-    val focusManager = LocalFocusManager.current
-    LaunchedEffect(Unit) {
-        // Clear focus on screen entry to prevent automatic focus on the text field
-        focusManager.clearFocus()
-    }
-
-    Scaffold(
-        content = { innerPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A1A))
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item {
-                    DropdownWithStaticOptions(
-                        label = stringResource(R.string.looking_for_label),
-                        options = lookingForOptions,
-                        selectedOption = lookingFor,
-                        onOptionSelected = {
-                            lookingFor = it
-                            viewModel.lookingFor = it
-                        }
-                    )
-                }
-
-                item {
-                    DropdownWithStaticOptions(
-                        label = stringResource(R.string.love_language_label),
-                        options = loveLanguageOptions,
-                        selectedOption = loveLanguage,
-                        onOptionSelected = {
-                            loveLanguage = it
-                            viewModel.loveLanguage = it
-                        }
-                    )
-                }
-
-                item {
-                    DropdownWithStaticOptions(
-                        label = stringResource(R.string.label_politics),
-                        options = politicsOptions,
-                        selectedOption = politics,
-                        onOptionSelected = {
-                            politics = it
-                            viewModel.politics = it
-                        }
-                    )
-                }
-
-                item {
-                    Column {
-                        Text(
-                            stringResource(R.string.social_causes),
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            allCauses.forEach { cause ->
-                                val isSelected = viewModel.socialCauses.contains(cause)
-                                val canSelectMore = viewModel.socialCauses.size < maxSelections
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        if (isSelected) {
-                                            viewModel.socialCauses.remove(cause)
-                                        } else if (canSelectMore) {
-                                            viewModel.socialCauses.add(cause)
-                                        }
-                                    },
-                                    enabled = isSelected || canSelectMore,
-                                    label = { Text(cause) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFFFF6F00),
-                                        selectedLabelColor = Color.White,
-                                        disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
-                                        disabledLabelColor = Color.LightGray
-                                    )
-                                )
-                            }
-                        }
-                        if (viewModel.socialCauses.size > maxSelections) {
-                            Text(
-                                text = stringResource(R.string.max_social_causes_error, maxSelections),
-                                color = Color.Red,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Button(
-                        onClick = onNext,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
-                    ) {
-                        Text(stringResource(R.string.next_button), color = Color.White)
-                    }
-                }
-            }
-        }
-    )
-}
+//@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+//@Composable
+//fun EnterPersonalDetailsScreen(
+//    viewModel: RegistrationViewModel,
+//    onNext: () -> Unit,
+//    onBack: () -> Unit
+//) {
+//    val lookingForOptions = listOf(
+//        stringResource(R.string.looking_for_not_selected),
+//        stringResource(R.string.looking_for_romance),
+//        stringResource(R.string.looking_for_connection),
+//        stringResource(R.string.looking_for_partner),
+//        stringResource(R.string.looking_for_marriage)
+//    )
+//    val loveLanguageOptions = listOf(
+//        stringResource(R.string.love_language_option_not_selected),
+//        stringResource(R.string.love_language_option_words_of_affirmation),
+//        stringResource(R.string.love_language_option_acts_of_service),
+//        stringResource(R.string.love_language_option_receiving_gifts),
+//        stringResource(R.string.love_language_option_quality_time),
+//        stringResource(R.string.love_language_option_physical_touch),
+//        stringResource(R.string.love_language_option_other),
+//    )
+//    val politicsOptions = listOf(
+//        stringResource(R.string.politics_option_far_left),
+//        stringResource(R.string.politics_option_left),
+//        stringResource(R.string.politics_option_centre_left),
+//        stringResource(R.string.politics_option_centre),
+//        stringResource(R.string.politics_option_centre_right),
+//        stringResource(R.string.politics_option_right),
+//        stringResource(R.string.politics_option_far_right),
+//        stringResource(R.string.politics_option_liberal),
+//        stringResource(R.string.politics_option_conservative),
+//        stringResource(R.string.politics_option_moderate),
+//        stringResource(R.string.politics_option_socialist),
+//        stringResource(R.string.politics_option_communist),
+//        stringResource(R.string.politics_option_other)
+//    )
+//
+//    var lookingFor by remember { mutableStateOf(viewModel.lookingFor) }
+//    var loveLanguage by remember { mutableStateOf(viewModel.loveLanguage) }
+//    var politics by remember { mutableStateOf(viewModel.politics) }
+//
+//    // Social Causes
+//    val allCauses = stringArrayResource(R.array.social_causes_list).toList()
+//    val maxSelections = 5
+//
+//    // Focus management
+//    val focusManager = LocalFocusManager.current
+//    LaunchedEffect(Unit) {
+//        // Clear focus on screen entry to prevent automatic focus on the text field
+//        focusManager.clearFocus()
+//    }
+//
+//    Scaffold(
+//        content = { innerPadding ->
+//            LazyColumn(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(Color(0xFF1A1A1A))
+//                    .padding(innerPadding)
+//                    .padding(horizontal = 16.dp, vertical = 8.dp),
+//                verticalArrangement = Arrangement.spacedBy(16.dp)
+//            ) {
+//                item {
+//                    DropdownWithStaticOptions(
+//                        label = stringResource(R.string.looking_for_label),
+//                        options = lookingForOptions,
+//                        selectedOption = lookingFor,
+//                        onOptionSelected = {
+//                            lookingFor = it
+//                            viewModel.lookingFor = it
+//                        }
+//                    )
+//                }
+//
+//                item {
+//                    DropdownWithStaticOptions(
+//                        label = stringResource(R.string.love_language_label),
+//                        options = loveLanguageOptions,
+//                        selectedOption = loveLanguage,
+//                        onOptionSelected = {
+//                            loveLanguage = it
+//                            viewModel.loveLanguage = it
+//                        }
+//                    )
+//                }
+//
+//                item {
+//                    DropdownWithStaticOptions(
+//                        label = stringResource(R.string.label_politics),
+//                        options = politicsOptions,
+//                        selectedOption = politics,
+//                        onOptionSelected = {
+//                            politics = it
+//                            viewModel.politics = it
+//                        }
+//                    )
+//                }
+//
+//                item {
+//                    Column {
+//                        Text(
+//                            stringResource(R.string.social_causes),
+//                            color = Color.White,
+//                            fontSize = 16.sp,
+//                            fontWeight = FontWeight.Bold
+//                        )
+//                        Spacer(Modifier.height(8.dp))
+//                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                            allCauses.forEach { cause ->
+//                                val isSelected = viewModel.socialCauses.contains(cause)
+//                                val canSelectMore = viewModel.socialCauses.size < maxSelections
+//                                FilterChip(
+//                                    selected = isSelected,
+//                                    onClick = {
+//                                        if (isSelected) {
+//                                            viewModel.socialCauses.remove(cause)
+//                                        } else if (canSelectMore) {
+//                                            viewModel.socialCauses.add(cause)
+//                                        }
+//                                    },
+//                                    enabled = isSelected || canSelectMore,
+//                                    label = { Text(cause) },
+//                                    colors = FilterChipDefaults.filterChipColors(
+//                                        selectedContainerColor = Color(0xFFFF6F00),
+//                                        selectedLabelColor = Color.White,
+//                                        disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
+//                                        disabledLabelColor = Color.LightGray
+//                                    )
+//                                )
+//                            }
+//                        }
+//                        if (viewModel.socialCauses.size > maxSelections) {
+//                            Text(
+//                                text = stringResource(R.string.max_social_causes_error, maxSelections),
+//                                color = Color.Red,
+//                                modifier = Modifier.padding(top = 8.dp)
+//                            )
+//                        }
+//                    }
+//                }
+//
+//                item {
+//                    Button(
+//                        onClick = onNext,
+//                        modifier = Modifier.fillMaxWidth(),
+//                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+//                    ) {
+//                        Text(stringResource(R.string.next_button), color = Color.White)
+//                    }
+//                }
+//            }
+//        }
+//    )
+//}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterLifestyleScreen(
@@ -1004,655 +1000,655 @@ fun LifestyleSlider(
     }
 }
 
-@Composable
-fun DropdownWithStaticOptions(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column {
-        Text(text = label, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
-        OutlinedButton(
-            onClick = { expanded = !expanded },
-            modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
-        ) {
-            Text(text = selectedOption.ifEmpty { stringResource(R.string.select_default) }, fontSize = 12.sp, color = Color.White)
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF1A1A1A))
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option, color = Color.White) },
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EnterLocationAndSchoolScreen(
-    registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit,
-    onBack: () -> Unit
-) {
-    val educationLevels = listOf(
-        stringResource(R.string.no_education_label),
-        stringResource(R.string.high_school_label),
-        stringResource(R.string.college_label),
-        stringResource(R.string.post_graduation_label)
-    )
-
-    val other = stringResource(R.string.job_role_option_other)
-
-    val jobRoleOptions = listOf(
-        stringResource(R.string.job_role_option_software_developer),
-        stringResource(R.string.job_role_option_data_scientist),
-        stringResource(R.string.job_role_option_ux_ui_designer),
-        stringResource(R.string.job_role_option_civil_engineer),
-        stringResource(R.string.job_role_option_mechanical_engineer),
-        stringResource(R.string.job_role_option_electrical_engineer),
-        stringResource(R.string.job_role_option_project_manager),
-        stringResource(R.string.job_role_option_product_manager),
-        stringResource(R.string.job_role_option_business_analyst),
-        stringResource(R.string.job_role_option_accountant),
-        stringResource(R.string.job_role_option_chartered_accountant),
-        stringResource(R.string.job_role_option_hr_manager),
-        stringResource(R.string.job_role_option_marketing_manager),
-        stringResource(R.string.job_role_option_sales_executive),
-        stringResource(R.string.job_role_option_director),
-        stringResource(R.string.job_role_option_ceo),
-        stringResource(R.string.job_role_option_teacher),
-        stringResource(R.string.job_role_option_professor),
-        stringResource(R.string.job_role_option_researcher),
-        stringResource(R.string.job_role_option_scientist),
-        stringResource(R.string.job_role_option_doctor),
-        stringResource(R.string.job_role_option_surgeon),
-        stringResource(R.string.job_role_option_nurse),
-        stringResource(R.string.job_role_option_pharmacist),
-        stringResource(R.string.job_role_option_lawyer),
-        stringResource(R.string.job_role_option_advocate),
-        stringResource(R.string.job_role_option_legal_consultant),
-        stringResource(R.string.job_role_option_graphic_designer),
-        stringResource(R.string.job_role_option_content_writer),
-        stringResource(R.string.job_role_option_photographer),
-        stringResource(R.string.job_role_option_journalist),
-        stringResource(R.string.job_role_option_editor),
-        stringResource(R.string.job_role_option_chef),
-        stringResource(R.string.job_role_option_barista),
-        stringResource(R.string.job_role_option_pilot),
-        stringResource(R.string.job_role_option_flight_attendant),
-        stringResource(R.string.job_role_option_police_officer),
-        stringResource(R.string.job_role_option_firefighter),
-        stringResource(R.string.job_role_option_army_officer),
-        stringResource(R.string.job_role_option_electrician),
-        stringResource(R.string.job_role_option_plumber),
-        stringResource(R.string.job_role_option_carpenter),
-        stringResource(R.string.job_role_option_mechanic),
-        stringResource(R.string.job_role_option_entrepreneur),
-        stringResource(R.string.job_role_option_intern),
-        other
-    )
-
-    var work by remember { mutableStateOf(registrationViewModel.work) }
-
-    // Work search state
-    var workQuery by remember { mutableStateOf(registrationViewModel.work) }
-    var workResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-    var workSearching by remember { mutableStateOf(false) }
-    var isWorkFieldFocused by remember { mutableStateOf(false) } // Track focus state
-    val workMenuExpanded = workResults.isNotEmpty() && isWorkFieldFocused // Only expand if focused
-
-
-    // State for place search queries and results
-    var highSchoolQuery by remember { mutableStateOf(registrationViewModel.highSchool) }
-    var collegeQuery by remember { mutableStateOf(registrationViewModel.college) }
-    var postGradQuery by remember { mutableStateOf(registrationViewModel.postGraduation) }
-    var highSchoolResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-    var collegeResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-    var postGradResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-    var highSchoolSearching by remember { mutableStateOf(false) }
-    var collegeSearching by remember { mutableStateOf(false) }
-    var postGradSearching by remember { mutableStateOf(false) }
-    var isHighSchoolFieldFocused by remember { mutableStateOf(false) } // Track focus state for high school
-    var isCollegeFieldFocused by remember { mutableStateOf(false) } // Track focus state for college
-    var isPostGradFieldFocused by remember { mutableStateOf(false) } // Track focus state for post-grad
-    val highSchoolMenuExpanded = highSchoolResults.isNotEmpty() && isHighSchoolFieldFocused // Only expand if focused
-    val collegeMenuExpanded = collegeResults.isNotEmpty() && isCollegeFieldFocused // Only expand if focused
-    val postGradMenuExpanded = postGradResults.isNotEmpty() && isPostGradFieldFocused // Only expand if focused
-
-    // Enable Next button only if education level is selected and required fields are filled
-    val isNextEnabled = registrationViewModel.educationLevel.isNotEmpty() &&
-            (registrationViewModel.educationLevel == stringResource(R.string.no_education_label) ||
-                    registrationViewModel.highSchool.isNotEmpty()) &&
-            (registrationViewModel.educationLevel != stringResource(R.string.college_label) ||
-                    registrationViewModel.college.isNotEmpty()) &&
-            (registrationViewModel.educationLevel != stringResource(R.string.post_graduation_label) ||
-                    registrationViewModel.postGraduation.isNotEmpty())
-
-    // Focus management
-    val focusManager = LocalFocusManager.current
-    LaunchedEffect(Unit) {
-        // Clear focus on screen entry to prevent automatic focus on any text field
-        focusManager.clearFocus()
-    }
-
-    // Place search side-effects with debouncing
-    LaunchedEffect(highSchoolQuery) {
-        if (highSchoolQuery.length < 3) {
-            highSchoolResults = emptyList()
-            return@LaunchedEffect
-        } else {
-            delay(400) // Debounce to prevent excessive API calls
-            highSchoolSearching = true
-            highSchoolResults = searchPlacesRich(highSchoolQuery)
-            highSchoolSearching = false
-        }
-    }
-
-    LaunchedEffect(collegeQuery) {
-        if (collegeQuery.length < 3) {
-            collegeResults = emptyList()
-            return@LaunchedEffect
-        } else {
-            delay(400)
-            collegeSearching = true
-            collegeResults = searchPlacesRich(collegeQuery)
-            collegeSearching = false
-        }
-    }
-
-    LaunchedEffect(postGradQuery) {
-        if (postGradQuery.length < 3) {
-            postGradResults = emptyList()
-            return@LaunchedEffect
-        } else {
-            delay(400)
-            postGradSearching = true
-            postGradResults = searchPlacesRich(postGradQuery)
-            postGradSearching = false
-        }
-    }
-
-
-    // Work search with debouncing
-    LaunchedEffect(workQuery) {
-        if (workQuery.length < 3) {
-            workResults = emptyList()
-            return@LaunchedEffect
-        } else {
-            delay(400) // Debounce
-            workSearching = true
-            workResults = searchPlacesRich(workQuery) // Use "establishment" for workplaces
-            workSearching = false
-        }
-    }
-
-
-    Scaffold(
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A1A))
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 32.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Section Title
-//                Text(
-//                    text = stringResource(R.string.education_and_location_title),
-//                    color = Color.White,
-//                    fontSize = 24.sp,
-//                    fontWeight = FontWeight.Bold,
-//                    modifier = Modifier.padding(bottom = 24.dp)
+//@Composable
+//fun DropdownWithStaticOptions(
+//    label: String,
+//    options: List<String>,
+//    selectedOption: String,
+//    onOptionSelected: (String) -> Unit
+//) {
+//    var expanded by remember { mutableStateOf(false) }
+//
+//    Column {
+//        Text(text = label, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
+//        OutlinedButton(
+//            onClick = { expanded = !expanded },
+//            modifier = Modifier.fillMaxWidth(),
+//            border = BorderStroke(1.dp, Color(0xFFFF6000)),
+//            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000))
+//        ) {
+//            Text(text = selectedOption.ifEmpty { stringResource(R.string.select_default) }, fontSize = 12.sp, color = Color.White)
+//        }
+//
+//        DropdownMenu(
+//            expanded = expanded,
+//            onDismissRequest = { expanded = false },
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .background(Color(0xFF1A1A1A))
+//        ) {
+//            options.forEach { option ->
+//                DropdownMenuItem(
+//                    text = { Text(option, color = Color.White) },
+//                    onClick = {
+//                        onOptionSelected(option)
+//                        expanded = false
+//                    }
 //                )
+//            }
+//        }
+//    }
+//}
 
-//                // Education Level Dropdown
-//                Text(
-//                    text = stringResource(R.string.education_level_label),
-//                    color = Color.White,
-//                    fontSize = 18.sp,
-//                    fontWeight = FontWeight.Bold
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun EnterLocationAndSchoolScreen(
+//    registrationViewModel: RegistrationViewModel,
+//    onNext: () -> Unit,
+//    onBack: () -> Unit
+//) {
+//    val educationLevels = listOf(
+//        stringResource(R.string.no_education_label),
+//        stringResource(R.string.high_school_label),
+//        stringResource(R.string.college_label),
+//        stringResource(R.string.post_graduation_label)
+//    )
+//
+//    val other = stringResource(R.string.job_role_option_other)
+//
+//    val jobRoleOptions = listOf(
+//        stringResource(R.string.job_role_option_software_developer),
+//        stringResource(R.string.job_role_option_data_scientist),
+//        stringResource(R.string.job_role_option_ux_ui_designer),
+//        stringResource(R.string.job_role_option_civil_engineer),
+//        stringResource(R.string.job_role_option_mechanical_engineer),
+//        stringResource(R.string.job_role_option_electrical_engineer),
+//        stringResource(R.string.job_role_option_project_manager),
+//        stringResource(R.string.job_role_option_product_manager),
+//        stringResource(R.string.job_role_option_business_analyst),
+//        stringResource(R.string.job_role_option_accountant),
+//        stringResource(R.string.job_role_option_chartered_accountant),
+//        stringResource(R.string.job_role_option_hr_manager),
+//        stringResource(R.string.job_role_option_marketing_manager),
+//        stringResource(R.string.job_role_option_sales_executive),
+//        stringResource(R.string.job_role_option_director),
+//        stringResource(R.string.job_role_option_ceo),
+//        stringResource(R.string.job_role_option_teacher),
+//        stringResource(R.string.job_role_option_professor),
+//        stringResource(R.string.job_role_option_researcher),
+//        stringResource(R.string.job_role_option_scientist),
+//        stringResource(R.string.job_role_option_doctor),
+//        stringResource(R.string.job_role_option_surgeon),
+//        stringResource(R.string.job_role_option_nurse),
+//        stringResource(R.string.job_role_option_pharmacist),
+//        stringResource(R.string.job_role_option_lawyer),
+//        stringResource(R.string.job_role_option_advocate),
+//        stringResource(R.string.job_role_option_legal_consultant),
+//        stringResource(R.string.job_role_option_graphic_designer),
+//        stringResource(R.string.job_role_option_content_writer),
+//        stringResource(R.string.job_role_option_photographer),
+//        stringResource(R.string.job_role_option_journalist),
+//        stringResource(R.string.job_role_option_editor),
+//        stringResource(R.string.job_role_option_chef),
+//        stringResource(R.string.job_role_option_barista),
+//        stringResource(R.string.job_role_option_pilot),
+//        stringResource(R.string.job_role_option_flight_attendant),
+//        stringResource(R.string.job_role_option_police_officer),
+//        stringResource(R.string.job_role_option_firefighter),
+//        stringResource(R.string.job_role_option_army_officer),
+//        stringResource(R.string.job_role_option_electrician),
+//        stringResource(R.string.job_role_option_plumber),
+//        stringResource(R.string.job_role_option_carpenter),
+//        stringResource(R.string.job_role_option_mechanic),
+//        stringResource(R.string.job_role_option_entrepreneur),
+//        stringResource(R.string.job_role_option_intern),
+//        other
+//    )
+//
+//    var work by remember { mutableStateOf(registrationViewModel.work) }
+//
+//    // Work search state
+//    var workQuery by remember { mutableStateOf(registrationViewModel.work) }
+//    var workResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+//    var workSearching by remember { mutableStateOf(false) }
+//    var isWorkFieldFocused by remember { mutableStateOf(false) } // Track focus state
+//    val workMenuExpanded = workResults.isNotEmpty() && isWorkFieldFocused // Only expand if focused
+//
+//
+//    // State for place search queries and results
+//    var highSchoolQuery by remember { mutableStateOf(registrationViewModel.highSchool) }
+//    var collegeQuery by remember { mutableStateOf(registrationViewModel.college) }
+//    var postGradQuery by remember { mutableStateOf(registrationViewModel.postGraduation) }
+//    var highSchoolResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+//    var collegeResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+//    var postGradResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+//    var highSchoolSearching by remember { mutableStateOf(false) }
+//    var collegeSearching by remember { mutableStateOf(false) }
+//    var postGradSearching by remember { mutableStateOf(false) }
+//    var isHighSchoolFieldFocused by remember { mutableStateOf(false) } // Track focus state for high school
+//    var isCollegeFieldFocused by remember { mutableStateOf(false) } // Track focus state for college
+//    var isPostGradFieldFocused by remember { mutableStateOf(false) } // Track focus state for post-grad
+//    val highSchoolMenuExpanded = highSchoolResults.isNotEmpty() && isHighSchoolFieldFocused // Only expand if focused
+//    val collegeMenuExpanded = collegeResults.isNotEmpty() && isCollegeFieldFocused // Only expand if focused
+//    val postGradMenuExpanded = postGradResults.isNotEmpty() && isPostGradFieldFocused // Only expand if focused
+//
+//    // Enable Next button only if education level is selected and required fields are filled
+//    val isNextEnabled = registrationViewModel.educationLevel.isNotEmpty() &&
+//            (registrationViewModel.educationLevel == stringResource(R.string.no_education_label) ||
+//                    registrationViewModel.highSchool.isNotEmpty()) &&
+//            (registrationViewModel.educationLevel != stringResource(R.string.college_label) ||
+//                    registrationViewModel.college.isNotEmpty()) &&
+//            (registrationViewModel.educationLevel != stringResource(R.string.post_graduation_label) ||
+//                    registrationViewModel.postGraduation.isNotEmpty())
+//
+//    // Focus management
+//    val focusManager = LocalFocusManager.current
+//    LaunchedEffect(Unit) {
+//        // Clear focus on screen entry to prevent automatic focus on any text field
+//        focusManager.clearFocus()
+//    }
+//
+//    // Place search side-effects with debouncing
+//    LaunchedEffect(highSchoolQuery) {
+//        if (highSchoolQuery.length < 3) {
+//            highSchoolResults = emptyList()
+//            return@LaunchedEffect
+//        } else {
+//            delay(400) // Debounce to prevent excessive API calls
+//            highSchoolSearching = true
+//            highSchoolResults = searchPlacesRich(highSchoolQuery)
+//            highSchoolSearching = false
+//        }
+//    }
+//
+//    LaunchedEffect(collegeQuery) {
+//        if (collegeQuery.length < 3) {
+//            collegeResults = emptyList()
+//            return@LaunchedEffect
+//        } else {
+//            delay(400)
+//            collegeSearching = true
+//            collegeResults = searchPlacesRich(collegeQuery)
+//            collegeSearching = false
+//        }
+//    }
+//
+//    LaunchedEffect(postGradQuery) {
+//        if (postGradQuery.length < 3) {
+//            postGradResults = emptyList()
+//            return@LaunchedEffect
+//        } else {
+//            delay(400)
+//            postGradSearching = true
+//            postGradResults = searchPlacesRich(postGradQuery)
+//            postGradSearching = false
+//        }
+//    }
+//
+//
+//    // Work search with debouncing
+//    LaunchedEffect(workQuery) {
+//        if (workQuery.length < 3) {
+//            workResults = emptyList()
+//            return@LaunchedEffect
+//        } else {
+//            delay(400) // Debounce
+//            workSearching = true
+//            workResults = searchPlacesRich(workQuery) // Use "establishment" for workplaces
+//            workSearching = false
+//        }
+//    }
+//
+//
+//    Scaffold(
+//        content = { innerPadding ->
+//            Column(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(Color(0xFF1A1A1A))
+//                    .padding(innerPadding)
+//                    .verticalScroll(rememberScrollState())
+//                    .padding(horizontal = 32.dp, vertical = 16.dp),
+//                verticalArrangement = Arrangement.Top,
+//                horizontalAlignment = Alignment.CenterHorizontally
+//            ) {
+//                // Section Title
+////                Text(
+////                    text = stringResource(R.string.education_and_location_title),
+////                    color = Color.White,
+////                    fontSize = 24.sp,
+////                    fontWeight = FontWeight.Bold,
+////                    modifier = Modifier.padding(bottom = 24.dp)
+////                )
+//
+////                // Education Level Dropdown
+////                Text(
+////                    text = stringResource(R.string.education_level_label),
+////                    color = Color.White,
+////                    fontSize = 18.sp,
+////                    fontWeight = FontWeight.Bold
+////                )
+//                DropdownWithSearch(
+//                    title = stringResource(R.string.select_education_level),
+//                    options = educationLevels,
+//                    selectedOption = registrationViewModel.educationLevel,
+//                    onOptionSelected = { registrationViewModel.educationLevel = it }
 //                )
-                DropdownWithSearch(
-                    title = stringResource(R.string.select_education_level),
-                    options = educationLevels,
-                    selectedOption = registrationViewModel.educationLevel,
-                    onOptionSelected = { registrationViewModel.educationLevel = it }
-                )
-
-                // High School Section
-                if (registrationViewModel.educationLevel in listOf(
-                        stringResource(R.string.high_school_label),
-                        stringResource(R.string.college_label),
-                        stringResource(R.string.post_graduation_label)
-                    )) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.high_school_label),
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    ExposedDropdownMenuBox(
-                        expanded = highSchoolMenuExpanded,
-                        onExpandedChange = { /* Controlled by results and focus */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val focusRequester = remember { FocusRequester() } // For focus tracking
-                        OutlinedTextField(
-                            value = highSchoolQuery,
-                            onValueChange = { query ->
-                                highSchoolQuery = query
-                                registrationViewModel.highSchool = query
-                                registrationViewModel.customHighSchool = query
-                            },
-                            label = { Text(stringResource(R.string.select_or_type_high_school)) },
-                            singleLine = true,
-                            trailingIcon = {
-                                if (highSchoolSearching)
-                                    CircularProgressIndicator(
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                else
-                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
-                            },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color.White,
-                                cursorColor = Color.White,
-                                focusedLabelColor = Color(0xFFFF6000),
-                                unfocusedLabelColor = Color.White,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { focusState ->
-                                    isHighSchoolFieldFocused = focusState.isFocused
-                                    if (!focusState.isFocused) {
-                                        highSchoolResults = emptyList() // Clear results when focus is lost
-                                    }
-                                }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = highSchoolMenuExpanded,
-                            onDismissRequest = {
-                                highSchoolResults = emptyList()
-                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
-                            },
-                            modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(6.dp))
-                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
-                        ) {
-                            highSchoolResults.forEach { res ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(res.name, color = Color.Black)
-                                            if (res.address.isNotBlank())
-                                                Text(
-                                                    res.address,
-                                                    color = Color.DarkGray,
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                        }
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500))
-                                    },
-                                    onClick = {
-                                        registrationViewModel.highSchool = res.name
-                                        registrationViewModel.customHighSchool = ""
-                                        highSchoolQuery = res.name
-                                        highSchoolResults = emptyList()
-                                        focusManager.clearFocus() // Clear focus after selection
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    GraduationYearDropdown(
-                        year = registrationViewModel.highSchoolGraduationYear,
-                        onYearSelected = { registrationViewModel.highSchoolGraduationYear = it }
-                    )
-                }
-
-                // College Section
-                if (registrationViewModel.educationLevel in listOf(
-                        stringResource(R.string.college_label),
-                        stringResource(R.string.post_graduation_label)
-                    )) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.college_label),
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    ExposedDropdownMenuBox(
-                        expanded = collegeMenuExpanded,
-                        onExpandedChange = { /* Controlled by results and focus */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val focusRequester = remember { FocusRequester() } // For focus tracking
-                        OutlinedTextField(
-                            value = collegeQuery,
-                            onValueChange = { query ->
-                                collegeQuery = query
-                                registrationViewModel.college = query
-                                registrationViewModel.customCollege = query
-                            },
-                            label = { Text(stringResource(R.string.select_or_type_college)) },
-                            singleLine = true,
-                            trailingIcon = {
-                                if (collegeSearching)
-                                    CircularProgressIndicator(
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                else
-                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
-                            },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color.White,
-                                cursorColor = Color.White,
-                                focusedLabelColor = Color(0xFFFF6000),
-                                unfocusedLabelColor = Color.White,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { focusState ->
-                                    isCollegeFieldFocused = focusState.isFocused
-                                    if (!focusState.isFocused) {
-                                        collegeResults = emptyList() // Clear results when focus is lost
-                                    }
-                                }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = collegeMenuExpanded,
-                            onDismissRequest = {
-                                collegeResults = emptyList()
-                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
-                            },
-                            modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(6.dp))
-                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
-                        ) {
-                            collegeResults.forEach { res ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(res.name, color = Color.Black)
-                                            if (res.address.isNotBlank())
-                                                Text(
-                                                    res.address,
-                                                    color = Color.DarkGray,
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                        }
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500))
-                                    },
-                                    onClick = {
-                                        registrationViewModel.college = res.name
-                                        registrationViewModel.customCollege = ""
-                                        collegeQuery = res.name
-                                        collegeResults = emptyList()
-                                        focusManager.clearFocus() // Clear focus after selection
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    GraduationYearDropdown(
-                        year = registrationViewModel.collegeGraduationYear,
-                        onYearSelected = { registrationViewModel.collegeGraduationYear = it }
-                    )
-                }
-
-                // Post-Graduation Section
-                if (registrationViewModel.educationLevel == stringResource(R.string.post_graduation_label)) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.post_graduation_label),
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    ExposedDropdownMenuBox(
-                        expanded = postGradMenuExpanded,
-                        onExpandedChange = { /* Controlled by results and focus */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val focusRequester = remember { FocusRequester() } // For focus tracking
-                        OutlinedTextField(
-                            value = postGradQuery,
-                            onValueChange = { query ->
-                                postGradQuery = query
-                                registrationViewModel.postGraduation = query
-                                registrationViewModel.customPostGraduation = query
-                            },
-                            label = { Text(stringResource(R.string.select_or_type_post_grad)) },
-                            singleLine = true,
-                            trailingIcon = {
-                                if (postGradSearching)
-                                    CircularProgressIndicator(
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                else
-                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
-                            },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color.White,
-                                cursorColor = Color.White,
-                                focusedLabelColor = Color(0xFFFF6000),
-                                unfocusedLabelColor = Color.White,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { focusState ->
-                                    isPostGradFieldFocused = focusState.isFocused
-                                    if (!focusState.isFocused) {
-                                        postGradResults = emptyList() // Clear results when focus is lost
-                                    }
-                                }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = postGradMenuExpanded,
-                            onDismissRequest = {
-                                postGradResults = emptyList()
-                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
-                            },
-                            modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(6.dp))
-                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
-                        ) {
-                            postGradResults.forEach { res ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(res.name, color = Color.Black)
-                                            if (res.address.isNotBlank())
-                                                Text(
-                                                    res.address,
-                                                    color = Color.DarkGray,
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                        }
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500))
-                                    },
-                                    onClick = {
-                                        registrationViewModel.postGraduation = res.name
-                                        registrationViewModel.customPostGraduation = ""
-                                        postGradQuery = res.name
-                                        postGradResults = emptyList()
-                                        focusManager.clearFocus() // Clear focus after selection
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    GraduationYearDropdown(
-                        year = registrationViewModel.postGraduationYear,
-                        onYearSelected = { registrationViewModel.postGraduationYear = it }
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SearchableDropdownWithCustomOption(
-                    title            = stringResource(R.string.job_role_label),
-                    options          = jobRoleOptions,
-                    selectedOption   = registrationViewModel.jobRole,
-                    onOptionSelected = { sel -> registrationViewModel.jobRole = sel },
-                    customInput      = if (
-                        registrationViewModel.jobRole != other &&
-                        !jobRoleOptions.contains(registrationViewModel.jobRole)
-                    ) registrationViewModel.jobRole else null,
-                    onCustomInputChange = { typed -> registrationViewModel.jobRole = typed ?: "" }
-                )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    ExposedDropdownMenuBox(
-                        expanded = workMenuExpanded,
-                        onExpandedChange = { /* Controlled by results and focus */ },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        var workother = stringResource(R.string.work_option_other)
-                        val focusRequester = remember { FocusRequester() } // For focus tracking
-                        OutlinedTextField(
-                            value = workQuery,
-                            onValueChange = { query ->
-                                workQuery = query
-                                registrationViewModel.work = workother
-                                registrationViewModel.customWork = query
-                                work = registrationViewModel.work
-                            },
-                            label = { Text(stringResource(R.string.select_work)) },
-                            singleLine = true,
-                            trailingIcon = {
-                                if (workSearching)
-                                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                                else
-                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
-                            },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color(0xFFFF6000),
-                                cursorColor = Color.White,
-                                focusedLabelColor = Color(0xFFFF6000),
-                                unfocusedLabelColor = Color.White,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { focusState ->
-                                    isWorkFieldFocused = focusState.isFocused
-                                    if (!focusState.isFocused) {
-                                        workResults = emptyList() // Clear results when focus is lost
-                                    }
-                                }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = workMenuExpanded,
-                            onDismissRequest = {
-                                workResults = emptyList()
-                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
-                            },
-                            modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(6.dp))
-                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
-                        ) {
-                            workResults.forEach { res ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(res.name, color = Color.Black)
-                                            if (res.address.isNotBlank())
-                                                Text(res.address, color = Color.DarkGray, style = MaterialTheme.typography.bodySmall)
-                                        }
-                                    },
-                                    leadingIcon = { Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500)) },
-                                    onClick = {
-                                        registrationViewModel.work = res.name
-                                        registrationViewModel.customWork = ""
-                                        workQuery = res.name
-                                        workResults = emptyList()
-                                        work = registrationViewModel.work
-                                        focusManager.clearFocus() // Clear focus after selection
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-
-                // Next Button
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = { if (isNextEnabled) onNext() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = isNextEnabled,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.Gray
-                    ),
-                    shape = CircleShape
-                ) {
-                    Text(
-                        text = stringResource(R.string.next_button),
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    )
-}
+//
+//                // High School Section
+//                if (registrationViewModel.educationLevel in listOf(
+//                        stringResource(R.string.high_school_label),
+//                        stringResource(R.string.college_label),
+//                        stringResource(R.string.post_graduation_label)
+//                    )) {
+//                    Spacer(modifier = Modifier.height(16.dp))
+//                    Text(
+//                        text = stringResource(R.string.high_school_label),
+//                        color = Color.White,
+//                        fontSize = 18.sp,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                    ExposedDropdownMenuBox(
+//                        expanded = highSchoolMenuExpanded,
+//                        onExpandedChange = { /* Controlled by results and focus */ },
+//                        modifier = Modifier.fillMaxWidth()
+//                    ) {
+//                        val focusRequester = remember { FocusRequester() } // For focus tracking
+//                        OutlinedTextField(
+//                            value = highSchoolQuery,
+//                            onValueChange = { query ->
+//                                highSchoolQuery = query
+//                                registrationViewModel.highSchool = query
+//                                registrationViewModel.customHighSchool = query
+//                            },
+//                            label = { Text(stringResource(R.string.select_or_type_high_school)) },
+//                            singleLine = true,
+//                            trailingIcon = {
+//                                if (highSchoolSearching)
+//                                    CircularProgressIndicator(
+//                                        strokeWidth = 2.dp,
+//                                        modifier = Modifier.size(18.dp)
+//                                    )
+//                                else
+//                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
+//                            },
+//                            colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                focusedBorderColor = Color(0xFFFF6000),
+//                                unfocusedBorderColor = Color.White,
+//                                cursorColor = Color.White,
+//                                focusedLabelColor = Color(0xFFFF6000),
+//                                unfocusedLabelColor = Color.White,
+//                                focusedTextColor = Color.White,
+//                                unfocusedTextColor = Color.White
+//                            ),
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .menuAnchor()
+//                                .focusRequester(focusRequester)
+//                                .onFocusChanged { focusState ->
+//                                    isHighSchoolFieldFocused = focusState.isFocused
+//                                    if (!focusState.isFocused) {
+//                                        highSchoolResults = emptyList() // Clear results when focus is lost
+//                                    }
+//                                }
+//                        )
+//                        ExposedDropdownMenu(
+//                            expanded = highSchoolMenuExpanded,
+//                            onDismissRequest = {
+//                                highSchoolResults = emptyList()
+//                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+//                            },
+//                            modifier = Modifier
+//                                .background(Color.White, RoundedCornerShape(6.dp))
+//                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+//                        ) {
+//                            highSchoolResults.forEach { res ->
+//                                DropdownMenuItem(
+//                                    text = {
+//                                        Column {
+//                                            Text(res.name, color = Color.Black)
+//                                            if (res.address.isNotBlank())
+//                                                Text(
+//                                                    res.address,
+//                                                    color = Color.DarkGray,
+//                                                    style = MaterialTheme.typography.bodySmall
+//                                                )
+//                                        }
+//                                    },
+//                                    leadingIcon = {
+//                                        Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500))
+//                                    },
+//                                    onClick = {
+//                                        registrationViewModel.highSchool = res.name
+//                                        registrationViewModel.customHighSchool = ""
+//                                        highSchoolQuery = res.name
+//                                        highSchoolResults = emptyList()
+//                                        focusManager.clearFocus() // Clear focus after selection
+//                                    }
+//                                )
+//                            }
+//                        }
+//                    }
+//                    Spacer(modifier = Modifier.height(8.dp))
+//                    GraduationYearDropdown(
+//                        year = registrationViewModel.highSchoolGraduationYear,
+//                        onYearSelected = { registrationViewModel.highSchoolGraduationYear = it }
+//                    )
+//                }
+//
+//                // College Section
+//                if (registrationViewModel.educationLevel in listOf(
+//                        stringResource(R.string.college_label),
+//                        stringResource(R.string.post_graduation_label)
+//                    )) {
+//                    Spacer(modifier = Modifier.height(16.dp))
+//                    Text(
+//                        text = stringResource(R.string.college_label),
+//                        color = Color.White,
+//                        fontSize = 18.sp,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                    ExposedDropdownMenuBox(
+//                        expanded = collegeMenuExpanded,
+//                        onExpandedChange = { /* Controlled by results and focus */ },
+//                        modifier = Modifier.fillMaxWidth()
+//                    ) {
+//                        val focusRequester = remember { FocusRequester() } // For focus tracking
+//                        OutlinedTextField(
+//                            value = collegeQuery,
+//                            onValueChange = { query ->
+//                                collegeQuery = query
+//                                registrationViewModel.college = query
+//                                registrationViewModel.customCollege = query
+//                            },
+//                            label = { Text(stringResource(R.string.select_or_type_college)) },
+//                            singleLine = true,
+//                            trailingIcon = {
+//                                if (collegeSearching)
+//                                    CircularProgressIndicator(
+//                                        strokeWidth = 2.dp,
+//                                        modifier = Modifier.size(18.dp)
+//                                    )
+//                                else
+//                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
+//                            },
+//                            colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                focusedBorderColor = Color(0xFFFF6000),
+//                                unfocusedBorderColor = Color.White,
+//                                cursorColor = Color.White,
+//                                focusedLabelColor = Color(0xFFFF6000),
+//                                unfocusedLabelColor = Color.White,
+//                                focusedTextColor = Color.White,
+//                                unfocusedTextColor = Color.White
+//                            ),
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .menuAnchor()
+//                                .focusRequester(focusRequester)
+//                                .onFocusChanged { focusState ->
+//                                    isCollegeFieldFocused = focusState.isFocused
+//                                    if (!focusState.isFocused) {
+//                                        collegeResults = emptyList() // Clear results when focus is lost
+//                                    }
+//                                }
+//                        )
+//                        ExposedDropdownMenu(
+//                            expanded = collegeMenuExpanded,
+//                            onDismissRequest = {
+//                                collegeResults = emptyList()
+//                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+//                            },
+//                            modifier = Modifier
+//                                .background(Color.White, RoundedCornerShape(6.dp))
+//                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+//                        ) {
+//                            collegeResults.forEach { res ->
+//                                DropdownMenuItem(
+//                                    text = {
+//                                        Column {
+//                                            Text(res.name, color = Color.Black)
+//                                            if (res.address.isNotBlank())
+//                                                Text(
+//                                                    res.address,
+//                                                    color = Color.DarkGray,
+//                                                    style = MaterialTheme.typography.bodySmall
+//                                                )
+//                                        }
+//                                    },
+//                                    leadingIcon = {
+//                                        Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500))
+//                                    },
+//                                    onClick = {
+//                                        registrationViewModel.college = res.name
+//                                        registrationViewModel.customCollege = ""
+//                                        collegeQuery = res.name
+//                                        collegeResults = emptyList()
+//                                        focusManager.clearFocus() // Clear focus after selection
+//                                    }
+//                                )
+//                            }
+//                        }
+//                    }
+//                    Spacer(modifier = Modifier.height(8.dp))
+//                    GraduationYearDropdown(
+//                        year = registrationViewModel.collegeGraduationYear,
+//                        onYearSelected = { registrationViewModel.collegeGraduationYear = it }
+//                    )
+//                }
+//
+//                // Post-Graduation Section
+//                if (registrationViewModel.educationLevel == stringResource(R.string.post_graduation_label)) {
+//                    Spacer(modifier = Modifier.height(16.dp))
+//                    Text(
+//                        text = stringResource(R.string.post_graduation_label),
+//                        color = Color.White,
+//                        fontSize = 18.sp,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                    ExposedDropdownMenuBox(
+//                        expanded = postGradMenuExpanded,
+//                        onExpandedChange = { /* Controlled by results and focus */ },
+//                        modifier = Modifier.fillMaxWidth()
+//                    ) {
+//                        val focusRequester = remember { FocusRequester() } // For focus tracking
+//                        OutlinedTextField(
+//                            value = postGradQuery,
+//                            onValueChange = { query ->
+//                                postGradQuery = query
+//                                registrationViewModel.postGraduation = query
+//                                registrationViewModel.customPostGraduation = query
+//                            },
+//                            label = { Text(stringResource(R.string.select_or_type_post_grad)) },
+//                            singleLine = true,
+//                            trailingIcon = {
+//                                if (postGradSearching)
+//                                    CircularProgressIndicator(
+//                                        strokeWidth = 2.dp,
+//                                        modifier = Modifier.size(18.dp)
+//                                    )
+//                                else
+//                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
+//                            },
+//                            colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                focusedBorderColor = Color(0xFFFF6000),
+//                                unfocusedBorderColor = Color.White,
+//                                cursorColor = Color.White,
+//                                focusedLabelColor = Color(0xFFFF6000),
+//                                unfocusedLabelColor = Color.White,
+//                                focusedTextColor = Color.White,
+//                                unfocusedTextColor = Color.White
+//                            ),
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .menuAnchor()
+//                                .focusRequester(focusRequester)
+//                                .onFocusChanged { focusState ->
+//                                    isPostGradFieldFocused = focusState.isFocused
+//                                    if (!focusState.isFocused) {
+//                                        postGradResults = emptyList() // Clear results when focus is lost
+//                                    }
+//                                }
+//                        )
+//                        ExposedDropdownMenu(
+//                            expanded = postGradMenuExpanded,
+//                            onDismissRequest = {
+//                                postGradResults = emptyList()
+//                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+//                            },
+//                            modifier = Modifier
+//                                .background(Color.White, RoundedCornerShape(6.dp))
+//                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+//                        ) {
+//                            postGradResults.forEach { res ->
+//                                DropdownMenuItem(
+//                                    text = {
+//                                        Column {
+//                                            Text(res.name, color = Color.Black)
+//                                            if (res.address.isNotBlank())
+//                                                Text(
+//                                                    res.address,
+//                                                    color = Color.DarkGray,
+//                                                    style = MaterialTheme.typography.bodySmall
+//                                                )
+//                                        }
+//                                    },
+//                                    leadingIcon = {
+//                                        Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500))
+//                                    },
+//                                    onClick = {
+//                                        registrationViewModel.postGraduation = res.name
+//                                        registrationViewModel.customPostGraduation = ""
+//                                        postGradQuery = res.name
+//                                        postGradResults = emptyList()
+//                                        focusManager.clearFocus() // Clear focus after selection
+//                                    }
+//                                )
+//                            }
+//                        }
+//                    }
+//                    Spacer(modifier = Modifier.height(8.dp))
+//                    GraduationYearDropdown(
+//                        year = registrationViewModel.postGraduationYear,
+//                        onYearSelected = { registrationViewModel.postGraduationYear = it }
+//                    )
+//                }
+//                Spacer(modifier = Modifier.height(8.dp))
+//
+//                SearchableDropdownWithCustomOption(
+//                    title            = stringResource(R.string.job_role_label),
+//                    options          = jobRoleOptions,
+//                    selectedOption   = registrationViewModel.jobRole,
+//                    onOptionSelected = { sel -> registrationViewModel.jobRole = sel },
+//                    customInput      = if (
+//                        registrationViewModel.jobRole != other &&
+//                        !jobRoleOptions.contains(registrationViewModel.jobRole)
+//                    ) registrationViewModel.jobRole else null,
+//                    onCustomInputChange = { typed -> registrationViewModel.jobRole = typed ?: "" }
+//                )
+//
+//                    Spacer(modifier = Modifier.height(16.dp))
+//
+//                    ExposedDropdownMenuBox(
+//                        expanded = workMenuExpanded,
+//                        onExpandedChange = { /* Controlled by results and focus */ },
+//                        modifier = Modifier.fillMaxWidth()
+//                    ) {
+//                        var workother = stringResource(R.string.work_option_other)
+//                        val focusRequester = remember { FocusRequester() } // For focus tracking
+//                        OutlinedTextField(
+//                            value = workQuery,
+//                            onValueChange = { query ->
+//                                workQuery = query
+//                                registrationViewModel.work = workother
+//                                registrationViewModel.customWork = query
+//                                work = registrationViewModel.work
+//                            },
+//                            label = { Text(stringResource(R.string.select_work)) },
+//                            singleLine = true,
+//                            trailingIcon = {
+//                                if (workSearching)
+//                                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+//                                else
+//                                    Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
+//                            },
+//                            colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                focusedBorderColor = Color(0xFFFF6000),
+//                                unfocusedBorderColor = Color(0xFFFF6000),
+//                                cursorColor = Color.White,
+//                                focusedLabelColor = Color(0xFFFF6000),
+//                                unfocusedLabelColor = Color.White,
+//                                focusedTextColor = Color.White,
+//                                unfocusedTextColor = Color.White
+//                            ),
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .menuAnchor()
+//                                .focusRequester(focusRequester)
+//                                .onFocusChanged { focusState ->
+//                                    isWorkFieldFocused = focusState.isFocused
+//                                    if (!focusState.isFocused) {
+//                                        workResults = emptyList() // Clear results when focus is lost
+//                                    }
+//                                }
+//                        )
+//                        ExposedDropdownMenu(
+//                            expanded = workMenuExpanded,
+//                            onDismissRequest = {
+//                                workResults = emptyList()
+//                                focusManager.clearFocus() // Clear focus when dismissing the dropdown
+//                            },
+//                            modifier = Modifier
+//                                .background(Color.White, RoundedCornerShape(6.dp))
+//                                .border(BorderStroke(1.dp, Color(0x33000000)), RoundedCornerShape(6.dp))
+//                        ) {
+//                            workResults.forEach { res ->
+//                                DropdownMenuItem(
+//                                    text = {
+//                                        Column {
+//                                            Text(res.name, color = Color.Black)
+//                                            if (res.address.isNotBlank())
+//                                                Text(res.address, color = Color.DarkGray, style = MaterialTheme.typography.bodySmall)
+//                                        }
+//                                    },
+//                                    leadingIcon = { Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500)) },
+//                                    onClick = {
+//                                        registrationViewModel.work = res.name
+//                                        registrationViewModel.customWork = ""
+//                                        workQuery = res.name
+//                                        workResults = emptyList()
+//                                        work = registrationViewModel.work
+//                                        focusManager.clearFocus() // Clear focus after selection
+//                                    }
+//                                )
+//                            }
+//                        }
+//                    }
+//
+//
+//                // Next Button
+//                Spacer(modifier = Modifier.height(24.dp))
+//                Button(
+//                    onClick = { if (isNextEnabled) onNext() },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(56.dp),
+//                    enabled = isNextEnabled,
+//                    colors = ButtonDefaults.buttonColors(
+//                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.Gray
+//                    ),
+//                    shape = CircleShape
+//                ) {
+//                    Text(
+//                        text = stringResource(R.string.next_button),
+//                        color = Color.White,
+//                        fontSize = 18.sp,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                }
+//            }
+//        }
+//    )
+//}
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -2025,7 +2021,7 @@ fun EnterEmailAndPasswordScreen(
                             phoneNumber = tfValue
                             registrationViewModel.phoneNumber = tfValue.text
                         },
-                        label = { Text("Mobile (+91…)", color = Color.White) },
+                        label = { Text("Mobile (+1…)", color = Color.White) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = fieldColors()
@@ -2174,7 +2170,7 @@ fun EnterEmailAndPasswordScreen(
 
 fun formatPhoneNumber(input: String): String {
     val trimmed = input.trim()
-    return if (trimmed.startsWith("+")) trimmed else "+91$trimmed"
+    return if (trimmed.startsWith("+")) trimmed else "+1$trimmed"
 }
 /* ---------- tiny helper for terse field-colors ---------- */
 @Composable
@@ -2316,52 +2312,6 @@ fun EnterGenderCommunityReligionScreen(
                     options = communityOptions,
                     selectedOption = registrationViewModel.community,
                     onOptionSelected = { registrationViewModel.community = it }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // ---- Caste ----
-                val other = stringResource(R.string.college_other)
-                SearchableDropdownWithCustomOption(
-                    title = stringResource(R.string.caste_title),
-                    options = listOf(
-                        stringResource(R.string.caste_other),
-                        stringResource(R.string.caste_baidya),
-                        stringResource(R.string.caste_bhumihar),
-                        stringResource(R.string.caste_bhil),
-                        stringResource(R.string.caste_brahmin),
-                        stringResource(R.string.caste_ezhava),
-                        stringResource(R.string.caste_general),
-                        stringResource(R.string.caste_gowda),
-                        stringResource(R.string.caste_gurjar),
-                        stringResource(R.string.caste_jat),
-                        stringResource(R.string.caste_kayastha),
-                        stringResource(R.string.caste_kshatriya),
-                        stringResource(R.string.caste_kurmi),
-                        stringResource(R.string.caste_lingayat),
-                        stringResource(R.string.caste_mahishya),
-                        stringResource(R.string.caste_maratha),
-                        stringResource(R.string.caste_naidu),
-                        stringResource(R.string.caste_nair),
-                        stringResource(R.string.caste_obc),
-                        stringResource(R.string.caste_patel),
-                        stringResource(R.string.caste_rajvanshi),
-                        stringResource(R.string.caste_reddy),
-                        stringResource(R.string.caste_sadgop),
-                        stringResource(R.string.caste_scheduled_caste),
-                        stringResource(R.string.caste_scheduled_tribe),
-                        stringResource(R.string.caste_vaishya),
-                        stringResource(R.string.caste_vellalar),
-                        stringResource(R.string.caste_yadav)
-                    ),
-                    selectedOption = registrationViewModel.caste,
-                    onOptionSelected = { selectedOption ->
-                        if (selectedOption != other) {
-                            registrationViewModel.caste = selectedOption
-                        }
-                    },
-                    customInput = registrationViewModel.caste,
-                    onCustomInputChange = { registrationViewModel.caste = it!! }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -2616,7 +2566,6 @@ suspend fun saveProfileToFirebase(
             socialCauses = registrationViewModel.socialCauses.toList(),
             height = finalHeightCm,
             height2 = registrationViewModel.height2,
-            caste = registrationViewModel.caste,
             voiceNoteUrl = registrationViewModel.voiceNoteUrl,
             datingAgeStart = registrationViewModel.datingAgeStart,
             datingAgeEnd = registrationViewModel.datingAgeEnd,
@@ -2717,6 +2666,11 @@ fun EnterNameScreen(
     val femaleOption = stringResource(R.string.female_option)
     val interestedOptions = listOf(maleOption, femaleOption)
 
+    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
+    var feetText   by remember { mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "") }
+    var inchText   by remember { mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "") }
+    var headline   by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
+
     // Now only “Interested In” is required on this screen
     val canProceed = registrationViewModel.interestedIn.isNotEmpty()
 
@@ -2790,6 +2744,137 @@ fun EnterNameScreen(
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
+                        // ---- Full Name (optional) ----
+                        TextFieldWithLabel(
+                            label = stringResource(R.string.full_name_label),
+                            value = registrationViewModel.name,
+                            onValueChange = { registrationViewModel.name = it }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // ---- Height (optional) ----
+                        Text(
+                            text = stringResource(R.string.height_label),
+                            color = Color.White,
+                            fontSize = 16.sp
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(
+                                checked = registrationViewModel.isHeightInFeet,
+                                onCheckedChange = { useFeet ->
+                                    registrationViewModel.isHeightInFeet = useFeet
+                                    if (useFeet) {
+                                        val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
+                                        feetText = f.toString()
+                                        inchText = i.toString()
+                                    } else {
+                                        val f = feetText.toIntOrNull() ?: 0
+                                        val i = inchText.toIntOrNull() ?: 0
+                                        heightText = registrationViewModel.feetInchesToCm(f, i).toString()
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color(0xFFFF6000),
+                                    uncheckedThumbColor = Color.White
+                                )
+                            )
+                            Text(
+                                text = if (registrationViewModel.isHeightInFeet)
+                                    stringResource(R.string.feet_inches_label)
+                                else
+                                    stringResource(R.string.centimeters_label),
+                                color = Color.White
+                            )
+                        }
+
+                        if (registrationViewModel.isHeightInFeet) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = feetText,
+                                    onValueChange = { newFeet ->
+                                        feetText = newFeet
+                                        registrationViewModel.height2 = listOf(
+                                            newFeet.toIntOrNull() ?: 0,
+                                            registrationViewModel.height2.getOrNull(1) ?: 0
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.feet_label), color = Color.White) },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(56.dp),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedBorderColor = Color(0xFFFF6000),
+                                        unfocusedBorderColor = Color.White,
+                                        cursorColor = Color.White,
+                                        focusedLabelColor = Color(0xFFFF6000),
+                                        unfocusedLabelColor = Color.White
+                                    )
+                                )
+
+                                OutlinedTextField(
+                                    value = inchText,
+                                    onValueChange = { newInch ->
+                                        inchText = newInch
+                                        registrationViewModel.height2 = listOf(
+                                            registrationViewModel.height2.getOrNull(0) ?: 0,
+                                            newInch.toIntOrNull() ?: 0
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.inches_label), color = Color.White) },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(56.dp),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedBorderColor = Color(0xFFFF6000),
+                                        unfocusedBorderColor = Color.White,
+                                        cursorColor = Color.White,
+                                        focusedLabelColor = Color(0xFFFF6000),
+                                        unfocusedLabelColor = Color.White
+                                    )
+                                )
+                            }
+                        } else {
+                            TextFieldWithLabel(
+                                label = stringResource(R.string.height_cm_label),
+                                value = heightText,
+                                onValueChange = { newCm ->
+                                    heightText = newCm
+                                    registrationViewModel.height = newCm.toIntOrNull() ?: registrationViewModel.height
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Headline/Bio TextField
+                        OutlinedTextField(
+                            value = headline,
+                            onValueChange = {
+                                headline = it
+                                registrationViewModel.bio = it.text
+                            },
+                            label = { Text("Bio (optional)", color = Color.White) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = Color.White,
+                                focusedBorderColor = Color(0xFFFF6000),
+                                unfocusedBorderColor = Color.White
+                            )
+                        )
 
                         // ---- Next Button ----
                         Button(
@@ -3125,10 +3210,7 @@ fun EnterBirthdateCityHometownScreen(
     val isCityOther     = selectedCity    == other
     val isLocalityOther = selectedLocality== other
 
-    val isNextEnabled = registrationViewModel.dob.isNotBlank() &&
-            ((isCountryOther  && customCountry .isNotBlank()) || (!isCountryOther  && selectedCountry .isNotBlank())) &&
-            ((isCityOther     && customCity    .isNotBlank()) || (!isCityOther     && selectedCity    .isNotBlank())) &&
-            ((isLocalityOther && customLocality.isNotBlank()) || (!isLocalityOther && selectedLocality.isNotBlank()))
+    val isNextEnabled = registrationViewModel.dob.isNotBlank()
 
     Scaffold(
         content = { innerPadding ->
@@ -4018,15 +4100,16 @@ fun UploadMediaComposable(
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
             }
+
 
             /* ---------------- Voice bio (optional) ---------------- */
             item {
                 Text(
-                    text = stringResource(R.string.voice_bio_label) + "  •  " +
-                            stringResource(R.string.optional_voice),
+                    text = stringResource(R.string.voice_bio_label),
                     color = Color.White,
-                    fontSize = 18.sp
+                    fontSize = 16.sp
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -4133,198 +4216,198 @@ fun uploadOptionalPhoto(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EnterProfileHeadlineScreen(
-    registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit
-) {
-    // Local state for name & height to mirror registrationViewModel
-    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
-    var feetText   by remember {
-        mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "")
-    }
-    var inchText   by remember {
-        mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "")
-    }
-    var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
-
-    Scaffold(
-        content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A1A))
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // ---- Full Name (optional) ----
-                    TextFieldWithLabel(
-                        label = stringResource(R.string.full_name_label),
-                        value = registrationViewModel.name,
-                        onValueChange = { registrationViewModel.name = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // ---- Height (optional) ----
-                    Text(
-                        text = stringResource(R.string.height_label),
-                        color = Color.White,
-                        fontSize = 18.sp
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = registrationViewModel.isHeightInFeet,
-                            onCheckedChange = { useFeet ->
-                                registrationViewModel.isHeightInFeet = useFeet
-                                if (useFeet) {
-                                    val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
-                                    feetText = f.toString()
-                                    inchText = i.toString()
-                                } else {
-                                    val f = feetText.toIntOrNull() ?: 0
-                                    val i = inchText.toIntOrNull() ?: 0
-                                    heightText = registrationViewModel.feetInchesToCm(f, i).toString()
-                                }
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color(0xFFFF6000),
-                                uncheckedThumbColor = Color.White
-                            )
-                        )
-                        Text(
-                            text = if (registrationViewModel.isHeightInFeet)
-                                stringResource(R.string.feet_inches_label)
-                            else
-                                stringResource(R.string.centimeters_label),
-                            color = Color.White
-                        )
-                    }
-
-                    if (registrationViewModel.isHeightInFeet) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = feetText,
-                                onValueChange = { newFeet ->
-                                    feetText = newFeet
-                                    registrationViewModel.height2 = listOf(
-                                        newFeet.toIntOrNull() ?: 0,
-                                        registrationViewModel.height2.getOrNull(1) ?: 0
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.feet_label), color = Color.White) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(56.dp),
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    focusedBorderColor = Color(0xFFFF6000),
-                                    unfocusedBorderColor = Color.White,
-                                    cursorColor = Color.White,
-                                    focusedLabelColor = Color(0xFFFF6000),
-                                    unfocusedLabelColor = Color.White
-                                )
-                            )
-
-                            OutlinedTextField(
-                                value = inchText,
-                                onValueChange = { newInch ->
-                                    inchText = newInch
-                                    registrationViewModel.height2 = listOf(
-                                        registrationViewModel.height2.getOrNull(0) ?: 0,
-                                        newInch.toIntOrNull() ?: 0
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        stringResource(R.string.inches_label),
-                                        color = Color.White
-                                    )
-                                },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(56.dp),
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    focusedBorderColor = Color(0xFFFF6000),
-                                    unfocusedBorderColor = Color.White,
-                                    cursorColor = Color.White,
-                                    focusedLabelColor = Color(0xFFFF6000),
-                                    unfocusedLabelColor = Color.White
-                                )
-                            )
-                        }
-                    } else {
-                        TextFieldWithLabel(
-                            label = stringResource(R.string.height_cm_label),
-                            value = heightText,
-                            onValueChange = { newCm ->
-                                heightText = newCm
-                                registrationViewModel.height = newCm.toIntOrNull()
-                                    ?: registrationViewModel.height
-                            }
-                        )
-                    }
-
-                    // Add a spacer after height ✔
-                    Spacer(modifier = Modifier.height(24.dp))
-                    // Headline/Bio TextField
-                    OutlinedTextField(
-                        value = headline,
-                        onValueChange = {
-                            headline = it
-                            registrationViewModel.bio = it.text
-                        },
-                        label = { Text("Bio (optional)", color = Color(0xFFFF6000)) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF4500),
-                            focusedBorderColor = Color(0xFFFF4500),
-                            unfocusedBorderColor = Color(0xFFFF6000)
-                        )
-                    )
-
-                    // Next Button
-                    Button(
-                        onClick = {
-                            registrationViewModel.bio = headline.text
-                            onNext()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
-                        shape = CircleShape,
-                        elevation = ButtonDefaults.buttonElevation(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.next_button),
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    )
-}
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun EnterProfileHeadlineScreen(
+//    registrationViewModel: RegistrationViewModel,
+//    onNext: () -> Unit
+//) {
+//    // Local state for name & height to mirror registrationViewModel
+//    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
+//    var feetText   by remember {
+//        mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "")
+//    }
+//    var inchText   by remember {
+//        mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "")
+//    }
+//    var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
+//
+//    Scaffold(
+//        content = { innerPadding ->
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(Color(0xFF1A1A1A))
+//                    .padding(innerPadding),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Column(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(horizontal = 32.dp),
+//                    verticalArrangement = Arrangement.Center,
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//                ) {
+//                    // ---- Full Name (optional) ----
+//                    TextFieldWithLabel(
+//                        label = stringResource(R.string.full_name_label),
+//                        value = registrationViewModel.name,
+//                        onValueChange = { registrationViewModel.name = it }
+//                    )
+//
+//                    Spacer(modifier = Modifier.height(16.dp))
+//
+//                    // ---- Height (optional) ----
+//                    Text(
+//                        text = stringResource(R.string.height_label),
+//                        color = Color.White,
+//                        fontSize = 18.sp
+//                    )
+//                    Row(verticalAlignment = Alignment.CenterVertically) {
+//                        Switch(
+//                            checked = registrationViewModel.isHeightInFeet,
+//                            onCheckedChange = { useFeet ->
+//                                registrationViewModel.isHeightInFeet = useFeet
+//                                if (useFeet) {
+//                                    val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
+//                                    feetText = f.toString()
+//                                    inchText = i.toString()
+//                                } else {
+//                                    val f = feetText.toIntOrNull() ?: 0
+//                                    val i = inchText.toIntOrNull() ?: 0
+//                                    heightText = registrationViewModel.feetInchesToCm(f, i).toString()
+//                                }
+//                            },
+//                            colors = SwitchDefaults.colors(
+//                                checkedThumbColor = Color(0xFFFF6000),
+//                                uncheckedThumbColor = Color.White
+//                            )
+//                        )
+//                        Text(
+//                            text = if (registrationViewModel.isHeightInFeet)
+//                                stringResource(R.string.feet_inches_label)
+//                            else
+//                                stringResource(R.string.centimeters_label),
+//                            color = Color.White
+//                        )
+//                    }
+//
+//                    if (registrationViewModel.isHeightInFeet) {
+//                        Row(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .padding(vertical = 8.dp),
+//                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+//                            verticalAlignment = Alignment.CenterVertically
+//                        ) {
+//                            OutlinedTextField(
+//                                value = feetText,
+//                                onValueChange = { newFeet ->
+//                                    feetText = newFeet
+//                                    registrationViewModel.height2 = listOf(
+//                                        newFeet.toIntOrNull() ?: 0,
+//                                        registrationViewModel.height2.getOrNull(1) ?: 0
+//                                    )
+//                                },
+//                                label = { Text(stringResource(R.string.feet_label), color = Color.White) },
+//                                singleLine = true,
+//                                modifier = Modifier
+//                                    .weight(1f)
+//                                    .heightIn(56.dp),
+//                                colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                    focusedBorderColor = Color(0xFFFF6000),
+//                                    unfocusedBorderColor = Color.White,
+//                                    cursorColor = Color.White,
+//                                    focusedLabelColor = Color(0xFFFF6000),
+//                                    unfocusedLabelColor = Color.White
+//                                )
+//                            )
+//
+//                            OutlinedTextField(
+//                                value = inchText,
+//                                onValueChange = { newInch ->
+//                                    inchText = newInch
+//                                    registrationViewModel.height2 = listOf(
+//                                        registrationViewModel.height2.getOrNull(0) ?: 0,
+//                                        newInch.toIntOrNull() ?: 0
+//                                    )
+//                                },
+//                                label = {
+//                                    Text(
+//                                        stringResource(R.string.inches_label),
+//                                        color = Color.White
+//                                    )
+//                                },
+//                                singleLine = true,
+//                                modifier = Modifier
+//                                    .weight(1f)
+//                                    .heightIn(56.dp),
+//                                colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                    focusedBorderColor = Color(0xFFFF6000),
+//                                    unfocusedBorderColor = Color.White,
+//                                    cursorColor = Color.White,
+//                                    focusedLabelColor = Color(0xFFFF6000),
+//                                    unfocusedLabelColor = Color.White
+//                                )
+//                            )
+//                        }
+//                    } else {
+//                        TextFieldWithLabel(
+//                            label = stringResource(R.string.height_cm_label),
+//                            value = heightText,
+//                            onValueChange = { newCm ->
+//                                heightText = newCm
+//                                registrationViewModel.height = newCm.toIntOrNull()
+//                                    ?: registrationViewModel.height
+//                            }
+//                        )
+//                    }
+//
+//                    // Add a spacer after height ✔
+//                    Spacer(modifier = Modifier.height(24.dp))
+//                    // Headline/Bio TextField
+//                    OutlinedTextField(
+//                        value = headline,
+//                        onValueChange = {
+//                            headline = it
+//                            registrationViewModel.bio = it.text
+//                        },
+//                        label = { Text("Bio (optional)", color = Color(0xFFFF6000)) },
+//                        singleLine = true,
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(bottom = 16.dp),
+//                        colors = OutlinedTextFieldDefaults.colors(
+//                            focusedTextColor = Color.White,
+//                            unfocusedTextColor = Color.White,
+//                            cursorColor = Color(0xFFFF4500),
+//                            focusedBorderColor = Color(0xFFFF4500),
+//                            unfocusedBorderColor = Color(0xFFFF6000)
+//                        )
+//                    )
+//
+//                    // Next Button
+//                    Button(
+//                        onClick = {
+//                            registrationViewModel.bio = headline.text
+//                            onNext()
+//                        },
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(56.dp),
+//                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
+//                        shape = CircleShape,
+//                        elevation = ButtonDefaults.buttonElevation(8.dp)
+//                    ) {
+//                        Text(
+//                            text = stringResource(R.string.next_button),
+//                            color = Color.White,
+//                            fontSize = 18.sp,
+//                            fontWeight = FontWeight.Bold
+//                        )
+//                    }
+//                }
+//            }
+//        }
+//    )
+//}
