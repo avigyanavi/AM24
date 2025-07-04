@@ -1472,7 +1472,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     onFailure("Post not found")
                     return@launch
                 }
-
+                val username = fetchUsernameById(currentUserId)
                 matches.forEach { matchId ->
                     val chatId = if (currentUserId < matchId) "${currentUserId}_$matchId" else "${matchId}_$currentUserId"
                     val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$chatId")
@@ -1511,6 +1511,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         notificationsRef = notificationsRef,
                         toUserId = matchId,
                         fromUserId = currentUserId,
+                        fromUsername = username,
                         message = "Shared a post"
                     )
                 }

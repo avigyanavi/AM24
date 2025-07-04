@@ -302,6 +302,17 @@ fun ChatScreenContent(
         onDispose { typingRef.removeEventListener(listener) }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            currentUserProfile?.userId?.let { uid ->
+                currentUserProfile = currentUserProfile?.copy(allowExplicitPics = false)
+                FirebaseRefs.db.getReference("users/$uid")
+                    .child("allowExplicitPics")
+                    .setValue(false)
+            }
+        }
+    }
+
     val takePhotoLauncher: ManagedActivityResultLauncher<Uri, Boolean> =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
             if (success && pendingPhotoUri != null) {
@@ -477,8 +488,11 @@ fun ChatScreenContent(
                         messagesRef, context
                     )
                     postNotification(
-                        notificationsRef, otherUserId, currentUserId,
-                        "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
+                        notificationsRef = notificationsRef,
+                        toUserId = otherUserId,
+                        fromUserId = currentUserId,
+                        fromUsername = currentUserProfile?.username ?: "",
+                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
                     )
                 } finally {
                     selectedMediaUri  = null
@@ -498,7 +512,13 @@ fun ChatScreenContent(
                 currentUserId, otherUserId, chatId,
                 recordedVoiceUri!!, messagesRef, context
             )
-            postNotification(notificationsRef, otherUserId, currentUserId, "[Voice Message]")
+            postNotification(
+                notificationsRef = notificationsRef,
+                toUserId = otherUserId,
+                fromUserId = currentUserId,
+                fromUsername = currentUserProfile?.username ?: "",
+                message = "[Voice Message]"
+            )
             recordedVoiceUri = null
             recordFile       = null
             isSendingMessage = false
@@ -531,7 +551,13 @@ fun ChatScreenContent(
                 messagesRef.child(newId).setValue(msg).addOnCompleteListener {
                     isSendingMessage = false
                 }
-                postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                postNotification(
+                    notificationsRef = notificationsRef,
+                    toUserId = otherUserId,
+                    fromUserId = currentUserId,
+                    fromUsername = currentUserProfile?.username ?: "",
+                    message = messageText
+                )
                 database.getReference("typing/$chatId/$currentUserId").setValue(false)
                 messageText = ""
             }
@@ -616,7 +642,13 @@ fun ChatScreenContent(
 
     LaunchedEffect(messages) {
         messages.filter { !it.processed && it.senderId != currentUserId }.forEach { message ->
-            postNotification(notificationsRef, otherUserId, message.senderId, message.text ?: "[Media]")
+            postNotification(
+                notificationsRef = notificationsRef,
+                toUserId = otherUserId,
+                fromUserId = message.senderId,
+                fromUsername = otherUserProfile?.username ?: "",
+                message = message.text ?: "[Media]"
+            )
             messagesRef.child(message.id).child("processed").setValue(true)
         }
     }
@@ -856,10 +888,11 @@ fun ChatScreenContent(
                                                 "$name has disabled explicit pics"
 
                                             postNotification(
-                                                notificationsRef,          // your "notifications" ref
-                                                otherUserId,                // to the partner
-                                                currentUserId,              // from you
-                                                notifMsg
+                                                notificationsRef = notificationsRef,          // your "notifications" ref
+                                                toUserId = otherUserId,                // to the partner
+                                                fromUserId = currentUserId,              // from you
+                                                fromUsername = currentUserProfile?.username ?: "",
+                                                message = notifMsg
                                             )
                                         }
                                     )
@@ -1489,7 +1522,13 @@ fun ChatScreenContent(
                                                     onSend = {
                                                         val messageText = "Check out this place: ${place.placeName}. Directions: https://maps.google.com/?q=${place.latLng.latitude},${place.latLng.longitude}"
                                                         sendMessage(currentUserId, otherUserId, chatId, messageText, messagesRef)
-                                                        postNotification(notificationsRef, otherUserId, currentUserId, messageText)
+                                                        postNotification(
+                                                            notificationsRef = notificationsRef,
+                                                            toUserId = otherUserId,
+                                                            fromUserId = currentUserId,
+                                                            fromUsername = currentUserProfile?.username ?: "",
+                                                            message = messageText
+                                                        )
                                                         placeSuggestionsExpanded = false
                                                     },
                                                     modifier = Modifier.weight(1f)
@@ -2287,13 +2326,19 @@ fun updateUserRating(ratingsRef: DatabaseReference, usersRef: DatabaseReference,
 
 fun getChatId(userId1: String, userId2: String): String = if (userId1 < userId2) "${userId1}_$userId2" else "${userId2}_$userId1"
 
-fun postNotification(notificationsRef: DatabaseReference, toUserId: String, fromUserId: String, message: String) {
+fun postNotification(
+    notificationsRef: DatabaseReference,
+    toUserId: String,
+    fromUserId: String,
+    fromUsername: String,
+    message: String
+) {
     val notificationId = notificationsRef.child(toUserId).push().key ?: return
     val noti = Notification(
         id = notificationId,
         type = "chat_message",
         senderId = fromUserId,
-        senderUsername = "",
+        senderUsername = fromUsername,
         message = message,
         timestamp = System.currentTimeMillis(),
         isRead = "false"
