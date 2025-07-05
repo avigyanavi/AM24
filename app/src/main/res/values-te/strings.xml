@@ -1104,7 +1104,7 @@
         <string name="matches">పార్కింగ్‌లు</string>
         <string name="rating">రేటింగ్</string>
         <string name="swipe_right_percentage">ఈ యూజర్‌పై కుడి వైపు స్వైప్ చేసే వారిలో శాతం</string>
-        <string name="west_bengal_ranking">పశ్చిమ బెంగాల్ ర్యాంకింగ్</string>
+    <string name="west_bengal_ranking">ర్యాంకింగ్</string>
         <string name="city_ranking">నగరం ర్యాంకింగ్</string>
         <string name="locality_ranking">ప్రాంతం ర్యాంకింగ్</string>
         <string name="age_ranking">వయస్సు ర్యాంకింగ్</string>

@@ -29,11 +29,15 @@ import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 
 // ──────────────── 1. PurchaseType enum ────────────────
-enum class PurchaseType(val apiType: String, val displayName: String) {
-    Swipes("swipes", "Swipes"),
-    Compliments("compliments", "Compliments"),
-    Boosts("boosts", "Boosts"),
-    AiMessages("aiMessages", "AI messages")
+enum class PurchaseType(
+    val apiType: String,
+    val displayName: String,
+    val unitPricePaise: Int
+) {
+    Swipes("swipes", "Swipes", 100),
+    Compliments("compliments", "Compliments", 150),
+    Boosts("boosts", "Boosts", 200),
+    AiMessages("aiMessages", "AI messages", 200)
 }
 
 // ──────────────── 2. UI state ────────────────
@@ -154,6 +158,13 @@ fun OneTimePurchaseScreen(
                     )
                 }
             }
+            val totalInPaise = ui.selectedQty * type.unitPricePaise
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "\u20B9${totalInPaise / 100.0}",
+                color = Color.White,
+                fontSize = 16.sp
+            )
             Spacer(Modifier.height(40.dp))
 
             Button(

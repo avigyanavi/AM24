@@ -60,6 +60,7 @@ exports.createOneTimeOrder = functions
       swipes:      { amount: quantity * 100,  receipt: `swipes_${quantity}` },
       compliments: { amount: quantity * 150,  receipt: `compliments_${quantity}` },
       boosts:      { amount: quantity * 200,  receipt: `boosts_${quantity}` },
+      aiMessages:  { amount: quantity * 200,  receipt: `aiMessages_${quantity}` },
     };
     const p = pricing[type];
     if (!p) throw new functions.https.HttpsError("invalid-argument", "Unknown purchase type");
@@ -740,6 +741,71 @@ exports.pushSummary = functions.pubsub
     logger.info(`pushSummary: processed ${jobs.length} users`);
   });
 
+  exports.nudgeIncompleteOnboarding = functions.pubsub
+    .schedule("every 120 minutes")
+    .timeZone("Asia/Kolkata")
+    .onRun(async () => {
+
+      const now          = Date.now();
+      const oneHour      = 60 * 60 * 1_000;
+      const oneDay       = 24 * oneHour;
+      const sixHours     = 6 * oneHour;
+
+      // 1. Pull every user who hasn’t finished onboarding
+      const usersSnap = await admin.database()
+        .ref("users")
+        .orderByChild("onboardingCompleted")
+        .equalTo(false)
+        .once("value");
+
+      const jobs = [];
+
+      usersSnap.forEach(userSnap => {
+        const uid  = userSnap.key;
+        const user = userSnap.val() || {};
+
+        const created     = user.signupTimestamp   || 0;
+        const lastNudge   = user.lastOnboardingNudge || 0;
+        const age         = now - created;
+        const sinceNudge  = now - lastNudge;
+
+        // 2. Pick only those 1 h ≤ age < 24 h and not nudged in 6 h
+        if (age >= oneHour && age < oneDay && sinceNudge >= sixHours) {
+          jobs.push(async () => {
+
+            // 3. Fetch FCM tokens
+            const tSnap  = await admin.database()
+              .ref(`users/${uid}/fcmTokens`)
+              .once("value");
+
+            const tokens = Object.keys(tSnap.val() || {});
+            if (!tokens.length) return;
+
+            // 4. Send multicast notification
+            const payload = {
+              notification: {
+                title: "Finish your profile to start swiping!",
+                body:   "Add a photo & pick a username – it takes 30 seconds.",
+              },
+              data: { type: "ONBOARDING_REMINDER" },
+              tokens,
+            };
+
+            await admin.messaging().sendEachForMulticast(payload);
+
+            // 5. Record that we nudged this user
+            await admin.database()
+              .ref(`users/${uid}/lastOnboardingNudge`)
+              .set(now);
+          });
+        }
+      });
+
+      await Promise.all(jobs.map(fn => fn()));
+      console.info(`Nudged ${jobs.length} incomplete users`);
+      return null;
+    });
+
 exports.pushUpgradePrompt = functions.pubsub
   .schedule('0 10 * * 1')          // cron: mm hh DD MM DOW   → Monday 10:00
   .timeZone('Asia/Kolkata')
@@ -817,4 +883,76 @@ exports.pushUpgradePrompt = functions.pubsub
 
     await Promise.all(jobs);
     logger.info(`pushUpgradePrompt: processed ${jobs.length} users`);
+  });
+
+exports.paypalWebhook = functions
+  .region('asia-south1')
+  .https.onRequest(async (req, res) => {
+    const cfg      = functions.config().paypal;
+    const env      = (cfg.environment || 'sandbox').toLowerCase();
+    const apiBase  = env === 'live'
+                       ? 'https://api-m.paypal.com'
+                       : 'https://api-m.sandbox.paypal.com';
+
+    /* 1️⃣ Verify the signature */
+    const verifyRes = await fetch(`${apiBase}/v1/notifications/verify-webhook-signature`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + Buffer.from(
+          `${cfg.client_id}:${cfg.client_secret}`
+        ).toString('base64')
+      },
+      body: JSON.stringify({
+        auth_algo:          req.headers['paypal-auth-algo'],
+        cert_url:           req.headers['paypal-cert-url'],
+        transmission_id:    req.headers['paypal-transmission-id'],
+        transmission_sig:   req.headers['paypal-transmission-sig'],
+        transmission_time:  req.headers['paypal-transmission-time'],
+        webhook_id:         cfg.webhook_id,          // 👈 from PayPal dashboard
+        webhook_event:      req.body
+      })
+    });
+    const { verification_status } = await verifyRes.json();
+    if (verification_status !== 'SUCCESS') {
+      console.error('[paypalWebhook] bad sig');
+      return res.status(400).send('bad signature');
+    }
+
+    /* 2️⃣ Process the event */
+    const ev   = req.body.event_type;               // e.g. BILLING.SUBSCRIPTION.CANCELLED
+    const sub  = req.body.resource;
+    const plan = sub.plan_id;
+    const uid  = sub.custom_id || sub.id;           // ↙︎ see note A
+
+    const tier = PLAN_TIERS[plan] || { plus:false, premium:false };
+    const db   = admin.database().ref(`users/${uid}`);
+
+    switch (ev) {
+      case 'BILLING.SUBSCRIPTION.ACTIVATED':
+      case 'PAYMENT.SALE.COMPLETED':
+        await db.update({
+          isPlus:     tier.plus,
+          isPremium:  tier.premium,
+          subscriptionStatus: 'active',
+          nextRenewal: new Date(sub.billing_info.next_billing_time).getTime(),
+          swipesInfo: { remainingSwipes: tier.premium ? 2147483647 : 50 },
+          availableBoosts:      tier.premium ? 5 : 3,
+          availableCompliments: tier.premium ? 5 : 3,
+          ...(tier.premium && { availableAiMessages: 2 }),
+        });
+        break;
+
+      case 'BILLING.SUBSCRIPTION.CANCELLED':
+      case 'BILLING.SUBSCRIPTION.SUSPENDED':
+      case 'BILLING.SUBSCRIPTION.EXPIRED':
+        await db.update({
+          isPlus:false, isPremium:false,
+          subscriptionStatus: ev.split('.').pop().toLowerCase(),
+          nextRenewal:null,
+        });
+        break;
+    }
+
+    res.status(200).send('ok');
   });
