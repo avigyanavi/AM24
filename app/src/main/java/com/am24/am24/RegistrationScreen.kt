@@ -168,6 +168,7 @@ class RegistrationActivity : ComponentActivity() {
                                                 .setValue(true)
                                             FirebaseRefs.db.reference.child("users/$uid/registrationStep").removeValue()
                                                 .addOnSuccessListener {
+                                                    auth.currentUser?.sendEmailVerification()
                                                     startActivity(Intent(this@RegistrationActivity, MainActivity::class.java))
                                                     finish()
                                                 }
@@ -2559,7 +2560,9 @@ suspend fun saveProfileToFirebase(
             // Save the city using customCity if "Other" is selected
             city = if (registrationViewModel.city == other) registrationViewModel.customCity.trim() else registrationViewModel.city.trim(),
             // Hometown represents locality; if empty, fallback to a custom value if provided
-            hometown = registrationViewModel.hometown.ifEmpty { registrationViewModel.customHometown },
+            hometown = if (registrationViewModel.hometown == other)
+                registrationViewModel.customHometown.trim()
+            else registrationViewModel.hometown.trim(),
             highSchool = if (registrationViewModel.highSchool == other) registrationViewModel.customHighSchool else registrationViewModel.highSchool,
             college = if (registrationViewModel.college == other) registrationViewModel.customCollege else registrationViewModel.college,
             postGraduation = if (registrationViewModel.postGraduation == other) registrationViewModel.customPostGraduation else registrationViewModel.postGraduation,
@@ -3235,13 +3238,6 @@ fun EnterBirthdateCityHometownScreen(
             }
         }
     }
-
-
-    // Validation
-    val isCountryOther  = selectedCountry == other
-    val isCityOther     = selectedCity    == other
-    val isLocalityOther = selectedLocality== other
-
     val isNextEnabled = registrationViewModel.dob.isNotBlank()
 
     Scaffold(

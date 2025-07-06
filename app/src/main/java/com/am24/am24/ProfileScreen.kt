@@ -3386,6 +3386,7 @@ fun BasicInfoEditSection(
             )
         }
 
+        val oth = stringResource(R.string.college_other)
         // Save / Cancel
         ButtonRow(
             onSave = {
@@ -3394,7 +3395,8 @@ fun BasicInfoEditSection(
                         name = name,
                         city = city,
                         customCity = customCity.ifBlank { null },
-                        hometown = locality,
+                        hometown = if (locality == oth)
+                            customLocality.trim() else locality.trim(),
                         customHometown = customLocality.ifBlank { null },
                         highSchool = highSchoolQuery,
                         customHighSchool = customHighSchool.ifBlank { null },
