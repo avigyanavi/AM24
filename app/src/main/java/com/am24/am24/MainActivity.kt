@@ -22,8 +22,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.theme.AppTheme
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,6 +38,18 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
     private var authListener: FirebaseAuth.AuthStateListener? = null
+
+    private fun currentProvider(): String {
+        val providers = FirebaseAuth.getInstance().currentUser?.providerData
+            ?.map { it.providerId } ?: return "unknown"
+        return when {
+            GoogleAuthProvider.PROVIDER_ID   in providers -> "google"
+            FacebookAuthProvider.PROVIDER_ID in providers -> "facebook"
+            PhoneAuthProvider.PROVIDER_ID    in providers -> "phone"
+            EmailAuthProvider.PROVIDER_ID    in providers -> "emailPassword"
+            else                                      -> "unknown"
+        }
+    }
 
     // A flag to prevent multiple navigations
     private var isNavigationInProgress = false
@@ -147,6 +163,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     Intent(this@MainActivity, RegistrationActivity::class.java)
                         .putExtra("requestedStartStep", step)
+                        .putExtra("signInProvider", currentProvider())
                 }
 
                 withContext(Dispatchers.Main) {

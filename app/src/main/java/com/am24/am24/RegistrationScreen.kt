@@ -114,6 +114,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var authListener: FirebaseAuth.AuthStateListener? = null    // ≤ NEW
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -142,8 +144,9 @@ class RegistrationActivity : ComponentActivity() {
                             saveProfileToFirebase(
                                 this@RegistrationActivity,
                                 registrationViewModel,
-                                /* other-string = */ getString(R.string.college_other)
-                            ) {
+                                getString(R.string.college_other),
+                                allowPhoneAuth
+                                ) {
                                 // ② only once that’s done, mirror under /publicUsers/{username}
                                 val auth = FirebaseAuth.getInstance()
                                 val db   = FirebaseRefs.db.reference
@@ -353,8 +356,11 @@ fun RegistrationScreen(
     var currentStep by remember { mutableStateOf(initialStep) }
     val totalSteps = 8 // Updated total steps (language screen removed)
     val progress = currentStep.toFloat() / totalSteps.toFloat()
-    val displayProgress = if (currentStep == totalSteps) 0.99f else progress
-
+    val displayProgress = when (currentStep) {
+        1           -> 0f      // Step-1 should read 0 %
+        totalSteps  -> 0.99f   // Keep the 99 % cap on the last step
+        else        -> progress
+    }
     val onNext = {
         currentStep += 1
         saveStep(currentStep)
@@ -2506,27 +2512,25 @@ suspend fun saveProfileToFirebase(
     context: Context,                          // ★ new
     registrationViewModel: RegistrationViewModel,
     other: String,
+    allowPhoneAuth: Boolean,                    // ← add
     onRegistrationComplete: () -> Unit
 ) {
     try {
         val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val e164   = registrationViewModel.phoneNumber
+        val raw = registrationViewModel.phoneNumber
             .ifBlank { FirebaseAuth.getInstance().currentUser?.phoneNumber }
-            ?.let { formatPhoneNumber(it) }          // “+91…”
-            ?: ""
+        val e164 = raw?.let { formatPhoneNumber(it) } ?: ""
 
-        /* ── NEW: atomic claim ─────────────────────────────────── */
-        if (e164.isNotBlank()) {
+        if (allowPhoneAuth && e164.isNotBlank()) {          // ← gate by country
             val ok = claimPhoneNumber(database, e164, userId)
             if (!ok) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context, "That mobile number is already linked to another account.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(context,
+                        "That mobile number is already linked to another account.",
+                        Toast.LENGTH_LONG).show()
                 }
-                return                                             // abort registration
+                return                                       // abort save
             }
         }
 
@@ -2540,8 +2544,7 @@ suspend fun saveProfileToFirebase(
         }
 
         val profile = Profile(
-            phoneNumber = registrationViewModel.phoneNumber          // <── use VM first
-                .ifBlank { FirebaseAuth.getInstance().currentUser?.phoneNumber },
+            phoneNumber = if (allowPhoneAuth) raw else null, // ← not stored abroad
             userId = userId,
             country       = if (registrationViewModel.country == other) registrationViewModel.customCountry else registrationViewModel.country,
             customCountry = registrationViewModel.customCountry,
