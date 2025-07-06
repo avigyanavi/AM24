@@ -75,6 +75,8 @@ fun UpgradeLandingScreen(nav: NavController) {
 
     /* ── local handles (captured by launchOneTimeUpi) ── */
     val ctx    = LocalContext.current
+    val isIndia = isProbablyInIndia(ctx)
+
     val scope  = rememberCoroutineScope()
     val host   = ctx as? KupidXAppActivity
     val fx     = FirebaseFunctions.getInstance("asia-south1")
@@ -170,16 +172,18 @@ fun UpgradeLandingScreen(nav: NavController) {
             tier = Tier.PLUS,
             colour = Color(0xFF1E1E1E),
             priceWeekly = 9,  priceMonth = 39, priceYear = 399,
-            onAuto   = { nav.navigate("subscription") },
-            onManual = { p -> launchOneTimeUpi(Tier.PLUS, p) }
+            onAuto = { nav.navigate("subscription") },
+            onManual = { p -> launchOneTimeUpi(Tier.PLUS, p) },
+            showManual = isIndia                    // 👈 new arg
         )
 
         TierCard(
             tier = Tier.PREMIUM,
-            colour =             Color(0xFFFF6F00),
+            colour = Color(0xFFFF6F00),
             priceWeekly = 29, priceMonth = 99, priceYear = 999,
-            onAuto   = { nav.navigate("subscription") },
-            onManual = { p -> launchOneTimeUpi(Tier.PREMIUM, p) }
+            onAuto = { nav.navigate("subscription") },
+            onManual = { p -> launchOneTimeUpi(Tier.PREMIUM, p) },
+            showManual = isIndia                    // 👈
         )
     }
 }
@@ -195,7 +199,8 @@ private fun TierCard(
     priceMonth:  Int,
     priceYear:   Int,
     onAuto:      ()       -> Unit,
-    onManual:    (Period) -> Unit
+    onManual:    (Period) -> Unit,
+    showManual:  Boolean               // 👈 NEW
 ) {
     Card(
         colors   = CardDefaults.cardColors(containerColor = colour),
@@ -231,39 +236,37 @@ private fun TierCard(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
 
                 Button(onClick = onAuto, modifier = Modifier.weight(1f)) {
-                    Text("Subscribe with Card")
+                    Text("Subscribe")
                 }
 
-                /* 2 ▸ one-time-payment button + its menu */
-                var expanded by remember { mutableStateOf(false) }
+                if (showManual) {                 // 👈 only in India
+                    var expanded by remember { mutableStateOf(false) }
 
-                Box(                               // <- this is now the anchor
-                    modifier = Modifier.weight(1f) // keep the 50-50 width split
-                ) {
-                    OutlinedButton(
-                        onClick = { expanded = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    ) {
-                        val accent = if (tier == Tier.PLUS) Color(0xFFFF6F00) else Color.White
-                        Text("Pay once", color = accent)
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { expanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val accent = if (tier == Tier.PLUS) Color(0xFFFF6F00) else Color.White
+                            Text("Pay once", color = accent)
+                        }
+
+                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("₹$priceWeekly / week") },
+                                onClick = { expanded = false; onManual(Period.WEEK) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("₹$priceMonth / month") },
+                                onClick = { expanded = false; onManual(Period.MONTH) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("₹$priceYear / year") },
+                                onClick = { expanded = false; onManual(Period.YEAR) }
+                            )
+                        }
                     }
-
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("₹$priceWeekly / week") },
-                        onClick = { expanded = false; onManual(Period.WEEK) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("₹$priceMonth / month") },
-                        onClick = { expanded = false; onManual(Period.MONTH) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("₹$priceYear / year") },
-                        onClick = { expanded = false; onManual(Period.YEAR) }
-                    )
                 }
-            }
             }
         }
     }

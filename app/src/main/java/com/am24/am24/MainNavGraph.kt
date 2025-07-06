@@ -187,7 +187,15 @@ fun MainNavGraph(
             )
         }
         composable("paywall")    { SubscriptionScreen(navController) }
-        composable("paypal_web") { PayPalWebView(navController) }
+        composable(
+            "paypal_web/{slug}",
+            arguments = listOf(navArgument("slug") { defaultValue = "plus-monthly" })
+        ) { backStackEntry ->
+            PayPalWebView(
+                navController,
+                pageSlug = backStackEntry.arguments?.getString("slug") ?: "plus-monthly"
+            )
+        }
 
         composable("razorpay_web") {
             // rebuild your URL with redirect & callback

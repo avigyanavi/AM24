@@ -983,6 +983,7 @@ fun BasicInfoSection(profile: Profile) {
         "${profile.height2[0]} ft ${profile.height2[1]} in"
     else
         "${profile.height} cm"
+    val isIndian = profile.country.equals("India", ignoreCase = true)
 
     // --- Name, caste, gender, city, locality, username, job, work ---
     ProfileDetailRow(stringResource(R.string.label_username),
@@ -993,10 +994,12 @@ fun BasicInfoSection(profile: Profile) {
         heightString,
         Icons.Default.Straighten)
 
-    ProfileDetailRow(
-        stringResource(R.string.caste),
-        localizedCaste(profile.caste ?: ""),
-        Icons.Default.Groups)
+    if (isIndian) {
+        ProfileDetailRow(
+            stringResource(R.string.caste),
+            localizedCaste(profile.caste ?: ""),
+            Icons.Default.Groups)
+    }
 
     ProfileDetailRow(
         stringResource(R.string.label_gender),
@@ -1004,10 +1007,12 @@ fun BasicInfoSection(profile: Profile) {
         genderIcon)
 
     // --- Community, religion, height, date joined ---
-    ProfileDetailRow(
-        stringResource(R.string.label_community),
-        localizedCommunity(profile.community),
-        Icons.Default.Groups)
+    if (isIndian) {
+        ProfileDetailRow(
+            stringResource(R.string.label_community),
+            localizedCommunity(profile.community),
+            Icons.Default.Groups)
+    }
 
     ProfileDetailRow(
         stringResource(R.string.label_religion),
@@ -2242,6 +2247,7 @@ fun BasicInfoEditSection(
     var feet by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
     var inches by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
     var heightCm by remember { mutableStateOf(tempProfile.height) }
+    val isIndian = tempProfile.country.equals("India", ignoreCase = true)
 
     // Gender
     val genderOptions = listOf(
@@ -2659,160 +2665,164 @@ fun BasicInfoEditSection(
         }
 
         // Community chips
-        Text(
-            stringResource(R.string.community_label),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFFF6F00)
-        )
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val commOpts = listOf(
-                stringResource(R.string.community_other),
-                stringResource(R.string.community_adi),
-                stringResource(R.string.community_anglo_indian),
-                stringResource(R.string.community_andamanese),
-                stringResource(R.string.community_assamese),
-                stringResource(R.string.community_awadhi),
-                stringResource(R.string.community_banjara),
-                stringResource(R.string.community_bengali),
-                stringResource(R.string.community_bhil),
-                stringResource(R.string.community_bhojpuri),
-                stringResource(R.string.community_bihari),
-                stringResource(R.string.community_bodo),
-                stringResource(R.string.community_chhattisgarhi),
-                stringResource(R.string.community_coorgi),
-                stringResource(R.string.community_dogra),
-                stringResource(R.string.community_garhwali),
-                stringResource(R.string.community_goan),      // “Goan”
-                stringResource(R.string.community_gond),
-                stringResource(R.string.community_gujarati),
-                stringResource(R.string.community_haryanvi),
-                stringResource(R.string.community_himachali),
-                stringResource(R.string.community_kannadiga),
-                stringResource(R.string.community_kashmiri),
-                stringResource(R.string.community_khasi),
-                stringResource(R.string.community_konkani),
-                stringResource(R.string.community_kumaoni),
-                stringResource(R.string.community_ladakhi),
-                stringResource(R.string.community_lakhadweepi),
-                stringResource(R.string.community_lepcha),
-                stringResource(R.string.community_madhya_pradeshi),
-                stringResource(R.string.community_malayali),
-                stringResource(R.string.community_malayali_mappila),
-                stringResource(R.string.community_manipuri),
-                stringResource(R.string.community_marathi),
-                stringResource(R.string.community_marwari),
-                stringResource(R.string.community_mizo),
-                stringResource(R.string.community_munda),
-                stringResource(R.string.community_naga),
-                stringResource(R.string.community_nepali),
-                stringResource(R.string.community_nyishi),
-                stringResource(R.string.community_odia),
-                stringResource(R.string.community_oraon),
-                stringResource(R.string.community_parsi),
-                stringResource(R.string.community_punjabi),
-                stringResource(R.string.community_rajasthani),
-                stringResource(R.string.community_santhal),
-                stringResource(R.string.community_sikkimese),
-                stringResource(R.string.community_sindhi),
-                stringResource(R.string.community_tamil),
-                stringResource(R.string.community_telugu),
-                stringResource(R.string.community_tibetan),
-                stringResource(R.string.community_tripuri),
-                stringResource(R.string.community_urdu_speaker),
+        if (isIndian) {
+            // Community chips
+            Text(
+                stringResource(R.string.community_label),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
             )
-            commOpts.forEach { option ->
-                FilterChip(
-                    selected = community == option,
-                    onClick = { community = option },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor = Color.White
-                    )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val commOpts = listOf(
+                    stringResource(R.string.community_other),
+                    stringResource(R.string.community_adi),
+                    stringResource(R.string.community_anglo_indian),
+                    stringResource(R.string.community_andamanese),
+                    stringResource(R.string.community_assamese),
+                    stringResource(R.string.community_awadhi),
+                    stringResource(R.string.community_banjara),
+                    stringResource(R.string.community_bengali),
+                    stringResource(R.string.community_bhil),
+                    stringResource(R.string.community_bhojpuri),
+                    stringResource(R.string.community_bihari),
+                    stringResource(R.string.community_bodo),
+                    stringResource(R.string.community_chhattisgarhi),
+                    stringResource(R.string.community_coorgi),
+                    stringResource(R.string.community_dogra),
+                    stringResource(R.string.community_garhwali),
+                    stringResource(R.string.community_goan),      // “Goan”
+                    stringResource(R.string.community_gond),
+                    stringResource(R.string.community_gujarati),
+                    stringResource(R.string.community_haryanvi),
+                    stringResource(R.string.community_himachali),
+                    stringResource(R.string.community_kannadiga),
+                    stringResource(R.string.community_kashmiri),
+                    stringResource(R.string.community_khasi),
+                    stringResource(R.string.community_konkani),
+                    stringResource(R.string.community_kumaoni),
+                    stringResource(R.string.community_ladakhi),
+                    stringResource(R.string.community_lakhadweepi),
+                    stringResource(R.string.community_lepcha),
+                    stringResource(R.string.community_madhya_pradeshi),
+                    stringResource(R.string.community_malayali),
+                    stringResource(R.string.community_malayali_mappila),
+                    stringResource(R.string.community_manipuri),
+                    stringResource(R.string.community_marathi),
+                    stringResource(R.string.community_marwari),
+                    stringResource(R.string.community_mizo),
+                    stringResource(R.string.community_munda),
+                    stringResource(R.string.community_naga),
+                    stringResource(R.string.community_nepali),
+                    stringResource(R.string.community_nyishi),
+                    stringResource(R.string.community_odia),
+                    stringResource(R.string.community_oraon),
+                    stringResource(R.string.community_parsi),
+                    stringResource(R.string.community_punjabi),
+                    stringResource(R.string.community_rajasthani),
+                    stringResource(R.string.community_santhal),
+                    stringResource(R.string.community_sikkimese),
+                    stringResource(R.string.community_sindhi),
+                    stringResource(R.string.community_tamil),
+                    stringResource(R.string.community_telugu),
+                    stringResource(R.string.community_tibetan),
+                    stringResource(R.string.community_tripuri),
+                    stringResource(R.string.community_urdu_speaker),
                 )
+                commOpts.forEach { option ->
+                    FilterChip(
+                        selected = community == option,
+                        onClick = { community = option },
+                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
             }
-        }
 
-        // Caste chips
-        Text(
-            stringResource(R.string.caste_title),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFFF6F00)
-        )
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val casteOptions = listOf(
-                stringResource(R.string.caste_other),
-                stringResource(R.string.caste_baidya),
-                stringResource(R.string.caste_bhumihar),
-                stringResource(R.string.caste_brahmin),
-                stringResource(R.string.caste_ezhava),
-                stringResource(R.string.caste_gurjar),
-                stringResource(R.string.caste_jat),
-                stringResource(R.string.caste_kayastha),
-                stringResource(R.string.caste_kshatriya),
-                stringResource(R.string.caste_kurmi),
-                stringResource(R.string.caste_lingayat),
-                stringResource(R.string.caste_mahishya),
-                stringResource(R.string.caste_maratha),
-                stringResource(R.string.caste_nair),
-                stringResource(R.string.caste_obc),
-                stringResource(R.string.caste_other),
-                stringResource(R.string.caste_baidya),
-                stringResource(R.string.caste_bhumihar),
-                stringResource(R.string.caste_brahmin),
-                stringResource(R.string.caste_ezhava),
-                stringResource(R.string.caste_gurjar),
-                stringResource(R.string.caste_jat),
-                stringResource(R.string.caste_kayastha),
-                stringResource(R.string.caste_kshatriya),
-                stringResource(R.string.caste_kurmi),
-                stringResource(R.string.caste_lingayat),
-                stringResource(R.string.caste_mahishya),
-                stringResource(R.string.caste_maratha),
-                stringResource(R.string.caste_nair),
-                stringResource(R.string.caste_obc),
-                stringResource(R.string.caste_rajput),
-                stringResource(R.string.caste_reddy),
-                stringResource(R.string.caste_sadgop),
-                stringResource(R.string.caste_scheduled_caste),
-                stringResource(R.string.caste_scheduled_tribe),
-                stringResource(R.string.caste_vaishya),
-                stringResource(R.string.caste_yadav),
-                stringResource(R.string.caste_general),
-                stringResource(R.string.caste_reddy),
-                stringResource(R.string.caste_sadgop),
-                stringResource(R.string.caste_scheduled_caste),
-                stringResource(R.string.caste_scheduled_tribe),
-                stringResource(R.string.caste_vaishya),
-                stringResource(R.string.caste_yadav),
-                stringResource(R.string.caste_general),
+
+            // Caste chips
+            Text(
+                stringResource(R.string.caste_title),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6F00)
             )
-            casteOptions.forEach { option ->
-                FilterChip(
-                    selected = caste == option,
-                    onClick = { caste = option },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor = Color.White
-                    )
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val casteOptions = listOf(
+                    stringResource(R.string.caste_other),
+                    stringResource(R.string.caste_baidya),
+                    stringResource(R.string.caste_bhumihar),
+                    stringResource(R.string.caste_brahmin),
+                    stringResource(R.string.caste_ezhava),
+                    stringResource(R.string.caste_gurjar),
+                    stringResource(R.string.caste_jat),
+                    stringResource(R.string.caste_kayastha),
+                    stringResource(R.string.caste_kshatriya),
+                    stringResource(R.string.caste_kurmi),
+                    stringResource(R.string.caste_lingayat),
+                    stringResource(R.string.caste_mahishya),
+                    stringResource(R.string.caste_maratha),
+                    stringResource(R.string.caste_nair),
+                    stringResource(R.string.caste_obc),
+                    stringResource(R.string.caste_other),
+                    stringResource(R.string.caste_baidya),
+                    stringResource(R.string.caste_bhumihar),
+                    stringResource(R.string.caste_brahmin),
+                    stringResource(R.string.caste_ezhava),
+                    stringResource(R.string.caste_gurjar),
+                    stringResource(R.string.caste_jat),
+                    stringResource(R.string.caste_kayastha),
+                    stringResource(R.string.caste_kshatriya),
+                    stringResource(R.string.caste_kurmi),
+                    stringResource(R.string.caste_lingayat),
+                    stringResource(R.string.caste_mahishya),
+                    stringResource(R.string.caste_maratha),
+                    stringResource(R.string.caste_nair),
+                    stringResource(R.string.caste_obc),
+                    stringResource(R.string.caste_rajput),
+                    stringResource(R.string.caste_reddy),
+                    stringResource(R.string.caste_sadgop),
+                    stringResource(R.string.caste_scheduled_caste),
+                    stringResource(R.string.caste_scheduled_tribe),
+                    stringResource(R.string.caste_vaishya),
+                    stringResource(R.string.caste_yadav),
+                    stringResource(R.string.caste_general),
+                    stringResource(R.string.caste_reddy),
+                    stringResource(R.string.caste_sadgop),
+                    stringResource(R.string.caste_scheduled_caste),
+                    stringResource(R.string.caste_scheduled_tribe),
+                    stringResource(R.string.caste_vaishya),
+                    stringResource(R.string.caste_yadav),
+                    stringResource(R.string.caste_general),
                 )
+                casteOptions.forEach { option ->
+                    FilterChip(
+                        selected = caste == option,
+                        onClick = { caste = option },
+                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            disabledContainerColor = Color.Transparent,
+                            disabledLabelColor = Color(0xFFFF6F00),
+                            selectedContainerColor = Color(0xFFFF6F00),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
             }
         }
 

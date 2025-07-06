@@ -353,8 +353,8 @@ fun RegistrationScreen(
     var currentStep by remember { mutableStateOf(initialStep) }
     val totalSteps = 8 // Updated total steps (language screen removed)
     val progress = currentStep.toFloat() / totalSteps.toFloat()
+    val displayProgress = if (currentStep == totalSteps) 0.99f else progress
 
-    val context = LocalContext.current
     val onNext = {
         currentStep += 1
         saveStep(currentStep)
@@ -400,14 +400,14 @@ fun RegistrationScreen(
                     .padding(innerPadding)
             ) {
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = displayProgress,
                     modifier = Modifier.fillMaxWidth().height(6.dp),
                     color = Color(0xFFFF6000),
                     trackColor = Color.Gray
                 )
                  Spacer(Modifier.height(4.dp))
                  Text(
-                     text = "${(progress * 100).roundToInt()}% completed",
+                     text = "${(displayProgress * 100).roundToInt()}% completed",
                      color = Color.White,
                      fontSize = 12.sp,
                      modifier = Modifier.align(Alignment.End)
@@ -2193,6 +2193,10 @@ fun EnterGenderCommunityReligionScreen(
 
     var other = stringResource(R.string.college_other)
     // Predefined lists for dropdown options
+    val isIndian = registrationViewModel.country.equals("India", ignoreCase = true)
+    LaunchedEffect(isIndian) {
+        if (!isIndian) registrationViewModel.community = ""
+    }
     val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), other)
     val communityOptions = listOf(
         stringResource(R.string.community_other),
@@ -2304,15 +2308,17 @@ fun EnterGenderCommunityReligionScreen(
                     onOptionSelected = { registrationViewModel.religion = it }
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                if (isIndian) {
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // Community Dropdown
-                DropdownWithSearch(
-                    title = stringResource(R.string.select_community),
-                    options = communityOptions,
-                    selectedOption = registrationViewModel.community,
-                    onOptionSelected = { registrationViewModel.community = it }
-                )
+                    // Community Dropdown
+                    DropdownWithSearch(
+                        title = stringResource(R.string.select_community),
+                        options = communityOptions,
+                        selectedOption = registrationViewModel.community,
+                        onOptionSelected = { registrationViewModel.community = it }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

@@ -92,6 +92,21 @@ private val PLANS = listOf(
     Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM),
 )
 
+private fun planToSlug(plan: Plan): String = when {
+    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> "plus-monthly"
+    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> "plus-annual"
+    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> "premium-monthly"
+    else                                                       -> "premium-annual"
+}
+
+private fun usdPrice(plan: Plan): Double = when {
+    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> 4.99
+    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> 9.99
+    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> 49.99
+    else                                                       -> 99.99     // premium-annual
+}
+
+
 /* ───────── Subscription screen – new version ───────── */
 @Composable
 fun SubscriptionScreen(navController: NavController) {
@@ -99,10 +114,7 @@ fun SubscriptionScreen(navController: NavController) {
 
     /* geo-gate exactly like before */
     val ctx = LocalContext.current
-    if (!isProbablyInIndia(ctx)) {
-        LaunchedEffect(Unit) { navController.navigate("paypal_web") }
-        return
-    }
+    val isIndia = isProbablyInIndia(ctx)
 
     /* -------------------------------------------------- */
     val uid    = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -170,6 +182,16 @@ fun SubscriptionScreen(navController: NavController) {
             Toast.makeText(ctx, e.message ?: "Something went wrong", Toast.LENGTH_LONG).show()
         }
     }
+    fun handlePlan(plan: Plan) {
+        if (isProbablyInIndia(ctx)) {
+            // Razorpay checkout like before
+            launchCheckout(plan)
+        } else {
+            // Same UI, but jump to correct PayPal page
+            val slug = planToSlug(plan)
+            navController.navigate("paypal_web/$slug")
+        }
+    }
 
     /* ---------- attach success / error to the host activity ---------- */
     DisposableEffect(Unit) {
@@ -189,7 +211,12 @@ fun SubscriptionScreen(navController: NavController) {
 
     /* ---------- UI ---------- */
 
-    var currentPeriod by remember { mutableStateOf(Period.WEEK) }
+    val availablePeriods = if (isIndia)
+        Period.values().toList()                  // WEEK, MONTH, YEAR
+    else
+        listOf(Period.MONTH, Period.YEAR)
+
+    var currentPeriod by remember { mutableStateOf(availablePeriods.first()) }
 
     Column(
         modifier = Modifier
@@ -204,27 +231,34 @@ fun SubscriptionScreen(navController: NavController) {
         Spacer(Modifier.height(24.dp))
 
         /* period tabs */
-        TabRow(selectedTabIndex = Period.values().indexOf(currentPeriod),     containerColor   = Color.Transparent,            // keep background dark
-            contentColor     = Color.White     ) {
-            Period.values().forEach { p ->
+        TabRow(
+            selectedTabIndex = availablePeriods.indexOf(currentPeriod),
+            containerColor = Color.Transparent,
+            contentColor = Color.White
+        ) {
+            availablePeriods.forEach { p ->
                 val selected = p == currentPeriod
                 Tab(
-                    selected =             selected,
+                    selected = selected,
                     onClick  = { currentPeriod = p },
-                    text     = { Text(p.label, color = if (selected) Color.White else Color.LightGray   // ✔ white / grey
-                    ) })
+                    text     = { Text(p.label,
+                        color = if (selected) Color.White else Color.LightGray) }
+                )
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
         /* plan cards for the selected period */
-        PLANS.filter { it.period == currentPeriod }.forEach { plan ->
+        PLANS
+            .filter { it.period == currentPeriod }
+            .filter { isIndia || it.period != Period.WEEK }   // drop weekly for PayPal
+            .forEach { plan ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
-                    .clickable { launchCheckout(plan) },
+                    .clickable { handlePlan(plan) },   // ← replace old click
                 colors = CardDefaults.cardColors(
                     containerColor = if (plan.tier == Tier.PREMIUM)
                         Color(0xFFFF6F00)          // ← Kupidx orange
@@ -244,10 +278,12 @@ fun SubscriptionScreen(navController: NavController) {
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White
                         )
-                        Text("${plan.price} ₹ / ${plan.period.label.lowercase()}",
-                            color = Color.LightGray,
-                            fontSize = 14.sp
-                        )
+                        val priceLabel = if (isIndia)
+                            "₹${plan.price} / ${plan.period.label.lowercase()}"
+                        else
+                            "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
+
+                        Text(priceLabel, color = Color.LightGray, fontSize = 14.sp)
                         Spacer(Modifier.height(8.dp))
                         val features = if (plan.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
                         features.forEach { bullet ->
@@ -258,7 +294,7 @@ fun SubscriptionScreen(navController: NavController) {
                             )
                         }
                     }
-                    Button(onClick = { launchCheckout(plan) }) {
+                    Button(onClick = { handlePlan(plan) }) {
                         Text("Choose", color = Color.White)
                     }
                 }
@@ -288,11 +324,19 @@ fun isProbablyInIndia(ctx: Context): Boolean {
 
 /* ───────── PayPal Smart-Button WebView (unchanged) ───────── */
 
+/* ───────── PayPal payment page WebView – NEW ───────── */
+
 @Composable
-fun PayPalWebView(navController: NavController) {
-    val ctx        = LocalContext.current
+fun PayPalWebView(
+    navController: NavController,
+    pageSlug: String = "plus-monthly"           // default if you don’t pass one
+) {
+    val ctx = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    val pageUrl    = "https://kupidx.com/paypal_subscribe.html"
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+    /* build final URL:  https://kupidx.com/payment/<slug>?uid=XYZ */
+    val pageUrl = "https://kupidx.com/payment/$pageSlug?uid=$uid"
 
     AndroidView(
         factory = { c ->
@@ -306,15 +350,17 @@ fun PayPalWebView(navController: NavController) {
                         view: WebView?, request: WebResourceRequest?
                     ): Boolean {
                         val uri = request?.url ?: return false
+                        /* deep-link back into the app → PayPalReturnActivity */
                         if (uri.scheme == ctx.packageName) {
                             ctx.startActivity(Intent(Intent.ACTION_VIEW, uri))
                             navController.popBackStack()
                             return true
                         }
+                        /* keep normal http/https in WebView */
                         if (uri.scheme == "http" || uri.scheme == "https") return false
+                        /* everything else → external handler */
                         return try {
-                            uriHandler.openUri(uri.toString())
-                            true
+                            uriHandler.openUri(uri.toString()); true
                         } catch (_: Exception) {
                             false
                         }

@@ -588,7 +588,7 @@ fun DatingScreen(
             onDismissRequest = { showVerifyDialog = false },
             backgroundColor  = Color(0xFF1A1A1A),
             contentColor     = Color.White,
-            title  = { Text("Verify Email", fontWeight = FontWeight.Bold) },
+            title  = { Text("Verify Email", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold) },
             text   = { Text("Please verify your email address to use the app.") },
 
             /** ------------- BUTTON ROW ------------- **/
@@ -630,7 +630,7 @@ fun DatingScreen(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("Resend link")
+                            Text("Resend link", color = Color(0xFFFF6F00))
                         }
                     }
 
@@ -670,7 +670,7 @@ fun DatingScreen(
                                 }
                             }
                         }
-                    ) { Text("I’ve verified") }
+                    ) { Text("I’ve verified", color = Color(0xFFFF6F00)) }
                 }
             }
         )

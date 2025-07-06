@@ -23,7 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import com.am24.am24.AccountDeletion
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -122,6 +122,7 @@ fun SettingsScreen(navController: NavController) {
     var showLocationDialog by remember { mutableStateOf(false) }
     var subscriptionId by remember { mutableStateOf<String?>(null) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog  by remember { mutableStateOf(false) }
     var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
 
@@ -389,6 +390,17 @@ fun SettingsScreen(navController: NavController) {
                     )
                 }
             }
+            /* ───── Delete Account ───── */
+            item {
+                SettingsSection {
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFFF6F00)) },
+                        title = "Delete Account",
+                        showChevron = false,
+                        onClick = { showDeleteDialog = true }
+                    )
+                }
+            }
 
 
             /*──────────────── footer ─────────────────────────────────*/
@@ -458,6 +470,45 @@ fun SettingsScreen(navController: NavController) {
                 dismissButton = {
                     if (!working)
                         TextButton(onClick = { showFeedbackDialog = false }) {
+                            Text("Cancel", color = kupidxOrange)
+                        }
+                }
+            )
+        }
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { if (!working) showDeleteDialog = false },
+                title = { Text("Delete Account", color = kupidxOrange) },
+                text = {
+                    Text("Are you sure you want to delete your account? All data will be removed.")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            working = true
+                            scope.launch {
+                                try {
+                                    AccountDeletion.deleteAccount()
+                                    Toast.makeText(ctx, "Account deleted", Toast.LENGTH_LONG).show()
+                                    FirebaseAuth.getInstance().signOut()
+                                    ctx.startActivity(Intent(ctx, LandingActivity::class.java))
+                                    (ctx as? ComponentActivity)?.finish()
+                                } catch (e: Exception) {
+                                    Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                } finally {
+                                    working = false
+                                    showDeleteDialog = false
+                                }
+                            }
+                        },
+                        enabled = !working
+                    ) {
+                        Text("Delete", color = kupidxOrange)
+                    }
+                },
+                dismissButton = {
+                    if (!working)
+                        TextButton(onClick = { showDeleteDialog = false }) {
                             Text("Cancel", color = kupidxOrange)
                         }
                 }

@@ -353,6 +353,12 @@ const PLAN_TIERS = {
   plan_QjplxIqveB0BVS:     { plus: false, premium: true  },  // ₹99 / month
   plan_QjpmNjEkEPlObK:     { plus: true,  premium: false },  // ₹399 / year
   plan_QjmpS4xg31rg:       { plus: false, premium: true  },  // ₹999 / year
+
+    /* ---------- PayPal plans ---------- */
+    'P-1M705186NH640511WNBUUE3Q': { plus:true,  premium:false },
+    'P-1DH49334GG657434NMBUUGDQ': { plus:true,  premium:false },
+    'P-0MX08011N33928941NBUUIEY': { plus:false, premium:true  },
+    'P-58J68335TFT149934NBUUHPA': { plus:false, premium:true  },
 };
 
 
@@ -539,7 +545,101 @@ exports.onPostReport = functions
   });
 
 /** Plan you expect the user to subscribe to */
-const EXPECTED_PLAN = "P-8EV86494EK6312239NBCUGVI";
+const PAYPAL_PLANS = new Set([
+  'P-1M705186NH640511WNBUUE3Q',   // Plus  – Monthly  $4.99
+  'P-0MX08011N33928941NBUUIEY',   // Premium – Monthly $9.99
+  'P-1DH49334GG657434NMBUUGDQ',   // Plus  – Annual   $49.99
+  'P-58J68335TFT149934NBUUHPA',   // Premium – Annual  $99.99
+]);
+
+const PAYPAL_ENV   = (functions.config().paypal.environment || 'sandbox').toLowerCase();
+const PAYPAL_API   = PAYPAL_ENV === 'live'
+                       ? 'https://api-m.paypal.com'
+                       : 'https://api-m.sandbox.paypal.com';
+const PAYPAL_ID    = functions.config().paypal.client_id;
+const PAYPAL_SECRET= functions.config().paypal.client_secret;
+
+async function paypalToken () {
+  const r = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+    method : 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded',
+               'Authorization':'Basic ' + Buffer.from(`${PAYPAL_ID}:${PAYPAL_SECRET}`).toString('base64') },
+    body   : 'grant_type=client_credentials'
+  });
+  const { access_token } = await r.json();
+  return access_token;
+}
+
+/* ① create an order – called from Android for *non-IN* users */
+exports.createPaypalOrder = functions
+  .region('asia-south1')
+  .https.onCall(async (data, _ctx) => {
+    const { amountUsd, label } = data || {};
+    if (!amountUsd) throw new functions.https.HttpsError('invalid-argument','amountUsd missing');
+
+    const token  = await paypalToken();
+    const res    = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+      method : 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
+      body   : JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [{
+          amount: { currency_code:'USD', value: amountUsd.toFixed(2) },
+          custom_id: label                       // e.g.  "swipes_5"
+        }],
+        application_context: {
+          return_url: functions.config().paypal.return_url + '?oneTime=true',   // deep-links back
+          cancel_url: functions.config().paypal.cancel_url
+        }
+      })
+    });
+    const json   = await res.json();
+    const approve = json.links
+       .find(l => l.rel === 'payer-action' || l.rel === 'approve')?.href;
+    return { id: json.id, approve };           // Android opens `approve` WebView
+  });
+
+/* ② after the user is sent back, Android → this callable to capture & credit */
+exports.capturePaypalOrder = functions
+  .region('asia-south1')
+  .https.onCall(async (data, _ctx) => {
+    const { orderId } = data || {};
+    if (!orderId) throw new functions.https.HttpsError('invalid-argument','orderId missing');
+
+    const token  = await paypalToken();
+    const res    = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}/capture`, {
+      method : 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` }
+    });
+    const json   = await res.json();
+    const status = json.status;                       // COMPLETED ?
+
+    if (status !== 'COMPLETED') return { ok:false };
+
+    /* pull what the Android labelled it with                        *
+     * custom_id format = "<apiType>_<qty>"  → e.g. "swipes_10"     */
+    const custom = json.purchase_units?.[0]?.custom_id || '';
+    const [apiType, qtyStr] = custom.split('_');
+    const qty = Number(qtyStr || 0);
+
+    /* credit the user exactly like you do in OneTimePurchaseScreen */
+    const uid = _ctx.auth?.uid || json.payer?.payer_id;   // fallback
+    if (uid && qty > 0) {
+      const ref = admin.database().ref(`users/${uid}`);
+      const field = {
+        swipes      :'swipesInfo/remainingSwipes',
+        compliments :'availableCompliments',
+        boosts      :'availableBoosts',
+        aiMessages  :'availableAiMessages'
+      }[apiType];
+
+      if (field) {
+        await ref.child(field).transaction(v => (v || 0) + qty);
+      }
+    }
+
+    return { ok:true };
+  });
 
 /**
  * Callable ⇢ verifyPaypalSubscription({ subscriptionId: "I-XXXX" }) → { valid:Boolean, status:String }
@@ -559,20 +659,7 @@ exports.verifyPaypalSubscription = functions.https.onCall(async (data, context) 
                         ? "https://api-m.paypal.com"
                         : "https://api-m.sandbox.paypal.com";
 
-  /* ── 1) OAuth2 token ── */
-  const tokenRes = await fetch(`${apiBase}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
-    },
-    body: "grant_type=client_credentials"
-  });
-
-  if (!tokenRes.ok) {
-    throw new functions.https.HttpsError("internal", "PayPal auth failed");
-  }
-  const { access_token } = await tokenRes.json();
+  const access_token = await paypalToken();
 
   /* ── 2) Subscription details ── */
   const subRes = await fetch(`${apiBase}/v1/billing/subscriptions/${subId}`, {
@@ -587,7 +674,7 @@ exports.verifyPaypalSubscription = functions.https.onCall(async (data, context) 
   const status  = subJson.status;    // ACTIVE | APPROVAL_PENDING | CANCELLED …
   const planId  = subJson.plan_id;
 
-  const valid = status === "ACTIVE" && planId === EXPECTED_PLAN;
+  const valid = status === "ACTIVE" && PAYPAL_PLANS.has(planId);
 
   return { valid, status, planId };   // your Android code can check .valid === true
 });
@@ -895,7 +982,7 @@ exports.paypalWebhook = functions
                        : 'https://api-m.sandbox.paypal.com';
 
     /* 1️⃣ Verify the signature */
-    const verifyRes = await fetch(`${apiBase}/v1/notifications/verify-webhook-signature`, {
+    const verifyRes = await fetch(`${PAYPAL_API}/v1/notifications/verify-webhook-signature`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
