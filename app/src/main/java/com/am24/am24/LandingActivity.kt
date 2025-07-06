@@ -428,15 +428,18 @@ fun LandingScreen(
         }
 
         /* Bottom language bar */
-        LanguageSelectionBar(
-            selectedLanguage,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-        ) { lang ->
-            if (lang != selectedLanguage) {
-                prefs.edit().putString("language", lang).apply()
-                shouldRestart = true
+        val isIndia = remember { CountryUtil.isProbablyInIndia(context) }
+        if (isIndia) {
+            LanguageSelectionBar(
+                selectedLanguage,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            ) { lang ->
+                if (lang != selectedLanguage) {
+                    prefs.edit().putString("language", lang).apply()
+                    shouldRestart = true
+                }
             }
         }
     }

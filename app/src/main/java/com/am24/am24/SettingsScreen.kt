@@ -758,6 +758,8 @@ private fun GlobalPrefCard(
     isMatrimony: Boolean,
     onMatrimonyChange: (Boolean) -> Unit
 ) {
+    val ctx = LocalContext.current
+    val isIndia = CountryUtil.isProbablyInIndia(ctx)
     val langs = listOf(
         "English" to "en",
         "हिन्दी" to "hi",
@@ -791,43 +793,45 @@ private fun GlobalPrefCard(
                 colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
             )
         }
-        Divider(Modifier.padding(start = 56.dp))
-
         Text(
             "Be undiscoverable in card stack except those you swipe right on",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(start = 72.dp, bottom = 12.dp)
         )
 
-        /* language */
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable { exp = true }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.Language, null)
-            Spacer(Modifier.width(16.dp))
-            Text("Preferred Language", Modifier.weight(1f))
-            Text(langs.first { it.second == lang }.first)
-            Icon(Icons.Default.KeyboardArrowRight, null)
-        }
-        DropdownMenu(
-            expanded = exp,
-            onDismissRequest = { exp = false }
-        ) {
-            langs.forEach { (label, code) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    onClick = {
-                        exp = false
-                        onLangChange(code)
-                    }
-                )
-            }
-        }
         Divider(Modifier.padding(start = 56.dp))
+
+        /* language */
+        if (isIndia) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { exp = true }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Language, null)
+                Spacer(Modifier.width(16.dp))
+                Text("Preferred Language", Modifier.weight(1f))
+                Text(langs.first { it.second == lang }.first)
+                Icon(Icons.Default.KeyboardArrowRight, null)
+            }
+            DropdownMenu(
+                expanded = exp,
+                onDismissRequest = { exp = false }
+            ) {
+                langs.forEach { (label, code) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            exp = false
+                            onLangChange(code)
+                        }
+                    )
+                }
+            }
+            Divider(Modifier.padding(start = 56.dp))
+        }
 
         /* location */
         Row(
@@ -838,7 +842,7 @@ private fun GlobalPrefCard(
         ) {
             Icon(Icons.Default.MyLocation, null)
             Spacer(Modifier.width(16.dp))
-            Text("Allow Location for Matches", Modifier.weight(1f))
+            Text("Allow matches to view you in Maps", Modifier.weight(1f))
             Switch(
                 checked = allowLoc,
                 onCheckedChange = onAllowLocChange,
