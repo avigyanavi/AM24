@@ -2913,6 +2913,7 @@ fun EnterBirthdateCityHometownScreen(
     onNext: () -> Unit,
     fusedLocationClient: FusedLocationProviderClient
 ) {
+    val isIndian = registrationViewModel.country.equals("India", ignoreCase = true)
     val context = LocalContext.current
     val resources = context.resources
     val countries = remember { resources.getStringArray(R.array.country_names).toList() }
@@ -3168,13 +3169,24 @@ fun EnterBirthdateCityHometownScreen(
                 thane, thiruvananthapuram, udaipur, vadodara, varanasi, vellore, vijayawada,
                 visakhapatnam, warangal
             ) { country, city, locality ->
-                selectedCountry  = country
-                selectedCity     = city
-                selectedLocality = locality
+                selectedCountry = country
+                registrationViewModel.country = if (country == other) customCountry else country
 
-                registrationViewModel.country  = if (country  == other) customCountry  else country
-                registrationViewModel.city     = if (city     == other) customCity     else city
-                registrationViewModel.hometown = if (locality == other) customLocality else locality
+                if (country.equals("India", ignoreCase = true)) {
+                    selectedCity     = city
+                    selectedLocality = locality
+                    registrationViewModel.city     = if (city == other) customCity else city
+                    registrationViewModel.hometown = if (locality == other) customLocality else locality
+                } else {
+                    selectedCity        = other
+                    selectedLocality    = other
+                    customCity          = city
+                    customLocality      = locality
+                    registrationViewModel.customCity     = city
+                    registrationViewModel.customHometown = locality
+                    registrationViewModel.city           = other
+                    registrationViewModel.hometown       = other
+                }
                 isLocating = false
             }
         } else {
@@ -3201,13 +3213,24 @@ fun EnterBirthdateCityHometownScreen(
                 thane, thiruvananthapuram, udaipur, vadodara, varanasi, vellore, vijayawada,
                 visakhapatnam, warangal
             ) { country, city, locality ->
-                selectedCountry  = country
-                selectedCity     = city
-                selectedLocality = locality
+                selectedCountry = country
+                registrationViewModel.country = if (country == other) customCountry else country
 
-                registrationViewModel.country  = if (country  == other) customCountry  else country
-                registrationViewModel.city     = if (city     == other) customCity     else city
-                registrationViewModel.hometown = if (locality == other) customLocality else locality
+                if (country.equals("India", ignoreCase = true)) {
+                    selectedCity     = city
+                    selectedLocality = locality
+                    registrationViewModel.city     = if (city == other) customCity else city
+                    registrationViewModel.hometown = if (locality == other) customLocality else locality
+                } else {
+                    selectedCity        = other
+                    selectedLocality    = other
+                    customCity          = city
+                    customLocality      = locality
+                    registrationViewModel.customCity     = city
+                    registrationViewModel.customHometown = locality
+                    registrationViewModel.city           = other
+                    registrationViewModel.hometown       = other
+                }
                 isLocating = false
             }
         }
@@ -3299,29 +3322,45 @@ fun EnterBirthdateCityHometownScreen(
                         .height(IntrinsicSize.Min),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                    ) {                        DropdownWithSearch(
-                            title               = stringResource(R.string.select_city_default),
-                            options             = cities,
-                            selectedOption      = selectedCity,
-                            onOptionSelected    = { cityName ->
-                                selectedCity = cityName
-                                registrationViewModel.city = if (cityName == other) customCity else cityName
+                    if (isIndian) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            DropdownWithSearch(
+                                title               = stringResource(R.string.select_city_default),
+                                options             = cities,
+                                selectedOption      = selectedCity,
+                                onOptionSelected    = { cityName ->
+                                    selectedCity = cityName
+                                    registrationViewModel.city = if (cityName == other) customCity else cityName
+                                },
+                                customInput         = customCity,
+                                onCustomInputChange = { new ->
+                                    customCity = new ?: ""
+                                    registrationViewModel.customCity = new ?: ""
+                                    registrationViewModel.city = customCity
+                                }
+                            )
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = customCity,
+                            onValueChange = { new ->
+                                customCity = new
+                                registrationViewModel.customCity = new
+                                registrationViewModel.city = other
                             },
-                            customInput         = customCity,
-                            onCustomInputChange = { new ->
-                                customCity = new ?: ""
-                                registrationViewModel.customCity = new ?: ""
-                                registrationViewModel.city = customCity
-                            }
+                            label = { Text(stringResource(R.string.city_label), color = Color.White) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            colors = fieldColors()
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
-                        modifier = Modifier      .fillMaxHeight(),
+                        modifier = Modifier.fillMaxHeight(),
                         onClick = {
                             isLocating = true
                             permissionLauncher.launch(permissions)
@@ -3339,21 +3378,36 @@ fun EnterBirthdateCityHometownScreen(
 
                 // Locality Section
 //                Text(stringResource(R.string.locality_label), color = Color.White, fontSize = 18.sp)
-                Box {
-                    DropdownWithSearch(
-                        title               = stringResource(R.string.select_locality_default),
-                        options             = localities,
-                        selectedOption      = selectedLocality,
-                        onOptionSelected    = { loc ->
-                            selectedLocality = loc
-                            registrationViewModel.hometown =
-                                if (loc == other) customLocality else loc
+                if (isIndian) {
+                    Box {
+                        DropdownWithSearch(
+                            title               = stringResource(R.string.select_locality_default),
+                            options             = localities,
+                            selectedOption      = selectedLocality,
+                            onOptionSelected    = { loc ->
+                                selectedLocality = loc
+                                registrationViewModel.hometown =
+                                    if (loc == other) customLocality else loc
+                            },
+                            customInput         = customLocality,
+                            onCustomInputChange = { new ->
+                                customLocality = new ?: ""
+                                registrationViewModel.customHometown = new ?: ""
+                            }
+                        )
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = customLocality,
+                        onValueChange = { new ->
+                            customLocality = new
+                            registrationViewModel.customHometown = new
+                            registrationViewModel.hometown = other
                         },
-                        customInput         = customLocality,
-                        onCustomInputChange = { new ->
-                            customLocality = new ?: ""
-                            registrationViewModel.customHometown = new ?: ""
-                        }
+                        label = { Text(stringResource(R.string.locality_label), color = Color.White) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = fieldColors()
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
