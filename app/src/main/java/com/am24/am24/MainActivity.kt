@@ -127,21 +127,32 @@ class MainActivity : ComponentActivity() {
             val db = FirebaseDatabase.getInstance().reference
             val snap = db.child("users").child(user.uid).get().await()
 
-            val finished = snap.child("registrationFinished").getValue(Boolean::class.java) ?: false
-            val step = (snap.child("registrationStep").getValue(Long::class.java) ?: 0L).toInt()
+            val finished = snap.child("registrationFinished")
+                .getValue(Boolean::class.java) ?: false
+            val step = (snap.child("registrationStep")
+                .getValue(Long::class.java) ?: 0L).toInt()
 
-            val target = if (finished) {
-                Intent(this@MainActivity, KupidXAppActivity::class.java)
-                    .putExtra("open_notifications", openNotifications)
-                    .putExtra("open_upgrade_landing", openUpgradeLanding)
-            } else {
-                Intent(this@MainActivity, RegistrationActivity::class.java)
-                    .putExtra("requestedStartStep", step)
+            if (!finished && step >= 8) {
+                auth.signOut()
+                withContext(Dispatchers.Main) {
+                    startActivity(Intent(this@MainActivity, LandingActivity::class.java))
+                    finish()
+                }
             }
+            else {
+                val target = if (finished) {
+                    Intent(this@MainActivity, KupidXAppActivity::class.java)
+                        .putExtra("open_notifications", openNotifications)
+                        .putExtra("open_upgrade_landing", openUpgradeLanding)
+                } else {
+                    Intent(this@MainActivity, RegistrationActivity::class.java)
+                        .putExtra("requestedStartStep", step)
+                }
 
-            withContext(Dispatchers.Main) {
-                startActivity(target)
-                finish()
+                withContext(Dispatchers.Main) {
+                    startActivity(target)
+                    finish()
+                }
             }
         }
     }
