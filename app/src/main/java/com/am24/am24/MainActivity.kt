@@ -146,7 +146,7 @@ class MainActivity : ComponentActivity() {
             val finished = snap.child("registrationFinished")
                 .getValue(Boolean::class.java) ?: false
             val step = (snap.child("registrationStep")
-                .getValue(Long::class.java) ?: 0L).toInt()
+                .getValue(Long::class.java) ?: 1L).toInt()
 
             if (!finished && step >= 8) {
                 auth.signOut()
