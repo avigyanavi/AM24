@@ -601,7 +601,7 @@ fun VerificationBadge(
             .size(32.dp)
             .background(
                 if (verified) Color(0xFF00C853)          // green when verified
-                else Color.Yellow.copy(alpha = .20f),       // grey when not
+                else Color.Gray.copy(alpha = .20f),       // grey when not
                 shape = CircleShape
             )
     ) {
@@ -775,13 +775,18 @@ fun PhotoCarouselWithOverlay(
                         .align(Alignment.TopStart)
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 )
-                VerificationBadge(
-                    verified = verified,              // ← use the new prop
-                    onClick  = onVerifyClick,
-                    modifier  = Modifier
+                IconButton(
+                    onClick  = onEditProfileClick,
+                    modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 16.dp, end = 16.dp)   // leaves room for the edit icon
-                )
+                        .padding(top = 16.dp, end = 16.dp)
+                        .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
+                        .size(28.dp)
+                ) {
+                    Icon(Icons.Default.Edit,
+                        stringResource(R.string.edit_profile_cd),
+                        tint = Color.White)
+                }
             }
         }
 
@@ -871,18 +876,13 @@ fun PhotoCarouselWithOverlay(
                 }
             }
         }
-
-        // Edit icon at top right
-        IconButton(
-            onClick = onEditProfileClick,
-            modifier = Modifier
+        VerificationBadge(
+            verified = verified,              // ← use the new prop
+            onClick  = onVerifyClick,
+            modifier  = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
-                .size(28.dp)
-        ) {
-            Icon(Icons.Default.Edit, stringResource(R.string.edit_profile_cd), tint = Color(0xFFFF6F00))
-        }
+                .padding(top = 16.dp, end = 16.dp)   // leaves room for the edit icon
+        )
     }
 }
 
@@ -2855,14 +2855,55 @@ fun BasicInfoEditSection(
         }
 
         // City dropdown (old logic)
-        SearchableDropdownWithCustomOption(
-            title = stringResource(R.string.city_label),
-            options = cityOptionsList,
-            selectedOption = city,
-            onOptionSelected = { sel -> city = sel },
-            customInput = customCity,
-            onCustomInputChange = { customCity = it!! }
-        )
+        if (isIndian) {
+            SearchableDropdownWithCustomOption(
+                title = stringResource(R.string.city_label),
+                options = cityOptionsList,
+                selectedOption = city,
+                onOptionSelected = { sel -> city = sel },
+                customInput = customCity,
+                onCustomInputChange = { customCity = it!! }
+            )
+            Spacer(Modifier.height(6.dp))
+            SearchableDropdownWithCustomOption(
+                title = stringResource(R.string.label_locality),
+                options = localityOptionsList,
+                selectedOption = locality,
+                onOptionSelected = { sel -> locality = sel },
+                customInput = customLocality,
+                onCustomInputChange = { customLocality = it!! }
+            )
+        } else {
+            OutlinedTextField(
+                value = customCity,
+                onValueChange = { customCity = it },
+                label = { Text(stringResource(R.string.city_label), color = Color(0xFFFF6F00)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = customLocality,
+                onValueChange = { customLocality = it },
+                label = { Text(stringResource(R.string.label_locality), color = Color(0xFFFF6F00)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+        }
         Spacer(Modifier.height(6.dp))
 
         // Locality dropdown (old logic)

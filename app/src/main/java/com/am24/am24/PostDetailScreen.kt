@@ -120,6 +120,7 @@ fun PostDetailScreen(
                     },
                     onComment     = {},
                     currentUserId = currentUserId ?: "",               // ✱ tolerate null
+                    currentUserProfile = myProfile,
                     onDelete      = { delPost ->
                         postViewModel.deletePost(delPost.postId, {}, {})
                         navController.popBackStack()

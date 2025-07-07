@@ -39,6 +39,7 @@ fun PostCard(
         post = post,
         isSaved = isSaved,
         currentUserId = currentUserId,
+        currentUserProfile = myProfile,
         matches = matches,
         userProfile = myProfile,
         userProfiles = userProfiles,

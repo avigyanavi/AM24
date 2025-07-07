@@ -41,8 +41,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
@@ -228,6 +230,7 @@ private fun saveStep(step: Int) {
 
 class RegistrationViewModel : ViewModel() {
 
+    var nextEnabled by mutableStateOf(false)
     var selectedLanguage by mutableStateOf("en") // Options: "en", "bn", "hi"
     var city by mutableStateOf("")
     var customCity by mutableStateOf("")
@@ -355,7 +358,7 @@ fun RegistrationScreen(
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel()
     var currentStep by remember { mutableStateOf(initialStep) }
-    val totalSteps = 8 // Updated total steps (language screen removed)
+    val totalSteps = 7 // now 7 screens after dropping EnterNameScreen
     val progress = currentStep.toFloat() / totalSteps.toFloat()
     val displayProgress = when (currentStep) {
         1           -> 0f      // Step-1 should read 0 %
@@ -363,6 +366,7 @@ fun RegistrationScreen(
         else        -> progress
     }
     val onNext = {
+        registrationViewModel.nextEnabled = false
         currentStep += 1
         saveStep(currentStep)
     }
@@ -396,6 +400,19 @@ fun RegistrationScreen(
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
+                /* NEW → one global “Next” icon, enabled ⇔ viewModel.nextEnabled */
+                 actions = {
+                                        IconButton(
+                                                onClick  = { if (registrationViewModel.nextEnabled) onNext() },
+                                                enabled  = registrationViewModel.nextEnabled
+                                                    ) {
+                                                Icon(
+                                                        imageVector     = Icons.Default.ArrowForward,
+                                                        contentDescription = "Next",
+                                                        tint = if (registrationViewModel.nextEnabled) Color.White else Color.Gray
+                                                            )
+                                            }
+                                    },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
@@ -422,11 +439,10 @@ fun RegistrationScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 when (currentStep) {
                     1 -> EnterEmailAndPasswordScreen(registrationViewModel, allowPhoneAuth, onNext, onBack)
-                    2 -> EnterNameScreen(registrationViewModel, onNext)
+                    2 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)   // now includes DOB
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
                     5 -> EnterInterestsScreen(registrationViewModel, onNext)
-                    6 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)
                     7 -> EnterLifestyleScreen(registrationViewModel, onNext)
                     8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
@@ -740,6 +756,7 @@ fun EnterLifestyleScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
+    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
     Scaffold(
         content = { innerPadding ->
             LazyColumn(
@@ -950,16 +967,16 @@ fun EnterLifestyleScreen(
                     )
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { onNext() },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
-                    ) {
-                        Text(text = stringResource(R.string.next_button), color = Color.White)
-                    }
-                }
+//                item {
+//                    Spacer(modifier = Modifier.height(24.dp))
+//                    Button(
+//                        onClick = { onNext() },
+//                        modifier = Modifier.fillMaxWidth(),
+//                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+//                    ) {
+//                        Text(text = stringResource(R.string.next_button), color = Color.White)
+//                    }
+//                }
             }
         }
     )
@@ -2197,6 +2214,20 @@ fun EnterGenderCommunityReligionScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
+    // ─── DOB pickers ────────────────────────────────────────────────────────
+    val dayRange       = (1..31).toList()
+    val monthNames     = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+    val currentYear    = Calendar.getInstance().get(Calendar.YEAR)
+    val yearRange      = (1950..currentYear).map { it.toString() }.reversed()
+    var selectedDay    by remember { mutableStateOf(dayRange.first()) }
+    var selectedMonth  by remember { mutableStateOf(0) }
+    var selectedYear   by remember { mutableStateOf(yearRange.first().toInt()) }
+
+    fun updateDob() {
+        registrationViewModel.dob = "$selectedDay/${selectedMonth+1}/$selectedYear"
+        registrationViewModel.zodiac = deriveZodiac(registrationViewModel.dob)
+    }
+    LaunchedEffect(selectedDay, selectedMonth, selectedYear) { updateDob() }
 
     var other = stringResource(R.string.college_other)
     // Predefined lists for dropdown options
@@ -2274,7 +2305,8 @@ fun EnterGenderCommunityReligionScreen(
         stringResource(R.string.religion_sikh),)
 
     // Validation for enabling the "Next" button
-    val isNextEnabled = registrationViewModel.gender.isNotEmpty()
+    val isNextEnabled = registrationViewModel.gender.isNotEmpty() && registrationViewModel.dob.isNotBlank()
+    LaunchedEffect(isNextEnabled) { registrationViewModel.nextEnabled = isNextEnabled }
 
     Scaffold(
         content = { innerPadding ->
@@ -2288,6 +2320,32 @@ fun EnterGenderCommunityReligionScreen(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text("Select your birth date", color = Color.White)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DropdownWithSearch(
+                        title = "Day",
+                        options = dayRange.map { it.toString() },
+                        selectedOption = selectedDay.toString(),
+                        onOptionSelected = { it.toIntOrNull()?.also { d -> selectedDay = d } }
+                    )
+                    DropdownWithSearch(
+                        title = "Month",
+                        options = monthNames,
+                        selectedOption = monthNames[selectedMonth],
+                        onOptionSelected = { monthNames.indexOf(it).takeIf { idx->idx>=0 }?.also { m->selectedMonth=m } }
+                    )
+                    DropdownWithSearch(
+                        title = "Year",
+                        options = yearRange,
+                        selectedOption = selectedYear.toString(),
+                        onOptionSelected = { it.toIntOrNull()?.also { y -> selectedYear = y } }
+                    )
+                }
+
+                Spacer(Modifier.height(24.dp))
 //                // Title
 //                Text(
 //                    text = stringResource(R.string.enter_gender_community_religion_title),
@@ -2329,25 +2387,25 @@ fun EnterGenderCommunityReligionScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Next Button
-                Button(
-                    onClick = { if (isNextEnabled) onNext() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = isNextEnabled,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.Gray
-                    ),
-                    shape = CircleShape
-                ) {
-                    Text(
-                        text = stringResource(R.string.next_button),
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+//                // Next Button
+//                Button(
+//                    onClick = { if (isNextEnabled) onNext() },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(56.dp),
+//                    enabled = isNextEnabled,
+//                    colors = ButtonDefaults.buttonColors(
+//                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.Gray
+//                    ),
+//                    shape = CircleShape
+//                ) {
+//                    Text(
+//                        text = stringResource(R.string.next_button),
+//                        color = Color.White,
+//                        fontSize = 18.sp,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                }
             }
         }
     )
@@ -2381,6 +2439,7 @@ fun EnterUsernameScreen(
     onRegistrationComplete: () -> Unit,
     onBack: () -> Unit
 ) {
+    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
     val context = LocalContext.current
     val auth    = FirebaseAuth.getInstance()
     val db      = FirebaseDatabase
@@ -2668,243 +2727,243 @@ fun uploadVoiceToFirebase(
         }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EnterNameScreen(
-    registrationViewModel: RegistrationViewModel,
-    onNext: () -> Unit
-) {
-    val maleOption = stringResource(R.string.male_option)
-    val femaleOption = stringResource(R.string.female_option)
-    val interestedOptions = listOf(maleOption, femaleOption)
-
-    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
-    var feetText   by remember { mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "") }
-    var inchText   by remember { mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "") }
-    var headline   by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
-
-    // Now only “Interested In” is required on this screen
-    val canProceed = registrationViewModel.interestedIn.isNotEmpty()
-
-    Scaffold(
-        content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1A1A1A))
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 32.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    item {
-                        // ---- Interested In (font made larger) ----
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
-                                tint = Color(0xFFFF6000)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.interested_in_header),
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            interestedOptions.forEach { option ->
-                                val isSelected = registrationViewModel.interestedIn.contains(option)
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        if (isSelected) registrationViewModel.interestedIn.remove(option)
-                                        else registrationViewModel.interestedIn.add(option)
-                                    },
-                                    label = { Text(option, color = Color.White) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = when (option) {
-                                                maleOption -> Icons.Default.Male
-                                                else       -> Icons.Default.Female
-                                            },
-                                            contentDescription = null,
-                                            tint = Color.White
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFFFF6000),
-                                        selectedLabelColor     = Color.White,
-                                        containerColor         = Color(0xFF1A1A1A),
-                                        labelColor             = Color.White
-                                    ),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-                        // ---- Full Name (optional) ----
-                        TextFieldWithLabel(
-                            label = stringResource(R.string.full_name_label),
-                            value = registrationViewModel.name,
-                            onValueChange = { registrationViewModel.name = it }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // ---- Height (optional) ----
-                        Text(
-                            text = stringResource(R.string.height_label),
-                            color = Color.White,
-                            fontSize = 16.sp
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Switch(
-                                checked = registrationViewModel.isHeightInFeet,
-                                onCheckedChange = { useFeet ->
-                                    registrationViewModel.isHeightInFeet = useFeet
-                                    if (useFeet) {
-                                        val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
-                                        feetText = f.toString()
-                                        inchText = i.toString()
-                                    } else {
-                                        val f = feetText.toIntOrNull() ?: 0
-                                        val i = inchText.toIntOrNull() ?: 0
-                                        heightText = registrationViewModel.feetInchesToCm(f, i).toString()
-                                    }
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color(0xFFFF6000),
-                                    uncheckedThumbColor = Color.White
-                                )
-                            )
-                            Text(
-                                text = if (registrationViewModel.isHeightInFeet)
-                                    stringResource(R.string.feet_inches_label)
-                                else
-                                    stringResource(R.string.centimeters_label),
-                                color = Color.White
-                            )
-                        }
-
-                        if (registrationViewModel.isHeightInFeet) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = feetText,
-                                    onValueChange = { newFeet ->
-                                        feetText = newFeet
-                                        registrationViewModel.height2 = listOf(
-                                            newFeet.toIntOrNull() ?: 0,
-                                            registrationViewModel.height2.getOrNull(1) ?: 0
-                                        )
-                                    },
-                                    label = { Text(stringResource(R.string.feet_label), color = Color.White) },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(56.dp),
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        focusedBorderColor = Color(0xFFFF6000),
-                                        unfocusedBorderColor = Color.White,
-                                        cursorColor = Color.White,
-                                        focusedLabelColor = Color(0xFFFF6000),
-                                        unfocusedLabelColor = Color.White
-                                    )
-                                )
-
-                                OutlinedTextField(
-                                    value = inchText,
-                                    onValueChange = { newInch ->
-                                        inchText = newInch
-                                        registrationViewModel.height2 = listOf(
-                                            registrationViewModel.height2.getOrNull(0) ?: 0,
-                                            newInch.toIntOrNull() ?: 0
-                                        )
-                                    },
-                                    label = { Text(stringResource(R.string.inches_label), color = Color.White) },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(56.dp),
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        focusedBorderColor = Color(0xFFFF6000),
-                                        unfocusedBorderColor = Color.White,
-                                        cursorColor = Color.White,
-                                        focusedLabelColor = Color(0xFFFF6000),
-                                        unfocusedLabelColor = Color.White
-                                    )
-                                )
-                            }
-                        } else {
-                            TextFieldWithLabel(
-                                label = stringResource(R.string.height_cm_label),
-                                value = heightText,
-                                onValueChange = { newCm ->
-                                    heightText = newCm
-                                    registrationViewModel.height = newCm.toIntOrNull() ?: registrationViewModel.height
-                                }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // Headline/Bio TextField
-                        OutlinedTextField(
-                            value = headline,
-                            onValueChange = {
-                                headline = it
-                                registrationViewModel.bio = it.text
-                            },
-                            label = { Text("Bio (optional)", color = Color.White) },
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = Color.White,
-                                focusedBorderColor = Color(0xFFFF6000),
-                                unfocusedBorderColor = Color.White
-                            )
-                        )
-
-                        // ---- Next Button ----
-                        Button(
-                            onClick = { if (canProceed) onNext() },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
-                            ),
-                            enabled = canProceed
-                        ) {
-                            Text(stringResource(R.string.next_button), color = Color.White)
-                        }
-                    }
-                }
-            }
-        }
-    )
-}
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun EnterNameScreen(
+//    registrationViewModel: RegistrationViewModel,
+//    onNext: () -> Unit
+//) {
+//    val maleOption = stringResource(R.string.male_option)
+//    val femaleOption = stringResource(R.string.female_option)
+//    val interestedOptions = listOf(maleOption, femaleOption)
+//
+//    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
+//    var feetText   by remember { mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "") }
+//    var inchText   by remember { mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "") }
+//    var headline   by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
+//
+//    // Now only “Interested In” is required on this screen
+//    val canProceed = registrationViewModel.interestedIn.isNotEmpty()
+//
+//    Scaffold(
+//        content = { innerPadding ->
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(Color(0xFF1A1A1A))
+//                    .padding(innerPadding),
+//                contentAlignment = Alignment.TopCenter
+//            ) {
+//                LazyColumn(
+//                    modifier = Modifier
+//                        .fillMaxSize()
+//                        .padding(horizontal = 32.dp, vertical = 16.dp),
+//                    verticalArrangement = Arrangement.Top,
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//                ) {
+//                    item {
+//                        // ---- Interested In (font made larger) ----
+//                        Row(verticalAlignment = Alignment.CenterVertically) {
+//                            Icon(
+//                                imageVector = Icons.Default.Favorite,
+//                                contentDescription = null,
+//                                tint = Color(0xFFFF6000)
+//                            )
+//                            Spacer(Modifier.width(8.dp))
+//                            Text(
+//                                text = stringResource(R.string.interested_in_header),
+//                                color = Color.White,
+//                                fontSize = 20.sp,
+//                                fontWeight = FontWeight.Bold
+//                            )
+//                        }
+//
+//                        Spacer(modifier = Modifier.height(8.dp))
+//
+//                        Row(
+//                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+//                            modifier = Modifier.fillMaxWidth()
+//                        ) {
+//                            interestedOptions.forEach { option ->
+//                                val isSelected = registrationViewModel.interestedIn.contains(option)
+//                                FilterChip(
+//                                    selected = isSelected,
+//                                    onClick = {
+//                                        if (isSelected) registrationViewModel.interestedIn.remove(option)
+//                                        else registrationViewModel.interestedIn.add(option)
+//                                    },
+//                                    label = { Text(option, color = Color.White) },
+//                                    leadingIcon = {
+//                                        Icon(
+//                                            imageVector = when (option) {
+//                                                maleOption -> Icons.Default.Male
+//                                                else       -> Icons.Default.Female
+//                                            },
+//                                            contentDescription = null,
+//                                            tint = Color.White
+//                                        )
+//                                    },
+//                                    colors = FilterChipDefaults.filterChipColors(
+//                                        selectedContainerColor = Color(0xFFFF6000),
+//                                        selectedLabelColor     = Color.White,
+//                                        containerColor         = Color(0xFF1A1A1A),
+//                                        labelColor             = Color.White
+//                                    ),
+//                                    modifier = Modifier.weight(1f)
+//                                )
+//                            }
+//                        }
+//
+//                        Spacer(modifier = Modifier.height(24.dp))
+//                        // ---- Full Name (optional) ----
+//                        TextFieldWithLabel(
+//                            label = stringResource(R.string.full_name_label),
+//                            value = registrationViewModel.name,
+//                            onValueChange = { registrationViewModel.name = it }
+//                        )
+//
+//                        Spacer(modifier = Modifier.height(16.dp))
+//
+//                        // ---- Height (optional) ----
+//                        Text(
+//                            text = stringResource(R.string.height_label),
+//                            color = Color.White,
+//                            fontSize = 16.sp
+//                        )
+//                        Row(verticalAlignment = Alignment.CenterVertically) {
+//                            Switch(
+//                                checked = registrationViewModel.isHeightInFeet,
+//                                onCheckedChange = { useFeet ->
+//                                    registrationViewModel.isHeightInFeet = useFeet
+//                                    if (useFeet) {
+//                                        val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
+//                                        feetText = f.toString()
+//                                        inchText = i.toString()
+//                                    } else {
+//                                        val f = feetText.toIntOrNull() ?: 0
+//                                        val i = inchText.toIntOrNull() ?: 0
+//                                        heightText = registrationViewModel.feetInchesToCm(f, i).toString()
+//                                    }
+//                                },
+//                                colors = SwitchDefaults.colors(
+//                                    checkedThumbColor = Color(0xFFFF6000),
+//                                    uncheckedThumbColor = Color.White
+//                                )
+//                            )
+//                            Text(
+//                                text = if (registrationViewModel.isHeightInFeet)
+//                                    stringResource(R.string.feet_inches_label)
+//                                else
+//                                    stringResource(R.string.centimeters_label),
+//                                color = Color.White
+//                            )
+//                        }
+//
+//                        if (registrationViewModel.isHeightInFeet) {
+//                            Row(
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .padding(vertical = 8.dp),
+//                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+//                                verticalAlignment = Alignment.CenterVertically
+//                            ) {
+//                                OutlinedTextField(
+//                                    value = feetText,
+//                                    onValueChange = { newFeet ->
+//                                        feetText = newFeet
+//                                        registrationViewModel.height2 = listOf(
+//                                            newFeet.toIntOrNull() ?: 0,
+//                                            registrationViewModel.height2.getOrNull(1) ?: 0
+//                                        )
+//                                    },
+//                                    label = { Text(stringResource(R.string.feet_label), color = Color.White) },
+//                                    singleLine = true,
+//                                    modifier = Modifier
+//                                        .weight(1f)
+//                                        .heightIn(56.dp),
+//                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                        focusedBorderColor = Color(0xFFFF6000),
+//                                        unfocusedBorderColor = Color.White,
+//                                        cursorColor = Color.White,
+//                                        focusedLabelColor = Color(0xFFFF6000),
+//                                        unfocusedLabelColor = Color.White
+//                                    )
+//                                )
+//
+//                                OutlinedTextField(
+//                                    value = inchText,
+//                                    onValueChange = { newInch ->
+//                                        inchText = newInch
+//                                        registrationViewModel.height2 = listOf(
+//                                            registrationViewModel.height2.getOrNull(0) ?: 0,
+//                                            newInch.toIntOrNull() ?: 0
+//                                        )
+//                                    },
+//                                    label = { Text(stringResource(R.string.inches_label), color = Color.White) },
+//                                    singleLine = true,
+//                                    modifier = Modifier
+//                                        .weight(1f)
+//                                        .heightIn(56.dp),
+//                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+//                                        focusedBorderColor = Color(0xFFFF6000),
+//                                        unfocusedBorderColor = Color.White,
+//                                        cursorColor = Color.White,
+//                                        focusedLabelColor = Color(0xFFFF6000),
+//                                        unfocusedLabelColor = Color.White
+//                                    )
+//                                )
+//                            }
+//                        } else {
+//                            TextFieldWithLabel(
+//                                label = stringResource(R.string.height_cm_label),
+//                                value = heightText,
+//                                onValueChange = { newCm ->
+//                                    heightText = newCm
+//                                    registrationViewModel.height = newCm.toIntOrNull() ?: registrationViewModel.height
+//                                }
+//                            )
+//                        }
+//
+//                        Spacer(modifier = Modifier.height(24.dp))
+//
+//                        // Headline/Bio TextField
+//                        OutlinedTextField(
+//                            value = headline,
+//                            onValueChange = {
+//                                headline = it
+//                                registrationViewModel.bio = it.text
+//                            },
+//                            label = { Text("Bio (optional)", color = Color.White) },
+//                            singleLine = true,
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .padding(bottom = 16.dp),
+//                            colors = OutlinedTextFieldDefaults.colors(
+//                                focusedTextColor = Color.White,
+//                                unfocusedTextColor = Color.White,
+//                                cursorColor = Color.White,
+//                                focusedBorderColor = Color(0xFFFF6000),
+//                                unfocusedBorderColor = Color.White
+//                            )
+//                        )
+//
+//                        // ---- Next Button ----
+//                        Button(
+//                            onClick = { if (canProceed) onNext() },
+//                            modifier = Modifier.fillMaxWidth(),
+//                            colors = ButtonDefaults.buttonColors(
+//                                containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
+//                            ),
+//                            enabled = canProceed
+//                        ) {
+//                            Text(stringResource(R.string.next_button), color = Color.White)
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    )
+//}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // ↓ FULL composable (replace the old one entirely)
@@ -2922,33 +2981,8 @@ fun EnterBirthdateCityHometownScreen(
     val countries = remember { resources.getStringArray(R.array.country_names).toList() }
     var selectedCountry  by remember { mutableStateOf(countries.first()) } // default “Other”
     var customCountry    by remember { mutableStateOf(registrationViewModel.customCountry) }
-
-    // Birthdate Setup
-    val dayRange = (1..31).toList()
-    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-    val yearRange = (1950..currentYear).map { it.toString() }.reversed()
-    val monthNames = listOf(stringResource(R.string.jan), stringResource(R.string.feb), stringResource(R.string.mar), stringResource(R.string.apr), stringResource(R.string.may), stringResource(R.string.jun), stringResource(R.string.jul), stringResource(R.string.aug), stringResource(R.string.sep), stringResource(R.string.oct), stringResource(R.string.nov), stringResource(R.string.dec))
     var other = stringResource(R.string.college_other)
 
-    var selectedDay by remember { mutableStateOf(dayRange.first()) }
-    var selectedMonthIndex by remember { mutableStateOf(0) }
-    var selectedYear by remember { mutableStateOf(yearRange.first().toInt()) }
-
-    fun updateDob() {
-        registrationViewModel.dob = "$selectedDay/${selectedMonthIndex + 1}/$selectedYear"
-        registrationViewModel.zodiac = deriveZodiac(registrationViewModel.dob) // Compute and set zodiac
-    }
-    LaunchedEffect(Unit) {
-        if (registrationViewModel.dob.isNotBlank()) {
-            val parts = registrationViewModel.dob.split("/")
-            if (parts.size == 3) {
-                parts[0].toIntOrNull()?.let { selectedDay = it }
-                parts[1].toIntOrNull()?.let { selectedMonthIndex = it - 1 }
-                parts[2].toIntOrNull()?.let { selectedYear = it }
-            }
-        }
-        updateDob()
-    }
 
     // City Selection
     val cities = remember { resources.getStringArray(R.array.city_names).toList() }
@@ -3238,8 +3272,8 @@ fun EnterBirthdateCityHometownScreen(
             }
         }
     }
-    val isNextEnabled = registrationViewModel.dob.isNotBlank()
-
+    val isNextEnabled = true   // always skippable
+    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
     Scaffold(
         content = { innerPadding ->
             Column(
@@ -3251,51 +3285,6 @@ fun EnterBirthdateCityHometownScreen(
                     .padding(horizontal = 32.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Birthdate Section
-                Text(stringResource(R.string.select_birth_date_label), color = Color.White, fontSize = 18.sp)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        DropdownWithSearch(
-                            title          = stringResource(R.string.select_day_label),
-                            options        = dayRange.map { it.toString() },
-                            selectedOption = selectedDay.toString(),
-                            onOptionSelected = { sel ->
-                                sel.toIntOrNull()?.let {
-                                    selectedDay = it
-                                    updateDob()
-                                }
-                            }
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(modifier = Modifier.weight(1f)) {
-                        DropdownWithSearch(
-                            title           = stringResource(R.string.select_month_label),
-                            options         = monthNames,
-                            selectedOption  = monthNames[selectedMonthIndex],
-                            onOptionSelected = { sel ->
-                                monthNames.indexOf(sel).takeIf { it >= 0 }?.let { idx ->
-                                    selectedMonthIndex = idx
-                                    updateDob()
-                                }
-                            }
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(modifier = Modifier.weight(1f)) {
-                        DropdownWithSearch(
-                            title           = stringResource(R.string.select_year_label),
-                            options         = yearRange,
-                            selectedOption  = selectedYear.toString(),
-                            onOptionSelected = { sel ->
-                                sel.toIntOrNull()?.let { yyyy ->
-                                    selectedYear = yyyy
-                                    updateDob()
-                                }
-                            }
-                        )
-                    }
-                }
                 DropdownWithSearch(
                     title               = stringResource(R.string.select_country),
                     options             = countries,
@@ -3426,7 +3415,7 @@ fun EnterBirthdateCityHometownScreen(
 }
 
 // Helper function to fetch location and map to city/locality
-private fun fetchLocation(
+internal fun fetchLocation(
     fused: FusedLocationProviderClient,
     ctx: Context,
     countries: List<String>,
@@ -3684,6 +3673,8 @@ fun EnterInterestsScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
+    val ready = true
+    LaunchedEffect(ready) { registrationViewModel.nextEnabled = ready }
     val maxInterests = 9
 
     /* ───── 1) Bucket your interests here ───── */
@@ -3868,27 +3859,27 @@ fun EnterInterestsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            /* Next button */
-            Button(
-                onClick  = onNext,
-                enabled  = registrationViewModel.interests.isNotEmpty() && !interestsOverLimit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor =
-                        if (registrationViewModel.interests.isNotEmpty() && !interestsOverLimit)
-                            Color(0xFFFF6000) else Color.DarkGray
-                ),
-                shape = CircleShape
-            ) {
-                Text(
-                    text = stringResource(R.string.next_button),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+//            /* Next button */
+//            Button(
+//                onClick  = onNext,
+//                enabled  = registrationViewModel.interests.isNotEmpty() && !interestsOverLimit,
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(56.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor =
+//                        if (registrationViewModel.interests.isNotEmpty() && !interestsOverLimit)
+//                            Color(0xFFFF6000) else Color.DarkGray
+//                ),
+//                shape = CircleShape
+//            ) {
+//                Text(
+//                    text = stringResource(R.string.next_button),
+//                    color = Color.White,
+//                    fontSize = 18.sp,
+//                    fontWeight = FontWeight.Bold
+//                )
+//            }
         }
     }
 }
@@ -3904,6 +3895,7 @@ fun UploadMediaComposable(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val storageRef = FirebaseRefs.storage.reference
+    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
 
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying  by remember { mutableStateOf(false) }
@@ -4221,27 +4213,27 @@ fun UploadMediaComposable(
                 }
             }
 
-            /* ---------------- Next button ---------------- */
-            item {
-                Button(
-                    onClick = {
-                        if (registrationViewModel.profilePictureUri == null && registrationViewModel.profilePicUrl.isNullOrBlank()) {
-                            registrationViewModel.profilePicUrl =
-                                "android.resource://${context.packageName}/drawable/local_placeholder"
-                        }
-                        if (canProceed) onNext()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    enabled = canProceed,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
-                    )
-                ) {
-                    Text(stringResource(R.string.next_button), color = Color.White)
-                }
-            }
+//            /* ---------------- Next button ---------------- */
+//            item {
+//                Button(
+//                    onClick = {
+//                        if (registrationViewModel.profilePictureUri == null && registrationViewModel.profilePicUrl.isNullOrBlank()) {
+//                            registrationViewModel.profilePicUrl =
+//                                "android.resource://${context.packageName}/drawable/local_placeholder"
+//                        }
+//                        if (canProceed) onNext()
+//                    },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(54.dp),
+//                    enabled = canProceed,
+//                    colors = ButtonDefaults.buttonColors(
+//                        containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
+//                    )
+//                ) {
+//                    Text(stringResource(R.string.next_button), color = Color.White)
+//                }
+//            }
         }
     }
 }

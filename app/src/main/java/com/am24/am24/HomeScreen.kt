@@ -442,7 +442,7 @@ fun FeedSection(
                         val comment = Comment(
                             commentId = UUID.randomUUID().toString(), // Generate a unique ID
                             userId = userId ?: "",
-                            username = userProfile?.username.toString(),
+                            username = userProfile?.username.orEmpty(),
                             commentText = commentText,
                             timestamp = ServerValue.TIMESTAMP
                         )
@@ -458,6 +458,7 @@ fun FeedSection(
                         )
                     },
                     currentUserId = userId ?: "",
+                    currentUserProfile = userProfile,
                     onDelete = { postToDelete ->
                         // Implement delete logic, possibly calling PostViewModel's deletePost
                         postViewModel.deletePost(
@@ -522,6 +523,7 @@ fun FeedItem(
     onSave: () -> Unit,
     onComment: (String) -> Unit,
     currentUserId: String,
+    currentUserProfile: Profile?,
     onDelete: (Post) -> Unit,
 ) {
     val configuration = LocalConfiguration.current
@@ -1139,7 +1141,7 @@ fun FeedItem(
                             val comment = Comment(
                                 commentId = UUID.randomUUID().toString(),
                                 userId = currentUserId,
-                                username = userProfile?.username.toString(),
+                                username = currentUserProfile?.username.orEmpty(),
                                 commentText = commentText,
                                 timestamp = ServerValue.TIMESTAMP
                             )
@@ -1159,7 +1161,7 @@ fun FeedItem(
                                 postId = post.postId,
                                 voiceUri = voiceUri,
                                 userId = currentUserId,
-                                username = userProfile?.username.toString(),
+                                username = currentUserProfile?.username.orEmpty(),
                                 onSuccess = {
                                     // Show success message or update UI
                                 },

@@ -53,6 +53,7 @@ fun SavedPostsScreen(
     val savedPosts by postViewModel.savedPosts.collectAsState(initial = emptyList())
     val userProfiles by postViewModel.userProfiles.collectAsState(initial = emptyMap())
     val savedIds = remember(savedPosts) { savedPosts.map { it.postId }.toSet() }
+    val myProfile by postViewModel.myProfile.collectAsState()
 
     var myMatches by remember { mutableStateOf<List<String>>(emptyList()) }
 
@@ -173,7 +174,7 @@ fun SavedPostsScreen(
                             val comment = Comment(
                                 commentId = UUID.randomUUID().toString(),
                                 userId = userId.orEmpty(),
-                                username = profile?.username.orEmpty(),
+                                username = myProfile?.username.orEmpty(),
                                 commentText = commentText,
                                 timestamp = ServerValue.TIMESTAMP
                             )
@@ -185,6 +186,7 @@ fun SavedPostsScreen(
                             )
                         },
                         currentUserId = userId.orEmpty(),
+                        currentUserProfile = myProfile,
                         onDelete = { postToDelete ->
                             postViewModel.deletePost(
                                 postId = postToDelete.postId,
