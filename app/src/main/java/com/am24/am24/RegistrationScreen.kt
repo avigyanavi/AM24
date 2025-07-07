@@ -443,8 +443,8 @@ fun RegistrationScreen(
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
                     5 -> EnterInterestsScreen(registrationViewModel, onNext)
-                    7 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    6 -> EnterLifestyleScreen(registrationViewModel, onNext)
+                    7 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }
@@ -2320,30 +2320,50 @@ fun EnterGenderCommunityReligionScreen(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Select your birth date", color = Color.White)
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    DropdownWithSearch(
-                        title = "Day",
-                        options = dayRange.map { it.toString() },
-                        selectedOption = selectedDay.toString(),
-                        onOptionSelected = { it.toIntOrNull()?.also { d -> selectedDay = d } }
-                    )
-                    DropdownWithSearch(
-                        title = "Month",
-                        options = monthNames,
-                        selectedOption = monthNames[selectedMonth],
-                        onOptionSelected = { monthNames.indexOf(it).takeIf { idx->idx>=0 }?.also { m->selectedMonth=m } }
-                    )
-                    DropdownWithSearch(
-                        title = "Year",
-                        options = yearRange,
-                        selectedOption = selectedYear.toString(),
-                        onOptionSelected = { it.toIntOrNull()?.also { y -> selectedYear = y } }
-                    )
-                }
+/* ---------- Date-of-Birth (old layout) ---------- */
+                                Text(
+                                        text = stringResource(R.string.select_birth_date_label),
+                                        color = Color.White,
+                                        fontSize = 18.sp,
+                                        modifier = Modifier.align(Alignment.Start)
+                                            )
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                        /* Day */
+                                        Box(Modifier.weight(1f)) {
+                                                DropdownWithSearch(                 // <- unchanged
+                                                        title            = stringResource(R.string.select_day_label),
+                                                        options          = dayRange.map { it.toString() },
+                                                        selectedOption   = selectedDay.toString(),
+                                                        onOptionSelected = { it.toIntOrNull()?.let { d -> selectedDay = d } }
+                                                            )
+                                            }
+                                        /* Month */
+                                        Box(Modifier.weight(1f)) {
+                                                DropdownWithSearch(
+                                                        title            = stringResource(R.string.select_month_label),
+                                                        options          = monthNames,
+                                                        selectedOption   = monthNames[selectedMonth],
+                                                        onOptionSelected = {
+                                                                monthNames.indexOf(it)
+                                                                    .takeIf { idx -> idx >= 0 }
+                                                                    ?.let { m -> selectedMonth = m }
+                                                            }
+                                                            )
+                                            }
+                                        /* Year */
+                                        Box(Modifier.weight(1f)) {
+                                                DropdownWithSearch(
+                                                        title            = stringResource(R.string.select_year_label),
+                                                        options          = yearRange,
+                                                        selectedOption   = selectedYear.toString(),
+                                                        onOptionSelected = { it.toIntOrNull()?.let { y -> selectedYear = y } }
+                                                            )
+                                            }
+                                   }
 
                 Spacer(Modifier.height(24.dp))
 //                // Title

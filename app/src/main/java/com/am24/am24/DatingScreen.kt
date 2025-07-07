@@ -88,6 +88,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
@@ -398,7 +399,7 @@ fun DatingScreen(
                     modifier = Modifier.size(30.dp)
                 ) {
                     Icon(
-                        Icons.Default.Settings,
+                        Icons.Default.FilterAlt,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(27.dp)
