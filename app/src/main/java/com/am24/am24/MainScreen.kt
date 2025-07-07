@@ -45,7 +45,7 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
-        BottomNavItem(stringResource(R.string.leaderboard), Icons.Outlined.EmojiEvents, "leaderboard"),
+        BottomNavItem(stringResource(R.string.map), Icons.Default.Map, "map"),
         BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.date), Icons.Default.Favorite, "dating"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
@@ -248,18 +248,18 @@ fun TopNavBar(
                 }
             }
 
-            // ← new Map button in place of the old leaderboard button
-            if (currentRoute != "leaderboard") {
+            // ← Leaderboard button in place of the old Map button
+            if (currentRoute != "map") {
                 TextButton(
-                    onClick = { navController.navigate("map") },
+                    onClick = { navController.navigate("leaderboard") },
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Map,
-                        contentDescription = stringResource(R.string.map)
+                        imageVector = Icons.Outlined.EmojiEvents,
+                        contentDescription = stringResource(R.string.leaderboard)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = stringResource(R.string.map))
+                    Text(text = stringResource(R.string.leaderboard))
                 }
             }
 

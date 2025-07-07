@@ -5545,7 +5545,7 @@ fun ProfileCollapsibleSections(
                 // display read‐only
                 Text(
                     text = tempProfile.bio ?: stringResource(R.string.bio_no_bio),
-                    color = Color.White, fontSize = 10.sp
+                    color = Color.White, fontSize = 16.sp
                 )
                 Spacer(Modifier.height(8.dp))
                 if (!tempProfile.voiceNoteUrl.isNullOrEmpty()) {
