@@ -997,9 +997,6 @@
     <string name="community_awadhi">अवधी</string>
     <string name="community_anglo_indian">एंग्लो-इंडियन</string>
 
-    <string name="religion_parsi">पारसी</string>
-    <string name="religion_jewish">यहूदी</string>
-
     <string name="caste_nair">नायर</string>
     <string name="caste_gurjar">गुर्जर</string>
     <string name="caste_bhumihar">भूमिहार</string>
@@ -1044,16 +1041,54 @@
     <string name="community_other">अन्य</string>
 
     <!-- Religion Dropdown -->
-    <string name="religion_hindu">हिंदू</string>
-    <string name="religion_muslim">मुस्लिम</string>
-    <string name="religion_christian">क्रिस्चियन</string>
+    <string name="religion_other">अन्य सभी</string>
     <string name="religion_buddhist">बौद्ध</string>
-    <string name="religion_jain">जैन</string>
-    <string name="religion_sikh">सिख</string>
-    <string name="religion_indigenous_tribal">देशज/आदिवासी</string>
-    <string name="religion_no_religion">कोई धर्म नहीं</string>
-    <string name="religion_other">अन्य</string>
 
+    <!-- Christianity -->
+    <string name="religion_christian">ईसाई</string>
+    <string name="religion_christian_catholic">कैथोलिक</string>
+    <string name="religion_christian_protestant_mainline">मुख्यधारा का प्रोटेस्टेंट</string>
+    <string name="religion_christian_evangelical">इवेंजेलिकल प्रोटेस्टेंट</string>
+    <string name="religion_christian_orthodox">पूर्वी ऑर्थोडॉक्स</string>
+    <string name="religion_christian_latter_day_saint">लेट्टर-डे सेंट (मॉर्मन)</string>
+    <string name="religion_christian_jehovahs_witness">यहोवा के साक्षी</string>
+    <string name="religion_christian_other">अन्य ईसाई</string>
+
+    <string name="religion_hindu">हिंदू</string>
+    <string name="religion_jain">जैन</string>
+    <string name="religion_jewish">यहूदी</string>
+
+    <!-- Islam -->
+    <string name="religion_muslim">मुस्लिम</string>
+    <string name="religion_muslim_sunni">सुन्नी</string>
+    <string name="religion_muslim_shia">शिया</string>
+    <string name="religion_muslim_ahmadiyya">अहमदिया</string>
+    <string name="religion_muslim_sufi">सूफी</string>
+    <string name="religion_muslim_other">अन्य मुस्लिम</string>
+
+    <string name="religion_no_religion">कोई धर्म नहीं / धर्मनिरपेक्ष</string>
+    <string name="religion_parsi">पारसी / ज़ोरोआस्ट्रियन</string>
+    <string name="religion_sikh">सिख</string>
+    <string name="religion_indigenous_tribal">आदिवासी / जनजातीय</string>
+
+    <!-- Latin-American & Afro-Latin Syncretic -->
+    <string name="religion_santeria">सैंटेरीया (अफ्रीकी-क्यूबाई)</string>
+    <string name="religion_voodou">वोदू (हैती)</string>
+    <string name="religion_candomble">कैंडॉम्ब्ले (अफ़्रीकी-ब्राज़ीलियाई)</string>
+    <string name="religion_umbanda">उम्बांडा (ब्राज़ीलियाई संश्लेष)</string>
+    <string name="religion_palo_mayombe">पलो मायोम्बे</string>
+
+    <!-- Native American -->
+    <string name="religion_native_traditional">नेटिव अमेरिकन पारंपरिक</string>
+    <string name="religion_native_church">नेटिव अमेरिकन चर्च (पेयोटिज़्म)</string>
+    <string name="religion_vision_quest">विजन क्वेस्ट / समारोह</string>
+
+    <!-- African Diaspora -->
+    <string name="religion_african_traditional">अफ़्रीकी पारंपरिक धर्म</string>
+    <string name="religion_obeah">ओबिया (कैरेबियाई लोक)</string>
+    <string name="religion_hoodoo">हूडू (अफ़्रीकी-अमेरिकी लोक)</string>
+    <string name="religion_rastafari">रस्टाफ़ेरियनिज़्म</string>
+    <string name="religion_black_protestant">काला प्रोटेस्टेंट परंपरा (जैसे AME, COGIC)</string>
     <!-- Caste Dropdown -->
     <string name="caste_brahmin">ब्राह्मण</string>
     <string name="caste_kayastha">कायस्थ</string>

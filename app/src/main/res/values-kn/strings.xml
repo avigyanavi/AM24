@@ -1002,9 +1002,6 @@
     <string name="community_awadhi">ಅವಧಿ</string>
     <string name="community_anglo_indian">ಆಂಗ್ಲೋ-ಇಂಡಿಯನ್</string>
 
-    <!-- Religions -->
-    <string name="religion_parsi">ಝರೋಅಸ್ಟ್ರಿಯನ್ / ಪಾರ್ಸಿ</string>
-    <string name="religion_jewish">ಯಹೂದಿ</string>
 
     <!-- Castes -->
     <string name="caste_nair">ನಾಯರ್</string>
@@ -1053,15 +1050,54 @@
     <string name="community_other">ಇತರೆ</string>
 
     <!-- Religion Dropdown -->
-    <string name="religion_hindu">ಹಿಂದು</string>
-    <string name="religion_muslim">ಮುಸ್ಲಿಂ</string>
-    <string name="religion_christian">ಕ್ರೈಸ್ತ</string>
-    <string name="religion_buddhist">ಬೌದ್ಧ</string>
-    <string name="religion_jain">ಜೈನ</string>
-    <string name="religion_sikh">ಸಿಖ್</string>
-    <string name="religion_indigenous_tribal">ಮೂಲವಾಸಿ/ಜನಜಾತಿ</string>
-    <string name="religion_no_religion">ಧರ್ಮವಿಲ್ಲ</string>
     <string name="religion_other">ಇತರೆ</string>
+    <string name="religion_buddhist">ಬೌದ್ಧ</string>
+
+    <!-- Christianity -->
+    <string name="religion_christian">ಕ್ರೈಸ್ತ</string>
+    <string name="religion_christian_catholic">ಕ್ಯಾಥೋಲಿಕ್</string>
+    <string name="religion_christian_protestant_mainline">ಮುಖ್ಯಧಾರೆ ಪ್ರೋಟೆಸ್ತಾಂಟ್</string>
+    <string name="religion_christian_evangelical">ಇವ್ಯಾಂಜೆಲಿಕಲ್ ಪ್ರೋಟೆಸ್ತಾಂಟ್</string>
+    <string name="religion_christian_orthodox">ಪೂರ್ವ ಆರ್ಥೋಡಾಕ್ಸ್</string>
+    <string name="religion_christian_latter_day_saint">ಲ್ಯಾಟರ್-ಡೆ ಸೆಯಿಂಟ್ (ಮಾರ್ಮನ್)</string>
+    <string name="religion_christian_jehovahs_witness">ಜೆಹೋವಾದ ಸಾಕ್ಷಿ</string>
+    <string name="religion_christian_other">ಇತರೆ ಕ್ರೈಸ್ತ</string>
+
+    <string name="religion_hindu">ಹಿಂದೂ</string>
+    <string name="religion_jain">ಜೈನ್</string>
+    <string name="religion_jewish">ಯಹೂದಿ</string>
+
+    <!-- Islam -->
+    <string name="religion_muslim">ಮುಸ್ಲಿಂ</string>
+    <string name="religion_muslim_sunni">ಸುನ್ನಿ</string>
+    <string name="religion_muslim_shia">ಶಿಯಾ</string>
+    <string name="religion_muslim_ahmadiyya">ಅಹ್ಮದಿಯಾ</string>
+    <string name="religion_muslim_sufi">ಸೂಫಿ</string>
+    <string name="religion_muslim_other">ಇತರೆ ಮುಸ್ಲಿಂ</string>
+
+    <string name="religion_no_religion">ಧರ್ಮವಿಲ್ಲ / ಧರ್ಮನಿರಪೇಕ್ಷ</string>
+    <string name="religion_parsi">ಪಾರ್ಸಿ / ಜೋರೋಆಸ್ಟ್ರಿಯನ್</string>
+    <string name="religion_sikh">ಸಿಖ್</string>
+    <string name="religion_indigenous_tribal">ಸ್ವದೇಶಿ / ಜನಜಾತಿ</string>
+
+    <!-- Latin-American & Afro-Latin Syncretic -->
+    <string name="religion_santeria">ಸಾಂಟೆರಿಯಾ (ಆಫ್ರೊ-ಕ್ಯೂಬನ್)</string>
+    <string name="religion_voodou">ವೊಡು (ಹೈತಿಯನ್)</string>
+    <string name="religion_candomble">ಕ್ಯಾಂಡೊಂಬ್ಲೆ (ಆಫ್ರೊ-ಬ್ರೆಜಿಲಿಯನ್)</string>
+    <string name="religion_umbanda">ಉಂಬಾಂಡಾ (ಬ್ರೆಜಿಲಿಯನ್ ಸಂಶ್ಲೇಷ)</string>
+    <string name="religion_palo_mayombe">ಪಾಲೋ ಮಯೊಂಬೆ</string>
+
+    <!-- Native American -->
+    <string name="religion_native_traditional">ನೆಟಿವ್ ಅಮೆರಿಕನ್ ಪರಂಪರಿಕ</string>
+    <string name="religion_native_church">ನೆಟಿವ್ ಅಮೆರಿಕನ್ ಚರ್ಚ್ (ಪಿಯೊಟಿಸಂ)</string>
+    <string name="religion_vision_quest">ವಿಶನ್ ಕ್ವೆಸ್ಟ್ / ಆಚರಣೆ</string>
+
+    <!-- African Diaspora -->
+    <string name="religion_african_traditional">ಆಫ್ರಿಕನ್ ಪಾರಂಪರಿಕ ಧರ್ಮ</string>
+    <string name="religion_obeah">ಒಬಿಯಾ (ಕೆರಿಬಿಯನ್ ಜನಸಂಸ್ಕೃತಿ)</string>
+    <string name="religion_hoodoo">ಹುಡು (ಆಫ್ರಿಕನ್-ಅಮೆರಿಕನ್ ಜನಸಂಸ್ಕೃತಿ)</string>
+    <string name="religion_rastafari">ರಾಸ್ಟಫೇರಿಯನ್ಿಸಮ್</string>
+    <string name="religion_black_protestant">ಕಪ್ಪು ಪ್ರೋಟೆಸ್ತಾಂಟ್ ಪರಂಪರೆ (ಉದಾ. AME, COGIC)</string>
 
     <!-- Caste Dropdown -->
     <string name="caste_brahmin">ಬ್ರಾಹ್ಮಣ</string>

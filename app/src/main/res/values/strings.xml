@@ -1047,17 +1047,55 @@
 
     <!-- Religion Dropdown -->
     <!-- ─────────── Religion (pan-Indian master list) ─────────── -->
-    <string name="religion_other">All Other</string>
+    <string name="religion_other">Other</string>
     <string name="religion_buddhist">Buddhist</string>
+
+    <!-- Christianity -->
     <string name="religion_christian">Christian</string>
+    <string name="religion_christian_catholic">Catholic</string>
+    <string name="religion_christian_protestant_mainline">Mainline Protestant</string>
+    <string name="religion_christian_evangelical">Evangelical Protestant</string>
+    <string name="religion_christian_orthodox">Eastern Orthodox</string>
+    <string name="religion_christian_latter_day_saint">Latter-day Saint (Mormon)</string>
+    <string name="religion_christian_jehovahs_witness">Jehovah’s Witness</string>
+    <string name="religion_christian_other">Other Christian</string>
+
     <string name="religion_hindu">Hindu</string>
-    <string name="religion_indigenous_tribal">Indigenous / Tribal</string>
     <string name="religion_jain">Jain</string>
     <string name="religion_jewish">Jewish</string>
+
+    <!-- Islam -->
     <string name="religion_muslim">Muslim</string>
+    <string name="religion_muslim_sunni">Sunni</string>
+    <string name="religion_muslim_shia">Shia</string>
+    <string name="religion_muslim_ahmadiyya">Ahmadiyya</string>
+    <string name="religion_muslim_sufi">Sufi</string>
+    <string name="religion_muslim_other">Other Muslim</string>
+
     <string name="religion_no_religion">No Religion / Secular</string>
-    <string name="religion_parsi">Zoroastrian / Parsi</string> <!-- keeps your Zoroastrian entry -->
+    <string name="religion_parsi">Zoroastrian / Parsi</string>
     <string name="religion_sikh">Sikh</string>
+    <string name="religion_indigenous_tribal">Indigenous / Tribal</string>
+
+    <!-- Latin-American & Afro-Latin Syncretic Traditions -->
+    <string name="religion_santeria">Santería (Afro-Cuban)</string>
+    <string name="religion_voodou">Vodou (Haitian)</string>
+    <string name="religion_candomble">Candomblé (Afro-Brazilian)</string>
+    <string name="religion_umbanda">Umbanda (Brazilian Syncretic)</string>
+    <string name="religion_palo_mayombe">Palo Mayombe</string>
+
+    <!-- Native American Spiritual Traditions -->
+    <string name="religion_native_traditional">Native American Traditional</string>
+    <string name="religion_native_church">Native American Church (Peyotism)</string>
+    <string name="religion_vision_quest">Vision Quest / Ceremonial</string>
+
+    <!-- African Diaspora & Black Spiritual Traditions -->
+    <string name="religion_african_traditional">African Traditional Religion</string>
+    <string name="religion_obeah">Obeah (Caribbean Folk)</string>
+    <string name="religion_hoodoo">Hoodoo (African-American Folk)</string>
+    <string name="religion_rastafari">Rastafarianism</string>
+    <string name="religion_black_protestant">Black Protestant Tradition (e.g. AME, COGIC)</string>
+
 
     <!-- Caste Dropdown -->
     <!-- ─────────── Caste / Jāti (master list) ─────────── -->
