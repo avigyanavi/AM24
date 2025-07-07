@@ -691,13 +691,15 @@
     <string name="shared_social_causes_prefix">সম্মিলিত সামাজিক কারণ: %1$s</string>
     <string name="no_common_social_causes">কোনও সাধারণ সামাজিক কারণ নেই</string>
     <string name="social_causes_not_set">সামাজিক কারণ: উভয়ের জন্য নির্দিষ্ট নয়</string>
-    <string name="zodiac_compatibility_prefix">রাশি উপযুক্ত: %1$s + %2$s</string>
+    <string name="zodiac_compatibility_prefix"> %1$s এবং %2$s এর সামঞ্জস্য %3$d%%</string>
     <string name="zodiac_mismatch_prefix">রাশি মিল নেই: %1$s বনাম %2$s</string>
     <string name="zodiac_not_set">রাশি: নির্দিষ্ট নয়</string>
     <string name="matrimony_mismatch">বিবাহ মিল নেই: একজন বিবাহ মোডে, অন্যজন নয়</string>
     <string name="matrimony_not_set">বিবাহ মোড: উভয়ের জন্য নির্দিষ্ট নয়</string>
     <string name="marriage_timeline_label">বিবাহের সময়রেখা</string>
     <string name="relocation_label">স্থানান্তর</string>
+    <string name="age_compatibility_prefix">বয়স সামঞ্জস্য: %1$d বনাম %2$d (%3$d%%)</string>
+    <string name="age_not_set">বয়স: নির্দিষ্ট নয়</string>
     <string name="post_marriage_career_plan_label">বিয়ে পরের ক্যারিয়ার পরিকল্পনা</string>
     <string name="cultural_mindset_label">সাংস্কৃতিক মনোভাব</string>
     <string name="lifestyle_smoking">ধূমপান</string>

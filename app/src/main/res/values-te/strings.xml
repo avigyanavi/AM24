@@ -694,13 +694,15 @@
         <string name="shared_social_causes_prefix">పంచుకున్న సామాజిక కారణాలు: %1$s</string>
         <string name="no_common_social_causes">ఒకే సామాజిక కారణాలు లేవు</string>
         <string name="social_causes_not_set">సామాజిక కారణాలు: రెండునీరు నిర్ధారించలేదు</string>
-        <string name="zodiac_compatibility_prefix">రాశి అనుకూలత: %1$s + %2$s</string>
+        <string name="zodiac_compatibility_prefix">%1$s మరియు %2$s యొక్క అనుకూలత %3$d%%</string>
         <string name="zodiac_mismatch_prefix">రాశి లోలోపం: %1$s vs %2$s</string>
         <string name="zodiac_not_set">రాశి: నిర్ధారించబడలేదు</string>
         <string name="matrimony_mismatch">మాట్రిమోనీ లోలోపం: ఒకరు చెప్పు మోడ్‌లో ఉన్నారు, మరొకరు లేరు</string>
         <string name="matrimony_not_set">మాట్రిమోనీ మోడ్: రెండునీరు నిర్ధారించలేదు</string>
         <string name="marriage_timeline_label">వివాహ సమయరేఖ</string>
         <string name="relocation_label">మళ్లీ పరివర్తన</string>
+    <string name="age_compatibility_prefix">వయస్సు అనుకూలత: %1$d vs %2$d (%3$d%%)</string>
+    <string name="age_not_set">వయస్సు: నిర్ధారించలేదు</string>
         <string name="post_marriage_career_plan_label">వివాహానంతరం వృత్తి ప్రణాళిక</string>
         <string name="cultural_mindset_label">సాంస్కృతిక మనోభావం</string>
         <string name="lifestyle_smoking">ధూమపానం</string>

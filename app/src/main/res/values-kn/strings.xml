@@ -692,13 +692,15 @@
     <string name="shared_social_causes_prefix">ಹಂಚಿಕೊಂಡ ಸಾಮಾಜಿಕ ಕಾರಣಗಳು: %1$s</string>
     <string name="no_common_social_causes">ಯಾವುದೂ ಸಾಮಾನ್ಯ ಸಾಮಾಜಿಕ ಕಾರಣಗಳು ಇಲ್ಲ</string>
     <string name="social_causes_not_set">ಸಾಮಾಜಿಕ ಕಾರಣಗಳು: ಎರಡರಿಂದ ಸೆಟ್ ಆಗಿಲ್ಲ</string>
-    <string name="zodiac_compatibility_prefix">ರಾಶಿ ಹೊಂದಿಕೆ: %1$s + %2$s</string>
+    <string name="zodiac_compatibility_prefix">%1$s ಮತ್ತು %2$s ಅವರ ಹೊಂದಾಣಿಕೆಯ ಶೇಕಡಾವಾರು %3$d%%</string>
     <string name="zodiac_mismatch_prefix">ರಾಶಿ ಹೊಂದಿಕೆಯಿಂದ ಬೇರ್ಪಡ: %1$s vs %2$s</string>
     <string name="zodiac_not_set">ರಾಶಿ: ಸೆಟ್ ಆಗಿಲ್ಲ</string>
     <string name="matrimony_mismatch">ವಿವಾಹ ಹೊಂದಿಕೆಯಿಂದ ಬೇರ್ಪಡ: ಒಬ್ಬ ವಿವಾಹ ಮೋಡ್‌ನಲ್ಲಿ ಇದ್ದಾರೆ, ಮತ್ತೊಬ್ಬ ಅಲ್ಲ</string>
     <string name="matrimony_not_set">ವಿವಾಹ ಮೋಡ್: ಎರಡರಲ್ಲೂ ಸೆಟ್ ಆಗಿಲ್ಲ</string>
     <string name="marriage_timeline_label">ವಿವಾಹ ಕಾಲರೇಖೆ</string>
     <string name="relocation_label">ಸ್ಥಳಾಂತರ</string>
+    <string name="age_compatibility_prefix">ವಯಸ್ಸಿನ ಹೊಂದಾಣಿಕೆ: %1$d vs %2$d (%3$d%%)</string>
+    <string name="age_not_set">ವಯಸ್ಸು: ಸೆಟ್ ಆಗಿಲ್ಲ</string>
     <string name="post_marriage_career_plan_label">ವಿವಾಹ ನಂತರ ಕರಿಯರ್ ಯೋಜನೆ</string>
     <string name="cultural_mindset_label">ಸಾಂಸ್ಕೃತಿಕ ಮನೋಭಾವ</string>
     <string name="lifestyle_smoking">ಧೂಮಪಾನ</string>

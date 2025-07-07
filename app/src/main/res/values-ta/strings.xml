@@ -688,13 +688,15 @@
         <string name="shared_social_causes_prefix">பகிர்ந்த சமூக காரணங்கள்: %1$s</string>
         <string name="no_common_social_causes">பொதுவான சமூக காரணங்கள் இல்லை</string>
         <string name="social_causes_not_set">சமூக காரணங்கள்: இருவராலும் அமைக்கப்படவில்லை</string>
-        <string name="zodiac_compatibility_prefix">ராசி பொருத்தம்: %1$s + %2$s</string>
+        <string name="zodiac_compatibility_prefix">%1$s மற்றும் %2$s உடைய பொருத்தம் %3$d%%</string>
         <string name="zodiac_mismatch_prefix">ராசி பொருத்தமின்மை: %1$s vs %2$s</string>
         <string name="zodiac_not_set">ராசி: அமைக்கப்படவில்லை</string>
         <string name="matrimony_mismatch">திருமண பொருத்தமின்மை: ஒருவர் திருமண முறையில், மற்றவர் இல்லை</string>
         <string name="matrimony_not_set">திருமண முறை: இருவரிலும் அமைக்கப்படவில்லை</string>
         <string name="marriage_timeline_label">திருமண காலவரிசை</string>
         <string name="relocation_label">மாற்றிடம்</string>
+        <string name="age_compatibility_prefix">வயது பொருந்தல்: %1$d vs %2$d (%3$d%%)</string>
+        <string name="age_not_set">வயது: அமைக்கப்படவில்லை</string>
         <string name="post_marriage_career_plan_label">திருமணத்திற்குப் பின் தொழில் திட்டம்</string>
         <string name="cultural_mindset_label">கலாச்சார மனநிலை</string>
         <string name="lifestyle_smoking">புகைத்தல்</string>

@@ -106,6 +106,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.am24.am24.zodiacCompatibilityScore
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
@@ -2879,6 +2880,71 @@ fun calculateExhaustiveCompatibilityScore(
 
     fun resolveField(p: String, f: String?) = if (p.trim().isNotEmpty()) p.trim() else f.orEmpty().trim()
 
+    val ageA = profileA.age
+    val ageB = profileB.age
+    if (ageA > 0 && ageB > 0) {
+        possible += 5.0
+        val aScore = ageCompatibilityScore(ageA, ageB)
+        score += 5.0 * aScore
+        val pct = (aScore * 100).roundToInt()
+        val positive = aScore >= 0.5
+        val emoji = if (positive) "✅" else "⚠️"
+        insights += MatchInsight(
+            emoji,
+            context.getString(R.string.age_compatibility_prefix, ageA, ageB, pct),
+            positive
+        )
+    } else insights += MatchInsight("ℹ️", context.getString(R.string.age_not_set), false)
+
+    // ───── Lifestyle Compatibility ─────
+    val (lifeScore, lifeCount, lifeCommonKeys) = lifestyleCompatibilityMetrics(profileA.lifestyle, profileB.lifestyle)
+    if (lifeCount > 0) {
+        possible += 8.0
+        score += 8.0 * lifeScore
+
+        val keyToLabel = mapOf(
+            "smoking_habit" to R.string.lifestyle_smoking,
+            "drinking_habit" to R.string.lifestyle_drinking,
+            "indoor_outdoor_orientation" to R.string.lifestyle_indoor_outdoor,
+            "sexual_activity_level" to R.string.lifestyle_sexual_activity,
+            "sociability" to R.string.lifestyle_sociability,
+            "social_media_engagement" to R.string.lifestyle_social_media,
+            "sleep_pattern" to R.string.lifestyle_sleep,
+            "work_life_balance" to R.string.lifestyle_work_life_balance,
+            "exercise_frequency" to R.string.lifestyle_exercise,
+            "adventurousness" to R.string.lifestyle_adventurousness,
+            "family_orientated" to R.string.lifestyle_family_oriented,
+            "intellectual_curiosity" to R.string.lifestyle_intellectual_curiosity,
+            "creative_expression" to R.string.lifestyle_creative_expression,
+            "physical_fitness" to R.string.lifestyle_physical_fitness,
+            "spirituality_mindfulness" to R.string.lifestyle_spirituality,
+            "easy_goingness" to R.string.lifestyle_humor,
+            "professional_ambition" to R.string.lifestyle_professional_ambition,
+            "environmental_awareness" to R.string.lifestyle_environmental_awareness,
+            "culinary_enthusiasm" to R.string.lifestyle_culinary_enthusiasm,
+            "political_awareness" to R.string.lifestyle_political_awareness,
+            "community_engagement" to R.string.lifestyle_community_engagement,
+            "sports_enthusiasm" to R.string.lifestyle_sports,
+            "dietary_preferences" to R.string.lifestyle_dietary_preferences,
+        )
+        val commonNames = lifeCommonKeys.mapNotNull { keyToLabel[it] }.map { context.getString(it) }
+        val listStr = if (commonNames.isEmpty()) context.getString(R.string.lifestyle_none_common) else commonNames.joinToString()
+        val pct = (lifeScore * 100).roundToInt()
+        val positive = pct >= 50
+        val emoji = if (positive) "✅" else "⚠️"
+        insights += MatchInsight(
+            emoji,
+            context.getString(R.string.lifestyle_similarity_format, pct, lifeCount, listStr),
+            positive
+        )
+    } else {
+        if (profileA.lifestyle == null && profileB.lifestyle == null) {
+            insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_not_set_in_profiles), false)
+        } else {
+            insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_no_traits_to_compare), false)
+        }
+    }
+
     val collegeA = resolveField(profileA.college, profileA.customCollege)
     val collegeB = resolveField(profileB.college, profileB.customCollege)
     if (collegeA.isNotBlank() || collegeB.isNotBlank()) {
@@ -2932,10 +2998,21 @@ fun calculateExhaustiveCompatibilityScore(
     val zodiacB = if (!profileB.zodiac.isNullOrBlank()) profileB.zodiac!! else deriveZodiac(profileB.dob)
     if (zodiacA != "Unknown" && zodiacB != "Unknown") {
         possible += 5.0
-        if (isZodiacCompatible(zodiacA, zodiacB)) {
-            score += 5.0
-            insights += MatchInsight("✅", context.getString(R.string.zodiac_compatibility_prefix, zodiacA, zodiacB), true)
-        } else insights += MatchInsight("⚠️", context.getString(R.string.zodiac_mismatch_prefix, zodiacA, zodiacB), false)
+        val zScore = zodiacCompatibilityScore(zodiacA, zodiacB)
+        score += 5.0 * zScore
+        val pct = (zScore * 100).roundToInt()
+        val positive = zScore >= 0.5
+        val emoji = if (positive) "✅" else "⚠️"
+        insights += MatchInsight(
+            emoji,
+            context.getString(
+                R.string.zodiac_compatibility_prefix,
+                zodiacA,
+                zodiacB,
+                pct
+            ),
+            positive
+        )
     } else insights += MatchInsight("ℹ️", context.getString(R.string.zodiac_not_set), false)
 
     if (profileA.isMatrimonyMode || profileB.isMatrimonyMode) {

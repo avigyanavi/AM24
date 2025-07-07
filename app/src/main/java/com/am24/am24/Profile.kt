@@ -225,7 +225,7 @@ data class Profile(
 }
 
 /** Zodiac compatibility logic. */
-fun isZodiacCompatible(zodiac1: String, zodiac2: String): Boolean {
+fun zodiacCompatibilityScore(zodiac1: String, zodiac2: String): Double {
     val compatiblePairs = mapOf(
         "Aries" to listOf("Leo", "Sagittarius", "Gemini", "Aquarius"),
         "Taurus" to listOf("Virgo", "Capricorn", "Cancer", "Pisces"),
@@ -240,9 +240,79 @@ fun isZodiacCompatible(zodiac1: String, zodiac2: String): Boolean {
         "Aquarius" to listOf("Gemini", "Libra", "Aries", "Sagittarius"),
         "Pisces" to listOf("Cancer", "Scorpio", "Taurus", "Capricorn")
     )
-    return compatiblePairs[zodiac1]?.contains(zodiac2) == true
+    if (compatiblePairs[zodiac1]?.contains(zodiac2) == true) return 1.0
+
+    val element = mapOf(
+        "Aries" to "Fire", "Leo" to "Fire", "Sagittarius" to "Fire",
+        "Taurus" to "Earth", "Virgo" to "Earth", "Capricorn" to "Earth",
+        "Gemini" to "Air", "Libra" to "Air", "Aquarius" to "Air",
+        "Cancer" to "Water", "Scorpio" to "Water", "Pisces" to "Water"
+    )
+    val g1 = element[zodiac1]
+    val g2 = element[zodiac2]
+    return if (g1 != null && g1 == g2) 0.5 else 0.0
 }
 
+fun ageCompatibilityScore(age1: Int, age2: Int): Double {
+    if (age1 <= 0 || age2 <= 0) return 0.0
+    val diff = kotlin.math.abs(age1 - age2)
+    return (1.0 - diff / 10.0).coerceIn(0.0, 1.0)
+}
+
+/**
+ * Calculates lifestyle compatibility returning a triple of
+ * (score between 0 and 1, number of compared traits, list of matching keys).
+ * The score is averaged over all traits that are set in both profiles.
+ */
+fun lifestyleCompatibilityMetrics(l1: Lifestyle?, l2: Lifestyle?): Triple<Double, Int, List<String>> {
+    if (l1 == null || l2 == null) return Triple(0.0, 0, emptyList())
+
+    var total  = 0.0
+    var count  = 0
+    val common = mutableListOf<String>()
+
+    fun add(a: Int, b: Int, key: String) {
+        if (a >= 0 && b >= 0) {
+            val diff = kotlin.math.abs(a - b)
+            val sim  = 1.0 - diff / 4.0
+            total += sim
+            count++
+            if (diff <= 1) common += key
+        }
+    }
+
+    add(l1.smoking_habit,            l2.smoking_habit,            "smoking_habit")
+    add(l1.drinking_habit,           l2.drinking_habit,           "drinking_habit")
+    add(l1.indoor_outdoor_orientation,l2.indoor_outdoor_orientation,"indoor_outdoor_orientation")
+    add(l1.sexual_activity_level,    l2.sexual_activity_level,    "sexual_activity_level")
+    add(l1.sociability,              l2.sociability,              "sociability")
+    add(l1.social_media_engagement,  l2.social_media_engagement,  "social_media_engagement")
+    add(l1.sleep_pattern,            l2.sleep_pattern,            "sleep_pattern")
+    add(l1.work_life_balance,        l2.work_life_balance,        "work_life_balance")
+    add(l1.exercise_frequency,       l2.exercise_frequency,       "exercise_frequency")
+    add(l1.adventurousness,          l2.adventurousness,          "adventurousness")
+    add(l1.family_orientated,        l2.family_orientated,        "family_orientated")
+    add(l1.intellectual_curiosity,   l2.intellectual_curiosity,   "intellectual_curiosity")
+    add(l1.creative_expression,      l2.creative_expression,      "creative_expression")
+    add(l1.physical_fitness,         l2.physical_fitness,         "physical_fitness")
+    add(l1.spirituality_mindfulness, l2.spirituality_mindfulness, "spirituality_mindfulness")
+    add(l1.easy_goingness,           l2.easy_goingness,           "easy_goingness")
+    add(l1.professional_ambition,    l2.professional_ambition,    "professional_ambition")
+    add(l1.environmental_awareness,  l2.environmental_awareness,  "environmental_awareness")
+    add(l1.culinary_enthusiasm,      l2.culinary_enthusiasm,      "culinary_enthusiasm")
+    add(l1.political_awareness,      l2.political_awareness,      "political_awareness")
+    add(l1.community_engagement,     l2.community_engagement,     "community_engagement")
+    add(l1.sports_enthusiasm,        l2.sports_enthusiasm,        "sports_enthusiasm")
+
+    if (l1.dietary_preferences.isNotBlank() && l2.dietary_preferences.isNotBlank()) {
+        total += if (l1.dietary_preferences.equals(l2.dietary_preferences, true)) 1.0 else 0.0
+        count++
+        if (l1.dietary_preferences.equals(l2.dietary_preferences, true)) common += "dietary_preferences"
+    }
+
+    if (count == 0) return Triple(0.0, 0, emptyList())
+    return Triple(total / count, count, common)
+}
 
 data class Interest(
     var name: String = "",

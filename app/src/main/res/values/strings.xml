@@ -696,9 +696,11 @@
     <string name="shared_social_causes_prefix">Shared social causes: %1$s</string>
     <string name="no_common_social_causes">No common social causes</string>
     <string name="social_causes_not_set">Social causes: not set by both</string>
-    <string name="zodiac_compatibility_prefix">Zodiac compatibility: %1$s + %2$s</string>
+    <string name="zodiac_compatibility_prefix"> %1$s and %2$s have a compatibility of %3$d%%</string>
     <string name="zodiac_mismatch_prefix">Zodiac mismatch: %1$s vs %2$s</string>
     <string name="zodiac_not_set">Zodiac: not set</string>
+    <string name="age_compatibility_prefix">Age compatibility: %1$d vs %2$d (%3$d%%)</string>
+    <string name="age_not_set">Age: not set</string>
     <string name="matrimony_mismatch">Matrimony mismatch: one is in marriage mode, the other is not</string>
     <string name="matrimony_not_set">Matrimony mode: not set in both</string>
     <string name="marriage_timeline_label">Marriage timeline</string>

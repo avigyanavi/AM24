@@ -687,13 +687,15 @@
     <string name="shared_social_causes_prefix">साझी सामाजिक कारण: %1$s</string>
     <string name="no_common_social_causes">कोई सामान्य सामाजिक कारण नहीं</string>
     <string name="social_causes_not_set">सामाजिक कारण: दोनों द्वारा निर्धारित नहीं</string>
-    <string name="zodiac_compatibility_prefix">ज्योतिष संगतता: %1$s + %2$s</string>
+    <string name="zodiac_compatibility_prefix"> %1$s और %2$s की अनुकूलता %3$d%% है</string>
     <string name="zodiac_mismatch_prefix">ज्योतिष असंगति: %1$s बनाम %2$s</string>
     <string name="zodiac_not_set">ज्योतिष: निर्धारित नहीं</string>
     <string name="matrimony_mismatch">विवाह असंगति: एक विवाह मोड में है, दूसरा नहीं</string>
     <string name="matrimony_not_set">विवाह मोड: दोनों में निर्धारित नहीं</string>
     <string name="marriage_timeline_label">विवाह समयरेखा</string>
     <string name="relocation_label">स्थानांतरण</string>
+    <string name="age_compatibility_prefix">आयु अनुकूलता: %1$d बनाम %2$d (%3$d%%)</string>
+    <string name="age_not_set">आयु: निर्धारित नहीं</string>
     <string name="post_marriage_career_plan_label">विवाह के बाद करियर योजना</string>
     <string name="cultural_mindset_label">सांस्कृतिक मानसिकता</string>
     <string name="lifestyle_smoking">धूम्रपान</string>
