@@ -104,6 +104,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     private var currentPostId: String? = null          // <— NEW
     private var singlePostListener: ValueEventListener? = null
+    private var savedPostIdsRef: DatabaseReference? = null
+    private var savedPostIdsListener: ValueEventListener? = null
 
     /** Starts (or switches) a realtime listener for one post. */
     fun startPostListener(postId: String) {
@@ -150,7 +152,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         singlePostListener = null
         currentPostId     = null          // <- also clear the flag
 
-        // ─── 3. any additional cleanup you already perform ────────────
+        // ─── 3. saved post listener ─────────────────────────────────────
+        savedPostIdsListener?.let { listener ->
+            savedPostIdsRef?.removeEventListener(listener)
+        }
+        savedPostIdsListener = null
+        savedPostIdsRef = null
+
+        // ─── 4. any additional cleanup you already perform ────────────
         pauseFeed()                       // keeps your existing behaviour
     }
 
@@ -265,11 +274,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     // 3) listen for changes under users/{uid}/savedPosts → true
     //
     private fun watchSavedPostIds(userId: String) {
-        val ref = db.getReference("users")
+        savedPostIdsRef = db.getReference("users")
             .child(userId)
             .child("savedPosts")
 
-        ref.addValueEventListener(object : ValueEventListener {
+        savedPostIdsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 // collect all keys under /savedPosts → Set<String>
                 val ids = snapshot.children.mapNotNull { it.key }.toSet()
@@ -278,7 +287,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "watchSavedPostIds failed: ${error.message}")
             }
-        })
+        }
+
+        savedPostIdsRef?.addValueEventListener(savedPostIdsListener!!)
     }
 
     //
