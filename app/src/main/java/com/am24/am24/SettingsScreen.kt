@@ -4,6 +4,7 @@
 
 package com.am24.am24
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.am24.am24.ui.purchase.PurchaseType
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
@@ -126,6 +128,11 @@ fun SettingsScreen(navController: NavController) {
     var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
 
+    var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
+    val activity = LocalContext.current as Activity
+    val rewardedAdManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/0000000000") }
+
+    DisposableEffect(rewardedAdManager) { onDispose { rewardedAdManager.clearCallbacks() } }
     /* load once */
     LaunchedEffect(Unit) {
         val s = userRef.get().await()
@@ -285,7 +292,7 @@ fun SettingsScreen(navController: NavController) {
                         icon         = { Icon(Icons.Default.FlashOn, null) },
                         title        = "Boosts remaining",
                         trailingText = "$boosts",
-                        onClick = { navController.navigate("buyBoosts") }
+                        onClick = { rewardDialogFor = PurchaseType.Boosts }
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
@@ -294,7 +301,7 @@ fun SettingsScreen(navController: NavController) {
                         icon         = { Icon(Icons.Default.Swipe, null) },
                         title        = "Swipes remaining",
                         trailingText = "$swipes",
-                        onClick = { navController.navigate("buySwipes") }
+                        onClick = { rewardDialogFor = PurchaseType.Swipes }
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
@@ -303,7 +310,7 @@ fun SettingsScreen(navController: NavController) {
                         icon         = { Icon(Icons.Default.FavoriteBorder, null) },
                         title        = "Compliments remaining",
                         trailingText = "$compliments",
-                        onClick = { navController.navigate("buyCompliments") }
+                        onClick = { rewardDialogFor = PurchaseType.Compliments }
                     )
 
                     /* AI messages  ★ NEW ★ */
@@ -415,7 +422,7 @@ fun SettingsScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "v0.1",
+                    "v0.2",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -424,6 +431,56 @@ fun SettingsScreen(navController: NavController) {
             }
         }
         val kupidxOrange = Color(0xFFFF6F00)
+
+        rewardDialogFor?.let { type ->
+            val msg = when (type) {
+                PurchaseType.Boosts -> "Watch ad for 1 Boost"
+                PurchaseType.Compliments -> "Watch ad for 1 Compliment"
+                PurchaseType.Swipes -> "Watch ad for 5 Swipes"
+                else -> ""
+            }
+            AlertDialog(
+                onDismissRequest = { rewardDialogFor = null },
+                title = { Text(msg, color = kupidxOrange) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        rewardDialogFor = null
+                        rewardedAdManager.show(onReward = {
+                            when (type) {
+                                PurchaseType.Boosts -> {
+                                    boosts += 1
+                                    scope.launch { userRef.child("availableBoosts").setValue(boosts) }
+                                }
+                                PurchaseType.Compliments -> {
+                                    compliments += 1
+                                    scope.launch { userRef.child("availableCompliments").setValue(compliments) }
+                                }
+                                PurchaseType.Swipes -> {
+                                    swipes += 5
+                                    scope.launch { userRef.child("swipesInfo/remainingSwipes").setValue(swipes) }
+                                }
+                                else -> {}
+                            }
+                        })
+                    }) { Text("Watch", color = kupidxOrange) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        rewardDialogFor?.let {
+                            val route = when (it) {
+                                PurchaseType.Boosts -> "buyBoosts"
+                                PurchaseType.Compliments -> "buyCompliments"
+                                PurchaseType.Swipes -> "buySwipes"
+                                else -> null
+                            }
+                            rewardDialogFor = null
+                            route?.let { r -> navController.navigate(r) }
+                        }
+                    }) { Text("No Thanks", color = kupidxOrange) }
+                }
+            )
+        }
+
         if (showFeedbackDialog) {
             AlertDialog(
                 onDismissRequest = { if (!working) showFeedbackDialog = false },
