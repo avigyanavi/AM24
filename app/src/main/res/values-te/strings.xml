@@ -1163,6 +1163,7 @@
         <string name="gender_preference">లైంగిక ప్రాధాన్యత:</string>
         <string name="age_range">వయస్సు పరిధి: %1$d - %2$d</string>
         <string name="max_distance">దూరం: %1$డ్కెం</string>
+    <string name="max_distance_miles">దూరం: %1$dmi</string>
 
         <!-- Education Section -->
         <string name="education">విద్య</string>

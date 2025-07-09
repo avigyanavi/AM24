@@ -1156,6 +1156,7 @@
         <string name="gender_preference">பாலின விருப்பம்:</string>
         <string name="age_range">வயது வரம்பு: %1$d - %2$d</string>
         <string name="max_distance">தொலைவு: %1$dkm</string>
+        <string name="max_distance_miles">தொலைவு: %1$dmi</string>
 
         <!-- Education Section -->
         <string name="education">கல்வி</string>

@@ -1166,6 +1166,7 @@
     <string name="gender_preference">Gender Preference:</string>
     <string name="age_range">Age Range: %1$d - %2$d</string>
     <string name="max_distance">Distance: %1$dkm</string>
+    <string name="max_distance_miles">Distance: %1$dmi</string>
 
     <!-- Education Section -->
     <string name="education">Education</string>

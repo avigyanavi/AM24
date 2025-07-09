@@ -1160,6 +1160,7 @@
     <string name="gender_preference">লিঙ্গ পছন্দ:</string>
     <string name="age_range">বয়স পরিমাণ: %1$d - %2$d</string>
     <string name="max_distance">দূরত্ব: %1$dkm</string>
+    <string name="max_distance_miles">দূরত্ব: %1$dmi</string>
 
     <!-- Education Section -->
     <string name="education">শিক্ষা</string>

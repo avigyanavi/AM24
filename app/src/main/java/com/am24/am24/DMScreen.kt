@@ -863,26 +863,37 @@ private fun fetchUsersFromNode(
             Log.d("DMScreen", "Fetched user IDs from matches: $userIdsToFetch")
 
             if (userIdsToFetch.isNotEmpty()) {
-                usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(userSnapshot: DataSnapshot) {
-                        val newUsers = mutableListOf<Profile>()
-                        for (user in userSnapshot.children) {
-                            val profile = user.getValue(Profile::class.java)
-                            if (profile != null && userIdsToFetch.contains(profile.userId)) {
-                                newUsers.add(profile)
+                val newUsers = mutableListOf<Profile>()
+                var remaining = userIdsToFetch.size
+
+                userIdsToFetch.forEach { id ->
+                    usersRef.child(id).addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(userSnapshot: DataSnapshot) {
+                            userSnapshot.getValue(Profile::class.java)?.let { newUsers.add(it) }
+                            remaining--
+                            if (remaining == 0) {
+                                usersList.clear()
+                                usersList.addAll(newUsers)
+                                Log.d(
+                                    "DMScreen",
+                                    "Populated matchedUsers with ${usersList.size} profiles: ${usersList.map { it.userId }}"
+                                )
+                                onComplete?.invoke()
                             }
                         }
-                        usersList.clear()
-                        usersList.addAll(newUsers)
-                        Log.d("DMScreen", "Populated matchedUsers with ${usersList.size} profiles: ${usersList.map { it.userId }}")
-                        onComplete?.invoke()
-                    }
 
-                    override fun onCancelled(error: DatabaseError) {
-                        Log.e("DMScreen", "DBError in fetchUsersFromNode: ${error.message}")
-                        Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-                    }
-                })
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e("DMScreen", "DBError in fetchUsersFromNode: ${error.message}")
+                            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                            remaining--
+                            if (remaining == 0) {
+                                usersList.clear()
+                                usersList.addAll(newUsers)
+                                onComplete?.invoke()
+                            }
+                        }
+                    })
+                }
             } else {
                 usersList.clear()
                 Log.d("DMScreen", "No user IDs to fetch, cleared matchedUsers")

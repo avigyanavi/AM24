@@ -1164,6 +1164,7 @@
     <string name="gender_preference">ಲಿಂಗ ಆದ್ಯತೆ:</string>
     <string name="age_range">ವಯೋಮಿತಿ: %1$d - %2$d</string>
     <string name="max_distance">ದೂರ: %1$dkm</string>
+    <string name="max_distance_miles">ದೂರ: %1$dmi</string>
 
     <!-- Education Section -->
     <string name="education">ಶಿಕ್ಷಣ</string>

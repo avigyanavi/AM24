@@ -177,8 +177,6 @@ fun MapScreen(
 
     /* quick tags */
     val quickTags = listOf(
-        TagItem(ctx.getString(R.string.tag_budget_hotels), "budget_hotels"),
-        TagItem(ctx.getString(R.string.tag_hotels), "hotels"),
         TagItem(ctx.getString(R.string.tag_cafes), "cafes"),
         TagItem(ctx.getString(R.string.tag_bars), "bars"),
         TagItem(ctx.getString(R.string.tag_malls), "malls"),
@@ -188,6 +186,7 @@ fun MapScreen(
         TagItem(ctx.getString(R.string.tag_street_food), "street_food"),
         TagItem(ctx.getString(R.string.tag_clubs), "clubs"),
         TagItem(ctx.getString(R.string.tag_bookstores), "bookstores"),
+        TagItem(ctx.getString(R.string.tag_hotels), "hotels"),
         TagItem(ctx.getString(R.string.tag_gaming_centers), "gaming_centers"),
         TagItem(ctx.getString(R.string.tag_amusement_parks), "amusement_parks"),
         TagItem(ctx.getString(R.string.tag_beaches), "beaches"),
@@ -237,7 +236,10 @@ fun MapScreen(
         if (userLatLng == null) return@LaunchedEffect     // just a trigger
 
         try {
-            val snap = FirebaseRefs.db.getReference("posts").get().await()
+            val snap = FirebaseRefs.db.getReference("posts")
+                .orderByChild("checkIn/placeId")
+                .limitToLast(50)
+                .get().await()
 
             clusters       .clear()
             heatPoints     .clear()

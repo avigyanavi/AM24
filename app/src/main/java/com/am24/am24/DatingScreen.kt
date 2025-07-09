@@ -866,6 +866,7 @@ fun FiltersOverlay(
     maxRanking: Int,
     onMaxRankingChange: (Int) -> Unit
 ) {
+    val context = LocalContext.current
     // Local state for place search
     var highSchoolQuery by remember { mutableStateOf(selectedHighSchool) }
     var collegeQuery by remember { mutableStateOf(selectedCollege) }
@@ -1025,7 +1026,7 @@ fun FiltersOverlay(
                     text = if (maxDistance == DatingViewModel.WORLDWIDE_DISTANCE)
                         stringResource(R.string.worldwide)
                     else
-                        stringResource(R.string.max_distance, maxDistance),
+                        DistanceUtil.formatDistance(context, maxDistance.toFloat()),
                     color = Color.White
                 )
                 Slider(
@@ -2133,7 +2134,7 @@ fun PhotoWithTwoOverlays(
                 if (userDistance.isNaN())
                     stringResource(R.string.worldwide)
                 else
-                    stringResource(R.string.max_distance, userDistance.roundToInt()),
+                    DistanceUtil.formatDistance(ctx, userDistance),
                 color = Color.White,
                 fontSize = 18.sp
             )

@@ -247,7 +247,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * Return only those posts whose checkIn.placeId matches.
      */
     fun checkInPosts(placeId: String): Flow<List<Post>> = callbackFlow {
-        val ref = FirebaseRefs.db.getReference("posts")
+        val query = FirebaseRefs.db.getReference("posts")
+            .orderByChild("checkIn/placeId")
+            .equalTo(placeId)
+            .limitToLast(50)
 
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -257,7 +260,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 Log.d("PostViewModel", "🔍 checkInPosts($placeId): full posts size = ${posts.size}")
                 Log.d("PostViewModel", "✅ checkInPosts($placeId) → filtered size = ${filtered.size}")
 
-                trySend(filtered)
+                trySend(posts)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -265,8 +268,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        ref.addValueEventListener(listener)
-        awaitClose { ref.removeEventListener(listener) }
+        query.addValueEventListener(listener)
+        awaitClose { query.removeEventListener(listener) }
     }
 
 

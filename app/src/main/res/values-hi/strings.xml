@@ -1154,6 +1154,8 @@
     <string name="gender_preference">लिंग प्राथमिकता:</string>
     <string name="age_range">उम्र सीमा: %1$d - %2$d</string>
     <string name="max_distance">दूरी: %1$dkm</string>
+    <string name="max_distance_miles">दूरी: %1$dmi</string>
+
 
     <!-- Education Section -->
     <string name="education">शिक्षा</string>
