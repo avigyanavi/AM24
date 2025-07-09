@@ -21,6 +21,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*       // ⬅ add this line
 import androidx.compose.material3.*
@@ -139,6 +142,15 @@ fun MapScreen(
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val isLocationGranted =
+        ContextCompat.checkSelfPermission(
+            ctx,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(
+                    ctx,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
 
     /* ───── state ───── */
     var searchQuery by remember { mutableStateOf("") }
@@ -433,10 +445,10 @@ fun MapScreen(
                 GoogleMap(
                     cameraPositionState = camera,
                     modifier = Modifier.fillMaxSize(),
-                    properties = MapProperties(isMyLocationEnabled = true),
+                    properties = MapProperties(isMyLocationEnabled = isLocationGranted),
                     uiSettings = MapUiSettings(
                         zoomControlsEnabled = true,
-                        myLocationButtonEnabled = true,
+                        myLocationButtonEnabled = isLocationGranted,
                         mapToolbarEnabled = false
                     )
                 ) {

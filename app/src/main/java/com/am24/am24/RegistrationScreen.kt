@@ -2460,6 +2460,8 @@ fun EnterUsernameScreen(
     onBack: () -> Unit
 ) {
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
+
+    val invalidChars = remember { Regex("[.#$\\[\\]]") }
     val context = LocalContext.current
     val auth    = FirebaseAuth.getInstance()
     val db      = FirebaseDatabase
@@ -2485,9 +2487,24 @@ fun EnterUsernameScreen(
             // ---- Username (mandatory) ----
             OutlinedTextField(
                 value = usernameTf,
-                onValueChange = {
-                    usernameTf = it
-                    isValid = true
+                onValueChange = { tf ->
+                    usernameTf = tf
+
+                    val raw = tf.text.trim()
+                    when {
+                        raw.isEmpty() -> {
+                            isValid  = false
+                            errorMsg = "Username cannot be empty."
+                        }
+                        invalidChars.containsMatchIn(raw) -> {
+                            isValid  = false
+                            errorMsg = "Username can’t contain .  #  \$  [  ]"
+                        }
+                        else -> {
+                            isValid  = true
+                            errorMsg = ""
+                        }
+                    }
                 },
                 label = { Text("Username", color = Color.White) },
                 singleLine = true,
@@ -2511,13 +2528,20 @@ fun EnterUsernameScreen(
             Button(
                 onClick = {
                     val raw = usernameTf.text.trim()
+
+                    // final guard – never reaches Firebase if invalid
                     if (raw.isEmpty()) {
-                        isValid = false
+                        isValid  = false
                         errorMsg = "Username cannot be empty."
                         return@Button
                     }
-                    isLoading = true
+                    if (invalidChars.containsMatchIn(raw)) {
+                        isValid  = false
+                        errorMsg = "Username can’t contain .  #  \$  [  ]"
+                        return@Button
+                    }
 
+                    isLoading = true
                     val key = raw.lowercase(Locale.getDefault())
                     val uid = auth.currentUser?.uid ?: run {
                         Toast.makeText(context, "No signed-in user", Toast.LENGTH_LONG).show()
@@ -2529,7 +2553,7 @@ fun EnterUsernameScreen(
                     db.child("usernames").child(key).get()
                         .addOnSuccessListener { snap ->
                             if (snap.exists()) {
-                                isValid = false
+                                isValid  = false
                                 errorMsg = "That username is taken."
                                 isLoading = false
                             } else {
@@ -2547,26 +2571,27 @@ fun EnterUsernameScreen(
                                             }
                                     }
                                     .addOnFailureListener {
-                                        isValid = false
+                                        isValid  = false
                                         errorMsg = "Failed to reserve username: ${it.message}"
                                         isLoading = false
                                     }
                             }
                         }
                         .addOnFailureListener {
-                            isValid = false
+                            isValid  = false
                             errorMsg = "Error checking username: ${it.message}"
                             isLoading = false
                         }
                 },
-                enabled = usernameTf.text.trim().isNotEmpty() && !isLoading, // disable if blank
+                // ★ Button stays disabled while the text is invalid or blank
+                enabled = usernameTf.text.trim().isNotEmpty() && isValid && !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFFF6000),
                     disabledContainerColor = Color(0x88FF6000)
-                ), // optional: lighter tint when disabled
+                ),
                 shape = CircleShape
             ) {
                 if (isLoading) {

@@ -7,18 +7,19 @@ import java.util.Calendar
 object LocalizationMaps {
     //── 1) How to format your “joined on” date string ──
     val joinedOnDateFormat = mapOf(
-        "en" to "%s %02d, %d", // monthName day, year (January 01, 2025)
-        "bn" to "%02d %s, %d", // day monthName, year (01 জানুয়ারি, 2025)
-        "hi" to "%02d %s, %d", // day monthName, year (01 जनवरी, 2025)
-        "ta" to "%02d %s, %d", // day monthName, year (01 ஜனவரி, 2025)
-        "or" to "%02d %s, %d", // day monthName, year (01 ଜାନୁଆରୀ, 2025)
-        "te" to "%02d %s, %d", // day monthName, year (01 జనవరి, 2025)
-        "mr" to "%02d %s, %d", // day monthName, year (01 जानेवारी, 2025)
-        "gu" to "%02d %s, %d", // day monthName, year (01 જાન્યુઆરી, 2025)
-        "kn" to "%02d %s, %d", // day monthName, year (01 ಜನವರಿ, 2025)
-        "ml" to "%02d %s, %d", // day monthName, year (01 ജനുവരി, 2025)
-        "as" to "%02d %s, %d", // day monthName, year (01 জানুৱাৰী, 2025)
-        "pa" to "%02d %s, %d"  // day monthName, year (01 ਜਨਵਰੀ, 2025)
+        //          ① monthName      ② day          ③ year
+        "en" to "%1\$s %2\$02d, %3\$d",           // January 01, 2025
+        "bn" to "%2\$02d %1\$s, %3\$d",           // 01 জানুয়ারি, 2025
+        "hi" to "%2\$02d %1\$s, %3\$d",           // 01 जनवरी, 2025
+        "ta" to "%2\$02d %1\$s, %3\$d",
+        "or" to "%2\$02d %1\$s, %3\$d",
+        "te" to "%2\$02d %1\$s, %3\$d",
+        "mr" to "%2\$02d %1\$s, %3\$d",
+        "gu" to "%2\$02d %1\$s, %3\$d",
+        "kn" to "%2\$02d %1\$s, %3\$d",
+        "ml" to "%2\$02d %1\$s, %3\$d",
+        "as" to "%2\$02d %1\$s, %3\$d",
+        "pa" to "%2\$02d %1\$s, %3\$d"
     )
 
     val monthNames = mapOf(

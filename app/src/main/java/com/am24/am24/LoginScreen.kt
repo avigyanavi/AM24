@@ -68,6 +68,10 @@ class LoginActivity : ComponentActivity() {
                 val credential = GoogleAuthProvider.getCredential(account.idToken, null)
                 auth.signInWithCredential(credential)
                     .addOnSuccessListener {
+                        auth.currentUser?.getIdToken(true)
+                            ?.addOnSuccessListener { res ->
+                                res.token?.let { TokenStorageManager.saveToken(this@LoginActivity, it) }
+                            }
                         // success → go to main
                         startActivity(Intent(this, MainActivity::class.java))
                         finish()
@@ -162,6 +166,10 @@ class LoginActivity : ComponentActivity() {
             .addOnCompleteListener(this) { task ->
                 isLoading.value = false
                 if (task.isSuccessful) {
+                    auth.currentUser?.getIdToken(true)
+                        ?.addOnSuccessListener { res ->
+                            res.token?.let { TokenStorageManager.saveToken(this@LoginActivity, it) }
+                        }
                     startActivity(Intent(this, MainActivity::class.java))
                     finish()
                 } else {
@@ -229,6 +237,9 @@ class LoginActivity : ComponentActivity() {
 
             try {
                 auth.signInWithEmailAndPassword(email, pwd).await()
+                auth.currentUser?.getIdToken(true)?.await()?.token?.let {
+                    TokenStorageManager.saveToken(this@LoginActivity, it)
+                }
                 loginProgress.value = 1f
                 withContext(Dispatchers.Main) {
                     isLoading.value = false
@@ -283,45 +294,50 @@ class LoginActivity : ComponentActivity() {
         val trimmed = userOrEmail.trim()
         if (trimmed.contains("@")) return trimmed
 
-        // ── 0) check the publicUsers node first ──
-        val methodSnap = FirebaseRefs.db
-            .reference
+        // 0) publicUsers → sign-in method
+        val methodSnap = FirebaseRefs.db.reference
             .child("publicUsers")
             .child(trimmed.lowercase(Locale.getDefault()))
             .child("signInMethod")
             .get()
             .await()
-        val signInMethod = methodSnap.getValue(String::class.java)
-        if (signInMethod == "google") {
-            return NO_EMAIL
-        }
+        if (methodSnap.getValue(String::class.java) == "google") return NO_EMAIL
 
-        // ── 1) normal username → uid lookup ──
-        val uidSnap = FirebaseRefs.db
-            .reference
+        // 1) username → uid (handle both schemas)
+// 1) username → uid
+        val uidSnap = FirebaseRefs.db.reference
             .child("usernames")
             .child(trimmed.lowercase(Locale.getDefault()))
             .get()
             .await()
-        val uid = uidSnap.getValue(String::class.java) ?: return null
 
-        // ── 2) then fetch the e-mail from /users/{uid}/email ──
-        val emailSnap = FirebaseRefs.db
-            .reference
+        val uid: String? = when (val raw = uidSnap.value) {
+            is String    -> raw
+            is Map<*, *> -> raw["uid"] as? String
+            else         -> null
+        }
+
+// ⬇️ Stop right here if we still don't have a uid
+        val uidNonNull = uid ?: return null          // uidNonNull is now String (not String?)
+
+// 2) uid → email
+        val emailSnap = FirebaseRefs.db.reference
             .child("users")
-            .child(uid)
+            .child(uidNonNull)                        // ✅ no more mismatch
             .child("email")
             .get()
             .await()
         val email = emailSnap.getValue(String::class.java)
 
+
         return when {
-            email == null         -> null
-            email.isBlank()       -> NO_EMAIL   // should never happen now, but safe
-            else                  -> email
+            email == null       -> null
+            email.isBlank()     -> NO_EMAIL
+            else                -> email
         }
     }
 }
+
 
 /* ─────────────────────────── UI ─────────────────────────── */
 
@@ -577,7 +593,7 @@ fun LoginScreen(
                 shape = RoundedCornerShape(25.dp)
             ) {
                 Text(
-                    "(For +91 users only) Login with OTP",
+                    "Login with OTP",
                     color = Color.Black,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold

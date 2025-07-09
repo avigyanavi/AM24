@@ -247,6 +247,10 @@ class LandingActivity : ComponentActivity() {
                     // ① grab the freshly-signed-in user
                     val user = firebaseAuth.currentUser!!
                     val uid  = user.uid
+                    user.getIdToken(true)
+                        .addOnSuccessListener { res ->
+                            res.token?.let { TokenStorageManager.saveToken(this@LandingActivity, it) }
+                        }
 
                     // ② pull their e-mail out of the FirebaseUser
                     val email = user.email

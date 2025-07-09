@@ -258,6 +258,8 @@ fun TextPostComposable(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val isPosting by postViewModel.isUploading.collectAsState(initial = false)
+    var localPosting by remember { mutableStateOf(false) }
+    val posting = isPosting || localPosting
 
     var contentText by remember { mutableStateOf("") }
     var userTags by remember { mutableStateOf("") }
@@ -311,6 +313,7 @@ fun TextPostComposable(
                         )
                     } else {
                         TextButton(onClick = {
+                            localPosting = true
                             coroutineScope.launch {
                                 // Validate input
                                 if (contentText.isBlank()) {
@@ -319,6 +322,7 @@ fun TextPostComposable(
                                         "Post content cannot be empty.",
                                         Toast.LENGTH_SHORT
                                     ).show()
+                                    localPosting = false
                                     return@launch
                                 }
 
@@ -328,6 +332,7 @@ fun TextPostComposable(
                                         "User not authenticated.",
                                         Toast.LENGTH_SHORT
                                     ).show()
+                                    localPosting = false
                                     return@launch
                                 }
 
@@ -338,6 +343,7 @@ fun TextPostComposable(
                                         "This may be explicit. Post anyway?"
                                     )
                                 )
+                                    localPosting = false
                                     return@launch                                     // user pressed “Retake”
 
                                 // Convert userTags string to list
@@ -370,6 +376,7 @@ fun TextPostComposable(
                                                     "home",
                                                     inclusive = false
                                                 )
+                                                localPosting = false
                                             }
                                         }
                                     },
@@ -380,11 +387,12 @@ fun TextPostComposable(
                                                 "Failed to create post: $error",
                                                 Toast.LENGTH_SHORT
                                             ).show()
+                                            localPosting = false
                                         }
                                     }
                                 )
                             }
-                        }, enabled = !isPosting) {
+                        }, enabled = !(isPosting || localPosting)) {
                             Text(
                                 "Post",
                                 color = Color(0xFFFF4500)
@@ -582,6 +590,16 @@ fun ImagePostComposable(
     val pickGallery = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
         it?.let { uri -> imageUri = uri }
     }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            takePicture.launch(camUri)
+        } else {
+            Toast.makeText(ctx, "Camera permission required", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     /* ---------------- Scaffold ---------------- */
     Scaffold(
@@ -714,7 +732,9 @@ fun ImagePostComposable(
                         .padding(top = 4.dp),
                     Arrangement.SpaceEvenly
                 ) {
-                    IconButton({ takePicture.launch(camUri) }) {
+                    IconButton({
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }) {
                         Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFFFA500))
                     }
                     IconButton({ pickGallery.launch("image/*") }) {

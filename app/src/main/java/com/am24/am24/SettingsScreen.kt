@@ -365,6 +365,7 @@ fun SettingsScreen(navController: NavController) {
                         tint = Color(0xFFFF5722)
                     ) {
                         FirebaseAuth.getInstance().signOut()
+                        TokenStorageManager.clearToken(ctx)
                         ctx.startActivity(Intent(ctx, LandingActivity::class.java))
                         (ctx as? ComponentActivity)?.finish()
                     }
@@ -491,6 +492,7 @@ fun SettingsScreen(navController: NavController) {
                                     AccountDeletion.deleteAccount()
                                     Toast.makeText(ctx, "Account deleted", Toast.LENGTH_LONG).show()
                                     FirebaseAuth.getInstance().signOut()
+                                    TokenStorageManager.clearToken(ctx)
                                     ctx.startActivity(Intent(ctx, LandingActivity::class.java))
                                     (ctx as? ComponentActivity)?.finish()
                                 } catch (e: Exception) {

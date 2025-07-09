@@ -105,6 +105,10 @@ class KupidXAppActivity : ComponentActivity(),
 
     @RequiresApi(Build.VERSION_CODES.O_MR1)
     private fun continueInitialization(uid: String) {
+        auth.currentUser?.getIdToken(true)
+            ?.addOnSuccessListener { res ->
+                res.token?.let { TokenStorageManager.saveToken(this@KupidXAppActivity, it) }
+            }
         PushService.uploadCurrentToken()          // <-- add this line
         MobileAds.initialize(this)
         FirebaseStorage.getInstance("gs://am-twentyfour.com")
@@ -139,6 +143,7 @@ class KupidXAppActivity : ComponentActivity(),
                     onUpgradeConsumed      = { pendingOpenUpgradeLanding = false },
                     onLogout               = {
                         auth.signOut()
+                        TokenStorageManager.clearToken(this@KupidXAppActivity)
                         startActivity(Intent(this, LandingActivity::class.java))
                         finish()
                     }

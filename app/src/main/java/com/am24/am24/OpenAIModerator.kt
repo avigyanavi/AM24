@@ -14,12 +14,19 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 
 /* ---------- hard-coded project key (replace before shipping!) ---------- */
 private const val OPENAI_API_KEY =
     "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"
 
-private val client      = OkHttpClient()
+private val client = OkHttpClient.Builder()
+    .connectTimeout(15, TimeUnit.SECONDS)   // TCP/TLS handshake
+    .writeTimeout(45, TimeUnit.SECONDS)     // upload big JPEG bodies
+    .readTimeout(60, TimeUnit.SECONDS)      // wait for the first response byte
+    .callTimeout(90, TimeUnit.SECONDS)      // whole call‐level safety net
+    .retryOnConnectionFailure(true)         // automatic retry on flaky links
+    .build()
 private val JSON_TYPE   = "application/json; charset=utf-8".toMediaType()
 
 /* ========== PUBLIC API ================================================= */

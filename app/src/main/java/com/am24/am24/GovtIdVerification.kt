@@ -1,9 +1,13 @@
 package com.am24.am24
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.TakePicture
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
@@ -40,93 +45,98 @@ fun GovtIdVerificationScreen(
             return
         }
 
-    // --- UI state ---
+    /* ---------- State ---------- */
     var idPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var selfieUri by remember { mutableStateOf<Uri?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     var verifStatus by remember { mutableStateOf<String?>(null) }
     var verifPhotoUrl by remember { mutableStateOf<String?>(null) }
 
-    // 1) Pending view
-    if (verifStatus == "pending") {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF121212))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Verification Pending", color = Color.White, fontSize = 20.sp)
-            Spacer(Modifier.height(16.dp))
-            verifPhotoUrl?.let { url ->
-                Image(
-                    painter = rememberAsyncImagePainter(url),
-                    contentDescription = "ID Pending Review",
-                    modifier = Modifier
-                        .size(240.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(2.dp, Color.Gray, RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            }
+    /* ---------- Runtime-permission plumbing ---------- */
+    // holds a lambda we want to run once the user grants permission
+    var pendingLaunch by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    val permLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val granted = result.values.all { it }
+        val action = pendingLaunch
+        pendingLaunch = null
+        if (granted) {
+            action?.invoke()
+        } else {
+            Toast.makeText(
+                context,
+                "Camera permission is required to take a photo",
+                Toast.LENGTH_SHORT
+            ).show()
         }
-        return
     }
 
-    // 2) Accepted view
-    if (verifStatus == "accepted") {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF121212))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("You're already verified", color = Color(0xFF00C853), fontSize = 20.sp)
+    fun requireCameraThen(run: () -> Unit) {
+        val cameraGranted =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+        val readImagesGranted =
+            if (Build.VERSION.SDK_INT >= 33) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_MEDIA_IMAGES
+                ) == PackageManager.PERMISSION_GRANTED
+            } else true
+
+        if (cameraGranted && readImagesGranted) {
+            run()
+        } else {
+            pendingLaunch = run
+            val perms =
+                if (Build.VERSION.SDK_INT >= 33)
+                    arrayOf(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.READ_MEDIA_IMAGES
+                    )
+                else arrayOf(Manifest.permission.CAMERA)
+            permLauncher.launch(perms)
         }
-        return
     }
 
-    // 3) Rejected view
-    if (verifStatus == "rejected") {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF121212))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Photo rejected, try again", color = Color.Red, fontSize = 20.sp)
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = { /* retry logic already triggered in listener */ },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-            ) {
-                Text("Capture New ID", color = Color.Black)
-            }
-        }
-        return
-    }
-
-    // --- initial or no verification yet ---
+    /* ---------- Launchers ---------- */
     val authority = "${context.packageName}.fileprovider"
 
-    // ID capture setup
-    val idImageFile = remember { createTempImageFile(context) }
-    val idContentUri = remember { FileProvider.getUriForFile(context, authority, idImageFile) }
-    val idLauncher = rememberLauncherForActivityResult(TakePicture()) { success ->
-        if (success) idPhotoUri = idContentUri
-        else Toast.makeText(context, "ID capture failed, please try again", Toast.LENGTH_SHORT).show()
+    val idFile = remember { createTempImageFile(context) }
+    val idUri = remember { FileProvider.getUriForFile(context, authority, idFile) }
+    val idLauncher = rememberLauncherForActivityResult(TakePicture()) { ok ->
+        if (ok) idPhotoUri = idUri
+        else Toast.makeText(context, "ID capture failed", Toast.LENGTH_SHORT).show()
     }
 
-    // Selfie capture setup
-    val selfieImageFile = remember { createTempImageFile(context) }
-    val selfieContentUri = remember { FileProvider.getUriForFile(context, authority, selfieImageFile) }
-    val selfieLauncher = rememberLauncherForActivityResult(TakePicture()) { success ->
-        if (success) selfieUri = selfieContentUri
-        else Toast.makeText(context, "Selfie capture failed, please try again", Toast.LENGTH_SHORT).show()
+    val selfieFile = remember { createTempImageFile(context) }
+    val selfieUriTemp =
+        remember { FileProvider.getUriForFile(context, authority, selfieFile) }
+    val selfieLauncher = rememberLauncherForActivityResult(TakePicture()) { ok ->
+        if (ok) selfieUri = selfieUriTemp
+        else Toast.makeText(context, "Selfie capture failed", Toast.LENGTH_SHORT).show()
     }
 
+    /* ---------- Early-return states ---------- */
+    when (verifStatus) {
+        "pending" -> {
+            PendingView(verifPhotoUrl)
+            return
+        }
+
+        "accepted" -> {
+            AcceptedView()
+            return
+        }
+
+        "rejected" -> {
+            RejectedView()
+            return
+        }
+    }
+
+    /* ---------- Main UI ---------- */
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -139,9 +149,10 @@ fun GovtIdVerificationScreen(
 
         when {
             idPhotoUri == null -> {
-                // Capture ID first
                 Button(
-                    onClick = { idLauncher.launch(idContentUri) },
+                    onClick = {
+                        requireCameraThen { idLauncher.launch(idUri) }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                 ) {
                     Text("Capture ID with Camera", color = Color.Black)
@@ -149,21 +160,18 @@ fun GovtIdVerificationScreen(
             }
 
             selfieUri == null -> {
-                // ID captured, now selfie
-                Text("Great! Now please take a selfie holding your ID", color = Color.White, fontSize = 16.sp)
-                Spacer(Modifier.height(12.dp))
-                Image(
-                    painter = rememberAsyncImagePainter(idPhotoUri),
-                    contentDescription = "ID Preview",
-                    modifier = Modifier
-                        .size(200.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(2.dp, Color(0xFFFF6F00), RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
+                Text(
+                    "Great! Now please take a selfie holding your ID",
+                    color = Color.White,
+                    fontSize = 16.sp
                 )
+                Spacer(Modifier.height(12.dp))
+                ImagePreview(idPhotoUri!!)
                 Spacer(Modifier.height(16.dp))
                 Button(
-                    onClick = { selfieLauncher.launch(selfieContentUri) },
+                    onClick = {
+                        requireCameraThen { selfieLauncher.launch(selfieUriTemp) }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                 ) {
                     Text("Capture Selfie with ID", color = Color.Black)
@@ -175,26 +183,9 @@ fun GovtIdVerificationScreen(
             }
 
             else -> {
-                // Both captured: previews + submit
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Image(
-                        painter = rememberAsyncImagePainter(idPhotoUri),
-                        contentDescription = "ID Preview",
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .border(2.dp, Color(0xFFFF6F00), RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Image(
-                        painter = rememberAsyncImagePainter(selfieUri),
-                        contentDescription = "Selfie Preview",
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .border(2.dp, Color(0xFFFF6F00), RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                    ImagePreview(idPhotoUri!!)
+                    ImagePreview(selfieUri!!)
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(
@@ -211,18 +202,15 @@ fun GovtIdVerificationScreen(
                         enabled = !isSubmitting,
                         onClick = {
                             isSubmitting = true
-                            idPhotoUri?.let { idUri ->
-                                selfieUri?.let { selfieUri ->
-                                    // Upload ID then selfie
-                                    profileViewModel.uploadGovtId(uid, idUri) { success, _ ->
-                                        if (success) {
-                                            profileViewModel.uploadGovtSelfie(uid, selfieUri) { success2, _ ->
+                            idPhotoUri?.let { idU ->
+                                selfieUri?.let { selfieU ->
+                                    profileViewModel.uploadGovtId(uid, idU) { ok, _ ->
+                                        if (ok) {
+                                            profileViewModel.uploadGovtSelfie(uid, selfieU) { ok2, _ ->
                                                 isSubmitting = false
-                                                if (success2) navController.popBackStack()
+                                                if (ok2) navController.popBackStack()
                                             }
-                                        } else {
-                                            isSubmitting = false
-                                        }
+                                        } else isSubmitting = false
                                     }
                                 }
                             }
@@ -240,8 +228,80 @@ fun GovtIdVerificationScreen(
     }
 }
 
-/** Helper: create a temp JPEG file in cacheDir for the camera to write into */
+/* ---------- Small helper composables ---------- */
+@Composable
+private fun PendingView(photoUrl: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121212))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Verification Pending", color = Color.White, fontSize = 20.sp)
+        Spacer(Modifier.height(16.dp))
+        photoUrl?.let {
+            Image(
+                painter = rememberAsyncImagePainter(it),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(240.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(2.dp, Color.Gray, RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+@Composable
+private fun AcceptedView() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121212))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("You're already verified", color = Color(0xFF00C853), fontSize = 20.sp)
+    }
+}
+
+@Composable
+private fun RejectedView() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121212))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Photo rejected, try again", color = Color.Red, fontSize = 20.sp)
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = { /* retry handled elsewhere */ },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+        ) {
+            Text("Capture New ID", color = Color.Black)
+        }
+    }
+}
+
+@Composable
+private fun ImagePreview(uri: Uri) {
+    Image(
+        painter = rememberAsyncImagePainter(uri),
+        contentDescription = null,
+        modifier = Modifier
+            .size(120.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(2.dp, Color(0xFFFF6F00), RoundedCornerShape(12.dp)),
+        contentScale = ContentScale.Crop
+    )
+}
+
+/* ---------- File helper ---------- */
 private fun createTempImageFile(context: Context): File {
-    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-    return File.createTempFile("ID_$timestamp", ".jpg", context.cacheDir)
+    val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+    return File.createTempFile("ID_$ts", ".jpg", context.cacheDir)
 }

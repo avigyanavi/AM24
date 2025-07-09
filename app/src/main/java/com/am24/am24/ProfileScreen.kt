@@ -1080,7 +1080,7 @@ fun BasicInfoSection(profile: Profile) {
 
     // --- Post‑Graduation + Year ---
     val postGradText = profile.postGraduation
-        .takeIf { it!!.isNotBlank() }
+        ?.takeIf { it.isNotBlank() }
         ?.let { name ->
             profile.postGraduationYear
                 .takeIf { it.isNotBlank() }

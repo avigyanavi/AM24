@@ -83,6 +83,10 @@ class MainActivity : ComponentActivity() {
         authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
             if (user != null) {
+                user.getIdToken(true)
+                    .addOnSuccessListener { res ->
+                        res.token?.let { TokenStorageManager.saveToken(this@MainActivity, it) }
+                    }
                 // User is signed in, route them
                 routeBasedOnUid(user, openNotifications, openUpgradeLanding)
             } else {
@@ -150,6 +154,7 @@ class MainActivity : ComponentActivity() {
 
             if (!finished && step >= 8) {
                 auth.signOut()
+                TokenStorageManager.clearToken(this@MainActivity)
                 withContext(Dispatchers.Main) {
                     startActivity(Intent(this@MainActivity, LandingActivity::class.java))
                     finish()
