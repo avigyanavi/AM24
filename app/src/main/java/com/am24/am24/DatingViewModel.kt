@@ -15,6 +15,7 @@ import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
@@ -82,6 +83,10 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     val isLoading: StateFlow<Boolean> get() = _isLoading
 
     private var profilesListener: ValueEventListener? = null
+    private var complimentsRef: DatabaseReference? = null
+    private var complimentsListener: ValueEventListener? = null
+    private var boostsRef: DatabaseReference? = null
+    private var boostsListener: ValueEventListener? = null
 
     // ─── NEW: track compliments sent *to* me ─────────────
     private val _complimentsReceived = MutableStateFlow<Map<String, ComplimentData>>(emptyMap()) // ← NEW
@@ -234,11 +239,26 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     fun startInventoryWatcher(uid: String) {
         val root = FirebaseDatabase.getInstance().reference.child("users/$uid")
 
-        root.child("availableCompliments")
-            .addValueEventListener(simpleIntListener { _complimentsLeft.value = it })
+        val compliments = root.child("availableCompliments")
+        val complimentsL = simpleIntListener { _complimentsLeft.value = it }
+        complimentsRef = compliments
+        complimentsListener = complimentsL
+        compliments.addValueEventListener(complimentsL)
 
-        root.child("availableBoosts")
-            .addValueEventListener(simpleIntListener { _boostsLeft.value = it })
+        val boosts = root.child("availableBoosts")
+        val boostsL = simpleIntListener { _boostsLeft.value = it }
+        boostsRef = boosts
+        boostsListener = boostsL
+        boosts.addValueEventListener(boostsL)
+    }
+
+    private fun stopInventoryWatcher() {
+        complimentsListener?.let { l -> complimentsRef?.removeEventListener(l) }
+        complimentsListener = null
+        complimentsRef = null
+        boostsListener?.let { l -> boostsRef?.removeEventListener(l) }
+        boostsListener = null
+        boostsRef = null
     }
     /** helper that turns a ValueEventListener into a one-liner */
     private fun simpleIntListener(setter: (Int) -> Unit) =
@@ -565,6 +585,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         profilesListener?.let { usersRef.removeEventListener(it) }
+        stopInventoryWatcher()
     }
 
     /** Called when the user hits “Submit” in the report dialog */
