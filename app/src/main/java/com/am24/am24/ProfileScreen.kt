@@ -2906,17 +2906,6 @@ fun BasicInfoEditSection(
         }
         Spacer(Modifier.height(6.dp))
 
-        // Locality dropdown (old logic)
-        SearchableDropdownWithCustomOption(
-            title = stringResource(R.string.label_locality),
-            options = localityOptionsList,
-            selectedOption = locality,
-            onOptionSelected = { sel -> locality = sel },
-            customInput = customLocality,
-            onCustomInputChange = { customLocality = it!! }
-        )
-        Spacer(Modifier.height(6.dp))
-
         // Job Role chips
         Text(
             stringResource(R.string.job_role_label),

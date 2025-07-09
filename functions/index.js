@@ -1043,3 +1043,27 @@ exports.paypalWebhook = functions
 
     res.status(200).send('ok');
   });
+
+  // Push the `lastLotteryDayOfYear` field to every user
+  exports.backfillLastLotteryDayOfYear = functions
+    .region('asia-south1')
+    .https.onRequest(async (_req, res) => {
+      try {
+        const usersRef = admin.database().ref('users');
+        const snap     = await usersRef.once('value');
+        const updates  = {};
+
+        snap.forEach(userSnap => {
+          const data = userSnap.val() || {};
+          if (data.lastLotteryDayOfYear === undefined) {
+            updates[`${userSnap.key}/lastLotteryDayOfYear`] = null;
+          }
+        });
+
+        await usersRef.update(updates);
+        res.status(200).send(`updated ${Object.keys(updates).length} users`);
+      } catch (err) {
+        console.error('backfillLastLotteryDayOfYear error:', err);
+        res.status(500).send(err.message);
+      }
+      });

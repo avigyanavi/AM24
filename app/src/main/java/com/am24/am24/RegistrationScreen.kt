@@ -3250,22 +3250,34 @@ fun EnterBirthdateCityHometownScreen(
                 rohtak, shillong, shimla, silchar, siliguri, sonipat, surat, secunderabad, tawang,
                 thane, thiruvananthapuram, udaipur, vadodara, varanasi, vellore, vijayawada,
                 visakhapatnam, warangal
-            ) { country, city, locality ->
+            ) { country, city, locality, rawCity, rawLocality ->
                 selectedCountry = country
                 registrationViewModel.country = if (country == other) customCountry else country
 
                 if (country.equals("India", ignoreCase = true)) {
                     selectedCity     = city
                     selectedLocality = locality
-                    registrationViewModel.city     = if (city == other) customCity else city
-                    registrationViewModel.hometown = if (locality == other) customLocality else locality
+                    if (city == other) {
+                        customCity = rawCity
+                        registrationViewModel.customCity = rawCity
+                        registrationViewModel.city = other
+                    } else {
+                        registrationViewModel.city = city
+                    }
+                    if (locality == other) {
+                        customLocality = rawLocality
+                        registrationViewModel.customHometown = rawLocality
+                        registrationViewModel.hometown = other
+                    } else {
+                        registrationViewModel.hometown = locality
+                    }
                 } else {
                     selectedCity        = other
                     selectedLocality    = other
-                    customCity          = city
-                    customLocality      = locality
-                    registrationViewModel.customCity     = city
-                    registrationViewModel.customHometown = locality
+                    customCity          = rawCity
+                    customLocality      = rawLocality
+                    registrationViewModel.customCity     = rawCity
+                    registrationViewModel.customHometown = rawLocality
                     registrationViewModel.city           = other
                     registrationViewModel.hometown       = other
                 }
@@ -3294,22 +3306,34 @@ fun EnterBirthdateCityHometownScreen(
                 rohtak, shillong, shimla, silchar, siliguri, sonipat, surat, secunderabad, tawang,
                 thane, thiruvananthapuram, udaipur, vadodara, varanasi, vellore, vijayawada,
                 visakhapatnam, warangal
-            ) { country, city, locality ->
+            ) { country, city, locality, rawCity, rawLocality ->
                 selectedCountry = country
                 registrationViewModel.country = if (country == other) customCountry else country
 
                 if (country.equals("India", ignoreCase = true)) {
                     selectedCity     = city
                     selectedLocality = locality
-                    registrationViewModel.city     = if (city == other) customCity else city
-                    registrationViewModel.hometown = if (locality == other) customLocality else locality
+                    if (city == other) {
+                        customCity = rawCity
+                        registrationViewModel.customCity = rawCity
+                        registrationViewModel.city = other
+                    } else {
+                        registrationViewModel.city = city
+                    }
+                    if (locality == other) {
+                        customLocality = rawLocality
+                        registrationViewModel.customHometown = rawLocality
+                        registrationViewModel.hometown = other
+                    } else {
+                        registrationViewModel.hometown = locality
+                    }
                 } else {
                     selectedCity        = other
                     selectedLocality    = other
-                    customCity          = city
-                    customLocality      = locality
-                    registrationViewModel.customCity     = city
-                    registrationViewModel.customHometown = locality
+                    customCity          = rawCity
+                    customLocality      = rawLocality
+                    registrationViewModel.customCity     = rawCity
+                    registrationViewModel.customHometown = rawLocality
                     registrationViewModel.city           = other
                     registrationViewModel.hometown       = other
                 }
@@ -3554,7 +3578,13 @@ internal fun fetchLocation(
     vijayawada: String,
     visakhapatnam: String,
     warangal: String,
-    onLocationFound: (String, String, String) -> Unit // ← country, city, locality
+    onLocationFound: (
+        String,
+        String,
+        String,
+        String,
+        String
+    ) -> Unit // ← country, city, locality, rawCity, rawLocality
 ) {
     val TAG = "fetchLocation"                       // <- new tag
     val activityScope = (ctx as? ComponentActivity)?.lifecycleScope ?: return
@@ -3565,7 +3595,7 @@ internal fun fetchLocation(
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 Log.d(TAG, "No location permission → defaulting to OTHER/OTHER/OTHER")
-                withContext(Dispatchers.Main) { onLocationFound(other, other, other) }
+                withContext(Dispatchers.Main) { onLocationFound(other, other, other, other, other) }
                 return@launch
             }
 
@@ -3586,7 +3616,7 @@ internal fun fetchLocation(
             // 4) If still null, give up
             if (loc == null) {
                 Log.d(TAG, "Both location calls null → defaulting to OTHER/OTHER/OTHER")
-                withContext(Dispatchers.Main) { onLocationFound(other, other, other) }
+                withContext(Dispatchers.Main) { onLocationFound(other, other, other, other, other) }
                 return@launch
             }
 
@@ -3598,7 +3628,7 @@ internal fun fetchLocation(
                 geo.getFromLocation(loc.latitude, loc.longitude, 1)
             }?.firstOrNull()
             if (addr == null) {                 Log.d(TAG, "Geocoder returned no address, defaulting to OTHER/OTHER/OTHER")
-                onLocationFound(other, other, other); return@launch }
+                onLocationFound(other, other, other, other, other); return@launch }
 
             val detectedCountry  = addr.countryName ?: other
             val detectedCity     = addr.locality ?: addr.subAdminArea ?: other
@@ -3704,10 +3734,18 @@ internal fun fetchLocation(
                 else -> emptyList()
             }
             val matchedLocality = localities.find { it.equals(detectedLocality, ignoreCase = true) } ?: other
-            withContext(Dispatchers.Main) { onLocationFound(matchedCountry, matchedCity, matchedLocality) }
+            withContext(Dispatchers.Main) {
+                onLocationFound(
+                    matchedCountry,
+                    matchedCity,
+                    matchedLocality,
+                    detectedCity,
+                    detectedLocality
+                )
+            }
         } catch (e: Exception) {
             Log.e("fetchLocation", "${e.message}")
-            withContext(Dispatchers.Main) { onLocationFound(other, other, other) }
+            withContext(Dispatchers.Main) { onLocationFound(other, other, other, other, other) }
         }
     }
 }

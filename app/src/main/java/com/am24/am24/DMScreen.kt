@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import android.app.Activity
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -45,6 +46,8 @@ import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import kotlin.random.Random
 
 @Composable
 fun DMScreen(navController: NavController) {
@@ -69,6 +72,12 @@ fun DMScreenContent(navController: NavController) {
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
     var isLoadingProfile by remember { mutableStateOf(true) } // Track loading state
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
+    val activity = LocalContext.current as Activity
+    val lotteryAdManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6888542594") }
+    DisposableEffect(Unit) { onDispose { lotteryAdManager.clearCallbacks() } }
+
+    var showLotteryDialog by remember { mutableStateOf(false) }
+    var selectedLotteryGender by remember { mutableStateOf("Both") }
     LaunchedEffect(currentUserId) {
         usersRef.child(currentUserId).get()
             .addOnSuccessListener { snap ->
@@ -109,6 +118,9 @@ fun DMScreenContent(navController: NavController) {
     }
 
     val isPremiumUser = profile.isPremium || profile.isPlus
+    val todayDay = remember { Calendar.getInstance().get(Calendar.DAY_OF_YEAR) }
+    val lotteryAvailable = remember(profile.lastLotteryDayOfYear) { profile.lastLotteryDayOfYear != todayDay }
+
 
     /* ──────  LOCATION-SELECTOR STATE  ────── */
     var showLocationSelector by rememberSaveable { mutableStateOf(false) }
@@ -351,6 +363,13 @@ fun DMScreenContent(navController: NavController) {
                             }
                             Spacer(Modifier.width(6.dp))
                         }
+                        Button(
+                            onClick = { showLotteryDialog = true },
+                            enabled = lotteryAvailable,
+                            colors = ButtonDefaults.buttonColors(containerColor = if (lotteryAvailable) Color(0xFFFF4500) else Color.DarkGray)
+                        ) {
+                            Text("Lottery", color = Color.White, fontSize = 10.sp)
+                        }
                     }
                 }
             }
@@ -557,6 +576,48 @@ fun DMScreenContent(navController: NavController) {
                     }
                 }
             }
+        }
+
+        if (showLotteryDialog) {
+            AlertDialog(
+                onDismissRequest = { showLotteryDialog = false },
+                title = { Text("Lottery Match", color = Color(0xFFFF4500)) },
+                text = {
+                    Column {
+                        Text("Select gender preference", color = Color.White, fontSize = 12.sp)
+                        val opts = listOf("Male", "Female", "Both")
+                        opts.forEach { opt ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = selectedLotteryGender == opt,
+                                    onClick = { selectedLotteryGender = opt },
+                                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFF4500))
+                                )
+                                Text(opt, color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLotteryDialog = false
+                        lotteryAdManager.show(onReward = {
+                            handleLotteryResult(
+                                currentUserId,
+                                selectedLotteryGender,
+                                database,
+                                usersRef,
+                                matchIds,
+                                blockedIds,
+                                context
+                            )
+                        })
+                    }) { Text("Watch Ad", color = Color(0xFFFF4500)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLotteryDialog = false }) { Text("Cancel", color = Color.Gray) }
+                }
+            )
         }
 
         FloatingActionButton(
@@ -918,6 +979,61 @@ fun getLevelBorderColor(rating: Double): Color {
         rating in 3.6..4.7 -> Color.Yellow
         rating in 4.7..5.0 -> Color(0xFFE91E63)
         else -> Color.Gray
+    }
+}
+
+private fun fetchRandomUserForLottery(
+    usersRef: DatabaseReference,
+    gender: String,
+    excludedIds: Set<String>,
+    currentUserId: String,
+    onResult: (Profile?) -> Unit
+) {
+    usersRef.get().addOnSuccessListener { snap ->
+        val list = snap.children.mapNotNull { it.getValue(Profile::class.java) }
+            .filter { it.userId != currentUserId && !excludedIds.contains(it.userId) }
+            .filter { gender == "Both" || it.gender.equals(gender, true) }
+        onResult(list.randomOrNull())
+    }.addOnFailureListener { onResult(null) }
+}
+
+private fun createMatch(
+    database: FirebaseDatabase,
+    currentUserId: String,
+    otherUserId: String
+) {
+    val ts = System.currentTimeMillis()
+    val updates = mapOf(
+        "matches/$currentUserId/$otherUserId" to ts,
+        "matches/$otherUserId/$currentUserId" to ts
+    )
+    database.reference.updateChildren(updates)
+}
+
+private fun handleLotteryResult(
+    currentUserId: String,
+    gender: String,
+    database: FirebaseDatabase,
+    usersRef: DatabaseReference,
+    matchIds: List<String>,
+    blockedIds: List<String>,
+    context: android.content.Context
+) {
+    val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+    database.getReference("users/$currentUserId/lastLotteryDayOfYear").setValue(today)
+
+    if (Random.nextInt(100) < 25) {
+        val excluded = matchIds.toSet() + blockedIds.toSet() + setOf(currentUserId)
+        fetchRandomUserForLottery(usersRef, gender, excluded, currentUserId) { profile ->
+            if (profile != null) {
+                createMatch(database, currentUserId, profile.userId)
+                Toast.makeText(context, "Matched with ${profile.username}!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "No user found", Toast.LENGTH_SHORT).show()
+            }
+        }
+    } else {
+        Toast.makeText(context, "Better luck next time!", Toast.LENGTH_SHORT).show()
     }
 }
 

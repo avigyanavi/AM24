@@ -25,6 +25,7 @@ data class Profile(
     val dob: String = "",  // Date of birth for age calculation
     val bio: String = "",  // One-liner bio
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
+    var lastLotteryDayOfYear: Int? = null,
 
     // The user's own gender (Male/Female/Other)
     val gender: String = "",
