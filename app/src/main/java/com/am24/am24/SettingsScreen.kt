@@ -130,9 +130,18 @@ fun SettingsScreen(navController: NavController) {
 
     var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
     val activity = LocalContext.current as Activity
-    val rewardedAdManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/0000000000") }
+    val rewardedBoostManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/4203186426") }
+    val rewardedComplimentManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6893779002") }
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
 
-    DisposableEffect(rewardedAdManager) { onDispose { rewardedAdManager.clearCallbacks() } }
+    DisposableEffect(Unit) {
+        onDispose {
+            rewardedBoostManager.clearCallbacks()
+            rewardedComplimentManager.clearCallbacks()
+            rewardedSwipeManager.clearCallbacks()
+        }
+    }
+
     /* load once */
     LaunchedEffect(Unit) {
         val s = userRef.get().await()
@@ -445,7 +454,13 @@ fun SettingsScreen(navController: NavController) {
                 confirmButton = {
                     TextButton(onClick = {
                         rewardDialogFor = null
-                        rewardedAdManager.show(onReward = {
+                        val manager = when (type) {
+                            PurchaseType.Boosts -> rewardedBoostManager
+                            PurchaseType.Compliments -> rewardedComplimentManager
+                            PurchaseType.Swipes -> rewardedSwipeManager
+                            else -> null
+                        }
+                        manager?.show(onReward = {
                             when (type) {
                                 PurchaseType.Boosts -> {
                                     boosts += 1
