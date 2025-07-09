@@ -614,7 +614,6 @@ fun FeedItem(
                 .shadow(4.dp, RoundedCornerShape(2.dp))
                 .then(gestureDetector),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-            border = BorderStroke(2.dp, getLevelBorderColor(userProfile?.averageRating ?: 0.0)) // Dynamic border color
         ) {
             Column(modifier = Modifier.padding(dynamicPadding)) {
                 // User Info Row with Delete/Report button
@@ -750,7 +749,7 @@ fun FeedItem(
                         fontSize = 12.sp,
                         lineHeight = 20.sp,
                         overflow = TextOverflow.Clip,
-                        textAlign = TextAlign.Justify,
+                        textAlign = TextAlign.Start,
                         modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
                     )
 

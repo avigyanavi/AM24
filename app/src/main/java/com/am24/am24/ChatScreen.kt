@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
+import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.Toast
 import android.widget.VideoView
@@ -152,6 +153,14 @@ fun ChatScreenContent(
     val datingViewModel: DatingViewModel = viewModel()
     var isSendingMessage by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val activity = LocalContext.current as Activity
+    DisposableEffect(Unit) {
+        // Prevent screenshots on chat view
+        activity.window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose {
+            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val compliments by datingViewModel.complimentsReceived.collectAsState()
     val compliment = compliments[otherUserId]

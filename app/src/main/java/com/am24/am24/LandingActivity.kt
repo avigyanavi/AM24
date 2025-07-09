@@ -58,6 +58,7 @@ class LandingActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var callbackManager: CallbackManager   // Facebook
+    var isSigningIn by mutableStateOf(false)
 
     /* Preserve chosen language */
     override fun attachBaseContext(newBase: Context) {
@@ -88,7 +89,10 @@ class LandingActivity : ComponentActivity() {
                 } catch (e: ApiException) {
                     Log.w("LandingActivity", "Google sign-in failed", e)
                     toast("Google sign-in failed: ${e.localizedMessage}")
+                    isSigningIn = false
                 }
+            } else {
+                isSigningIn = false
             }
         }
 
@@ -156,6 +160,7 @@ class LandingActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 LandingScreen(
+                    isLoading = isSigningIn,
                     onLoginClick = {
                         startActivity(Intent(this, LoginActivity::class.java))
                         finish()
@@ -174,6 +179,7 @@ class LandingActivity : ComponentActivity() {
     /* ───────── Google flow ───────── */
 
     private fun signInWithGoogle() {
+        isSigningIn = true
         googleSignInClient.signOut().addOnCompleteListener {
             googleSignInLauncher.launch(googleSignInClient.signInIntent)
         }
@@ -207,6 +213,7 @@ class LandingActivity : ComponentActivity() {
     /* ───────── Facebook flow ───────── */
 
     private fun signInWithFacebook() {
+        isSigningIn = true
         LoginManager.getInstance().logOut()   // let user pick account
         LoginManager.getInstance()
             .logInWithReadPermissions(this, listOf("email", "public_profile"))
@@ -216,11 +223,15 @@ class LandingActivity : ComponentActivity() {
                 override fun onSuccess(res: LoginResult) =
                     handleFacebookAccessToken(res.accessToken)
 
-                override fun onCancel() = toast("Facebook sign-in cancelled")
+                override fun onCancel() {
+                    isSigningIn = false
+                    toast("Facebook sign-in cancelled")
+                }
 
                 override fun onError(e: FacebookException) {
                     Log.e("LandingActivity", "Facebook sign-in error", e)
                     toast("Facebook sign-in failed: ${e.localizedMessage}")
+                    isSigningIn = false
                 }
             })
     }
@@ -243,6 +254,7 @@ class LandingActivity : ComponentActivity() {
     ) {
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
+                isSigningIn = false
                 if (task.isSuccessful) {
                     // ① grab the freshly-signed-in user
                     val user = firebaseAuth.currentUser!!
@@ -349,6 +361,7 @@ fun updateLocale(context: Context, languageCode: String): Context {
 
 @Composable
 fun LandingScreen(
+    isLoading: Boolean,
     onLoginClick: () -> Unit,
     onRegisterClick: () -> Unit,
     onGoogleSignIn: () -> Unit,
@@ -444,6 +457,16 @@ fun LandingScreen(
                     prefs.edit().putString("language", lang).apply()
                     shouldRestart = true
                 }
+            }
+        }
+        if (isLoading) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
             }
         }
     }
@@ -578,5 +601,5 @@ fun LanguageSelectionBar(
 @Preview(showBackground = true)
 @Composable
 fun PreviewLandingScreen() {
-    AppTheme { LandingScreen({}, {}, {}, {}) }
+    AppTheme { LandingScreen(isLoading = false, {}, {}, {}, {}) }
 }

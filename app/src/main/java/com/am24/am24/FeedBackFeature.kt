@@ -34,22 +34,29 @@ class FeedbackViewModel : ViewModel() {
     private val _feedbacks = MutableStateFlow<List<Feedback>>(emptyList())
     val feedbacks: StateFlow<List<Feedback>> = _feedbacks
 
+    private val listener = object : ValueEventListener {
+        override fun onDataChange(snapshot: DataSnapshot) {
+            val list = snapshot.children.mapNotNull { c ->
+                val id = c.key ?: return@mapNotNull null
+                Feedback(
+                    id        = id,
+                    userId    = c.child("userId").getValue(String::class.java) ?: "",
+                    text      = c.child("text").getValue(String::class.java) ?: "",
+                    timestamp = c.child("timestamp").getValue(Long::class.java) ?: 0L
+                )
+            }.sortedByDescending { it.timestamp }
+            _feedbacks.value = list
+        }
+        override fun onCancelled(error: DatabaseError) { /* no-op */ }
+    }
+
     init {
-        ref.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val list = snapshot.children.mapNotNull { c ->
-                    val id = c.key ?: return@mapNotNull null
-                    Feedback(
-                        id        = id,
-                        userId    = c.child("userId").getValue(String::class.java) ?: "",
-                        text      = c.child("text").getValue(String::class.java) ?: "",
-                        timestamp = c.child("timestamp").getValue(Long::class.java) ?: 0L
-                    )
-                }.sortedByDescending { it.timestamp }
-                _feedbacks.value = list
-            }
-            override fun onCancelled(error: DatabaseError) { /* no-op */ }
-        })
+        ref.addValueEventListener(listener)
+    }
+
+    override fun onCleared() {
+        ref.removeEventListener(listener)
+        super.onCleared()
     }
 }
 
