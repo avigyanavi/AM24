@@ -212,7 +212,7 @@ fun DatingScreen(
     val showAds = !isPremium && !isPlus
 
     // constants
-    val BOOST_DURATION = 6 * 60 * 60 * 1000L
+    val BOOST_DURATION = 1 * 60 * 60 * 1000L
     val now = remember { System.currentTimeMillis() }
     val last = myProfile?.lastBoostTimestamp ?: 0L
     val inCooldown = now - last < BOOST_DURATION
@@ -1009,7 +1009,7 @@ fun FiltersOverlay(
                                     range.endInclusive.roundToInt()
                         )
                     },
-                    valueRange = 0f..100f,
+                    valueRange = 0f..1000f,
                     steps = 20,
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFFFF6000),
