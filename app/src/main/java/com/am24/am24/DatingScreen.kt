@@ -6,6 +6,7 @@
 package com.am24.am24
 
 import DatingViewModel
+import android.app.Activity
 import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
@@ -231,6 +232,21 @@ fun DatingScreen(
     var showVerifyDialog by remember { mutableStateOf(false) }
     var isSendingEmail   by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val activity = LocalContext.current as Activity
+    val rewardedBoostManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/4203186426") }
+    val rewardedComplimentManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6893779002") }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            rewardedBoostManager.clearCallbacks()
+            rewardedComplimentManager.clearCallbacks()
+        }
+    }
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
+
+    DisposableEffect(Unit) {
+        onDispose { rewardedSwipeManager.clearCallbacks() }
+    }
 
     LaunchedEffect(Unit) {
         FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
@@ -435,7 +451,18 @@ fun DatingScreen(
                                 showComplimentDlg = true
                             } else {
                                 // zero left → go buy more
-                                navController.navigate("buyCompliments")
+                                rewardedComplimentManager.show(onReward = {
+                                    datingViewModel.incrementComplimentsLocal()
+                                    val uid = FirebaseAuth.getInstance().uid
+                                    if (uid != null) {
+                                        val newVal = complimentsLeft + 1
+                                        coroutineScope.launch {
+                                            FirebaseRefs.db.getReference("users/$uid/availableCompliments")
+                                                .setValue(newVal)
+                                        }
+                                        profileViewModel.incrementComplimentsLocal()
+                                    }
+                                })
                             }
                         }
                     )
@@ -459,7 +486,18 @@ fun DatingScreen(
                                 }
                             } else {
                                 // no boosts → go buy more
-                                navController.navigate("buyBoosts")
+                                rewardedBoostManager.show(onReward = {
+                                    profileViewModel.incrementBoostsLocal()
+                                    datingViewModel.incrementBoostsLocal()
+                                    val uid = FirebaseAuth.getInstance().uid
+                                    if (uid != null) {
+                                        val newVal = myProfile!!.availableBoosts + 1
+                                        coroutineScope.launch {
+                                            FirebaseRefs.db.getReference("users/$uid/availableBoosts")
+                                                .setValue(newVal)
+                                        }
+                                    }
+                                })
                             }
                         }
                     )
@@ -536,10 +574,20 @@ fun DatingScreen(
                     SwipeLimitOverlay(
                         remainingSwipes = remainingSwipes,
                         isPlus = myProfile!!.isPlus,
-                        isPremium = myProfile!!.isPremium
-                    ) {
-                        showSwipeLimitOverlay = false
-                    }
+                        isPremium = myProfile!!.isPremium,
+                        onDismiss = {
+                            showSwipeLimitOverlay = false
+                        },
+                        onWatchAd = {
+                            rewardedSwipeManager.show(
+                                onReward = {
+                                    remainingSwipes += 5
+                                    updateSwipesInFirebase(remainingSwipes)
+                                },
+                                afterAd = { showSwipeLimitOverlay = false }
+                            )
+                        }
+                    )
                 }
             }
             }
@@ -770,7 +818,8 @@ fun SwipeLimitOverlay(
     remainingSwipes: Int,
     isPlus: Boolean,
     isPremium: Boolean,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onWatchAd: () -> Unit
 ) {
     // compute your daily quota
     val quota = when {
@@ -824,8 +873,19 @@ fun SwipeLimitOverlay(
                 Spacer(Modifier.height(12.dp))
                 Text("Resets in: $timeLeft", color = Color.Gray)
                 Spacer(Modifier.height(24.dp))
-                Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))) {
-                    Text("OK", color = Color.Black)
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+                    ) {
+                        Text("OK", color = Color.Black)
+                    }
+                    Button(
+                        onClick = onWatchAd,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+                    ) {
+                        Text("Watch ad for 5 Swipes", color = Color.Black)
+                    }
                 }
             }
         }
@@ -2319,6 +2379,12 @@ fun ProfileCollapsibleSectionsAll(
     val coroutineScope = rememberCoroutineScope()
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
     val context = LocalContext.current // ✅ declare at the top of the Composable
+    val activity = LocalContext.current as Activity
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
+
+    DisposableEffect(Unit) {
+        onDispose { rewardedSwipeManager.clearCallbacks() }
+    }
 
     Column(
         modifier = Modifier

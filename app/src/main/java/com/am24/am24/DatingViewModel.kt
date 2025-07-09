@@ -588,6 +588,18 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         stopInventoryWatcher()
     }
 
+
+    /** Increment compliments quota locally when rewarded. */
+    fun incrementComplimentsLocal() {
+        _complimentsLeft.value = _complimentsLeft.value + 1
+    }
+
+    /** Increment boosts quota locally when rewarded. */
+    fun incrementBoostsLocal() {
+        _boostsLeft.value = _boostsLeft.value + 1
+    }
+
+
     /** Called when the user hits “Submit” in the report dialog */
     fun reportUser(
         reporterId: String,

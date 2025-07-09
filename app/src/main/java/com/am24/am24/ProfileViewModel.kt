@@ -687,6 +687,25 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+
+    /** Call this when the user earns an extra boost (e.g. via a rewarded ad). */
+    fun incrementBoostsLocal() {
+        _currentUserProfile.update { prof ->
+            prof?.copy(
+                availableBoosts = prof.availableBoosts + 1
+            )
+        }
+    }
+
+    /** Increment compliments balance locally after a rewarded ad. */
+    fun incrementComplimentsLocal() {
+        _currentUserProfile.update { prof ->
+            prof?.copy(
+                availableCompliments = prof.availableCompliments + 1
+            )
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
 
