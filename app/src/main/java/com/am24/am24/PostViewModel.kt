@@ -106,6 +106,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private var singlePostListener: ValueEventListener? = null
     private var savedPostIdsRef: DatabaseReference? = null
     private var savedPostIdsListener: ValueEventListener? = null
+    // Listener for the current user's profile
+    private var profileRef: DatabaseReference? = null
+    private var profileListener: ValueEventListener? = null
+
 
     /** Starts (or switches) a realtime listener for one post. */
     fun startPostListener(postId: String) {
@@ -159,20 +163,28 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         savedPostIdsListener = null
         savedPostIdsRef = null
 
-        // ─── 4. any additional cleanup you already perform ────────────
+        // ─── 4. user profile listener ──────────────────────────────────
+        profileListener?.let { listener ->
+            profileRef?.removeEventListener(listener)
+        }
+        profileListener = null
+        profileRef = null
+
+        // ─── 5. any additional cleanup you already perform ────────────
         pauseFeed()                       // keeps your existing behaviour
     }
 
     private fun observeMyProfile(userId: String) {
-        val ref = db.getReference("users").child(userId)
-        ref.addValueEventListener(object: ValueEventListener {
+        profileRef = db.getReference("users").child(userId)
+        profileListener = object : ValueEventListener {
             override fun onDataChange(snap: DataSnapshot) {
                 snap.getValue(Profile::class.java)?.let {
                     _myProfile.value = it
                 }
             }
             override fun onCancelled(err: DatabaseError) { /* log if you like */ }
-        })
+        }
+        profileRef?.addValueEventListener(profileListener!!)
     }
 
     /**
