@@ -167,15 +167,17 @@ fun DMScreenContent(navController: NavController) {
     val blockedRef = database.getReference("blocks/$currentUserId")
     val blockedIds = remember { mutableStateListOf<String>() }
 
-    LaunchedEffect(currentUserId) {
-        blockedRef.addListenerForSingleValueEvent(object: ValueEventListener {
+    DisposableEffect(currentUserId) {
+        val listener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
                 blockedIds.clear()
                 s.children.mapNotNull { it.key }
                     .also(blockedIds::addAll)
             }
             override fun onCancelled(e: DatabaseError) {}
-        })
+        }
+        blockedRef.addListenerForSingleValueEvent(listener)
+        onDispose { blockedRef.removeEventListener(listener) }
     }
 
     val matchIds = remember { mutableStateListOf<String>() }
@@ -192,27 +194,35 @@ fun DMScreenContent(navController: NavController) {
 
     val focusManager = LocalFocusManager.current
 
-    LaunchedEffect(Unit) {
-        matchesRef.addValueEventListener(object : ValueEventListener {
+    DisposableEffect(Unit) {
+        val matchesListener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
                 matchIds.clear()
                 s.children.forEach { it.key?.let(matchIds::add) }
                 recomputeLiked()
             }
             override fun onCancelled(error: DatabaseError) {}
-        })
-        likesRef.addValueEventListener(object : ValueEventListener {
+        }
+        val likesListener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
                 likeIds.clear()
                 s.children.forEach { it.key?.let(likeIds::add) }
                 recomputeLiked()
             }
             override fun onCancelled(error: DatabaseError) {}
-        })
+        }
+                matchesRef.addValueEventListener(matchesListener)
+                likesRef.addValueEventListener(likesListener)
+                onDispose {
+            matchesRef.removeEventListener(matchesListener)
+            likesRef.removeEventListener(likesListener)
+        }
     }
 
-    LaunchedEffect(currentUserId) {
-        fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
+    val messageListeners = remember { mutableMapOf<String, ValueEventListener>() }
+
+    DisposableEffect(currentUserId) {
+        val fetchListener = fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
             checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
                 nonInitiatedMatches.clear()
                 nonInitiatedMatches.addAll(nonInitiated)
@@ -230,35 +240,47 @@ fun DMScreenContent(navController: NavController) {
                 }
             }
 
-            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@fetchUsersFromNode
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@fetchUsersFromNode
             matchedUsers.forEach { profile ->
-                val chatId = getChatId(currentUserId, profile.userId)
+                val chatId = getChatId(uid, profile.userId)
+                messageListeners[chatId]?.let { old ->
+                    messagesRootRef.child(chatId).removeEventListener(old)
+                }
+                val listener = object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if (!snapshot.exists()) {
+                            lastMessages[profile.userId] = Triple("", false, true)
+                            Log.d("DMScreen", "No messages for ${profile.userId}")
+                            return
+                        }
+                        for (msgSnap in snapshot.children) {
+                            val text = msgSnap.child("text").getValue(String::class.java) ?: ""
+                            val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
+                            val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
+                            val fromCurrentUser = (senderId == uid)
+                            val displayText = if (text.length > 30) "${text.take(30)}..." else text
+                            lastMessages[profile.userId] = Triple(displayText, fromCurrentUser, read)
+                            Log.d("DMScreen", "Last message for ${profile.userId}: $displayText")
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("DMScreen", "Failed to fetch last message for ${profile.userId}: ${error.message}")
+                    }
+                }
                 messagesRootRef.child(chatId)
                     .orderByChild("timestamp")
                     .limitToLast(1)
-                    .addValueEventListener(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            if (!snapshot.exists()) {
-                                lastMessages[profile.userId] = Triple("", false, true)
-                                Log.d("DMScreen", "No messages for ${profile.userId}")
-                                return
-                            }
-                            for (msgSnap in snapshot.children) {
-                                val text = msgSnap.child("text").getValue(String::class.java) ?: ""
-                                val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
-                                val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
-                                val fromCurrentUser = (senderId == currentUserId)
-                                val displayText = if (text.length > 30) "${text.take(30)}..." else text
-                                lastMessages[profile.userId] = Triple(displayText, fromCurrentUser, read)
-                                Log.d("DMScreen", "Last message for ${profile.userId}: $displayText")
-                            }
-                        }
-
-                        override fun onCancelled(error: DatabaseError) {
-                            Log.e("DMScreen", "Failed to fetch last message for ${profile.userId}: ${error.message}")
-                        }
-                    })
+                    .addValueEventListener(listener)
+                messageListeners[chatId] = listener
             }
+        }
+        onDispose {
+            matchesRef.removeEventListener(fetchListener)
+            messageListeners.forEach { (chatId, l) ->
+                messagesRootRef.child(chatId).removeEventListener(l)
+            }
+            messageListeners.clear()
         }
     }
 
@@ -834,8 +856,8 @@ private fun fetchUsersFromNode(
     usersList: MutableList<Profile>,
     context: android.content.Context,
     onComplete: (() -> Unit)? = null
-) {
-    ref.addValueEventListener(object : ValueEventListener {
+): ValueEventListener {
+    val listener = object : ValueEventListener {
         override fun onDataChange(snapshot: DataSnapshot) {
             val userIdsToFetch = snapshot.children.mapNotNull { it.key }
             Log.d("DMScreen", "Fetched user IDs from matches: $userIdsToFetch")
@@ -872,7 +894,9 @@ private fun fetchUsersFromNode(
             Log.e("DMScreen", "DatabaseError in fetchUsersFromNode: ${error.message}")
             Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
         }
-    })
+    }
+    ref.addValueEventListener(listener)
+    return listener
 }
 
 fun getLevelBorderColor(rating: Double): Color {
