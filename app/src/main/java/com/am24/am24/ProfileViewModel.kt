@@ -42,6 +42,18 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     var voiceNoteUrl: String? = null
     var voiceNoteFilePath: String? = null
 
+    private var premiumFlagRef: DatabaseReference? = null
+    private var premiumFlagListener: ValueEventListener? = null
+
+    private var plusFlagRef: DatabaseReference? = null
+    private var plusFlagListener: ValueEventListener? = null
+
+    private var adminFlagRef: DatabaseReference? = null
+    private var adminFlagListener: ValueEventListener? = null
+
+    private var verificationRef: DatabaseReference? = null
+    private var verificationListener: ValueEventListener? = null
+
     private val _isPremium = MutableStateFlow(false)
     val isPremium: StateFlow<Boolean> = _isPremium
 
@@ -77,32 +89,36 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     // ─── NEW: listen for isPremium in /users/{uid}/isPremium ─────────────────
     private fun watchPremiumFlag() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        usersRef.child(uid)
-            .child("isPremium")
-            .addValueEventListener(object: ValueEventListener {
-                override fun onDataChange(snap: DataSnapshot) {
-                    _isPremium.value = snap.getValue(Boolean::class.java) == true
-                }
-                override fun onCancelled(err: DatabaseError) {
-                    Log.e(TAG, "watchPremiumFlag cancelled: ${err.message}")
-                }
-            })
+        val ref = usersRef.child(uid).child("isPremium")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                _isPremium.value = snap.getValue(Boolean::class.java) == true
+            }
+            override fun onCancelled(err: DatabaseError) {
+                Log.e(TAG, "watchPremiumFlag cancelled: ${err.message}")
+            }
+        }
+        premiumFlagRef = ref
+        premiumFlagListener = listener
+        ref.addValueEventListener(listener)
     }
     // ────────────────────────────────────────────────────────────────────────
 
     // ─── NEW: listen for isPlus in /users/{uid}/isPlus ──────────────────────
     private fun watchPlusFlag() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        usersRef.child(uid)
-            .child("isPlus")
-            .addValueEventListener(object: ValueEventListener {
-                override fun onDataChange(snap: DataSnapshot) {
-                    _isPlus.value = snap.getValue(Boolean::class.java) == true
-                }
-                override fun onCancelled(err: DatabaseError) {
-                    Log.e(TAG, "watchPlusFlag cancelled: ${err.message}")
-                }
-            })
+        val ref = usersRef.child(uid).child("isPlus")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                _isPlus.value = snap.getValue(Boolean::class.java) == true
+            }
+            override fun onCancelled(err: DatabaseError) {
+                Log.e(TAG, "watchPlusFlag cancelled: ${err.message}")
+            }
+        }
+        plusFlagRef = ref
+        plusFlagListener = listener
+        ref.addValueEventListener(listener)
     }
 
     init {
@@ -335,16 +351,20 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun watchAdminFlag() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        FirebaseRefs.db
+        val ref = FirebaseRefs.db
             .getReference("users")
             .child(uid)
             .child("isAdmin")
-            .addValueEventListener(object: ValueEventListener {
-                override fun onDataChange(snap: DataSnapshot) {
-                    _isAdmin.value = snap.getValue(Boolean::class.java) == true
-                }
-                override fun onCancelled(e: DatabaseError) { /* log error */ }
-            })
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                _isAdmin.value = snap.getValue(Boolean::class.java) == true
+            }
+            override fun onCancelled(e: DatabaseError) { /* log error */ }
+        }
+
+        adminFlagRef = ref
+        adminFlagListener = listener
+        ref.addValueEventListener(listener)
     }
 
     fun uploadGovtSelfie(
@@ -598,20 +618,24 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun observeVerificationStatus(uid: String) {
-        val verRef = FirebaseRefs.db
+        val ref = FirebaseRefs.db
             .getReference("verifications")
             .child(uid)
             .child("status")
 
         // detach any previous listener if you like…
-        verRef.addValueEventListener(object : ValueEventListener {
+        val listener = object : ValueEventListener {
             override fun onDataChange(snap: DataSnapshot) {
                 _verificationStatus.value = snap.getValue(String::class.java)
             }
             override fun onCancelled(err: DatabaseError) {
                 Log.e(TAG, "Verification listener failed: ${err.message}")
             }
-        })
+        }
+
+        verificationRef = ref
+        verificationListener = listener
+        ref.addValueEventListener(listener)
     }
 
     /** Notify receiver that someone sent a compliment */
@@ -662,6 +686,25 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 onFailure(e.message ?: "Failed to send match notification.")
             }
         }
+    }
+    override fun onCleared() {
+        super.onCleared()
+
+        premiumFlagListener?.let { l -> premiumFlagRef?.removeEventListener(l) }
+        premiumFlagListener = null
+        premiumFlagRef = null
+
+        plusFlagListener?.let { l -> plusFlagRef?.removeEventListener(l) }
+        plusFlagListener = null
+        plusFlagRef = null
+
+        adminFlagListener?.let { l -> adminFlagRef?.removeEventListener(l) }
+        adminFlagListener = null
+        adminFlagRef = null
+
+        verificationListener?.let { l -> verificationRef?.removeEventListener(l) }
+        verificationListener = null
+        verificationRef = null
     }
 }
 /** ------------------------------------------------------------------
