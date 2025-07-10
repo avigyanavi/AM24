@@ -2291,18 +2291,45 @@ fun EnterGenderCommunityReligionScreen(
         stringResource(R.string.community_tripuri),
         stringResource(R.string.community_urdu_speaker),
     )
+// Religion options
     val religionOptions = listOf(
         stringResource(R.string.religion_other),
         stringResource(R.string.religion_buddhist),
         stringResource(R.string.religion_christian),
+        stringResource(R.string.religion_christian_catholic),
+        stringResource(R.string.religion_christian_protestant_mainline),
+        stringResource(R.string.religion_christian_evangelical),
+        stringResource(R.string.religion_christian_orthodox),
+        stringResource(R.string.religion_christian_latter_day_saint),
+        stringResource(R.string.religion_christian_jehovahs_witness),
+        stringResource(R.string.religion_christian_other),
         stringResource(R.string.religion_hindu),
-        stringResource(R.string.religion_indigenous_tribal),
         stringResource(R.string.religion_jain),
         stringResource(R.string.religion_jewish),
         stringResource(R.string.religion_muslim),
+        stringResource(R.string.religion_muslim_sunni),
+        stringResource(R.string.religion_muslim_shia),
+        stringResource(R.string.religion_muslim_ahmadiyya),
+        stringResource(R.string.religion_muslim_sufi),
+        stringResource(R.string.religion_muslim_other),
         stringResource(R.string.religion_no_religion),
         stringResource(R.string.religion_parsi),
-        stringResource(R.string.religion_sikh),)
+        stringResource(R.string.religion_sikh),
+        stringResource(R.string.religion_indigenous_tribal),
+        stringResource(R.string.religion_santeria),
+        stringResource(R.string.religion_voodou),
+        stringResource(R.string.religion_candomble),
+        stringResource(R.string.religion_umbanda),
+        stringResource(R.string.religion_palo_mayombe),
+        stringResource(R.string.religion_native_traditional),
+        stringResource(R.string.religion_native_church),
+        stringResource(R.string.religion_vision_quest),
+        stringResource(R.string.religion_african_traditional),
+        stringResource(R.string.religion_obeah),
+        stringResource(R.string.religion_hoodoo),
+        stringResource(R.string.religion_rastafari),
+        stringResource(R.string.religion_black_protestant),
+    )
 
     // Validation for enabling the "Next" button
     val isNextEnabled = registrationViewModel.gender.isNotEmpty() && registrationViewModel.dob.isNotBlank()
