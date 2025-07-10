@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import android.app.Application
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -33,14 +34,25 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
+import androidx.lifecycle.ViewModelProvider
 
 
 @Composable
 fun LeaderboardScreen(
     navController: NavHostController,
-    viewModel: LeaderboardViewModel = viewModel()
 ) {
-    val profiles by viewModel.leaderboard.collectAsState()
+    val context = LocalContext.current
+    val profileViewModel: ProfileViewModel = viewModel(
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+            context.applicationContext as Application
+        )
+    )
+
+    val isPremium by profileViewModel.isPremium.collectAsState(false)
+    val leaderboardVm: LeaderboardViewModel? =
+        if (isPremium) viewModel() else null
+    val profilesState = leaderboardVm?.leaderboard?.collectAsState(emptyList())
+    val profiles = profilesState?.value ?: emptyList()
 
     var countryFilter    by remember { mutableStateOf("") }   // NEW
     // local UI filter state
@@ -58,16 +70,33 @@ fun LeaderboardScreen(
     var filtersExpanded by remember { mutableStateOf(false) }
 
     // sync back into VM
-    LaunchedEffect(selectedGender) { viewModel.setGenderFilter(selectedGender.ifBlank { null }) }
-    LaunchedEffect(countryFilter)  { viewModel.setCountryFilter(countryFilter.ifBlank { null }) } // NEW
-    LaunchedEffect(cityFilter)     { viewModel.setCityFilter(cityFilter.ifBlank { null }) }
-    LaunchedEffect(localityFilter) { viewModel.setLocalityFilter(localityFilter.ifBlank { null }) }
-    LaunchedEffect(highSchoolFilter) { viewModel.setHighSchoolFilter(highSchoolFilter.ifBlank { null }) }
-    LaunchedEffect(collegeFilter)  { viewModel.setCollegeFilter(collegeFilter.ifBlank { null }) }
-    LaunchedEffect(ageRange) {
-        viewModel.setAgeRangeFilter(ageRange.start.roundToInt(), ageRange.endInclusive.roundToInt())
+    LaunchedEffect(selectedGender, leaderboardVm) {
+        leaderboardVm?.setGenderFilter(selectedGender.ifBlank { null })
     }
-    LaunchedEffect(minComposite)   { viewModel.setMinCompositePct(minComposite.toDouble()) }
+    LaunchedEffect(countryFilter, leaderboardVm)  {
+        leaderboardVm?.setCountryFilter(countryFilter.ifBlank { null })
+    } // NEW
+    LaunchedEffect(cityFilter, leaderboardVm)     {
+        leaderboardVm?.setCityFilter(cityFilter.ifBlank { null })
+    }
+    LaunchedEffect(localityFilter, leaderboardVm) {
+        leaderboardVm?.setLocalityFilter(localityFilter.ifBlank { null })
+    }
+    LaunchedEffect(highSchoolFilter, leaderboardVm) {
+        leaderboardVm?.setHighSchoolFilter(highSchoolFilter.ifBlank { null })
+    }
+    LaunchedEffect(collegeFilter, leaderboardVm)  {
+        leaderboardVm?.setCollegeFilter(collegeFilter.ifBlank { null })
+    }
+    LaunchedEffect(ageRange, leaderboardVm) {
+        leaderboardVm?.setAgeRangeFilter(
+            ageRange.start.roundToInt(),
+            ageRange.endInclusive.roundToInt()
+        )
+    }
+    LaunchedEffect(minComposite, leaderboardVm) {
+        leaderboardVm?.setMinCompositePct(minComposite.toDouble())
+    }
 
     Scaffold(
         topBar = {
@@ -105,7 +134,12 @@ fun LeaderboardScreen(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Filters", style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.weight(1f))
+                            Text(
+                                "Filters",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                modifier = Modifier.weight(1f)
+                            )
                             Icon(
                                 imageVector = if (filtersExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                 contentDescription = null,
@@ -116,21 +150,21 @@ fun LeaderboardScreen(
                             Divider(color = Color.Gray.copy(alpha = 0.3f))
                             Spacer(Modifier.height(12.dp))
                             LeaderboardFilters(
-                                selectedGender       = selectedGender,
-                                onGenderChange       = { selectedGender = it },
-                                countryFilter        = countryFilter,       // NEW
-                                onCountryChange      = { countryFilter = it }, // NEW
-                                cityFilter           = cityFilter,
-                                onCityChange         = { cityFilter = it },
-                                localityFilter       = localityFilter,
-                                onLocalityChange     = { localityFilter = it },
-                                highSchoolFilter     = highSchoolFilter,
-                                onHighSchoolChange   = { highSchoolFilter = it },
-                                collegeFilter        = collegeFilter,
-                                onCollegeChange      = { collegeFilter = it },
-                                ageRange             = ageRange,
-                                onAgeRangeChange     = { ageRange = it },
-                                minComposite         = minComposite,
+                                selectedGender = selectedGender,
+                                onGenderChange = { selectedGender = it },
+                                countryFilter = countryFilter,       // NEW
+                                onCountryChange = { countryFilter = it }, // NEW
+                                cityFilter = cityFilter,
+                                onCityChange = { cityFilter = it },
+                                localityFilter = localityFilter,
+                                onLocalityChange = { localityFilter = it },
+                                highSchoolFilter = highSchoolFilter,
+                                onHighSchoolChange = { highSchoolFilter = it },
+                                collegeFilter = collegeFilter,
+                                onCollegeChange = { collegeFilter = it },
+                                ageRange = ageRange,
+                                onAgeRangeChange = { ageRange = it },
+                                minComposite = minComposite,
                                 onMinCompositeChange = { minComposite = it }
                             )
                         }
@@ -138,9 +172,21 @@ fun LeaderboardScreen(
                 }
             }
 
-            // Leaderboard rows
-            itemsIndexed(profiles) { index, profile ->
-                LeaderboardRow(rank = index + 1, profile = profile)
+            if (leaderboardVm == null) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Leaderboard is a Premium feature", color = Color.White)
+                    }
+                }
+            } else {
+                itemsIndexed(profiles) { index, profile ->
+                    LeaderboardRow(rank = index + 1, profile = profile)
+                }
             }
         }
     }

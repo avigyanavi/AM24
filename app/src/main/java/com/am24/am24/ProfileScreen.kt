@@ -267,8 +267,12 @@ fun ProfileLazyScreen(
     // Use ViewModel's profile if available, otherwise fall back to initial profile
     var currentProfile by remember { mutableStateOf(profile) }
 
-    val leaderboardVm: LeaderboardViewModel = viewModel()
-    val allProfiles by leaderboardVm.allProfiles.collectAsState()
+    val isPremium by profileViewModel.isPremium.collectAsState(false)
+    val leaderboardVm: LeaderboardViewModel? =
+        if (isPremium) viewModel() else null
+    val allProfilesState = leaderboardVm?.allProfiles?.collectAsState(emptyList())
+    val allProfiles = allProfilesState?.value ?: emptyList()
+
     // whenever our currentProfile changes, compute all the ranks
     var displayProfile by remember { mutableStateOf(profile) }
     // Sync with ViewModel's profile
@@ -278,7 +282,11 @@ fun ProfileLazyScreen(
             currentProfile = updatedProfile
         }
     }
-    LaunchedEffect(profile, allProfiles) {
+    LaunchedEffect(profile, allProfiles, leaderboardVm) {
+        if (leaderboardVm == null) {
+            displayProfile = profile
+            return@LaunchedEffect
+        }
         // 1) global composite rank
         val sortedByComposite = allProfiles.sortedByDescending { it.compositeScore }
         val globalIdx = sortedByComposite.indexOfFirst { it.userId == profile.userId }
