@@ -1067,3 +1067,130 @@ exports.paypalWebhook = functions
         res.status(500).send(err.message);
       }
       });
+
+function calcAge(dob) {
+  if (!dob) return 0;
+  const parts = dob.split('/');
+  if (parts.length !== 3) return 0;
+  const [dd, mm, yy] = parts.map(Number);
+  const birth = new Date(yy, mm - 1, dd);
+  if (isNaN(birth.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+exports.recomputeLeaderboard = functions.pubsub
+  .schedule('every 120 minutes')
+  .onRun(async () => {
+    const usersSnap = await admin.database().ref('users').once('value');
+    const profiles = [];
+    usersSnap.forEach(child => {
+      const data = child.val() || {};
+      const numRatings = data.numberOfRatings || 0;
+      const avgRating  = data.averageRating || 0;
+      const composite  = (avgRating / 5) * (numRatings / (numRatings + 20));
+      profiles.push({
+        userId: child.key,
+        username: data.username || '',
+        name: data.name || '',
+        gender: data.gender || '',
+        country: data.country || '',
+        city: data.city || '',
+        customCity: data.customCity || null,
+        hometown: data.hometown || '',
+        customHometown: data.customHometown || null,
+        highSchool: data.highSchool || '',
+        customHighSchool: data.customHighSchool || null,
+        college: data.college || '',
+        customCollege: data.customCollege || null,
+        dob: data.dob || '',
+        profilepicUrl: data.profilepicUrl || null,
+        matchCount: data.matchCount || 0,
+        numberOfSwipeRights: data.numberOfSwipeRights || 0,
+        numberOfUsersWhoSwiped: data.numberOfUsersWhoSwiped || 0,
+        averageRating: avgRating,
+        numberOfRatings: numRatings,
+        compositeScore: composite,
+        age: calcAge(data.dob)
+      });
+    });
+
+    const rank = arr => {
+      const map = {};
+      arr.forEach((p,i) => { map[p.userId] = i+1; });
+      return map;
+    };
+
+    profiles.sort((a,b) => b.compositeScore - a.compositeScore);
+    const compRank = rank(profiles);
+
+    const ageRank = rank([...profiles].sort((a,b) => b.age - a.age));
+
+    const rankGroup = (items, keyFn) => {
+      const m = {};
+      const groups = {};
+      items.forEach(p => {
+        const key = keyFn(p) || 'Other';
+        (groups[key] = groups[key] || []).push(p);
+      });
+      for (const k in groups) {
+        groups[k].sort((a,b) => b.compositeScore - a.compositeScore)
+          .forEach((p,i) => { m[p.userId] = i+1; });
+      }
+      return m;
+    };
+
+    const cityRank = rankGroup(profiles, p => p.city);
+    const customCityRank = rankGroup(profiles.filter(p => p.city === 'Other'), p => p.customCity);
+    const homeRank = rankGroup(profiles, p => p.hometown);
+    const customHomeRank = rankGroup(profiles.filter(p => p.hometown === 'Other'), p => p.customHometown);
+    const hsRank = rankGroup(profiles, p => p.highSchool || p.customHighSchool);
+    const colRank = rankGroup(profiles, p => p.college || p.customCollege);
+
+    const updates = {};
+    profiles.forEach(p => {
+      const avgSwipe = p.numberOfUsersWhoSwiped > 0 ?
+        p.numberOfSwipeRights / p.numberOfUsersWhoSwiped : 0;
+      const matchPct = p.numberOfSwipeRights > 0 ?
+        p.matchCount / p.numberOfSwipeRights : 0;
+      updates[p.userId] = {
+        userId: p.userId,
+        username: p.username,
+        name: p.name,
+        gender: p.gender,
+        country: p.country,
+        city: p.city,
+        customCity: p.customCity,
+        hometown: p.hometown,
+        customHometown: p.customHometown,
+        highSchool: p.highSchool,
+        customHighSchool: p.customHighSchool,
+        college: p.college,
+        customCollege: p.customCollege,
+        dob: p.dob,
+        profilepicUrl: p.profilepicUrl,
+        matchCount: p.matchCount,
+        numberOfSwipeRights: p.numberOfSwipeRights,
+        numberOfUsersWhoSwiped: p.numberOfUsersWhoSwiped,
+        averageRating: p.averageRating,
+        numberOfRatings: p.numberOfRatings,
+        compositeScore: p.compositeScore,
+        am24Ranking: compRank[p.userId] || 0,
+        am24RankingAge: ageRank[p.userId] || 0,
+        am24RankingCity: cityRank[p.userId] || 0,
+        am24RankingCustomCity: customCityRank[p.userId] || 0,
+        am24RankingHometown: homeRank[p.userId] || 0,
+        am24RankingCustomHometown: customHomeRank[p.userId] || 0,
+        am24RankingHighSchool: hsRank[p.userId] || 0,
+        am24RankingCollege: colRank[p.userId] || 0,
+        averageSwipeRightsOnUser: avgSwipe,
+        matchCountPerSwipeRight: matchPct
+      };
+    });
+
+    await admin.database().ref('leaderboard').set(updates);
+    console.log(`recomputed leaderboard with ${profiles.length} profiles`);
+  });

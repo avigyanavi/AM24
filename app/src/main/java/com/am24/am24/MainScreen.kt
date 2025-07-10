@@ -147,6 +147,10 @@ fun TopNavBar(
     var priceMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedPriceRange by rememberSaveable { mutableStateOf(priceAll) }
 
+    val myProfile by profileViewModel.currentUserProfile.collectAsState()
+    LaunchedEffect(Unit) { profileViewModel.fetchCurrentUserProfile() }
+
+
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
         val profileRef = FirebaseRefs.db
@@ -209,6 +213,9 @@ fun TopNavBar(
     TopAppBar(
         title = {
 //            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
+            if (currentRoute == "dating" && myProfile?.isBoosted == true) {
+                BoostedPill()
+            }
         },
         navigationIcon = {
             Box(

@@ -517,13 +517,16 @@ fun DatingScreen(
                     exit    = fadeOut(animationSpec = tween(600))
                 ) {
                     Box(
-                        Modifier.fillMaxSize().background(Color(0x88FFFF00)),
+                        modifier = Modifier
+                            .size(96.dp)
+                            .border(3.dp, Color(0xFFFF6F00), CircleShape)
+                            .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.FlashOn, null,
                             tint = Color(0xFFFF6F00),
-                            modifier = Modifier.size(96.dp)
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }

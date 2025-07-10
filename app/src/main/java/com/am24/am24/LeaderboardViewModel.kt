@@ -113,106 +113,25 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
-        // fetch and compute metrics
+        // Listen to precomputed leaderboard entries instead of the full users node
         Log.d("LeaderboardVM", ">>> init LeaderboardViewModel")
         val ref = FirebaseDatabase.getInstance()
-            .getReference("users")
+            .getReference("leaderboard")
             listener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    Log.d("LeaderboardVM", "Using RTDB instance: $db")
-                    Log.d("LeaderboardVM", "Root ref URL: ${db.reference.root}")
                     viewModelScope.launch {
-                        // raw
-                        Log.d("LeaderboardVM", "Got ${snapshot.childrenCount} users from Firebase")
-                        val raw = snapshot.children.mapNotNull { child ->
-                            child.getValue(Profile::class.java)?.let { p ->
-                                val matchCount     = child.child("matchCount").getValue(Int::class.java)      ?: p.matchCount
-                                val averageRating  = child.child("averageRating").getValue(Double::class.java) ?: p.averageRating
-                                val numberOfRatings = child.child("numberOfRatings").getValue(Int::class.java) ?: p.numberOfRatings
-                                p.copy(
-                                    matchCount = matchCount,
-                                    averageRating = averageRating,
-                                    numberOfRatings = numberOfRatings
-                                )
-                            }
-                        }
-                        Log.d("LeaderboardVM", "Mapped to ${raw.size} Profile objects")
-
-                        // compute various rank maps
-                        val compRank   = raw.sortedByDescending { it.compositeScore }
-                            .mapIndexed { i,p -> p.userId to i+1 }.toMap()
-                        val ageRank    = raw.sortedByDescending { it.age }
-                            .mapIndexed   { i,p -> p.userId to i+1 }.toMap()
-
-                        // city grouping
-                        val cityRankMap = raw.groupBy { it.city.ifBlank { "Other" } }
-                            .flatMap { (_, grp) ->
-                                grp.sortedByDescending { it.compositeScore }
-                                    .mapIndexed { i,p -> p.userId to i+1 }
-                            }.toMap()
-                        // custom city
-                        val customCityRankMap = raw.filter { it.city == "Other" }
-                            .groupBy { it.customCity ?: "Other" }
-                            .flatMap { (_, grp) ->
-                                grp.sortedByDescending { it.compositeScore }
-                                    .mapIndexed { i,p -> p.userId to i+1 }
-                            }.toMap()
-
-                        // hometown grouping
-                        val homeRankMap = raw.groupBy { it.hometown.ifBlank { "Other" } }
-                            .flatMap { (_, grp) ->
-                                grp.sortedByDescending { it.compositeScore }
-                                    .mapIndexed { i,p -> p.userId to i+1 }
-                            }.toMap()
-                        val customHomeRankMap = raw.filter { it.hometown == "Other" }
-                            .groupBy { it.customHometown ?: "Other" }
-                            .flatMap { (_, grp) ->
-                                grp.sortedByDescending { it.compositeScore }
-                                    .mapIndexed { i,p -> p.userId to i+1 }
-                            }.toMap()
-
-                        // high school grouping
-                        val hsRankMap = raw.groupBy { it.highSchool.ifBlank { it.customHighSchool ?: "Other" } }
-                            .flatMap { (_, grp) ->
-                                grp.sortedByDescending { it.compositeScore }
-                                    .mapIndexed { i,p -> p.userId to i+1 }
-                            }.toMap()
-                        // college grouping
-                        val colRankMap = raw.groupBy { it.college.ifBlank { it.customCollege ?: "Other" } }
-                            .flatMap { (_, grp) ->
-                                grp.sortedByDescending { it.compositeScore }
-                                    .mapIndexed { i,p -> p.userId to i+1 }
-                            }.toMap()
-
-                        // build final list with computed metrics
-                        _allProfiles.value = raw.map { p ->
-                            p.copy(
-                                am24Ranking               = compRank[p.userId]             ?: 0,
-                                am24RankingAge            = ageRank[p.userId]             ?: 0,
-                                am24RankingCity           = cityRankMap[p.userId]         ?: 0,
-                                am24RankingCustomCity     = customCityRankMap[p.userId]   ?: 0,
-                                am24RankingHometown       = homeRankMap[p.userId]         ?: 0,
-                                am24RankingCustomHometown = customHomeRankMap[p.userId]   ?: 0,
-                                am24RankingHighSchool     = hsRankMap[p.userId]           ?: 0,
-                                am24RankingCollege        = colRankMap[p.userId]          ?: 0,
-
-                                averageSwipeRightsOnUser  = if (p.numberOfUsersWhoSwiped > 0)
-                                    p.numberOfSwipeRights.toDouble() / p.numberOfUsersWhoSwiped
-                                else 0.0,
-                                matchCountPerSwipeRight   = if (p.numberOfSwipeRights > 0)
-                                    p.matchCount.toDouble() / p.numberOfSwipeRights
-                                else 0.0
-                            )
-                        }
+                        val raw = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
+                        _allProfiles.value = raw.sortedBy { it.am24Ranking }
                     }
                 }
                 override fun onCancelled(error: DatabaseError) {
                     // TODO: handle error
                 }
             }
-        ref.addValueEventListener(listener!!)
+        ref.orderByChild("am24Ranking").limitToFirst(100).addValueEventListener(listener!!)
         usersRef = ref
     }
+
 
     override fun onCleared() {
         super.onCleared()
