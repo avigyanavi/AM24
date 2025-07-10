@@ -41,7 +41,7 @@ data class DatingFilterSettings(
     val college: String = "",
     val postGrad: String = "",
     val work: String = "",
-    val ageStart: Int = 0,
+    val ageStart: Int = 18,
     val ageEnd: Int = 100,
     val distance: Int = 100,
     val gender: String = "",

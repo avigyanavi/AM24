@@ -248,20 +248,19 @@ fun TopNavBar(
                 }
             }
 
-            // ← Leaderboard button in place of the old Map button
-            if (currentRoute != "map") {
-                TextButton(
-                    onClick = { navController.navigate("leaderboard") },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.EmojiEvents,
-                        contentDescription = stringResource(R.string.leaderboard)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = stringResource(R.string.leaderboard))
-                }
-            }
+//            // ← Leaderboard button in place of the old Map button
+//            if (currentRoute != "map" || currentRoute != "home" || currentRoute != "dms") {
+//                TextButton(
+//                    onClick = { navController.navigate("leaderboard") },
+//                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+//                ) {
+//                    Icon(
+//                        imageVector = Icons.Outlined.EmojiEvents,
+//                        contentDescription = stringResource(R.string.leaderboard)
+//                    )
+//                    Spacer(modifier = Modifier.width(4.dp))
+//                }
+//            }
 
             // Location settings icon (map screen)
             if (currentRoute == "map") {
@@ -341,8 +340,8 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.cd_create_post),
-                        tint = Color(0xFFFF6F00),
-                        modifier = Modifier.size(24.dp)
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }

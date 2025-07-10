@@ -90,6 +90,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
@@ -384,6 +385,10 @@ fun DatingScreen(
                 onCollegeChange    = { datingViewModel.updateDatingFilters(filters.copy(college = it)) },
                 selectedPostGrad   = filters.postGrad,
                 onPostGradChange   = { datingViewModel.updateDatingFilters(filters.copy(postGrad = it)) },
+                selectedCity       = filters.city,
+                onCityChange       = { datingViewModel.updateDatingFilters(filters.copy(city = it)) },
+                selectedLocalities = filters.localities,
+                onLocalitiesChange = { datingViewModel.updateDatingFilters(filters.copy(localities = it)) },
                 onSaveFilters = {
                     coroutineScope.launch {
                         sheetState.hide()
@@ -915,6 +920,10 @@ fun FiltersOverlay(
     onCollegeChange: (String) -> Unit,
     selectedPostGrad: String,
     onPostGradChange: (String) -> Unit,
+    selectedCity: String,
+    onCityChange: (String) -> Unit,
+    selectedLocalities: List<String>,
+    onLocalitiesChange: (List<String>) -> Unit,
     onSaveFilters: () -> Unit,
     onCancel: () -> Unit,
     isIndian: Boolean,
@@ -946,6 +955,12 @@ fun FiltersOverlay(
     var isHighSchoolFieldFocused by remember { mutableStateOf(false) }
     var isCollegeFieldFocused by remember { mutableStateOf(false) }
     var isPostGradFieldFocused by remember { mutableStateOf(false) }
+
+    // ─── City & Locality text inputs ─────────────────────────
+    var cityInput by remember { mutableStateOf(selectedCity) }
+    var localitiesInput by remember {
+        mutableStateOf(selectedLocalities.joinToString(", "))
+    }
 
 
     LaunchedEffect(highSchoolQuery) {
@@ -993,21 +1008,25 @@ fun FiltersOverlay(
                 .padding(bottom = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = stringResource(R.string.filters),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
             Button(
                 onClick = { onSaveFilters() },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier.height(48.dp)
             ) {
-                Text(stringResource(R.string.save), color = Color.Black)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.FilterAltOff,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(R.string.save), color = Color.White)
+                }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn {
             // ─── BASIC Filters ─────────────────────────────────────────────
@@ -1015,8 +1034,69 @@ fun FiltersOverlay(
                 FilterSectionTitle(title = stringResource(R.string.basic_filters))
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // ── City & Locality (Premium) ─────────────────────────
+                OutlinedTextField(
+                    value = cityInput,
+                    onValueChange = {
+                        cityInput = it
+                        onCityChange(it)
+                    },
+                    label = { Text(stringResource(R.string.city_label), color = Color.White) },
+                    enabled = isPremium,
+                    singleLine = true,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        disabledTextColor = Color.Gray,
+                        disabledBorderColor = Color.DarkGray,
+                        disabledLabelColor = Color.Gray
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = localitiesInput,
+                    onValueChange = {
+                        localitiesInput = it
+                        val list = it.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                        onLocalitiesChange(list)
+                    },
+                    label = { Text(stringResource(R.string.locality_label), color = Color.White) },
+                    enabled = isPremium,
+                    singleLine = true,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        disabledTextColor = Color.Gray,
+                        disabledBorderColor = Color.DarkGray,
+                        disabledLabelColor  = Color.Gray
+                    )
+                )
+
+                if (!isPremium) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
+
                 // Gender pills (pre‐populated via selectedGenders)
                 Text(stringResource(R.string.gender_preference), color = Color.White)
+                Spacer(Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -1054,7 +1134,7 @@ fun FiltersOverlay(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Age Range Slider (unchanged)
                 Text(
@@ -1073,7 +1153,7 @@ fun FiltersOverlay(
                                     range.endInclusive.roundToInt()
                         )
                     },
-                    valueRange = 0f..100f,
+                    valueRange = 18f..100f,
                     steps = 20,
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFFFF6000),
@@ -1178,8 +1258,6 @@ fun FiltersOverlay(
             /* ─── PREFERENCES Filters ───────────────────────────────── */
             item {
                 Spacer(modifier = Modifier.height(24.dp))
-                FilterSectionTitle(title = stringResource(R.string.preferences))
-
                 Spacer(modifier = Modifier.height(8.dp))
                 if (isIndian) {
                     Row(
@@ -1248,29 +1326,41 @@ fun FiltersOverlay(
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                val indianReligions = listOf(
+                    stringResource(R.string.religion_other),
+                    stringResource(R.string.religion_buddhist),
+                    stringResource(R.string.religion_christian),
+                    stringResource(R.string.religion_hindu),
+                    stringResource(R.string.religion_indigenous_tribal),
+                    stringResource(R.string.religion_jain),
+                    stringResource(R.string.religion_jewish),
+                    stringResource(R.string.religion_muslim),
+                    stringResource(R.string.religion_no_religion),
+                    stringResource(R.string.religion_parsi),
+                    stringResource(R.string.religion_sikh),
+                )
+
+                val nonIndianReligions = listOf(
+                    stringResource(R.string.religion_other),
+                    stringResource(R.string.religion_buddhist),
+                    stringResource(R.string.religion_christian),
+                    stringResource(R.string.religion_hindu),
+                    stringResource(R.string.religion_indigenous_tribal),
+                    stringResource(R.string.religion_jain),
+                    stringResource(R.string.religion_jewish),
+                    stringResource(R.string.religion_muslim),
+                    stringResource(R.string.religion_no_religion),
+                    stringResource(R.string.religion_parsi),
+                    stringResource(R.string.religion_sikh),
+                )
+
+                    FilterSectionTitle(title = stringResource(R.string.religion))
                     DropdownFilter(
-                        label = stringResource(R.string.religion),
-                        options = listOf(
-                            stringResource(R.string.religion_other),
-                            stringResource(R.string.religion_buddhist),
-                            stringResource(R.string.religion_christian),
-                            stringResource(R.string.religion_hindu),
-                            stringResource(R.string.religion_indigenous_tribal),
-                            stringResource(R.string.religion_jain),
-                            stringResource(R.string.religion_jewish),
-                            stringResource(R.string.religion_muslim),
-                            stringResource(R.string.religion_no_religion),
-                            stringResource(R.string.religion_parsi),
-                            stringResource(R.string.religion_sikh),
-                        ),
+                        label = "",
+                        options = if (isIndian) indianReligions else nonIndianReligions,
                         selectedOption = selectedReligion,
                         onOptionChange = onReligionChange
                     )
-                }
 
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1443,12 +1533,12 @@ fun PlaceSearchDropdown(
                 /* input text */
                 textColor   = Color.White,
                 /* border */
-                focusedBorderColor   = BrandOrange,
-                unfocusedBorderColor = BrandOrange,
+                focusedBorderColor   = Color.White,
+                unfocusedBorderColor = Color.White,
 
                 /* label (the in-field “College / Post Grad” you see before typing) */
-                focusedLabelColor   = BrandOrange,
-                unfocusedLabelColor = BrandOrange,
+                focusedLabelColor   = Color.White,
+                unfocusedLabelColor = Color.White,
 
                 /* placeholder (if you use it) */
                 placeholderColor   = Color.White,
@@ -1550,7 +1640,7 @@ fun DropdownFilter(
     val allOptions = listOf(clearSelectionText) + options // Add "Clear Selection" option
 
     Column {
-        Text(label, color = Color.White, fontSize = 11.sp)
+        Text(label, color = Color.White, fontSize = 16.sp)
         Box {
             Button(
                 onClick = { expanded = !expanded },
@@ -1559,7 +1649,7 @@ fun DropdownFilter(
                         0xFF1A1A1A
                     )
                 ),
-                border = BorderStroke(2.dp, Color(0xFFFF6000)),
+                border = BorderStroke(1.dp, Color.White),
                 shape = RoundedCornerShape(50), // Rounded button
                 modifier = Modifier
                     .padding(vertical = 4.dp)

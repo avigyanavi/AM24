@@ -35,6 +35,7 @@ data class Profile(
     val profilepicUrl: String? = null,
     val voiceNoteUrl: String? = null,
     var loveLanguage: String = "",  // e.g. "Touch", "Words of Affirmation", etc.
+    val customLoveLanguage: String? = null,
     val optionalPhotoUrls: List<String> = emptyList(),  // URLs of optional photos
     val matches: List<String> = emptyList(),  // List of matched user IDs
     val religion: String = "",
@@ -61,6 +62,7 @@ data class Profile(
 
     val lifestyle: Lifestyle? = null,  // Lifestyle Section
     val politics: String = "",  // Political preferences (e.g., liberal, conservative)
+    val customPolitics: String? = null,
     val jobRole: String = "",
     val customJobRole: String? = null,
     val work: String = "",

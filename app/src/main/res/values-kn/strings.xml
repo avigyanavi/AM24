@@ -5,7 +5,7 @@
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">ಭಾಷೆಗಳು</string>
-    <string name="section_bio_and_voice">ಬಯೋ &amp; ಧ್ವನಿ</string>
+    <string name="section_bio_and_voice">ಬಯೋ</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">ನೀವು ಹೆಚ್ಚಿನವಾಗಿ %1$d ಸಾಮಾಜಿಕ ಕಾರಣಗಳನ್ನು ಮಾತ್ರ ಆಯ್ಕೆ ಮಾಡಬಹುದು.</string>
 

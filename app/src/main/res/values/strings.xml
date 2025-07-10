@@ -5,7 +5,7 @@
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Languages</string>
-    <string name="section_bio_and_voice">Bio &amp; Voice</string>
+    <string name="section_bio_and_voice">Bio</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">
     You can select up to %1$d social causes only.

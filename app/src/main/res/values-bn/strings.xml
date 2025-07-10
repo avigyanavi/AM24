@@ -6,7 +6,7 @@
     <string name="app_name">কুপিডক্স</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">ভাষাসমূহ</string>
-    <string name="section_bio_and_voice">বায়ো &amp; ভয়েস</string>
+    <string name="section_bio_and_voice">বায়ো</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">আপনি সর্বোচ্চ %1$dটি সামাজিক কারণ নির্বাচন করতে পারেন।</string>
 

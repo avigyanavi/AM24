@@ -3526,10 +3526,22 @@ fun PreferencesSection(profile: Profile) {
     ProfileDetailRow(    stringResource(R.string.looking_for_label),
         localizedLookingFor(profile.lookingFor)
             .ifBlank { stringResource(R.string.not_specified) }, Icons.Default.Favorite)
-    ProfileDetailRow(stringResource(R.string.label_love_language), localizedLoveLanguage(profile.loveLanguage)
-        .ifBlank { stringResource(R.string.not_set) }, Icons.Default.Favorite)
-    ProfileDetailRow(stringResource(R.string.label_politics), localizedPolitics(profile.politics)
-        .ifBlank { stringResource(R.string.not_set) }, Icons.Default.HowToVote)
+    val displayLoveLanguage = profile.customLoveLanguage
+        ?.takeIf { it.isNotBlank() }
+        ?: localizedLoveLanguage(profile.loveLanguage)
+    ProfileDetailRow(
+        stringResource(R.string.label_love_language),
+        displayLoveLanguage.ifBlank { stringResource(R.string.not_set) },
+        Icons.Default.Favorite
+    )
+    val displayPolitics = profile.customPolitics
+        ?.takeIf { it.isNotBlank() }
+        ?: localizedPolitics(profile.politics)
+    ProfileDetailRow(
+        stringResource(R.string.label_politics),
+        displayPolitics.ifBlank { stringResource(R.string.not_set) },
+        Icons.Default.HowToVote
+    )
 }
 
 fun isLifestyleEmpty(lifestyle: Lifestyle?): Boolean {
@@ -5110,6 +5122,12 @@ fun PreferencesEditSection(
         stringResource(R.string.love_language_option_other)
     )
     var selectedLoveLanguage by remember { mutableStateOf(tempProfile.loveLanguage.ifBlank { notSelected }) }
+    var customLoveLanguage by remember {
+        mutableStateOf(
+            if (selectedLoveLanguage == loveLanguageOptions.last())
+                tempProfile.customLoveLanguage.orEmpty() else ""
+        )
+    }
 
     // Politics
     val politicsOptions = listOf(
@@ -5128,6 +5146,12 @@ fun PreferencesEditSection(
         stringResource(R.string.politics_option_other)
     )
     var selectedPolitics by remember { mutableStateOf(tempProfile.politics.ifBlank { notSelected }) }
+    var customPolitics by remember {
+        mutableStateOf(
+            if (selectedPolitics == politicsOptions.last())
+                tempProfile.customPolitics.orEmpty() else ""
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -5170,6 +5194,27 @@ fun PreferencesEditSection(
                 )
             }
         }
+        if (selectedLoveLanguage == loveLanguageOptions.last()) {
+            OutlinedTextField(
+                value = customLoveLanguage,
+                onValueChange = { customLoveLanguage = it },
+                label = {
+                    Text(
+                        stringResource(R.string.label_custom_love_language),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+        }
 
         // --- Politics ---
         Text(stringResource(R.string.label_politics), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
@@ -5188,6 +5233,27 @@ fun PreferencesEditSection(
                 )
             }
         }
+        if (selectedPolitics == politicsOptions.last()) {
+            OutlinedTextField(
+                value = customPolitics,
+                onValueChange = { customPolitics = it },
+                label = {
+                    Text(
+                        stringResource(R.string.label_custom_politics),
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF6F00)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF6F00),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
 
@@ -5196,7 +5262,11 @@ fun PreferencesEditSection(
                 val updated = tempProfile.copy(
                     lookingFor   = selectedLookingFor.takeIf { it != notSelected } ?: "",
                     loveLanguage = selectedLoveLanguage.takeIf { it != notSelected } ?: "",
-                    politics     = selectedPolitics.takeIf { it != notSelected } ?: ""
+                    customLoveLanguage = if (selectedLoveLanguage == loveLanguageOptions.last())
+                        customLoveLanguage.ifBlank { null } else null,
+                    politics     = selectedPolitics.takeIf { it != notSelected } ?: "",
+                    customPolitics = if (selectedPolitics == politicsOptions.last())
+                        customPolitics.ifBlank { null } else null
                 )
                 onSave(updated)
             },
@@ -5460,6 +5530,8 @@ fun ProfileCollapsibleSections(
     profileViewModel: ProfileViewModel,
     onProfileUpdated: (Profile) -> Unit
 ) {
+    val isPremium by profileViewModel.isPremium.collectAsState(false)
+
     // keep a local tempProfile and re-sync whenever the parent `profile` updates
     var tempProfile by remember { mutableStateOf(profile) }
     LaunchedEffect(profile) {
@@ -5501,9 +5573,8 @@ fun ProfileCollapsibleSections(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        PerformanceMetricsSection(profile)
-        Spacer(modifier = Modifier.height(12.dp))
+        val isPremium by profileViewModel.isPremium.collectAsState(false)
+
         CollapsibleSection(
             title       = stringResource(R.string.section_bio_and_voice),
             icon        = Icons.Default.Mic,         // or pick a merged icon
@@ -6663,8 +6734,10 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "highSchoolGraduationYear" to updatedProfile.highSchoolGraduationYear,
         "college" to updatedProfile.college,
         "collegeGraduationYear" to updatedProfile.collegeGraduationYear,
-        "loveLanguage" to updatedProfile.loveLanguage, // New
-        "politics" to updatedProfile.politics, // New
+        "loveLanguage" to updatedProfile.loveLanguage,
+        "customLoveLanguage" to updatedProfile.customLoveLanguage,
+        "politics" to updatedProfile.politics,
+        "customPolitics" to updatedProfile.customPolitics,
         "socialCauses" to updatedProfile.socialCauses,
 
         // NEW: For the college degree

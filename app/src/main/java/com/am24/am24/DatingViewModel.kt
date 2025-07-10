@@ -460,14 +460,21 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
         // Apply localities filter
         if (filters.localities.isNotEmpty()) {
+            val normalizedLocs = filters.localities.map {
+                it.replace("\\s".toRegex(), "").lowercase()
+            }
             result = result.filter { profile ->
                 filters.localities.contains(profile.hometown)
+                val profLoc = profile.hometown.replace("\\s".toRegex(), "").lowercase()
+                normalizedLocs.contains(profLoc)
             }
         }
 
-        // Apply city filter
         if (filters.city.isNotBlank() && filters.city != "All") {
-            result = result.filter { it.city.equals(filters.city, true) }
+            val target = filters.city.replace("\\s".toRegex(), "").lowercase()
+            result = result.filter {
+                it.city.replace("\\s".toRegex(), "").lowercase() == target
+            }
         }
 
         // Apply high school filter
