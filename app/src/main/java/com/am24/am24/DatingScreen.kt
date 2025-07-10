@@ -2279,29 +2279,29 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
-            if (idx == 0 && aiMatchResult != null) {
-                val score = aiMatchResult.totalMatchPercentage.coerceIn(0, 100)
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(36.dp)
-                ) {
-                    CircularProgressIndicator(
-                        progress = score / 100f,
-                        color = Color(0xFFFF6F00),
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Text(
-                        "$score%",
-                        Modifier.align(Alignment.Center),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-            }
+//            if (idx == 0 && aiMatchResult != null) {
+//                val score = aiMatchResult.totalMatchPercentage.coerceIn(0, 100)
+//                Box(
+//                    Modifier
+//                        .align(Alignment.TopEnd)
+//                        .padding(8.dp)
+//                        .size(36.dp)
+//                ) {
+//                    CircularProgressIndicator(
+//                        progress = score / 100f,
+//                        color = Color(0xFFFF6F00),
+//                        strokeWidth = 3.dp,
+//                        modifier = Modifier.fillMaxSize()
+//                    )
+//                    Text(
+//                        "$score%",
+//                        Modifier.align(Alignment.Center),
+//                        fontSize = 9.sp,
+//                        fontWeight = FontWeight.Bold,
+//                        color = Color.White
+//                    )
+//                }
+//            }
 
             if (isBoosted) {
                 Icon(

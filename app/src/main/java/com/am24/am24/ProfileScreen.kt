@@ -777,6 +777,7 @@ fun PhotoCarouselWithOverlay(
                         )
                     )
             ) {
+                Spacer(modifier = Modifier.height(8.dp))
                 AnimatedProfileCompletion(
                     completion = profile.profileCompletionPercentage,
                     modifier = Modifier
