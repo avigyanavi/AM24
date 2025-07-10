@@ -186,6 +186,7 @@ fun ChatScreenContent(
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
     var showRating by remember { mutableStateOf(true) }
+    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
     // decide *once* per session
     LaunchedEffect(Unit) {
@@ -602,6 +603,25 @@ fun ChatScreenContent(
         }
         fetchUserRating(ratingsRef, otherUserId) { rating -> yourRating = rating }
         fetchAverageRating(ratingsRef, otherUserId) { avg -> averageRating = avg }
+        val aiRef = FirebaseRefs.db
+            .getReference("aiMatchCheck/$currentUserId/$otherUserId")
+        try {
+            val snap = aiRef.get().await()
+            val existing = snap.getValue(AiMatchCheckResult::class.java)
+            if (existing != null) {
+                aiMatchResult = existing
+            } else if (currentUserProfile != null && otherUserProfile != null) {
+                runAiMatchCheck(
+                    context = context,
+                    coroutineScope = scope,
+                    currentUserId = currentUserId,
+                    currentUserProfile = currentUserProfile!!,
+                    otherProfile = otherUserProfile!!
+                ) { result -> aiMatchResult = result }
+            }
+        } catch (e: Exception) {
+            Log.e("ChatScreen", "Error fetching AI result: ${e.message}")
+        }
     }
 
     DisposableEffect(messagesRef) {
@@ -1089,7 +1109,7 @@ fun ChatScreenContent(
             Column(Modifier.fillMaxSize()) {
                 if (otherUserProfile != null && showRating) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        CompatibilityMeter(percent = otherUserProfile!!.compositeScorePct)
+                        CompatibilityMeter(percent = aiMatchResult?.totalMatchPercentage?.toDouble() ?: 0.0)
                         Text(
                             "Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}",
                             color = Color.Gray,
@@ -1100,6 +1120,15 @@ fun ChatScreenContent(
                             onSelect = { selected ->
                                 yourRating = selected.toDouble()
                                 updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context)
+                                if (currentUserProfile != null && otherUserProfile != null) {
+                                    runAiMatchCheck(
+                                        context = context,
+                                        coroutineScope = scope,
+                                        currentUserId = currentUserId,
+                                        currentUserProfile = currentUserProfile!!,
+                                        otherProfile = otherUserProfile!!
+                                    ) { result -> aiMatchResult = result }
+                                }
                                 showRating = false          // hide once a rating is given
                             },
                             modifier = Modifier.padding(top = 4.dp)

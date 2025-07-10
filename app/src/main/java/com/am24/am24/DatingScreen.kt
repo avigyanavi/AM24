@@ -3242,7 +3242,13 @@ fun calculateExhaustiveCompatibilityScore(
         } else insights += MatchInsight("⚠️", context.getString(R.string.tags_not_set_or_no_overlap), false)
     } else insights += MatchInsight("ℹ️", context.getString(R.string.tags_not_set_or_no_overlap), false)
 
-    val finalScore = if (possible == 0.0) 0 else ((score / possible) * 100).roundToInt().coerceIn(0, 100)
+// The compatibility percent now blends this match calculation with the
+    // target user's overall composite score for better weighting.
+    // base: score achieved vs total possible (0–100)
+    val base = if (possible == 0.0) 0.0 else (score / possible) * 100.0
+    val targetCompositePct = profileB.compositeScorePct
+    val blended = ((2 * base) + targetCompositePct) / 3.0
+    val finalScore = blended.roundToInt().coerceIn(0, 100)
     return finalScore to insights
 }
 
