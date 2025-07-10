@@ -465,6 +465,11 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
+        // Apply city filter
+        if (filters.city.isNotBlank() && filters.city != "All") {
+            result = result.filter { it.city.equals(filters.city, true) }
+        }
+
         // Apply high school filter
         if (filters.highSchool.isNotBlank()) {
             result = result.filter { profile ->
