@@ -43,7 +43,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.imageLoader
 import coil.request.ImageRequest
-import com.am24.am24.ui.CompatibilityMeter
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.launch
@@ -500,7 +499,7 @@ fun DMScreenContent(navController: NavController) {
                     border = BorderStroke(2.dp, Color(0xFFFF4500))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        CompatibilityMeter(percent = profileToRate!!.compositeScorePct)
+                        RatingBar(rating = profileToRate!!.averageRating, ratingCount = profileToRate!!.numberOfRatings)
                         Text(
                             "Your Rating: ${if (tempRating >= 0) String.format("%.1f", tempRating) else "N/A"}",
                             color = Color.Gray,

@@ -314,11 +314,31 @@ fun DatingScreen(
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
     val currentSwipeProfile = displayedProfiles.getOrNull(currentIndex)
+    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
     // inside DatingScreen (or DatingScreenContent) where you have `currentSwipeProfile`:
     LaunchedEffect(currentSwipeProfile?.userId) {
         Log.d("DatingScreen", "Composable – currentSwipeProfile.userId = ${currentSwipeProfile?.userId}")
         datingViewModel.setCurrentSwipeUserId(currentSwipeProfile?.userId)
+        aiMatchResult = null
+        val myId = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
+        val myProf = myProfile ?: return@LaunchedEffect
+        val otherId = currentSwipeProfile?.userId ?: return@LaunchedEffect
+        val ref = FirebaseRefs.db
+            .getReference("aiMatchCheck/$myId/$otherId")
+        val snap = ref.get().await()
+        val existing = snap.getValue(AiMatchCheckResult::class.java)
+        if (existing != null) {
+            aiMatchResult = existing
+        } else {
+            runAiMatchCheck(
+                context = context,
+                coroutineScope = coroutineScope,
+                currentUserId = myId,
+                currentUserProfile = myProf,
+                otherProfile = currentSwipeProfile
+            ) { result -> aiMatchResult = result }
+        }
     }
     // add this:
     var initialProcessed by remember { mutableStateOf(false) }
@@ -432,14 +452,16 @@ fun DatingScreen(
                 }
 
                 // RatingBar centered
-                currentSwipeProfile?.let { prof ->
+                currentSwipeProfile?.let {
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .horizontalScroll(rememberScrollState()),
                         contentAlignment = Alignment.Center
                     ) {
-                        CompatibilityMeter(percent = prof.compositeScorePct)
+                        CompatibilityMeter(
+                            percent = aiMatchResult?.totalMatchPercentage?.toDouble() ?: 0.0
+                        )
                     }
                 }
 

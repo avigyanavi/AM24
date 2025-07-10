@@ -72,7 +72,6 @@ import java.util.UUID
 import kotlin.math.roundToInt
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.am24.am24.ui.CompatibilityMeter
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -648,7 +647,10 @@ fun FeedItem(
                             Spacer(modifier = Modifier.width(4.dp))
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        CompatibilityMeter(percent = (userProfile?.compositeScorePct ?: 0.0))
+                        RatingBar(
+                            rating = userProfile?.averageRating ?: 0.0,
+                            ratingCount = userProfile?.numberOfRatings ?: 0 // Pass the number of ratings
+                        )
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
