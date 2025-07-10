@@ -72,6 +72,7 @@ import kotlin.math.roundToInt
 import coil.request.ImageRequest
 import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
+import com.am24.am24.ui.CompatibilityMeter
 import com.am24.am24.util.CachedFullscreenVideoPlayer
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.tasks.await
@@ -863,7 +864,7 @@ fun PhotoCarouselWithOverlay(
 
                 // Rating Bar + zodiac side by side
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+                    CompatibilityMeter(percent = profile.compositeScorePct)
                     Spacer(Modifier.width(8.dp))
 
                     // Zodiac next to rating bar

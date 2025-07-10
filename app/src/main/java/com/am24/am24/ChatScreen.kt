@@ -113,6 +113,7 @@ import com.am24.am24.util.CachedFullscreenVideoPlayer
 import java.io.IOException
 import kotlin.compareTo
 import kotlin.dec
+import com.am24.am24.ui.CompatibilityMeter
 
 // Updated Message data class (without viewed field)
 data class Message(
@@ -1088,7 +1089,7 @@ fun ChatScreenContent(
             Column(Modifier.fillMaxSize()) {
                 if (otherUserProfile != null && showRating) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        RatingBar(rating = averageRating, ratingCount = otherUserProfile!!.numberOfRatings)
+                        CompatibilityMeter(percent = otherUserProfile!!.compositeScorePct)
                         Text(
                             "Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}",
                             color = Color.Gray,

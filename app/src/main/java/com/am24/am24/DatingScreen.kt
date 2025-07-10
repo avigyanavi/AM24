@@ -108,6 +108,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.am24.am24.ui.CompatibilityMeter
 import com.am24.am24.zodiacCompatibilityScore
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.MutableData
@@ -438,10 +439,7 @@ fun DatingScreen(
                             .horizontalScroll(rememberScrollState()),
                         contentAlignment = Alignment.Center
                     ) {
-                        RatingBar(
-                            rating = prof.averageRating,
-                            ratingCount = prof.numberOfRatings
-                        )
+                        CompatibilityMeter(percent = prof.compositeScorePct)
                     }
                 }
 
