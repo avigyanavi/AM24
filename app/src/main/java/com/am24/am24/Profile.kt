@@ -59,6 +59,8 @@ data class Profile(
     val customPostGraduation: String? = null,
     val postGraduationYear: String = "", // New field
     val postGraduationDegree: String? = null, // <--- NEW FIELD for PG degree (e.g. M.Sc, MBA, etc.)
+    val ethnicity: String = "",
+    val incomeLevel: String = "",
 
     val lifestyle: Lifestyle? = null,  // Lifestyle Section
     val politics: String = "",  // Political preferences (e.g., liberal, conservative)

@@ -2513,7 +2513,12 @@ val lookingForNameToRes = mapOf(
     "ವಿವಾಹ" to R.string.looking_for_marriage, // Kannada
     "വിവാഹം" to R.string.looking_for_marriage, // Malayalam
     "বিবাহ" to R.string.looking_for_marriage, // Assamese
-    "ਵਿਆਹ" to R.string.looking_for_marriage // Punjabi
+    "ਵਿਆਹ" to R.string.looking_for_marriage, // Punjabi
+    "Long term" to R.string.looking_for_long_term,
+    "Short term - open to Long" to R.string.looking_for_short_to_long,
+    "Casual" to R.string.looking_for_casual,
+    "Dating" to R.string.looking_for_dating,
+    "Exclusive" to R.string.looking_for_exclusive
 )
 
 val loveLanguageNameToRes = mapOf(

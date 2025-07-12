@@ -1194,3 +1194,29 @@ exports.recomputeLeaderboard = functions.pubsub
     await admin.database().ref('leaderboard').set(updates);
     console.log(`recomputed leaderboard with ${profiles.length} profiles`);
   });
+
+    exports.backfillEthnicityIncome = functions
+      .region('asia-south1')
+      .https.onRequest(async (_req, res) => {
+        try {
+          const usersRef = admin.database().ref('users');
+          const snap     = await usersRef.once('value');
+          const updates  = {};
+
+          snap.forEach(userSnap => {
+            const data = userSnap.val() || {};
+            if (data.ethnicity === undefined) {
+              updates[`${userSnap.key}/ethnicity`] = '';
+            }
+            if (data.incomeLevel === undefined) {
+              updates[`${userSnap.key}/incomeLevel`] = '';
+            }
+          });
+
+          await usersRef.update(updates);
+          res.status(200).send(`updated ${Object.keys(updates).length} fields`);
+        } catch (err) {
+          console.error('backfillEthnicityIncome error:', err);
+          res.status(500).send(err.message);
+        }
+        });

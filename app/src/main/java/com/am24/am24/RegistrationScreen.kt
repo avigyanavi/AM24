@@ -271,6 +271,8 @@ class RegistrationViewModel : ViewModel() {
     var customHometown by mutableStateOf("")
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
+    var ethnicity by mutableStateOf("")
+    var incomeLevel by mutableStateOf("")
     var educationLevel by mutableStateOf("")  // For user's highest education level
 
     var highSchool by mutableStateOf("")
@@ -2331,6 +2333,29 @@ fun EnterGenderCommunityReligionScreen(
         stringResource(R.string.religion_black_protestant),
     )
 
+    val ethnicityOptions = listOf(
+        stringResource(R.string.ethnicity_option_not_selected),
+        stringResource(R.string.ethnicity_option_white),
+        stringResource(R.string.ethnicity_option_black),
+        stringResource(R.string.ethnicity_option_hispanic),
+        stringResource(R.string.ethnicity_option_asian),
+        stringResource(R.string.ethnicity_option_native_american),
+        stringResource(R.string.ethnicity_option_middle_eastern),
+        stringResource(R.string.ethnicity_option_pacific_islander),
+        stringResource(R.string.ethnicity_option_mixed_other)
+    )
+
+    val incomeLevelOptions = listOf(
+        stringResource(R.string.income_level_option_not_selected),
+        stringResource(R.string.income_level_under_25k),
+        stringResource(R.string.income_level_25k_50k),
+        stringResource(R.string.income_level_50k_75k),
+        stringResource(R.string.income_level_75k_100k),
+        stringResource(R.string.income_level_100k_150k),
+        stringResource(R.string.income_level_over_150k)
+    )
+
+
     // Validation for enabling the "Next" button
     val isNextEnabled = registrationViewModel.gender.isNotEmpty() && registrationViewModel.dob.isNotBlank()
     LaunchedEffect(isNextEnabled) { registrationViewModel.nextEnabled = isNextEnabled }
@@ -2418,6 +2443,23 @@ fun EnterGenderCommunityReligionScreen(
                     options = religionOptions,
                     selectedOption = registrationViewModel.religion,
                     onOptionSelected = { registrationViewModel.religion = it }
+                )
+
+
+                Spacer(modifier = Modifier.height(16.dp))
+                DropdownWithSearch(
+                    title = stringResource(R.string.select_ethnicity),
+                    options = ethnicityOptions,
+                    selectedOption = registrationViewModel.ethnicity,
+                    onOptionSelected = { registrationViewModel.ethnicity = it }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                DropdownWithSearch(
+                    title = stringResource(R.string.select_income_level),
+                    options = incomeLevelOptions,
+                    selectedOption = registrationViewModel.incomeLevel,
+                    onOptionSelected = { registrationViewModel.incomeLevel = it }
                 )
 
                 if (isIndian) {
@@ -2702,6 +2744,8 @@ suspend fun saveProfileToFirebase(
             optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
             religion = registrationViewModel.religion,
             community = registrationViewModel.community,
+            ethnicity = registrationViewModel.ethnicity,
+            incomeLevel = registrationViewModel.incomeLevel,
             educationLevel = registrationViewModel.educationLevel,
             lifestyle = registrationViewModel.lifestyle,
             lookingFor = registrationViewModel.lookingFor,

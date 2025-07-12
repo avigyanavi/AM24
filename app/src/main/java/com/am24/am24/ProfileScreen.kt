@@ -1029,6 +1029,16 @@ fun BasicInfoSection(profile: Profile) {
         Icons.Default.Church)
 
     ProfileDetailRow(
+        stringResource(R.string.ethnicity_label),
+        profile.ethnicity.ifBlank { stringResource(R.string.not_set) },
+        Icons.Default.Flag)
+
+    ProfileDetailRow(
+        stringResource(R.string.income_level_label),
+        profile.incomeLevel.ifBlank { stringResource(R.string.not_set) },
+        Icons.Default.AttachMoney)
+
+    ProfileDetailRow(
         stringResource(R.string.city_label),
         localizedCity(profile.city).ifBlank { stringResource(R.string.not_set) },
         Icons.Default.LocationCity)
@@ -2257,6 +2267,8 @@ fun BasicInfoEditSection(
     var inches by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
     var heightCm by remember { mutableStateOf(tempProfile.height) }
     val isIndian = tempProfile.country.equals("India", ignoreCase = true)
+    var ethnicity by remember { mutableStateOf(tempProfile.ethnicity) }
+    var incomeLevel by remember { mutableStateOf(tempProfile.incomeLevel) }
 
     // Gender
     val genderOptions = listOf(
@@ -2857,6 +2869,68 @@ fun BasicInfoEditSection(
                         )
                     )
                 }
+            }
+        }
+
+        Text(stringResource(R.string.ethnicity_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val ethnicityOpts = listOf(
+                stringResource(R.string.ethnicity_option_white),
+                stringResource(R.string.ethnicity_option_black),
+                stringResource(R.string.ethnicity_option_hispanic),
+                stringResource(R.string.ethnicity_option_asian),
+                stringResource(R.string.ethnicity_option_native_american),
+                stringResource(R.string.ethnicity_option_middle_eastern),
+                stringResource(R.string.ethnicity_option_pacific_islander),
+                stringResource(R.string.ethnicity_option_mixed_other)
+            )
+            ethnicityOpts.forEach { option ->
+                FilterChip(
+                    selected = ethnicity == option,
+                    onClick = { ethnicity = option },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
+        }
+
+        Text(stringResource(R.string.income_level_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val incomeOpts = listOf(
+                stringResource(R.string.income_level_under_25k),
+                stringResource(R.string.income_level_25k_50k),
+                stringResource(R.string.income_level_50k_75k),
+                stringResource(R.string.income_level_75k_100k),
+                stringResource(R.string.income_level_100k_150k),
+                stringResource(R.string.income_level_over_150k)
+            )
+            incomeOpts.forEach { option ->
+                FilterChip(
+                    selected = incomeLevel == option,
+                    onClick = { incomeLevel = option },
+                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
+                    )
+                )
             }
         }
 
@@ -5139,10 +5213,15 @@ fun PreferencesEditSection(
 
     // Looking For
     val lookingForOptions = listOf(
+        stringResource(R.string.looking_for_long_term),
+        stringResource(R.string.looking_for_short_to_long),
+        stringResource(R.string.looking_for_casual),
+        stringResource(R.string.looking_for_dating),
+        stringResource(R.string.looking_for_exclusive),
         stringResource(R.string.looking_for_romance),
         stringResource(R.string.looking_for_connection),
         stringResource(R.string.looking_for_partner),
-        stringResource(R.string.looking_for_marriage)
+        stringResource(R.string.looking_for_marriage),
     )
     var selectedLookingFor by remember { mutableStateOf(tempProfile.lookingFor.ifBlank { notSelected }) }
 
@@ -6791,6 +6870,8 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
 
         "community" to updatedProfile.community,
         "religion" to updatedProfile.religion,
+        "ethnicity" to updatedProfile.ethnicity,
+        "incomeLevel" to updatedProfile.incomeLevel,
         "lookingFor" to updatedProfile.lookingFor,
         "interests" to updatedProfile.interests.map {
             mapOf("name" to it.name, "emoji" to it.emoji)

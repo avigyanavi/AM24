@@ -659,6 +659,35 @@
     <string name="work_option_unemployed">Unemployed</string>
     <string name="work_option_other">Other</string>
 
+    <!-- Ethnicity & Income -->
+    <string name="ethnicity_label">Ethnicity</string>
+    <string name="select_ethnicity">Select ethnicity</string>
+    <string name="ethnicity_option_not_selected">Not selected</string>
+    <string name="ethnicity_option_white">White (Caucasian)</string>
+    <string name="ethnicity_option_black">Black / African American</string>
+    <string name="ethnicity_option_hispanic">Hispanic / Latino</string>
+    <string name="ethnicity_option_asian">Asian</string>
+    <string name="ethnicity_option_native_american">Native American</string>
+    <string name="ethnicity_option_middle_eastern">Middle Eastern</string>
+    <string name="ethnicity_option_pacific_islander">Pacific Islander</string>
+    <string name="ethnicity_option_mixed_other">Mixed / Other</string>
+
+    <string name="income_level_label">Income Level</string>
+    <string name="select_income_level">Select income level</string>
+    <string name="income_level_option_not_selected">Not selected</string>
+    <string name="income_level_under_25k">Under $25k</string>
+    <string name="income_level_25k_50k">$25k–$50k</string>
+    <string name="income_level_50k_75k">$50k–$75k</string>
+    <string name="income_level_75k_100k">$75k–$100k</string>
+    <string name="income_level_100k_150k">$100k–$150k</string>
+    <string name="income_level_over_150k">Over $150k</string>
+
+    <string name="looking_for_long_term">Long term</string>
+    <string name="looking_for_short_to_long">Short term - open to Long</string>
+    <string name="looking_for_casual">Casual</string>
+    <string name="looking_for_dating">Dating</string>
+    <string name="looking_for_exclusive">Exclusive</string>
+
     <string name="label_custom_love_language">Custom love language</string>
     <string name="label_custom_politics">Custom politics</string>
     <string name="label_custom_job_role">Custom job role</string>

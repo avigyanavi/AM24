@@ -241,6 +241,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     "city"                        to profileWithScore.city,
                     "customCity"                  to profileWithScore.customCity,
                     "religion"                    to profileWithScore.religion,
+                    "ethnicity"                  to profileWithScore.ethnicity,
+                    "incomeLevel"               to profileWithScore.incomeLevel,
                     "lookingFor"                  to profileWithScore.lookingFor,
                     "loveLanguage"                  to profileWithScore.loveLanguage,
                     "interests"                   to profileWithScore.interests.map {
