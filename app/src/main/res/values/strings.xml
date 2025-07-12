@@ -581,50 +581,49 @@
     <!-- ── Job-role dropdown ── -->
     <string name="select_job_role">Select job role</string>
     <string name="job_role_option_not_selected">Not selected</string>
-    <!-- ── new options ── -->
-    <string name="job_role_option_software_developer">Software developer</string>   <!-- new -->
-    <string name="job_role_option_data_scientist">Data scientist</string>           <!-- new -->
-    <string name="job_role_option_ux_ui_designer">UX/UI designer</string>           <!-- new -->
-    <string name="job_role_option_civil_engineer">Civil engineer</string>           <!-- new -->
-    <string name="job_role_option_mechanical_engineer">Mechanical engineer</string> <!-- new -->
-    <string name="job_role_option_electrical_engineer">Electrical engineer</string> <!-- new -->
-    <string name="job_role_option_project_manager">Project manager</string>         <!-- new -->
-    <string name="job_role_option_product_manager">Product manager</string>         <!-- new -->
-    <string name="job_role_option_business_analyst">Business analyst</string>       <!-- new -->
-    <string name="job_role_option_accountant">Accountant</string>                   <!-- new -->
-    <string name="job_role_option_chartered_accountant">Chartered accountant</string><!-- new -->
-    <string name="job_role_option_hr_manager">HR manager</string>                   <!-- new -->
-    <string name="job_role_option_marketing_manager">Marketing manager</string>     <!-- new -->
-    <string name="job_role_option_sales_executive">Sales executive</string>         <!-- new -->
-    <string name="job_role_option_director">Director</string>                       <!-- new -->
-    <string name="job_role_option_ceo">CEO</string>                                 <!-- new -->
+    <string name="job_role_option_software_developer">Software Engineer</string>
+    <string name="job_role_option_data_scientist">Data Scientist</string>
+    <string name="job_role_option_ux_ui_designer">UI/UX Designer</string>
+    <string name="job_role_option_civil_engineer">Civil Engineer</string>
+    <string name="job_role_option_mechanical_engineer">Mechanical Engineer</string>
+    <string name="job_role_option_electrical_engineer">Electrical Engineer</string>
+    <string name="job_role_option_project_manager">Project Manager</string>
+    <string name="job_role_option_product_manager">Product Manager</string>
+    <string name="job_role_option_business_analyst">Business Analyst</string>
+    <string name="job_role_option_accountant">Accountant</string>
+    <string name="job_role_option_chartered_accountant">Certified Public Accountant</string>
+    <string name="job_role_option_hr_manager">HR Manager</string>
+    <string name="job_role_option_marketing_manager">Marketing Manager</string>
+    <string name="job_role_option_sales_executive">Sales Executive</string>
+    <string name="job_role_option_director">Director</string>
+    <string name="job_role_option_ceo">CEO</string>
     <string name="job_role_option_teacher">Teacher</string>
-    <string name="job_role_option_professor">Professor</string>                     <!-- new -->
-    <string name="job_role_option_researcher">Researcher</string>                   <!-- new -->
-    <string name="job_role_option_scientist">Scientist</string>                     <!-- new -->
+    <string name="job_role_option_professor">Professor</string>
+    <string name="job_role_option_researcher">Researcher</string>
+    <string name="job_role_option_scientist">Scientist</string>
     <string name="job_role_option_doctor">Doctor</string>
-    <string name="job_role_option_surgeon">Surgeon</string>                         <!-- new -->
-    <string name="job_role_option_nurse">Nurse</string>                             <!-- new -->
-    <string name="job_role_option_pharmacist">Pharmacist</string>                   <!-- new -->
-    <string name="job_role_option_lawyer">Lawyer</string>                           <!-- new -->
-    <string name="job_role_option_advocate">Advocate</string>                       <!-- new -->
-    <string name="job_role_option_legal_consultant">Legal consultant</string>       <!-- new -->
-    <string name="job_role_option_graphic_designer">Graphic designer</string>       <!-- new -->
-    <string name="job_role_option_content_writer">Content writer</string>           <!-- new -->
-    <string name="job_role_option_photographer">Photographer</string>               <!-- new -->
-    <string name="job_role_option_journalist">Journalist</string>                   <!-- new -->
-    <string name="job_role_option_editor">Editor</string>                           <!-- new -->
-    <string name="job_role_option_chef">Chef</string>                               <!-- new -->
-    <string name="job_role_option_barista">Barista</string>                         <!-- new -->
-    <string name="job_role_option_pilot">Pilot</string>                             <!-- new -->
-    <string name="job_role_option_flight_attendant">Flight attendant</string>       <!-- new -->
-    <string name="job_role_option_police_officer">Police officer</string>           <!-- new -->
-    <string name="job_role_option_firefighter">Firefighter</string>                 <!-- new -->
-    <string name="job_role_option_army_officer">Army officer</string>               <!-- new -->
-    <string name="job_role_option_electrician">Electrician</string>                 <!-- new -->
-    <string name="job_role_option_plumber">Plumber</string>                         <!-- new -->
-    <string name="job_role_option_carpenter">Carpenter</string>                     <!-- new -->
-    <string name="job_role_option_mechanic">Mechanic</string>                       <!-- new -->
+    <string name="job_role_option_surgeon">Surgeon</string>
+    <string name="job_role_option_nurse">Nurse</string>
+    <string name="job_role_option_pharmacist">Pharmacist</string>
+    <string name="job_role_option_lawyer">Attorney</string>
+    <string name="job_role_option_advocate">Advocate</string>
+    <string name="job_role_option_legal_consultant">Legal Consultant</string>
+    <string name="job_role_option_graphic_designer">Graphic Designer</string>
+    <string name="job_role_option_content_writer">Content Writer</string>
+    <string name="job_role_option_photographer">Photographer</string>
+    <string name="job_role_option_journalist">Journalist</string>
+    <string name="job_role_option_editor">Editor</string>
+    <string name="job_role_option_chef">Chef</string>
+    <string name="job_role_option_barista">Barista</string>
+    <string name="job_role_option_pilot">Pilot</string>
+    <string name="job_role_option_flight_attendant">Flight Attendant</string>
+    <string name="job_role_option_police_officer">Police Officer</string>
+    <string name="job_role_option_firefighter">Firefighter</string>
+    <string name="job_role_option_army_officer">Army Officer</string>
+    <string name="job_role_option_electrician">Electrician</string>
+    <string name="job_role_option_plumber">Plumber</string>
+    <string name="job_role_option_carpenter">Carpenter</string>
+    <string name="job_role_option_mechanic">Mechanic</string>
     <string name="job_role_option_entrepreneur">Entrepreneur</string>
     <string name="job_role_option_intern">Intern</string>
     <string name="job_role_option_other">Other</string>
@@ -5850,7 +5849,6 @@
 
         <!-- Equality & Rights -->
         <item>Gender Equality and Women’s Safety</item>
-        <item>Sex Positivity</item>
         <item>Digital Privacy and Online Safety</item>
 
         <!-- Opportunity & Mobility -->
@@ -5858,11 +5856,10 @@
         <item>Sustainable Urban Mobility</item>
 
         <!-- Cultural Nationalism & Social Reforms -->
-        <item>Promotion of Hindu Identity and Culture</item>
         <item>Patriotic Education and Curriculum Reform</item>
         <item>Population Control Measures</item>
-        <item>Temple Autonomy and Vedic Education</item>
         <item>Traditional Family Values</item>
+        <item>Sex Positivity</item>
     </string-array>
 
 </resources>
