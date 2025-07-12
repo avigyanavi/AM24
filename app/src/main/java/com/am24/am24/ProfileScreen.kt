@@ -403,6 +403,7 @@ fun ProfileLazyScreen(
                 )
             }
             item {
+
                 ProfileCollapsibleSections(
                     profile = currentProfile,
                     profileViewModel = profileViewModel,
@@ -609,7 +610,7 @@ fun VerificationBadge(
             .size(32.dp)
             .background(
                 if (verified) Color(0xFF00C853)          // green when verified
-                else Color.Gray.copy(alpha = .20f),       // grey when not
+                else Color(0xFFFF6F00).copy(alpha = .20f),       // grey when not
                 shape = CircleShape
             )
     ) {
@@ -777,13 +778,6 @@ fun PhotoCarouselWithOverlay(
                         )
                     )
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
-                AnimatedProfileCompletion(
-                    completion = profile.profileCompletionPercentage,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                )
                 IconButton(
                     onClick  = onEditProfileClick,
                     modifier = Modifier
@@ -794,7 +788,7 @@ fun PhotoCarouselWithOverlay(
                 ) {
                     Icon(Icons.Default.Edit,
                         stringResource(R.string.edit_profile_cd),
-                        tint = Color.White)
+                        tint = Color(0xFFFF6F00))
                 }
             }
         }
@@ -838,7 +832,7 @@ fun PhotoCarouselWithOverlay(
                         Text(
                             text = if (age > 0) "$displayName, $age" else displayName,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
+                            fontSize = 20.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .horizontalScroll(scroll)
@@ -851,13 +845,13 @@ fun PhotoCarouselWithOverlay(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
                         modifier = Modifier.height(30.dp)
                     ) {
-                        Text(text = stringResource(R.string.posts_button), color = Color.White, fontSize = 10.sp)
+                        Text(text = stringResource(R.string.posts_button), color = Color.White, fontSize = 14.sp)
                     }
                 }
 
                 // Hometown
                 if (profile.hometown.isNotBlank()) {
-                    Text(text = stringResource(R.string.from_hometown, profile.hometown), fontSize = 10.sp, color = Color.White)
+                    Text(text = stringResource(R.string.from_hometown, profile.hometown), fontSize = 16.sp, color = Color.White)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -877,7 +871,7 @@ fun PhotoCarouselWithOverlay(
                             Text(
                                 text = zodiac,
                                 color = Color.White,
-                                fontSize = 10.sp,
+                                fontSize = 16.sp,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
@@ -967,7 +961,7 @@ fun MatrimonyToggleRow(
             text = stringResource(R.string.matrimony_mode),
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 10.sp
+            fontSize = 16.sp
         )
         Switch(
             checked = isMatrimony,
@@ -5664,6 +5658,11 @@ fun ProfileCollapsibleSections(
     var editSocialCauses by rememberSaveable { mutableStateOf(false) } // New
     var editLifestyle by rememberSaveable { mutableStateOf(false) }
     var editInterests by rememberSaveable { mutableStateOf(false) }
+
+    // apply the bio’s font size globally to all Text in this tree:
+    CompositionLocalProvider(
+        LocalTextStyle provides TextStyle(fontSize = 16.sp)
+    ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -5853,6 +5852,7 @@ fun ProfileCollapsibleSections(
                 SocialCausesSection(tempProfile)
             }
         }
+    }
     }
 }
 
@@ -6373,7 +6373,7 @@ fun InterestsEditSection(
             text = stringResource(R.string.section_interests),
             color = Color(0xFFFF6F00),
             fontWeight = FontWeight.Bold,
-            fontSize = 10.sp
+            fontSize = 20.sp
         )
         Spacer(Modifier.height(8.dp))
 
@@ -6435,11 +6435,10 @@ fun ProfileDetailRow(label: String, value: String?, icon: ImageVector) {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text(text = label, color = Color(0xFFFF6F00), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+//                Text(text = label, color = Color(0xFFFF6F00), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 Text(
                     text = value,
                     color = Color.White,
-                    fontSize = 10.sp,
                     fontWeight = FontWeight.Normal
                 )
             }
@@ -6456,7 +6455,7 @@ fun InterestTag(label: String) {
             .border(2.dp, Color(0xFFFF6F00), CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Text(text = label, color = Color.White, fontSize = 10.sp)
+        Text(text = label, color = Color.White)
     }
 }
 
@@ -6479,7 +6478,7 @@ fun PostItemInProfile(post: Post) {
             post.contentText
                 .takeIf { !it.isNullOrBlank() }
                 ?.let {
-                    Text(it, color = Color.White, fontSize = 10.sp)
+                    Text(it, color = Color.White)
                     Spacer(Modifier.height(6.dp))
                 }
 
@@ -6500,7 +6499,7 @@ fun PostItemInProfile(post: Post) {
                                 .takeIf { it.isNotBlank() }
                                 ?: checkIn.address,               // fallback to address if name is blank
                             color = Color(0xFFFF6F00),
-                            fontSize = 10.sp
+                            fontSize = 14.sp
                         )
                     }
                     Spacer(Modifier.height(6.dp))
@@ -6584,10 +6583,10 @@ fun LifestyleSlider(label: String, value: Int, nouns: List<String>, icon: ImageV
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = icon, contentDescription = label, tint = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = label, color = Color.White, fontSize = 11.sp,
+            Text(text = label, color = Color.White, fontSize = 16.sp,
                 fontWeight = FontWeight.Bold)
         }
-        Text(text = displayText, fontSize = 11.sp, color = if (value == -1) Color.Gray else Color.White)
+        Text(text = displayText, fontSize = 14.sp, color = if (value == -1) Color.Gray else Color.White)
     }
     Spacer(modifier = Modifier.height(4.dp))
     Slider(
@@ -6766,7 +6765,6 @@ fun VoicePlayer(url: String) {
             else
                 stringResource(R.string.tap_to_play),
             color = Color.White,
-            fontSize = 10.sp,
             modifier = Modifier.padding(start = 8.dp)
         )
         Spacer(modifier = Modifier.weight(1f))

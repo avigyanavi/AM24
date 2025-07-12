@@ -3829,7 +3829,7 @@ fun EnterInterestsScreen(
 ) {
     val ready = true
     LaunchedEffect(ready) { registrationViewModel.nextEnabled = ready }
-    val maxInterests = 9
+    val maxInterests = 20
 
     /* ───── 1) Bucket your interests here ───── */
     val categorized = mapOf(

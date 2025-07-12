@@ -806,7 +806,7 @@ fun DMUserCard(
                     Text(
                         text = displayName,
                         color = Color.White,
-                        fontSize = 14.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     val age = profile.dob?.let { calculateAge(it) } ?: ""
@@ -815,7 +815,7 @@ fun DMUserCard(
                     } else {
                         stringResource(R.string.age_only_format, age)
                     }
-                    Text(localeInfo, fontSize = 10.sp, color = Color.White)
+                    Text(localeInfo, fontSize = 14.sp, color = Color.White)
 
                     val messageText = when {
                         lastMessage.isEmpty() -> stringResource(R.string.no_messages_yet)
@@ -838,7 +838,7 @@ fun DMUserCard(
                     }
                     Text(
                         text = styled,
-                        fontSize = 8.sp,
+                        fontSize = 12.sp,
                         color = Color.White,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis

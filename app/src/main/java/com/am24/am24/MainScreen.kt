@@ -250,8 +250,6 @@ fun TopNavBar(
                         imageVector = Icons.Default.Warning,
                         contentDescription = "Report"
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Report")
                 }
             }
 

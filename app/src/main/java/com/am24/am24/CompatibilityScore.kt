@@ -47,12 +47,13 @@ fun CompatibilityMeter(
         ) {
             Text(
                 text = emoji,
-                fontSize = 16.sp,
+                fontSize = 20.sp,
                 modifier = Modifier.padding(end = 4.dp)
             )
             Text(
                 text = "${pct.roundToInt()}%",
                 color = Color.White,
+                fontSize = 18.sp,
                 style = MaterialTheme.typography.bodySmall
             )
         }

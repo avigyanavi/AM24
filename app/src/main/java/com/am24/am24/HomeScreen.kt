@@ -577,8 +577,8 @@ fun FeedItem(
 
 
     val dynamicFontSize = when {
-        screenWidth < 360.dp -> 10.sp
-        screenWidth < 600.dp -> 12.sp // Reduced font size
+        screenWidth < 360.dp -> 14.sp
+        screenWidth < 600.dp -> 16.sp // Reduced font size
         else -> 14.sp
     }
     val dynamicPadding = when {
@@ -746,7 +746,7 @@ fun FeedItem(
                     Text(
                         text = displayText,
                         color = Color.White,
-                        fontSize = 12.sp,
+                        fontSize = 20.sp,
                         lineHeight = 20.sp,
                         overflow = TextOverflow.Clip,
                         textAlign = TextAlign.Start,

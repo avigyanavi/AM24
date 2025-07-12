@@ -1112,7 +1112,7 @@ fun FiltersOverlay(
                     Text(
                         text = stringResource(R.string.upgrade_to_premium_to_unlock),
                         color = Color.Gray,
-                        fontSize = 11.sp
+                        fontSize = 14.sp
                     )
                 }
                 Spacer(Modifier.height(24.dp))
@@ -1472,7 +1472,7 @@ fun FiltersOverlay(
                     Text(
                         text = stringResource(R.string.upgrade_to_premium_to_unlock),
                         color = Color.Gray,
-                        fontSize = 11.sp
+                        fontSize = 14.sp
                     )
                 }
             }
@@ -1509,7 +1509,7 @@ fun FiltersOverlay(
                     Text(
                         text = stringResource(R.string.upgrade_to_premium_to_unlock),
                         color = Color.Gray,
-                        fontSize = 11.sp
+                        fontSize = 14.sp
                     )
                 }
             }
@@ -2217,7 +2217,7 @@ fun PhotoWithTwoOverlays(
                 Text(
                     text = if (age > 0) "$displayName, $age" else displayName,
                     color = Color.White,
-                    fontSize = 11.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2271,7 +2271,7 @@ fun PhotoWithTwoOverlays(
                         Text(
                             c.text,
                             color = Color.White,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -2344,7 +2344,7 @@ fun PhotoWithTwoOverlays(
                 Text(
                     text = stringResource(R.string.posts),
                     color = Color.White,
-                    fontSize = 8.sp,
+                    fontSize = 12.sp,
                     textDecoration = TextDecoration.None
                 )
             }
@@ -2369,7 +2369,7 @@ fun TagBox(
         Text(
             text = text,
             color = Color.White,
-            fontSize = 11.sp,
+            fontSize = 16.sp,
             maxLines = 10,                      // force a single line
             softWrap = true
         )
