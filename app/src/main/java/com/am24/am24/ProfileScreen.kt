@@ -3532,6 +3532,8 @@ fun BasicInfoEditSection(
                     tempProfile.copy(
                         name = name,
                         city = city,
+                        ethnicity = ethnicity,
+                        incomeLevel = incomeLevel,
                         customCity = customCity.ifBlank { null },
                         hometown = if (locality == oth)
                             customLocality.trim() else locality.trim(),
