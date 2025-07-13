@@ -49,7 +49,9 @@ data class DatingFilterSettings(
     val maxRanking:  Int    = 0,    //  0  = ignore filter
     val community: String = "",
     val religion: String = "",
-    val caste: String = ""
+    val caste: String = "",
+    val ethnicity: String = "",
+    val incomeLevel: String = ""
 )
 
 data class FeedFilterSettings(

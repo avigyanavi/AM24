@@ -69,7 +69,7 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     99,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_logo)
+                        .setSmallIcon(R.drawable.kupidx_notification)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(
                             "You have $unread unread notification" +
@@ -100,9 +100,9 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     98,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_logo)
+                        .setSmallIcon(R.drawable.kupidx_notification)
                         .setContentTitle(getString(R.string.app_name))
-                        .setContentText("Check out our latest upgrade options")
+                        .setContentText("Upgrade for no Ads!")
                         .setAutoCancel(true)
                         .setContentIntent(pending)
                         .build()

@@ -45,6 +45,9 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.random.Random
@@ -120,6 +123,23 @@ fun DMScreenContent(navController: NavController) {
     val isPremiumUser = profile.isPremium || profile.isPlus
     val todayDay = remember { Calendar.getInstance().get(Calendar.DAY_OF_YEAR) }
     val lotteryAvailable = remember(profile.lastLotteryDayOfYear) { profile.lastLotteryDayOfYear != todayDay }
+
+    // instead of   rememberScrollState()
+    val autoScrollState = rememberScrollState()
+
+    // kick off an endless back-and-forth animation whenever there's overflow
+    LaunchedEffect(autoScrollState.maxValue) {
+        // wait for the scroll to measure
+        snapshotFlow { autoScrollState.maxValue }
+            .filter { it > 0 }       // only once it's actually overflowed
+            .first()                 // suspend until >0
+        while (true) {
+            autoScrollState.animateScrollTo(autoScrollState.maxValue)
+            delay(2000)              // pause at end
+            autoScrollState.animateScrollTo(0)
+            delay(2000)              // pause at start
+        }
+    }
 
 
     /* ──────  LOCATION-SELECTOR STATE  ────── */
@@ -348,7 +368,7 @@ fun DMScreenContent(navController: NavController) {
                     Row(
                         modifier = Modifier
                             .weight(1f)
-                            .horizontalScroll(rememberScrollState()),
+                            .horizontalScroll(autoScrollState),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 2️⃣  Map chip → chat-room ID

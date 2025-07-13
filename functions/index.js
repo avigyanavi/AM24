@@ -1220,3 +1220,33 @@ exports.recomputeLeaderboard = functions.pubsub
           res.status(500).send(err.message);
         }
         });
+
+        exports.sortDisplayedProfiles = functions
+          .region('asia-south1')
+          .https.onCall(async (data, _context) => {
+            const { uid, ids } = data || {};
+            if (!uid || !Array.isArray(ids))
+              throw new functions.https.HttpsError('invalid-argument', 'uid and ids required');
+
+            const db = admin.database();
+            const center = (await db.ref(`geoFireLocations/${uid}/l`).get()).val();
+            if (!Array.isArray(center) || center.length < 2) {
+              return { ids };
+            }
+
+            const snaps = await Promise.all(ids.map(id =>
+              db.ref(`geoFireLocations/${id}/l`).get()
+            ));
+
+            const pairs = ids.map((id, i) => {
+              const loc = snaps[i].val();
+              if (!Array.isArray(loc) || loc.length < 2) {
+                return { id, dist: Infinity };
+              }
+              const dist = distanceBetween([loc[0], loc[1]], [center[0], center[1]]);
+              return { id, dist };
+            });
+
+            pairs.sort((a, b) => a.dist - b.dist);
+            return { ids: pairs.map(p => p.id) };
+          });

@@ -311,9 +311,14 @@ fun DatingScreen(
     val displayedProfiles = complimentersList + boostedList + premiumList + restList
     Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
 
+    var sortedDisplayedProfiles by remember { mutableStateOf(displayedProfiles) }
+    LaunchedEffect(displayedProfiles) {
+        sortedDisplayedProfiles = datingViewModel.sortDisplayed(displayedProfiles)
+    }
+
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
-    val currentSwipeProfile = displayedProfiles.getOrNull(currentIndex)
+    val currentSwipeProfile = sortedDisplayedProfiles.getOrNull(currentIndex)
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
     // inside DatingScreen (or DatingScreenContent) where you have `currentSwipeProfile`:
@@ -342,23 +347,23 @@ fun DatingScreen(
     }
     // add this:
     var initialProcessed by remember { mutableStateOf(false) }
-    LaunchedEffect(initialQuery, displayedProfiles) {
+    LaunchedEffect(initialQuery, sortedDisplayedProfiles) {
         if (!initialProcessed && initialQuery.isNotBlank()) {
             // find the deep-link target
-            val idx = displayedProfiles.indexOfFirst { it.userId == initialQuery }
+            val idx = sortedDisplayedProfiles.indexOfFirst { it.userId == initialQuery }
             if (idx >= 0) {
                 currentIndex = idx
             }
             initialProcessed = true
         }
-        displayedProfiles.forEach { datingViewModel.loadVerification(it.userId) }
+        sortedDisplayedProfiles.forEach { datingViewModel.loadVerification(it.userId) }
     }
 
     /* Auto-tap dating icon when profiles are empty */
-    LaunchedEffect(currentRoute, displayedProfiles, isLoading) {
+    LaunchedEffect(currentRoute, sortedDisplayedProfiles, isLoading) {
         if (currentRoute == "dating"                     // only run if we’re still here
             && !isLoading
-            && displayedProfiles.isEmpty()
+            && sortedDisplayedProfiles.isEmpty()
             && autoTapCount < maxAutoTaps
         ) {
             delay(1_000)  // give Firebase a chance to come back
@@ -406,6 +411,10 @@ fun DatingScreen(
                 onCollegeChange    = { datingViewModel.updateDatingFilters(filters.copy(college = it)) },
                 selectedPostGrad   = filters.postGrad,
                 onPostGradChange   = { datingViewModel.updateDatingFilters(filters.copy(postGrad = it)) },
+                selectedEthnicity  = filters.ethnicity,
+                onEthnicityChange  = { datingViewModel.updateDatingFilters(filters.copy(ethnicity = it)) },
+                selectedIncomeLevel = filters.incomeLevel,
+                onIncomeLevelChange = { datingViewModel.updateDatingFilters(filters.copy(incomeLevel = it)) },
                 selectedCity       = filters.city,
                 onCityChange       = { datingViewModel.updateDatingFilters(filters.copy(city = it)) },
                 selectedLocalities = filters.localities,
@@ -567,7 +576,7 @@ fun DatingScreen(
                         color = Color(0xFFFF6F00)
                     )
 
-                    displayedProfiles.isEmpty() -> NoMoreProfilesScreen(
+                    sortedDisplayedProfiles.isEmpty() -> NoMoreProfilesScreen(
                         autoTapCount = autoTapCount,
                         maxAutoTaps = maxAutoTaps
                     )
@@ -578,7 +587,7 @@ fun DatingScreen(
                         geoFire          = geoFire,
                         profileViewModel = profileViewModel,
                         postViewModel    = postViewModel,
-                        profiles         = displayedProfiles,
+                        profiles         = sortedDisplayedProfiles,
                         currentIndex     = currentIndex,   // 🔹
                         boostedUsers     = boostedUsers,
                         onSwipeRight     = {
@@ -633,12 +642,12 @@ fun DatingScreen(
                 onClose = { profileViewModel.clearMatchPopUp() }
             )
         }
-        if (showComplimentDlg && displayedProfiles.isNotEmpty()) {
+        if (showComplimentDlg && sortedDisplayedProfiles.isNotEmpty()) {
             ComplimentDialog(
                 complimentsLeft = complimentsLeft,
                 onSend = { text, voiceUri ->
                     coroutineScope.launch {
-                        val receiver = displayedProfiles[currentIndex]
+                        val receiver = sortedDisplayedProfiles[currentIndex]
                         datingViewModel.sendCompliment(
                             receiverId       = receiver.userId,
                             textMessage      = text,
@@ -945,6 +954,10 @@ fun FiltersOverlay(
     onPostGradChange: (String) -> Unit,
     selectedCity: String,
     onCityChange: (String) -> Unit,
+    selectedEthnicity: String,
+    onEthnicityChange: (String) -> Unit,
+    selectedIncomeLevel: String,
+    onIncomeLevelChange: (String) -> Unit,
     selectedLocalities: List<String>,
     onLocalitiesChange: (List<String>) -> Unit,
     onSaveFilters: () -> Unit,
@@ -1057,64 +1070,7 @@ fun FiltersOverlay(
                 FilterSectionTitle(title = stringResource(R.string.basic_filters))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // ── City & Locality (Premium) ─────────────────────────
-                OutlinedTextField(
-                    value = cityInput,
-                    onValueChange = {
-                        cityInput = it
-                        onCityChange(it)
-                    },
-                    label = { Text(stringResource(R.string.city_label), color = Color.White) },
-                    enabled = isPremium,
-                    singleLine = true,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF6F00),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color.White,
-                        focusedLabelColor = Color.White,
-                        unfocusedLabelColor = Color.White,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        disabledTextColor = Color.Gray,
-                        disabledBorderColor = Color.DarkGray,
-                        disabledLabelColor = Color.Gray
-                    )
-                )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = localitiesInput,
-                    onValueChange = {
-                        localitiesInput = it
-                        val list = it.split(',').map { it.trim() }.filter { it.isNotBlank() }
-                        onLocalitiesChange(list)
-                    },
-                    label = { Text(stringResource(R.string.locality_label), color = Color.White) },
-                    enabled = isPremium,
-                    singleLine = true,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF6F00),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color.White,
-                        focusedLabelColor = Color.White,
-                        unfocusedLabelColor = Color.White,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        disabledTextColor = Color.Gray,
-                        disabledBorderColor = Color.DarkGray,
-                        disabledLabelColor  = Color.Gray
-                    )
-                )
-
-                if (!isPremium) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
                 Spacer(Modifier.height(24.dp))
 
                 // Gender pills (pre‐populated via selectedGenders)
@@ -1215,7 +1171,7 @@ fun FiltersOverlay(
             /* ─── EDUCATION Filters ──────────────────────────────────── */
             item {
                 Spacer(Modifier.height(24.dp))
-                FilterSectionTitle(title = stringResource(R.string.education))
+//                FilterSectionTitle(title = stringResource(R.string.education))
 
                 Spacer(Modifier.height(8.dp))
                 // ─ High School ─
@@ -1389,14 +1345,47 @@ fun FiltersOverlay(
                     stringResource(R.string.religion_black_protestant),
                 )
 
-                    FilterSectionTitle(title = stringResource(R.string.religion))
                     DropdownFilter(
-                        label = "",
+                        label = stringResource(R.string.religion_label),
                         options = nonIndianReligions,
                         selectedOption = selectedReligion,
                         onOptionChange = onReligionChange
                     )
 
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                DropdownFilter(
+                    label = stringResource(R.string.ethnicity_label),
+                    options = listOf(
+                        stringResource(R.string.ethnicity_option_white),
+                        stringResource(R.string.ethnicity_option_black),
+                        stringResource(R.string.ethnicity_option_hispanic),
+                        stringResource(R.string.ethnicity_option_asian),
+                        stringResource(R.string.ethnicity_option_native_american),
+                        stringResource(R.string.ethnicity_option_middle_eastern),
+                        stringResource(R.string.ethnicity_option_pacific_islander),
+                        stringResource(R.string.ethnicity_option_mixed_other)
+                    ),
+                    selectedOption = selectedEthnicity,
+                    onOptionChange = onEthnicityChange
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                DropdownFilter(
+                    label = stringResource(R.string.income_level_label),
+                    options = listOf(
+                        stringResource(R.string.income_level_under_25k),
+                        stringResource(R.string.income_level_25k_50k),
+                        stringResource(R.string.income_level_50k_75k),
+                        stringResource(R.string.income_level_75k_100k),
+                        stringResource(R.string.income_level_100k_150k),
+                        stringResource(R.string.income_level_over_150k)
+                    ),
+                    selectedOption = selectedIncomeLevel,
+                    onOptionChange = onIncomeLevelChange
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -1474,8 +1463,71 @@ fun FiltersOverlay(
                         color = Color.Gray,
                         fontSize = 14.sp
                     )
+                    Spacer(Modifier.height(8.dp))
                 }
             }
+
+            // ── City & Locality (Premium) ─────────────────────────
+            item {
+                OutlinedTextField(
+                    value = cityInput,
+                    onValueChange = {
+                        cityInput = it
+                        onCityChange(it)
+                    },
+                    label = { Text(stringResource(R.string.city_label), color = Color.White) },
+                    enabled = isPremium,
+                    singleLine = true,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        disabledTextColor = Color.Gray,
+                        disabledBorderColor = Color.DarkGray,
+                        disabledLabelColor = Color.Gray
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = localitiesInput,
+                    onValueChange = {
+                        localitiesInput = it
+                        val list = it.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                        onLocalitiesChange(list)
+                    },
+                    label = { Text(stringResource(R.string.locality_label), color = Color.White) },
+                    enabled = isPremium,
+                    singleLine = true,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        disabledTextColor = Color.Gray,
+                        disabledBorderColor = Color.DarkGray,
+                        disabledLabelColor  = Color.Gray
+                    )
+                )
+
+                if (!isPremium) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
             item {
                 Spacer(Modifier.height(24.dp))
                 FilterSectionTitle(stringResource(R.string.ranking_label))

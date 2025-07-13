@@ -375,6 +375,24 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
     }
 
+    suspend fun sortDisplayed(profiles: List<Profile>): List<Profile> = withContext(Dispatchers.IO) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@withContext profiles
+        val ids = profiles.map { it.userId }
+        val payload = hashMapOf(
+            "uid" to uid,
+            "ids" to ids
+        )
+        val callable: HttpsCallableReference =
+            functions.getHttpsCallable("sortDisplayedProfiles")
+        callable.setTimeout(60, TimeUnit.SECONDS)
+        @Suppress("UNCHECKED_CAST")
+        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext profiles
+        val sortedIds = data["ids"] as? List<*> ?: return@withContext profiles
+        val map = profiles.associateBy { it.userId }
+        sortedIds.mapNotNull { id -> map[id as? String] }
+    }
+
+
     /** call this when the user presses “Boost” */
     fun boostUser(
         targetUserId: String,
@@ -502,6 +520,20 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         if (filters.work.isNotBlank()) {
             result = result.filter { profile ->
                 profile.work?.equals(filters.work, ignoreCase = true) == true
+            }
+        }
+
+        // Apply ethnicity filter
+        if (filters.ethnicity.isNotBlank()) {
+            result = result.filter { profile ->
+                profile.ethnicity.equals(filters.ethnicity, ignoreCase = true)
+            }
+        }
+
+        // Apply income level filter
+        if (filters.incomeLevel.isNotBlank()) {
+            result = result.filter { profile ->
+                profile.incomeLevel.equals(filters.incomeLevel, ignoreCase = true)
             }
         }
 
