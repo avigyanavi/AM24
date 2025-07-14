@@ -40,9 +40,9 @@ enum class PurchaseType(val apiType: String,
                         val unitPricePaise: Int,   // ₹ in paise
                         val unitPriceUsd: Double)  // $ in dollars
 {
-    Swipes      ("swipes",      "Swipes",       100, 0.99),
-    Compliments ("compliments", "Compliments",  150, 1.49),
-    Boosts      ("boosts",      "Boosts",       200, 1.99),
+    Swipes      ("swipes",      "Swipes",       100, 0.29),
+    Compliments ("compliments", "Compliments",  150, 0.29),
+    Boosts      ("boosts",      "Boosts",       200, 0.29),
     AiMessages  ("aiMessages",  "AI messages",  200, 1.99)
 }
 

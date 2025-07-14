@@ -516,6 +516,27 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
+        // Apply community filter
+        if (filters.community.isNotBlank()) {
+            result = result.filter { profile ->
+                profile.community.equals(filters.community, ignoreCase = true)
+            }
+        }
+
+        // Apply religion filter
+        if (filters.religion.isNotBlank()) {
+            result = result.filter { profile ->
+                profile.religion.equals(filters.religion, ignoreCase = true)
+            }
+        }
+
+        // Apply caste filter
+        if (filters.caste.isNotBlank()) {
+            result = result.filter { profile ->
+                profile.caste.equals(filters.caste, ignoreCase = true)
+            }
+        }
+
         // Apply work filter
         if (filters.work.isNotBlank()) {
             result = result.filter { profile ->
