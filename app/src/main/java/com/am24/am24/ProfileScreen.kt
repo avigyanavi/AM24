@@ -669,7 +669,7 @@ fun CollapsibleSection(
             text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             modifier = Modifier.weight(1f)
         )
 
@@ -1722,7 +1722,7 @@ fun BasicInfoSection(profile: Profile) {
 //                label = {
 //                    Text(
 //                        stringResource(R.string.label_name),
-//                        fontSize = 11.sp,
+//                        fontSize = 12.sp,
 //                        color = Color(0xFFFF6F00)
 //                    )
 //                },
@@ -1737,7 +1737,7 @@ fun BasicInfoSection(profile: Profile) {
 //            // Height toggle & fields…
 //            Text(
 //                stringResource(R.string.height_label),
-//                fontSize = 11.sp,
+//                fontSize = 12.sp,
 //                fontWeight = FontWeight.Bold,
 //                color = Color(0xFFFF6F00)
 //            )
@@ -1758,7 +1758,7 @@ fun BasicInfoSection(profile: Profile) {
 //                Text(
 //                    if (isFeet) stringResource(R.string.feet_inches_label)
 //                    else stringResource(R.string.centimeters_label),
-//                    fontSize = 11.sp,
+//                    fontSize = 12.sp,
 //                    color = Color.White
 //                )
 //            }
@@ -1770,7 +1770,7 @@ fun BasicInfoSection(profile: Profile) {
 //                        label = {
 //                            Text(
 //                                stringResource(R.string.feet_label),
-//                                fontSize = 11.sp,
+//                                fontSize = 12.sp,
 //                                color = Color(0xFFFF6F00)
 //                            )
 //                        },
@@ -1783,7 +1783,7 @@ fun BasicInfoSection(profile: Profile) {
 //                        label = {
 //                            Text(
 //                                stringResource(R.string.inches_label),
-//                                fontSize = 11.sp,
+//                                fontSize = 12.sp,
 //                                color = Color(0xFFFF6F00)
 //                            )
 //                        },
@@ -1798,7 +1798,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.centimeters_label),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -1811,7 +1811,7 @@ fun BasicInfoSection(profile: Profile) {
 //            Text(
 //                stringResource(R.string.religion_label),
 //                fontWeight = FontWeight.Bold,
-//                fontSize = 11.sp,
+//                fontSize = 12.sp,
 //                color = Color(0xFFFF6F00)
 //            )
 //            val religionOpts = listOf(
@@ -1837,7 +1837,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    FilterChip(
 //                        selected = religion == option,
 //                        onClick = { religion = option },
-//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
 //                        colors = FilterChipDefaults.filterChipColors(
 //                            disabledContainerColor = Color.Transparent,
 //                            disabledLabelColor = Color(0xFFFF6F00),
@@ -1851,7 +1851,7 @@ fun BasicInfoSection(profile: Profile) {
 //            // Community chips
 //            Text(
 //                stringResource(R.string.community_label),
-//                fontSize = 11.sp,
+//                fontSize = 12.sp,
 //                fontWeight = FontWeight.Bold,
 //                color = Color(0xFFFF6F00)
 //            )
@@ -1913,7 +1913,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    FilterChip(
 //                        selected = community == option,
 //                        onClick = { community = option },
-//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
 //                        colors = FilterChipDefaults.filterChipColors(
 //                            disabledContainerColor = Color.Transparent,
 //                            disabledLabelColor = Color(0xFFFF6F00),
@@ -1927,7 +1927,7 @@ fun BasicInfoSection(profile: Profile) {
 //            // **Caste chips**
 //            Text(
 //                stringResource(R.string.caste_title),
-//                fontSize = 11.sp,
+//                fontSize = 12.sp,
 //                fontWeight = FontWeight.Bold,
 //                color = Color(0xFFFF6F00)
 //            )
@@ -1941,7 +1941,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    FilterChip(
 //                        selected = caste == option,
 //                        onClick = { caste = option },
-//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
 //                        colors = FilterChipDefaults.filterChipColors(
 //                            disabledContainerColor = Color.Transparent,
 //                            disabledLabelColor = Color(0xFFFF6F00),
@@ -1955,7 +1955,7 @@ fun BasicInfoSection(profile: Profile) {
 //            // Gender chips
 //            Text(
 //                stringResource(R.string.gender_label),
-//                fontSize = 11.sp,
+//                fontSize = 12.sp,
 //                fontWeight = FontWeight.Bold,
 //                color = Color(0xFFFF6F00)
 //            )
@@ -1969,7 +1969,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    FilterChip(
 //                        selected = selectedGender == option,
 //                        onClick = { selectedGender = option },
-//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
 //                        colors = FilterChipDefaults.filterChipColors(
 //                            disabledContainerColor = Color.Transparent,
 //                            disabledLabelColor = Color(0xFFFF6F00),
@@ -2008,7 +2008,7 @@ fun BasicInfoSection(profile: Profile) {
 //            // Job-Role & Work chips + optional customs…
 //            Text(
 //                stringResource(R.string.job_role_label),
-//                fontSize = 11.sp,
+//                fontSize = 12.sp,
 //                fontWeight = FontWeight.Bold,
 //                color = Color(0xFFFF6F00)
 //            )
@@ -2025,7 +2025,7 @@ fun BasicInfoSection(profile: Profile) {
 //                            selectedJobRole = option
 //                            if (option != jobRoleOptions.last()) customJobRole = ""
 //                        },
-//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
 //                        colors = FilterChipDefaults.filterChipColors(
 //                            disabledContainerColor = Color.Transparent,
 //                            disabledLabelColor = Color(0xFFFF6F00),
@@ -2042,7 +2042,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.label_custom_job_role),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -2052,7 +2052,7 @@ fun BasicInfoSection(profile: Profile) {
 //
 //            Text(
 //                stringResource(R.string.label_work),
-//                fontSize = 11.sp,
+//                fontSize = 12.sp,
 //                fontWeight = FontWeight.Bold,
 //                color = Color(0xFFFF6F00)
 //            )
@@ -2069,7 +2069,7 @@ fun BasicInfoSection(profile: Profile) {
 //                            selectedWork = option
 //                            if (option != workOptions.last()) customWork = ""
 //                        },
-//                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+//                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
 //                        colors = FilterChipDefaults.filterChipColors(
 //                            disabledContainerColor = Color.Transparent,
 //                            disabledLabelColor = Color(0xFFFF6F00),
@@ -2086,7 +2086,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.label_custom_work),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -2112,7 +2112,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.high_school_graduation_year),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -2139,7 +2139,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.college_graduation_year),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -2152,7 +2152,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.label_college_degree),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -2179,7 +2179,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.select_graduation_year_label),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -2192,7 +2192,7 @@ fun BasicInfoSection(profile: Profile) {
 //                    label = {
 //                        Text(
 //                            stringResource(R.string.label_post_graduation_degree),
-//                            fontSize = 11.sp,
+//                            fontSize = 12.sp,
 //                            color = Color(0xFFFF6F00)
 //                        )
 //                    },
@@ -2247,22 +2247,24 @@ fun BasicInfoEditSection(
     onSave: (Profile) -> Unit,
     onCancel: () -> Unit
 ) {
+    val notSelected = stringResource(R.string.not_selected)
     // State for all fields
     var name by remember { mutableStateOf(tempProfile.name) }
     var city by remember { mutableStateOf(tempProfile.city) }
     var locality by remember { mutableStateOf(tempProfile.hometown) }
     var customCity by remember { mutableStateOf(tempProfile.customCity.orEmpty()) }
     var customLocality by remember { mutableStateOf(tempProfile.customHometown.orEmpty()) }
-    var religion by remember { mutableStateOf(tempProfile.religion) }
-    var community by remember { mutableStateOf(tempProfile.community) }
-    var caste by remember { mutableStateOf(tempProfile.caste) }
+    var religion by remember { mutableStateOf(tempProfile.religion.ifBlank { notSelected }) }
+    var community by remember { mutableStateOf(tempProfile.community.ifBlank { notSelected }) }
+    var caste by remember { mutableStateOf(tempProfile.caste.ifBlank { notSelected }) }
     var isFeet by remember { mutableStateOf(tempProfile.height2.isNotEmpty()) }
     var feet by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
     var inches by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
     var heightCm by remember { mutableStateOf(tempProfile.height) }
     val isIndian = tempProfile.country.equals("India", ignoreCase = true)
-    var ethnicity by remember { mutableStateOf(tempProfile.ethnicity) }
-    var incomeLevel by remember { mutableStateOf(tempProfile.incomeLevel) }
+    var ethnicity by remember { mutableStateOf(tempProfile.ethnicity.ifBlank { notSelected }) }
+    var incomeLevel by remember { mutableStateOf(tempProfile.incomeLevel.ifBlank { notSelected }) }
+
 
     // Gender
     val genderOptions = listOf(
@@ -2271,7 +2273,7 @@ fun BasicInfoEditSection(
         stringResource(R.string.college_other)
     )
     var selectedGender by remember {
-        mutableStateOf(genderOptions.find { it == tempProfile.gender } ?: genderOptions.first())
+        mutableStateOf(tempProfile.gender.ifBlank { notSelected })
     }
 
     // Job Role
@@ -2323,7 +2325,7 @@ fun BasicInfoEditSection(
     )
 
     var selectedJobRole by remember {
-        mutableStateOf(jobRoleOptions.find { it == tempProfile.jobRole } ?: jobRoleOptions.first())
+        mutableStateOf(tempProfile.jobRole.ifBlank { notSelected })
     }
     var customJobRole by remember {
         mutableStateOf(if (selectedJobRole == jobRoleOptions.last()) tempProfile.customJobRole.orEmpty() else "")
@@ -2531,7 +2533,7 @@ fun BasicInfoEditSection(
             label = {
                 Text(
                     stringResource(R.string.label_name),
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = Color(0xFFFF6F00)
                 )
             },
@@ -2548,7 +2550,7 @@ fun BasicInfoEditSection(
         // Height toggle & fields
         Text(
             stringResource(R.string.height_label),
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFF6F00)
         )
@@ -2567,7 +2569,7 @@ fun BasicInfoEditSection(
             Text(
                 if (isFeet) stringResource(R.string.feet_inches_label)
                 else stringResource(R.string.centimeters_label),
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 color = Color.White
             )
         }
@@ -2579,7 +2581,7 @@ fun BasicInfoEditSection(
                     label = {
                         Text(
                             stringResource(R.string.feet_label),
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = Color(0xFFFF6F00)
                         )
                     },
@@ -2599,7 +2601,7 @@ fun BasicInfoEditSection(
                     label = {
                         Text(
                             stringResource(R.string.inches_label),
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = Color(0xFFFF6F00)
                         )
                     },
@@ -2621,7 +2623,7 @@ fun BasicInfoEditSection(
                 label = {
                     Text(
                         stringResource(R.string.centimeters_label),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -2641,7 +2643,7 @@ fun BasicInfoEditSection(
         Text(
             stringResource(R.string.religion_label),
             fontWeight = FontWeight.Bold,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             color = Color(0xFFFF6F00)
         )
         Row(
@@ -2691,8 +2693,10 @@ fun BasicInfoEditSection(
             religionOpts.forEach { option ->
                 FilterChip(
                     selected = religion == option,
-                    onClick = { religion = option },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    onClick = {
+                        religion = if (religion == option) notSelected else option
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor = Color(0xFFFF6F00),
@@ -2708,7 +2712,7 @@ fun BasicInfoEditSection(
             // Community chips
             Text(
                 stringResource(R.string.community_label),
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFFF6F00)
             )
@@ -2776,8 +2780,10 @@ fun BasicInfoEditSection(
                 commOpts.forEach { option ->
                     FilterChip(
                         selected = community == option,
-                        onClick = { community = option },
-                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                        onClick = {
+                            community = if (community == option) notSelected else option
+                        },
+                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
                         colors = FilterChipDefaults.filterChipColors(
                             disabledContainerColor = Color.Transparent,
                             disabledLabelColor = Color(0xFFFF6F00),
@@ -2792,7 +2798,7 @@ fun BasicInfoEditSection(
             // Caste chips
             Text(
                 stringResource(R.string.caste_title),
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFFF6F00)
             )
@@ -2852,8 +2858,10 @@ fun BasicInfoEditSection(
                 casteOptions.forEach { option ->
                     FilterChip(
                         selected = caste == option,
-                        onClick = { caste = option },
-                        label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                        onClick = {
+                            caste = if (caste == option) notSelected else option
+                        },
+                        label = { Text(option, fontSize = 12.sp, color = Color.White) },
                         colors = FilterChipDefaults.filterChipColors(
                             disabledContainerColor = Color.Transparent,
                             disabledLabelColor = Color(0xFFFF6F00),
@@ -2865,7 +2873,7 @@ fun BasicInfoEditSection(
             }
         }
 
-        Text(stringResource(R.string.ethnicity_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.ethnicity_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -2885,8 +2893,10 @@ fun BasicInfoEditSection(
             ethnicityOpts.forEach { option ->
                 FilterChip(
                     selected = ethnicity == option,
-                    onClick = { ethnicity = option },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    onClick = {
+                        ethnicity = if (ethnicity == option) notSelected else option
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor = Color(0xFFFF6F00),
@@ -2897,7 +2907,7 @@ fun BasicInfoEditSection(
             }
         }
 
-        Text(stringResource(R.string.income_level_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.income_level_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         Row(
             Modifier
                 .horizontalScroll(rememberScrollState())
@@ -2916,7 +2926,7 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = incomeLevel == option,
                     onClick = { incomeLevel = option },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor = Color(0xFFFF6F00),
@@ -2930,7 +2940,7 @@ fun BasicInfoEditSection(
         // Gender chips
         Text(
             stringResource(R.string.gender_label),
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFF6F00)
         )
@@ -2943,8 +2953,10 @@ fun BasicInfoEditSection(
             genderOptions.forEach { option ->
                 FilterChip(
                     selected = selectedGender == option,
-                    onClick = { selectedGender = option },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    onClick = {
+                        selectedGender = if (selectedGender == option) notSelected else option
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor = Color(0xFFFF6F00),
@@ -3010,7 +3022,7 @@ fun BasicInfoEditSection(
         // Job Role chips
         Text(
             stringResource(R.string.job_role_label),
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFF6F00)
         )
@@ -3024,10 +3036,15 @@ fun BasicInfoEditSection(
                 FilterChip(
                     selected = selectedJobRole == option,
                     onClick = {
-                        selectedJobRole = option
-                        if (option != jobRoleOptions.last()) customJobRole = ""
+                        if (selectedJobRole == option) {
+                            selectedJobRole = notSelected
+                            customJobRole = ""
+                        } else {
+                            selectedJobRole = option
+                            if (option != jobRoleOptions.last()) customJobRole = ""
+                        }
                     },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor = Color(0xFFFF6F00),
@@ -3044,7 +3061,7 @@ fun BasicInfoEditSection(
                 label = {
                     Text(
                         stringResource(R.string.label_custom_job_role),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -3062,7 +3079,7 @@ fun BasicInfoEditSection(
         // Work search dropdown (new logic)
         Text(
             stringResource(R.string.label_work),
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFF6F00)
         )
@@ -3123,7 +3140,7 @@ fun BasicInfoEditSection(
                     DropdownMenuItem(
                         text = {
                             Column {
-                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                Text(res.name, color = Color.Black, fontSize = 12.sp)
                                 if (res.address.isNotBlank())
                                     Text(
                                         res.address,
@@ -3150,7 +3167,7 @@ fun BasicInfoEditSection(
         // High School search dropdown (new logic)
         Text(
             stringResource(R.string.label_high_school),
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFF6F00)
         )
@@ -3211,7 +3228,7 @@ fun BasicInfoEditSection(
                     DropdownMenuItem(
                         text = {
                             Column {
-                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                Text(res.name, color = Color.Black, fontSize = 12.sp)
                                 if (res.address.isNotBlank())
                                     Text(
                                         res.address,
@@ -3241,7 +3258,7 @@ fun BasicInfoEditSection(
                 label = {
                     Text(
                         stringResource(R.string.high_school_graduation_year),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -3260,7 +3277,7 @@ fun BasicInfoEditSection(
         // College search dropdown (new logic)
         Text(
             stringResource(R.string.college_label),
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFF6F00)
         )
@@ -3321,7 +3338,7 @@ fun BasicInfoEditSection(
                     DropdownMenuItem(
                         text = {
                             Column {
-                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                Text(res.name, color = Color.Black, fontSize = 12.sp)
                                 if (res.address.isNotBlank())
                                     Text(
                                         res.address,
@@ -3351,7 +3368,7 @@ fun BasicInfoEditSection(
                 label = {
                     Text(
                         stringResource(R.string.college_graduation_year),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -3371,7 +3388,7 @@ fun BasicInfoEditSection(
                 label = {
                     Text(
                         stringResource(R.string.label_college_degree),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -3390,7 +3407,7 @@ fun BasicInfoEditSection(
         // Post-Graduation search dropdown (new logic)
         Text(
             stringResource(R.string.post_graduation_label),
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFF6F00)
         )
@@ -3451,7 +3468,7 @@ fun BasicInfoEditSection(
                     DropdownMenuItem(
                         text = {
                             Column {
-                                Text(res.name, color = Color.Black, fontSize = 11.sp)
+                                Text(res.name, color = Color.Black, fontSize = 12.sp)
                                 if (res.address.isNotBlank())
                                     Text(
                                         res.address,
@@ -3481,7 +3498,7 @@ fun BasicInfoEditSection(
                 label = {
                     Text(
                         stringResource(R.string.select_graduation_year_label),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -3501,7 +3518,7 @@ fun BasicInfoEditSection(
                 label = {
                     Text(
                         stringResource(R.string.label_post_graduation_degree),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -3525,8 +3542,8 @@ fun BasicInfoEditSection(
                     tempProfile.copy(
                         name = name,
                         city = city,
-                        ethnicity = ethnicity,
-                        incomeLevel = incomeLevel,
+                        ethnicity = ethnicity.takeIf { it != notSelected } ?: "",
+                        incomeLevel = incomeLevel.takeIf { it != notSelected } ?: "",
                         customCity = customCity.ifBlank { null },
                         hometown = if (locality == oth)
                             customLocality.trim() else locality.trim(),
@@ -3542,13 +3559,13 @@ fun BasicInfoEditSection(
                         customPostGraduation = customPostGrad.ifBlank { null },
                         postGraduationYear = postGradYear,
                         postGraduationDegree = postGradDegree.ifBlank { null },
-                        religion = religion,
-                        community = community,
-                        caste = caste,
+                        religion = religion.takeIf { it != notSelected } ?: "",
+                        community = community.takeIf { it != notSelected } ?: "",
+                        caste = caste.takeIf { it != notSelected } ?: "",
                         height = heightCm,
                         height2 = if (isFeet) listOf(feet, inches) else emptyList(),
-                        gender = selectedGender,
-                        jobRole = selectedJobRole,
+                        gender = selectedGender.takeIf { it != notSelected } ?: "",
+                        jobRole = selectedJobRole.takeIf { it != notSelected } ?: "",
                         customJobRole = selectedJobRole.takeIf { it == jobRoleOptions.last() }
                             ?.let { customJobRole },
                         work = workQuery,
@@ -5268,7 +5285,7 @@ fun PreferencesEditSection(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- Looking For ---
-        Text(stringResource(R.string.looking_for_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.looking_for_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             lookingForOptions.forEach { option ->
                 FilterChip(
@@ -5276,7 +5293,7 @@ fun PreferencesEditSection(
                     onClick = {
                         selectedLookingFor = if (selectedLookingFor == option) notSelected else option
                     },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -5288,7 +5305,7 @@ fun PreferencesEditSection(
         }
 
         // --- Love Language ---
-        Text(stringResource(R.string.love_language_label), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.love_language_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             loveLanguageOptions.forEach { option ->
                 FilterChip(
@@ -5296,7 +5313,7 @@ fun PreferencesEditSection(
                     onClick = {
                         selectedLoveLanguage = if (selectedLoveLanguage == option) notSelected else option
                     },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -5313,7 +5330,7 @@ fun PreferencesEditSection(
                 label = {
                     Text(
                         stringResource(R.string.label_custom_love_language),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -5329,7 +5346,7 @@ fun PreferencesEditSection(
         }
 
         // --- Politics ---
-        Text(stringResource(R.string.label_politics), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Text(stringResource(R.string.label_politics), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             politicsOptions.forEach { option ->
                 FilterChip(
@@ -5337,7 +5354,7 @@ fun PreferencesEditSection(
                     onClick = {
                         selectedPolitics = if (selectedPolitics == option) notSelected else option
                     },
-                    label = { Text(option, fontSize = 11.sp, color = Color.White) },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -5354,7 +5371,7 @@ fun PreferencesEditSection(
                 label = {
                     Text(
                         stringResource(R.string.label_custom_politics),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFFF6F00)
                     )
                 },
@@ -5464,7 +5481,7 @@ fun SocialCausesEditSection(
                         }
                     },
                     enabled = isSelected || canSelectMore,
-                    label = { Text(cause, fontSize = 11.sp, color = Color.White) },
+                    label = { Text(cause, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor     = Color(0xFFFF6F00),
@@ -6781,15 +6798,30 @@ fun VoicePlayer(url: String) {
 
 @Composable
 fun LifestyleSliderEdit(label: String, value: Int, nouns: List<String>, onValueChange: (Int) -> Unit) {
-    var sliderValue by remember { mutableStateOf(value.toFloat()) }
+    var sliderValue by remember { mutableStateOf(if (value == -1) 0f else value.toFloat()) }
     val displayText = if (value == -1) stringResource(R.string.not_selected) else nouns.getOrElse(value) { "Unknown" }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
-        Text(displayText, fontSize = 11.sp, color = if (value == -1) Color.Gray else Color.White)
+        Text(label, fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(displayText, fontSize = 11.sp, color = if (value == -1) Color.Gray else Color.White)
+            if (value != -1) {
+                IconButton(onClick = {
+                    sliderValue = 0f
+                    onValueChange(-1)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.clear_selection),
+                        tint = Color.Red
+                    )
+                }
+            }
+        }
     }
     Spacer(modifier = Modifier.height(4.dp))
     Slider(

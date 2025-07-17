@@ -1808,7 +1808,27 @@ fun SearchableDropdownWithCustomOption(
             } else {
                 selectedOption.ifEmpty { stringResource(R.string.select_or_type) }
             }
-            Text(display, fontSize = 11.sp, color = Color.White)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(display, fontSize = 11.sp, color = Color.White)
+                if (selectedOption.isNotEmpty() || customText.isNotBlank()) {
+                    IconButton(onClick = {
+                        onOptionSelected("")
+                        customText = ""
+                        onCustomInputChange(null)
+                        showCustomInput = false
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.clear_selection),
+                            tint = Color.Red
+                        )
+                    }
+                }
+            }
         }
 
         /* ---------- Drop-down ---------- */

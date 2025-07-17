@@ -364,7 +364,7 @@ data class Lifestyle(
         return fields.all {
             when (it) {
                 is String -> it.isNotBlank()
-                is Int -> it != 0
+                is Int -> it != -1
                 is Boolean -> true // Booleans are "valid" as true/false
                 else -> false
             }
