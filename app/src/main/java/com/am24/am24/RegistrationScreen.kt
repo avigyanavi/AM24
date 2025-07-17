@@ -359,6 +359,7 @@ fun RegistrationScreen(
     initialStep: Int
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel()
+    val context = LocalContext.current
     var currentStep by remember { mutableStateOf(initialStep) }
     val totalSteps = 7 // now 7 screens after dropping EnterNameScreen
     val progress = currentStep.toFloat() / totalSteps.toFloat()
@@ -403,18 +404,43 @@ fun RegistrationScreen(
                     }
                 },
                 /* NEW → one global “Next” icon, enabled ⇔ viewModel.nextEnabled */
-                 actions = {
-                                        IconButton(
-                                                onClick  = { if (registrationViewModel.nextEnabled) onNext() },
-                                                enabled  = registrationViewModel.nextEnabled
-                                                    ) {
-                                                Icon(
-                                                        imageVector     = Icons.Default.ArrowForward,
-                                                        contentDescription = "Next",
-                                                        tint = if (registrationViewModel.nextEnabled) Color.White else Color.Gray
-                                                            )
-                                            }
-                                    },
+                /* NEW → one global “Next” icon */
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (registrationViewModel.nextEnabled) {
+                                onNext()
+                            } else {
+                                when (currentStep) {
+                                    2 -> {
+                                        when {
+                                            registrationViewModel.gender.isEmpty() ->
+                                                Toast.makeText(context, "Please select your gender", Toast.LENGTH_LONG).show()
+                                            registrationViewModel.dob.isBlank() ->
+                                                Toast.makeText(context, "Please select your birth date", Toast.LENGTH_LONG).show()
+                                            calculateAge(registrationViewModel.dob) < 14 ->
+                                                Toast.makeText(context, "You must be at least 14 years old", Toast.LENGTH_LONG).show()
+                                            else -> {}
+                                        }
+                                    }
+                                    7 -> {
+                                        Toast.makeText(context, "Pick a valid username and tap Finish", Toast.LENGTH_LONG).show()
+                                    }
+                                    else -> {
+                                        Toast.makeText(context, "Please complete the required fields", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        },
+                        enabled = true
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "Next",
+                            tint = Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
