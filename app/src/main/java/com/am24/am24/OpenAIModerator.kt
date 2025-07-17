@@ -99,21 +99,33 @@ fun Bitmap.toBase64(quality: Int = 60): String =
     }
 
 suspend fun Context.uriToBase64(uri: Uri): String = withContext(Dispatchers.IO) {
-    contentResolver.openInputStream(uri)!!.use { stream ->
-        Base64.encodeToString(stream.readBytes(), Base64.NO_WRAP)
+    try {
+        contentResolver.openInputStream(uri)?.use { stream ->
+            Base64.encodeToString(stream.readBytes(), Base64.NO_WRAP)
+        } ?: ""
+    } catch (e: Exception) {
+        Log.e(TAG, "uriToBase64 failed", e)
+        ""
     }
 }
 
 suspend fun Context.videoFramesEvery2s(uri: Uri): List<String> =
     withContext(Dispatchers.Default) {
-        val r = MediaMetadataRetriever().apply { setDataSource(this@videoFramesEvery2s, uri) }
-        val durMs = r.extractMetadata(
-            MediaMetadataRetriever.METADATA_KEY_DURATION
-        )!!.toLong()
-        val list = mutableListOf<String>()
-        for (t in 0..durMs step 2000) {
-            r.getFrameAtTime(t * 1_000L)?.let { bmp -> list += bmp.toBase64() }
+        val r = MediaMetadataRetriever()
+        try {
+            r.setDataSource(this@videoFramesEvery2s, uri)
+            val durMs = r.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_DURATION
+            )?.toLongOrNull() ?: 0L
+            val list = mutableListOf<String>()
+            for (t in 0..durMs step 2000) {
+                r.getFrameAtTime(t * 1_000L)?.let { bmp -> list += bmp.toBase64() }
+            }
+            list
+        } catch (e: Exception) {
+            Log.e(TAG, "videoFramesEvery2s failed", e)
+            emptyList()
+        } finally {
+            r.release()
         }
-        r.release()
-        list
     }

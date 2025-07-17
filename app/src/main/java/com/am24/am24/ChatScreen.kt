@@ -1308,7 +1308,7 @@ fun ChatScreenContent(
                             scope.launch {
                                 try {
                                     val extension = if (selectedMediaType == "photo") "jpg" else "mp4"
-                                    val localCopyUri = copyUriToLocalFile(context, localUri, extension)
+                                    val localCopyUri = copyUriToLocalFile(context, localUri, extension).getOrElse { throw it }
                                     pendingEditUri = localCopyUri
 
                                     val editIntent = Intent(Intent.ACTION_EDIT).apply {
@@ -1795,9 +1795,13 @@ suspend fun askProceed(ctx: Context, msg: String): Boolean =
             .show()
     }
 
-suspend fun copyUriToLocalFile(context: Context, uri: Uri, extension: String): Uri {
-    val inputStream = context.contentResolver.openInputStream(uri)
-        ?: throw IOException("Failed to open input stream")
+suspend fun copyUriToLocalFile(context: Context, uri: Uri, extension: String): Result<Uri> {
+    val inputStream = try {
+        context.contentResolver.openInputStream(uri)
+            ?: return Result.failure(IOException("Failed to open input stream"))
+    } catch (e: Exception) {
+        return Result.failure(e)
+    }
 
     val outputFile = File(context.cacheDir, "edited_${System.currentTimeMillis()}.$extension")
     val outputStream = outputFile.outputStream()
@@ -1808,10 +1812,12 @@ suspend fun copyUriToLocalFile(context: Context, uri: Uri, extension: String): U
         }
     }
 
-    return FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider",
-        outputFile
+    return Result.success(
+        FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            outputFile
+        )
     )
 }
 
@@ -2009,30 +2015,45 @@ suspend fun sendMediaMessage(
     val ext = if (mediaType == "photo") "jpg" else "mp4"
     val remoteName = "${mediaType}_${ts}.$ext"
     val mediaRef = storageRef.child("$mediaType/$chatId/$remoteName")
-    val bytes = when (mediaType) {
-        "photo" -> compressImage(context, uri)
-        "video" -> compressVideo(context, uri)
-        else -> null
+    val bytes = try {
+        when (mediaType) {
+            "photo" -> compressImage(context, uri)
+            "video" -> compressVideo(context, uri)
+            else -> null
+        }
+    } catch (e: Exception) {
+        Log.e("ChatScreen", "Compression failed: ${e.message}")
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, "Failed to compress $mediaType", Toast.LENGTH_SHORT).show()
+        }
+        return
     }
-    if (bytes != null) {
-        mediaRef.putBytes(bytes).await()
-    } else {
-        mediaRef.putFile(uri).await()
+    try {
+        if (bytes != null) {
+            mediaRef.putBytes(bytes).await()
+        } else {
+            mediaRef.putFile(uri).await()
+        }
+        val downloadUrl = mediaRef.downloadUrl.await().toString()
+        val id = messagesRef.push().key ?: return
+        val msg = Message(
+            id = id,
+            senderId = currentUserId,
+            receiverId = otherUserId,
+            text = "",
+            timestamp = ts,
+            read = false,
+            mediaType = mediaType,
+            mediaUrl = downloadUrl,
+            processed = false
+        )
+        messagesRef.child(id).setValue(msg)
+    } catch (e: Exception) {
+        Log.e("ChatScreen", "Upload failed: ${e.message}")
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, "Failed to upload $mediaType", Toast.LENGTH_SHORT).show()
+        }
     }
-    val downloadUrl = mediaRef.downloadUrl.await().toString()
-    val id = messagesRef.push().key ?: return
-    val msg = Message(
-        id = id,
-        senderId = currentUserId,
-        receiverId = otherUserId,
-        text = "",
-        timestamp = ts,
-        read = false,
-        mediaType = mediaType,
-        mediaUrl = downloadUrl,
-        processed = false
-    )
-    messagesRef.child(id).setValue(msg)
 }
 
 @Composable

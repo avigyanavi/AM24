@@ -2802,10 +2802,11 @@ suspend fun compressImage(
     uri: Uri,
     maxWidth: Int = 1080,      // down-scale if wider than this
     quality: Int = 75          // JPEG quality 0‒100
-): ByteArray = withContext(Dispatchers.IO) {
-    val input = context.contentResolver.openInputStream(uri) ?: error("No stream")
-    val original = BitmapFactory.decodeStream(input)
-    input.close()
+): ByteArray? = withContext(Dispatchers.IO) {
+    try {
+        val input = context.contentResolver.openInputStream(uri) ?: return@withContext null
+        val original = BitmapFactory.decodeStream(input) ?: return@withContext null
+        input.close()
 
     // scale if needed
     val ratio = maxWidth.toFloat() / original.width.toFloat()
@@ -2818,9 +2819,13 @@ suspend fun compressImage(
         )
     } else original
 
-    val out = ByteArrayOutputStream()
-    scaled.compress(Bitmap.CompressFormat.JPEG, quality, out)
-    out.toByteArray()
+        val out = ByteArrayOutputStream()
+        scaled.compress(Bitmap.CompressFormat.JPEG, quality, out)
+        out.toByteArray()
+    } catch (e: Exception) {
+        Log.e("CompressImage", "Failed to compress image: ${e.message}")
+        null
+    }
 }
 
 fun uploadProfilePicToFirebase(
@@ -2830,7 +2835,7 @@ fun uploadProfilePicToFirebase(
     registrationViewModel: RegistrationViewModel
 ) {
     (context as? ComponentActivity)?.lifecycleScope?.launch {
-        val jpegBytes = compressImage(context, uri)           // ← compress first
+        val jpegBytes = compressImage(context, uri) ?: return@launch
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
         val ref = storageRef.child("users/$userId/profile_pic.jpg")
 
@@ -4098,7 +4103,7 @@ fun UploadMediaComposable(
     val canProceed = true
 
     suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
-        val jpeg = compressImage(context, uri)
+        val jpeg = compressImage(context, uri) ?: return@withContext false
         val b64  = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
         moderateImages(listOf(b64))
     }
@@ -4427,7 +4432,7 @@ fun uploadOptionalPhoto(
     registrationViewModel: RegistrationViewModel
 ) {
     (context as? ComponentActivity)?.lifecycleScope?.launch {
-        val jpegBytes = compressImage(context, uri)
+        val jpegBytes = compressImage(context, uri) ?: return@launch
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
         val ref = storageRef.child("users/$userId/${uri.lastPathSegment ?: System.currentTimeMillis()}.jpg")
 

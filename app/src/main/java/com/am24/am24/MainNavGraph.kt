@@ -245,7 +245,14 @@ fun MainNavGraph(
             route = "checkinFeed/{placeId}",
             arguments = listOf(navArgument("placeId"){ type = NavType.StringType })
         ) { backStackEntry ->
-            val placeId = backStackEntry.arguments!!.getString("placeId")!!
+            val placeId = backStackEntry.arguments?.getString("placeId")
+            if (placeId == null) {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                    Toast.makeText(context, "Missing placeId", Toast.LENGTH_SHORT).show()
+                }
+                return@composable
+            }
             CheckInFeedScreen(
                 placeId       = placeId,
                 navController = navController

@@ -89,7 +89,7 @@ fun EditPicAndVoiceBioScreen(
 
     // Image moderation helper
     suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
-        val jpeg = compressImage(context, uri)
+        val jpeg = compressImage(context, uri) ?: return@withContext false
         val b64 = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
         moderateImages(listOf(b64))
     }
@@ -113,7 +113,7 @@ fun EditPicAndVoiceBioScreen(
                     return@launch
                 }
                 try {
-                    val jpegBytes = compressImage(context, outUri)
+                    val jpegBytes = compressImage(context, outUri) ?: return@launch
                     val fileName = "${System.currentTimeMillis()}.jpg"
                     val imgRef = FirebaseRefs.storage.reference
                         .child("users/$currentUserId/$fileName")
