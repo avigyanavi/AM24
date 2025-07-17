@@ -491,7 +491,7 @@ fun SettingsScreen(navController: NavController) {
                             rewardDialogFor = null
                             route?.let { r -> navController.navigate(r) }
                         }
-                    }) { Text("No Thanks", color = kupidxOrange) }
+                    }) { Text("Pay Instead", color = kupidxOrange) }
                 }
             )
         }
