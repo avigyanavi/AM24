@@ -14,4 +14,15 @@ object CountryUtil {
 
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "IN" }
     }
+
+    /**
+     * Decide whether Razorpay should be used for payments.
+     * If the device locale suggests India but the user has selected a
+     * different country during registration, prefer PayPal instead.
+     */
+    fun useRazorpay(ctx: Context, selectedCountry: String?): Boolean {
+        val deviceIndia = isProbablyInIndia(ctx)
+        if (!deviceIndia) return false
+        return selectedCountry?.equals("India", ignoreCase = true) ?: true
+    }
 }

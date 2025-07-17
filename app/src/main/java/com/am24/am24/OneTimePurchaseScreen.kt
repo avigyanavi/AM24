@@ -33,6 +33,7 @@ import org.json.JSONObject
 import java.util.Locale
 import android.telephony.TelephonyManager
 import androidx.core.content.getSystemService
+import com.am24.am24.CountryUtil
 
 /* ─────── 1 · Purchase types ─────── */
 enum class PurchaseType(val apiType: String,
@@ -63,7 +64,11 @@ fun OneTimePurchaseScreen(
     val fx         = FirebaseFunctions.getInstance("asia-south1")
     val checkout   = remember { Checkout().apply { setKeyID("rzp_live_DsoxJLeiCw940M") } }
     val act        = ctx as Activity
-    val isIndia    = remember { isProbablyInIndia(ctx) }
+    var userCountry by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(uid) {
+        userCountry = userRoot.child("country").get().await().getValue(String::class.java)
+    }
+    val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
     var ui by remember { mutableStateOf(UiState()) }
 

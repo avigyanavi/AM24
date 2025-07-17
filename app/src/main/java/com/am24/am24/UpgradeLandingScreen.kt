@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,14 +76,19 @@ fun UpgradeLandingScreen(nav: NavController) {
 
     /* ── local handles (captured by launchOneTimeUpi) ── */
     val ctx    = LocalContext.current
-    val isIndia = isProbablyInIndia(ctx)
+    val uid    = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val userRoot = FirebaseRefs.db.getReference("users/$uid")
+    var userCountry by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(uid) {
+        userCountry = userRoot.child("country").get().await().getValue(String::class.java)
+    }
+    val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
     val scope  = rememberCoroutineScope()
     val host   = ctx as? KupidXAppActivity
     val fx     = FirebaseFunctions.getInstance("asia-south1")
     val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID_PUBLIC) } }
     val db     = FirebaseRefs.db
-    val uid    = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
     /* ── helper moved INSIDE so it sees the locals ── */
     fun launchOneTimeUpi(tier: Tier, period: Period) = scope.launch {

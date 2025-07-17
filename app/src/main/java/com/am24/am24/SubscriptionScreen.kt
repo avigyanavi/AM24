@@ -114,10 +114,15 @@ fun SubscriptionScreen(navController: NavController) {
 
     /* geo-gate exactly like before */
     val ctx = LocalContext.current
-    val isIndia = isProbablyInIndia(ctx)
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val userRoot = FirebaseDatabase.getInstance().getReference("users/$uid")
+    var userCountry by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(uid) {
+        userCountry = userRoot.child("country").get().await().getValue(String::class.java)
+    }
+    val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
     /* -------------------------------------------------- */
-    val uid    = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val db     = FirebaseDatabase.getInstance().reference
     val scope  = rememberCoroutineScope()
     val host   = ctx as? KupidXAppActivity           // for callback hookup
@@ -183,8 +188,7 @@ fun SubscriptionScreen(navController: NavController) {
         }
     }
     fun handlePlan(plan: Plan) {
-        if (isProbablyInIndia(ctx)) {
-            // Razorpay checkout like before
+        if (isIndia) {            // Razorpay checkout like before
             launchCheckout(plan)
         } else {
             // Same UI, but jump to correct PayPal page
