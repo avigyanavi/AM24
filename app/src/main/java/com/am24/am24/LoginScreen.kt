@@ -195,6 +195,13 @@ class LoginActivity : ComponentActivity() {
             return
         }
 
+        val invalidChars = Regex("[.#$\\[\\]]")
+        if (!trimmed.contains("@") && invalidChars.containsMatchIn(trimmed)) {
+            toast("Username can’t contain .  #  $  [  ]")
+            isLoading.value = false
+            return
+        }
+
         lifecycleScope.launch(Dispatchers.IO) {
 
             // ── 0) if it’s a “username” (no @), see if publicUsers says “google” ──

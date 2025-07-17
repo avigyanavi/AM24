@@ -1961,6 +1961,33 @@
     <string name="locality_vijayawada_enikepadu">ಎನಿಕೆಪಾಡು</string>
     <string name="locality_vijayawada_nidamanuru">ನಿಡಮನೂರು</string>
 
+    <string name="ethnicity_label">ಜಾತಿ</string>
+    <string name="select_ethnicity">ಜಾತಿ ಆಯ್ಕೆಮಾಡಿ</string>
+    <string name="ethnicity_option_not_selected">ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ</string>
+    <string name="ethnicity_option_white">ಬಿಳಿ (ಕಾಕೇಷಿಯನ್)</string>
+    <string name="ethnicity_option_black">ಕಪ್ಪು / ಆಫ್ರಿಕನ್ ಅಮೇರಿಕನ್</string>
+    <string name="ethnicity_option_hispanic">ಹಿಸ್ಪ್ಯಾನಿಕ್ / ಲ್ಯಾಟಿನೋ</string>
+    <string name="ethnicity_option_asian">ಏಶಿಯನ್</string>
+    <string name="ethnicity_option_native_american">ನೇಟಿವ್ ಅಮೇರಿಕನ್</string>
+    <string name="ethnicity_option_middle_eastern">ಮಧ್ಯಪೂರ್ವ</string>
+    <string name="ethnicity_option_pacific_islander">ಪೆಸಿಫಿಕ್ ಐಲ್ಯಾಂಡರ್</string>
+    <string name="ethnicity_option_mixed_other">ಮಿಶ್ರ / ಇತರ</string>
+
+    <string name="income_level_label">ಆದಾಯ ಮಟ್ಟ</string>
+    <string name="select_income_level">ಆದಾಯ ಮಟ್ಟ ಆಯ್ಕೆಮಾಡಿ</string>
+    <string name="income_level_option_not_selected">ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ</string>
+    <string name="income_level_under_25k">$25k ಕಿಂತ ಕಡಿಮೆ</string>
+    <string name="income_level_25k_50k">$25k–$50k</string>
+    <string name="income_level_50k_75k">$50k–$75k</string>
+    <string name="income_level_75k_100k">$75k–$100k</string>
+    <string name="income_level_100k_150k">$100k–$150k</string>
+    <string name="income_level_over_150k">$150k ಕಿಂತ ಹೆಚ್ಚಾಗಿ</string>
+
+    <string name="looking_for_long_term">ದೀರ್ಘಾವದಿ</string>
+    <string name="looking_for_short_to_long">ಅಲ್ಪಾವದಿ – ದೀರ್ಘಾವದಿಗೂ ತೆರೆದ</string>
+    <string name="looking_for_casual">ಕ್ಯಾಸುವಲ್</string>
+    <string name="looking_for_dating">ಡೆಟಿಂಗ್</string>
+    <string name="looking_for_exclusive">ಎಕ್ಸ್ಲೂಸಿವ್</string>
     <!-- Institutional and Educational Areas -->
     <string name="locality_vijayawada_siddhartha_nagar">ಸಿದ್ಧಾರ್ಥ ನಗರ</string>
     <string name="locality_vijayawada_ntr_university_area">NTR ವಿಶ್ವವಿದ್ಯಾಲಯ ಪ್ರದೇಶ</string>

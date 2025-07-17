@@ -1162,7 +1162,7 @@
         <string name="basic_filters">బేసిక్ ఫిల్టర్లు</string>
         <string name="gender_preference">లైంగిక ప్రాధాన్యత:</string>
         <string name="age_range">వయస్సు పరిధి: %1$d - %2$d</string>
-        <string name="max_distance">దూరం: %1$డ్కెం</string>
+    <string name="max_distance">దూరం: %1$dkm</string>
     <string name="max_distance_miles">దూరం: %1$dmi</string>
 
         <!-- Education Section -->
@@ -5672,6 +5672,34 @@
     <string name="locality_hisar_firoz_shah_palace_complex">ఫిరోజ్ షా ప్యాలెస్ కాంప్లెక్స్</string>
     <string name="locality_hisar_deer_park">డియర్ పార్క్</string>
     <string name="locality_hisar_other">ఇతరం</string>
+
+    <string name="ethnicity_label">జాతి</string>
+    <string name="select_ethnicity">జాతిని ఎంచుకోండి</string>
+    <string name="ethnicity_option_not_selected">ఎంచుకోలేదు</string>
+    <string name="ethnicity_option_white">తెలుపు (కాకసియన్)</string>
+    <string name="ethnicity_option_black">నలుపు / ఆఫ్రికన్ అమెరికన్</string>
+    <string name="ethnicity_option_hispanic">హిస్పానిక్ / లాటినో</string>
+    <string name="ethnicity_option_asian">ఆసియా</string>
+    <string name="ethnicity_option_native_american">నేటివ్ అమెరికన్</string>
+    <string name="ethnicity_option_middle_eastern">మధ్య ప్రాచ్య</string>
+    <string name="ethnicity_option_pacific_islander">పసిఫిక్ ఐలాండర్</string>
+    <string name="ethnicity_option_mixed_other">మిశ్రమ / ఇతర</string>
+
+    <string name="income_level_label">ఆదాయ స్థాయి</string>
+    <string name="select_income_level">ఆదాయ స్థాయి ఎంచుకోండి</string>
+    <string name="income_level_option_not_selected">ఎంచుకోలేదు</string>
+    <string name="income_level_under_25k">$25k కంటే తక్కువ</string>
+    <string name="income_level_25k_50k">$25k–$50k</string>
+    <string name="income_level_50k_75k">$50k–$75k</string>
+    <string name="income_level_75k_100k">$75k–$100k</string>
+    <string name="income_level_100k_150k">$100k–$150k</string>
+    <string name="income_level_over_150k">$150k కంటే ఎక్కువ</string>
+
+    <string name="looking_for_long_term">దీర్ఘకాలిక</string>
+    <string name="looking_for_short_to_long">తక్కువకాలం – దీర్ఘకాలానికీ సిద్ధం</string>
+    <string name="looking_for_casual">అనౌపచారిక</string>
+    <string name="looking_for_dating">డేటింగ్</string>
+    <string name="looking_for_exclusive">ఎక్స్‌క్లూజివ్</string>
 
     <string name="locality_rohtak_rohtak">రోతాక్</string>
     <string name="locality_rohtak_delhi_road">ఢిల్లీ రోడ్</string>

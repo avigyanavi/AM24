@@ -15,10 +15,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
+import android.util.Log
+import java.io.IOException
+
 
 /* ---------- hard-coded project key (replace before shipping!) ---------- */
 private const val OPENAI_API_KEY =
     "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"
+
+private const val TAG = "OpenAIModerator"
 
 private val client = OkHttpClient.Builder()
     .connectTimeout(15, TimeUnit.SECONDS)   // TCP/TLS handshake
@@ -28,6 +33,9 @@ private val client = OkHttpClient.Builder()
     .retryOnConnectionFailure(true)         // automatic retry on flaky links
     .build()
 private val JSON_TYPE   = "application/json; charset=utf-8".toMediaType()
+
+var moderationErrorCallback: (() -> Unit)? = null
+
 
 /* ========== PUBLIC API ================================================= */
 
@@ -64,15 +72,21 @@ private suspend fun postModeration(input: JSONArray): Boolean =
             .post(bodyJson.toRequestBody(JSON_TYPE))
             .build()
 
-        client.newCall(req).execute().use { resp ->
-            if (!resp.isSuccessful) false
-            else {
-                val flagged = JSONObject(resp.body!!.string())
-                    .getJSONArray("results")
-                    .getJSONObject(0)
-                    .getBoolean("flagged")
-                flagged
+        try {
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) false
+                else {
+                    val flagged = JSONObject(resp.body!!.string())
+                        .getJSONArray("results")
+                        .getJSONObject(0)
+                        .getBoolean("flagged")
+                    flagged
+                }
             }
+        } catch (e: IOException) {
+            Log.e(TAG, "Moderation request failed", e)
+            moderationErrorCallback?.invoke()
+            false
         }
     }
 

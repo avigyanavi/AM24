@@ -4379,6 +4379,33 @@
                 <string name="locality_ludhiana_sahnewal">சர்நெவால்</string>
                 <string name="locality_ludhiana_other">மற்றவை</string>
 
+        <string name="ethnicity_label">இனம்</string>
+        <string name="select_ethnicity">இனத்தை தேர்வு செய்யவும்</string>
+        <string name="ethnicity_option_not_selected">தேர்வு செய்யப்படவில்லை</string>
+        <string name="ethnicity_option_white">வெள்ளை (காகேசியன்)</string>
+        <string name="ethnicity_option_black">கருப்பு / ஆப்பிரிக்க அமெரிக்கர்</string>
+        <string name="ethnicity_option_hispanic">ஹிஸ்பானிக் / லத்தீனோ</string>
+        <string name="ethnicity_option_asian">ஆசிய</string>
+        <string name="ethnicity_option_native_american">நேடிவ் அமெரிக்கன்</string>
+        <string name="ethnicity_option_middle_eastern">மத்திய கிழக்கு</string>
+        <string name="ethnicity_option_pacific_islander">பசிபிக் தீவினர்</string>
+        <string name="ethnicity_option_mixed_other">கலப்பு / பிற</string>
+
+        <string name="income_level_label">வருவாய் நிலை</string>
+        <string name="select_income_level">வருவாய் நிலையை தேர்வு செய்யவும்</string>
+        <string name="income_level_option_not_selected">தேர்வு செய்யப்படவில்லை</string>
+        <string name="income_level_under_25k">$25k‑க்கு கீழே</string>
+        <string name="income_level_25k_50k">$25k–$50k</string>
+        <string name="income_level_50k_75k">$50k–$75k</string>
+        <string name="income_level_75k_100k">$75k–$100k</string>
+        <string name="income_level_100k_150k">$100k–$150k</string>
+        <string name="income_level_over_150k">$150k‑க்கு அதிகம்</string>
+
+        <string name="looking_for_long_term">நீண்ட காலம்</string>
+        <string name="looking_for_short_to_long">குறுகிய காலம் – நீண்ட காலத்திற்கும் திறந்தது</string>
+        <string name="looking_for_casual">விடுதலையான</string>
+        <string name="looking_for_dating">டேட்டிங்</string>
+        <string name="looking_for_exclusive">ஏகபாட்டான</string>
                 <!-- ─── Localities for Chandigarh ───────────────────────────────────────────── -->
                 <string name="locality_chandigarh_chandigarh">சந்திகர்</string>
                 <string name="locality_chandigarh_sector_17">செக்டர் 17</string>

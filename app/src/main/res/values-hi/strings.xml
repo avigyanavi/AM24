@@ -734,6 +734,33 @@
     <string name="shared_tags_prefix">साझी टैग: %1$s</string>
     <string name="tags_not_set_or_no_overlap">उपयोगकर्ता टैग: निर्धारित नहीं या कोई ओवरलैप नहीं</string>
 
+    <string name="ethnicity_label">जातीयता</string>
+    <string name="select_ethnicity">जातीयता चुनें</string>
+    <string name="ethnicity_option_not_selected">चयनित नहीं</string>
+    <string name="ethnicity_option_white">श्वेत (कॉकसियाई)</string>
+    <string name="ethnicity_option_black">काला / अफ्रीकी अमेरिकी</string>
+    <string name="ethnicity_option_hispanic">हिस्पैनिक / लैटिनो</string>
+    <string name="ethnicity_option_asian">एशियाई</string>
+    <string name="ethnicity_option_native_american">मूल निवासी अमेरिकी</string>
+    <string name="ethnicity_option_middle_eastern">मध्य पूर्वी</string>
+    <string name="ethnicity_option_pacific_islander">प्रशांत द्वीपवासी</string>
+    <string name="ethnicity_option_mixed_other">मिश्रित / अन्य</string>
+
+    <string name="income_level_label">आय स्तर</string>
+    <string name="select_income_level">आय स्तर चुनें</string>
+    <string name="income_level_option_not_selected">चयनित नहीं</string>
+    <string name="income_level_under_25k">$25k से कम</string>
+    <string name="income_level_25k_50k">$25k–$50k</string>
+    <string name="income_level_50k_75k">$50k–$75k</string>
+    <string name="income_level_75k_100k">$75k–$100k</string>
+    <string name="income_level_100k_150k">$100k–$150k</string>
+    <string name="income_level_over_150k">$150k से अधिक</string>
+
+    <string name="looking_for_long_term">दीर्घकालिक</string>
+    <string name="looking_for_short_to_long">अल्पकालिक – दीर्घकालिक के लिए खुला</string>
+    <string name="looking_for_casual">कैज़ुअल</string>
+    <string name="looking_for_dating">डेटिंग</string>
+    <string name="looking_for_exclusive">एक्सक्लूसिव</string>
     <!-- High school options for dropdown -->
     <!-- North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Himachal Pradesh, Punjab, Rajasthan, Jammu & Kashmir) -->
     <string name="high_school_modern_school_barakhamba">मॉडर्न स्कूल, बाराखंबा रोड</string>

@@ -31,7 +31,7 @@ class PayPalReturnActivity : ComponentActivity() {
         val user  = FirebaseAuth.getInstance().currentUser ?: return finish()
 
         lifecycleScope.launch {
-            val ok = FirebaseFunctions.getInstance()
+            val ok = FirebaseFunctions.getInstance("asia-south1")
                 .getHttpsCallable("verifyPaypalSubscription")
                 .call(mapOf("subscriptionId" to subId))
                 .await()

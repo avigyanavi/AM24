@@ -5816,6 +5816,35 @@
     <string name="boost">বুস্ট</string>
     <string name="show_boosted">বুস্টকৃত ব্যবহারকারী দেখাও</string>
     <string name="boosted_users">নিকটে বুস্টকৃত ব্যবহারকারী</string>
+
+    <string name="ethnicity_label">জাতিগত পরিচয়</string>
+    <string name="select_ethnicity">জাতিগত পরিচয় নির্বাচন করুন</string>
+    <string name="ethnicity_option_not_selected">নির্বাচিত নয়</string>
+    <string name="ethnicity_option_white">শ্বেত (ককেশীয়)</string>
+    <string name="ethnicity_option_black">কৃষ্ণাঙ্গ / আফ্রিকান‑আমেরিকান</string>
+    <string name="ethnicity_option_hispanic">হিস্পানিক / লাতিনো</string>
+    <string name="ethnicity_option_asian">এশীয়</string>
+    <string name="ethnicity_option_native_american">নেটিভ অ্যামেরিকান</string>
+    <string name="ethnicity_option_middle_eastern">মধ্যপ্রাচ্যীয়</string>
+    <string name="ethnicity_option_pacific_islander">প্রশান্ত মহাসাগরীয় দ্বীপবাসী</string>
+    <string name="ethnicity_option_mixed_other">মিশ্রিত / অন্যান্য</string>
+
+    <string name="income_level_label">আয়ের স্তর</string>
+    <string name="select_income_level">আয়ের স্তর নির্বাচন করুন</string>
+    <string name="income_level_option_not_selected">নির্বাচিত নয়</string>
+    <string name="income_level_under_25k">$25k‑এর কম</string>
+    <string name="income_level_25k_50k">$25k–$50k</string>
+    <string name="income_level_50k_75k">$50k–$75k</string>
+    <string name="income_level_75k_100k">$75k–$100k</string>
+    <string name="income_level_100k_150k">$100k–$150k</string>
+    <string name="income_level_over_150k">$150k‑এর উপরে</string>
+
+    <string name="looking_for_long_term">দীর্ঘমেয়াদী</string>
+    <string name="looking_for_short_to_long">স্বল্পমেয়াদী – দীর্ঘমেয়াদীও গ্রহণযোগ্য</string>
+    <string name="looking_for_casual">স্বচ্ছন্দ</string>
+    <string name="looking_for_dating">ডেটিং</string>
+    <string name="looking_for_exclusive">এক্সক্লুসিভ</string>
+
     <string-array name="social_causes_list">
         <!-- Environment & Sustainability -->
         <item>জলবায়ু উদ্যোগ এবং নবায়নযোগ্য শক্তি</item>

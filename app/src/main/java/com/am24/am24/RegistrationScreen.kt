@@ -2357,7 +2357,10 @@ fun EnterGenderCommunityReligionScreen(
 
 
     // Validation for enabling the "Next" button
-    val isNextEnabled = registrationViewModel.gender.isNotEmpty() && registrationViewModel.dob.isNotBlank()
+    val userAge = calculateAge(registrationViewModel.dob)
+    val isNextEnabled = registrationViewModel.gender.isNotEmpty() &&
+            registrationViewModel.dob.isNotBlank() &&
+            userAge >= 14
     LaunchedEffect(isNextEnabled) { registrationViewModel.nextEnabled = isNextEnabled }
 
     Scaffold(

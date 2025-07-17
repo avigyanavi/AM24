@@ -4,8 +4,6 @@ const axios = require("axios");
 const functions  = require("firebase-functions");
 const admin      = require("firebase-admin");
 const OpenAI     = require("openai").default;
-const Busboy = require("busboy");
-const { v4: uuidv4 } = require("uuid");
 const crypto  = require("crypto");
 
 const fetch = require("node-fetch");
@@ -75,7 +73,7 @@ exports.createOneTimeOrder = functions
 /* ───────────────────────────── Chat suggestions ───────────────────────────── */
 
 /* maps “hi”, “bn”, … → prompt fragment */
-const LANG = { hi: "Hindi", bn: "Bengali", en: "English", ta: "Tamil", kn: "Kannada", te: "Telegu" };
+const LANG = { hi: "Hindi", bn: "Bengali", en: "English", ta: "Tamil", kn: "Kannada", te: "Telugu" };
 
 exports.chatSuggestions = functions
   .region("asia-south1")
@@ -644,7 +642,9 @@ exports.capturePaypalOrder = functions
 /**
  * Callable ⇢ verifyPaypalSubscription({ subscriptionId: "I-XXXX" }) → { valid:Boolean, status:String }
  */
-exports.verifyPaypalSubscription = functions.https.onCall(async (data, context) => {
+exports.verifyPaypalSubscription = functions
+  .region('asia-south1')              // 👈 added
+  .https.onCall(async (data, context) => {
   const subId = data?.subscriptionId;
   if (!subId) {
     throw new functions.https.HttpsError("invalid-argument", "subscriptionId missing");
