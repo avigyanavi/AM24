@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
 import java.io.File
@@ -103,6 +104,7 @@ fun CreatePostScreen(
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
         },
+        containerColor = DarkGrayBackground,
         content = { innerPadding ->
             Column(
                 modifier = Modifier
@@ -403,6 +405,7 @@ fun TextPostComposable(
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
         },
+        containerColor = DarkGrayBackground,
         content = { pad ->
             LazyColumn(
                 modifier = Modifier
@@ -683,7 +686,8 @@ fun ImagePostComposable(
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
-        }
+        },
+        containerColor = DarkGrayBackground
     ) { pad ->
 
         /* --------------- SEARCH side-effect --------------- */
@@ -1037,7 +1041,8 @@ fun VideoPostComposable(
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
-        }
+        },
+        containerColor = DarkGrayBackground
     ) { pad ->
 
         LazyColumn(

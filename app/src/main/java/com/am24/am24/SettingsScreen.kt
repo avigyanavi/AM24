@@ -129,6 +129,7 @@ fun SettingsScreen(navController: NavController) {
     var working           by remember { mutableStateOf(false) }
 
     var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
+    val isIndian = remember(country) { country.equals("India", ignoreCase = true) }
     val activity = LocalContext.current as Activity
     val rewardedBoostManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/4203186426") }
     val rewardedComplimentManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6893779002") }
@@ -299,27 +300,36 @@ fun SettingsScreen(navController: NavController) {
                     /* STATIC BOOSTS ROW  */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.FlashOn, null) },
-                        title        = "Boosts remaining",
+                        title        = "Get More Boosts",
                         trailingText = "$boosts",
-                        onClick = { rewardDialogFor = PurchaseType.Boosts }
+                        onClick = {
+                            if (isIndian) navController.navigate("buyBoosts")
+                            else rewardDialogFor = PurchaseType.Boosts
+                        }
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
                     /* STATIC SWIPES ROW  */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.Swipe, null) },
-                        title        = "Swipes remaining",
+                        title        = "Get more Swipes",
                         trailingText = "$swipes",
-                        onClick = { rewardDialogFor = PurchaseType.Swipes }
+                        onClick = {
+                            if (isIndian) navController.navigate("buySwipes")
+                            else rewardDialogFor = PurchaseType.Swipes
+                        }
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
                     /* STATIC COMPLIMENTS ROW  */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.FavoriteBorder, null) },
-                        title        = "Compliments remaining",
+                        title        = "Get more Compliments",
                         trailingText = "$compliments",
-                        onClick = { rewardDialogFor = PurchaseType.Compliments }
+                        onClick = {
+                            if (isIndian) navController.navigate("buyCompliments")
+                            else rewardDialogFor = PurchaseType.Compliments
+                        }
                     )
 
                     /* AI messages  ★ NEW ★ */
@@ -441,7 +451,7 @@ fun SettingsScreen(navController: NavController) {
         }
         val kupidxOrange = Color(0xFFFF6F00)
 
-        rewardDialogFor?.let { type ->
+        if (!isIndian) rewardDialogFor?.let { type ->
             val msg = when (type) {
                 PurchaseType.Boosts -> "Watch ad for 1 Boost"
                 PurchaseType.Compliments -> "Watch ad for 1 Compliment"

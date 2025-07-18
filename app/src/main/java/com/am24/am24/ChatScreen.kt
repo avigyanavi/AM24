@@ -19,7 +19,7 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.Toast
 import android.widget.VideoView
-import androidx.activity.ComponentActivity
+import com.am24.am24.ui.theme.DarkGrayBackground
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -1103,9 +1103,9 @@ fun ChatScreenContent(
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
         },
-        containerColor = Color.Black
+        containerColor = DarkGrayBackground
     ) { paddingValues ->
-        Box(Modifier.fillMaxSize().padding(paddingValues).background(Color.Black)) {
+        Box(Modifier.fillMaxSize().padding(paddingValues).background(DarkGrayBackground)) {
             Column(Modifier.fillMaxSize()) {
                 if (otherUserProfile != null && showRating) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -2069,7 +2069,7 @@ fun FullscreenMediaViewer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(DarkGrayBackground)
         ) {
             if (target.mediaType == "photo") {
                 val photoRequest = ImageRequest.Builder(context)
@@ -2133,7 +2133,7 @@ fun FullscreenVideoPlayer(uri: Uri, onDismiss: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(DarkGrayBackground)
         ) {
             androidx.compose.ui.viewinterop.AndroidView(
                 factory = { ctx ->
@@ -2725,7 +2725,7 @@ fun SelectedMediaFullScreen(
     var videoReady by remember { mutableStateOf(mediaType != "video") }   // photo → ready instantly
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxSize().background(Color.Black)) {
+        Box(Modifier.fillMaxSize().background(DarkGrayBackground)) {
 
             when (mediaType) {
                 "photo" ->                               /* show local photo quickly with ImageView */

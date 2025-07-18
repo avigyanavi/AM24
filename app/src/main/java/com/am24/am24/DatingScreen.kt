@@ -109,6 +109,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.am24.am24.ui.CompatibilityMeter
+import com.am24.am24.ui.theme.DarkGrayBackground
 import com.am24.am24.zodiacCompatibilityScore
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.MutableData
@@ -438,7 +439,7 @@ fun DatingScreen(
     ) {
         Column(Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(DarkGrayBackground)
         ) {
 
             // ── TOOLBAR ───────────────────────────────────────────────
@@ -487,18 +488,22 @@ fun DatingScreen(
                                 showComplimentDlg = true
                             } else {
                                 // zero left → go buy more
-                                rewardedComplimentManager.show(onReward = {
-                                    datingViewModel.incrementComplimentsLocal()
-                                    val uid = FirebaseAuth.getInstance().uid
-                                    if (uid != null) {
-                                        val newVal = complimentsLeft + 1
-                                        coroutineScope.launch {
-                                            FirebaseRefs.db.getReference("users/$uid/availableCompliments")
-                                                .setValue(newVal)
+                                if (isIndian) {
+                                    navController.navigate("buyCompliments")
+                                } else {
+                                    rewardedComplimentManager.show(onReward = {
+                                        datingViewModel.incrementComplimentsLocal()
+                                        val uid = FirebaseAuth.getInstance().uid
+                                        if (uid != null) {
+                                            val newVal = complimentsLeft + 1
+                                            coroutineScope.launch {
+                                                FirebaseRefs.db.getReference("users/$uid/availableCompliments")
+                                                    .setValue(newVal)
+                                            }
+                                            profileViewModel.incrementComplimentsLocal()
                                         }
-                                        profileViewModel.incrementComplimentsLocal()
-                                    }
-                                })
+                                    })
+                                }
                             }
                         }
                     )
@@ -522,18 +527,22 @@ fun DatingScreen(
                                 }
                             } else {
                                 // no boosts → go buy more
-                                rewardedBoostManager.show(onReward = {
-                                    profileViewModel.incrementBoostsLocal()
-                                    datingViewModel.incrementBoostsLocal()
-                                    val uid = FirebaseAuth.getInstance().uid
-                                    if (uid != null) {
-                                        val newVal = myProfile!!.availableBoosts + 1
-                                        coroutineScope.launch {
-                                            FirebaseRefs.db.getReference("users/$uid/availableBoosts")
-                                                .setValue(newVal)
+                                if (isIndian) {
+                                    navController.navigate("buyBoosts")
+                                } else {
+                                    rewardedBoostManager.show(onReward = {
+                                        profileViewModel.incrementBoostsLocal()
+                                        datingViewModel.incrementBoostsLocal()
+                                        val uid = FirebaseAuth.getInstance().uid
+                                        if (uid != null) {
+                                            val newVal = myProfile!!.availableBoosts + 1
+                                            coroutineScope.launch {
+                                                FirebaseRefs.db.getReference("users/$uid/availableBoosts")
+                                                    .setValue(newVal)
+                                            }
                                         }
-                                    }
-                                })
+                                    })
+                                }
                             }
                         }
                     )
@@ -614,17 +623,23 @@ fun DatingScreen(
                         remainingSwipes = remainingSwipes,
                         isPlus = myProfile!!.isPlus,
                         isPremium = myProfile!!.isPremium,
+                        isIndian = isIndian,
                         onDismiss = {
                             showSwipeLimitOverlay = false
                         },
                         onWatchAd = {
-                            rewardedSwipeManager.show(
-                                onReward = {
-                                    remainingSwipes += 5
-                                    updateSwipesInFirebase(remainingSwipes)
-                                },
-                                afterAd = { showSwipeLimitOverlay = false }
-                            )
+                            if (isIndian) {
+                                navController.navigate("buySwipes")
+                                showSwipeLimitOverlay = false
+                            } else {
+                                rewardedSwipeManager.show(
+                                    onReward = {
+                                        remainingSwipes += 5
+                                        updateSwipesInFirebase(remainingSwipes)
+                                    },
+                                    afterAd = { showSwipeLimitOverlay = false }
+                                )
+                            }
                         }
                     )
                 }
@@ -857,6 +872,7 @@ fun SwipeLimitOverlay(
     remainingSwipes: Int,
     isPlus: Boolean,
     isPremium: Boolean,
+    isIndian: Boolean,
     onDismiss: () -> Unit,
     onWatchAd: () -> Unit
 ) {
@@ -892,7 +908,7 @@ fun SwipeLimitOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
+            .background(DarkGrayBackground.copy(alpha = 0.8f))
             .pointerInput(Unit) {},   // eat all touches
         contentAlignment = Alignment.Center
     ) {
@@ -923,7 +939,8 @@ fun SwipeLimitOverlay(
                         onClick = onWatchAd,
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
                     ) {
-                        Text("Watch ad for 5 Swipes", color = Color.Black)
+                        val label = if (isIndian) "Buy Swipes" else "Watch ad for 5 Swipes"
+                        Text(label, color = Color.Black)
                     }
                 }
             }
@@ -1776,7 +1793,7 @@ fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 0) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(DarkGrayBackground)
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -1945,14 +1962,14 @@ fun DatingProfileCard(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp),
-            backgroundColor = Color.Black,
+            backgroundColor = DarkGrayBackground,
             shape = RoundedCornerShape(8.dp),
             border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
         ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(DarkGrayBackground)
             ) {
                 item {
                     PhotoWithTwoOverlays(
@@ -2051,7 +2068,7 @@ fun DatingProfileHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black)
+            .background(DarkGrayBackground)
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(
@@ -2090,8 +2107,8 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black),
-            color = Color.Black
+                .background(DarkGrayBackground),
+            color = DarkGrayBackground
         ) {
             Box {
                 // — Full-screen scrollable list —
@@ -2201,7 +2218,7 @@ fun PhotoWithTwoOverlays(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(0.75f)
-                .background(Color.Black)
+                .background(DarkGrayBackground)
                 .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                 .pointerInput(photoUrls) {
                     detectTapGestures {

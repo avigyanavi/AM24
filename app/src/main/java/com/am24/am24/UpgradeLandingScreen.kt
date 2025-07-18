@@ -254,7 +254,7 @@ private fun TierCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             val accent = if (tier == Tier.PLUS) Color(0xFFFF6F00) else Color.White
-                            Text("Pay once", color = accent)
+                            Text("Pay once with UPI", color = accent)
                         }
 
                         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

@@ -43,6 +43,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.imageLoader
 import coil.request.ImageRequest
+import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.delay
@@ -319,7 +320,7 @@ fun DMScreenContent(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(DarkGrayBackground)
             .clickable(
                 onClick = { focusManager.clearFocus() },
                 indication = null,
@@ -477,7 +478,7 @@ fun DMScreenContent(navController: NavController) {
                         state = listState,
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black)
+                            .background(DarkGrayBackground)
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -804,7 +805,7 @@ fun DMUserCard(
     Box(
         Modifier
             .fillMaxWidth()
-            .background(Color.Black)
+            .background(DarkGrayBackground)
             .border(
                 BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)),
                 shape = RoundedCornerShape(8.dp)

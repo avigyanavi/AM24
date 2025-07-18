@@ -33,6 +33,7 @@ import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
 import com.am24.am24.compressImage
 import com.am24.am24.moderateImages
+import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.firebase.auth.FirebaseAuth
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
@@ -187,13 +188,13 @@ fun EditPicAndVoiceBioScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
-        containerColor = Color.Black
+        containerColor = DarkGrayBackground
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color.Black)
+                .background(DarkGrayBackground)
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(12.dp))
