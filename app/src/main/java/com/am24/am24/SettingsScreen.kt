@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.am24.am24.AccountDeletion
@@ -194,7 +195,7 @@ fun SettingsScreen(navController: NavController) {
                     SettingsSection {
                         SettingsRow(
                             icon = { Icon(Icons.Default.Public, null, tint = Color(0xFFFF6F00)) },
-                            title = "Change Location",
+                            title = stringResource(R.string.settings_change_location),
                             trailingText = listOf(country, city, locality)
                                 .filter { it.isNotBlank() }
                                 .joinToString(", ")
@@ -220,7 +221,7 @@ fun SettingsScreen(navController: NavController) {
 
                             AlertDialog(
                                 onDismissRequest = { showLocationDialog = false },
-                                title = { Text("Select your Location") },
+                                title = { Text(stringResource(R.string.settings_select_location)) },
                                 text = {
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         SearchableDropdown(
@@ -270,7 +271,7 @@ fun SettingsScreen(navController: NavController) {
                 SettingsSection {
                     ListItem(
                         leadingContent = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
-                        headlineContent = { Text("Membership", fontWeight = FontWeight.Bold) }
+                        headlineContent = { Text(stringResource(R.string.settings_membership), fontWeight = FontWeight.Bold) }
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
@@ -278,7 +279,7 @@ fun SettingsScreen(navController: NavController) {
                     if (premiumTier == "Free") {
                         SettingsRow(
                             icon  = { Icon(Icons.Default.StarOutline, null) },
-                            title = "Free User",
+                            title = stringResource(R.string.settings_free_user),
                             trailingText = "Upgrade",
                             onClick = {                 // ⬅️ change only this line
                                 navController.navigate("upgradeLanding")
@@ -402,7 +403,7 @@ fun SettingsScreen(navController: NavController) {
                 SettingsSection {
                     SettingsRow(
                         icon = { Icon(Icons.Default.Feedback, null, tint = Color(0xFFFF6F00)) },
-                        title = "Give Feedback",
+                        title = stringResource(R.string.settings_give_feedback),
                         showChevron = false
                     ) { showFeedbackDialog = true }
                 }
@@ -422,7 +423,7 @@ fun SettingsScreen(navController: NavController) {
                 SettingsSection {
                     SettingsRow(
                         icon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFFF6F00)) },
-                        title = "Delete Account",
+                        title = stringResource(R.string.settings_delete_account),
                         showChevron = false,
                         onClick = { showDeleteDialog = true }
                     )
@@ -561,7 +562,7 @@ fun SettingsScreen(navController: NavController) {
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { if (!working) showDeleteDialog = false },
-                title = { Text("Delete Account", color = kupidxOrange) },
+                title = { Text(stringResource(R.string.settings_delete_account), color = kupidxOrange) },
                 text = {
                     Text("Are you sure you want to delete your account? All data will be removed.")
                 },
@@ -692,7 +693,7 @@ private fun AccountCard(uid: String) {
     SettingsSection {
         ListItem(
             leadingContent = { Icon(Icons.Default.Person, null, tint = Color(0xFFFF6F00)) },
-            headlineContent = { Text("Account Settings", fontWeight = FontWeight.Bold) }
+            headlineContent = { Text(stringResource(R.string.settings_account_settings), fontWeight = FontWeight.Bold) }
         )
         Divider(Modifier.padding(start = 56.dp))
 
@@ -706,7 +707,7 @@ private fun AccountCard(uid: String) {
         /* password row */
         SettingsRow(
             icon = { Icon(Icons.Default.Lock, null) },
-            title = "Change Password",
+            title = stringResource(R.string.settings_change_password),
             showChevron = false
         ) { showPassDialog = true }
         Divider(Modifier.padding(start = 56.dp))
@@ -764,7 +765,7 @@ private fun AccountCard(uid: String) {
 
         AlertDialog(
             onDismissRequest = { if (!working) showPassDialog = false },
-            title = { Text("Change Password", color = Color(0xFFFF6F00)) },
+            title = { Text(stringResource(R.string.settings_change_password), color = Color(0xFFFF6F00)) },
             text = {
                 Column {
                     OutlinedTextField(
@@ -896,7 +897,7 @@ private fun GlobalPrefCard(
             ) {
                 Icon(Icons.Default.Language, null)
                 Spacer(Modifier.width(16.dp))
-                Text("Preferred Language", Modifier.weight(1f))
+                Text(stringResource(R.string.settings_preferred_language), Modifier.weight(1f))
                 Text(langs.first { it.second == lang }.first)
                 Icon(Icons.Default.KeyboardArrowRight, null)
             }
@@ -926,7 +927,7 @@ private fun GlobalPrefCard(
         ) {
             Icon(Icons.Default.MyLocation, null)
             Spacer(Modifier.width(16.dp))
-            Text("Allow matches to view you in Maps", Modifier.weight(1f))
+            Text(stringResource(R.string.settings_allow_matches_maps), Modifier.weight(1f))
             Switch(
                 checked = allowLoc,
                 onCheckedChange = onAllowLocChange,
@@ -944,7 +945,7 @@ private fun GlobalPrefCard(
         ) {
             Icon(Icons.Default.Group, null)
             Spacer(Modifier.width(16.dp))
-            Text("Matrimony Mode", Modifier.weight(1f))
+            Text(stringResource(R.string.settings_matrimony_mode), Modifier.weight(1f))
             Switch(
                 checked = isMatrimony,
                 onCheckedChange = onMatrimonyChange,
@@ -979,21 +980,21 @@ private fun BlockedUsersCard(
     SettingsSection {
         ListItem(
             leadingContent = { Icon(Icons.Default.Block, null, tint = Color(0xFFFF6F00)) },
-            headlineContent = { Text("Blocked Users", fontWeight = FontWeight.Bold) },
+            headlineContent = { Text(stringResource(R.string.settings_blocked_users), fontWeight = FontWeight.Bold) },
             trailingContent = { Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.clickable { overlay = true }
         )
         Divider(Modifier.padding(start = 56.dp))
 
         if (ids.isEmpty()) {
-            ListItem(headlineContent = { Text("No users are blocked", color = MaterialTheme.colorScheme.onSurfaceVariant) })
+            ListItem(headlineContent = { Text(stringResource(R.string.settings_no_users_blocked), color = MaterialTheme.colorScheme.onSurfaceVariant) })
         } else {
             ids.take(3).forEach {
                 ListItem(headlineContent = { Text(names[it] ?: it) })
                 Divider(Modifier.padding(start = 56.dp))
             }
             ListItem(
-                headlineContent = { Text("View All Blocked Users", color = MaterialTheme.colorScheme.primary) },
+                headlineContent = { Text(stringResource(R.string.settings_view_all_blocked_users), color = MaterialTheme.colorScheme.primary) },
                 trailingContent = { Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary) },
                 modifier = Modifier.clickable { overlay = true }
             )
@@ -1004,10 +1005,10 @@ private fun BlockedUsersCard(
     if (overlay) {
         AlertDialog(
             onDismissRequest = { overlay = false },
-            title = { Text("Blocked Users", color = Color(0xFFFF6F00)) },
+            title = { Text(stringResource(R.string.settings_blocked_users), color = Color(0xFFFF6F00)) },
             text = {
                 if (ids.isEmpty()) {
-                    Text("No users are currently blocked.")
+                    Text(stringResource(R.string.settings_no_users_currently_blocked))
                 } else {
                     Column {
                         ids.forEach { uid ->

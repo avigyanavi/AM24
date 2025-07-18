@@ -512,6 +512,31 @@
     <string name="section_lifestyle_attributes">Lifestyle Attributes</string>
     <string name="section_interests">Interests</string>
 
+    <string name="settings_change_location">Change Location</string>
+    <string name="settings_select_location">Select your Location</string>
+    <string name="settings_membership">Membership</string>
+    <string name="settings_free_user">Free User</string>
+    <string name="settings_give_feedback">Give Feedback</string>
+    <string name="settings_policies_support">Policies &amp; Support</string>
+    <string name="settings_delete_account">Delete Account</string>
+    <string name="settings_account_settings">Account Settings</string>
+    <string name="settings_change_password">Change Password</string>
+    <string name="settings_global_preferences">Global Preferences</string>
+    <string name="settings_private_account">Private Account</string>
+    <string name="settings_preferred_language">Preferred Language</string>
+    <string name="settings_allow_matches_maps">Allow matches to view you in Maps</string>
+    <string name="settings_matrimony_mode">Matrimony Mode</string>
+    <string name="settings_blocked_users">Blocked Users</string>
+    <string name="settings_view_all_blocked_users">View All Blocked Users</string>
+    <string name="settings_no_users_blocked">No users are blocked</string>
+    <string name="settings_no_users_currently_blocked">No users are currently blocked.</string>
+    <string name="policies_support">Policies and Support</string>
+    <string name="policy_contact_us">Contact Us</string>
+    <string name="policy_privacy_policy">Privacy Policy</string>
+    <string name="policy_terms_conditions">Terms &amp; Conditions</string>
+    <string name="policy_refund_policy">Refund Policy</string>
+    <string name="policy_shipping_delivery">Shipping &amp; Delivery</string>
+    <string name="policy_delete_account">Delete Account</string>
     <!-- PROFILE DETAIL LABELS -->
     <string name="label_name">Name</string>
     <string name="label_gender">Gender</string>

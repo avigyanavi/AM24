@@ -368,16 +368,6 @@ fun LandingScreen(
     onFacebookSignIn: () -> Unit
 ) {
     val context = LocalContext.current
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
-    var shouldRestart by remember { mutableStateOf(false) }
-
-    if (shouldRestart) {
-        LaunchedEffect(Unit) {
-            delay(100)
-            (context as? Activity)?.recreate()
-        }
-    }
 
     Box(
         Modifier
@@ -444,21 +434,6 @@ fun LandingScreen(
             SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
         }
 
-        /* Bottom language bar */
-        val isIndia = remember { CountryUtil.isProbablyInIndia(context) }
-        if (isIndia) {
-            LanguageSelectionBar(
-                selectedLanguage,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-            ) { lang ->
-                if (lang != selectedLanguage) {
-                    prefs.edit().putString("language", lang).apply()
-                    shouldRestart = true
-                }
-            }
-        }
         if (isLoading) {
             Box(
                 Modifier

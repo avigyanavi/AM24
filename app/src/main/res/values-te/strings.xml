@@ -1155,6 +1155,32 @@
         <string name="city">నగరం</string>
         <string name="locality">ప్రాంతం</string>
 
+    <string name="settings_change_location">స్థానాన్ని మార్చండి</string>
+    <string name="settings_select_location">మీ స్థానాన్ని ఎంచుకోండి</string>
+    <string name="settings_membership">సభ్యత్వం</string>
+    <string name="settings_free_user">ఉచిత వినియోగదారు</string>
+    <string name="settings_give_feedback">అభిప్రాయాన్ని ఇవ్వండి</string>
+    <string name="settings_policies_support">విధానాలు &amp; మద్దతు</string>
+    <string name="settings_delete_account">ఖాతాను తొలగించండి</string>
+    <string name="settings_account_settings">ఖాతా సెట్టింగులు</string>
+    <string name="settings_change_password">పాస్వర్డ్ మార్చండి</string>
+    <string name="settings_global_preferences">గ్లోబల్ ప్రాధాన్యతలు</string>
+    <string name="settings_private_account">ప్రైవేట్ ఖాతా</string>
+    <string name="settings_preferred_language">ఇష్టపడే భాష</string>
+    <string name="settings_allow_matches_maps">మిమ్మల్ని మ్యాప్లలో చూడటానికి మ్యాచ్లను అనుమతించండి</string>
+    <string name="settings_matrimony_mode">మ్యాట్రిమోని మోడ్</string>
+    <string name="settings_blocked_users">నిరోధించబడిన వినియోగదారులు</string>
+    <string name="settings_view_all_blocked_users">నిరోధించబడిన అన్ని వినియోగదారులను చూడండి</string>
+    <string name="settings_no_users_blocked">వినియోగదారులు లేరు</string>
+    <string name="settings_no_users_currently_blocked">ప్రస్తుతం వినియోగదారులు లేరు.</string>
+    <string name="policies_support">విధానాలు &amp; మద్దతు</string>
+    <string name="policy_contact_us">మమ్మల్ని సంప్రదించండి</string>
+    <string name="policy_privacy_policy">గోప్యతా విధానం</string>
+    <string name="policy_terms_conditions">నిబంధనలు &amp; షరతులు</string>
+    <string name="policy_refund_policy">వాపసు విధానం</string>
+    <string name="policy_shipping_delivery">షిప్పింగ్ &amp; డెలివరీ</string>
+    <string name="policy_delete_account">ఖాతాను తొలగించండి</string>
+
         <!-- Dating screen filters -->
         <string name="filters">ఫిల్టర్లు</string>
         <string name="save">తప్పనిసరి</string>

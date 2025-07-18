@@ -4391,6 +4391,32 @@
         <string name="ethnicity_option_pacific_islander">பசிபிக் தீவினர்</string>
         <string name="ethnicity_option_mixed_other">கலப்பு / பிற</string>
 
+        <string name="settings_change_location">இருப்பிடத்தை மாற்றவும்</string>
+        <string name="settings_select_location">உங்கள் இருப்பிடத்தைத் தேர்ந்தெடுக்கவும்</string>
+        <string name="settings_membership">உறுப்பினர்</string>
+        <string name="settings_free_user">இலவச பயனர்</string>
+        <string name="settings_give_feedback">கருத்து தெரிவிக்கவும்</string>
+        <string name="settings_policies_support">கொள்கைகள் மற்றும் ஆதரவு</string>
+        <string name="settings_delete_account">கணக்கை நீக்கு</string>
+        <string name="settings_account_settings">கணக்கு அமைப்புகள்</string>
+        <string name="settings_change_password">கடவுச்சொல்லை மாற்றவும்</string>
+        <string name="settings_global_preferences">உலகளாவிய விருப்பத்தேர்வுகள்</string>
+        <string name="settings_private_account">தனியார் கணக்கு</string>
+        <string name="settings_preferred_language">விருப்பமான மொழி</string>
+        <string name="settings_allow_matches_maps">வரைபடங்களில் உங்களைப் பார்க்க போட்டிகளை அனுமதிக்கவும்</string>
+        <string name="settings_matrimony_mode">திருமண முறை</string>
+        <string name="settings_blocked_users">தடுக்கப்பட்ட பயனர்கள்</string>
+        <string name="settings_view_all_blocked_users">தடுக்கப்பட்ட அனைத்து பயனர்களையும் காண்க</string>
+        <string name="settings_no_users_blocked">பயனர்கள் எதுவும் தடுக்கப்படவில்லை</string>
+        <string name="settings_no_users_currently_blocked">பயனர்கள் தற்போது தடுக்கப்படவில்லை.</string>
+        <string name="policies_support">கொள்கைகள் மற்றும் ஆதரவு</string>
+        <string name="policy_contact_us">எங்களைத் தொடர்பு கொள்ளுங்கள்</string>
+        <string name="policy_privacy_policy">தனியுரிமைக் கொள்கை</string>
+        <string name="policy_terms_conditions">விதிமுறைகள் மற்றும் நிபந்தனைகள்</string>
+        <string name="policy_refund_policy">திருப்பிச் செலுத்தும் கொள்கை</string>
+        <string name="policy_shipping_delivery">கப்பல் மற்றும் விநியோகம்</string>
+        <string name="policy_delete_account">கணக்கை நீக்கு</string>
+
         <string name="income_level_label">வருவாய் நிலை</string>
         <string name="select_income_level">வருவாய் நிலையை தேர்வு செய்யவும்</string>
         <string name="income_level_option_not_selected">தேர்வு செய்யப்படவில்லை</string>

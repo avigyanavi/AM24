@@ -350,21 +350,11 @@ fun TopNavBar(
                     )
                 }
             }
+
+            val isDatingScreen = currentRoute == "dating" ||
+                    currentRoute?.startsWith("dating_screen") == true
             // User Settings Icon (Profile or Settings screen)
-            if (isProfileScreen || isUserSettings) {
-                val shouldAnimate = isProfileScreen && !isPremium.value
-                val infiniteTransition = rememberInfiniteTransition()
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = if (shouldAnimate) 1.2f else 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(
-                            durationMillis = 500,
-                            easing = LinearEasing
-                        ),
-                        repeatMode = RepeatMode.Reverse
-                    )
-                )
+            if (isProfileScreen || isUserSettings || isDatingScreen) {
 
                 IconButton(onClick = {
                     if (isUserSettings) {
@@ -375,12 +365,7 @@ fun TopNavBar(
                 }) {
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                transformOrigin = TransformOrigin.Center
-                            ),
+                            .size(24.dp),
                         contentAlignment = Center
                     ) {
                         Icon(
