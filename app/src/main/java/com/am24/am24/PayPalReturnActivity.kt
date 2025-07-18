@@ -31,11 +31,13 @@ class PayPalReturnActivity : ComponentActivity() {
         val user  = FirebaseAuth.getInstance().currentUser ?: return finish()
 
         lifecycleScope.launch {
-            val ok = FirebaseFunctions.getInstance("asia-south1")
+            val result = FirebaseFunctions.getInstance("asia-south1")
                 .getHttpsCallable("verifyPaypalSubscription")
                 .call(mapOf("subscriptionId" to subId))
                 .await()
-                .data as? Boolean ?: false
+                .data as? Map<*, *>
+
+            val ok = result?.get("valid") as? Boolean ?: false
 
             if (ok) {
                 val expiry = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
