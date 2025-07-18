@@ -228,9 +228,10 @@ fun DatingScreen(
 // ── 1) replace the existing `needsVerification` val with a mutable state ─────────
     val user                 = FirebaseAuth.getInstance().currentUser
     val isPwdUser            = user?.providerData?.any { it.providerId == "password" } == true
-    var needsVerification by remember {         // ← make it mutable
-        mutableStateOf(isPwdUser && user?.isEmailVerified == false)
-    }
+//    var needsVerification by remember {         // ← make it mutable
+//        mutableStateOf(isPwdUser && user?.isEmailVerified == false)
+//    }
+    var needsVerification = false
 
     // 2) dialog state
     var showVerifyDialog by remember { mutableStateOf(false) }
