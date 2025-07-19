@@ -611,6 +611,8 @@ fun DatingScreen(
                             if (remainingSwipes > 0) remainingSwipes--
                             currentIndex++
                         },
+                        excludedUserIds = excludedUserIds,
+                        onExcludeUser = { excludedUserIds = excludedUserIds + it },
                         showAds  = showAds,
                         adUnitId = "ca-app-pub-5094389629300846/4057317007"
                     )
@@ -1837,6 +1839,8 @@ fun DatingScreenContent(
     boostedUsers: List<Profile>,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
+    excludedUserIds: Set<String>,    // ← here!
+    onExcludeUser: (String) -> Unit,
     showAds: Boolean,            // ← pass this in from DatingScreen()
     adUnitId: String
 ) {
@@ -1899,6 +1903,7 @@ fun DatingScreenContent(
             onSwipeLeft = {
                 onSwipeLeft()
                 handleSwipeLeft(currentUserId, currentProfile.userId)
+                onExcludeUser(currentProfile.userId)
             }
         )
     }
@@ -2996,8 +3001,12 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val database = FirebaseRefs.db
     val timestamp = System.currentTimeMillis()
 
+
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
+
+    // 🆕 track dislikes for 14‑day exclusion
+    database.getReference("dislikesGiven/$currentUserId/$otherUserId").setValue(timestamp)
 
     val otherUserTotalSwipesRef =
         database.getReference("swipesReceived/$otherUserId/$currentUserId")
@@ -3044,6 +3053,7 @@ private fun incrementMatchStats(userId: String) {
 private suspend fun fetchExcludedUsers(me: String): Set<String> {
     val db            = FirebaseRefs.db
     val oneWeekAgo    = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1_000L
+    val twoWeeksAgo   = System.currentTimeMillis() - 14 * 24 * 60 * 60 * 1_000L
     val excludedIds   = mutableSetOf<String>()
 
     // ① matches — every matched UID is excluded
@@ -3055,6 +3065,13 @@ private suspend fun fetchExcludedUsers(me: String): Set<String> {
     likeSnap.children.forEach { child ->
         val ts = child.getValue(Long::class.java) ?: 0L
         if (ts >= oneWeekAgo) excludedIds += child.key!!
+    }
+
+    // ③ dislikes you gave in the last 14 days
+    val dislikeSnap = db.getReference("dislikesGiven/$me").get().await()
+    dislikeSnap.children.forEach { child ->
+        val ts = child.getValue(Long::class.java) ?: 0L
+        if (ts >= twoWeeksAgo) excludedIds += child.key!!
     }
 
     return excludedIds
