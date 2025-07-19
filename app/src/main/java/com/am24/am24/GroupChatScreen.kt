@@ -2,6 +2,7 @@ package com.am24.am24
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -57,6 +58,20 @@ fun GroupChatScreen(
         }
     }
 
+    val matches = remember { mutableStateListOf<String>() }
+    LaunchedEffect(currentUserId) {
+        FirebaseRefs.db.getReference("matches")
+            .child(currentUserId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    matches.clear()
+                    snapshot.children.forEach { it.key?.let(matches::add) }
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+            })
+    }
+
     /* ---------- local UI state ---------- */
     val messages = remember { mutableStateListOf<GroupChatMessage>() }
     var messageText by remember { mutableStateOf("") }
@@ -103,7 +118,12 @@ fun GroupChatScreen(
                 verticalArrangement = Arrangement.Bottom
             ) {
                 items(messages) { msg ->
-                    GroupMessageBubble(msg, isCurrentUser = msg.senderId == currentUserId)
+                    GroupMessageBubble(
+                        message = msg,
+                        navController = navController,
+                        currentUserId = currentUserId,
+                        matches = matches
+                    )
                 }
             }
 
@@ -159,9 +179,16 @@ fun GroupChatScreen(
 /* ---------------- helper composables / functions ---------------- */
 
 @Composable
-fun GroupMessageBubble(message: GroupChatMessage, isCurrentUser: Boolean) {
-    val bubbleColor = if (isCurrentUser) Color(0xFFFFDB00) else Color(0xFFFF6F00)
-    val textColor   = if (isCurrentUser) Color.Black else Color.White
+fun GroupMessageBubble(
+    message: GroupChatMessage,
+    navController: NavController,
+    currentUserId: String,
+    matches: List<String>
+) {
+    val isCurrentUser = message.senderId == currentUserId
+    val bubbleColor   = if (isCurrentUser) Color(0xFFFFDB00) else Color(0xFFFF6F00)
+    val textColor     = if (isCurrentUser) Color.Black else Color.White
+
 
     Column(
         modifier = Modifier
@@ -169,17 +196,25 @@ fun GroupMessageBubble(message: GroupChatMessage, isCurrentUser: Boolean) {
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
     ) {
-        if (!isCurrentUser) {
-            Text(
-                text = message.senderName,
-                color = Color.Gray,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
-            )
-        }
+        Text(
+            text = message.senderName,
+            color = Color.Gray,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+        )
         Box(
             modifier = Modifier
+                .clickable {
+                    when {
+                        message.senderId == currentUserId ->
+                            navController.navigate("profile")
+                        matches.contains(message.senderId) ->
+                            navController.navigate("matchedUserProfile/${'$'}{message.senderId}")
+                        else ->
+                            navController.navigate("previewUserProfile/${'$'}{message.senderId}")
+                    }
+                }
                 .background(bubbleColor, RoundedCornerShape(12.dp))
                 .padding(12.dp)
         ) {

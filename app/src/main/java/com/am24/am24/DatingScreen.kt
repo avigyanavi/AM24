@@ -459,7 +459,7 @@ fun DatingScreen(
                     Icon(
                         Icons.Default.FilterAlt,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = Color(0xFFFF6F00),
                         modifier = Modifier.size(27.dp)
                     )
                 }
@@ -2052,7 +2052,6 @@ fun DatingProfileHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(DarkGrayBackground)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -2392,7 +2391,7 @@ fun PhotoWithTwoOverlays(
             IconButton(
                 onClick  = { showPostsOverlay = true },
                 modifier = Modifier
-                    .padding(end = 6.dp)
+                    .padding(end = 4.dp)
                     .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
                     .size(28.dp)
             ) {
@@ -2678,7 +2677,7 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
             color = Color.White
         )
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(10.dp))
 
         /* strengths */
         if (strengths.isNotEmpty()) {

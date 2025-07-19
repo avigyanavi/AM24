@@ -62,6 +62,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
     val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
             currentRoute != "leaderboard"
+    val showTopBar    = showGlobalBars && currentRoute != "dating"
     val priceTier = rememberSaveable { mutableStateOf(priceAll) }
 
     val profileViewModel: ProfileViewModel = viewModel()
@@ -83,7 +84,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
 
     Scaffold(
         topBar = {
-            if (showGlobalBars) {
+            if (showTopBar) {
                 TopNavBar(
                     navController = navController,
                     profileViewModel = profileViewModel,
