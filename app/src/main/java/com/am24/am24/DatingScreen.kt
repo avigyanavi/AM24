@@ -91,9 +91,11 @@ import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -2008,26 +2010,6 @@ fun DatingProfileCard(
                         PostItemInProfile(post)
                     }
                 }
-                if (sortedByUpvotes.size > 5) {
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Button(
-                                onClick = { /* Show more posts */ },
-                                colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.view_more_posts),
-                                    color = Color.White
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                }
             }
         }
 
@@ -2280,7 +2262,9 @@ fun PhotoWithTwoOverlays(
                         Icons.Default.Verified,
                         null,
                         tint = Color(0xFF2196F3),
-                        modifier = Modifier.padding(10.dp).size(24.dp)
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .size(24.dp)
                     )
                 }
                 val displayName = profile.name.ifBlank { profile.username }
@@ -2405,17 +2389,16 @@ fun PhotoWithTwoOverlays(
                 color = Color.White,
                 fontSize = 18.sp
             )
-            Button(
-                onClick = { showPostsOverlay = true },
-                colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00)),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(20.dp)
+            IconButton(
+                onClick  = { showPostsOverlay = true },
+                modifier = Modifier
+                    .padding(end = 6.dp)
+                    .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
+                    .size(28.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.posts),
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    textDecoration = TextDecoration.None
+                Icon(Icons.Default.PostAdd,
+                    stringResource(R.string.posts_button),
+                    tint = Color.White
                 )
             }
         }

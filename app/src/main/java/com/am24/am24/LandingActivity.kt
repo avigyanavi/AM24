@@ -11,6 +11,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
@@ -79,22 +80,7 @@ class LandingActivity : ComponentActivity() {
     }
 
     /* Google Activity-result launcher */
-    private val googleSignInLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-                try {
-                    val acct = task.getResult(ApiException::class.java)
-                    firebaseAuthWithGoogle(acct)          // ← pass account object
-                } catch (e: ApiException) {
-                    Log.w("LandingActivity", "Google sign-in failed", e)
-                    toast("Google sign-in failed: ${e.localizedMessage}")
-                    isSigningIn = false
-                }
-            } else {
-                isSigningIn = false
-            }
-        }
+    private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
 
     private fun continueIntoApp() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
@@ -135,6 +121,24 @@ class LandingActivity : ComponentActivity() {
     /* ─────────  onCreate  ───────── */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        googleSignInLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    try {
+                        val acct = task.getResult(ApiException::class.java)
+                        firebaseAuthWithGoogle(acct)
+                    } catch (e: ApiException) {
+                        Log.w("LandingActivity", "Google sign-in failed", e)
+                        toast("Google sign-in failed: ${e.localizedMessage}")
+                        isSigningIn = false
+                    }
+                } else {
+                    isSigningIn = false
+                }
+            }
+
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         firebaseAuth = FirebaseAuth.getInstance()          // ➊ keep this first

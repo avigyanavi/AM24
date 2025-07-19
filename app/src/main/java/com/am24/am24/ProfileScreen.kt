@@ -780,6 +780,19 @@ fun PhotoCarouselWithOverlay(
                     )
             ) {
                 IconButton(
+                    onClick  = onPostsClick,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 16.dp, start = 16.dp)
+                        .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
+                        .size(28.dp)
+                ) {
+                    Icon(Icons.Default.PostAdd,
+                        stringResource(R.string.posts_button),
+                        tint = Color.White
+                    )
+                }
+                IconButton(
                     onClick  = onEditProfileClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -789,7 +802,8 @@ fun PhotoCarouselWithOverlay(
                 ) {
                     Icon(Icons.Default.Edit,
                         stringResource(R.string.edit_profile_cd),
-                        tint = Color(0xFFFF6F00))
+                        tint = Color.White
+                    )
                 }
             }
         }
@@ -839,15 +853,6 @@ fun PhotoCarouselWithOverlay(
                                 .horizontalScroll(scroll)
                         )
                     }
-
-                    // 4) your Posts button remains static
-                    Button(
-                        onClick = onPostsClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00)),
-                        modifier = Modifier.height(30.dp)
-                    ) {
-                        Text(text = stringResource(R.string.posts_button), color = Color.White, fontSize = 14.sp)
-                    }
                 }
 
                 // Hometown
@@ -880,13 +885,13 @@ fun PhotoCarouselWithOverlay(
                 }
             }
         }
-        VerificationBadge(
-            verified = verified,              // ← use the new prop
-            onClick  = onVerifyClick,
-            modifier  = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(top = 16.dp, end = 16.dp)   // leaves room for the edit icon
-        )
+//        VerificationBadge(
+//            verified = verified,              // ← use the new prop
+//            onClick  = onVerifyClick,
+//            modifier  = Modifier
+//                .align(Alignment.BottomEnd)
+//                .padding(top = 16.dp, end = 16.dp)   // leaves room for the edit icon
+//        )
     }
 }
 
@@ -941,7 +946,7 @@ fun AnimatedProfileCompletion(
                 .fillMaxWidth(.55f)
                 .height(4.dp),
             color = Color(0xFFFF6F00),
-            trackColor = Color.White.copy(alpha = .3f)
+            trackColor = Color.White.copy(alpha = .0f)
         )
     }
 }
@@ -3699,32 +3704,6 @@ fun LifestyleSection(profile: Profile) {
                 Text("No lifestyle specified.", color = Color.Gray, fontSize = 10.sp)
             } else {
                 profile.lifestyle?.let { lifestyle ->
-                    if (lifestyle.smoking_habit != -1)
-                        LifestyleSlider(
-                            label = stringResource(R.string.lifestyle_smoking),
-                            value = lifestyle.smoking_habit,
-                            nouns = listOf(
-                                stringResource(R.string.non_smoker),
-                                stringResource(R.string.rare_smoker),
-                                stringResource(R.string.social_smoker),
-                                stringResource(R.string.frequent_smoker),
-                                stringResource(R.string.heavy_smoker)
-                            ),
-                            icon = Icons.Default.SmokingRooms
-                        )
-                    if (lifestyle.drinking_habit != -1)
-                        LifestyleSlider(
-                            label = stringResource(R.string.lifestyle_drinking),
-                            value = lifestyle.drinking_habit,
-                            nouns = listOf(
-                                stringResource(R.string.non_drinker),
-                                stringResource(R.string.rare_drinker),
-                                stringResource(R.string.social_drinker),
-                                stringResource(R.string.frequent_drinker),
-                                stringResource(R.string.heavy_drinker)
-                            ),
-                            icon = Icons.Default.LocalDrink
-                        )
                     if (lifestyle.indoor_outdoor_orientation != -1)
                         LifestyleSlider(
                             label = stringResource(R.string.lifestyle_going_out),
@@ -3971,6 +3950,32 @@ fun LifestyleSection(profile: Profile) {
                                 stringResource(R.string.extremely_introverted)
                             ),
                             icon = Icons.Default.Person
+                        )
+                    if (lifestyle.smoking_habit != -1)
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_smoking),
+                            value = lifestyle.smoking_habit,
+                            nouns = listOf(
+                                stringResource(R.string.non_smoker),
+                                stringResource(R.string.rare_smoker),
+                                stringResource(R.string.social_smoker),
+                                stringResource(R.string.frequent_smoker),
+                                stringResource(R.string.heavy_smoker)
+                            ),
+                            icon = Icons.Default.SmokingRooms
+                        )
+                    if (lifestyle.drinking_habit != -1)
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_drinking),
+                            value = lifestyle.drinking_habit,
+                            nouns = listOf(
+                                stringResource(R.string.non_drinker),
+                                stringResource(R.string.rare_drinker),
+                                stringResource(R.string.social_drinker),
+                                stringResource(R.string.frequent_drinker),
+                                stringResource(R.string.heavy_drinker)
+                            ),
+                            icon = Icons.Default.LocalDrink
                         )
                     if (lifestyle.sexual_activity_level != -1)
                         LifestyleSlider(
@@ -5526,16 +5531,6 @@ fun LifestyleEditSection(
             .padding(16.dp)
     ) {
         LifestyleSliderEdit(
-            label = stringResource(R.string.lifestyle_smoking),
-            value = localLifestyle.smoking_habit,
-            nouns = listOf(stringResource(R.string.non_smoker), stringResource(R.string.rare_smoker), stringResource(R.string.social_smoker), stringResource(R.string.frequent_smoker), stringResource(R.string.heavy_smoker))
-        ) { localLifestyle = localLifestyle.copy(smoking_habit = it) }
-        LifestyleSliderEdit(
-            label = stringResource(R.string.lifestyle_drinking),
-            value = localLifestyle.drinking_habit,
-            nouns = listOf(stringResource(R.string.non_drinker), stringResource(R.string.rare_drinker), stringResource(R.string.social_drinker), stringResource(R.string.frequent_drinker), stringResource(R.string.heavy_drinker))
-        ) { localLifestyle = localLifestyle.copy(drinking_habit = it) }
-        LifestyleSliderEdit(
             label = stringResource(R.string.lifestyle_indoor_outdoor),
             value = localLifestyle.indoor_outdoor_orientation,
             nouns = listOf(stringResource(R.string.very_indoorsy), stringResource(R.string.mostly_indoorsy), stringResource(R.string.balanced), stringResource(R.string.mostly_outdoorsy), stringResource(R.string.very_outdoorsy))
@@ -5626,6 +5621,16 @@ fun LifestyleEditSection(
             value = localLifestyle.sociability,
             nouns = listOf(stringResource(R.string.not_introverted), stringResource(R.string.slightly_introverted), stringResource(R.string.moderately_introverted), stringResource(R.string.very_introverted), stringResource(R.string.extremely_introverted))
         ) { localLifestyle = localLifestyle.copy(sociability = it) }
+        LifestyleSliderEdit(
+            label = stringResource(R.string.lifestyle_smoking),
+            value = localLifestyle.smoking_habit,
+            nouns = listOf(stringResource(R.string.non_smoker), stringResource(R.string.rare_smoker), stringResource(R.string.social_smoker), stringResource(R.string.frequent_smoker), stringResource(R.string.heavy_smoker))
+        ) { localLifestyle = localLifestyle.copy(smoking_habit = it) }
+        LifestyleSliderEdit(
+            label = stringResource(R.string.lifestyle_drinking),
+            value = localLifestyle.drinking_habit,
+            nouns = listOf(stringResource(R.string.non_drinker), stringResource(R.string.rare_drinker), stringResource(R.string.social_drinker), stringResource(R.string.frequent_drinker), stringResource(R.string.heavy_drinker))
+        ) { localLifestyle = localLifestyle.copy(drinking_habit = it) }
         LifestyleSliderEdit(
             label = stringResource(R.string.lifestyle_sexual_activity),
             value = localLifestyle.sexual_activity_level,
