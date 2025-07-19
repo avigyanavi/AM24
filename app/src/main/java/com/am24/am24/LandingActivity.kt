@@ -2,7 +2,7 @@ package com.am24.am24
 
 /* ──────────────────────────  IMPORTS  ────────────────────────── */
 
-import android.app.Activity
+
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
+
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
