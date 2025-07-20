@@ -1250,3 +1250,31 @@ exports.recomputeLeaderboard = functions.pubsub
             pairs.sort((a, b) => a.dist - b.dist);
             return { ids: pairs.map(p => p.id) };
           });
+          // functions/index.js
+          exports.userActivityReport = functions
+            .region('asia-south1')
+            .https.onRequest(async (req, res) => {
+              try {
+                const usersSnap = await admin.database().ref('users').once('value');
+                const table = [];
+                const startOfToday = new Date().setHours(0, 0, 0, 0);
+                let activeToday = 0;
+
+                usersSnap.forEach(snap => {
+                  const user = snap.val();
+                  const lastActive = user?.lastActive ?? 0;
+                  if (lastActive >= startOfToday) activeToday++;
+                  table.push({
+                    uid: snap.key,
+                    username: user?.username ?? '',
+                    lastActive,            // milliseconds since epoch
+                  });
+                });
+
+                res.set('Access-Control-Allow-Origin', '*')    // allow running via a link
+                   .json({ activeToday, users: table });
+              } catch (err) {
+                console.error('userActivityReport error:', err);
+                res.status(500).send(err.message);
+              }
+            });

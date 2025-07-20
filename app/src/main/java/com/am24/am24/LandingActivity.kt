@@ -87,6 +87,8 @@ class LandingActivity : ComponentActivity() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
             ?: run { goToMain(); return }
 
+        PushService.updateLastActive()
+
         FirebaseRefs.db.reference.child("users/$uid/username").get()
             .addOnSuccessListener { snap ->
                 if (snap.exists()) {

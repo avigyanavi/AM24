@@ -442,7 +442,7 @@ fun SettingsScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "v0.3",
+                    "v0.6",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

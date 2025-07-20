@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase        // ✅ RTDB (matches Cloud Function)
+import com.google.firebase.database.ServerValue
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -29,6 +30,15 @@ class PushService : FirebaseMessagingService() {
                     .child("fcmTokens").child(token)
                     .setValue(true)            // Boolean flag is enough for pushSummary
             }
+        }
+
+        /** Update the user's lastActive timestamp to the server's time */
+        fun updateLastActive() {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+            FirebaseDatabase.getInstance().reference
+                .child("users").child(uid)
+                .child("lastActive")
+                .setValue(ServerValue.TIMESTAMP)
         }
     }
 
