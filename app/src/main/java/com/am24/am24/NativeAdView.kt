@@ -78,47 +78,6 @@ fun ComposeNativeAd(
     }
 }
 
-@Composable
-fun ComposeDatingNativeAd(
-    adUnitId: String,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
-
-    LaunchedEffect(adUnitId) {
-        AdLoader.Builder(context, adUnitId)
-            .forNativeAd { ad ->
-                nativeAd?.destroy()
-                nativeAd = ad
-            }
-            .build()
-            .loadAd(AdRequest.Builder().build())
-    }
-
-    if (nativeAd == null) {
-        // smaller placeholder
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .background(Color(0xFF121212)),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = Color(0xFFFF6F00), strokeWidth = 2.dp)
-        }
-    } else {
-        // once loaded, slot in the existing NativeAdCard
-        NativeAdCard(
-            ad = nativeAd!!,
-            modifier = modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
-
 // 2) Pure-Compose “layout” for a single NativeAd
 @Composable
 fun NativeAdCard(

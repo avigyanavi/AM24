@@ -249,7 +249,12 @@ fun ChatScreenContent(
     } // ★ END AI-LOAD ★
 
     /* ─────────────────────  CREDIT-CONSUME HELPER  ─────────────────── */
-    fun consumeAiMessage(doWork: suspend () -> Unit) = scope.launch {            // ★ BEGIN AI-FUN ★
+    fun consumeAiMessage(doWork: suspend () -> Unit) = scope.launch {
+        val isIndia = CountryUtil.useRazorpay(ctx, currentUserProfile?.country)
+        if (!isIndia) {
+            Toast.makeText(ctx, "We are working on this feature", Toast.LENGTH_LONG).show()
+            return@launch
+        }
         if (aiMessagesLeft <= 0) {
             navController.navigate("buyAiMessages")      // bounce to top-up screen
             return@launch

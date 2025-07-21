@@ -63,6 +63,9 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val geoFire = GeoFire(database.getReference("geoFireLocations"))
     private var lastNonEmptyProfiles: List<Profile> = emptyList()
 
+    // paging helper
+    private var nextAfterId: String? = null
+
     // StateFlows
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
     val allProfiles: StateFlow<List<Profile>> get() = _allProfiles
@@ -319,6 +322,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         fun refreshFilteredProfiles() {
             viewModelScope.launch {
                 _isLoading.value = true
+                nextAfterId = null
                 val me = FirebaseAuth.getInstance().currentUser?.uid
 
                 try {
@@ -332,7 +336,9 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
                     // 👉 call the Cloud Function instead of the local helper
                     val maxDist = _datingFilters.value.distance
-                    _allProfiles.value = fetchNearbyProfilesCloud(me, maxDist)
+                    val list = fetchNearbyProfilesCloud(me, maxDist, null)
+                    nextAfterId = list.lastOrNull()?.userId
+                    _allProfiles.value = list
 
                     updateBoostedUsers(me)
                     loadCompliments(me)
@@ -348,14 +354,16 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     private suspend fun fetchNearbyProfilesCloud(
         me: String,
-        maxDistanceKm: Int
+        maxDistanceKm: Int,
+        afterId: String?
     ): List<Profile> = withContext(Dispatchers.IO) {
 
 
         val payload = hashMapOf(
             "uid"         to me,
             "maxDistance" to maxDistanceKm,
-            "minRows"     to DESIRED_MIN_ROWS
+            "minRows"     to DESIRED_MIN_ROWS,
+            "afterId"     to afterId
         )
         Log.d("VM", "➡️  Calling getNearbyProfiles with $payload")
 
@@ -373,6 +381,25 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
 
         list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
+    }
+
+    fun loadMoreProfiles() {
+        viewModelScope.launch {
+            val me = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            try {
+                _isLoading.value = true
+                val maxDist = _datingFilters.value.distance
+                val newList = fetchNearbyProfilesCloud(me, maxDist, nextAfterId)
+                if (newList.isNotEmpty()) {
+                    nextAfterId = newList.last().userId
+                    _allProfiles.update { it + newList }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "loadMoreProfiles() failed: ${e.message}", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     suspend fun sortDisplayed(profiles: List<Profile>): List<Profile> = withContext(Dispatchers.IO) {

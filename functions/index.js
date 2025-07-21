@@ -155,98 +155,97 @@ const {
     distanceBetween
   } = require('geofire-common');
 
+const CURSOR_REF = uid =>
+  admin.database().ref(`paging/nearbyCursor/${uid}`);   // ⇦ stores last UID sent
+
 exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onCall(async (data, context) => {
 
     /* ───────── arguments ───────── */
-    const { uid, minRows = 50 } = data || {};
-    console.log('[getNearbyProfiles] called by uid:', uid ?? '<none>');
-    if (!uid)
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        'uid is required'
-      );
+    const { uid, minRows = 50, afterId } = data || {};
+    if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
 
-    /* ───────── helpers ─────────── */
     const db = admin.database();
 
-    /* ───────── 1. where am I? ───── */
+    /* ───────── find caller’s location ─────── */
     const locSnap = await db.ref(`geoFireLocations/${uid}/l`).get();
-    const latLng  = locSnap.val();            // [lat, lng]
+    const latLng  = locSnap.val();               // [lat,lng]
 
-    /* ──────── 2. if caller has no location, just grab N users … ─────── */
+    /* ──────── fallback: no location ⇒ random users ─────── */
     if (!Array.isArray(latLng) || latLng.length < 2) {
-      const all = await db.ref('users').get();
+      const allSnap = await db.ref('users').get();
       const list = [];
-      all.forEach(ss => {
-        if (ss.key !== uid) {
-          const p = ss.val();
-          if (p) {
-            p.userId = ss.key;                //  ← NEW (uid)
-            list.push(p);
-          }
+      allSnap.forEach(s => {
+        if (s.key !== uid && s.val()) {
+          const p = s.val();
+          p.userId = s.key;
+          list.push(p);
         }
       });
       return { profiles: list.slice(0, minRows) };
     }
 
-    /* ───────── 3. geo-sweep as you had it ───────── */
+    /* ───────── collect all candidate UIDs (same as before) ───────── */
     const center = { lat: latLng[0], lng: latLng[1] };
-    const collectedUids = new Set();
+    const collected = new Set();
 
     const sweep = async radiusKm => {
       if (radiusKm === Infinity) {
         const all = await db.ref('geoFireLocations').get();
-        all.forEach(s => collectedUids.add(s.key));
+        all.forEach(s => collected.add(s.key));
         return;
       }
-      const bounds = geohashQueryBounds([center.lat, center.lng], radiusKm * 1000);
+      const bounds = geohashQueryBounds([center.lat, center.lng], radiusKm * 1_000);
       const tasks  = bounds.map(b =>
         db.ref('geoFireLocations')
-          .orderByChild('g').startAt(b[0]).endAt(b[1]).get()
-      );
-      const snaps = await Promise.all(tasks);
-      snaps.forEach(snap => {
+          .orderByChild('g').startAt(b[0]).endAt(b[1]).get());
+      (await Promise.all(tasks)).forEach(snap => {
         snap.forEach(child => {
           const [lat, lng] = child.child('l').val() || [];
           if (lat == null) return;
           const dist = distanceBetween([lat, lng], [center.lat, center.lng]);
-          if (dist <= radiusKm) collectedUids.add(child.key);
+          if (dist <= radiusKm) collected.add(child.key);
         });
       });
     };
 
-    /* force-wide sweep (your TEMP line) */
-    const firstRadius = 15000;
-    console.log(`[getNearbyProfiles] TEMP radius forced to ${firstRadius}km`);
-    await sweep(firstRadius);
+    await sweep(15_000);                 // TEMP: wide sweep
+    if (collected.size < minRows) await sweep(Infinity);
 
-    if (collectedUids.size < minRows) {
-      console.log(`[getNearbyProfiles] Fewer than ${minRows} users found, sweeping globally…`);
-      await sweep(Infinity);
+    collected.delete(uid);               // don’t show self
+    let ordered = Array.from(collected).sort();
+
+    /* ───────── cursor handling ───────── */
+    let cursor = afterId;
+    if (!cursor) {
+      const snap = await CURSOR_REF(uid).get();   // may be null on first ever call
+      cursor = snap.val() || null;
+    }
+    if (cursor) {
+      const idx = ordered.indexOf(cursor);
+      if (idx >= 0) ordered = ordered.slice(idx + 1);
     }
 
-    collectedUids.delete(uid);                          // drop self
-    const uids = Array.from(collectedUids).slice(0, minRows);
-    console.log('[getNearbyProfiles] Final UID list:', uids);
+    const pageUids = ordered.slice(0, minRows);
 
-    /* ───────── 4. fetch user docs & add uid field ───────── */
-    const docs = await Promise.all(
-      uids.map(id => db.ref(`users/${id}`).get())
-    );
+    /* store cursor for NEXT call (null if no more pages) */
+    const nextCursor = pageUids.length ? pageUids[pageUids.length - 1] : null;
+    await CURSOR_REF(uid).set(nextCursor);
 
-    const profiles = docs
+    /* ───────── fetch user docs ───────── */
+    const profiles = (await Promise.all(
+      pageUids.map(id => db.ref(`users/${id}`).get())
+    ))
       .map(snap => {
         const p = snap.val();
         if (!p) return null;
-        p.userId = snap.key;                            //  ← NEW (uid)
+        p.userId = snap.key;
         return p;
       })
       .filter(Boolean);
 
-    console.log('[getNearbyProfiles] returning', profiles.length, 'profiles');
     return { profiles };
   });
 
@@ -1278,3 +1277,29 @@ exports.recomputeLeaderboard = functions.pubsub
                 res.status(500).send(err.message);
               }
             });
+
+            exports.listUsaUsers = functions
+              .region('asia-south1')
+              .https.onRequest(async (_req, res) => {
+                try {
+                  const snap = await admin
+                    .database()
+                    .ref('users')
+                    .orderByChild('country')
+                    .equalTo('United States')
+                    .once('value');
+                  const users = [];
+                  snap.forEach(child => {
+                    const u = child.val() || {};
+                    users.push({
+                      uid: child.key,
+                      username: u.username || '',
+                      name: u.name || ''
+                    });
+                  });
+                  res.set('Access-Control-Allow-Origin', '*').json({ users });
+                } catch (err) {
+                  console.error('listUsaUsers error:', err);
+                  res.status(500).send(err.message);
+                }
+              });

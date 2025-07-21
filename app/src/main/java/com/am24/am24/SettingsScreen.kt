@@ -280,10 +280,18 @@ fun SettingsScreen(navController: NavController) {
                         SettingsRow(
                             icon  = { Icon(Icons.Default.StarOutline, null) },
                             title = stringResource(R.string.settings_free_user),
-                            trailingText = "Upgrade",
-                            onClick = {                 // ⬅️ change only this line
-                                navController.navigate("upgradeLanding")
-                            }
+                            trailingText = "Upgrade", // ⬅️ change only this line
+                                onClick = {
+                                    if (CountryUtil.useRazorpay(ctx, country)) {
+                                        navController.navigate("upgradeLanding")
+                                    } else {
+                                        Toast.makeText(
+                                            ctx,
+                                            "We are working on this feature",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
                         )
 
                         /**  PLUS / PREMIUM  → keep old manage page  */
@@ -292,7 +300,17 @@ fun SettingsScreen(navController: NavController) {
                             icon  = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
                             title = "$premiumTier Member",
                             trailingText = "Expires: $expiry",
-                            onClick = { navController.navigate("manageSubscription") } // <-- UPDATED ROUTE
+                            onClick = {
+                                if (CountryUtil.useRazorpay(ctx, country)) {
+                                    navController.navigate("upgradeLanding")
+                                } else {
+                                    Toast.makeText(
+                                        ctx,
+                                        "We are working on this feature",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
                         )
                     }
 
@@ -338,7 +356,17 @@ fun SettingsScreen(navController: NavController) {
                         icon         = { Icon(Icons.Default.SmartToy, null) },
                         title        = "AI messages remaining",
                         trailingText = aiMessages.toString(),
-                        onClick      = { navController.navigate("buyAiMessages") }
+                        onClick = {
+                            if (CountryUtil.useRazorpay(ctx, country)) {
+                                navController.navigate("buyAiMessages")
+                            } else {
+                                Toast.makeText(
+                                    ctx,
+                                    "We are working on this feature",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
                     )
                 }
             }
@@ -500,7 +528,15 @@ fun SettingsScreen(navController: NavController) {
                                 else -> null
                             }
                             rewardDialogFor = null
-                            route?.let { r -> navController.navigate(r) }
+                            if (CountryUtil.useRazorpay(ctx, country)) {
+                                route?.let { r -> navController.navigate(r) }
+                            } else {
+                                Toast.makeText(
+                                    ctx,
+                                    "We are working on this feature",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     }) { Text("Pay Instead", color = kupidxOrange) }
                 }

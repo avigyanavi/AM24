@@ -34,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 
 class KupidXAppActivity : ComponentActivity(),
@@ -244,6 +245,8 @@ fun KupidXApp(
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
+    val ctx = LocalContext.current
+    val isIndia = CountryUtil.isProbablyInIndia(ctx)
 
     LaunchedEffect(openNotifications) {
         if (openNotifications) {
@@ -254,7 +257,11 @@ fun KupidXApp(
 
     LaunchedEffect(openUpgradeLanding) {
         if (openUpgradeLanding) {
-            navController.navigate("upgradeLanding")
+            if (isIndia) {
+                navController.navigate("upgradeLanding")
+            } else {
+                Toast.makeText(ctx, "We are working on this feature", Toast.LENGTH_LONG).show()
+            }
             onUpgradeConsumed()
         }
     }

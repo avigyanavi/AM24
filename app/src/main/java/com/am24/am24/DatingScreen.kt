@@ -1875,16 +1875,6 @@ fun DatingScreenContent(
     }
 
     Box(Modifier.fillMaxSize()) {
-        // 1️⃣ Insert your ad *underneath* the card
-        if (showAds && currentIndex > 0 && currentIndex % 3 == 0) {
-            ComposeDatingNativeAd(
-                adUnitId = adUnitId,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(vertical = 16.dp)
-            )
-        }
         userDistance?.let { distance ->
         DatingProfileCard(
             profile = currentProfile,
