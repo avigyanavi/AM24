@@ -622,17 +622,20 @@ fun DMScreenContent(navController: NavController) {
                 confirmButton = {
                     TextButton(onClick = {
                         showLotteryDialog = false
-                        lotteryAdManager.show(onReward = {
-                            handleLotteryResult(
-                                currentUserId,
-                                selectedLotteryGender,
-                                database,
-                                usersRef,
-                                matchIds,
-                                blockedIds,
-                                context
-                            )
-                        })
+                        lotteryAdManager.showWithDailyLimit(
+                            userId = currentUserId,
+                            onReward = {
+                                handleLotteryResult(
+                                    currentUserId,
+                                    selectedLotteryGender,
+                                    database,
+                                    usersRef,
+                                    matchIds,
+                                    blockedIds,
+                                    context
+                                )
+                            }
+                        )
                     }) { Text("Watch Ad", color = Color(0xFFFF4500)) }
                 },
                 dismissButton = {

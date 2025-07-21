@@ -92,6 +92,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
@@ -113,6 +114,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.am24.am24.ui.CompatibilityMeter
 import com.am24.am24.ui.theme.DarkGrayBackground
 import com.am24.am24.zodiacCompatibilityScore
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
@@ -494,8 +497,10 @@ fun DatingScreen(
                                 if (isIndian) {
                                     navController.navigate("buyCompliments")
                                 } else {
-                                    rewardedComplimentManager.show(onReward = {
-                                        datingViewModel.incrementComplimentsLocal()
+                                    rewardedComplimentManager.showWithDailyLimit(
+                                        userId = FirebaseAuth.getInstance().uid ?: return@WaterIconButton,
+                                        onReward = {
+                                            datingViewModel.incrementComplimentsLocal()
                                         val uid = FirebaseAuth.getInstance().uid
                                         if (uid != null) {
                                             val newVal = complimentsLeft + 1
@@ -505,7 +510,8 @@ fun DatingScreen(
                                             }
                                             profileViewModel.incrementComplimentsLocal()
                                         }
-                                    })
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -533,7 +539,9 @@ fun DatingScreen(
                                 if (isIndian) {
                                     navController.navigate("buyBoosts")
                                 } else {
-                                    rewardedBoostManager.show(onReward = {
+                                    rewardedBoostManager.showWithDailyLimit(
+                                        userId = FirebaseAuth.getInstance().uid ?: return@WaterIconButton,
+                                        onReward = {
                                         profileViewModel.incrementBoostsLocal()
                                         datingViewModel.incrementBoostsLocal()
                                         val uid = FirebaseAuth.getInstance().uid
@@ -544,7 +552,8 @@ fun DatingScreen(
                                                     .setValue(newVal)
                                             }
                                         }
-                                    })
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -590,7 +599,8 @@ fun DatingScreen(
 
                     sortedDisplayedProfiles.isEmpty() -> NoMoreProfilesScreen(
                         autoTapCount = autoTapCount,
-                        maxAutoTaps = maxAutoTaps
+                        maxAutoTaps = maxAutoTaps,
+                        onRefresh = { datingViewModel.refreshFilteredProfiles() }
                     )
 
                     else -> DatingScreenContent(
@@ -614,7 +624,8 @@ fun DatingScreen(
                         excludedUserIds = excludedUserIds,
                         onExcludeUser = { excludedUserIds = excludedUserIds + it },
                         showAds  = showAds,
-                        adUnitId = "ca-app-pub-5094389629300846/4057317007"
+                        adUnitId = "ca-app-pub-5094389629300846/4057317007",
+                        onRefreshProfiles = { datingViewModel.refreshFilteredProfiles() }
                     )
                 }
                 // ── if they’ve exhausted swipes, show your overlay (below) ──
@@ -637,7 +648,8 @@ fun DatingScreen(
                                 navController.navigate("buySwipes")
                                 showSwipeLimitOverlay = false
                             } else {
-                                rewardedSwipeManager.show(
+                                rewardedSwipeManager.showWithDailyLimit(
+                                    userId = FirebaseAuth.getInstance().uid ?: return@SwipeLimitOverlay,
                                     onReward = {
                                         remainingSwipes += 5
                                         updateSwipesInFirebase(remainingSwipes)
@@ -1794,7 +1806,26 @@ fun DropdownFilter(
 }
 
 @Composable
-fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 0) {
+fun NoMoreProfilesScreen(
+    autoTapCount: Int = 0,
+    maxAutoTaps: Int = 0,
+    onRefresh: () -> Unit = {}
+) {
+    var isRefreshing by remember { mutableStateOf(false) }
+    val refreshState = rememberSwipeRefreshState(isRefreshing)
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            onRefresh()
+            delay(500)
+            isRefreshing = false
+        }
+    }
+
+    SwipeRefresh(
+        state = refreshState,
+        onRefresh = { isRefreshing = true }
+    ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1824,6 +1855,16 @@ fun NoMoreProfilesScreen(autoTapCount: Int = 0, maxAutoTaps: Int = 0) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
+        Button(
+            onClick = { isRefreshing = true },
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black)
+            Spacer(Modifier.width(8.dp))
+            Text("Refresh", color = Color.Black)
+        }
+    }
     }
 }
 
@@ -1842,10 +1883,11 @@ fun DatingScreenContent(
     excludedUserIds: Set<String>,    // ← here!
     onExcludeUser: (String) -> Unit,
     showAds: Boolean,            // ← pass this in from DatingScreen()
-    adUnitId: String
+    adUnitId: String,
+    onRefreshProfiles: () -> Unit = {}
 ) {
     if (profiles.isEmpty() || currentIndex >= profiles.size) {
-        NoMoreProfilesScreen()
+        NoMoreProfilesScreen(onRefresh = onRefreshProfiles)
         return
     }
 
@@ -2677,12 +2719,15 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
         /* strengths */
         if (strengths.isNotEmpty()) {
             Text(stringResource(R.string.strengths), color = Color.White, fontWeight = FontWeight.SemiBold)
-            FlowRow(
-                modifier          = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement   = Arrangement.spacedBy(6.dp),
-                maxLines             = Int.MAX_VALUE) {
-                strengths.forEach { TagBox(it.removePrefix("✅").trim()) }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                strengths.forEach {
+                    Text(
+                        text = "\u2022 " + it.removePrefix("✅").trim(),
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
             }
             Spacer(Modifier.height(6.dp))
         }
@@ -2691,14 +2736,14 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
         if (concerns.isNotEmpty()) {
             Text(stringResource(R.string.concerns),
                 color = Color.White, fontWeight = FontWeight.SemiBold)
-            FlowRow(
-                modifier          = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement   = Arrangement.spacedBy(6.dp),
-                maxLines             = Int.MAX_VALUE
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 concerns.forEach {
-                    TagBox(it.removePrefix("⚠️").trim())
+                    Text(
+                        text = "\u2022 " + it.removePrefix("⚠️").trim(),
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
                 }
             }
             Spacer(Modifier.height(6.dp))
@@ -2708,12 +2753,15 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
         /* notes */
         if (notes.isNotEmpty()) {
             Text(stringResource(R.string.notes), color = Color.White, fontWeight = FontWeight.SemiBold)
-            FlowRow(
-                modifier          = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement   = Arrangement.spacedBy(6.dp),
-                maxLines             = Int.MAX_VALUE) {
-                notes.forEach { TagBox(it.removePrefix("ℹ️").trim()) }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                notes.forEach {
+                    Text(
+                        text = "\u2022 " + it.removePrefix("ℹ️").trim(),
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
             }
             Spacer(Modifier.height(6.dp))
         }

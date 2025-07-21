@@ -470,7 +470,7 @@ fun SettingsScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "v0.6",
+                    "v1.0",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -499,7 +499,9 @@ fun SettingsScreen(navController: NavController) {
                             PurchaseType.Swipes -> rewardedSwipeManager
                             else -> null
                         }
-                        manager?.show(onReward = {
+                        manager?.showWithDailyLimit(
+                            userId = uid,
+                            onReward = {
                             when (type) {
                                 PurchaseType.Boosts -> {
                                     boosts += 1
@@ -515,7 +517,8 @@ fun SettingsScreen(navController: NavController) {
                                 }
                                 else -> {}
                             }
-                        })
+                            }
+                        )
                     }) { Text("Watch", color = kupidxOrange) }
                 },
                 dismissButton = {

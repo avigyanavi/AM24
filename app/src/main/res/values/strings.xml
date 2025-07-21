@@ -1234,7 +1234,7 @@
     <string name="caste">Caste/Jati</string>
 
     <!-- No profiles / posts -->
-    <string name="no_more_profiles">No more profiles available.</string>
+    <string name="no_more_profiles">No more Profiles</string>
     <string name="adjust_filters">Please adjust your filters using the - Filters - button above.</string>
     <string name="no_posts">No posts available</string>
 

@@ -31,6 +31,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.*
@@ -66,6 +67,8 @@ import com.am24.am24.PlaceResult
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+
+val KupidxOrange = Color(0xFFFF6F00)
 
 // ───────── leaderboard model ─────────
 data class LeaderboardEntry(
@@ -363,8 +366,9 @@ fun MapScreen(
                                             runSearch(searchQuery)
                                             isLoadingSearch = false
                                         }
-                                    }
-                                )
+                                    },
+                                ),
+                                cursorBrush = SolidColor(KupidxOrange)
                             )
                         }
                         IconButton(
@@ -715,7 +719,7 @@ private fun LeaderboardRow(
                 text = entry.placeName,
                 fontWeight = FontWeight.Medium,
                 fontSize = 16.sp,
-                color = Color.Black,
+                color = KupidxOrange,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -801,7 +805,7 @@ fun PlaceDetailsPopup(
                     .clickable { onDismiss() }
             )
         }
-        Text(placeName, color = Color.Black)
+        Text(placeName, color = KupidxOrange)
         Spacer(Modifier.height(8.dp))
         Row {
             Button(onClick = {
@@ -927,7 +931,7 @@ fun UserProfilePopup(
             text = displayName,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
-            color = Color.Black
+            color = KupidxOrange
         )
         Spacer(Modifier.height(6.dp))
         RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
@@ -984,7 +988,7 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
         Spacer(Modifier.width(4.dp))
         Text(
             text = String.format("%.2f (%d)", rating, ratingCount),
-            color = Color.Black,
+            color = KupidxOrange,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
         )

@@ -26,6 +26,8 @@ data class Profile(
     val bio: String = "",  // One-liner bio
     val interests: List<Interest> = emptyList(),  // Interests for matching purposes
     var lastLotteryDayOfYear: Int? = null,
+    var rewardedAdsToday: Int? = null,
+    var lastRewardAdDayOfYear: Int? = null,
 
     // The user's own gender (Male/Female/Other)
     val gender: String = "",

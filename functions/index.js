@@ -164,7 +164,7 @@ exports.getNearbyProfiles = functions
   .https.onCall(async (data, context) => {
 
     /* ───────── arguments ───────── */
-    const { uid, minRows = 50, afterId } = data || {};
+    const { uid, minRows = 200, afterId } = data || {};
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
 
     const db = admin.database();

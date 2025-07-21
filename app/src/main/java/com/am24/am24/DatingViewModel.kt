@@ -54,7 +54,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
         const val WORLDWIDE_DISTANCE = 101
-        private const val DESIRED_MIN_ROWS       = 50
+        private const val DESIRED_MIN_ROWS       = 200
     }
 
     private val TAG = "DatingViewModel"
