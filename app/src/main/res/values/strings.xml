@@ -1303,7 +1303,7 @@
     <string name="password_mismatch_error">Passwords do not match</string>
 
     <string name="or_click_date_to_refresh">
-  Or click on the “♡” icon in the bottom nav bar to refresh.
+  Or click refresh!
 </string>
     <!-- Enter Name & Height -->
     <string name="full_name_label">Name (Optional)</string>

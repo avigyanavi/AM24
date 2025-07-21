@@ -850,7 +850,7 @@ suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val quota     = when {
         isPremium -> Int.MAX_VALUE
         isPlus    -> 50
-        else      -> 15
+        else      -> 10
     }
 
     val swipesRef = userRef.child("swipesInfo")
@@ -897,7 +897,7 @@ fun SwipeLimitOverlay(
     val quota = when {
         isPremium  -> Int.MAX_VALUE
         isPlus     -> 50
-        else       -> 15
+        else       -> 10
     }
 
     // countdown to midnight
@@ -965,6 +965,28 @@ fun SwipeLimitOverlay(
     }
 }
 
+
+/* ––– Extra helper: quick Premium‑lock composable ––– */
+@Composable fun Locked(label: String) {
+    val ctx = LocalContext.current       // ← add this line
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+            .background(Color.DarkGray, RoundedCornerShape(8.dp))
+            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = ctx.getString(R.string.upgrade_to_premium_to_unlock),
+            color = Color.Gray,
+            fontSize = 13.sp,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun FiltersOverlay(
@@ -1026,11 +1048,9 @@ fun FiltersOverlay(
     var isCollegeFieldFocused by remember { mutableStateOf(false) }
     var isPostGradFieldFocused by remember { mutableStateOf(false) }
 
-    // ─── City & Locality text inputs ─────────────────────────
-    var cityInput by remember { mutableStateOf(selectedCity) }
-    var localitiesInput by remember {
-        mutableStateOf(selectedLocalities.joinToString(", "))
-    }
+
+    var cityInput      by remember { mutableStateOf(selectedCity) }
+    var localitiesInput by remember { mutableStateOf(selectedLocalities.joinToString(", ")) }
 
 
     LaunchedEffect(highSchoolQuery) {
@@ -1198,309 +1218,6 @@ fun FiltersOverlay(
                 )
             }
 
-            /* ───── POWER FILTERS ──────────────────────────────────────── */
-
-            /* 2) Top‐N Ranking (1..100) – visible to everyone, but locked for non‐Premium users */
-
-            /* ─── EDUCATION Filters ──────────────────────────────────── */
-            item {
-                Spacer(Modifier.height(24.dp))
-//                FilterSectionTitle(title = stringResource(R.string.education))
-
-                Spacer(Modifier.height(8.dp))
-                // ─ High School ─
-                PlaceSearchDropdown(
-                    label = stringResource(R.string.high_school),
-                    query = highSchoolQuery,
-                    onQueryChange = {
-                        highSchoolQuery = it
-                        onHighSchoolChange(it)
-                    },
-                    results = highSchoolResults,
-                    searching = highSchoolSearching,
-                    onResultSelect = {
-                        highSchoolQuery = it
-                        onHighSchoolChange(it)
-                        highSchoolResults = emptyList()
-                    },
-                    isFieldFocused = isHighSchoolFieldFocused,
-                    onFieldFocusChange = { isHighSchoolFieldFocused = it }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // ─ College ─
-                PlaceSearchDropdown(
-                    label = stringResource(R.string.college),
-                    query = collegeQuery,
-                    onQueryChange = {
-                        collegeQuery = it
-                        onCollegeChange(it)
-                    },
-                    results = collegeResults,
-                    searching = collegeSearching,
-                    onResultSelect = {
-                        collegeQuery = it
-                        onCollegeChange(it)
-                        collegeResults = emptyList()
-                    },
-                    isFieldFocused = isCollegeFieldFocused,
-                    onFieldFocusChange = { isCollegeFieldFocused = it }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // ─ Post‐Grad ─
-                PlaceSearchDropdown(
-                    label = stringResource(R.string.post_grad),
-                    query = postGradQuery,
-                    onQueryChange = {
-                        postGradQuery = it
-                        onPostGradChange(it)
-                    },
-                    results = postGradResults,
-                    searching = postGradSearching,
-                    onResultSelect = {
-                        postGradQuery = it
-                        onPostGradChange(it)
-                        postGradResults = emptyList()
-                    },
-                    isFieldFocused = isPostGradFieldFocused,
-                    onFieldFocusChange = { isPostGradFieldFocused = it },
-                )
-            }
-
-            /* ─── PREFERENCES Filters ───────────────────────────────── */
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                Spacer(modifier = Modifier.height(8.dp))
-                if (isIndian) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        DropdownFilter(
-                            label = stringResource(R.string.community),
-                            options = listOf(
-                                stringResource(R.string.community_other),
-                                stringResource(R.string.community_adi),
-                                stringResource(R.string.community_andamanese),
-                                stringResource(R.string.community_anglo_indian),
-                                stringResource(R.string.community_assamese),
-                                stringResource(R.string.community_awadhi),
-                                stringResource(R.string.community_banjara),
-                                stringResource(R.string.community_bengali),
-                                stringResource(R.string.community_bhil),
-                                stringResource(R.string.community_bihari),
-                                stringResource(R.string.community_bodo),
-                                stringResource(R.string.community_bhojpuri),
-                                stringResource(R.string.community_chhattisgarhi),
-                                stringResource(R.string.community_coorgi),
-                                stringResource(R.string.community_dogra),
-                                stringResource(R.string.community_garhwali),
-                                stringResource(R.string.community_goan),
-                                stringResource(R.string.community_gond),
-                                stringResource(R.string.community_gujarati),
-                                stringResource(R.string.community_haryanvi),
-                                stringResource(R.string.community_himachali),
-                                stringResource(R.string.community_kannadiga),
-                                stringResource(R.string.community_kashmiri),
-                                stringResource(R.string.community_khasi),
-                                stringResource(R.string.community_konkani),
-                                stringResource(R.string.community_kumaoni),
-                                stringResource(R.string.community_ladakhi),
-                                stringResource(R.string.community_lakhadweepi),
-                                stringResource(R.string.community_lepcha),
-                                stringResource(R.string.community_madhya_pradeshi),
-                                stringResource(R.string.community_malayali),
-                                stringResource(R.string.community_malayali_mappila),
-                                stringResource(R.string.community_manipuri),
-                                stringResource(R.string.community_marathi),
-                                stringResource(R.string.community_marwari),
-                                stringResource(R.string.community_mizo),
-                                stringResource(R.string.community_munda),
-                                stringResource(R.string.community_naga),
-                                stringResource(R.string.community_nepali),
-                                stringResource(R.string.community_nyishi),
-                                stringResource(R.string.community_odia),
-                                stringResource(R.string.community_oraon),
-                                stringResource(R.string.community_parsi),
-                                stringResource(R.string.community_punjabi),
-                                stringResource(R.string.community_rajasthani),
-                                stringResource(R.string.community_santhal),
-                                stringResource(R.string.community_sikkimese),
-                                stringResource(R.string.community_sindhi),
-                                stringResource(R.string.community_tamil),
-                                stringResource(R.string.community_telugu),
-                                stringResource(R.string.community_tibetan),
-                                stringResource(R.string.community_tripuri),
-                                stringResource(R.string.community_urdu_speaker)
-                            ),
-                            selectedOption = selectedCommunity,
-                            onOptionChange = onCommunityChange
-                        )
-                    }
-                }
-                // Religion options
-                val nonIndianReligions = listOf(
-                    stringResource(R.string.religion_other),
-                    stringResource(R.string.religion_buddhist),
-                    stringResource(R.string.religion_christian),
-                    stringResource(R.string.religion_christian_catholic),
-                    stringResource(R.string.religion_christian_protestant_mainline),
-                    stringResource(R.string.religion_christian_evangelical),
-                    stringResource(R.string.religion_christian_orthodox),
-                    stringResource(R.string.religion_christian_latter_day_saint),
-                    stringResource(R.string.religion_christian_jehovahs_witness),
-                    stringResource(R.string.religion_christian_other),
-                    stringResource(R.string.religion_hindu),
-                    stringResource(R.string.religion_jain),
-                    stringResource(R.string.religion_jewish),
-                    stringResource(R.string.religion_muslim),
-                    stringResource(R.string.religion_muslim_sunni),
-                    stringResource(R.string.religion_muslim_shia),
-                    stringResource(R.string.religion_muslim_ahmadiyya),
-                    stringResource(R.string.religion_muslim_sufi),
-                    stringResource(R.string.religion_muslim_other),
-                    stringResource(R.string.religion_no_religion),
-                    stringResource(R.string.religion_parsi),
-                    stringResource(R.string.religion_sikh),
-                    stringResource(R.string.religion_indigenous_tribal),
-                    stringResource(R.string.religion_santeria),
-                    stringResource(R.string.religion_voodou),
-                    stringResource(R.string.religion_candomble),
-                    stringResource(R.string.religion_umbanda),
-                    stringResource(R.string.religion_palo_mayombe),
-                    stringResource(R.string.religion_native_traditional),
-                    stringResource(R.string.religion_native_church),
-                    stringResource(R.string.religion_vision_quest),
-                    stringResource(R.string.religion_african_traditional),
-                    stringResource(R.string.religion_obeah),
-                    stringResource(R.string.religion_hoodoo),
-                    stringResource(R.string.religion_rastafari),
-                    stringResource(R.string.religion_black_protestant),
-                )
-
-                    DropdownFilter(
-                        label = stringResource(R.string.religion_label),
-                        options = nonIndianReligions,
-                        selectedOption = selectedReligion,
-                        onOptionChange = onReligionChange
-                    )
-
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                DropdownFilter(
-                    label = stringResource(R.string.ethnicity_label),
-                    options = listOf(
-                        stringResource(R.string.ethnicity_option_white),
-                        stringResource(R.string.ethnicity_option_black),
-                        stringResource(R.string.ethnicity_option_hispanic),
-                        stringResource(R.string.ethnicity_option_asian),
-                        stringResource(R.string.ethnicity_option_native_american),
-                        stringResource(R.string.ethnicity_option_middle_eastern),
-                        stringResource(R.string.ethnicity_option_pacific_islander),
-                        stringResource(R.string.ethnicity_option_mixed_other)
-                    ),
-                    selectedOption = selectedEthnicity,
-                    onOptionChange = onEthnicityChange
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                DropdownFilter(
-                    label = stringResource(R.string.income_level_label),
-                    options = listOf(
-                        stringResource(R.string.income_level_under_25k),
-                        stringResource(R.string.income_level_25k_50k),
-                        stringResource(R.string.income_level_50k_75k),
-                        stringResource(R.string.income_level_75k_100k),
-                        stringResource(R.string.income_level_100k_150k),
-                        stringResource(R.string.income_level_over_150k)
-                    ),
-                    selectedOption = selectedIncomeLevel,
-                    onOptionChange = onIncomeLevelChange
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (isIndian) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        DropdownFilter(
-                            label = stringResource(R.string.caste),
-                            options = listOf(
-                                stringResource(R.string.caste_other),
-                                stringResource(R.string.caste_baidya),
-                                stringResource(R.string.caste_bhumihar),
-                                stringResource(R.string.caste_bhil),
-                                stringResource(R.string.caste_brahmin),
-                                stringResource(R.string.caste_ezhava),
-                                stringResource(R.string.caste_general),
-                                stringResource(R.string.caste_gowda),
-                                stringResource(R.string.caste_gurjar),
-                                stringResource(R.string.caste_jat),
-                                stringResource(R.string.caste_kayastha),
-                                stringResource(R.string.caste_kshatriya),
-                                stringResource(R.string.caste_kurmi),
-                                stringResource(R.string.caste_lingayat),
-                                stringResource(R.string.caste_mahishya),
-                                stringResource(R.string.caste_maratha),
-                                stringResource(R.string.caste_naidu),
-                                stringResource(R.string.caste_nair),
-                                stringResource(R.string.caste_obc),
-                                stringResource(R.string.caste_patel),
-                                stringResource(R.string.caste_rajput),
-                                stringResource(R.string.caste_rajvanshi),
-                                stringResource(R.string.caste_reddy),
-                                stringResource(R.string.caste_sadgop),
-                                stringResource(R.string.caste_scheduled_caste),
-                                stringResource(R.string.caste_scheduled_tribe),
-                                stringResource(R.string.caste_vaishya),
-                                stringResource(R.string.caste_vellalar),
-                                stringResource(R.string.caste_yadav),
-                            ),
-                            selectedOption = selectedCaste,
-                            onOptionChange = onCasteChange
-                        )
-                    }
-                }
-            }
-            /* 1) Minimum Rating (0..5 stars) – visible to everyone, but locked for non‐Plus users */
-            item {
-                Spacer(Modifier.height(24.dp))
-                FilterSectionTitle(stringResource(R.string.rating_label))
-
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.min_rating, minRating),
-                    color = if (isPremium) Color.White else Color.Gray
-                )
-                Slider(
-                    value = minRating,
-                    onValueChange = {
-                        if (isPlus || isPremium) {
-                            onMinRatingChange(it)
-                        }
-                    },
-                    valueRange = 0f..5f,
-                    steps = 4,
-                    enabled = (isPremium),
-                    colors = SliderDefaults.colors(
-                        thumbColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
-                        activeTrackColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
-                        inactiveTrackColor = Color.DarkGray
-                    )
-                )
-                if (!(isPremium)) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-            }
-
             // ── City & Locality (Premium) ─────────────────────────
             item {
                 OutlinedTextField(
@@ -1510,7 +1227,7 @@ fun FiltersOverlay(
                         onCityChange(it)
                     },
                     label = { Text(stringResource(R.string.city_label), color = Color.White) },
-                    enabled = isPremium,
+                    enabled = true,
                     singleLine = true,
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = Color(0xFFFF6F00),
@@ -1536,7 +1253,7 @@ fun FiltersOverlay(
                         onLocalitiesChange(list)
                     },
                     label = { Text(stringResource(R.string.locality_label), color = Color.White) },
-                    enabled = isPremium,
+                    enabled = true,
                     singleLine = true,
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = Color(0xFFFF6F00),
@@ -1551,55 +1268,357 @@ fun FiltersOverlay(
                         disabledLabelColor  = Color.Gray
                     )
                 )
-
-                if (!isPremium) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
             }
 
-            item {
-                Spacer(Modifier.height(24.dp))
-                FilterSectionTitle(stringResource(R.string.ranking_label))
+            /* ───── POWER FILTERS ──────────────────────────────────────── */
 
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(
-                        R.string.top_n_ranking,
-                        if (maxRanking == 0) "∞" else maxRanking
-                    ),
-                    color = if (isPremium) Color.White else Color.Gray
-                )
-                Slider(
-                    value = (if (maxRanking == 0) 100f else maxRanking.toFloat()),
-                    onValueChange = {
-                        if (isPremium) {
-                            onMaxRankingChange(it.roundToInt())
+            /* 2) Top‐N Ranking (1..100) – visible to everyone, but locked for non‐Premium users */
+
+            /* Show locked overlay for non‑Premium users once */
+            if (!isPremium) {
+                // show the lock message only
+                item {
+                    Locked("advanced")
+                }
+            } else {
+
+                /* ─── EDUCATION Filters ──────────────────────────────────── */
+                item {
+                    Spacer(Modifier.height(24.dp))
+//                FilterSectionTitle(title = stringResource(R.string.education))
+
+                    Spacer(Modifier.height(8.dp))
+                    // ─ High School ─
+                    PlaceSearchDropdown(
+                        label = stringResource(R.string.high_school),
+                        query = highSchoolQuery,
+                        onQueryChange = {
+                            highSchoolQuery = it
+                            onHighSchoolChange(it)
+                        },
+                        results = highSchoolResults,
+                        searching = highSchoolSearching,
+                        onResultSelect = {
+                            highSchoolQuery = it
+                            onHighSchoolChange(it)
+                            highSchoolResults = emptyList()
+                        },
+                        isFieldFocused = isHighSchoolFieldFocused,
+                        onFieldFocusChange = { isHighSchoolFieldFocused = it }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // ─ College ─
+                    PlaceSearchDropdown(
+                        label = stringResource(R.string.college),
+                        query = collegeQuery,
+                        onQueryChange = {
+                            collegeQuery = it
+                            onCollegeChange(it)
+                        },
+                        results = collegeResults,
+                        searching = collegeSearching,
+                        onResultSelect = {
+                            collegeQuery = it
+                            onCollegeChange(it)
+                            collegeResults = emptyList()
+                        },
+                        isFieldFocused = isCollegeFieldFocused,
+                        onFieldFocusChange = { isCollegeFieldFocused = it }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // ─ Post‐Grad ─
+                    PlaceSearchDropdown(
+                        label = stringResource(R.string.post_grad),
+                        query = postGradQuery,
+                        onQueryChange = {
+                            postGradQuery = it
+                            onPostGradChange(it)
+                        },
+                        results = postGradResults,
+                        searching = postGradSearching,
+                        onResultSelect = {
+                            postGradQuery = it
+                            onPostGradChange(it)
+                            postGradResults = emptyList()
+                        },
+                        isFieldFocused = isPostGradFieldFocused,
+                        onFieldFocusChange = { isPostGradFieldFocused = it },
+                    )
+                }
+
+                /* ─── PREFERENCES Filters ───────────────────────────────── */
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (isIndian) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            DropdownFilter(
+                                label = stringResource(R.string.community),
+                                options = listOf(
+                                    stringResource(R.string.community_other),
+                                    stringResource(R.string.community_adi),
+                                    stringResource(R.string.community_andamanese),
+                                    stringResource(R.string.community_anglo_indian),
+                                    stringResource(R.string.community_assamese),
+                                    stringResource(R.string.community_awadhi),
+                                    stringResource(R.string.community_banjara),
+                                    stringResource(R.string.community_bengali),
+                                    stringResource(R.string.community_bhil),
+                                    stringResource(R.string.community_bihari),
+                                    stringResource(R.string.community_bodo),
+                                    stringResource(R.string.community_bhojpuri),
+                                    stringResource(R.string.community_chhattisgarhi),
+                                    stringResource(R.string.community_coorgi),
+                                    stringResource(R.string.community_dogra),
+                                    stringResource(R.string.community_garhwali),
+                                    stringResource(R.string.community_goan),
+                                    stringResource(R.string.community_gond),
+                                    stringResource(R.string.community_gujarati),
+                                    stringResource(R.string.community_haryanvi),
+                                    stringResource(R.string.community_himachali),
+                                    stringResource(R.string.community_kannadiga),
+                                    stringResource(R.string.community_kashmiri),
+                                    stringResource(R.string.community_khasi),
+                                    stringResource(R.string.community_konkani),
+                                    stringResource(R.string.community_kumaoni),
+                                    stringResource(R.string.community_ladakhi),
+                                    stringResource(R.string.community_lakhadweepi),
+                                    stringResource(R.string.community_lepcha),
+                                    stringResource(R.string.community_madhya_pradeshi),
+                                    stringResource(R.string.community_malayali),
+                                    stringResource(R.string.community_malayali_mappila),
+                                    stringResource(R.string.community_manipuri),
+                                    stringResource(R.string.community_marathi),
+                                    stringResource(R.string.community_marwari),
+                                    stringResource(R.string.community_mizo),
+                                    stringResource(R.string.community_munda),
+                                    stringResource(R.string.community_naga),
+                                    stringResource(R.string.community_nepali),
+                                    stringResource(R.string.community_nyishi),
+                                    stringResource(R.string.community_odia),
+                                    stringResource(R.string.community_oraon),
+                                    stringResource(R.string.community_parsi),
+                                    stringResource(R.string.community_punjabi),
+                                    stringResource(R.string.community_rajasthani),
+                                    stringResource(R.string.community_santhal),
+                                    stringResource(R.string.community_sikkimese),
+                                    stringResource(R.string.community_sindhi),
+                                    stringResource(R.string.community_tamil),
+                                    stringResource(R.string.community_telugu),
+                                    stringResource(R.string.community_tibetan),
+                                    stringResource(R.string.community_tripuri),
+                                    stringResource(R.string.community_urdu_speaker)
+                                ),
+                                selectedOption = selectedCommunity,
+                                onOptionChange = onCommunityChange
+                            )
                         }
-                    },
-                    valueRange = 1f..100f,
-                    steps = 30,
-                    enabled = isPremium,
-                    colors = SliderDefaults.colors(
-                        thumbColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
-                        activeTrackColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
-                        inactiveTrackColor = Color.DarkGray
+                    }
+                    // Religion options
+                    val nonIndianReligions = listOf(
+                        stringResource(R.string.religion_other),
+                        stringResource(R.string.religion_buddhist),
+                        stringResource(R.string.religion_christian),
+                        stringResource(R.string.religion_christian_catholic),
+                        stringResource(R.string.religion_christian_protestant_mainline),
+                        stringResource(R.string.religion_christian_evangelical),
+                        stringResource(R.string.religion_christian_orthodox),
+                        stringResource(R.string.religion_christian_latter_day_saint),
+                        stringResource(R.string.religion_christian_jehovahs_witness),
+                        stringResource(R.string.religion_christian_other),
+                        stringResource(R.string.religion_hindu),
+                        stringResource(R.string.religion_jain),
+                        stringResource(R.string.religion_jewish),
+                        stringResource(R.string.religion_muslim),
+                        stringResource(R.string.religion_muslim_sunni),
+                        stringResource(R.string.religion_muslim_shia),
+                        stringResource(R.string.religion_muslim_ahmadiyya),
+                        stringResource(R.string.religion_muslim_sufi),
+                        stringResource(R.string.religion_muslim_other),
+                        stringResource(R.string.religion_no_religion),
+                        stringResource(R.string.religion_parsi),
+                        stringResource(R.string.religion_sikh),
+                        stringResource(R.string.religion_indigenous_tribal),
+                        stringResource(R.string.religion_santeria),
+                        stringResource(R.string.religion_voodou),
+                        stringResource(R.string.religion_candomble),
+                        stringResource(R.string.religion_umbanda),
+                        stringResource(R.string.religion_palo_mayombe),
+                        stringResource(R.string.religion_native_traditional),
+                        stringResource(R.string.religion_native_church),
+                        stringResource(R.string.religion_vision_quest),
+                        stringResource(R.string.religion_african_traditional),
+                        stringResource(R.string.religion_obeah),
+                        stringResource(R.string.religion_hoodoo),
+                        stringResource(R.string.religion_rastafari),
+                        stringResource(R.string.religion_black_protestant),
                     )
-                )
-                if (!isPremium) {
-                    Spacer(Modifier.height(4.dp))
+
+                    DropdownFilter(
+                        label = stringResource(R.string.religion_label),
+                        options = nonIndianReligions,
+                        selectedOption = selectedReligion,
+                        onOptionChange = onReligionChange
+                    )
+
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    DropdownFilter(
+                        label = stringResource(R.string.ethnicity_label),
+                        options = listOf(
+                            stringResource(R.string.ethnicity_option_white),
+                            stringResource(R.string.ethnicity_option_black),
+                            stringResource(R.string.ethnicity_option_hispanic),
+                            stringResource(R.string.ethnicity_option_asian),
+                            stringResource(R.string.ethnicity_option_native_american),
+                            stringResource(R.string.ethnicity_option_middle_eastern),
+                            stringResource(R.string.ethnicity_option_pacific_islander),
+                            stringResource(R.string.ethnicity_option_mixed_other)
+                        ),
+                        selectedOption = selectedEthnicity,
+                        onOptionChange = onEthnicityChange
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    DropdownFilter(
+                        label = stringResource(R.string.income_level_label),
+                        options = listOf(
+                            stringResource(R.string.income_level_under_25k),
+                            stringResource(R.string.income_level_25k_50k),
+                            stringResource(R.string.income_level_50k_75k),
+                            stringResource(R.string.income_level_75k_100k),
+                            stringResource(R.string.income_level_100k_150k),
+                            stringResource(R.string.income_level_over_150k)
+                        ),
+                        selectedOption = selectedIncomeLevel,
+                        onOptionChange = onIncomeLevelChange
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (isIndian) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            DropdownFilter(
+                                label = stringResource(R.string.caste),
+                                options = listOf(
+                                    stringResource(R.string.caste_other),
+                                    stringResource(R.string.caste_baidya),
+                                    stringResource(R.string.caste_bhumihar),
+                                    stringResource(R.string.caste_bhil),
+                                    stringResource(R.string.caste_brahmin),
+                                    stringResource(R.string.caste_ezhava),
+                                    stringResource(R.string.caste_general),
+                                    stringResource(R.string.caste_gowda),
+                                    stringResource(R.string.caste_gurjar),
+                                    stringResource(R.string.caste_jat),
+                                    stringResource(R.string.caste_kayastha),
+                                    stringResource(R.string.caste_kshatriya),
+                                    stringResource(R.string.caste_kurmi),
+                                    stringResource(R.string.caste_lingayat),
+                                    stringResource(R.string.caste_mahishya),
+                                    stringResource(R.string.caste_maratha),
+                                    stringResource(R.string.caste_naidu),
+                                    stringResource(R.string.caste_nair),
+                                    stringResource(R.string.caste_obc),
+                                    stringResource(R.string.caste_patel),
+                                    stringResource(R.string.caste_rajput),
+                                    stringResource(R.string.caste_rajvanshi),
+                                    stringResource(R.string.caste_reddy),
+                                    stringResource(R.string.caste_sadgop),
+                                    stringResource(R.string.caste_scheduled_caste),
+                                    stringResource(R.string.caste_scheduled_tribe),
+                                    stringResource(R.string.caste_vaishya),
+                                    stringResource(R.string.caste_vellalar),
+                                    stringResource(R.string.caste_yadav),
+                                ),
+                                selectedOption = selectedCaste,
+                                onOptionChange = onCasteChange
+                            )
+                        }
+                    }
+                }
+                /* 1) Minimum Rating (0..5 stars) – visible to everyone, but locked for non‐Plus users */
+                item {
+                    Spacer(Modifier.height(24.dp))
+                    FilterSectionTitle(stringResource(R.string.rating_label))
+
+                    Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.upgrade_to_premium_to_unlock),
-                        color = Color.Gray,
-                        fontSize = 14.sp
+                        stringResource(R.string.min_rating, minRating),
+                        color = if (isPremium) Color.White else Color.Gray
                     )
+                    Slider(
+                        value = minRating,
+                        onValueChange = {
+                            if (isPlus || isPremium) {
+                                onMinRatingChange(it)
+                            }
+                        },
+                        valueRange = 0f..5f,
+                        steps = 4,
+                        enabled = (isPremium),
+                        colors = SliderDefaults.colors(
+                            thumbColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
+                            activeTrackColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
+                            inactiveTrackColor = Color.DarkGray
+                        )
+                    )
+                    if (!(isPremium)) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.upgrade_to_premium_to_unlock),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+
+                item {
+                    Spacer(Modifier.height(24.dp))
+                    FilterSectionTitle(stringResource(R.string.ranking_label))
+
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(
+                            R.string.top_n_ranking,
+                            if (maxRanking == 0) "∞" else maxRanking
+                        ),
+                        color = if (isPremium) Color.White else Color.Gray
+                    )
+                    Slider(
+                        value = (if (maxRanking == 0) 100f else maxRanking.toFloat()),
+                        onValueChange = {
+                            if (isPremium) {
+                                onMaxRankingChange(it.roundToInt())
+                            }
+                        },
+                        valueRange = 1f..100f,
+                        steps = 30,
+                        enabled = isPremium,
+                        colors = SliderDefaults.colors(
+                            thumbColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
+                            activeTrackColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
+                            inactiveTrackColor = Color.DarkGray
+                        )
+                    )
+                    if (!isPremium) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.upgrade_to_premium_to_unlock),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
-
         }
     }
 }
