@@ -248,7 +248,8 @@ fun LeaderboardFilters(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(countryExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .menuAnchor()
+                    .menuAnchor(),
+                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = countryExpanded,
@@ -283,7 +284,8 @@ fun LeaderboardFilters(
                 label = { Text("City") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) },
                 modifier = Modifier.fillMaxWidth()
-                    .menuAnchor()
+                    .menuAnchor(),
+                        colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = cityExpanded,
@@ -331,7 +333,8 @@ fun LeaderboardFilters(
                 label = { Text("Locality") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(localityExpanded) },
                 modifier = Modifier.fillMaxWidth()
-                    .menuAnchor()
+                    .menuAnchor(),
+                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
 
             )
             ExposedDropdownMenu(
@@ -366,7 +369,8 @@ fun LeaderboardFilters(
                 label = { Text("High School") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(hsExpanded) },
                 modifier = Modifier.fillMaxWidth()
-                    .menuAnchor()
+                    .menuAnchor(),
+                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = hsExpanded,
@@ -400,7 +404,8 @@ fun LeaderboardFilters(
                 label = { Text("College") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(collExpanded) },
                 modifier = Modifier.fillMaxWidth()
-                    .menuAnchor()
+                    .menuAnchor(),
+                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = collExpanded,

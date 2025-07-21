@@ -774,7 +774,8 @@ fun DropdownField(
             modifier = Modifier.menuAnchor().fillMaxWidth(),
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            enabled = enabled
+            enabled = enabled,
+            colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
         )
 
         ExposedDropdownMenu(

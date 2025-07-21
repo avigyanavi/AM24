@@ -146,7 +146,8 @@ fun GroupChatScreen(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedTextColor = Color.White,
-                        focusedPlaceholderColor = Color.Gray
+                        focusedPlaceholderColor = Color.Gray,
+                        cursorColor             = KupidxOrange
                     ),
                     singleLine = true,
                     shape = RoundedCornerShape(24.dp)

@@ -1196,7 +1196,8 @@ fun FeedItem(
                                         focusedTextColor     = Color.White,
                                         unfocusedTextColor   = Color.White,
                                         focusedIndicatorColor   = Color.Transparent,
-                                        unfocusedIndicatorColor = Color.Transparent
+                                        unfocusedIndicatorColor = Color.Transparent,
+                                        cursorColor             = KupidxOrange
                                     )
                                 )
                             }

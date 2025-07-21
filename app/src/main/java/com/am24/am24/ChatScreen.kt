@@ -2653,7 +2653,7 @@ fun ChatInputBar(
                 focusedPlaceholderColor = Color.Gray,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = Color.White
+                cursorColor             = KupidxOrange
             ),
 //            singleLine = true,
 

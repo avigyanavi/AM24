@@ -664,7 +664,8 @@ fun SearchableDropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier
                 .menuAnchor()
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
         )
 
         ExposedDropdownMenu(
@@ -813,7 +814,8 @@ private fun AccountCard(uid: String) {
                         label = { Text("Current Password") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
@@ -822,7 +824,8 @@ private fun AccountCard(uid: String) {
                         label = { Text("New Password") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
@@ -831,7 +834,8 @@ private fun AccountCard(uid: String) {
                         label = { Text("Confirm Password") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
                     )
                 }
             },

@@ -5144,7 +5144,8 @@ fun CombinedBioVoiceEditSection(
             value = bio,
             onValueChange = { bio = it },
             label = { Text(stringResource(R.string.bio), color = Color.White) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(cursorColor = KupidxOrange)
         )
         Spacer(Modifier.height(16.dp))
 
