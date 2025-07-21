@@ -259,7 +259,10 @@ fun MainNavGraph(
             )
         }
         composable("peopleWhoLikedMe") {
-            PeopleWhoLikeMeScreen(navController = navController)
+            PeopleWhoLikeMeScreen(
+                navController    = navController,
+                profileViewModel = profileViewModel
+            )
         }
         composable("upgradeLanding") {
             UpgradeLandingScreen(navController)

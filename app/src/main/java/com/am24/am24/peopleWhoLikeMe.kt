@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
@@ -26,6 +27,7 @@ import kotlinx.coroutines.tasks.await
 @Composable
 fun PeopleWhoLikeMeScreen(
     navController: NavController,
+    profileViewModel: ProfileViewModel = viewModel(),
     currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 ) {
     val context = LocalContext.current
@@ -65,6 +67,8 @@ fun PeopleWhoLikeMeScreen(
         .getReference("blocks/$currentUserId")
 
     val blockedIds = remember { mutableStateListOf<String>() }
+
+    val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
 
     // Load blocked IDs
     LaunchedEffect(currentUserId) {
@@ -234,6 +238,18 @@ fun PeopleWhoLikeMeScreen(
                         }
                     }
                 }
+            }
+            // Show match pop-up if available
+            matchPopUpState?.let { (you, them) ->
+                MatchPopUp(
+                    currentUserProfilePic = you.profilepicUrl.orEmpty(),
+                    otherUserProfilePic   = them.profilepicUrl.orEmpty(),
+                    onChatClick = {
+                        profileViewModel.clearMatchPopUp()
+                        navController.navigate("chat/${them.userId}")
+                    },
+                    onClose = { profileViewModel.clearMatchPopUp() }
+                )
             }
         }
     }

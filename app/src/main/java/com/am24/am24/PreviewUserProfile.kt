@@ -33,7 +33,7 @@ fun PreviewUserProfileScreen(
     var profile      by remember { mutableStateOf<Profile?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope        = rememberCoroutineScope()
-    var pendingLike by remember { mutableStateOf(false) }
+//    var pendingLike by remember { mutableStateOf(false) }
 
     /* ── one-shot fetch ────────────────────────────────────────────── */
     LaunchedEffect(targetUserId) {
@@ -105,12 +105,13 @@ fun PreviewUserProfileScreen(
                 /* ✅ LIKE */
                 FloatingActionButton(
                     onClick = {
-                        pendingLike = true
+//                        pendingLike = true
                         scope.launch {
                             handleSwipeRight(currentUserId, targetUserId, profileViewModel)
                             updateDailySwipeCount()
-                            navController.popBackStack("home", false)
+//                            navController.popBackStack("home", false)
                         }
+                        navController.popBackStack()
                     },
                     shape          = CircleShape,
                     containerColor = Color(0xFFFF6F00)
@@ -118,15 +119,15 @@ fun PreviewUserProfileScreen(
                     Icon(Icons.Default.Favorite, null, tint = Color.White)
                 }
                 // ② Watch pendingLike + matchPopUpState
-                LaunchedEffect(pendingLike, matchPopUpState) {
-                    if (!pendingLike) return@LaunchedEffect
-
-                    if (matchPopUpState == null) {
-                        // no match → dismiss immediately
-                        navController.popBackStack("home", false)
-                        pendingLike = false
-                    }
-                }
+//                LaunchedEffect(pendingLike, matchPopUpState) {
+//                    if (!pendingLike) return@LaunchedEffect
+//
+//                    if (matchPopUpState == null) {
+//                        // no match → dismiss immediately
+//                        navController.popBackStack("home", false)
+//                        pendingLike = false
+//                    }
+//                }
                 // ③ Render the popup when it arrives
                 matchPopUpState?.let { (you, them) ->
                     val yourPic = profileViewModel.currentUserProfile.value?.profilepicUrl.orEmpty()
@@ -135,13 +136,14 @@ fun PreviewUserProfileScreen(
                         otherUserProfilePic   = them.profilepicUrl.orEmpty(),
                         onChatClick = {
                             profileViewModel.clearMatchPopUp()
-                            pendingLike = false
+//                            pendingLike = false
                             navController.navigate("chat/${them.userId}")
                         },
                         onClose = {
                             profileViewModel.clearMatchPopUp()
-                            pendingLike = false
-                            navController.popBackStack("home", false)
+//                            pendingLike = false
+//                            navController.popBackStack("home", false)
+                            navController.popBackStack()
                         }
                     )
                 }

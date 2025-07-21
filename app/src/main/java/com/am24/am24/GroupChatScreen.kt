@@ -210,9 +210,9 @@ fun GroupMessageBubble(
                         message.senderId == currentUserId ->
                             navController.navigate("profile")
                         matches.contains(message.senderId) ->
-                            navController.navigate("matchedUserProfile/${'$'}{message.senderId}")
+                            navController.navigate("matchedUserProfile/${message.senderId}")
                         else ->
-                            navController.navigate("previewUserProfile/${'$'}{message.senderId}")
+                            navController.navigate("previewUserProfile/${message.senderId}")
                     }
                 }
                 .background(bubbleColor, RoundedCornerShape(12.dp))
