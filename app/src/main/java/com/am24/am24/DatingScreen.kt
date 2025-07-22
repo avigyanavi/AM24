@@ -328,6 +328,16 @@ fun DatingScreen(
     val currentSwipeProfile = sortedDisplayedProfiles.getOrNull(currentIndex)
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
+    // Keep the same top card when profiles list updates
+    LaunchedEffect(sortedDisplayedProfiles) {
+        val id = datingViewModel.currentSwipeUserId.value
+        id?.let { uid ->
+            sortedDisplayedProfiles.indexOfFirst { it.userId == uid }
+                .takeIf { it >= 0 }
+                ?.let { currentIndex = it }
+        }
+    }
+
     // inside DatingScreen (or DatingScreenContent) where you have `currentSwipeProfile`:
     LaunchedEffect(currentSwipeProfile?.userId) {
         Log.d("DatingScreen", "Composable – currentSwipeProfile.userId = ${currentSwipeProfile?.userId}")
@@ -856,19 +866,22 @@ suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val swipesRef = userRef.child("swipesInfo")
     val snap      = swipesRef.get().await()
 
-    var remaining = snap.child("remainingSwipes").getValue(Int::class.java) ?: quota
-    var lastReset = snap.child("lastResetDayOfYear").getValue(Int::class.java) ?: -1
-
-    val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+    val snapRemaining = snap.child("remainingSwipes").getValue(Int::class.java) ?: quota
+    val lastReset     = snap.child("lastResetDayOfYear").getValue(Int::class.java) ?: -1
+    val today   = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+    val newDay  = today != lastReset
 
     /* ── New day?  Top-up only if user was below their quota ─────── */
     /* ── New day or tier upgrade?  Always restore to quota ────────── */
-    if (today != lastReset || remaining < quota) {
+    var remaining = snapRemaining
+
+    /* ── New day?  Always restore to quota ───────────────────────── */
+    if (newDay) {
         remaining = quota
     }
 
     /* ── Persist back if anything changed ────────────────────────── */
-    if (today != lastReset || remaining != snap.child("remainingSwipes").getValue(Int::class.java)) {
+    if (newDay || remaining != snapRemaining) {
         swipesRef.child("remainingSwipes").setValue(remaining)
         swipesRef.child("lastResetDayOfYear").setValue(today)
     }
