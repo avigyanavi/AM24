@@ -629,6 +629,7 @@ fun DatingScreen(
                         },
                         onSwipeLeft      = {
                             if (remainingSwipes > 0) remainingSwipes--
+                            updateSwipesInFirebase(remainingSwipes)
                             currentIndex++
                         },
                         excludedUserIds = excludedUserIds,
