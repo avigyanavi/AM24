@@ -363,7 +363,7 @@ const PLAN_TIERS = {
 };
 
 
-const FREE_SWIPE_QUOTA = 15;
+const FREE_SWIPE_QUOTA = 20;
 exports.checkExpiredOneTimeSubscriptions = functions.pubsub
   .schedule('every day 00:00')
   .timeZone('Asia/Kolkata')

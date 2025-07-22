@@ -229,7 +229,6 @@ fun DatingScreen(
 
     var showComplimentDlg by remember { mutableStateOf(false) }
 
-    var isSendingEmail   by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
     val rewardedBoostManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/4203186426") }
@@ -636,9 +635,6 @@ fun DatingScreen(
                         isPlus = myProfile!!.isPlus,
                         isPremium = myProfile!!.isPremium,
                         isIndian = isIndian,
-                        onDismiss = {
-                            showSwipeLimitOverlay = false
-                        },
                         onWatchAd = {
                             if (isIndian) {
                                 navController.navigate("buySwipes")
@@ -744,7 +740,7 @@ suspend fun loadAndResetSwipesDaily(userId: String): Int {
     val quota     = when {
         isPremium -> Int.MAX_VALUE
         isPlus    -> 50
-        else      -> 10
+        else      -> 20
     }
 
     val swipesRef = userRef.child("swipesInfo")
@@ -787,14 +783,13 @@ fun SwipeLimitOverlay(
     isPlus: Boolean,
     isPremium: Boolean,
     isIndian: Boolean,
-    onDismiss: () -> Unit,
     onWatchAd: () -> Unit
 ) {
     // compute your daily quota
     val quota = when {
         isPremium  -> Int.MAX_VALUE
         isPlus     -> 50
-        else       -> 10
+        else       -> 20
     }
 
     // countdown to midnight
@@ -843,12 +838,6 @@ fun SwipeLimitOverlay(
                 Text("Resets in: $timeLeft", color = Color.Gray)
                 Spacer(Modifier.height(24.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
-                    ) {
-                        Text("OK", color = Color.Black)
-                    }
                     Button(
                         onClick = onWatchAd,
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
