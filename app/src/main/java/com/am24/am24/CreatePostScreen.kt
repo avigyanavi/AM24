@@ -116,6 +116,18 @@ fun CreatePostScreen(
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // 4) Voice Post – locked for non-premium/non-plus
+                PostTypeButton(
+                    icon = Icons.Default.Mic,
+                    label = "Voice Post",
+                    enabled = true,
+                    onClick = {
+                        navController.navigate("create_post/voice")
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // 1) Text posts are always enabled
                 PostTypeButton(
                     icon = Icons.Default.TextFields,
@@ -140,26 +152,6 @@ fun CreatePostScreen(
                             Toast.makeText(
                                 context,
                                 "Upgrade to Plus to create Image Posts",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 4) Voice Post – locked for non-premium/non-plus
-                PostTypeButton(
-                    icon = Icons.Default.Mic,
-                    label = "Voice Post",
-                    enabled = isPremium || isPlus,
-                    onClick = {
-                        if (isPremium || isPlus) {
-                            navController.navigate("create_post/voice")
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Upgrade to Plus to create Voice Posts",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -344,10 +336,10 @@ fun TextPostComposable(
                                         context,
                                         "This may be explicit. Post anyway?"
                                     )
-                                )
+                                ) {
                                     localPosting = false
                                     return@launch                                     // user pressed “Retake”
-
+                                }
                                 // Convert userTags string to list
                                 val tagsList =
                                     userTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }

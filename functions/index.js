@@ -155,102 +155,119 @@ const {
     distanceBetween
   } = require('geofire-common');
 
+const COUNTRY_WHITELIST = new Set([
+  'United States',
+  'India',
+  'South Korea',
+  'United Kingdom',
+  'Australia',
+  'New Zealand',
+  'France',
+  'Germany',
+  'Spain',
+  'Italy',
+  'Netherlands',
+  'Belgium',
+  'Sweden',
+  'Switzerland',
+  'Norway',
+  'Denmark',
+  'Finland',
+  'Ireland',
+  'Portugal',
+  'Austria'
+]);
+
 const CURSOR_REF = uid =>
   admin.database().ref(`paging/nearbyCursor/${uid}`);   // ⇦ stores last UID sent
 
 exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
-  .https.onCall(async (data, context) => {
-
-    /* ───────── arguments ───────── */
+  .https.onCall(async (data, _ctx) => {
     const { uid, minRows = 200, afterId } = data || {};
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
 
     const db = admin.database();
 
-    /* ───────── find caller’s location ─────── */
-    const locSnap = await db.ref(`geoFireLocations/${uid}/l`).get();
-    const latLng  = locSnap.val();               // [lat,lng]
+    // 1. Grab caller’s country (cheap) and optional lat/lng (for later sorting, optional)
+    const [countrySnap, locSnap] = await Promise.all([
+      db.ref(`users/${uid}/country`).get(),
+      db.ref(`geoFireLocations/${uid}/l`).get(),
+    ]);
 
-    /* ──────── fallback: no location ⇒ random users ─────── */
-    if (!Array.isArray(latLng) || latLng.length < 2) {
-      const allSnap = await db.ref('users').get();
-      const list = [];
-      allSnap.forEach(s => {
-        if (s.key !== uid && s.val()) {
-          const p = s.val();
-          p.userId = s.key;
-          list.push(p);
-        }
-      });
-      return { profiles: list.slice(0, minRows) };
+    const myCountry = countrySnap.val() || null;
+    const myLoc = locSnap.val(); // [lat,lng] or null
+
+    // 2. Pull only users in same country
+    let countryUsersSnap;
+    if (myCountry) {
+      countryUsersSnap = await db.ref('users')
+        .orderByChild('country')
+        .equalTo(myCountry)
+        .get();
+    } else {
+      // No country on record → bail early with empty list
+      return { profiles: [] };
     }
 
-    /* ───────── collect all candidate UIDs (same as before) ───────── */
-    const center = { lat: latLng[0], lng: latLng[1] };
-    const collected = new Set();
+    const ids = [];
+    countryUsersSnap.forEach(s => {
+      if (s.key !== uid) ids.push(s.key);
+    });
 
-    const sweep = async radiusKm => {
-      if (radiusKm === Infinity) {
-        const all = await db.ref('geoFireLocations').get();
-        all.forEach(s => collected.add(s.key));
-        return;
-      }
-      const bounds = geohashQueryBounds([center.lat, center.lng], radiusKm * 1_000);
-      const tasks  = bounds.map(b =>
-        db.ref('geoFireLocations')
-          .orderByChild('g').startAt(b[0]).endAt(b[1]).get());
-      (await Promise.all(tasks)).forEach(snap => {
-        snap.forEach(child => {
-          const [lat, lng] = child.child('l').val() || [];
-          if (lat == null) return;
-          const dist = distanceBetween([lat, lng], [center.lat, center.lng]);
-          if (dist <= radiusKm) collected.add(child.key);
+    // 3. Deterministic order
+    //    If we have location, sort by distance first; otherwise just UID.
+    let orderedIds = ids;
+    if (Array.isArray(myLoc) && myLoc.length === 2) {
+      // fetch locations in manageable chunks
+      const chunkSize = 400;
+      const pairs = [];
+      for (let i = 0; i < ids.length; i += chunkSize) {
+        const chunk = ids.slice(i, i + chunkSize);
+        const snaps = await Promise.all(
+          chunk.map(id => db.ref(`geoFireLocations/${id}/l`).get())
+        );
+        snaps.forEach((snap, idx) => {
+          const loc = snap.val();
+          const id = chunk[idx];
+          let dist = Number.POSITIVE_INFINITY;
+          if (Array.isArray(loc) && loc.length === 2) {
+            dist = distanceBetween(loc, myLoc);
+          }
+          pairs.push({ id, dist });
         });
-      });
-    };
+      }
+      pairs.sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id));
+      orderedIds = pairs.map(p => p.id);
+    } else {
+      orderedIds.sort(); // fallback
+    }
 
-    await sweep(15_000);                 // TEMP: wide sweep
-    if (collected.size < minRows) await sweep(Infinity);
-
-    collected.delete(uid);               // don’t show self
-    let ordered = Array.from(collected).sort();
-
-    /* ───────── cursor handling ───────── */
+    // 4. Cursor paging
     let cursor = afterId;
     if (!cursor) {
-      const snap = await CURSOR_REF(uid).get();   // may be null on first ever call
-      cursor = snap.val() || null;
+      cursor = (await CURSOR_REF(uid).get()).val() || null;
     }
+    let startIdx = 0;
     if (cursor) {
-      const idx = ordered.indexOf(cursor);
-           if (idx >= 0) {
-             ordered = ordered.slice(idx + 1);
-           } else {
-             cursor = null; // invalid cursor – restart
-           }
+      const idx = orderedIds.indexOf(cursor);
+      if (idx >= 0) startIdx = idx + 1;
     }
 
-    const pageUids = ordered.slice(0, minRows);
+    const pageIds = orderedIds.slice(startIdx, startIdx + minRows);
 
-    /* store cursor for NEXT call (null if no more pages) */
-    const nextCursor = pageUids.length ? pageUids[pageUids.length - 1] : null;
-    await CURSOR_REF(uid).set(nextCursor);
-
-    /* ───────── fetch user docs ───────── */
-    const profiles = (await Promise.all(
-      pageUids.map(id => db.ref(`users/${id}`).get())
-    ))
-      .map(snap => {
-        const p = snap.val();
-        if (!p) return null;
-        p.userId = snap.key;
-        return p;
-      })
+    const profileSnaps = await Promise.all(
+      pageIds.map(id => db.ref(`users/${id}`).get())
+    );
+    const profiles = profileSnaps
+      .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
       .filter(Boolean);
 
-    return { profiles };
+    const nextCursor = pageIds.length ? pageIds[pageIds.length - 1] : null;
+    await CURSOR_REF(uid).set(nextCursor);
+
+    return { profiles, nextCursor };
   });
 
 // Near the top, replace your dummy VALID_PLANS with the real ones:
@@ -991,6 +1008,337 @@ exports.paypalWebhook = functions
         res.status(500).send(err.message);
       }
       });
+
+exports.backfillLocationFields = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const usersRef = admin.database().ref('users');
+      const snap     = await usersRef.once('value');
+
+      const updates  = {};
+      const touched  = new Set();
+
+      snap.forEach(userSnap => {
+        const data = userSnap.val() || {};
+        const path = userSnap.key;           // userId
+
+        // -------- non-nullable strings ----------
+        if (data.country === undefined)   { updates[`${path}/country`]   = "";   touched.add(path); }
+        if (data.city === undefined)      { updates[`${path}/city`]      = "";   touched.add(path); }
+        if (data.hometown === undefined)  { updates[`${path}/hometown`]  = "";   touched.add(path); }
+
+        // -------- nullable strings --------------
+        if (data.customCountry === undefined)  { updates[`${path}/customCountry`]  = null; touched.add(path); }
+        if (data.customCity === undefined)     { updates[`${path}/customCity`]     = null; touched.add(path); }
+        if (data.customHometown === undefined) { updates[`${path}/customHometown`] = null; touched.add(path); }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('No users needed back-fill.');
+      }
+
+      await usersRef.update(updates);
+      res
+        .status(200)
+        .send(`Updated ${touched.size} user(s), wrote ${Object.keys(updates).length} field(s).`);
+    } catch (err) {
+      console.error('backfillLocationFields error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+
+exports.backfillRewardAdFields = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const usersRef = admin.database().ref('users');
+      const snap     = await usersRef.once('value');
+      const updates  = {};
+      const touched  = new Set();           // how many distinct users we modify
+
+      snap.forEach(userSnap => {
+        const data = userSnap.val() || {};
+        const path = userSnap.key;          // e.g. "KTvatVC19DT1aKHLTIZYzkvTT1B3"
+
+        // Back-fill lastRewardAdDayOfYear
+        if (data.lastRewardAdDayOfYear === undefined) {
+          updates[`${path}/lastRewardAdDayOfYear`] = null;   // or 0 if you prefer
+          touched.add(path);
+        }
+
+        // Back-fill rewardedAdsToday
+        if (data.rewardedAdsToday === undefined) {
+          updates[`${path}/rewardedAdsToday`] = null;        // or 0 if you prefer
+          touched.add(path);
+        }
+      });
+
+      // Nothing to do?
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('No users needed back-fill.');
+      }
+
+      await usersRef.update(updates);
+      res
+        .status(200)
+        .send(`Updated ${touched.size} user(s), wrote ${Object.keys(updates).length} new field(s).`);
+    } catch (err) {
+      console.error('backfillRewardAdFields error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+
+  // Backfill all fields required for posting in a single function
+  exports.backfillProfileFieldsForPosts = functions
+    .region('asia-south1')
+    .https.onRequest(async (_req, res) => {
+      try {
+        const usersRef = admin.database().ref('users');
+        const snap     = await usersRef.once('value');
+        const updates  = {};
+
+        snap.forEach(userSnap => {
+          const data = userSnap.val() || {};
+          if (data.lastLotteryDayOfYear === undefined) {
+            updates[`${userSnap.key}/lastLotteryDayOfYear`] = null;
+          }
+          if (data.rewardedAdsToday === undefined) {
+            updates[`${userSnap.key}/rewardedAdsToday`] = null;
+          }
+          if (data.lastRewardAdDayOfYear === undefined) {
+            updates[`${userSnap.key}/lastRewardAdDayOfYear`] = null;
+          }
+          if (data.ethnicity === undefined) {
+            updates[`${userSnap.key}/ethnicity`] = '';
+          }
+          if (data.incomeLevel === undefined) {
+            updates[`${userSnap.key}/incomeLevel`] = '';
+          }
+        });
+
+        await usersRef.update(updates);
+        res.status(200).send(`updated ${Object.keys(updates).length} fields`);
+      } catch (err) {
+        console.error('backfillProfileFieldsForPosts error:', err);
+        res.status(500).send(err.message);
+      }
+    });
+
+    exports.backfillProfileDefaults = functions
+      .region('asia-south1')
+      .https.onRequest(async (_req, res) => {
+        try {
+          const SKIP = new Set([
+            // ── already handled in earlier jobs ──
+            'lastLotteryDayOfYear', 'rewardedAdsToday', 'lastRewardAdDayOfYear',
+            'customLoveLanguage',
+            'mediaViewsToday', 'lastMediaResetDayOfYear',
+            'country', 'customCountry', 'city', 'customCity',
+            'hometown', 'customHometown',
+          ]);
+
+          /** Default values lifted 1-for-1 from Profile.kt */
+          const DEFAULTS = {
+            email: '', password: '',
+
+            premiumExpiryDate: null, razorpaySubscriptionId: null,
+
+            interestedIn: [], preferredLanguage: '',
+            userId: '', username: '', name: '',
+            dob: '', bio: '', interests: [],
+
+            /** gender & activity */
+            gender: '', lastActive: admin.database.ServerValue.TIMESTAMP,
+
+            badges: [], profilepicUrl: null, voiceNoteUrl: null,
+            loveLanguage: '', optionalPhotoUrls: [], matches: [],
+
+            religion: '', community: '',
+
+            /** education */
+            educationLevel: '', highSchool: '', customHighSchool: null,
+            highSchoolGraduationYear: '',
+            college: '', customCollege: null, collegeGraduationYear: '',
+            collegeDegree: null,
+            postGraduation: '', customPostGraduation: null,
+            postGraduationYear: '', postGraduationDegree: null,
+
+            ethnicity: '', incomeLevel: '',
+
+            lifestyle: null,
+
+            /** work & politics */
+            politics: '', customPolitics: null,
+            jobRole: '', customJobRole: null,
+            work: '', customWork: null,
+
+            socialCauses: [], lookingFor: '',
+
+            likedUsers: {}, numberOfUsersWhoSwiped: 0,
+            UsersWhoLikeMe: {},
+
+            isBoosted: false, boostedAt: null,
+
+            aiMessagesSent: 0, availableBoosts: 0,
+            lastBoostTimestamp: null,
+
+            isPremium: false, isPlus: false, isPrivate: false,
+
+            availableCompliments: 0, lastComplimentResetDayOfYear: null,
+
+            /** location-prefs (bools, *not* the six strings we skipped) */
+            allowLocationForMatches: false, allowLocationPublic: false,
+
+            /** AM24 ranking buckets */
+            am24RankingAge: 0, am24RankingHighSchool: 0,
+            am24RankingCollege: 0, am24RankingHometown: 0, am24Ranking: 0,
+
+            /** engagement stats */
+            numberOfRatings: 0, numberOfSwipeRights: 0, matchCount: 0,
+            matchCountPerSwipeRight: 0.0,
+            cumulativeUpvotes: 0, cumulativeDownvotes: 0,
+            averageUpvoteCount: 0.0, averageDownvoteCount: 0.0,
+
+            reportUsers: {}, blockedUsers: {},
+
+            upvoteCount: 0, downvoteCount: 0, userTags: [],
+
+            zodiac: null, dateOfJoin: admin.database.ServerValue.TIMESTAMP,
+
+            /** further ranking */
+            am24RankingCompositeScore: 0.0,
+            am24RankingCity: 0, am24RankingCustomCity: 0,
+            am24RankingCustomHometown: 0,
+
+            /** geo */
+            latitude: 0.0, longitude: 0.0,
+
+            averageRating: 0.0,
+
+            /** matrimony toggle + fields */
+            isMatrimonyMode: false,
+            marriageTimeline: null, relocationPreference: null,
+            postMarriageCareerPlan: null, traditionalVsLiberal: null,
+
+            fatherOccupation: null, motherOccupation: null,
+
+            /** dating prefs */
+            datingAgeStart: 18, datingAgeEnd: 40, datingDistancePreference: 10,
+            phoneNumber: null,
+
+            /** physical */
+            height: 0, height2: [], caste: '', relationship: null,
+
+            averageSwipeRightsOnUser: 0.0,
+
+            /** notifications & privacy */
+            notifUnreadCount: 0, lastSummaryPush: null,
+            deleteTimerOverride: false, allowExplicitPics: false,
+          };
+
+          const usersRef = admin.database().ref('users');
+          const snap     = await usersRef.once('value');
+
+          const updates  = {};
+          const touched  = new Set();
+
+          snap.forEach(userSnap => {
+            const data = userSnap.val() || {};
+            const path = userSnap.key;   // /users/<uid>
+
+            for (const [key, defVal] of Object.entries(DEFAULTS)) {
+              if (SKIP.has(key)) continue;              // handled elsewhere
+              if (data[key] === undefined) {
+                updates[`${path}/${key}`] = defVal;
+                touched.add(path);
+              }
+            }
+          });
+
+          if (Object.keys(updates).length === 0) {
+            return res.status(200).send('Everything is already up-to-date ✨');
+          }
+
+          await usersRef.update(updates);
+          res
+            .status(200)
+            .send(`Patched ${touched.size} user(s), wrote ${Object.keys(updates).length} missing field(s).`);
+        } catch (err) {
+          console.error('backfillProfileDefaults error:', err);
+          res.status(500).send(err.message);
+        }
+      });
+
+exports.backfillMediaViewFields = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const usersRef = admin.database().ref('users');
+      const snap     = await usersRef.once('value');
+
+      const updates  = {};
+      const touched  = new Set();
+
+      snap.forEach(userSnap => {
+        const data = userSnap.val() || {};
+        const path = userSnap.key;                   // userId
+
+        // mediaViewsToday
+        if (data.mediaViewsToday === undefined) {
+          updates[`${path}/mediaViewsToday`] = null; // or 0 if you prefer
+          touched.add(path);
+        }
+
+        // lastMediaResetDayOfYear
+        if (data.lastMediaResetDayOfYear === undefined) {
+          updates[`${path}/lastMediaResetDayOfYear`] = null; // or 0
+          touched.add(path);
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('No users needed back-fill.');
+      }
+
+      await usersRef.update(updates);
+      res
+        .status(200)
+        .send(`Updated ${touched.size} user(s), wrote ${Object.keys(updates).length} field(s).`);
+    } catch (err) {
+      console.error('backfillMediaViewFields error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+
+exports.backfillCustomLoveLanguage = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const usersRef = admin.database().ref('users');
+      const snap     = await usersRef.once('value');
+
+      const updates  = {};
+      snap.forEach(userSnap => {
+        const data = userSnap.val() || {};
+        if (data.customLoveLanguage === undefined) {
+          updates[`${userSnap.key}/customLoveLanguage`] = null; // or "" if you prefer
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('No users needed back-fill.');
+      }
+
+      await usersRef.update(updates);
+      res
+        .status(200)
+        .send(`Updated ${Object.keys(updates).length} user node(s).`);
+    } catch (err) {
+      console.error('backfillCustomLoveLanguage error:', err);
+      res.status(500).send(err.message);
+    }
+  });
 
 function calcAge(dob) {
   if (!dob) return 0;
