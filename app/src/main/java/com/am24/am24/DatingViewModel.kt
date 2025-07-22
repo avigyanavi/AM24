@@ -399,6 +399,9 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 else {
                     nextAfterId = null
+                    FirebaseDatabase.getInstance()
+                        .getReference("paging/nearbyCursor/$me")
+                        .setValue(null)           // <<< add
                     Log.d(TAG, "Reached end of profiles; resetting cursor")
                 }
             } catch (e: Exception) {
@@ -625,6 +628,23 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         return@coroutineScope result
     }
 
+    /** in‑process LRU for distance look‑ups (key is the *sorted* pair) */
+    private val distanceCache = object : LinkedHashMap<Pair<String,String>, Float>(150, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Pair<String,String>, Float>?): Boolean =
+            size > 150        // keep the last ~150 pairs (~10 kB)
+    }
+
+    /** one‑shot helper that returns a cached value or runs the expensive call once */
+    suspend fun distanceBetween(uidA: String, uidB: String, geoFire: GeoFire): Float? {
+        val key = if (uidA < uidB) uidA to uidB else uidB to uidA   // a⇄b and b⇄a are the same lookup
+        distanceCache[key]?.let { return it }
+
+        // not cached → hit the network once
+        val d = calculateDistance(uidA, uidB, geoFire)
+        if (d != null) distanceCache[key] = d
+        return d
+    }
+
     private suspend fun filterByDistance(
         profiles: List<Profile>,
         maxDistance: Int
@@ -647,6 +667,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
         kept
     }
+
     private val _verificationStatuses =
         MutableStateFlow<Map<String,String>>(emptyMap())
     val verificationStatuses: StateFlow<Map<String,String>>

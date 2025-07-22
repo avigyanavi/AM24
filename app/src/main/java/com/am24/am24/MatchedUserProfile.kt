@@ -150,7 +150,6 @@ fun MatchedUserProfileScreen(
                         item {
                             PhotoWithTwoOverlays(
                                 profile = profile,
-                                isVerified = isVerified,    // ← now passed in
                                 isBoosted = false,
                                 userDistance = userDistance!!,
                                 aiMatchResult = aiMatchResult,

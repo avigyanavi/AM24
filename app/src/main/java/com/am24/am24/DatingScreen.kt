@@ -93,11 +93,9 @@ import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -105,7 +103,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -113,7 +110,6 @@ import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.am24.am24.ui.CompatibilityMeter
 import com.am24.am24.ui.theme.DarkGrayBackground
-import com.am24.am24.zodiacCompatibilityScore
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.database.DataSnapshot
@@ -124,6 +120,10 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import java.io.File
 
 /* DatingScreen.kt  – add near the top, after imports */
@@ -188,7 +188,6 @@ fun DatingScreen(
     /* Auto-tap counter for empty profiles */
     var autoTapCount by rememberSaveable { mutableStateOf(0) }
     val maxAutoTaps = 0
-    val verificationStatuses by datingViewModel.verificationStatuses.collectAsState()
 
     /* fetch *my* Profile once */
     LaunchedEffect(Unit) {
@@ -230,32 +229,19 @@ fun DatingScreen(
 
     var showComplimentDlg by remember { mutableStateOf(false) }
 
-// ── 1) replace the existing `needsVerification` val with a mutable state ─────────
-    val user                 = FirebaseAuth.getInstance().currentUser
-    val isPwdUser            = user?.providerData?.any { it.providerId == "password" } == true
-//    var needsVerification by remember {         // ← make it mutable
-//        mutableStateOf(isPwdUser && user?.isEmailVerified == false)
-//    }
-    var needsVerification = false
-
-    // 2) dialog state
-    var showVerifyDialog by remember { mutableStateOf(false) }
     var isSendingEmail   by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
     val rewardedBoostManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/4203186426") }
     val rewardedComplimentManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6893779002") }
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
 
     DisposableEffect(Unit) {
         onDispose {
             rewardedBoostManager.clearCallbacks()
             rewardedComplimentManager.clearCallbacks()
+            rewardedSwipeManager.clearCallbacks()
         }
-    }
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
-
-    DisposableEffect(Unit) {
-        onDispose { rewardedSwipeManager.clearCallbacks() }
     }
 
     LaunchedEffect(Unit) {
@@ -318,25 +304,25 @@ fun DatingScreen(
     val displayedProfiles = complimentersList + boostedList + premiumList + restList
     Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
 
-    var sortedDisplayedProfiles by remember { mutableStateOf(displayedProfiles) }
-    LaunchedEffect(displayedProfiles) {
-        sortedDisplayedProfiles = datingViewModel.sortDisplayed(displayedProfiles)
-    }
-
+//    var sortedDisplayedProfiles by remember { mutableStateOf(displayedProfiles) }
+//    LaunchedEffect(displayedProfiles) {
+//        sortedDisplayedProfiles = datingViewModel.sortDisplayed(displayedProfiles)
+//    }
+    val sortedDisplayedProfiles = displayedProfiles
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
     val currentSwipeProfile = sortedDisplayedProfiles.getOrNull(currentIndex)
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
-    // Keep the same top card when profiles list updates
-    LaunchedEffect(sortedDisplayedProfiles) {
-        val id = datingViewModel.currentSwipeUserId.value
-        id?.let { uid ->
-            sortedDisplayedProfiles.indexOfFirst { it.userId == uid }
-                .takeIf { it >= 0 }
-                ?.let { currentIndex = it }
-        }
-    }
+//    // Keep the same top card when profiles list updates
+//    LaunchedEffect(sortedDisplayedProfiles) {
+//        val id = datingViewModel.currentSwipeUserId.value
+//        id?.let { uid ->
+//            sortedDisplayedProfiles.indexOfFirst { it.userId == uid }
+//                .takeIf { it >= 0 }
+//                ?.let { currentIndex = it }
+//        }
+//    }
 
     // inside DatingScreen (or DatingScreenContent) where you have `currentSwipeProfile`:
     LaunchedEffect(currentSwipeProfile?.userId) {
@@ -615,7 +601,6 @@ fun DatingScreen(
 
                     else -> DatingScreenContent(
                         navController    = navController,
-                        verificationStatuses = verificationStatuses,  // pass it down
                         geoFire          = geoFire,
                         profileViewModel = profileViewModel,
                         postViewModel    = postViewModel,
@@ -704,108 +689,6 @@ fun DatingScreen(
                 onDismiss = { showComplimentDlg = false }
             )
         }
-    }
-    // ── 3) intercept taps only while we still need verification ---------------------
-    if (needsVerification) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) { detectTapGestures { showVerifyDialog = true } }
-        )
-    }
-
-    // ── 4) revamped AlertDialog ------------------------------------------------------
-    if (showVerifyDialog) {
-        AlertDialog(
-            onDismissRequest = { showVerifyDialog = false },
-            backgroundColor  = Color(0xFF1A1A1A),
-            contentColor     = Color.White,
-            title  = { Text("Verify Email", color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold) },
-            text   = { Text("Please verify your email address to use the app.") },
-
-            /** ------------- BUTTON ROW ------------- **/
-            buttons = {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-
-                    // a) “Resend link”
-                    TextButton(
-                        onClick = {
-                            isSendingEmail = true
-                            coroutineScope.launch {
-                                try {
-                                    user?.sendEmailVerification()?.await()
-                                    Toast.makeText(
-                                        context,
-                                        "Verification email sent!",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        e.message ?: "Error sending email",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                                isSendingEmail = false
-                            }
-                        },
-                        enabled = !isSendingEmail
-                    ) {
-                        if (isSendingEmail) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Resend link", color = Color(0xFFFF6F00))
-                        }
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    // b) “I’ve verified”  ← NEW
-                    TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    // ① wait for the network call to finish
-                                    user?.reload()?.await()      // <-- suspend until done  ✅
-
-                                    // ② THEN read the fresh auth object
-                                    val refreshedUser = FirebaseAuth.getInstance().currentUser
-                                    if (refreshedUser?.isEmailVerified == true) {
-                                        Toast.makeText(
-                                            context,
-                                            "Email verified – enjoy the app!",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        needsVerification = false
-                                        showVerifyDialog  = false
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "Still not verified — please confirm the link first.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        e.message ?: "Error checking verification",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            }
-                        }
-                    ) { Text("I’ve verified", color = Color(0xFFFF6F00)) }
-                }
-            }
-        )
     }
 }
 
@@ -1904,7 +1787,6 @@ fun NoMoreProfilesScreen(
 @Composable
 fun DatingScreenContent(
     navController: NavController,
-    verificationStatuses: Map<String,String>,
     geoFire: GeoFire,
     profileViewModel: ProfileViewModel,
     postViewModel: PostViewModel,
@@ -1928,9 +1810,7 @@ fun DatingScreenContent(
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
     val currentProfile = profiles[currentIndex]
     val isBoostedProfile = boostedUsers.any { it.userId == currentProfile.userId }
-    val isVerified = verificationStatuses[currentProfile.userId] == "accepted"
-
-    Log.d("VERIF", "isVerified = $isVerified")
+    val datingViewModel: DatingViewModel = viewModel()   // ← add this line
     /* distance + AI check – unchanged */
     var userDistance by remember { mutableStateOf<Float?>(null) }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
@@ -1940,20 +1820,30 @@ fun DatingScreenContent(
     val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
 
     LaunchedEffect(currentProfile.userId) {
-        if (currentProfile.userId.isBlank()) return@LaunchedEffect   // <-- guard
-        Log.d("DS-FLOW", "calculateDistance: from $currentUserId to ${currentProfile.userId}")
-        userDistance = calculateDistance(currentUserId, currentProfile.userId, geoFire)
-        val ref = FirebaseRefs.db
-            .getReference("aiMatchCheck/$currentUserId/${currentProfile.userId}")
-        val snap = ref.get().await()
-        aiMatchResult = snap.getValue(AiMatchCheckResult::class.java)
+        snapshotFlow { currentProfile.userId }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .debounce(300)                       // ⏳ throttle rapid swipes
+            .collectLatest { otherId ->
+                Log.d("DS‑FLOW", "distance request → $currentUserId ⇄ $otherId")
+
+                // ✅ call the function on *datingViewModel*, NOT profileViewModel
+                userDistance = datingViewModel
+                    .distanceBetween(currentUserId, otherId, geoFire)
+
+                // existing AI‑match lookup
+                val snap = FirebaseRefs.db
+                    .getReference("aiMatchCheck/$currentUserId/$otherId")
+                    .get()
+                    .await()
+                aiMatchResult = snap.getValue(AiMatchCheckResult::class.java)
+            }
     }
 
     Box(Modifier.fillMaxSize()) {
         userDistance?.let { distance ->
         DatingProfileCard(
             profile = currentProfile,
-            isVerified = isVerified,
             isBoosted = isBoostedProfile,
             aiMatchResult = aiMatchResult,
             sortedByUpvotes = sortedByUpvotes,      // ← pass it i
@@ -1979,7 +1869,6 @@ fun DatingScreenContent(
 @Composable
 fun DatingProfileCard(
     profile: Profile,
-    isVerified: Boolean,
     isBoosted: Boolean,
     aiMatchResult: AiMatchCheckResult?,
     sortedByUpvotes: List<Post>,
@@ -2047,7 +1936,6 @@ fun DatingProfileCard(
                 item {
                     PhotoWithTwoOverlays(
                         profile = profile,
-                        isVerified = isVerified,
                         isBoosted = isBoosted,
                         userDistance = userDistance,
                         aiMatchResult = aiMatchResult,
@@ -2203,7 +2091,6 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
-    isVerified: Boolean,
     isBoosted: Boolean,
     userDistance: Float,
     aiMatchResult: AiMatchCheckResult?,
@@ -2326,16 +2213,6 @@ fun PhotoWithTwoOverlays(
                 Arrangement.SpaceBetween,
                 Alignment.CenterVertically
             ) {
-                if (isVerified) {
-                    Icon(
-                        Icons.Default.Verified,
-                        null,
-                        tint = Color(0xFF2196F3),
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .size(24.dp)
-                    )
-                }
                 val displayName = profile.name.ifBlank { profile.username }
                 Text(
                     text = if (age > 0) "$displayName, $age" else displayName,
