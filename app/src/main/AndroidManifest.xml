@@ -65,20 +65,6 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-5094389629300846~6971017275"/>
 
-        <!-- deep-link catcher -->
-        <!-- deep-link catcher -->
-        <activity
-            android:name=".payments.PayPalReturnActivity"
-            android:exported="true"
-            android:launchMode="singleTop">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="${applicationId}" android:host="paypalpay"/>
-            </intent-filter>
-        </activity>
-
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"

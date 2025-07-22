@@ -116,18 +116,6 @@ fun CreatePostScreen(
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 4) Voice Post – locked for non-premium/non-plus
-                PostTypeButton(
-                    icon = Icons.Default.Mic,
-                    label = "Voice Post",
-                    enabled = true,
-                    onClick = {
-                        navController.navigate("create_post/voice")
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 // 1) Text posts are always enabled
                 PostTypeButton(
                     icon = Icons.Default.TextFields,
@@ -135,6 +123,26 @@ fun CreatePostScreen(
                     enabled = true,
                     onClick = {
                         navController.navigate("create_post/text")
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 4) Voice Post – locked for non-premium/non-plus
+                PostTypeButton(
+                    icon = Icons.Default.Mic,
+                    label = "Voice Post",
+                    enabled = isPremium || isPlus,
+                    onClick = {
+                        if (isPremium || isPlus) {
+                            navController.navigate("create_post/voice")
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Upgrade to Plus to create Image Posts",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 )
 

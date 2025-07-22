@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -285,11 +286,7 @@ fun SettingsScreen(navController: NavController) {
                                     if (CountryUtil.useRazorpay(ctx, country)) {
                                         navController.navigate("upgradeLanding")
                                     } else {
-                                        Toast.makeText(
-                                            ctx,
-                                            "We are working on this feature",
-                                            Toast.LENGTH_LONG
-                                        ).show()
+                                        navController.navigate("subscription")
                                     }
                                 }
                         )
@@ -304,17 +301,22 @@ fun SettingsScreen(navController: NavController) {
                                 if (CountryUtil.useRazorpay(ctx, country)) {
                                     navController.navigate("upgradeLanding")
                                 } else {
-                                    Toast.makeText(
-                                        ctx,
-                                        "We are working on this feature",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                    navController.navigate("subscription")
                                 }
                             }
                         )
                     }
 
                     Divider(Modifier.padding(start = 56.dp))
+
+                    if (premiumTier != "Free") {
+                        SettingsRow(
+                            icon  = { Icon(Icons.Outlined.Leaderboard, null) },
+                            title = stringResource(R.string.leaderboard),
+                            onClick = { navController.navigate("leaderboard") }
+                        )
+                        Divider(Modifier.padding(start = 56.dp))
+                    }
 
                     /* STATIC BOOSTS ROW  */
                     SettingsRow(
@@ -357,15 +359,7 @@ fun SettingsScreen(navController: NavController) {
                         title        = "AI messages remaining",
                         trailingText = aiMessages.toString(),
                         onClick = {
-                            if (CountryUtil.useRazorpay(ctx, country)) {
-                                navController.navigate("buyAiMessages")
-                            } else {
-                                Toast.makeText(
-                                    ctx,
-                                    "We are working on this feature",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+                            navController.navigate("buyAiMessages")
                         }
                     )
                 }
@@ -531,15 +525,7 @@ fun SettingsScreen(navController: NavController) {
                                 else -> null
                             }
                             rewardDialogFor = null
-                            if (CountryUtil.useRazorpay(ctx, country)) {
-                                route?.let { r -> navController.navigate(r) }
-                            } else {
-                                Toast.makeText(
-                                    ctx,
-                                    "We are working on this feature",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+                            route?.let { r -> navController.navigate(r) }
                         }
                     }) { Text("Pay Instead", color = kupidxOrange) }
                 }

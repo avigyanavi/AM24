@@ -303,7 +303,7 @@ fun KupidXApp(
             if (isIndia) {
                 navController.navigate("upgradeLanding")
             } else {
-                Toast.makeText(ctx, "We are working on this feature", Toast.LENGTH_LONG).show()
+                navController.navigate("subscription")
             }
             onUpgradeConsumed()
         }
