@@ -8,8 +8,10 @@ import com.am24.am24.FirebaseRefs
 import com.am24.am24.Notification
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
+import com.am24.am24.R
 import com.am24.am24.calculateAge
 import com.am24.am24.calculateDistance
+import com.am24.am24.canonicalGenderRes
 import com.am24.am24.handleSwipeRight
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
@@ -614,14 +616,17 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
         // Apply gender filter
         if (filters.gender.isNotBlank()) {
-            val genders = filters.gender.split(",")   // ",Female,Male" → ["", "Female", "Male"]
+            val genderIds = filters.gender.split(",")
+                .mapNotNull { canonicalGenderRes(it) }
             result = result.filter { profile ->
-                val g = profile.gender
-                when {
-                    g == null -> true
-                    g.equals("Male", true) -> genders.any { it.equals("Male", true) }
-                    g.equals("Female", true) -> genders.any { it.equals("Female", true) }
-                    else -> genders.any { it.equals("Male", true) || it.equals("Female", true) }
+                val gId = canonicalGenderRes(profile.gender)
+                when (gId) {
+                    null -> true
+                    R.string.male_option -> genderIds.contains(R.string.male_option)
+                    R.string.female_option -> genderIds.contains(R.string.female_option)
+                    else -> genderIds.any {
+                        it == R.string.male_option || it == R.string.female_option
+                    }
                 }
             }
         }

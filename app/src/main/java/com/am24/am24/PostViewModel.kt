@@ -1597,9 +1597,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
             // Gender filter
             if (filters.gender.isNotBlank()) {
+                val targetId = canonicalGenderRes(filters.gender)
                 filteredList = filteredList.filter { post ->
-                    val profileGender = profiles[post.userId]?.gender ?: ""
-                    profileGender.equals(filters.gender, ignoreCase = true)
+                    val profileGender = profiles[post.userId]?.gender
+                    val profId = canonicalGenderRes(profileGender)
+                    targetId == null || profId == targetId
                 }
             }
 

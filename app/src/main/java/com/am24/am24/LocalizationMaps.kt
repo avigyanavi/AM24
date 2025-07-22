@@ -22,6 +22,7 @@ object LocalizationMaps {
         "pa" to "%2\$02d %1\$s, %3\$d"
     )
 
+
     val monthNames = mapOf(
         "en" to listOf(
             "January", "February", "March", "April", "May", "June",
@@ -73,6 +74,13 @@ object LocalizationMaps {
         )
     )
 }
+
+fun canonicalGenderRes(name: String?): Int? {
+    if (name.isNullOrBlank()) return null
+    genderNameToRes[name]?.let { return it }
+    return genderNameToRes.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+}
+
 
 fun formatJoinedOn(
     context: Context,

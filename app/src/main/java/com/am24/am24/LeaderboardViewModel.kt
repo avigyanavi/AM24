@@ -80,12 +80,14 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
         var list = all.filterNot { it.userId.endsWith("Ai") }
 
         sf.gender?.takeIf(String::isNotBlank)?.let { g ->
+            val gId = canonicalGenderRes(g)
             list = list.filter { prof ->
-                val gender = prof.gender
-                when {
-                    gender.equals("Male", true) -> g.equals("Male", true)
-                    gender.equals("Female", true) -> g.equals("Female", true)
-                    else -> g.equals("Male", true) || g.equals("Female", true) || g.equals("Other", true)
+                val pId = canonicalGenderRes(prof.gender)
+                when (pId) {
+                    null -> true
+                    R.string.male_option -> gId == R.string.male_option
+                    R.string.female_option -> gId == R.string.female_option
+                    else -> gId == R.string.male_option || gId == R.string.female_option || gId == R.string.college_other
                 }
             }
         }
