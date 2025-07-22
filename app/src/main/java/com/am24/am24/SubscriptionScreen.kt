@@ -125,7 +125,8 @@ fun SubscriptionScreen(navController: NavController) {
     /* -------------------------------------------------- */
     val db     = FirebaseDatabase.getInstance().reference
     val scope  = rememberCoroutineScope()
-    val host   = ctx as? KupidXAppActivity           // for callback hookup
+    val host        = ctx as? KupidXAppActivity           // Razorpay callbacks
+    val paypalHost  = ctx as? PaypalSubscriptionHost
     val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID) } }
     val fx     = FirebaseFunctions.getInstance("asia-south1")
 
@@ -193,7 +194,25 @@ fun SubscriptionScreen(navController: NavController) {
         } else {
             // Same UI, but jump to correct PayPal page
             val slug = planToSlug(plan)
-            navController.navigate("paypal_web/$slug")
+            paypalHost?.startPaypalSubscription(slug) { subId ->
+                if (subId.isNullOrBlank()) return@startPaypalSubscription
+                scope.launch {
+                    try {
+                        val res = fx.getHttpsCallable("verifyPaypalSubscription")
+                            .call(mapOf("subscriptionId" to subId))
+                            .await().data as Map<*, *>
+                        val ok = res["valid"] as? Boolean ?: false
+                        if (ok) {
+                            Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
+                            navController.popBackStack()
+                        } else {
+                            Toast.makeText(ctx, "Subscription verification failed", Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(ctx, "Subscription verification failed", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         }
     }
 
@@ -313,66 +332,8 @@ fun SubscriptionScreen(navController: NavController) {
     }
 }
 
-fun isProbablyInIndia(ctx: Context): Boolean {
-    // ① SIM / network country if available
-    val telephony = ctx.getSystemService<TelephonyManager>()
-    val simIso    = telephony?.simCountryIso ?: ""
-    val netIso    = telephony?.networkCountryIso ?: ""
-
-    // ② Device UI locale fallback
-    val localeIso = Locale.getDefault().country
-
-    return listOf(simIso, netIso, localeIso).any { it.equals("IN", true) }
+interface PaypalSubscriptionHost {
+    fun startPaypalSubscription(planSlug: String, onResult: (String?) -> Unit)
 }
-
 
 /* ───────── PayPal Smart-Button WebView (unchanged) ───────── */
-
-/* ───────── PayPal payment page WebView – NEW ───────── */
-
-@Composable
-fun PayPalWebView(
-    navController: NavController,
-    pageSlug: String = "plus-monthly"           // default if you don’t pass one
-) {
-    val ctx = LocalContext.current
-    val uriHandler = LocalUriHandler.current
-    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-    /* build final URL:  https://kupidx.com/payment/<slug>?uid=XYZ */
-    val pageUrl = "https://kupidx.com/payment/$pageSlug?uid=$uid"
-
-    AndroidView(
-        factory = { c ->
-            WebView(c).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.mixedContentMode  = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                webChromeClient = WebChromeClient()
-                webViewClient   = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView?, request: WebResourceRequest?
-                    ): Boolean {
-                        val uri = request?.url ?: return false
-                        /* deep-link back into the app → PayPalReturnActivity */
-                        if (uri.scheme == ctx.packageName) {
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                            navController.popBackStack()
-                            return true
-                        }
-                        /* keep normal http/https in WebView */
-                        if (uri.scheme == "http" || uri.scheme == "https") return false
-                        /* everything else → external handler */
-                        return try {
-                            uriHandler.openUri(uri.toString()); true
-                        } catch (_: Exception) {
-                            false
-                        }
-                    }
-                }
-                loadUrl(pageUrl)
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    )
-}

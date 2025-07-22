@@ -3,12 +3,12 @@ package com.am24.am24.ui.purchase
 
 /* Android / Compose */
 import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.browser.customtabs.CustomTabsIntent
+import com.paypal.android.corepayments.CoreConfig
+import com.paypal.android.corepayments.Environment
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutClient
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutFundingSource
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutRequest
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -33,7 +33,12 @@ import org.json.JSONObject
 import java.util.Locale
 import android.telephony.TelephonyManager
 import androidx.core.content.getSystemService
+import com.am24.am24.BuildConfig
 import com.am24.am24.CountryUtil
+
+private const val PAYPAL_CLIENT_ID =
+    "AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt"
+
 
 /* ─────── 1 · Purchase types ─────── */
 enum class PurchaseType(val apiType: String,
@@ -86,39 +91,6 @@ fun OneTimePurchaseScreen(
         checkout.open(act, opts)
     }
 
-    /* ════════════════════ Pay-Pal helpers ($) ════════════════════ */
-    /* 1️⃣ — Result-handler: always clear the spinner first */
-    val paypalLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        // whatever happened → we're back in the app
-        ui = ui.copy(isProcessing = false)
-
-        val uri = result.data?.data          // null when user just presses “back”
-        if (uri == null) {                   // = plain cancel → nothing to do
-            Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
-            return@rememberLauncherForActivityResult
-        }
-
-        if (uri.getQueryParameter("oneTime") != "true") return@rememberLauncherForActivityResult
-        val orderId = uri.getQueryParameter("orderId") ?: return@rememberLauncherForActivityResult
-
-        /* capture & credit … */
-        scope.launch {
-            try {
-                fx.getHttpsCallable("capturePaypalOrder")
-                    .call(mapOf("orderId" to orderId))
-                    .await()
-                Toast.makeText(ctx,
-                    "Added ${ui.selectedQty} ${type.displayName}", Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {
-                Toast.makeText(ctx, "Pay-Pal capture failed", Toast.LENGTH_LONG).show()
-            } finally {
-                navController.popBackStack()
-            }
-        }
-    }
-
     /* 2️⃣ — Only switch the spinner on **after** we have an approval link */
     fun startPaypalFlow() = scope.launch {
         try {
@@ -129,19 +101,62 @@ fun OneTimePurchaseScreen(
                 .call(mapOf("amountUsd" to amount, "label" to label))
                 .await().data as Map<*, *>
 
-            val approveUrl = (res["approve"] as? String).orEmpty()
-            if (approveUrl.isBlank()) {
+            val orderId = res["id"] as? String
+            if (orderId.isNullOrBlank()) {
                 Toast.makeText(ctx, "Pay-Pal order failed, try again", Toast.LENGTH_LONG).show()
                 return@launch
             }
 
-            ui = ui.copy(isProcessing = true)                 // <-- move **here**
-            val intent = CustomTabsIntent.Builder().build().intent.apply {
-                data = Uri.parse(approveUrl)
-            }
-            paypalLauncher.launch(intent)
+            ui = ui.copy(isProcessing = true)
 
+            val environment = if (BuildConfig.DEBUG) Environment.SANDBOX else Environment.LIVE
+            val config = CoreConfig(PAYPAL_CLIENT_ID, environment)
+            val client = PayPalWebCheckoutClient(ctx, config, ctx.packageName)
+
+            client.start(
+                act as Activity,
+                PayPalWebCheckoutRequest(orderId, PayPalWebCheckoutFundingSource.PAYPAL)
+            ).let { result ->
+                if (result is com.paypal.android.paypalwebpayments.PayPalPresentAuthChallengeResult.Success) {
+                    when (val finish = client.finishStart(act.intent, result.authState)) {
+                        is com.paypal.android.paypalwebpayments.PayPalWebCheckoutFinishStartResult.Success -> {
+                            val id = finish.orderId ?: orderId
+                            scope.launch {
+                                try {
+                                    fx.getHttpsCallable("capturePaypalOrder")
+                                        .call(mapOf("orderId" to id))
+                                        .await()
+                                    Toast.makeText(
+                                        ctx,
+                                        "Added ${ui.selectedQty} ${type.displayName}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(ctx, "Pay-Pal capture failed", Toast.LENGTH_LONG).show()
+                                } finally {
+                                    ui = ui.copy(isProcessing = false)
+                                    navController.popBackStack()
+                                }
+                            }
+                        }
+
+                        is com.paypal.android.paypalwebpayments.PayPalWebCheckoutFinishStartResult.Canceled -> {
+                            Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
+                            ui = ui.copy(isProcessing = false)
+                        }
+
+                        else -> {
+                            Toast.makeText(ctx, "Pay-Pal error", Toast.LENGTH_LONG).show()
+                            ui = ui.copy(isProcessing = false)
+                        }
+                    }
+                } else if (result is com.paypal.android.paypalwebpayments.PayPalPresentAuthChallengeResult.Failure) {
+                    Toast.makeText(ctx, "Pay-Pal error", Toast.LENGTH_LONG).show()
+                    ui = ui.copy(isProcessing = false)
+                }
+            }
         } catch (e: Exception) {
+            ui = ui.copy(isProcessing = false)
             Toast.makeText(ctx, "Pay-Pal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
         }
     }
