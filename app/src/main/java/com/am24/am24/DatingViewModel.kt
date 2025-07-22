@@ -125,13 +125,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     // 2) the “freeze while loading” wrapper
     val displayingProfiles: StateFlow<List<Profile>> =
         combine(baseFiltered, _isLoading) { newList, loading ->
-            if (loading) {
-                // still waiting for the network → keep showing whatever was last non-empty
-                lastNonEmptyProfiles
-            } else {
-                // network done → if we got something non-empty, cache it
-                if (newList.isNotEmpty()) lastNonEmptyProfiles = newList
-                newList
+            when {
+                loading && newList.isEmpty() -> emptyList()
+                loading -> lastNonEmptyProfiles
+                else -> {
+                    if (newList.isNotEmpty()) lastNonEmptyProfiles = newList
+                    newList
+                }
             }
         }
             .stateIn(
@@ -322,7 +322,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         fun refreshFilteredProfiles() {
             viewModelScope.launch {
                 _isLoading.value = true
-                nextAfterId = null
                 val me = FirebaseAuth.getInstance().currentUser?.uid
 
                 try {
@@ -336,8 +335,12 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
                     // 👉 call the Cloud Function instead of the local helper
                     val maxDist = _datingFilters.value.distance
-                    val list = fetchNearbyProfilesCloud(me, maxDist, null)
-                    nextAfterId = list.lastOrNull()?.userId
+                    val list = fetchNearbyProfilesCloud(me, maxDist, nextAfterId)
+                    if (list.isNotEmpty()) {
+                        nextAfterId = list.last().userId
+                    } else {
+                        nextAfterId = null
+                    }
                     _allProfiles.value = list
 
                     updateBoostedUsers(me)
@@ -393,6 +396,10 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 if (newList.isNotEmpty()) {
                     nextAfterId = newList.last().userId
                     _allProfiles.update { it + newList }
+                }
+                else {
+                    nextAfterId = null
+                    Log.d(TAG, "Reached end of profiles; resetting cursor")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "loadMoreProfiles() failed: ${e.message}", e)

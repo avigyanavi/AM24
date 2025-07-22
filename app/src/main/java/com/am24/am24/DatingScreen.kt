@@ -600,7 +600,7 @@ fun DatingScreen(
                     sortedDisplayedProfiles.isEmpty() -> NoMoreProfilesScreen(
                         autoTapCount = autoTapCount,
                         maxAutoTaps = maxAutoTaps,
-                        onRefresh = { datingViewModel.refreshFilteredProfiles() }
+                        onRefresh = { datingViewModel.loadMoreProfiles() }
                     )
 
                     else -> DatingScreenContent(
@@ -625,7 +625,7 @@ fun DatingScreen(
                         onExcludeUser = { excludedUserIds = excludedUserIds + it },
                         showAds  = showAds,
                         adUnitId = "ca-app-pub-5094389629300846/4057317007",
-                        onRefreshProfiles = { datingViewModel.refreshFilteredProfiles() }
+                        onRefreshProfiles = { datingViewModel.loadMoreProfiles() }
                     )
                 }
                 // ── if they’ve exhausted swipes, show your overlay (below) ──

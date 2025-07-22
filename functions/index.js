@@ -225,7 +225,11 @@ exports.getNearbyProfiles = functions
     }
     if (cursor) {
       const idx = ordered.indexOf(cursor);
-      if (idx >= 0) ordered = ordered.slice(idx + 1);
+           if (idx >= 0) {
+             ordered = ordered.slice(idx + 1);
+           } else {
+             cursor = null; // invalid cursor – restart
+           }
     }
 
     const pageUids = ordered.slice(0, minRows);
@@ -891,85 +895,6 @@ exports.pushSummary = functions.pubsub
       console.info(`Nudged ${jobs.length} incomplete users`);
       return null;
     });
-
-//exports.pushUpgradePrompt = functions.pubsub
-//  .schedule('0 10 * * 1')          // cron: mm hh DD MM DOW   → Monday 10:00
-//  .timeZone('Asia/Kolkata')
-//  .onRun(async () => {
-//    const usersSnap = await admin.database()
-//      .ref('users')
-//      .orderByChild('isPlus')
-//      .equalTo(false)
-//      .once('value');
-//
-//    const now  = Date.now();
-//    const week = 7 * 24 * 60 * 60 * 1000;
-//
-//    const jobs = [];
-//
-//    usersSnap.forEach(userSnap => {
-//      const uid  = userSnap.key;
-//      const user = userSnap.val() || {};
-//      const last = user.lastUpgradePush || 0;
-//
-//      // Already paying? Skip.
-//      if (user.isPremium || user.isPlus) return;
-//
-//      // Already nudged in the last 7 days? Skip.
-//      if (now - last < week) return;
-//
-//      jobs.push((async () => {
-//        const tSnap  = await admin.database()
-//          .ref(`users/${uid}/fcmTokens`).once('value');
-//        const tokens = Object.keys(tSnap.val() || {});
-//
-//        logger.info('pushUpgradePrompt candidate', {
-//          uid,
-//          tokenCount: tokens.length,
-//        });
-//
-//        if (tokens.length === 0) return;
-//
-//        const res = await admin.messaging().sendEachForMulticast({
-//          tokens,
-//          notification: {
-//            body: 'Upgrade for unlimited swipes and an ad-free experience',
-//          },
-//          data: { type: 'upgrade_prompt' },
-//          android: { priority: 'high' },
-//        });
-//
-//        // Prune invalid tokens
-//        const updates = {};
-//        res.responses.forEach((r, i) => {
-//          if (!r.success &&
-//              r.error?.code === 'messaging/registration-token-not-registered') {
-//            updates[tokens[i]] = null;
-//          }
-//        });
-//        if (Object.keys(updates).length) {
-//          await admin.database()
-//            .ref(`users/${uid}/fcmTokens`)
-//            .update(updates);
-//        }
-//
-//        logger.info('pushUpgradePrompt result', {
-//          uid,
-//          success: res.successCount,
-//          failure: res.failureCount,
-//        });
-//
-//        // Mirror the timestamp in both DB copies
-//        await Promise.all([
-//          userSnap.ref.child('lastUpgradePush').set(now),   // India copy
-//          dbUS.ref(`users/${uid}/lastUpgradePush`).set(now) // US copy
-//        ]);
-//      })());
-//    });
-//
-//    await Promise.all(jobs);
-//    logger.info(`pushUpgradePrompt: processed ${jobs.length} users`);
-//  });
 
 exports.paypalWebhook = functions
   .region('asia-south1')
