@@ -1228,3 +1228,39 @@ exports.recomputeLeaderboard = functions.pubsub
                   res.status(500).send(err.message);
                 }
               });
+
+              exports.listWomenInUsa = functions
+                .region('asia-south1')
+                .https.onRequest(async (_req, res) => {
+                  try {
+                    const snap = await admin
+                      .database()
+                      .ref('users')
+                      .orderByChild('country')
+                      .equalTo('United States')
+                      .once('value');
+
+                    const users = [];
+                    snap.forEach(child => {
+                      const u = child.val() || {};
+                      if ((u.gender || '').toLowerCase() === 'female') {
+                        users.push({
+                          uid: child.key,
+                          username: u.username || '',
+                          name: u.name || '',
+                          dateOfJoin: u.dateOfJoin || null,
+                          lastActive: u.lastActive || null,
+                          city: u.city || '',
+                          hometown: u.hometown || ''
+                        });
+                      }
+                    });
+
+                    res
+                      .set('Access-Control-Allow-Origin', '*')
+                      .json({ count: users.length, users });
+                  } catch (err) {
+                    console.error('listWomenInUsa error:', err);
+                    res.status(500).send(err.message);
+                  }
+                });
