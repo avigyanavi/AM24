@@ -32,6 +32,7 @@ import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 import java.util.Locale
 import android.telephony.TelephonyManager
+import androidx.activity.ComponentActivity
 import androidx.core.content.getSystemService
 import com.am24.am24.BuildConfig
 import com.am24.am24.CountryUtil
@@ -112,9 +113,10 @@ fun OneTimePurchaseScreen(
             val environment = if (BuildConfig.DEBUG) Environment.SANDBOX else Environment.LIVE
             val config = CoreConfig(PAYPAL_CLIENT_ID, environment)
             val client = PayPalWebCheckoutClient(ctx, config, ctx.packageName)
+            val act = ctx as ComponentActivity
 
             client.start(
-                act as Activity,
+                act,
                 PayPalWebCheckoutRequest(orderId, PayPalWebCheckoutFundingSource.PAYPAL)
             ).let { result ->
                 if (result is com.paypal.android.paypalwebpayments.PayPalPresentAuthChallengeResult.Success) {
