@@ -35,7 +35,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.paypal.android.corepayments.CoreConfig
+import com.paypal.android.corepayments.Environment
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutClient
 import java.util.Locale
+
+
+private const val PAYPAL_CLIENT_ID =
+    "AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt"
 
 class KupidXAppActivity : ComponentActivity(),
     PaymentResultWithDataListener,          // replaces old PaymentResultListener
@@ -46,6 +53,7 @@ class KupidXAppActivity : ComponentActivity(),
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
+    private lateinit var paypalClient: PayPalWebCheckoutClient
 
     // callbacks wired from the Composable screen
     private var paymentSuccessCallback: ((String) -> Unit)? = null
@@ -80,6 +88,11 @@ class KupidXAppActivity : ComponentActivity(),
         super.onCreate(savedInstanceState)
 
         auth = FirebaseAuth.getInstance()
+
+        val paypalEnvironment =
+            if (BuildConfig.DEBUG) Environment.SANDBOX else Environment.LIVE
+        val paypalConfig = CoreConfig(PAYPAL_CLIENT_ID, paypalEnvironment)
+        paypalClient = PayPalWebCheckoutClient(applicationContext, paypalConfig, packageName)
 
         // Splash UI
         setContent {

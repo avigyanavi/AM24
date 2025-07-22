@@ -616,7 +616,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         if (filters.gender.isNotBlank()) {
             val genders = filters.gender.split(",")   // ",Female,Male" → ["", "Female", "Male"]
             result = result.filter { profile ->
-                profile.gender?.let { genders.contains(it) } == true
+                val g = profile.gender
+                when {
+                    g == null -> true
+                    g.equals("Male", true) -> genders.any { it.equals("Male", true) }
+                    g.equals("Female", true) -> genders.any { it.equals("Female", true) }
+                    else -> genders.any { it.equals("Male", true) || it.equals("Female", true) }
+                }
             }
         }
 

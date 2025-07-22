@@ -79,7 +79,16 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
     ) { all, sf, nf ->
         var list = all.filterNot { it.userId.endsWith("Ai") }
 
-        sf.gender?.takeIf(String::isNotBlank)?.let { g -> list = list.filter { it.gender == g }}
+        sf.gender?.takeIf(String::isNotBlank)?.let { g ->
+            list = list.filter { prof ->
+                val gender = prof.gender
+                when {
+                    gender.equals("Male", true) -> g.equals("Male", true)
+                    gender.equals("Female", true) -> g.equals("Female", true)
+                    else -> g.equals("Male", true) || g.equals("Female", true) || g.equals("Other", true)
+                }
+            }
+        }
 
         sf.country?.takeIf(String::isNotBlank)?.let { ct ->         // ➍ NEW
                  list = list.filter { it.country.equals(ct, true) }      //  your Profile has `country`
