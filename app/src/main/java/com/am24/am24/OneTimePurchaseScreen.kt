@@ -70,6 +70,7 @@ fun OneTimePurchaseScreen(
     val fx         = FirebaseFunctions.getInstance("asia-south1")
     val checkout   = remember { Checkout().apply { setKeyID("rzp_live_DsoxJLeiCw940M") } }
     val act        = ctx as Activity
+    val paypalHost = ctx as? PaypalCheckoutHost
     var userCountry by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(uid) {
         userCountry = userRoot.child("country").get().await().getValue(String::class.java)
@@ -96,7 +97,7 @@ fun OneTimePurchaseScreen(
     fun startPaypalFlow() = scope.launch {
         try {
             val amount = ui.selectedQty * type.unitPriceUsd
-            val label  = "${type.apiType}_${ui.selectedQty}"
+            val label = "${type.apiType}_${ui.selectedQty}"
 
             val res = fx.getHttpsCallable("createPaypalOrder")
                 .call(mapOf("amountUsd" to amount, "label" to label))
@@ -110,58 +111,36 @@ fun OneTimePurchaseScreen(
 
             ui = ui.copy(isProcessing = true)
 
-            val environment = if (BuildConfig.DEBUG) Environment.SANDBOX else Environment.LIVE
-            val config = CoreConfig(PAYPAL_CLIENT_ID, environment)
-            val client = PayPalWebCheckoutClient(ctx, config, ctx.packageName)
-            val act = ctx as ComponentActivity
-
-            client.start(
-                act,
-                PayPalWebCheckoutRequest(orderId, PayPalWebCheckoutFundingSource.PAYPAL)
-            ).let { result ->
-                if (result is com.paypal.android.paypalwebpayments.PayPalPresentAuthChallengeResult.Success) {
-                    when (val finish = client.finishStart(act.intent, result.authState)) {
-                        is com.paypal.android.paypalwebpayments.PayPalWebCheckoutFinishStartResult.Success -> {
-                            val id = finish.orderId ?: orderId
-                            scope.launch {
-                                try {
-                                    fx.getHttpsCallable("capturePaypalOrder")
-                                        .call(mapOf("orderId" to id))
-                                        .await()
-                                    Toast.makeText(
-                                        ctx,
-                                        "Added ${ui.selectedQty} ${type.displayName}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } catch (e: Exception) {
-                                    Toast.makeText(ctx, "Pay-Pal capture failed", Toast.LENGTH_LONG).show()
-                                } finally {
-                                    ui = ui.copy(isProcessing = false)
-                                    navController.popBackStack()
-                                }
-                            }
-                        }
-
-                        is com.paypal.android.paypalwebpayments.PayPalWebCheckoutFinishStartResult.Canceled -> {
-                            Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
-                            ui = ui.copy(isProcessing = false)
-                        }
-
-                        else -> {
-                            Toast.makeText(ctx, "Pay-Pal error", Toast.LENGTH_LONG).show()
+            paypalHost?.startPaypalCheckout(orderId) { id ->
+                scope.launch {
+                    if (id.isNullOrBlank()) {
+                        Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
+                        ui = ui.copy(isProcessing = false)
+                    } else {
+                        try {
+                            fx.getHttpsCallable("capturePaypalOrder")
+                                .call(mapOf("orderId" to id))
+                                .await()
+                            Toast.makeText(
+                                ctx,
+                                "Added ${ui.selectedQty} ${type.displayName}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            navController.popBackStack()
+                        } catch (e: Exception) {
+                            Toast.makeText(ctx, "Pay-Pal capture failed", Toast.LENGTH_LONG).show()
+                        } finally {
                             ui = ui.copy(isProcessing = false)
                         }
                     }
-                } else if (result is com.paypal.android.paypalwebpayments.PayPalPresentAuthChallengeResult.Failure) {
-                    Toast.makeText(ctx, "Pay-Pal error", Toast.LENGTH_LONG).show()
-                    ui = ui.copy(isProcessing = false)
                 }
-            }
-        } catch (e: Exception) {
-            ui = ui.copy(isProcessing = false)
-            Toast.makeText(ctx, "Pay-Pal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            } ?: run { ui = ui.copy(isProcessing = false) }
         }
-    }
+        catch (e: Exception) {
+                ui = ui.copy(isProcessing = false)
+                Toast.makeText(ctx, "Pay-Pal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
 
     /* ════════════════════ common Razorpay callbacks ════════════════════ */
     DisposableEffect(Unit) {
@@ -310,4 +289,8 @@ fun isProbablyInIndia(ctx: android.content.Context): Boolean {
 /* Host-activity contract remains unchanged */
 interface PaymentResultListenerHost {
     fun setPaymentCallbacks(onSuccess: (String) -> Unit, onError: (String) -> Unit)
+}
+
+interface PaypalCheckoutHost {
+    fun startPaypalCheckout(orderId: String, onResult: (String?) -> Unit)
 }

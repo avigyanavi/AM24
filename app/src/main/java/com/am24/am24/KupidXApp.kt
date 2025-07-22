@@ -41,7 +41,10 @@ import com.paypal.android.paypalwebpayments.PayPalWebCheckoutClient
 import java.util.Locale
 import com.paypal.android.paypalwebpayments.PayPalPresentAuthChallengeResult
 import com.paypal.android.paypalwebpayments.PayPalWebCheckoutFinishVaultResult
-import com.am24.am24.PaypalSubscriptionHost
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutFundingSource as FundingSource
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutRequest
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutFinishStartResult
+import com.am24.am24.ui.purchase.PaypalCheckoutHost
 import com.paypal.android.paypalwebpayments.PayPalWebVaultRequest
 
 
@@ -52,7 +55,8 @@ class KupidXAppActivity : ComponentActivity(),
     PaymentResultWithDataListener,          // replaces old PaymentResultListener
     ExternalWalletListener,                 // required because we pass wallet listener
     PaymentResultListenerHost,              // used by OneTimePurchaseScreen
-    PaypalSubscriptionHost {
+    PaypalSubscriptionHost,
+    PaypalCheckoutHost {
 
     /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
@@ -65,6 +69,8 @@ class KupidXAppActivity : ComponentActivity(),
     private var paymentErrorCallback:  ((String) -> Unit)? = null
     private var paypalAuthState: String? = null
     private var paypalCallback: ((String?) -> Unit)? = null
+    private var checkoutAuthState: String? = null
+    private var checkoutCallback: ((String?) -> Unit)? = null
 
 
     // deep-link flag
@@ -184,6 +190,15 @@ class KupidXAppActivity : ComponentActivity(),
             paypalAuthState = null
             paypalCallback = null
         }
+        checkoutAuthState?.let { state ->
+            when (val res = paypalClient.finishStart(intent, state)) {
+                is PayPalWebCheckoutFinishStartResult.Success ->
+                    checkoutCallback?.invoke(res.orderId)
+                else -> checkoutCallback?.invoke(null)
+            }
+            checkoutAuthState = null
+            checkoutCallback = null
+        }
         var changed = false
         if (intent.getBooleanExtra("open_notifications", false)) {
             pendingOpenNotifications = true
@@ -231,6 +246,21 @@ class KupidXAppActivity : ComponentActivity(),
             paypalCallback?.invoke(null)
             paypalCallback = null
             paypalAuthState = null
+        }
+    }
+
+    override fun startPaypalCheckout(orderId: String, onResult: (String?) -> Unit) {
+        checkoutCallback = onResult
+        val startResult = paypalClient.start(
+            this,
+            PayPalWebCheckoutRequest(orderId, FundingSource.PAYPAL)
+        )
+        if (startResult is PayPalPresentAuthChallengeResult.Success) {
+            checkoutAuthState = startResult.authState
+        } else {
+            checkoutCallback?.invoke(null)
+            checkoutCallback = null
+            checkoutAuthState = null
         }
     }
 
