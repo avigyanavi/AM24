@@ -51,12 +51,20 @@ private val http by lazy {
 }
 
 /* preferred languages depending on device locale */
-private fun preferredLangs(context: Context): List<String> =
-    when (Locale.getDefault().language.lowercase()) {
+private fun preferredLangs(): List<String> {
+    return when (Locale.getDefault().language.lowercase()) {
         "hi" -> listOf("hi", "bn", "en")
         "bn" -> listOf("bn", "hi", "en")
-        else -> listOf("en")                                // fall-back
+        "kn" -> listOf("kn", "hi", "en")
+        "ta" -> listOf("ta", "hi", "en")
+        "te" -> listOf("te", "hi", "en")
+        else -> listOf("en")
     }
+}
+
+/* Keep old call sites working */
+@Suppress("UNUSED_PARAMETER")
+private fun preferredLangs(context: Context): List<String> = preferredLangs()
 
 /* ─────────────────────────── SUGGESTIONS ─────────────────────────── */
 
