@@ -4,18 +4,7 @@ package com.am24.am24
 
 /* Android & Compose */
 import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.telephony.TelephonyManager
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,23 +16,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import com.google.firebase.database.ServerValue.increment
-import java.util.Locale
-import androidx.core.content.getSystemService
 import com.google.firebase.functions.FirebaseFunctions
 import com.razorpay.Checkout
-import com.razorpay.PaymentResultListener
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
+ import com.paypal.android.corepayments.CoreConfig
+import com.paypal.android.corepayments.Environment
+import com.paypal.android.corepayments.PayPalSDKError
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutClient
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutListener
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutRequest
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutResult
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutFundingSource as FundingSource
+import com.am24.am24.ui.purchase.PaymentResultListenerHost
+import com.am24.am24.BuildConfig
+
+private const val PAYPAL_CLIENT_ID =
+        "AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt"
+
 
 private val PLUS_FEATURES = listOf(
     "No ads",
@@ -62,6 +60,7 @@ private val PREMIUM_FEATURES = listOf(
     "Everything in Plus"
 )
 
+private data class UiState(val isProcessing: Boolean = false)
 /* ────────  PLAN IDS (create these in dashboard → Plans) ──────── */
 private const val PLAN_ID_WEEK_PLUS     = "plan_QjnGf6wdQAmyi2"
 private const val PLAN_ID_WEEK_PREMIUM  = "plan_QjpkdErsuewaUJ"
@@ -125,15 +124,49 @@ fun SubscriptionScreen(navController: NavController) {
     /* -------------------------------------------------- */
     val db     = FirebaseDatabase.getInstance().reference
     val scope  = rememberCoroutineScope()
-    val host        = ctx as? KupidXAppActivity           // Razorpay callbacks
-    val paypalHost  = ctx as? PaypalSubscriptionHost
+    val host        = ctx as? PaymentResultListenerHost   // Razorpay callbacks
+    val act         = ctx as FragmentActivity
     val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID) } }
     val fx     = FirebaseFunctions.getInstance("asia-south1")
+    var ui by remember { mutableStateOf(UiState()) }
+
+    val ppConfig  = remember { CoreConfig(PAYPAL_CLIENT_ID, environment = Environment.LIVE) }
+        val returnUrl = remember { "${BuildConfig.APPLICATION_ID}://paypalreturn" }
+        val payPalClient = remember(act, ppConfig, returnUrl) {
+                PayPalWebCheckoutClient(act, ppConfig, returnUrl)
+            }
 
     /* real-time flags to hide the screen if user already subscribed */
     var plus    by remember { mutableStateOf<Boolean?>(null) }
     var premium by remember { mutableStateOf<Boolean?>(null) }
 
+    // attach listener once
+        LaunchedEffect(payPalClient) {
+                payPalClient.listener = object : PayPalWebCheckoutListener {
+                        override fun onPayPalWebSuccess(result: PayPalWebCheckoutResult) {
+                                // order approved → capture & flip flags
+                                scope.launch {
+                                        try {
+                                                fx.getHttpsCallable("capturePaypalOrder")
+                                                    .call(mapOf("orderId" to result.orderId))
+                                                    .await()
+                                                Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
+                                                navController.popBackStack()
+                                            } catch (e: Exception) {
+                                                Toast.makeText(ctx, "PayPal capture failed", Toast.LENGTH_LONG).show()
+                                            } finally { ui = ui.copy(isProcessing = false) }
+                                    }
+                            }
+                        override fun onPayPalWebFailure(error: PayPalSDKError) {
+                                Toast.makeText(ctx, "PayPal error: ${error.message}", Toast.LENGTH_LONG).show()
+                                ui = ui.copy(isProcessing = false)
+                            }
+                        override fun onPayPalWebCanceled() {
+                                Toast.makeText(ctx, "Cancelled", Toast.LENGTH_SHORT).show()
+                                ui = ui.copy(isProcessing = false)
+                            }
+                    }
+            }
     DisposableEffect(uid) {
         val l = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
@@ -189,31 +222,30 @@ fun SubscriptionScreen(navController: NavController) {
         }
     }
     fun handlePlan(plan: Plan) {
-        if (isIndia) {            // Razorpay checkout like before
-            launchCheckout(plan)
-        } else {
-            // Same UI, but jump to correct PayPal page
-            val slug = planToSlug(plan)
-            paypalHost?.startPaypalSubscription(slug) { subId ->
-                if (subId.isNullOrBlank()) return@startPaypalSubscription
+        if (isIndia) { launchCheckout(plan); return }
+
+                // PayPal path: create & start checkout order (recurring backend later)
                 scope.launch {
-                    try {
-                        val res = fx.getHttpsCallable("verifyPaypalSubscription")
-                            .call(mapOf("subscriptionId" to subId))
-                            .await().data as Map<*, *>
-                        val ok = res["valid"] as? Boolean ?: false
-                        if (ok) {
-                            Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
-                            navController.popBackStack()
-                        } else {
-                            Toast.makeText(ctx, "Subscription verification failed", Toast.LENGTH_LONG).show()
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(ctx, "Subscription verification failed", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
+                        if (ui.isProcessing) return@launch
+                        try {
+                                ui = ui.copy(isProcessing = true)
+                                val usd = usdPrice(plan)
+                                val label = "sub_${planToSlug(plan)}"
+                                val res = fx.getHttpsCallable("createPaypalOrder")
+                                    .call(mapOf("amountUsd" to usd, "label" to label))
+                                    .await().data as Map<*, *>
+                                val orderId = res["id"] as? String
+                                if (orderId.isNullOrBlank()) {
+                                        Toast.makeText(ctx, "PayPal order failed", Toast.LENGTH_LONG).show()
+                                        ui = ui.copy(isProcessing = false)
+                                        return@launch
+                                    }
+                                payPalClient.start(PayPalWebCheckoutRequest(orderId, FundingSource.PAYPAL))
+                            } catch (e: Exception) {
+                                ui = ui.copy(isProcessing = false)
+                                Toast.makeText(ctx, "PayPal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            }
+                   }
     }
 
     /* ---------- attach success / error to the host activity ---------- */
@@ -277,52 +309,66 @@ fun SubscriptionScreen(navController: NavController) {
             .filter { it.period == currentPeriod }
             .filter { isIndia || it.period != Period.WEEK }   // drop weekly for PayPal
             .forEach { plan ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { handlePlan(plan) },   // ← replace old click
-                colors = CardDefaults.cardColors(
-                    containerColor = if (plan.tier == Tier.PREMIUM)
-                        Color(0xFFFF6F00)          // ← Kupidx orange
-                         else Color(0xFF1E1E1E)
-                )
-            ) {
-                Row(
-                    Modifier
+                Card(
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(vertical = 8.dp)
+                        .clickable {
+                            if (!ui.isProcessing) handlePlan(plan)
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (plan.tier == Tier.PREMIUM)
+                            Color(0xFFFF6F00)          // ← Kupidx orange
+                        else Color(0xFF1E1E1E)
+                    )
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            plan.tier.name.lowercase().replaceFirstChar(Char::uppercase),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
-                        val priceLabel = if (isIndia)
-                            "₹${plan.price} / ${plan.period.label.lowercase()}"
-                        else
-                            "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
-
-                        Text(priceLabel, color = Color.LightGray, fontSize = 14.sp)
-                        Spacer(Modifier.height(8.dp))
-                        val features = if (plan.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
-                        features.forEach { bullet ->
-                            Text("• $bullet",
-                                color = Color.LightGray,
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(vertical = 2.dp)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                plan.tier.name.lowercase().replaceFirstChar(Char::uppercase),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
                             )
+                            val priceLabel = if (isIndia)
+                                "₹${plan.price} / ${plan.period.label.lowercase()}"
+                            else
+                                "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
+
+                            Text(priceLabel, color = Color.LightGray, fontSize = 14.sp)
+                            Spacer(Modifier.height(8.dp))
+                            val features =
+                                if (plan.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
+                            features.forEach { bullet ->
+                                Text(
+                                    "• $bullet",
+                                    color = Color.LightGray,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
+                            }
                         }
-                    }
-                    Button(onClick = { handlePlan(plan) }) {
-                        Text("Choose", color = Color.White)
+                        Button(
+                            onClick = { if (!ui.isProcessing) handlePlan(plan) },
+                            enabled = !ui.isProcessing
+                        ) {
+                            if (ui.isProcessing)
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            else
+                                Text("Choose", color = Color.White)
+                        }
                     }
                 }
             }
-        }
 
         Spacer(Modifier.height(24.dp))
         TextButton(onClick = { navController.popBackStack() }) {
@@ -331,9 +377,3 @@ fun SubscriptionScreen(navController: NavController) {
         }
     }
 }
-
-interface PaypalSubscriptionHost {
-    fun startPaypalSubscription(planSlug: String, onResult: (String?) -> Unit)
-}
-
-/* ───────── PayPal Smart-Button WebView (unchanged) ───────── */

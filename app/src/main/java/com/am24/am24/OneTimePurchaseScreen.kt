@@ -6,9 +6,11 @@ import android.app.Activity
 import android.widget.Toast
 import com.paypal.android.corepayments.CoreConfig
 import com.paypal.android.corepayments.Environment
+import com.paypal.android.corepayments.PayPalSDKError
 import com.paypal.android.paypalwebpayments.PayPalWebCheckoutClient
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutFundingSource
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutListener
 import com.paypal.android.paypalwebpayments.PayPalWebCheckoutRequest
+import com.paypal.android.paypalwebpayments.PayPalWebCheckoutResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -34,6 +36,7 @@ import java.util.Locale
 import android.telephony.TelephonyManager
 import androidx.activity.ComponentActivity
 import androidx.core.content.getSystemService
+import androidx.fragment.app.FragmentActivity
 import com.am24.am24.BuildConfig
 import com.am24.am24.CountryUtil
 
@@ -69,8 +72,7 @@ fun OneTimePurchaseScreen(
     val userRoot   = FirebaseDatabase.getInstance().getReference("users/$uid")
     val fx         = FirebaseFunctions.getInstance("asia-south1")
     val checkout   = remember { Checkout().apply { setKeyID("rzp_live_DsoxJLeiCw940M") } }
-    val act        = ctx as Activity
-    val paypalHost = ctx as? PaypalCheckoutHost
+    val act        = ctx as FragmentActivity
     var userCountry by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(uid) {
         userCountry = userRoot.child("country").get().await().getValue(String::class.java)
@@ -78,7 +80,41 @@ fun OneTimePurchaseScreen(
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
     var ui by remember { mutableStateOf(UiState()) }
-
+    val ppConfig   = remember { CoreConfig(PAYPAL_CLIENT_ID, environment = Environment.LIVE) }
+    val returnUrl  = remember { "${BuildConfig.APPLICATION_ID}://paypalreturn" }
+    val payPalClient = remember {
+                PayPalWebCheckoutClient(act, ppConfig, returnUrl).apply {
+                        listener = object : PayPalWebCheckoutListener {
+                                override fun onPayPalWebSuccess(result: PayPalWebCheckoutResult) {
+                                        scope.launch {
+                                                try {
+                                                        fx.getHttpsCallable("capturePaypalOrder")
+                                                            .call(mapOf("orderId" to result.orderId))
+                                                            .await()
+                                                        Toast.makeText(
+                                                                ctx,
+                                                                "Added ${ui.selectedQty} ${type.displayName}",
+                                                                Toast.LENGTH_LONG
+                                                                    ).show()
+                                                        navController.popBackStack()
+                                                    } catch (e: Exception) {
+                                                        Toast.makeText(ctx, "PayPal capture failed", Toast.LENGTH_LONG).show()
+                                                    } finally {
+                                                        ui = ui.copy(isProcessing = false)
+                                                    }
+                                            }
+                                    }
+                                override fun onPayPalWebFailure(error: PayPalSDKError) {
+                                        Toast.makeText(ctx, "PayPal error: ${error.message}", Toast.LENGTH_LONG).show()
+                                        ui = ui.copy(isProcessing = false)
+                                    }
+                                override fun onPayPalWebCanceled() {
+                                        Toast.makeText(ctx, "Cancelled", Toast.LENGTH_SHORT).show()
+                                        ui = ui.copy(isProcessing = false)
+                                    }
+                           }
+                    }
+            }
     /* ════════════════════ Razorpay helpers (₹) ════════════════════ */
     fun launchRazorpay(orderId: String, keyId: String) {
         val opts = JSONObject().apply {
@@ -93,54 +129,28 @@ fun OneTimePurchaseScreen(
         checkout.open(act, opts)
     }
 
-    /* 2️⃣ — Only switch the spinner on **after** we have an approval link */
     fun startPaypalFlow() = scope.launch {
-        try {
-            val amount = ui.selectedQty * type.unitPriceUsd
-            val label = "${type.apiType}_${ui.selectedQty}"
+                try {
+                        val amount = ui.selectedQty * type.unitPriceUsd
+                        val label  = "${type.apiType}_${ui.selectedQty}"
 
-            val res = fx.getHttpsCallable("createPaypalOrder")
-                .call(mapOf("amountUsd" to amount, "label" to label))
-                .await().data as Map<*, *>
+                        val res = fx.getHttpsCallable("createPaypalOrder")
+                            .call(mapOf("amountUsd" to amount, "label" to label))
+                            .await().data as Map<*, *>
 
-            val orderId = res["id"] as? String
-            if (orderId.isNullOrBlank()) {
-                Toast.makeText(ctx, "Pay-Pal order failed, try again", Toast.LENGTH_LONG).show()
-                return@launch
-            }
+                        val orderId = res["id"] as? String
+                        if (orderId.isNullOrBlank()) {
+                                Toast.makeText(ctx, "PayPal order failed, try again", Toast.LENGTH_LONG).show()
+                                return@launch
+                            }
 
-            ui = ui.copy(isProcessing = true)
-
-            paypalHost?.startPaypalCheckout(orderId) { id ->
-                scope.launch {
-                    if (id.isNullOrBlank()) {
-                        Toast.makeText(ctx, "Payment cancelled", Toast.LENGTH_SHORT).show()
+                        ui = ui.copy(isProcessing = true)
+                        payPalClient.start(PayPalWebCheckoutRequest(orderId))
+                    } catch (e: Exception) {
                         ui = ui.copy(isProcessing = false)
-                    } else {
-                        try {
-                            fx.getHttpsCallable("capturePaypalOrder")
-                                .call(mapOf("orderId" to id))
-                                .await()
-                            Toast.makeText(
-                                ctx,
-                                "Added ${ui.selectedQty} ${type.displayName}",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            navController.popBackStack()
-                        } catch (e: Exception) {
-                            Toast.makeText(ctx, "Pay-Pal capture failed", Toast.LENGTH_LONG).show()
-                        } finally {
-                            ui = ui.copy(isProcessing = false)
-                        }
+                        Toast.makeText(ctx, "PayPal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                     }
-                }
-            } ?: run { ui = ui.copy(isProcessing = false) }
-        }
-        catch (e: Exception) {
-                ui = ui.copy(isProcessing = false)
-                Toast.makeText(ctx, "Pay-Pal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
-        }
 
     /* ════════════════════ common Razorpay callbacks ════════════════════ */
     DisposableEffect(Unit) {
@@ -289,8 +299,4 @@ fun isProbablyInIndia(ctx: android.content.Context): Boolean {
 /* Host-activity contract remains unchanged */
 interface PaymentResultListenerHost {
     fun setPaymentCallbacks(onSuccess: (String) -> Unit, onError: (String) -> Unit)
-}
-
-interface PaypalCheckoutHost {
-    fun startPaypalCheckout(orderId: String, onResult: (String?) -> Unit)
 }

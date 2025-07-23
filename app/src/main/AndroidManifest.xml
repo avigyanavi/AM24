@@ -89,6 +89,21 @@
             </intent-filter>
         </activity>
 
+        <activity
+                    android:name=".paypal.PayPalReturnActivity"
+                    android:exported="true"
+                    android:launchMode="singleTop">
+                    <intent-filter>
+                        <action android:name="android.intent.action.VIEW" />
+                        <category android:name="android.intent.category.DEFAULT" />
+                        <category android:name="android.intent.category.BROWSABLE" />
+                        <!-- Deep link the SDK will call back to. MUST match the returnUrl you pass in code -->
+                        <data
+                            android:scheme="com.am24.am24"
+                            android:host="paypalreturn" />
+                    </intent-filter>
+                </activity>
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key"/>

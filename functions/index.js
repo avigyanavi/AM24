@@ -569,7 +569,6 @@ exports.onPostReport = functions
     return null;
   });
 
-/** Plan you expect the user to subscribe to */
 const PAYPAL_PLANS = new Set([
   'P-1M705186NH640511WNBUUE3Q',   // Plus  – Monthly  $4.99
   'P-0MX08011N33928941NBUUIEY',   // Premium – Monthly $9.99
@@ -577,12 +576,10 @@ const PAYPAL_PLANS = new Set([
   'P-58J68335TFT149934NBUUHPA',   // Premium – Annual  $99.99
 ]);
 
-const PAYPAL_ENV   = (functions.config().paypal.environment || 'sandbox').toLowerCase();
-const PAYPAL_API   = PAYPAL_ENV === 'live'
-                       ? 'https://api-m.paypal.com'
-                       : 'https://api-m.sandbox.paypal.com';
-const PAYPAL_ID    = functions.config().paypal.client_id;
-const PAYPAL_SECRET= functions.config().paypal.client_secret;
+const PAYPAL_ENV    = 'live';
+const PAYPAL_API    = 'https://api-m.paypal.com';
+const PAYPAL_ID     = 'AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt';
+const PAYPAL_SECRET = 'EC84CUGF7inF6sOBV3RLGosS40F1G1wLOLUzJ_dDADcn06Xvph7zU2-FlLpptB7G_ARPVW82zgihmgUX';
 
 async function paypalToken () {
   const r = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
@@ -639,7 +636,7 @@ exports.capturePaypalOrder = functions
     const json   = await res.json();
     const status = json.status;                       // COMPLETED ?
 
-    if (status !== 'COMPLETED') return { ok:false };
+    if (status !== 'COMPLETED') return { ok:false, status, raw: json };
 
     /* pull what the Android labelled it with                        *
      * custom_id format = "<apiType>_<qty>"  → e.g. "swipes_10"     */
@@ -663,7 +660,11 @@ exports.capturePaypalOrder = functions
       }
     }
 
-    return { ok:true };
+     return {
+          ok: true,
+          status,
+          captureId: json.purchase_units?.[0]?.payments?.captures?.[0]?.id || null
+        };
   });
 
 /**
@@ -954,42 +955,69 @@ exports.paypalWebhook = functions
       return res.status(400).send('bad signature');
     }
 
-    /* 2️⃣ Process the event */
-    const ev   = req.body.event_type;               // e.g. BILLING.SUBSCRIPTION.CANCELLED
-    const sub  = req.body.resource;
-    const plan = sub.plan_id;
-    const uid  = sub.custom_id || sub.id;           // ↙︎ see note A
+     /* 2️⃣ Process the event */
+        const evType  = req.body.event_type;
+        const resource= req.body.resource;
 
-    const tier = PLAN_TIERS[plan] || { plus:false, premium:false };
-    const db   = admin.database().ref(`users/${uid}`);
+        // Handle one-time capture webhook (optional redundancy)
+        if (evType === 'PAYMENT.CAPTURE.COMPLETED') {
+          const custom = resource?.custom_id || '';
+          const [apiType, qtyStr] = custom.split('_');
+          const qty = Number(qtyStr || 0);
+         const uid = resource?.payer?.payer_id;  // better: encode uid in custom_id
+          if (uid && qty > 0) {
+            const field = {
+              swipes      :'swipesInfo/remainingSwipes',
+              compliments :'availableCompliments',
+              boosts      :'availableBoosts',
+              aiMessages  :'availableAiMessages'
+            }[apiType];
+            if (field) {
+              await admin.database().ref(`users/${uid}/${field}`)
+                .transaction(v => (v || 0) + qty);
+            }
+          }
+          return res.status(200).send('ok');
+        }
 
-    switch (ev) {
-      case 'BILLING.SUBSCRIPTION.ACTIVATED':
-      case 'PAYMENT.SALE.COMPLETED':
-        await db.update({
-          isPlus:     tier.plus,
-          isPremium:  tier.premium,
-          subscriptionStatus: 'active',
-          nextRenewal: new Date(sub.billing_info.next_billing_time).getTime(),
-          swipesInfo: { remainingSwipes: tier.premium ? 2147483647 : 50 },
-          availableBoosts:      tier.premium ? 5 : 3,
-          availableCompliments: tier.premium ? 5 : 3,
-          ...(tier.premium && { availableAiMessages: 2 }),
-        });
-        break;
+        // Subscription events (if you still use PayPal subs)
+        if (evType.startsWith('BILLING.SUBSCRIPTION')) {
+          const plan = resource.plan_id;
+          const tier = PLAN_TIERS[plan] || { plus:false, premium:false };
+          const uid  = resource.custom_id || resource.id; // store mapping on create
+          const db   = admin.database().ref(`users/${uid}`);
 
-      case 'BILLING.SUBSCRIPTION.CANCELLED':
-      case 'BILLING.SUBSCRIPTION.SUSPENDED':
-      case 'BILLING.SUBSCRIPTION.EXPIRED':
-        await db.update({
-          isPlus:false, isPremium:false,
-          subscriptionStatus: ev.split('.').pop().toLowerCase(),
-          nextRenewal:null,
-        });
-        break;
-    }
+          switch (evType) {
+            case 'BILLING.SUBSCRIPTION.ACTIVATED':
+            case 'PAYMENT.SALE.COMPLETED':
+              await db.update({
+                isPlus: tier.plus,
+                isPremium: tier.premium,
+                subscriptionStatus: 'active',
+                nextRenewal: resource.billing_info?.next_billing_time
+                  ? new Date(resource.billing_info.next_billing_time).getTime()
+                  : null,
+                swipesInfo: { remainingSwipes: tier.premium ? 2147483647 : 50 },
+                availableBoosts:      tier.premium ? 5 : 3,
+                availableCompliments: tier.premium ? 5 : 3,
+                ...(tier.premium && { availableAiMessages: 2 }),
+              });
+              break;
+            case 'BILLING.SUBSCRIPTION.CANCELLED':
+            case 'BILLING.SUBSCRIPTION.SUSPENDED':
+            case 'BILLING.SUBSCRIPTION.EXPIRED':
+              await db.update({
+                isPlus:false, isPremium:false,
+                subscriptionStatus: evType.split('.').pop().toLowerCase(),
+                nextRenewal:null,
+              });
+              break;
+          }
+          return res.status(200).send('ok');
+        }
 
-    res.status(200).send('ok');
+        // Ignore other PayPal events
+        res.status(200).send('ignored');
   });
 
   // Push the `lastLotteryDayOfYear` field to every user

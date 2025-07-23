@@ -14,8 +14,8 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 94
-        versionName = "1.4"
+        versionCode = 95
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -158,7 +158,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.play.services.cast.tv)
     implementation(libs.firebase.auth)
-    implementation("com.paypal.android:paypal-web-payments:2.0.0")
+    implementation("com.paypal.android:paypal-web-payments:1.4.0")   // or latest
+    implementation("com.paypal.android:core-payments:1.4.0")         // bring Core explicitly if needed
     implementation(libs.mediation.test.suite)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
