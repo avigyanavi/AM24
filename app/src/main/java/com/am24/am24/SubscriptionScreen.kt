@@ -73,6 +73,11 @@ private const val PLAN_ID_MONTH_PREMIUM = "plan_QjplxIqveB0BVS"
 private const val PLAN_ID_YEAR_PLUS     = "plan_QjpmNjEkEPlObK"
 private const val PLAN_ID_YEAR_PREMIUM  = "plan_QjmpS4xg31rg"
 
+private const val PAYPAL_ID_MONTH_PLUS    = "P-1M705186NH640511WNBUUE3Q"
+private const val PAYPAL_ID_MONTH_PREMIUM = "P-0MX08011N33928941NBUUIEY"
+private const val PAYPAL_ID_YEAR_PLUS     = "P-1DH49334GG657434NMBUUGDQ"
+private const val PAYPAL_ID_YEAR_PREMIUM  = "P-58J68335TFT149934NBUUHPA"
+
 /* ────────  Public key (only key_id!) ──────── */
 private const val RZP_KEY_ID = "rzp_live_DsoxJLeiCw940M"
 
@@ -82,17 +87,18 @@ private data class Plan(
     val period: Period,
     val tier: Tier,
     val price: Int,          // in rupees
-    val planId: String
+    val razorpayId: String,
+    val paypalId: String? = null
 )
 
 /* all 6 plans */
 private val PLANS = listOf(
     Plan(Period.WEEK,  Tier.PLUS,    9,   PLAN_ID_WEEK_PLUS),
     Plan(Period.WEEK,  Tier.PREMIUM, 29,  PLAN_ID_WEEK_PREMIUM),
-    Plan(Period.MONTH, Tier.PLUS,    39,  PLAN_ID_MONTH_PLUS),
-    Plan(Period.MONTH, Tier.PREMIUM, 99,  PLAN_ID_MONTH_PREMIUM),
-    Plan(Period.YEAR,  Tier.PLUS,    399, PLAN_ID_YEAR_PLUS),
-    Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM),
+    Plan(Period.MONTH, Tier.PLUS,    39,  PLAN_ID_MONTH_PLUS,   PAYPAL_ID_MONTH_PLUS),
+    Plan(Period.MONTH, Tier.PREMIUM, 99,  PLAN_ID_MONTH_PREMIUM,PAYPAL_ID_MONTH_PREMIUM),
+    Plan(Period.YEAR,  Tier.PLUS,    399, PLAN_ID_YEAR_PLUS,    PAYPAL_ID_YEAR_PLUS),
+    Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM, PAYPAL_ID_YEAR_PREMIUM),
 )
 
 private fun planToSlug(plan: Plan): String = when {
@@ -217,7 +223,7 @@ fun SubscriptionScreen(navController: NavController) {
     suspend fun createSub(plan: Plan): String {
         val data = hashMapOf(
             "uid"     to uid,
-            "planId"  to plan.planId       // we pass which of the 6 plans the user picked
+            "planId"  to plan.razorpayId       // we pass which of the 6 plans the user picked
         )
         @Suppress("UNCHECKED_CAST")
         val res = fx.getHttpsCallable("createKupidxPlusSub").call(data).await().data as Map<*, *>
@@ -250,11 +256,11 @@ fun SubscriptionScreen(navController: NavController) {
                         try {
                                 ui = ui.copy(
                                     isProcessing = true,
-                                    selectedPlanId = plan.planId
+                                    selectedPlanId = plan.paypalId
                                 )
                                 val label = "sub_${planToSlug(plan)}"
                                 val res = fx.getHttpsCallable("createPaypalSubscription")
-                                    .call(mapOf("planId" to plan.planId, "label" to label))
+                                    .call(mapOf("planId" to plan.paypalId, "label" to label))
                                     .await().data as Map<*, *>
                                 val subId = res["id"] as? String
                                 if (subId.isNullOrBlank()) {
@@ -381,7 +387,8 @@ fun SubscriptionScreen(navController: NavController) {
                                 )
                             }
                         }
-                        val processing = ui.isProcessing && ui.selectedPlanId == plan.planId
+                        val processing = ui.isProcessing &&
+                                ui.selectedPlanId == if (isIndia) plan.razorpayId else plan.paypalId
                         Button(
                             onClick = { if (!ui.isProcessing) handlePlan(plan) },
                             enabled = !ui.isProcessing
