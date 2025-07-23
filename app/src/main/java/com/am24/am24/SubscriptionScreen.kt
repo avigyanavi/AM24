@@ -151,13 +151,18 @@ fun SubscriptionScreen(navController: NavController) {
                                 // order approved → capture & flip flags
                                 scope.launch {
                                         try {
-                                                fx.getHttpsCallable("capturePaypalOrder")
-                                                    .call(mapOf("orderId" to result.orderId))
-                                                    .await()
+                                            val verify = fx.getHttpsCallable("verifyPaypalSubscription")
+                                                .call(mapOf("subscriptionId" to result.orderId))
+                                                .await().data as? Map<*, *>
+                                            val ok = verify?.get("valid") as? Boolean ?: false
+                                            if (ok) {
                                                 Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
                                                 navController.popBackStack()
+                                            } else {
+                                                Toast.makeText(ctx, "Subscription verification failed", Toast.LENGTH_LONG).show()
+                                            }
                                             } catch (e: Exception) {
-                                                Toast.makeText(ctx, "PayPal capture failed", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(ctx, "PayPal verify failed", Toast.LENGTH_LONG).show()
                                         } finally {
                                             ui = ui.copy(
                                                 isProcessing = false,
@@ -247,21 +252,20 @@ fun SubscriptionScreen(navController: NavController) {
                                     isProcessing = true,
                                     selectedPlanId = plan.planId
                                 )
-                                val usd = usdPrice(plan)
                                 val label = "sub_${planToSlug(plan)}"
-                                val res = fx.getHttpsCallable("createPaypalOrder")
-                                    .call(mapOf("amountUsd" to usd, "label" to label))
+                                val res = fx.getHttpsCallable("createPaypalSubscription")
+                                    .call(mapOf("planId" to plan.planId, "label" to label))
                                     .await().data as Map<*, *>
-                                val orderId = res["id"] as? String
-                                if (orderId.isNullOrBlank()) {
-                                        Toast.makeText(ctx, "PayPal order failed", Toast.LENGTH_LONG).show()
+                                val subId = res["id"] as? String
+                                if (subId.isNullOrBlank()) {
+                                    Toast.makeText(ctx, "PayPal subscription failed", Toast.LENGTH_LONG).show()
                                         ui = ui.copy(
                                             isProcessing = false,
                                             selectedPlanId = null
                                         )
                                         return@launch
                                     }
-                                payPalClient.start(PayPalWebCheckoutRequest(orderId, FundingSource.PAYPAL))
+                                payPalClient.start(PayPalWebCheckoutRequest(subId, FundingSource.PAYPAL))
                             } catch (e: Exception) {
                                 ui = ui.copy(
                                     isProcessing = false,

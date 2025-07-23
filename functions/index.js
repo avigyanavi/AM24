@@ -621,6 +621,30 @@ exports.createPaypalOrder = functions
     return { id: json.id, approve };           // Android opens `approve` WebView
   });
 
+exports.createPaypalSubscription = functions
+  .region('asia-south1')
+  .https.onCall(async (data, _ctx) => {
+    const { planId, label } = data || {};
+    if (!planId) throw new functions.https.HttpsError('invalid-argument','planId missing');
+
+    const token = await paypalToken();
+    const res   = await fetch(`${PAYPAL_API}/v1/billing/subscriptions`, {
+      method : 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
+      body   : JSON.stringify({
+        plan_id: planId,
+        custom_id: label,
+        application_context: {
+          return_url: functions.config().paypal.return_url,
+          cancel_url: functions.config().paypal.cancel_url
+        }
+      })
+    });
+    const json    = await res.json();
+    const approve = json.links?.find(l => l.rel === 'approve')?.href;
+    return { id: json.id, approve };
+  });
+
 /* ② after the user is sent back, Android → this callable to capture & credit */
 exports.capturePaypalOrder = functions
   .region('asia-south1')
@@ -674,6 +698,7 @@ exports.verifyPaypalSubscription = functions
   .region('asia-south1')              // 👈 added
   .https.onCall(async (data, context) => {
   const subId = data?.subscriptionId;
+  const uid   = context.auth?.uid;
   if (!subId) {
     throw new functions.https.HttpsError("invalid-argument", "subscriptionId missing");
   }
@@ -704,7 +729,18 @@ exports.verifyPaypalSubscription = functions
 
   const valid = status === "ACTIVE" && PAYPAL_PLANS.has(planId);
 
-  return { valid, status, planId };   // your Android code can check .valid === true
+   if (valid && uid) {
+      const tier = PLAN_TIERS[planId] || { plus:false, premium:false };
+      const updates = {
+        subscriptionStatus: "active",
+        isPlus: tier.plus,
+        isPremium: tier.premium,
+        subscription: { id: subId, planId }
+      };
+      await admin.database().ref(`users/${uid}`).update(updates);
+    }
+
+    return { valid, status, planId };
 });
 
 exports.grantWeeklyQuotas = functions.pubsub
