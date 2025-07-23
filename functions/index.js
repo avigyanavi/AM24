@@ -576,8 +576,15 @@ const PAYPAL_PLANS = new Set([
   'P-58J68335TFT149934NBUUHPA',   // Premium – Annual  $99.99
 ]);
 
+const PAYPAL_RETURN_URL = 'com.am24.am24://paypalreturn';
+const PAYPAL_CANCEL_URL = PAYPAL_RETURN_URL;
+
 const PAYPAL_ENV    = 'live';
-const PAYPAL_API    = 'https://api-m.paypal.com';
+const PAYPAL_API    = PAYPAL_ENV === 'live'
+                       ? 'https://api-m.paypal.com'
+                       : 'https://api-m.sandbox.paypal.com';
+const PAYPAL_WEBHOOK_ID = '0FC21543K3777160D';
+
 const PAYPAL_ID     = 'AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt';
 const PAYPAL_SECRET = 'EC84CUGF7inF6sOBV3RLGosS40F1G1wLOLUzJ_dDADcn06Xvph7zU2-FlLpptB7G_ARPVW82zgihmgUX';
 
@@ -610,8 +617,8 @@ exports.createPaypalOrder = functions
           custom_id: label                       // e.g.  "swipes_5"
         }],
         application_context: {
-          return_url: functions.config().paypal.return_url + '?oneTime=true',   // deep-links back
-          cancel_url: functions.config().paypal.cancel_url
+          return_url: PAYPAL_RETURN_URL + '?oneTime=true',   // deep-links back
+          cancel_url: PAYPAL_CANCEL_URL
         }
       })
     });
@@ -635,8 +642,8 @@ exports.createPaypalSubscription = functions
         plan_id: planId,
         custom_id: label,
         application_context: {
-          return_url: functions.config().paypal.return_url,
-          cancel_url: functions.config().paypal.cancel_url
+          return_url: PAYPAL_RETURN_URL,
+          cancel_url: PAYPAL_CANCEL_URL
         }
       })
     });
@@ -703,14 +710,8 @@ exports.verifyPaypalSubscription = functions
     throw new functions.https.HttpsError("invalid-argument", "subscriptionId missing");
   }
 
-  /* ── PayPal credentials from firebase functions:config:set ── */
-  const cfg         = functions.config().paypal;
-  const clientId    = cfg.client_id;
-  const clientSecret= cfg.client_secret;
-  const env         = (cfg.environment || "sandbox").toLowerCase();
-  const apiBase     = env === "live"
-                        ? "https://api-m.paypal.com"
-                        : "https://api-m.sandbox.paypal.com";
+/* ── PayPal API base ── */
+  const apiBase = PAYPAL_API;
 
   const access_token = await paypalToken();
 
@@ -960,11 +961,7 @@ exports.pushSummary = functions.pubsub
 exports.paypalWebhook = functions
   .region('asia-south1')
   .https.onRequest(async (req, res) => {
-    const cfg      = functions.config().paypal;
-    const env      = (cfg.environment || 'sandbox').toLowerCase();
-    const apiBase  = env === 'live'
-                       ? 'https://api-m.paypal.com'
-                       : 'https://api-m.sandbox.paypal.com';
+     const apiBase = PAYPAL_API;
 
     /* 1️⃣ Verify the signature */
     const verifyRes = await fetch(`${PAYPAL_API}/v1/notifications/verify-webhook-signature`, {
@@ -972,7 +969,7 @@ exports.paypalWebhook = functions
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + Buffer.from(
-          `${cfg.client_id}:${cfg.client_secret}`
+           `${PAYPAL_ID}:${PAYPAL_SECRET}`
         ).toString('base64')
       },
       body: JSON.stringify({
@@ -981,7 +978,7 @@ exports.paypalWebhook = functions
         transmission_id:    req.headers['paypal-transmission-id'],
         transmission_sig:   req.headers['paypal-transmission-sig'],
         transmission_time:  req.headers['paypal-transmission-time'],
-        webhook_id:         cfg.webhook_id,          // 👈 from PayPal dashboard
+        webhook_id:         PAYPAL_WEBHOOK_ID,          // 👈 from PayPal dashboard
         webhook_event:      req.body
       })
     });
