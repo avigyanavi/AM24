@@ -60,7 +60,11 @@ private val PREMIUM_FEATURES = listOf(
     "Everything in Plus"
 )
 
-private data class UiState(val isProcessing: Boolean = false)
+private data class UiState(
+    val isProcessing: Boolean = false,
+    val selectedPlanId: String? = null
+)
+
 /* ────────  PLAN IDS (create these in dashboard → Plans) ──────── */
 private const val PLAN_ID_WEEK_PLUS     = "plan_QjnGf6wdQAmyi2"
 private const val PLAN_ID_WEEK_PREMIUM  = "plan_QjpkdErsuewaUJ"
@@ -154,16 +158,27 @@ fun SubscriptionScreen(navController: NavController) {
                                                 navController.popBackStack()
                                             } catch (e: Exception) {
                                                 Toast.makeText(ctx, "PayPal capture failed", Toast.LENGTH_LONG).show()
-                                            } finally { ui = ui.copy(isProcessing = false) }
+                                        } finally {
+                                            ui = ui.copy(
+                                                isProcessing = false,
+                                                selectedPlanId = null
+                                            )
+                                        }
                                     }
                             }
                         override fun onPayPalWebFailure(error: PayPalSDKError) {
                                 Toast.makeText(ctx, "PayPal error: ${error.message}", Toast.LENGTH_LONG).show()
-                                ui = ui.copy(isProcessing = false)
+                                ui = ui.copy(
+                                    isProcessing = false,
+                                    selectedPlanId = null
+                                )
                             }
                         override fun onPayPalWebCanceled() {
                                 Toast.makeText(ctx, "Cancelled", Toast.LENGTH_SHORT).show()
-                                ui = ui.copy(isProcessing = false)
+                                ui = ui.copy(
+                                    isProcessing = false,
+                                    selectedPlanId = null
+                                )
                             }
                     }
             }
@@ -228,7 +243,10 @@ fun SubscriptionScreen(navController: NavController) {
                 scope.launch {
                         if (ui.isProcessing) return@launch
                         try {
-                                ui = ui.copy(isProcessing = true)
+                                ui = ui.copy(
+                                    isProcessing = true,
+                                    selectedPlanId = plan.planId
+                                )
                                 val usd = usdPrice(plan)
                                 val label = "sub_${planToSlug(plan)}"
                                 val res = fx.getHttpsCallable("createPaypalOrder")
@@ -237,12 +255,18 @@ fun SubscriptionScreen(navController: NavController) {
                                 val orderId = res["id"] as? String
                                 if (orderId.isNullOrBlank()) {
                                         Toast.makeText(ctx, "PayPal order failed", Toast.LENGTH_LONG).show()
-                                        ui = ui.copy(isProcessing = false)
+                                        ui = ui.copy(
+                                            isProcessing = false,
+                                            selectedPlanId = null
+                                        )
                                         return@launch
                                     }
                                 payPalClient.start(PayPalWebCheckoutRequest(orderId, FundingSource.PAYPAL))
                             } catch (e: Exception) {
-                                ui = ui.copy(isProcessing = false)
+                                ui = ui.copy(
+                                    isProcessing = false,
+                                    selectedPlanId = null
+                                )
                                 Toast.makeText(ctx, "PayPal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                             }
                    }
@@ -353,11 +377,12 @@ fun SubscriptionScreen(navController: NavController) {
                                 )
                             }
                         }
+                        val processing = ui.isProcessing && ui.selectedPlanId == plan.planId
                         Button(
                             onClick = { if (!ui.isProcessing) handlePlan(plan) },
                             enabled = !ui.isProcessing
                         ) {
-                            if (ui.isProcessing)
+                            if (processing)
                                 CircularProgressIndicator(
                                     color = Color.White,
                                     strokeWidth = 2.dp,
