@@ -604,28 +604,69 @@ exports.createPaypalOrder = functions
   .region('asia-south1')
   .https.onCall(async (data, _ctx) => {
     const { amountUsd, label } = data || {};
-    if (!amountUsd) throw new functions.https.HttpsError('invalid-argument','amountUsd missing');
 
-    const token  = await paypalToken();
-    const res    = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
-      method : 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
-      body   : JSON.stringify({
-        intent: 'CAPTURE',
-        purchase_units: [{
-          amount: { currency_code:'USD', value: amountUsd.toFixed(2) },
-          custom_id: label                       // e.g.  "swipes_5"
-        }],
-        application_context: {
-          return_url: PAYPAL_RETURN_URL + '?oneTime=true',   // deep-links back
-          cancel_url: PAYPAL_CANCEL_URL
-        }
-      })
-    });
-    const json   = await res.json();
+    /* ① validate & normalise amount ------------------------------------- */
+    const value = Number(amountUsd);                       // handles strings too
+    if (!value || isNaN(value) || value <= 0) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'amountUsd must be a positive number'
+      );
+    }
+    if (!label) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'label is required'
+      );
+    }
+
+    /* ② get an access-token (this can still throw – that’s OK) ---------- */
+    const token = await paypalToken();
+
+    /* ③ call PayPal safely --------------------------------------------- */
+    let res;
+    try {
+      res = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+        method : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization : `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          intent: 'CAPTURE',
+          purchase_units: [{
+            amount: { currency_code: 'USD', value: value.toFixed(2) },
+            custom_id: label                      // e.g. "swipes_5"
+          }],
+          application_context: {
+            return_url: PAYPAL_RETURN_URL + '?oneTime=true',
+            cancel_url: PAYPAL_CANCEL_URL
+          }
+        })
+      });
+
+      /* ④ handle non-2xx responses explicitly -------------------------- */
+      if (!res.ok) {
+        const text = await res.text();                 // PayPal error payload
+        console.error('[createPaypalOrder] PayPal', res.status, text);
+        throw new functions.https.HttpsError(
+          'internal',
+          `PayPal ${res.status}: ${text || res.statusText}`
+        );
+      }
+    } catch (err) {
+      /* network error, timeout, DNS, … */
+      if (err instanceof functions.https.HttpsError) throw err; // re-throw ours
+      console.error('[createPaypalOrder] fetch failed', err);
+      throw new functions.https.HttpsError('internal', 'Unable to reach PayPal');
+    }
+
+    /* ⑤ success path ---------------------------------------------------- */
+    const json = await res.json();
     const approve = json.links
-       .find(l => l.rel === 'payer-action' || l.rel === 'approve')?.href;
-    return { id: json.id, approve };           // Android opens `approve` WebView
+      ?.find(l => l.rel === 'payer-action' || l.rel === 'approve')?.href || null;
+
+    return { id: json.id, approve };
   });
 
 exports.createPaypalSubscription = functions
