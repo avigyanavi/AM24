@@ -120,7 +120,7 @@ fun OneTimePurchaseScreen(
         val opts = JSONObject().apply {
             put("order_id", orderId)
             put("key", keyId)
-            put("name", "Kupidx ${type.displayName}")
+            put("name", "AM24")
             put("description", "${type.displayName} x${ui.selectedQty}")
             put("prefill", JSONObject().apply {
                 put("email", FirebaseAuth.getInstance().currentUser?.email)

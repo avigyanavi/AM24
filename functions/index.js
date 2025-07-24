@@ -604,6 +604,7 @@ exports.createPaypalOrder = functions
   .region('asia-south1')
   .https.onCall(async (data, _ctx) => {
     const { amountUsd, label } = data || {};
+    const uid = _ctx.auth?.uid;
 
     /* ① validate & normalise amount ------------------------------------- */
     const value = Number(amountUsd);                       // handles strings too
@@ -636,7 +637,7 @@ exports.createPaypalOrder = functions
           intent: 'CAPTURE',
           purchase_units: [{
             amount: { currency_code: 'USD', value: value.toFixed(2) },
-            custom_id: label                      // e.g. "swipes_5"
+            custom_id: uid ? `${uid}|${label}` : label     // uid|label                 // e.g. "swipes_5"
           }],
           application_context: {
             return_url: PAYPAL_RETURN_URL + '?oneTime=true',
@@ -666,6 +667,10 @@ exports.createPaypalOrder = functions
     const approve = json.links
       ?.find(l => l.rel === 'payer-action' || l.rel === 'approve')?.href || null;
 
+      if (uid) {
+            await admin.database().ref('paypalOrders').child(json.id).set(uid);
+          }
+
     return { id: json.id, approve };
   });
 
@@ -673,6 +678,7 @@ exports.createPaypalSubscription = functions
   .region('asia-south1')
   .https.onCall(async (data, _ctx) => {
     const { planId, label } = data || {};
+     const uid = _ctx.auth?.uid;
     if (!planId) throw new functions.https.HttpsError('invalid-argument','planId missing');
 
     const token = await paypalToken();
@@ -681,7 +687,7 @@ exports.createPaypalSubscription = functions
       headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
       body   : JSON.stringify({
         plan_id: planId,
-        custom_id: label,
+        custom_id: uid ? `${uid}|${label}` : label,
         application_context: {
           return_url: PAYPAL_RETURN_URL,
           cancel_url: PAYPAL_CANCEL_URL
@@ -690,6 +696,11 @@ exports.createPaypalSubscription = functions
     });
     const json    = await res.json();
     const approve = json.links?.find(l => l.rel === 'approve')?.href;
+
+    if (uid) {
+          await admin.database().ref('paypalOrders').child(json.id).set(uid);
+        }
+
     return { id: json.id, approve };
   });
 
@@ -713,11 +724,18 @@ exports.capturePaypalOrder = functions
     /* pull what the Android labelled it with                        *
      * custom_id format = "<apiType>_<qty>"  → e.g. "swipes_10"     */
     const custom = json.purchase_units?.[0]?.custom_id || '';
-    const [apiType, qtyStr] = custom.split('_');
+    let [uidFromCustom, label] = custom.split('|');
+    const [apiType, qtyStr] = (label || uidFromCustom || '').split('_');
     const qty = Number(qtyStr || 0);
 
+     let uid = uidFromCustom;
+        if (!uid) {
+          const snap = await admin.database().ref(`paypalOrders/${orderId}`).get();
+          uid = snap.val() || null;
+        }
+
     /* credit the user exactly like you do in OneTimePurchaseScreen */
-    const uid = _ctx.auth?.uid || json.payer?.payer_id;   // fallback
+    if (!uid) uid = _ctx.auth?.uid || json.payer?.payer_id;
     if (uid && qty > 0) {
       const ref = admin.database().ref(`users/${uid}`);
       const field = {
@@ -1036,9 +1054,17 @@ exports.paypalWebhook = functions
         // Handle one-time capture webhook (optional redundancy)
         if (evType === 'PAYMENT.CAPTURE.COMPLETED') {
           const custom = resource?.custom_id || '';
-          const [apiType, qtyStr] = custom.split('_');
+          let [uid, label] = custom.split('|');
+          const [apiType, qtyStr] = (label || uid || '').split('_');
           const qty = Number(qtyStr || 0);
-         const uid = resource?.payer?.payer_id;  // better: encode uid in custom_id
+         if (!uid) {
+                     const oid = resource?.supplementary_data?.related_ids?.order_id;
+                     if (oid) {
+                       const snap = await admin.database().ref(`paypalOrders/${oid}`).get();
+                       uid = snap.val() || null;
+                     }
+                   }
+          if (!uid) uid = resource?.payer?.payer_id;
           if (uid && qty > 0) {
             const field = {
               swipes      :'swipesInfo/remainingSwipes',
@@ -1058,7 +1084,11 @@ exports.paypalWebhook = functions
         if (evType.startsWith('BILLING.SUBSCRIPTION')) {
           const plan = resource.plan_id;
           const tier = PLAN_TIERS[plan] || { plus:false, premium:false };
-          const uid  = resource.custom_id || resource.id; // store mapping on create
+          let [uid] = (resource.custom_id || '').split('|');
+                    if (!uid) {
+                      const snap = await admin.database().ref(`paypalOrders/${resource.id}`).get();
+                      uid = snap.val() || resource.id;
+                    }
           const db   = admin.database().ref(`users/${uid}`);
 
           switch (evType) {
