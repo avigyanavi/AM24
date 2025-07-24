@@ -187,7 +187,17 @@ fun MainNavGraph(
             )
         }
         composable("paywall")    { SubscriptionScreen(navController) }
-
+        composable(
+            route = "userPosts/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val uid = backStackEntry.arguments?.getString("userId") ?: return@composable
+            UserPostsScreen(
+                userId = uid,
+                navController = navController,
+                postViewModel = postViewModel
+            )
+        }
         composable("razorpay_web") {
             // rebuild your URL with redirect & callback
             val callback = Uri.encode("kupidx://payment_callback")

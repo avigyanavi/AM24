@@ -190,7 +190,7 @@ fun MatchedUserProfileScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Button(
-                                        onClick = { /* TODO: Navigate to full posts screen */ },
+                                        onClick = { navController.navigate("userPosts/${'$'}{profile.userId}") },
                                         colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
                                     ) {
                                         Text("View More Posts", color = Color.White)

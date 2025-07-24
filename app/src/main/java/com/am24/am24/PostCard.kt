@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.database.ServerValue
+import java.util.UUID
 
 @Composable
 fun PostCard(
@@ -58,9 +60,32 @@ fun PostCard(
                 postViewModel.deletePost(post.postId, {}, {})
             }
         },
-        onShare = { /* TODO */ },
-        onComment = { /* TODO */ },
-        onTagClick = { tag -> /* TODO */ },
+        onShare = {
+            postViewModel.sharePostWithMatches(
+                postId = post.postId,
+                matches = matches,
+                onSuccess = {},
+                onFailure = {}
+            )
+        },
+        onComment = { commentText ->
+            val comment = Comment(
+                commentId = UUID.randomUUID().toString(),
+                userId = currentUserId,
+                username = myProfile.username,
+                commentText = commentText,
+                timestamp = ServerValue.TIMESTAMP
+            )
+            postViewModel.addComment(
+                postId = post.postId,
+                comment = comment,
+                onSuccess = {},
+                onFailure = {}
+            )
+        },
+        onTagClick = { tag ->
+            postViewModel.setSearchQuery(tag)
+        },
         onUserClick = onUserClick
     )
 }

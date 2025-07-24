@@ -4,6 +4,8 @@ package com.am24.am24
 
 /* Android & Compose */
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,20 +30,7 @@ import com.razorpay.Checkout
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
- import com.paypal.android.corepayments.CoreConfig
-import com.paypal.android.corepayments.Environment
-import com.paypal.android.corepayments.PayPalSDKError
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutClient
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutListener
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutRequest
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutResult
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutFundingSource as FundingSource
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
-import com.am24.am24.BuildConfig
-
-private const val PAYPAL_CLIENT_ID =
-        "AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt"
-
 
 private val PLUS_FEATURES = listOf(
     "No ads",
@@ -140,59 +129,10 @@ fun SubscriptionScreen(navController: NavController) {
     val fx     = FirebaseFunctions.getInstance("asia-south1")
     var ui by remember { mutableStateOf(UiState()) }
 
-    val ppConfig  = remember { CoreConfig(PAYPAL_CLIENT_ID, environment = Environment.LIVE) }
-        val returnUrl = remember { "${BuildConfig.APPLICATION_ID}://paypalreturn" }
-        val payPalClient = remember(act, ppConfig, returnUrl) {
-                PayPalWebCheckoutClient(act, ppConfig, returnUrl)
-            }
-
     /* real-time flags to hide the screen if user already subscribed */
     var plus    by remember { mutableStateOf<Boolean?>(null) }
     var premium by remember { mutableStateOf<Boolean?>(null) }
 
-    // attach listener once
-        LaunchedEffect(payPalClient) {
-                payPalClient.listener = object : PayPalWebCheckoutListener {
-                        override fun onPayPalWebSuccess(result: PayPalWebCheckoutResult) {
-                                // order approved → capture & flip flags
-                                scope.launch {
-                                        try {
-                                            val verify = fx.getHttpsCallable("verifyPaypalSubscription")
-                                                .call(mapOf("subscriptionId" to result.orderId))
-                                                .await().data as? Map<*, *>
-                                            val ok = verify?.get("valid") as? Boolean ?: false
-                                            if (ok) {
-                                                Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
-                                                navController.popBackStack()
-                                            } else {
-                                                Toast.makeText(ctx, "Subscription verification failed", Toast.LENGTH_LONG).show()
-                                            }
-                                            } catch (e: Exception) {
-                                            Toast.makeText(ctx, "PayPal verify failed", Toast.LENGTH_LONG).show()
-                                        } finally {
-                                            ui = ui.copy(
-                                                isProcessing = false,
-                                                selectedPlanId = null
-                                            )
-                                        }
-                                    }
-                            }
-                        override fun onPayPalWebFailure(error: PayPalSDKError) {
-                                Toast.makeText(ctx, "PayPal error: ${error.message}", Toast.LENGTH_LONG).show()
-                                ui = ui.copy(
-                                    isProcessing = false,
-                                    selectedPlanId = null
-                                )
-                            }
-                        override fun onPayPalWebCanceled() {
-                                Toast.makeText(ctx, "Cancelled", Toast.LENGTH_SHORT).show()
-                                ui = ui.copy(
-                                    isProcessing = false,
-                                    selectedPlanId = null
-                                )
-                            }
-                    }
-            }
     DisposableEffect(uid) {
         val l = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
@@ -262,16 +202,17 @@ fun SubscriptionScreen(navController: NavController) {
                                 val res = fx.getHttpsCallable("createPaypalSubscription")
                                     .call(mapOf("planId" to plan.paypalId, "label" to label))
                                     .await().data as Map<*, *>
-                                val subId = res["id"] as? String
-                                if (subId.isNullOrBlank()) {
+                            val subId   = res["id"] as? String
+                            val approve = res["approve"] as? String
+                            if (subId.isNullOrBlank() || approve.isNullOrBlank()) {
                                     Toast.makeText(ctx, "PayPal subscription failed", Toast.LENGTH_LONG).show()
-                                        ui = ui.copy(
-                                            isProcessing = false,
-                                            selectedPlanId = null
-                                        )
-                                        return@launch
-                                    }
-                                payPalClient.start(PayPalWebCheckoutRequest(subId, FundingSource.PAYPAL))
+                                ui = ui.copy(
+                                    isProcessing = false,
+                                    selectedPlanId = null
+                                )
+                                return@launch
+                            }
+                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(approve)))
                             } catch (e: Exception) {
                                 ui = ui.copy(
                                     isProcessing = false,
@@ -307,6 +248,13 @@ fun SubscriptionScreen(navController: NavController) {
 
     var currentPeriod by remember { mutableStateOf(availablePeriods.first()) }
 
+    /* Reset the selected period if isIndia toggles and the period is no longer available */
+    LaunchedEffect(isIndia) {
+        if (currentPeriod !in availablePeriods) {
+            currentPeriod = availablePeriods.first()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -319,9 +267,10 @@ fun SubscriptionScreen(navController: NavController) {
 
         Spacer(Modifier.height(24.dp))
 
+        val selectedTabIndex = availablePeriods.indexOf(currentPeriod).coerceAtLeast(0)
         /* period tabs */
         TabRow(
-            selectedTabIndex = availablePeriods.indexOf(currentPeriod),
+            selectedTabIndex = selectedTabIndex,
             containerColor = Color.Transparent,
             contentColor = Color.White
         ) {
