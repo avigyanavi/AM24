@@ -335,7 +335,10 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     // refresh blocks first
                     _blockedUsers.value = fetchBlockedUsers(me)
 
-                    // 👉 call the Cloud Function instead of the local helper
+                    val globalCompliments = fetchGlobalComplimenters(me)
+                    val globalBoosted = fetchGlobalBoostedUsers()
+                    val globalPremium = fetchGlobalPremiumUsers()
+
                     val maxDist = _datingFilters.value.distance
                     val list = fetchNearbyProfilesCloud(me, maxDist, nextAfterId)
                     if (list.isNotEmpty()) {
@@ -343,7 +346,9 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     } else {
                         nextAfterId = null
                     }
-                    _allProfiles.value = list
+                    val merged = (globalCompliments + globalBoosted + globalPremium + list)
+                        .distinctBy { it.userId }
+                    _allProfiles.value = merged
 
                     updateBoostedUsers(me)
                     loadCompliments(me)
@@ -385,6 +390,34 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
         val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
 
+        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
+    }
+
+    private suspend fun fetchGlobalBoostedUsers(): List<Profile> = withContext(Dispatchers.IO) {
+        val callable = functions.getHttpsCallable("getGlobalBoostedUsers")
+        callable.setTimeout(60, TimeUnit.SECONDS)
+        @Suppress("UNCHECKED_CAST")
+        val data = callable.call().await().data as? Map<*, *> ?: return@withContext emptyList()
+        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
+        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
+    }
+
+    private suspend fun fetchGlobalPremiumUsers(): List<Profile> = withContext(Dispatchers.IO) {
+        val callable = functions.getHttpsCallable("getGlobalPremiumUsers")
+        callable.setTimeout(60, TimeUnit.SECONDS)
+        @Suppress("UNCHECKED_CAST")
+        val data = callable.call().await().data as? Map<*, *> ?: return@withContext emptyList()
+        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
+        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
+    }
+
+    private suspend fun fetchGlobalComplimenters(uid: String): List<Profile> = withContext(Dispatchers.IO) {
+        val callable = functions.getHttpsCallable("getGlobalComplimenters")
+        callable.setTimeout(60, TimeUnit.SECONDS)
+        val payload = hashMapOf("uid" to uid)
+        @Suppress("UNCHECKED_CAST")
+        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
+        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
         list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
     }
 

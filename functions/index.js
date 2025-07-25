@@ -1751,3 +1751,68 @@ exports.recomputeLeaderboard = functions.pubsub
                     res.status(500).send(err.message);
                   }
                 });
+
+                exports.getGlobalBoostedUsers = functions
+                  .region('asia-south1')
+                  .https.onCall(async (_data, _ctx) => {
+                    const db = admin.database();
+                    const now = Date.now();
+                    const snap = await db
+                      .ref('users')
+                      .orderByChild('isBoosted')
+                      .equalTo(true)
+                      .limitToFirst(200)
+                      .get();
+
+                    const profiles = [];
+                    snap.forEach(child => {
+                      const p = child.val() || {};
+                      if (p.boostedAt && now - p.boostedAt <= 6 * 60 * 60 * 1000) {
+                        profiles.push({ ...p, userId: child.key });
+                      }
+                    });
+
+                    return { profiles };
+                  });
+
+                exports.getGlobalPremiumUsers = functions
+                  .region('asia-south1')
+                  .https.onCall(async (_data, _ctx) => {
+                    const db = admin.database();
+                    const snap = await db
+                      .ref('users')
+                      .orderByChild('isPremium')
+                      .equalTo(true)
+                      .limitToFirst(200)
+                      .get();
+
+                    const profiles = [];
+                    snap.forEach(child => {
+                      const p = child.val() || {};
+                      profiles.push({ ...p, userId: child.key });
+                    });
+
+                    return { profiles };
+                  });
+
+                exports.getGlobalComplimenters = functions
+                  .region('asia-south1')
+                  .https.onCall(async (data, _ctx) => {
+                    const { uid } = data || {};
+                    if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
+
+                    const db = admin.database();
+                    const recvSnap = await db.ref(`complimentsReceived/${uid}`).get();
+                    const ids = [];
+                    recvSnap.forEach(child => ids.push(child.key));
+
+                    const snaps = await Promise.all(
+                      ids.slice(0, 200).map(id => db.ref(`users/${id}`).get())
+                    );
+
+                    const profiles = snaps
+                      .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
+                      .filter(Boolean);
+
+                    return { profiles };
+                  });
