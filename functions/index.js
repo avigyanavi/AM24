@@ -559,7 +559,11 @@ exports.kupidxPlusWebhook = functions
   .https.onRequest(async (req, res) => {
 
     const { event, payload } = req.body;
-    const uid = payload.subscription.entity.customer_id;
+    const uid = payload.subscription.entity.notes?.uid;
+    if (!uid) {
+       logger.error('[kupidxPlusWebhook] Missing uid', { payload });
+       return res.status(400).send('uid missing');
+    }
     const db  = admin.database().ref(`users/${uid}`);
 
     switch (event) {
