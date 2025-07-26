@@ -128,6 +128,7 @@ fun SubscriptionScreen(navController: NavController) {
     val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID) } }
     val fx     = FirebaseFunctions.getInstance("asia-south1")
     var ui by remember { mutableStateOf(UiState()) }
+    var pendingSubId by remember { mutableStateOf<String?>(null) }
 
     /* real-time flags to hide the screen if user already subscribed */
     var plus    by remember { mutableStateOf<Boolean?>(null) }
@@ -173,6 +174,7 @@ fun SubscriptionScreen(navController: NavController) {
     fun launchCheckout(plan: Plan) = scope.launch {
         try {
             val subId = createSub(plan)                 // ① create on backend
+            pendingSubId = subId
             /* ② open native checkout for first charge */
             val opts = JSONObject().apply {
                 put("subscription_id", subId)
@@ -226,11 +228,26 @@ fun SubscriptionScreen(navController: NavController) {
     /* ---------- attach success / error to the host activity ---------- */
     DisposableEffect(Unit) {
         host?.setPaymentCallbacks(
-            onSuccess = { paymentId ->
-                /* Optional toast – actual flag flip happens in the Cloud Function
-                   `verifyKupidxSub` which your webhook calls immediately. */
-                Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
-                navController.popBackStack()            // dismiss the screen
+            onSuccess = { _ ->
+                val sid = pendingSubId
+                if (sid == null) {
+                    Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
+                    navController.popBackStack()
+                    return@setPaymentCallbacks
+                }
+                scope.launch {
+                    try {
+                        fx.getHttpsCallable("verifyKupidxSubscription")
+                            .call(mapOf("subscriptionId" to sid))
+                            .await()
+                        Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        Toast.makeText(ctx, "Verification failed", Toast.LENGTH_LONG).show()
+                    } finally {
+                        pendingSubId = null
+                    }
+                }
             },
             onError = { msg ->
                 Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
