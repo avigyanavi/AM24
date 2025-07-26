@@ -205,6 +205,7 @@ fun DatingScreen(
     }
     val filters           by datingViewModel.datingFilters.collectAsState()
     val filteredProfiles  by datingViewModel.displayingProfiles.collectAsState()
+    val allProfiles       by datingViewModel.allProfiles.collectAsState()
     val isLoading         by datingViewModel.isLoading.collectAsState()
     val matchPopUpState   by profileViewModel.matchPopUpState.collectAsState()
     val boostedUsers      by datingViewModel.boostedUsers.collectAsState()
@@ -270,35 +271,53 @@ fun DatingScreen(
     // ─────────────────────────────────────────────────────────────────
     //   BUILD DISPLAY LIST  (must come *before* we use it)
     // ─────────────────────────────────────────────────────────────────
-    val base = filteredProfiles
-        .filter { it.userId.isNotBlank() }          //  ← NEW
-        .filter { it.userId !in excludedUserIds }
-        // hide private profiles, unless *they* liked you:
-        .filter { prof ->
-            !prof.isPrivate || prof.userId in likers
+    val base by remember(filteredProfiles, excludedUserIds, likers) {
+        derivedStateOf {
+            filteredProfiles
+                .filter { it.userId.isNotBlank() }
+                .filter { it.userId !in excludedUserIds }
+                // hide private profiles, unless *they* liked you:
+                .filter { prof -> !prof.isPrivate || prof.userId in likers }
+                .also { it.dump("BASE") }
         }
-        .also { it.dump("BASE") }
+    }
 
-    val complimentersList = complimentsRecv.keys
-        .mapNotNull { id -> base.find { it.userId == id } }
-        .also { it.dump("COMP") }
+    val complimentersList by remember(complimentsRecv, base) {
+        derivedStateOf {
+            complimentsRecv.keys
+                .mapNotNull { id -> base.find { it.userId == id } }
+                .also { it.dump("COMP") }
+        }
+    }
 
-    val boostedList = boostedUsers
-        .filter { it.userId !in complimentersList.map { p -> p.userId } }
-        .filter { it.userId !in excludedUserIds }
-        .also { it.dump("BOOST") }
+    val boostedList by remember(boostedUsers, complimentersList, excludedUserIds) {
+        derivedStateOf {
+            boostedUsers
+                .filter { it.userId !in complimentersList.map { p -> p.userId } }
+                .filter { it.userId !in excludedUserIds }
+                .also { it.dump("BOOST") }
+        }
+    }
 
-    val premiumList = base
-        .filter { it.userId !in complimentersList.map { p -> p.userId } }
-        .filter { it.userId !in boostedList.map    { p -> p.userId } }
-        .filter { it.isPremium }
-        .also { it.dump("PREM") }
+    val premiumList by remember(base, complimentersList, boostedList) {
+        derivedStateOf {
+            base
+                .filter { it.userId !in complimentersList.map { p -> p.userId } }
+                .filter { it.userId !in boostedList.map { p -> p.userId } }
+                .filter { it.isPremium }
+                .also { it.dump("PREM") }
+        }
+    }
 
-    val restList = base
-        .filter { it.userId !in complimentersList.map { p -> p.userId } }
-        .filter { it.userId !in boostedList.map    { p -> p.userId } }
-        .filter { !it.isPremium }
-        .also { it.dump("REST") }
+    val restList by remember(base, complimentersList, boostedList) {
+        derivedStateOf {
+            base
+                .filter { it.userId !in complimentersList.map { p -> p.userId } }
+                .filter { it.userId !in boostedList.map { p -> p.userId } }
+                .filter { !it.isPremium }
+                .also { it.dump("REST") }
+        }
+    }
 
     val displayedProfiles = complimentersList + boostedList + premiumList + restList
     Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
@@ -307,11 +326,17 @@ fun DatingScreen(
 //    LaunchedEffect(displayedProfiles) {
 //        sortedDisplayedProfiles = datingViewModel.sortDisplayed(displayedProfiles)
 //    }
-    val sortedDisplayedProfiles = displayedProfiles
+    val sortedDisplayedProfiles by remember(displayedProfiles) {
+        derivedStateOf { displayedProfiles }
+    }
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
-    val currentSwipeProfile = sortedDisplayedProfiles.getOrNull(currentIndex)
+    val currentSwipeProfile by remember(currentIndex, sortedDisplayedProfiles) {
+        derivedStateOf { sortedDisplayedProfiles.getOrNull(currentIndex) }
+    }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+
+    LaunchedEffect(allProfiles) { currentIndex = 0 }
 
 //    // Keep the same top card when profiles list updates
 //    LaunchedEffect(sortedDisplayedProfiles) {
@@ -343,7 +368,7 @@ fun DatingScreen(
                 coroutineScope = coroutineScope,
                 currentUserId = myId,
                 currentUserProfile = myProf,
-                otherProfile = currentSwipeProfile
+                otherProfile = currentSwipeProfile!!
             ) { result -> aiMatchResult = result }
         }
     }
@@ -595,7 +620,9 @@ fun DatingScreen(
                     sortedDisplayedProfiles.isEmpty() -> NoMoreProfilesScreen(
                         autoTapCount = autoTapCount,
                         maxAutoTaps = maxAutoTaps,
-                        onRefresh = { datingViewModel.loadMoreProfiles() }
+                        onRefresh = {
+                            datingViewModel.refreshFilteredProfiles()
+                        }
                     )
 
                     else -> DatingScreenContent(
@@ -620,7 +647,9 @@ fun DatingScreen(
                         onExcludeUser = { excludedUserIds = excludedUserIds + it },
                         showAds  = showAds,
                         adUnitId = "ca-app-pub-5094389629300846/4057317007",
-                        onRefreshProfiles = { datingViewModel.loadMoreProfiles() }
+                        onRefreshProfiles = {
+                            datingViewModel.refreshFilteredProfiles()
+                        }
                     )
                 }
                 // ── if they’ve exhausted swipes, show your overlay (below) ──

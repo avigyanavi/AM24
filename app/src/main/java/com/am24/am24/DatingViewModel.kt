@@ -316,42 +316,42 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
-        /**
+    /**
      * Refresh profiles manually
      */
-        fun refreshFilteredProfiles() {
-            viewModelScope.launch {
-                _isLoading.value = true
-                val me = FirebaseAuth.getInstance().currentUser?.uid
+    fun refreshFilteredProfiles() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val me = FirebaseAuth.getInstance().currentUser?.uid
 
-                try {
-                    if (me == null) {
-                        _allProfiles.value = emptyList()
-                        return@launch
-                    }
-
-                    // refresh blocks first
-                    _blockedUsers.value = fetchBlockedUsers(me)
-
-                    val globalCompliments = fetchGlobalComplimenters(me)
-                    val globalBoosted = fetchGlobalBoostedUsers()
-                    val globalPremium = fetchGlobalPremiumUsers()
-
-                    val maxDist = _datingFilters.value.distance
-                    val list = fetchNearbyProfilesCloud(me, maxDist)
-                    val merged = (globalCompliments + globalBoosted + globalPremium + list)
-                        .distinctBy { it.userId }
-                    _allProfiles.value = merged
-
-                    updateBoostedUsers(me)
-                    loadCompliments(me)
-                } catch (e: Exception) {
-                    Log.e(TAG, "refreshFilteredProfiles() failed: ${e.message}", e)
-                } finally {
-                    _isLoading.value = false
+            try {
+                if (me == null) {
+                    _allProfiles.value = emptyList()
+                    return@launch
                 }
+
+                // refresh blocks first
+                _blockedUsers.value = fetchBlockedUsers(me)
+
+                val globalCompliments = fetchGlobalComplimenters(me)
+                val globalBoosted = fetchGlobalBoostedUsers()
+                val globalPremium = fetchGlobalPremiumUsers()
+
+                val maxDist = _datingFilters.value.distance
+                val list = fetchNearbyProfilesCloud(me, maxDist)
+                val merged = (globalCompliments + globalBoosted + globalPremium + list)
+                    .distinctBy { it.userId }
+                _allProfiles.value = merged
+
+                updateBoostedUsers(me)
+                loadCompliments(me)
+            } catch (e: Exception) {
+                Log.e(TAG, "refreshFilteredProfiles() failed: ${e.message}", e)
+            } finally {
+                _isLoading.value = false
             }
         }
+    }
 
     private val functions = FirebaseFunctions.getInstance("asia-south1")
 
@@ -625,12 +625,12 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 true  else false
         }
 
-            // ── NEW: Minimum ⭐ Rating  (Plus & Premium)
+        // ── NEW: Minimum ⭐ Rating  (Plus & Premium)
         if (filters.minRating > 0f) {
             result = result.filter { it.averageRating >= filters.minRating }
         }
 
-            // ── NEW: Top-N 🏆 Ranking  (Premium only)
+        // ── NEW: Top-N 🏆 Ranking  (Premium only)
         if (filters.maxRanking > 0) {
             result = result.filter { it.am24Ranking == 0 || it.am24Ranking <= filters.maxRanking }
         }

@@ -15,7 +15,10 @@ const openai = new OpenAI({
 admin.initializeApp({
   databaseURL: "https://kupidxdefault.asia-southeast1.firebasedatabase.app"
 });
-
+const db     = admin.database();
+const USERS  = db.ref('users');
+const now    = () => Date.now();
+const BOOST_DURATION_MS = 6 * 60 * 60 * 1_000;   // 6 h
 // ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
 const RAZORPAY_SECRET = '27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01';
 
@@ -185,52 +188,47 @@ const COUNTRY_WHITELIST = new Set([
   'Austria'
 ]);
 
-const CURSOR_REF = uid =>
-  admin.database().ref(`paging/nearbyCursor/${uid}`);   // ⇦ stores last UID sent
-
 exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onCall(async (data, _ctx) => {
     const { uid } = data || {};
-    logger.info("⚙️ getNearbyProfiles called with:", data);
-    if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
+    logger.info('⚙️ getNearbyProfiles called with:', data);
+    if (!uid)
+      throw new functions.https.HttpsError('invalid-argument', 'uid required');
 
     const db = admin.database();
 
-    // 1. Grab caller’s country (cheap) and optional lat/lng (for later sorting, optional)
+    /* 1️⃣  fetch caller’s country (+ optional lat/lng) */
     const [countrySnap, locSnap] = await Promise.all([
       db.ref(`users/${uid}/country`).get(),
       db.ref(`geoFireLocations/${uid}/l`).get(),
     ]);
 
     const myCountry = countrySnap.val() || null;
-    const myLoc = locSnap.val(); // [lat,lng] or null
+    const myLoc     = locSnap.val(); // [lat,lng] or null
 
-    // 2. Pull only users in same country
-    let countryUsersSnap;
-    if (myCountry) {
-      countryUsersSnap = await db.ref('users')
-        .orderByChild('country')
-        .equalTo(myCountry)
-        .get();
-    } else {
-      // No country on record → bail early with empty list
-      return { profiles: [] };
-    }
+    /* 2️⃣  users in the same country (fast) */
+    if (!myCountry) return { profiles: [] };
+
+    const countryUsersSnap = await db
+      .ref('users')
+      .orderByChild('country')
+      .equalTo(myCountry)
+      .get();
 
     const ids = [];
     countryUsersSnap.forEach(s => {
       if (s.key !== uid) ids.push(s.key);
     });
 
-    // 3. Deterministic order
-    //    If we have location, sort by distance first; otherwise just UID.
+    /* 3️⃣  deterministic ordering */
     let orderedIds = ids;
     if (Array.isArray(myLoc) && myLoc.length === 2) {
-      // fetch locations in manageable chunks
+      const distanceBetween = require('geofire-common').distanceBetween;
       const chunkSize = 400;
       const pairs = [];
+
       for (let i = 0; i < ids.length; i += chunkSize) {
         const chunk = ids.slice(i, i + chunkSize);
         const snaps = await Promise.all(
@@ -238,8 +236,8 @@ exports.getNearbyProfiles = functions
         );
         snaps.forEach((snap, idx) => {
           const loc = snap.val();
-          const id = chunk[idx];
-          let dist = Number.POSITIVE_INFINITY;
+          const id  = chunk[idx];
+          let dist  = Infinity;
           if (Array.isArray(loc) && loc.length === 2) {
             dist = distanceBetween(loc, myLoc);
           }
@@ -252,92 +250,70 @@ exports.getNearbyProfiles = functions
       orderedIds.sort(); // fallback
     }
 
-// 4. Cursor paging
-  let cursor = (await CURSOR_REF(uid).get()).val() || null;
-  let startIdx = 0;
-  if (cursor) {
-    const idx = orderedIds.indexOf(cursor);
-    if (idx >= 0) startIdx = idx + 1;
-  }
-
-    const pageIds = orderedIds.slice(startIdx);
-
+    /* 4️⃣  load profiles (entire list – no cursor paging) */
     const profileSnaps = await Promise.all(
-      pageIds.map(id => db.ref(`users/${id}`).get())
+      orderedIds.map(id => db.ref(`users/${id}`).get())
     );
+
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
       .filter(Boolean);
 
-    const nextCursor = pageIds.length ? pageIds[pageIds.length - 1] : null;
-    await CURSOR_REF(uid).set(nextCursor);
-
-    return { profiles, nextCursor };
+    return { profiles };          // ⟵  no nextCursor
   });
 
-  exports.getGlobalBoostedUsers = functions
-    .region('asia-south1')
-    .runWith({ timeoutSeconds: 60, memory: '256MB' })
-    .https.onCall(async (_data, _ctx) => {
-      const snap = await USERS.orderByChild('isBoosted').equalTo(true).get();
+exports.getGlobalBoostedUsers = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .https.onCall(async () => {
+    const cutOff = now() - BOOST_DURATION_MS;
 
-      const cutOff = now() - BOOST_DURATION_MS;
-      const profiles = [];
+    const snap = await USERS
+      .orderByChild('isBoosted').equalTo(true).get();
 
-      snap.forEach(s => {
-        const u = s.val() || {};
-        /* keep only if boostedAt exists and is within the 6 h window */
-        if (u.boostedAt && u.boostedAt >= cutOff) {
-          profiles.push(toJson(s));
-        }
-      });
-
-      return { profiles };
+    const profiles = [];
+    snap.forEach(s => {
+      const u = s.val();
+      if (u?.boostedAt >= cutOff) profiles.push(toJson(s));
     });
+    return { profiles };
+  });
 
-  /* ───────────────────────── getGlobalPremiumUsers ──────────────────────────── */
-  /** Returns Plus & Premium subscribers (can tweak the filter if you like). */
-  exports.getGlobalPremiumUsers = functions
-    .region('asia-south1')
-    .runWith({ timeoutSeconds: 60, memory: '256MB' })
-    .https.onCall(async (_data, _ctx) => {
-      const snap = await USERS.get();             // one pass; cheaper than two queries
-      const profiles = [];
-
-      snap.forEach(s => {
-        const u = s.val() || {};
-        if (u.isPremium || u.isPlus) profiles.push(toJson(s));
-      });
-
-      return { profiles };
+exports.getGlobalPremiumUsers = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .https.onCall(async () => {
+    const snap     = await USERS.get();
+    const profiles = [];
+    snap.forEach(s => {
+      const u = s.val();
+      if (u?.isPremium || u?.isPlus) profiles.push(toJson(s));
     });
-
+    return { profiles };
+  });
   /* ──────────────────────── getGlobalComplimenters ──────────────────────────── */
   /** uid → list every user who has *ever* sent that uid a compliment. */
-  exports.getGlobalComplimenters = functions
-    .region('asia-south1')
-    .https.onCall(async (data, _ctx) => {
-      const uid = data?.uid;
-      if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
+exports.getGlobalComplimenters = functions
+  .region('asia-south1')
+  .https.onCall(async ({ uid }) => {
+    if (!uid) {
+      throw new functions.https.HttpsError('invalid-argument', 'uid required');
+    }
 
-      /* 1️⃣  read the senders list */
-      const sendersSnap = await admin.database()
-        .ref(`complimentsReceived/${uid}`)
-        .get();
+    /* 1️⃣  read sender-ids once */
+    const sendersSnap = await db.ref(`complimentsReceived/${uid}`).get();
+    const ids         = Object.keys(sendersSnap.val() || {});
 
-      const ids = [];
-      sendersSnap.forEach(c => ids.push(c.key));
+    if (ids.length === 0) return { profiles: [] };
 
-      if (ids.length === 0) return { profiles: [] };
+    /* 2️⃣  batch-fetch their profiles */
+    const profSnaps = await Promise.all(
+      ids.map(id => USERS.child(id).get())
+    );
 
-      /* 2️⃣  batch-fetch their profiles */
-      const profSnaps = await Promise.all(
-        ids.map(id => USERS.child(id).get())
-      );
-
-      const profiles = profSnaps.map(toJson).filter(Boolean);
-      return { profiles };
-    });
+    const profiles = profSnaps.map(toJson).filter(Boolean);
+    return { profiles };
+  });
 
 // Near the top, replace your dummy VALID_PLANS with the real ones:
 const VALID_PLANS = new Set([
