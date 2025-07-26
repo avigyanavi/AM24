@@ -283,10 +283,14 @@ fun SettingsScreen(navController: NavController) {
                             title = stringResource(R.string.settings_free_user),
                             trailingText = "Upgrade", // ⬅️ change only this line
                                 onClick = {
-                                    if (CountryUtil.useRazorpay(ctx, country)) {
-                                        navController.navigate("upgradeLanding")
+                                    if (premiumTier == "Plus") {
+                                        navController.navigate("manageSubscription")
                                     } else {
-                                        navController.navigate("subscription")
+                                        if (CountryUtil.useRazorpay(ctx, country)) {
+                                            navController.navigate("upgradeLanding")
+                                        } else {
+                                            navController.navigate("subscription")
+                                        }
                                     }
                                 }
                         )
@@ -299,9 +303,9 @@ fun SettingsScreen(navController: NavController) {
                             trailingText = "Expires: $expiry",
                             onClick = {
                                 if (CountryUtil.useRazorpay(ctx, country)) {
-                                    navController.navigate("upgradeLanding")
+                                    navController.navigate("manageSubscription")
                                 } else {
-                                    navController.navigate("subscription")
+                                    navController.navigate("manageSubscription")
                                 }
                             }
                         )

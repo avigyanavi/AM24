@@ -41,6 +41,7 @@ import com.razorpay.Checkout
 import org.json.JSONObject
 /* ───────── project helpers ───────── */
 import com.am24.am24.FirebaseRefs             // your existing wrapper
+import com.am24.am24.ui.TierCard
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -50,23 +51,6 @@ enum class Period(val label: String) { WEEK("Weekly"), MONTH("Monthly"), YEAR("Y
 
 /** public key-id used by Razorpay’s Checkout SDK */
 const val RZP_KEY_ID_PUBLIC = "rzp_live_DsoxJLeiCw940M"
-
-private val PLUS_FEATURES = listOf(
-    "No ads",
-    "Unlock People Who Liked Me and Change Location",
-    "Unlock Picture and Voice posts",
-    "3 compliments per week",
-    "3 boosts per week"
-)
-private val PREMIUM_FEATURES = listOf(
-    "Unlock Video posts",
-    "Priority Profile in the dating stack",
-    "Unlimited Swipes",
-    "5 compliments per week",
-    "5 boosts per week",
-    "Unlocked Performance Metrics per profile",
-    "Everything in Plus"
-)
 
 /* ╔════════════════════════════════════════════════════════════╗ */
 /* ║                        ENTRY SCREEN                        ║ */
@@ -191,89 +175,5 @@ fun UpgradeLandingScreen(nav: NavController) {
             onManual = { p -> launchOneTimeUpi(Tier.PREMIUM, p) },
             showManual = isIndia                    // 👈
         )
-    }
-}
-
-/* ╔════════════════════════════════════════════════════════════╗ */
-/* ║                      REUSABLE TILE                         ║ */
-/* ╚════════════════════════════════════════════════════════════╝ */
-@Composable
-private fun TierCard(
-    tier:        Tier,
-    colour:      Color,
-    priceWeekly: Int,
-    priceMonth:  Int,
-    priceYear:   Int,
-    onAuto:      ()       -> Unit,
-    onManual:    (Period) -> Unit,
-    showManual:  Boolean               // 👈 NEW
-) {
-    Card(
-        colors   = CardDefaults.cardColors(containerColor = colour),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(16.dp)) {
-
-            Text(
-                tier.name.lowercase().replaceFirstChar(Char::uppercase),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            val features = when (tier) {
-                Tier.PREMIUM -> PREMIUM_FEATURES
-                else -> PLUS_FEATURES
-            }
-            features.forEach { bullet ->
-                Text(
-                    "• $bullet",
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(vertical = 2.dp)
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            /* ── buttons row ── */
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-
-                Button(onClick = onAuto, modifier = Modifier.weight(1f)) {
-                    Text("Subscribe")
-                }
-
-                if (showManual) {                 // 👈 only in India
-                    var expanded by remember { mutableStateOf(false) }
-
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { expanded = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            val accent = if (tier == Tier.PLUS) Color(0xFFFF6F00) else Color.White
-                            Text("Pay once with UPI", color = accent)
-                        }
-
-                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("₹$priceWeekly / week") },
-                                onClick = { expanded = false; onManual(Period.WEEK) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("₹$priceMonth / month") },
-                                onClick = { expanded = false; onManual(Period.MONTH) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("₹$priceYear / year") },
-                                onClick = { expanded = false; onManual(Period.YEAR) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }

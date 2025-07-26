@@ -286,12 +286,17 @@ exports.getGlobalPremiumUsers = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async () => {
-    const snap     = await USERS.get();
+    const snap = await USERS.get();
+
     const profiles = [];
     snap.forEach(s => {
       const u = s.val();
-      if (u?.isPremium || u?.isPlus) profiles.push(toJson(s));
+      if (u?.isPremium || u?.isPlus) {
+        // include the UID so the app can map it back
+        profiles.push({ userId: s.key, ...u });
+      }
     });
+
     return { profiles };
   });
   /* ──────────────────────── getGlobalComplimenters ──────────────────────────── */
@@ -453,44 +458,57 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
   });
 
 // 1️⃣ Add a cancel function
+// functions/index.js  – completely replace old cancelKupidxPlusSub
 exports.cancelKupidxPlusSub = functions
   .region("asia-south1")
-  .https.onCall(async (data, context) => {
+  .https.onCall(async (_data, context) => {
+
     const uid = context.auth?.uid;
-    if (!uid) {
+    if (!uid) throw new functions.https.HttpsError(
+      "unauthenticated", "Sign-in required"
+    );
+
+    /* ① pull subscription id */
+    const subId = (
+      await admin.database().ref(`users/${uid}/subscription/id`).get()
+    ).val();
+
+    if (!subId)
       throw new functions.https.HttpsError(
-        "unauthenticated",
-        "Must be signed in to cancel."
+        "not-found","No active subscription stored for this user"
       );
+
+    /* ② cancel via Razorpay REST API (works for cards & UPI mandates created
+           *through Razorpay*). Use explicit cancel_at_cycle_end=0 */
+    const axios = require("axios");
+    const BASIC = Buffer.from(
+      `${RZP_KEY_ID}:${RZP_KEY_SECRET}`
+    ).toString("base64");
+
+    try {
+      await axios.post(
+        `https://api.razorpay.com/v1/subscriptions/${subId}/cancel`,
+        { cancel_at_cycle_end: 0 },
+        { headers: { Authorization: `Basic ${BASIC}` } }
+      );
+    } catch (err) {
+      /* log and bubble up a *meaningful* message */
+      console.error("[cancelKupidxPlusSub]", err?.response?.data || err);
+      const msg =
+        err?.response?.data?.error?.description ||
+        err.message ||
+        "Razorpay cancel failed";
+      throw new functions.https.HttpsError("failed-precondition", msg);
     }
 
-    // look up stored subscription ID
-    const snap = await admin
-      .database()
-      .ref(`users/${uid}/subscription/id`)
-      .get();
-    const subId = snap.val();
-    if (!subId) {
-      throw new functions.https.HttpsError(
-        "not-found",
-        "No active subscription found for this user."
-      );
-    }
+    /* ③ wipe perks immediately */
+    await admin.database().ref(`users/${uid}`).update({
+      isPlus:false, isPremium:false,
+      subscriptionStatus:"cancelled",
+      nextRenewal:null
+    });
 
-    // call Razorpay’s cancel endpoint
-    await razorpay.subscriptions.cancel(subId);
-
-    // immediately update your own DB state
-    await admin
-      .database()
-      .ref(`users/${uid}`)
-      .update({
-        isPlus: false,
-        isPremium: false,
-        subscriptionStatus: "inactive",
-      });
-
-    return { cancelled: true };
+    return { cancelled:true };
   });
 
 exports.verifyKupidxSubscription = functions
