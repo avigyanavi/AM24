@@ -54,9 +54,9 @@ data class ComplimentData(
 class DatingViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
+
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
         const val WORLDWIDE_DISTANCE = 101
-        private const val DESIRED_MIN_ROWS       = 200
     }
 
     private val TAG = "DatingViewModel"
@@ -65,8 +65,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val geoFire = GeoFire(database.getReference("geoFireLocations"))
     private var lastNonEmptyProfiles: List<Profile> = emptyList()
 
-    // paging helper
-    private var nextAfterId: String? = null
 
     // StateFlows
     private val _allProfiles = MutableStateFlow<List<Profile>>(emptyList())
@@ -340,12 +338,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     val globalPremium = fetchGlobalPremiumUsers()
 
                     val maxDist = _datingFilters.value.distance
-                    val list = fetchNearbyProfilesCloud(me, maxDist, nextAfterId)
-                    if (list.isNotEmpty()) {
-                        nextAfterId = list.last().userId
-                    } else {
-                        nextAfterId = null
-                    }
+                    val list = fetchNearbyProfilesCloud(me, maxDist)
                     val merged = (globalCompliments + globalBoosted + globalPremium + list)
                         .distinctBy { it.userId }
                     _allProfiles.value = merged
@@ -364,16 +357,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     private suspend fun fetchNearbyProfilesCloud(
         me: String,
-        maxDistanceKm: Int,
-        afterId: String?
+        maxDistanceKm: Int
     ): List<Profile> = withContext(Dispatchers.IO) {
 
 
         val payload = hashMapOf(
             "uid"         to me,
-            "maxDistance" to maxDistanceKm,
-            "minRows"     to DESIRED_MIN_ROWS,
-            "afterId"     to afterId
+            "maxDistance" to maxDistanceKm
         )
         Log.d("VM", "➡️  Calling getNearbyProfiles with $payload")
 
@@ -382,7 +372,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             functions.getHttpsCallable("getNearbyProfiles")
 
         // … 2️⃣  and adjust its timeout (default is 60 s)
-        callable.setTimeout(120, TimeUnit.SECONDS)     // 2 minutes
+        callable.setTimeout(3000, TimeUnit.SECONDS)     // 2 minutes
 
         // 3️⃣  invoke the function
         @Suppress("UNCHECKED_CAST")
@@ -427,13 +417,10 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 _isLoading.value = true
                 val maxDist = _datingFilters.value.distance
-                val newList = fetchNearbyProfilesCloud(me, maxDist, nextAfterId)
+                val newList = fetchNearbyProfilesCloud(me, maxDist)
                 if (newList.isNotEmpty()) {
-                    nextAfterId = newList.last().userId
                     _allProfiles.update { it + newList }
-                }
-                else {
-                    nextAfterId = null
+                } else {
                     FirebaseDatabase.getInstance()
                         .getReference("paging/nearbyCursor/$me")
                         .setValue(null)           // <<< add

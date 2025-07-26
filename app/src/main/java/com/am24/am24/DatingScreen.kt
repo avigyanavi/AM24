@@ -1986,10 +1986,10 @@ fun DatingProfileCard(
 
 @Composable
 fun DatingProfileHeader(
-        profile: Profile,
-        userDistance: Float,
-        sortedByUpvotes: List<Post>,
-        isBoosted: Boolean                 // ⚡ NEW PARAM
+    profile: Profile,
+    userDistance: Float,
+    sortedByUpvotes: List<Post>,
+    isBoosted: Boolean                 // ⚡ NEW PARAM
 ) {
     val community = profile.community
     val religion = profile.religion
@@ -2005,11 +2005,11 @@ fun DatingProfileHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-                    /* ———  BOOST PILL ——— */
-                    if (isBoosted) {
-                            BoostedPill()              // ⬅️ inject the orange “Boosted profile” chip
-                            Spacer(Modifier.width(6.dp))
-                        }
+            /* ———  BOOST PILL ——— */
+            if (isBoosted) {
+                BoostedPill()              // ⬅️ inject the orange “Boosted profile” chip
+                Spacer(Modifier.width(6.dp))
+            }
             Row {
                 if (community.isNotBlank()) {
                     TagBox(text = community)
@@ -2518,28 +2518,28 @@ fun ProfileCollapsibleSectionsAll(
             .padding(8.dp)
     ) {
         /** ─────────── Compatibility ─────────── */
-            /*  auto-run every time it OPENS  */
-            LaunchedEffect(profile.userId) {
-                runAiMatchCheck(
-                    context = context,
-                    coroutineScope = coroutineScope,
-                    currentUserId = FirebaseAuth.getInstance().uid
-                        ?: return@LaunchedEffect,
-                    currentUserProfile = currentUserProfile!!,
-                    otherProfile = profile
-                ) { result -> currentAiMatchResult = result }
+        /*  auto-run every time it OPENS  */
+        LaunchedEffect(profile.userId) {
+            runAiMatchCheck(
+                context = context,
+                coroutineScope = coroutineScope,
+                currentUserId = FirebaseAuth.getInstance().uid
+                    ?: return@LaunchedEffect,
+                currentUserProfile = currentUserProfile!!,
+                otherProfile = profile
+            ) { result -> currentAiMatchResult = result }
+        }
+        CollapsibleSection(
+            title = stringResource(R.string.compatibility_check),
+            icon = Icons.Default.Info, // expand / collapse
+        ) {
+            if (currentAiMatchResult != null) {
+                ShowAiMatchAnalysis(currentAiMatchResult!!)
+            } else {
+                /* tiny placeholder while it’s working */
+                Text(stringResource(R.string.run_analysis), color = Color.White)
             }
-            CollapsibleSection(
-                title = stringResource(R.string.compatibility_check),
-                icon = Icons.Default.Info, // expand / collapse
-            ) {
-                if (currentAiMatchResult != null) {
-                    ShowAiMatchAnalysis(currentAiMatchResult!!)
-                } else {
-                    /* tiny placeholder while it’s working */
-                    Text(stringResource(R.string.run_analysis), color = Color.White)
-                }
-            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
         if (currentUserProfile?.isPremium == true) {
             PerformanceMetricsSectionDating(profile)
@@ -2742,29 +2742,29 @@ fun CollapsibleSection(
             modifier = Modifier.weight(1f)
         )
     }
-     Spacer(Modifier.height(4.dp))
-        Card(
-            backgroundColor = Color(0xFF1A1A1A),
-            elevation       = 4.dp,
-            shape           = RoundedCornerShape(8.dp),
-            modifier        = Modifier
+    Spacer(Modifier.height(4.dp))
+    Card(
+        backgroundColor = Color(0xFF1A1A1A),
+        elevation       = 14.dp,
+        shape           = RoundedCornerShape(8.dp),
+        modifier        = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            // cap the height so it never grows off‐screen
+            .heightIn(min = 100.dp, max = 400.dp)
+    ) {
+        Column(
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                // cap the height so it never grows off‐screen
-                .heightIn(min = 100.dp, max = 400.dp)
+                // make the content inside scroll vertically
+                .verticalScroll(rememberScrollState())
+                .padding(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // make the content inside scroll vertically
-                    .verticalScroll(rememberScrollState())
-                    .padding(12.dp)
-            ) {
-                content()
-            }
+            content()
         }
-        Spacer(Modifier.height(4.dp))
     }
+    Spacer(Modifier.height(4.dp))
+}
 
 /** Standard “MatchPopUp” */
 @Composable

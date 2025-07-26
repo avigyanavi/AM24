@@ -192,7 +192,8 @@ exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onCall(async (data, _ctx) => {
-    const { uid, minRows = 200, afterId } = data || {};
+    const { uid } = data || {};
+    logger.info("⚙️ getNearbyProfiles called with:", data);
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
 
     const db = admin.database();
@@ -251,18 +252,15 @@ exports.getNearbyProfiles = functions
       orderedIds.sort(); // fallback
     }
 
-    // 4. Cursor paging
-    let cursor = afterId;
-    if (!cursor) {
-      cursor = (await CURSOR_REF(uid).get()).val() || null;
-    }
-    let startIdx = 0;
-    if (cursor) {
-      const idx = orderedIds.indexOf(cursor);
-      if (idx >= 0) startIdx = idx + 1;
-    }
+// 4. Cursor paging
+  let cursor = (await CURSOR_REF(uid).get()).val() || null;
+  let startIdx = 0;
+  if (cursor) {
+    const idx = orderedIds.indexOf(cursor);
+    if (idx >= 0) startIdx = idx + 1;
+  }
 
-    const pageIds = orderedIds.slice(startIdx, startIdx + minRows);
+    const pageIds = orderedIds.slice(startIdx);
 
     const profileSnaps = await Promise.all(
       pageIds.map(id => db.ref(`users/${id}`).get())
@@ -276,6 +274,70 @@ exports.getNearbyProfiles = functions
 
     return { profiles, nextCursor };
   });
+
+  exports.getGlobalBoostedUsers = functions
+    .region('asia-south1')
+    .runWith({ timeoutSeconds: 60, memory: '256MB' })
+    .https.onCall(async (_data, _ctx) => {
+      const snap = await USERS.orderByChild('isBoosted').equalTo(true).get();
+
+      const cutOff = now() - BOOST_DURATION_MS;
+      const profiles = [];
+
+      snap.forEach(s => {
+        const u = s.val() || {};
+        /* keep only if boostedAt exists and is within the 6 h window */
+        if (u.boostedAt && u.boostedAt >= cutOff) {
+          profiles.push(toJson(s));
+        }
+      });
+
+      return { profiles };
+    });
+
+  /* ───────────────────────── getGlobalPremiumUsers ──────────────────────────── */
+  /** Returns Plus & Premium subscribers (can tweak the filter if you like). */
+  exports.getGlobalPremiumUsers = functions
+    .region('asia-south1')
+    .runWith({ timeoutSeconds: 60, memory: '256MB' })
+    .https.onCall(async (_data, _ctx) => {
+      const snap = await USERS.get();             // one pass; cheaper than two queries
+      const profiles = [];
+
+      snap.forEach(s => {
+        const u = s.val() || {};
+        if (u.isPremium || u.isPlus) profiles.push(toJson(s));
+      });
+
+      return { profiles };
+    });
+
+  /* ──────────────────────── getGlobalComplimenters ──────────────────────────── */
+  /** uid → list every user who has *ever* sent that uid a compliment. */
+  exports.getGlobalComplimenters = functions
+    .region('asia-south1')
+    .https.onCall(async (data, _ctx) => {
+      const uid = data?.uid;
+      if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid required');
+
+      /* 1️⃣  read the senders list */
+      const sendersSnap = await admin.database()
+        .ref(`complimentsReceived/${uid}`)
+        .get();
+
+      const ids = [];
+      sendersSnap.forEach(c => ids.push(c.key));
+
+      if (ids.length === 0) return { profiles: [] };
+
+      /* 2️⃣  batch-fetch their profiles */
+      const profSnaps = await Promise.all(
+        ids.map(id => USERS.child(id).get())
+      );
+
+      const profiles = profSnaps.map(toJson).filter(Boolean);
+      return { profiles };
+    });
 
 // Near the top, replace your dummy VALID_PLANS with the real ones:
 const VALID_PLANS = new Set([
@@ -495,73 +557,73 @@ exports.verifyKupidxSubscription = functions
     return { ok: active, status, planId };
   });
 
-//exports.kupidxPlusWebhook = functions
-//  .region("asia-south1")
-//  .https.onRequest(async (req, res) => {
-//    const sig = req.headers["x-razorpay-signature"];
-//    let ev;
-//    try {
-//      ev = razorpay.webhooks.verify(
-//        req.rawBody,
-//        sig,
-//        functions.config().razorpay.webhook_secret
-//      );
-//    } catch (err) {
-//      logger.error("Webhook signature mismatch", err);
-//      return res.status(400).send("fail");
-//    }
-//
-//    const { event, payload } = req.body;
-//    const uid = payload.subscription.entity.customer_id;
-//    const db  = admin.database().ref(`users/${uid}`);
-//
-//    switch (event) {
-//      case "subscription.activated":
-//      case "subscription.charged": {
-//        const planId = payload.subscription.entity.plan_id;
-//        const tier   = PLAN_TIERS[planId] || { plus: false, premium: false };
-//        const updates = {
-//          isPlus:            tier.plus,
-//          isPremium:         tier.premium,
-//          subscriptionStatus:"active",
-//          nextRenewal:       payload.subscription.entity.current_end,
-//        };
-//        if (tier.plus || tier.premium) {
-//                  updates["swipesInfo/remainingSwipes"] = tier.premium ? 2147483647 : 50;
-//                  updates.availableBoosts      = tier.premium ? 5 : 3;
-//                  updates.availableCompliments = tier.premium ? 5 : 3;
-//                  if (tier.premium) updates.availableAiMessages = 2;
-//                }
-//        await db.update(updates);
-//        break;
-//      }
-//
-//      case "subscription.charged.failed":
-//      case "subscription.cancelled": {
-//        // user explicitly cancelled or failed payment
-//        await db.update({
-//          isPlus:           false,
-//          isPremium:        false,
-//          subscriptionStatus:"inactive",
-//          nextRenewal:      null,
-//        });
-//        break;
-//      }
-//
-//      case "subscription.completed": {
-//        // subscription ran its full course (total_count reached)
-//        await db.update({
-//          isPlus:           false,
-//          isPremium:        false,
-//          subscriptionStatus:"completed",
-//          nextRenewal:      null,
-//        });
-//        break;
-//      }
-//    }
-//
-//    res.status(200).send("ok");
-//  });
+exports.kupidxPlusWebhook = functions
+  .region("asia-south1")
+  .https.onRequest(async (req, res) => {
+    const sig = req.headers["x-razorpay-signature"];
+    let ev;
+    try {
+      ev = razorpay.webhooks.verify(
+        req.rawBody,
+        sig,
+        functions.config().razorpay.webhook_secret
+      );
+    } catch (err) {
+      logger.error("Webhook signature mismatch", err);
+      return res.status(400).send("fail");
+    }
+
+    const { event, payload } = req.body;
+    const uid = payload.subscription.entity.customer_id;
+    const db  = admin.database().ref(`users/${uid}`);
+
+    switch (event) {
+      case "subscription.activated":
+      case "subscription.charged": {
+        const planId = payload.subscription.entity.plan_id;
+        const tier   = PLAN_TIERS[planId] || { plus: false, premium: false };
+        const updates = {
+          isPlus:            tier.plus,
+          isPremium:         tier.premium,
+          subscriptionStatus:"active",
+          nextRenewal:       payload.subscription.entity.current_end,
+        };
+        if (tier.plus || tier.premium) {
+                  updates["swipesInfo/remainingSwipes"] = tier.premium ? 2147483647 : 50;
+                  updates.availableBoosts      = tier.premium ? 5 : 3;
+                  updates.availableCompliments = tier.premium ? 5 : 3;
+                  if (tier.premium) updates.availableAiMessages = 2;
+                }
+        await db.update(updates);
+        break;
+      }
+
+      case "subscription.charged.failed":
+      case "subscription.cancelled": {
+        // user explicitly cancelled or failed payment
+        await db.update({
+          isPlus:           false,
+          isPremium:        false,
+          subscriptionStatus:"inactive",
+          nextRenewal:      null,
+        });
+        break;
+      }
+
+      case "subscription.completed": {
+        // subscription ran its full course (total_count reached)
+        await db.update({
+          isPlus:           false,
+          isPremium:        false,
+          subscriptionStatus:"completed",
+          nextRenewal:      null,
+        });
+        break;
+      }
+    }
+
+    res.status(200).send("ok");
+  });
 
 /* shorthand so we only spell it once */
 const DB = 'kupidxdefault';          // ⇐ the sub-domain before .asia-southeast1…
@@ -846,7 +908,7 @@ exports.verifyPaypalSubscription = functions
 });
 
 exports.grantWeeklyQuotas = functions.pubsub
-  .schedule('every week')
+  .schedule('every 10080 minutes')
   .timeZone('Asia/Kolkata')
   .onRun(async () => {
     const usersRef = admin.database().ref('users');
@@ -929,7 +991,7 @@ exports.replicaUnreadCounter = functions
         // secondary instance
 
 exports.pushSummary = functions.pubsub
-  .schedule('every week')
+  .schedule('every 10080 minutes')
   .timeZone('Asia/Kolkata')
   .onRun(async () => {
     const usersSnap = await dbUS
