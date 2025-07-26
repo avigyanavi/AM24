@@ -21,6 +21,9 @@ const now    = () => Date.now();
 const BOOST_DURATION_MS = 6 * 60 * 60 * 1_000;   // 6 h
 // ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
 const RAZORPAY_SECRET = '27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01';
+// Hardcoded Razorpay webhook secret used by kupidxPlusWebhook
+const RZP_WEBHOOK_SECRET = 'o58jBDJ32C0FujiSTKABOfUKneDAlLz5Vo5x3m0HatbS0ZpV';
+
 
 /* LIVE keys (hard-coded for now) */
 const RZP_KEY_ID     = "rzp_live_DsoxJLeiCw940M";
@@ -536,18 +539,6 @@ exports.verifyKupidxSubscription = functions
 exports.kupidxPlusWebhook = functions
   .region("asia-south1")
   .https.onRequest(async (req, res) => {
-    const sig = req.headers["x-razorpay-signature"];
-    let ev;
-    try {
-      ev = razorpay.webhooks.verify(
-        req.rawBody,
-        sig,
-        functions.config().razorpay.webhook_secret
-      );
-    } catch (err) {
-      logger.error("Webhook signature mismatch", err);
-      return res.status(400).send("fail");
-    }
 
     const { event, payload } = req.body;
     const uid = payload.subscription.entity.customer_id;

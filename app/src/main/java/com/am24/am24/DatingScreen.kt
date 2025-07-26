@@ -1859,13 +1859,14 @@ fun DatingScreenContent(
     }
 
     Box(Modifier.fillMaxSize()) {
-        userDistance?.let { distance ->
+        // Treat “no location” as Float.NaN; your UI already renders that as “Worldwide”
+        val dist = userDistance ?: Float.NaN
         DatingProfileCard(
             profile = currentProfile,
             isBoosted = isBoostedProfile,
             aiMatchResult = aiMatchResult,
             sortedByUpvotes = sortedByUpvotes,      // ← pass it i
-            userDistance = distance,
+            userDistance = dist,
             navController = navController,
             postViewModel = postViewModel,
             currentProfile = currentUserProfile,
@@ -1881,7 +1882,7 @@ fun DatingScreenContent(
         )
     }
 }
-}
+
 
 // Updated DatingProfileCard
 @Composable
