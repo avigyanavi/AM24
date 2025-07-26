@@ -178,7 +178,7 @@ fun SubscriptionScreen(navController: NavController) {
             /* ② open native checkout for first charge */
             val opts = JSONObject().apply {
                 put("subscription_id", subId)
-                put("name",      "Kupidx ${plan.tier.name.lowercase().capitalize()}")
+                put("name", "AM24")
                 put("description", "${plan.price} ₹ / ${plan.period.label.lowercase()}")
                 put("prefill", JSONObject().apply {        // nice to have
                     put("email", FirebaseAuth.getInstance().currentUser?.email)

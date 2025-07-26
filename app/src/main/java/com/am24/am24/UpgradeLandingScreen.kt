@@ -101,7 +101,7 @@ fun UpgradeLandingScreen(nav: NavController) {
             co.open(ctx as Activity, JSONObject().apply {
                 put("key", keyId)
                 put("order_id", orderId)
-                put("name", "Kupidx ${tier.name.lowercase().replaceFirstChar(Char::uppercase)}")
+                put("name", "AM24")
             })
 
             host?.setPaymentCallbacks(
@@ -137,6 +137,9 @@ fun UpgradeLandingScreen(nav: NavController) {
                 },
                 onError = { msg ->
                     Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+                    nav.navigate("settings") {
+                        popUpTo("upgradeLanding") { inclusive = true }
+                    }
                 }
             )
 
