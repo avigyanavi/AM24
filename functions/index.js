@@ -197,95 +197,86 @@ exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onCall(async (data, _ctx) => {
+
     const { uid, maxDistance } = data || {};
-    logger.info('⚙️ getNearbyProfiles called with:', data);
     if (!uid)
       throw new functions.https.HttpsError('invalid-argument', 'uid required');
 
-    const db = admin.database();
-
-    /* 1️⃣  fetch caller’s country (+ optional lat/lng) */
-    const [countrySnap, locSnap] = await Promise.all([
-      db.ref(`users/${uid}/country`).get(),
-      db.ref(`geoFireLocations/${uid}/l`).get(),
+    /* ── caller’s location & country ─────────────────────────────── */
+    const [locSnap, countrySnap] = await Promise.all([
+      db.ref(`geoFireLocations/${uid}/l`).get(),   // [lat,lng] | null
+      db.ref(`users/${uid}/country`).get(),        // string | null
     ]);
 
+    const myLoc     = locSnap.val();
     const myCountry = countrySnap.val() || null;
-    const myLoc     = locSnap.val(); // [lat,lng] or null
 
-     const distLimit = Number(maxDistance);
-        const filterByDistance = Array.isArray(myLoc) && myLoc.length === 2 &&
-          Number.isFinite(distLimit) && distLimit <= 65;
+    const distLimit = Number(maxDistance);
+    const useDist   =
+      Array.isArray(myLoc) && myLoc.length === 2 &&
+      Number.isFinite(distLimit) && distLimit <= 65;   // 65-km rule
 
-    /* 2️⃣  users in the same country (fast) */
-    if (!myCountry) return { profiles: [] };
+    /* ── STEP 1: collect candidate UIDs ──────────────────────────── */
+    let candidateIds = [];
 
-    const countryUsersSnap = await db
-      .ref('users')
-      .orderByChild('country')
-      .equalTo(myCountry)
-      .get();
+    if (useDist) {
+      /* distance path – grab EVERYONE except me */
+      const snap = await db.ref('users').get();
+      snap.forEach(s => { if (s.key !== uid) candidateIds.push(s.key); });
+    } else {
+      /* country path – same-country only (if country known) */
+      if (!myCountry) return { profiles: [] };
+      const snap = await db
+        .ref('users')
+        .orderByChild('country')
+        .equalTo(myCountry)
+        .get();
+      snap.forEach(s => { if (s.key !== uid) candidateIds.push(s.key); });
+    }
 
-    const ids = [];
-    countryUsersSnap.forEach(s => {
-      if (s.key !== uid) ids.push(s.key);
-    });
+    if (candidateIds.length === 0) return { profiles: [] };
 
-    /* 3️⃣  deterministic ordering */
-    let orderedIds = ids;
-    if (Array.isArray(myLoc) && myLoc.length === 2) {
-      const distanceBetween = require('geofire-common').distanceBetween;
-      const chunkSize = 400;
-      const pairs = [];
+    /* ── STEP 2: optional distance filter & ordering ─────────────── */
+    const pairs = [];
+    if (useDist) {
+      const { distanceBetween } = require('geofire-common');
+      const chunk = 400;
 
-      for (let i = 0; i < ids.length; i += chunkSize) {
-        const chunk = ids.slice(i, i + chunkSize);
-        const snaps = await Promise.all(
-          chunk.map(id => db.ref(`geoFireLocations/${id}/l`).get())
+      for (let i = 0; i < candidateIds.length; i += chunk) {
+        const ids   = candidateIds.slice(i, i + chunk);
+        const locSnaps = await Promise.all(
+          ids.map(id => db.ref(`geoFireLocations/${id}/l`).get())
         );
-        snaps.forEach((snap, idx) => {
+
+        locSnaps.forEach((snap, idx) => {
           const loc = snap.val();
-          const id  = chunk[idx];
+          const id  = ids[idx];
           let dist  = Infinity;
           if (Array.isArray(loc) && loc.length === 2) {
             dist = distanceBetween(loc, myLoc);
           }
-          if (!filterByDistance || !Number.isFinite(dist) || dist <= distLimit) {
-                      pairs.push({ id, dist });
-                    }
+          if (dist <= distLimit) pairs.push({ id, dist });
         });
       }
+
+      /* order by distance, then uid */
       pairs.sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id));
-      orderedIds = pairs.map(p => p.id);
+      candidateIds = pairs.map(p => p.id);
     } else {
-      orderedIds.sort(); // fallback
+      /* just deterministic uid-ordering */
+      candidateIds.sort();
     }
 
-     /* 4️⃣  server-side paging */
-        const cursorSnap = await db.ref(`users/${uid}/nearbyCursor`).get();
-        let cursor = parseInt(cursorSnap.val(), 10);
-        if (!Number.isFinite(cursor) || cursor < 0) cursor = 0;
-        if (cursor >= orderedIds.length) cursor = cursor % orderedIds.length;
-        if (orderedIds.length === 0) return { profiles: [] };
-
-        let pageIds = orderedIds.slice(cursor, cursor + PAGE_SIZE);
-        if (orderedIds.length > 0 && pageIds.length === 0) {
-          cursor = cursor % orderedIds.length;
-          pageIds = orderedIds.slice(cursor, cursor + PAGE_SIZE);
-        }
-        /* 4️⃣  load profiles (entire list – no cursor paging) */
-        const profileSnaps = await Promise.all(
-        pageIds.map(id => db.ref(`users/${id}`).get())
+    /* ── STEP 3: fetch the profiles ──────────────────────────────── */
+    const profileSnaps = await Promise.all(
+      candidateIds.map(id => db.ref(`users/${id}`).get())
     );
 
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
       .filter(Boolean);
 
-    const nextCursor = (cursor + PAGE_SIZE) % orderedIds.length;
-        await db.ref(`users/${uid}/nearbyCursor`).set(nextCursor);
-
-        return { profiles };
+    return { profiles };
   });
 
 exports.getGlobalBoostedUsers = functions
