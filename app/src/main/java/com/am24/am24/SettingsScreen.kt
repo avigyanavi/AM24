@@ -156,9 +156,10 @@ fun SettingsScreen(navController: NavController) {
                   plusFlag    -> "Plus"
                   else         -> "Free"
                 }
-        expiry = s.child("nextRenewal").getValue(Long::class.java)
-              ?.let { DateFormat.getDateInstance().format(Date(it)) }
-              ?: "N/A"
+        expiry = if (!subscriptionId.isNullOrBlank()) "Never" else
+            s.child("nextRenewal").getValue(Long::class.java)
+                ?.let { DateFormat.getDateInstance().format(Date(it)) }
+                ?: "N/A"
 
         subscriptionId = s.child("subscription").child("id")
             .getValue(String::class.java)
@@ -800,7 +801,7 @@ private fun AccountCard(uid: String) {
                 leadingContent = { Icon(Icons.Default.Person, null) },
                 headlineContent = { Text("Username: $username") },
                 trailingContent = {
-                    TextButton(onClick = { editingUname = true }) { Text("Edit") }
+                    TextButton(onClick = { editingUname = true }) { Text("Edit", color = KupidxOrange) }
                 }
             )
         }

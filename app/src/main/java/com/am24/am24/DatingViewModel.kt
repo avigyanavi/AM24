@@ -417,7 +417,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 _isLoading.value = true
                 val maxDist = _datingFilters.value.distance
-                val newList = fetchNearbyProfilesCloud(me, maxDist)
+                var newList = fetchNearbyProfilesCloud(me, maxDist)
+
+                // if we hit the end of the list, call once more so the
+                // cursor wraps around and returns profiles again
+                if (newList.isEmpty()) {
+                    newList = fetchNearbyProfilesCloud(me, maxDist)
+                }
                 if (newList.isNotEmpty()) {
                     _allProfiles.update { it + newList }
                 }

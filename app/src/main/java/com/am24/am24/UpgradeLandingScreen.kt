@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
@@ -34,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
@@ -59,8 +61,8 @@ const val RZP_KEY_ID_PUBLIC = "rzp_live_DsoxJLeiCw940M"
 fun UpgradeLandingScreen(nav: NavController) {
 
     /* ── local handles (captured by launchOneTimeUpi) ── */
-    val ctx    = LocalContext.current
-    val uid    = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val ctx = LocalContext.current
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val userRoot = FirebaseRefs.db.getReference("users/$uid")
     var userCountry by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(uid) {
@@ -68,14 +70,16 @@ fun UpgradeLandingScreen(nav: NavController) {
     }
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
-    val scope  = rememberCoroutineScope()
-    val host   = ctx as? KupidXAppActivity
-    val fx     = FirebaseFunctions.getInstance("asia-south1")
-    val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID_PUBLIC) } }
-    val db     = FirebaseRefs.db
+    val scope = rememberCoroutineScope()
+    var loading by remember { mutableStateOf(false) }
+    val host = ctx as? KupidXAppActivity
+    val fx = FirebaseFunctions.getInstance("asia-south1")
+    val co = remember { Checkout().apply { setKeyID(RZP_KEY_ID_PUBLIC) } }
+    val db = FirebaseRefs.db
 
     /* ── helper moved INSIDE so it sees the locals ── */
     fun launchOneTimeUpi(tier: Tier, period: Period) = scope.launch {
+        loading = true
         val price = when (tier to period) {
             Tier.PLUS to Period.WEEK -> 9
             Tier.PLUS to Period.MONTH -> 39
@@ -90,10 +94,12 @@ fun UpgradeLandingScreen(nav: NavController) {
                 ?: throw Exception("User not authenticated")
 
             val res = fx.getHttpsCallable("createManualSubscriptionOrder")
-                .call(hashMapOf(
-                    "amount" to price,
-                    "label" to "${tier.name}_${period.name.lowercase()}"
-                )).await().data as Map<*, *>
+                .call(
+                    hashMapOf(
+                        "amount" to price,
+                        "label" to "${tier.name}_${period.name.lowercase()}"
+                    )
+                ).await().data as Map<*, *>
 
             val orderId = res["id"] as String
             val keyId = res["key"] as String
@@ -103,24 +109,25 @@ fun UpgradeLandingScreen(nav: NavController) {
                 put("order_id", orderId)
                 put("name", "AM24")
             })
+            loading = false
 
             host?.setPaymentCallbacks(
                 onSuccess = {
                     val validityMs = when (period) {
-                        Period.WEEK  -> 7L  * 24 * 60 * 60 * 1_000
+                        Period.WEEK -> 7L * 24 * 60 * 60 * 1_000
                         Period.MONTH -> 30L * 24 * 60 * 60 * 1_000
-                        Period.YEAR  -> 365L* 24 * 60 * 60 * 1_000
+                        Period.YEAR -> 365L * 24 * 60 * 60 * 1_000
                     }
                     val now = System.currentTimeMillis()
                     val updates = mutableMapOf<String, Any>(
-                        "isPlus"       to (tier == Tier.PLUS),
-                        "isPremium"    to (tier == Tier.PREMIUM),
-                        "nextRenewal"  to (now + validityMs)
+                        "isPlus" to (tier == Tier.PLUS),
+                        "isPremium" to (tier == Tier.PREMIUM),
+                        "nextRenewal" to (now + validityMs)
                     ).apply {
-                        val boosts      = if (tier == Tier.PREMIUM) 5 else 3
+                        val boosts = if (tier == Tier.PREMIUM) 5 else 3
                         val compliments = if (tier == Tier.PREMIUM) 5 else 3
-                        val swipes      = if (tier == Tier.PREMIUM) Int.MAX_VALUE else 50
-                        put("availableBoosts",      boosts)
+                        val swipes = if (tier == Tier.PREMIUM) Int.MAX_VALUE else 50
+                        put("availableBoosts", boosts)
                         put("availableCompliments", compliments)
                         put("swipesInfo/remainingSwipes", swipes)
                         if (tier == Tier.PREMIUM) put("availableAiMessages", 2)
@@ -145,38 +152,48 @@ fun UpgradeLandingScreen(nav: NavController) {
 
         } catch (e: Exception) {
             Toast.makeText(ctx, e.message ?: "Something went wrong", Toast.LENGTH_LONG).show()
+            loading = false
         }
     }
     /* ─────────────────────────────────────────────── */
 
     /* ── UI ───────────────────────────────────────── */
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())      // ← enable scrolling
-            .background(Color(0xFF121212))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        Text("Choose your upgrade",
-            fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())      // ← enable scrolling
+                .background(Color(0xFF121212))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Text(
+                "Choose your upgrade",
+                fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White
+            )
 
-        TierCard(
-            tier = Tier.PLUS,
-            colour = Color(0xFF1E1E1E),
-            priceWeekly = 9,  priceMonth = 39, priceYear = 399,
-            onAuto = { nav.navigate("subscription") },
-            onManual = { p -> launchOneTimeUpi(Tier.PLUS, p) },
-            showManual = isIndia                    // 👈 new arg
-        )
+            TierCard(
+                tier = Tier.PLUS,
+                colour = Color(0xFF1E1E1E),
+                priceWeekly = 9, priceMonth = 39, priceYear = 399,
+                onAuto = { nav.navigate("subscription") },
+                onManual = { p -> launchOneTimeUpi(Tier.PLUS, p) },
+                showManual = isIndia                    // 👈 new arg
+            )
 
-        TierCard(
-            tier = Tier.PREMIUM,
-            colour = Color(0xFFFF6F00),
-            priceWeekly = 29, priceMonth = 99, priceYear = 999,
-            onAuto = { nav.navigate("subscription") },
-            onManual = { p -> launchOneTimeUpi(Tier.PREMIUM, p) },
-            showManual = isIndia                    // 👈
-        )
+            TierCard(
+                tier = Tier.PREMIUM,
+                colour = Color(0xFFFF6F00),
+                priceWeekly = 29, priceMonth = 99, priceYear = 999,
+                onAuto = { nav.navigate("subscription") },
+                onManual = { p -> launchOneTimeUpi(Tier.PREMIUM, p) },
+                showManual = isIndia                    // 👈
+            )
+        }
+        if (loading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFFFF6F00))
+            }
+        }
     }
 }

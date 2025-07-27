@@ -259,10 +259,14 @@ exports.getNearbyProfiles = functions
         const cursorSnap = await db.ref(`users/${uid}/nearbyCursor`).get();
         let cursor = parseInt(cursorSnap.val(), 10);
         if (!Number.isFinite(cursor) || cursor < 0) cursor = 0;
-
+        if (cursor >= orderedIds.length) cursor = cursor % orderedIds.length;
         if (orderedIds.length === 0) return { profiles: [] };
 
-        const pageIds = orderedIds.slice(cursor, cursor + PAGE_SIZE);
+        let pageIds = orderedIds.slice(cursor, cursor + PAGE_SIZE);
+        if (orderedIds.length > 0 && pageIds.length === 0) {
+          cursor = cursor % orderedIds.length;
+          pageIds = orderedIds.slice(cursor, cursor + PAGE_SIZE);
+        }
         /* 4️⃣  load profiles (entire list – no cursor paging) */
         const profileSnaps = await Promise.all(
         pageIds.map(id => db.ref(`users/${id}`).get())
@@ -571,6 +575,9 @@ exports.kupidxPlusWebhook = functions
   .region("asia-south1")
   .https.onRequest(async (req, res) => {
 
+      if (req.method === 'GET') {
+        return res.status(200).send('Webhook endpoint is up');
+      }
     const { event, payload } = req.body;
     const uid = payload.subscription.entity.notes?.uid;
     if (!uid) {

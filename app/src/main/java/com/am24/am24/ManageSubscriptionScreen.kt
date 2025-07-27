@@ -24,8 +24,6 @@ import com.am24.am24.ui.TierCard
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
-import com.google.firebase.functions.ktx.functions
-import com.google.firebase.ktx.Firebase
 import com.razorpay.Checkout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -36,15 +34,15 @@ import java.util.Date
 
 private val PLUS_FEATURES = listOf(
     "No ads",
-    "Unlock People Who Liked Me and Change Location",
+    "Priority Profile in the dating stack",
+    "Unlock People Who Liked Me and Change Location Option",
     "Unlock Picture and Voice posts",
     "3 compliments per week",
     "3 boosts per week"
 )
 
 private val PREMIUM_FEATURES = listOf(
-    "Unlock Video posts",
-    "Priority Profile in the dating stack",
+    "Unlock Video posts and Rank section",
     "Unlimited Swipes",
     "5 compliments per week",
     "5 boosts per week",
@@ -149,8 +147,9 @@ fun ManageSubscriptionScreen(navController: NavController) {
             isPlus    -> "Plus"
             else      -> "Free"
         }
-        expiry = snap.child("nextRenewal").getValue(Long::class.java)
-            ?.let { DateFormat.getDateInstance().format(Date(it)) } ?: "N/A"
+        expiry = if (!subscriptionId.isNullOrBlank()) "Never" else
+            snap.child("nextRenewal").getValue(Long::class.java)
+                ?.let { DateFormat.getDateInstance().format(Date(it)) } ?: "N/A"
         subscriptionId   = snap.child("subscription").child("id").getValue(String::class.java)
         userCountry      = snap.child("country").getValue(String::class.java)
         subscriptionStatus = snap.child("subscriptionStatus").getValue(String::class.java)
@@ -175,7 +174,7 @@ fun ManageSubscriptionScreen(navController: NavController) {
                             handleCancelClick(isIndia, fx, scope, ctx, navController)
                         }
                     ) {
-                        Text("Cancel", fontWeight = FontWeight.SemiBold)
+                        Text("Cancel", color = KupidxOrange, fontWeight = FontWeight.SemiBold)
                     }
                 }
             )

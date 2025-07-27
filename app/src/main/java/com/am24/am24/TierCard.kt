@@ -30,15 +30,15 @@ import com.am24.am24.Tier
 
 private val PLUS_FEATURES = listOf(
     "No ads",
-    "Unlock People Who Liked Me and Change Location",
+    "Priority Profile in the dating stack",
+    "Unlock People Who Liked Me and Change Location Option",
     "Unlock Picture and Voice posts",
     "3 compliments per week",
     "3 boosts per week"
 )
 
 private val PREMIUM_FEATURES = listOf(
-    "Unlock Video posts",
-    "Priority Profile in the dating stack",
+    "Unlock Video posts and Rank section",
     "Unlimited Swipes",
     "5 compliments per week",
     "5 boosts per week",
