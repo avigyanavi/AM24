@@ -3,6 +3,15 @@
         <string name="upgrade_to_plus_to_unlock">অনলক করতে প্লাসে আপগ্রেড করুন</string>
         <string name="upgrade_to_premium_to_unlock">অনলক করতে প্রিমিয়ামে আপগ্রেড করুন</string>
 
+    <string name="subscription_active">সক্রিয়</string>
+    <string name="subscription_inactive">নিষ্ক্রিয়</string>
+    <string name="subscription_completed">সম্পন্ন</string>
+    <string name="subscription_cancelled">বাতিল</string>
+    <string name="subscription_suspended">সাময়িকভাবে স্থগিত</string>
+    <string name="subscription_expired">মেয়াদোত্তীর্ণ</string>
+    <string name="payment_failed">পেমেন্ট ব্যর্থ হয়েছে</string>
+
+
     <string name="app_name">কুপিডক্স</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">ভাষাসমূহ</string>

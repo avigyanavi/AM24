@@ -1,7 +1,13 @@
 <resources>
         <string name="upgrade_to_plus_to_unlock">అన్లాక్ చేయడానికి ప్లస్‌కు అప్గ్రేడ్ చేయండి</string>
         <string name="upgrade_to_premium_to_unlock">అన్లాక్ చేయడానికి ప్రీమియానికి అప్గ్రేడ్ చేయండి</string>
-
+    <string name="subscription_active">క్రియాశీలం</string>
+    <string name="subscription_inactive">నిష్క్రియం</string>
+    <string name="subscription_completed">పూర్తయింది</string>
+    <string name="subscription_cancelled">రద్దైంది</string>
+    <string name="subscription_suspended">తాత్కాలికంగా నిలిపివేయబడింది</string>
+    <string name="subscription_expired">గడువు ముగిసింది</string>
+    <string name="payment_failed">చెల్లింపు విఫలమైంది</string>
     <string name="app_name">క్యుపిడ్ x</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
         <string name="languages">భాషలు</string>

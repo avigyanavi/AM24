@@ -19,6 +19,8 @@ const db     = admin.database();
 const USERS  = db.ref('users');
 const now    = () => Date.now();
 const BOOST_DURATION_MS = 6 * 60 * 60 * 1_000;   // 6 h
+const PAGE_SIZE = 50;
+
 // ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
 const RAZORPAY_SECRET = '27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01';
 // Hardcoded Razorpay webhook secret used by kupidxPlusWebhook
@@ -253,16 +255,27 @@ exports.getNearbyProfiles = functions
       orderedIds.sort(); // fallback
     }
 
-    /* 4️⃣  load profiles (entire list – no cursor paging) */
-    const profileSnaps = await Promise.all(
-      orderedIds.map(id => db.ref(`users/${id}`).get())
+     /* 4️⃣  server-side paging */
+        const cursorSnap = await db.ref(`users/${uid}/nearbyCursor`).get();
+        let cursor = parseInt(cursorSnap.val(), 10);
+        if (!Number.isFinite(cursor) || cursor < 0) cursor = 0;
+
+        if (orderedIds.length === 0) return { profiles: [] };
+
+        const pageIds = orderedIds.slice(cursor, cursor + PAGE_SIZE);
+        /* 4️⃣  load profiles (entire list – no cursor paging) */
+        const profileSnaps = await Promise.all(
+        pageIds.map(id => db.ref(`users/${id}`).get())
     );
 
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
       .filter(Boolean);
 
-    return { profiles };          // ⟵  no nextCursor
+    const nextCursor = (cursor + PAGE_SIZE) % orderedIds.length;
+        await db.ref(`users/${uid}/nearbyCursor`).set(nextCursor);
+
+        return { profiles };
   });
 
 exports.getGlobalBoostedUsers = functions

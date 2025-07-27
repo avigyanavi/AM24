@@ -117,7 +117,7 @@ fun SettingsScreen(navController: NavController) {
     var allowLoc by remember { mutableStateOf(true) }
     var isMatrimony by remember { mutableStateOf(false) }
     var blocked by remember { mutableStateOf(listOf<String>()) }
-
+    var subscriptionStatus by remember { mutableStateOf<String?>(null) }
     // ── NEW STATE ──
     var country by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
@@ -162,6 +162,7 @@ fun SettingsScreen(navController: NavController) {
 
         subscriptionId = s.child("subscription").child("id")
             .getValue(String::class.java)
+        subscriptionStatus = s.child("subscriptionStatus").getValue(String::class.java)
 
         boosts      = s.child("availableBoosts").getValue(Int::class.java) ?: 0
         swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
@@ -297,6 +298,16 @@ fun SettingsScreen(navController: NavController) {
 
                         /**  PLUS / PREMIUM  → keep old manage page  */
                     } else {
+                        val statusLabel = when (subscriptionStatus) {
+                            "active" -> stringResource(R.string.subscription_active)
+                            "inactive" -> stringResource(R.string.subscription_inactive)
+                            "completed" -> stringResource(R.string.subscription_completed)
+                            "cancelled" -> stringResource(R.string.subscription_cancelled)
+                            "suspended" -> stringResource(R.string.subscription_suspended)
+                            "expired" -> stringResource(R.string.subscription_expired)
+                            null -> "N/A"
+                            else -> subscriptionStatus ?: "N/A"
+                        }
                         SettingsRow(
                             icon  = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
                             title = "$premiumTier Member",
@@ -309,6 +320,15 @@ fun SettingsScreen(navController: NavController) {
                                 }
                             }
                         )
+                        if (subscriptionStatus != null) {
+                            val reason = if (subscriptionStatus == "inactive")
+                                " \u2013 " + stringResource(R.string.payment_failed) else ""
+                            Text(
+                                "Status: $statusLabel$reason",
+                                modifier = Modifier.padding(start = 72.dp, bottom = 4.dp),
+                                fontSize = 14.sp
+                            )
+                        }
                     }
 
                     Divider(Modifier.padding(start = 56.dp))

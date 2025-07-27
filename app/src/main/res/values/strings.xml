@@ -1318,7 +1318,13 @@
     <string name="interested_in_header">Who are you interested in?</string>
     <string name="male_option">Male</string>
     <string name="female_option">Female</string>
-
+    <string name="subscription_active">Active</string>
+    <string name="subscription_inactive">Inactive</string>
+    <string name="subscription_completed">Completed</string>
+    <string name="subscription_cancelled">Cancelled</string>
+    <string name="subscription_suspended">Suspended</string>
+    <string name="subscription_expired">Expired</string>
+    <string name="payment_failed">Payment failed</string>
     <!-- Upload Media -->
     <string name="upload_media_title">Upload Media</string>
     <string name="profile_picture_label">Profile Picture</string>

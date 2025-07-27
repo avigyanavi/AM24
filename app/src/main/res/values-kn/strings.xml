@@ -1,7 +1,13 @@
 <resources>
         <string name="upgrade_to_plus_to_unlock">ಅನ್‌ಲಾಕ್ಸ್ ಮಾಡಲು ಪ್ಲಸ್‌ಗೆ ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ</string>
         <string name="upgrade_to_premium_to_unlock">ಅನ್‌ಲಾಕ್ಸ್ ಮಾಡಲು ಪ್ರೀಮಿಯಂಗೆ ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ</string>
-
+    <string name="subscription_active">ಸಕ್ರಿಯ</string>
+    <string name="subscription_inactive">ನಿಷ್ಕ್ರಿಯ</string>
+    <string name="subscription_completed">ಪೂರ್ಣಗೊಂಡ</string>
+    <string name="subscription_cancelled">ರದ್ದಾಯಿತು</string>
+    <string name="subscription_suspended">ಸ್ಥಗಿತಗೊಂಡಿದೆ</string>
+    <string name="subscription_expired">ಅವಧಿ ಮುಗಿದಿದೆ</string>
+    <string name="payment_failed">ಪಾವತಿ ವಿಫಲವಾಯಿತು</string>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">ಭಾಷೆಗಳು</string>

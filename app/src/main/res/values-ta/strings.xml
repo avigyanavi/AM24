@@ -1,7 +1,13 @@
 <resources>
                 <string name="upgrade_to_plus_to_unlock">அன்லாக் செய்ய Plus-க்கு மேம்படுத்தவும்</string>
                 <string name="upgrade_to_premium_to_unlock">அன்லாக் செய்ய Premium-க்கு மேம்படுத்தவும்</string>
-
+        <string name="subscription_active">செயலில்</string>
+        <string name="subscription_inactive">செயலற்றது</string>
+        <string name="subscription_completed">நிறைவடைந்தது</string>
+        <string name="subscription_cancelled">ரத்துசெய்யப்பட்டது</string>
+        <string name="subscription_suspended">நிலுவையில்</string>
+        <string name="subscription_expired">காலாவதி</string>
+        <string name="payment_failed">கட்டணம் தோல்வி</string>
         <!-- App Basics -->
         <string name="app_name">குப்பிட் எக்ஸ்</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>

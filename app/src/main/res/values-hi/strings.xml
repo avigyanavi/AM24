@@ -1,7 +1,13 @@
 <resources>
         <string name="upgrade_to_plus_to_unlock">अनलॉक करने के लिए प्लस में अपग्रेड करें</string>
         <string name="upgrade_to_premium_to_unlock">अनलॉक करने के लिए प्रीमियम में अपग्रेड करें</string>
-
+    <string name="subscription_active">सक्रिय</string>
+    <string name="subscription_inactive">निष्क्रिय</string>
+    <string name="subscription_completed">पूर्ण</string>
+    <string name="subscription_cancelled">रद्द</string>
+    <string name="subscription_suspended">निलंबित</string>
+    <string name="subscription_expired">समाप्त</string>
+    <string name="payment_failed">भुगतान विफल</string>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">भाषाएँ</string>

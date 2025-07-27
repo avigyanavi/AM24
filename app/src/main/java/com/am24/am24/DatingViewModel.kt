@@ -420,11 +420,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 val newList = fetchNearbyProfilesCloud(me, maxDist)
                 if (newList.isNotEmpty()) {
                     _allProfiles.update { it + newList }
-                } else {
-                    FirebaseDatabase.getInstance()
-                        .getReference("paging/nearbyCursor/$me")
-                        .setValue(null)           // <<< add
-                    Log.d(TAG, "Reached end of profiles; resetting cursor")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "loadMoreProfiles() failed: ${e.message}", e)

@@ -162,6 +162,9 @@ data class Profile(
     var lastSummaryPush: Long? = null,
     var deleteTimerOverride: Boolean = false,     // premium users can set TRUE to keep chat forever
     var allowExplicitPics: Boolean = false,       // personal preference – must be TRUE **for both** sides
+
+    /** server-maintained cursor for paging nearby profiles */
+    var nearbyCursor: Int? = null,
     @Exclude
     var ratingsGiven: Map<String, Float> = emptyMap(),
 

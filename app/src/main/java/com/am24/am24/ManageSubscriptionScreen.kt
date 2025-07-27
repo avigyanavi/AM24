@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -136,6 +137,7 @@ fun ManageSubscriptionScreen(navController: NavController) {
     var isPlus          by remember { mutableStateOf(false) }
     var isPremium       by remember { mutableStateOf(false) }
     var userCountry     by remember { mutableStateOf<String?>(null) }
+    var subscriptionStatus by remember { mutableStateOf<String?>(null) }
 
     /* ───── one-shot fetch ───── */
     LaunchedEffect(uid) {
@@ -149,8 +151,9 @@ fun ManageSubscriptionScreen(navController: NavController) {
         }
         expiry = snap.child("nextRenewal").getValue(Long::class.java)
             ?.let { DateFormat.getDateInstance().format(Date(it)) } ?: "N/A"
-        subscriptionId = snap.child("subscription").child("id").getValue(String::class.java)
-        userCountry    = snap.child("country").getValue(String::class.java)
+        subscriptionId   = snap.child("subscription").child("id").getValue(String::class.java)
+        userCountry      = snap.child("country").getValue(String::class.java)
+        subscriptionStatus = snap.child("subscriptionStatus").getValue(String::class.java)
     }
 
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
@@ -191,6 +194,21 @@ fun ManageSubscriptionScreen(navController: NavController) {
             /* ───── status ───── */
             Text("Membership: $premiumTier", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text("Expires on: $expiry",fontSize = 16.sp)
+            val statusText = when (subscriptionStatus) {
+                "active" -> stringResource(R.string.subscription_active)
+                "inactive" -> stringResource(R.string.subscription_inactive)
+                "completed" -> stringResource(R.string.subscription_completed)
+                "cancelled" -> stringResource(R.string.subscription_cancelled)
+                "suspended" -> stringResource(R.string.subscription_suspended)
+                "expired" -> stringResource(R.string.subscription_expired)
+                null -> "N/A"
+                else -> subscriptionStatus ?: "N/A"
+            }
+            if (subscriptionStatus != null) {
+                val reason = if (subscriptionStatus == "inactive")
+                    " \u2013 " + stringResource(R.string.payment_failed) else ""
+                Text("Status: $statusText$reason", fontSize = 16.sp)
+            }
 
             /* ───── benefits ───── */
             val featureList = when {
