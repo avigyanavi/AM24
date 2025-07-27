@@ -197,7 +197,7 @@ exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onCall(async (data, _ctx) => {
-    const { uid } = data || {};
+    const { uid, maxDistance } = data || {};
     logger.info('⚙️ getNearbyProfiles called with:', data);
     if (!uid)
       throw new functions.https.HttpsError('invalid-argument', 'uid required');
@@ -212,6 +212,10 @@ exports.getNearbyProfiles = functions
 
     const myCountry = countrySnap.val() || null;
     const myLoc     = locSnap.val(); // [lat,lng] or null
+
+     const distLimit = Number(maxDistance);
+        const filterByDistance = Array.isArray(myLoc) && myLoc.length === 2 &&
+          Number.isFinite(distLimit) && distLimit <= 65;
 
     /* 2️⃣  users in the same country (fast) */
     if (!myCountry) return { profiles: [] };
@@ -246,7 +250,9 @@ exports.getNearbyProfiles = functions
           if (Array.isArray(loc) && loc.length === 2) {
             dist = distanceBetween(loc, myLoc);
           }
-          pairs.push({ id, dist });
+          if (!filterByDistance || !Number.isFinite(dist) || dist <= distLimit) {
+                      pairs.push({ id, dist });
+                    }
         });
       }
       pairs.sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id));
