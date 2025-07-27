@@ -5,6 +5,20 @@ import android.telephony.TelephonyManager
 import java.util.Locale
 
 object CountryUtil {
+    private val KM_COUNTRIES = setOf(
+        "IN", // India
+        "GB", "UK", "GBR", // United Kingdom / England
+        "DE", // Germany
+        "AU", // Australia
+        "SG", // Singapore
+        "FR", // France
+        "NL", // Netherlands
+        "ES", // Spain
+        "HK", // Hong Kong
+        "CN", // China
+        "IE"  // Ireland
+    )
+
     fun isProbablyInIndia(ctx: Context): Boolean {
         val isoBySim   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
                 as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
@@ -13,6 +27,16 @@ object CountryUtil {
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
 
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "IN" }
+    }
+
+    fun usesKilometers(ctx: Context): Boolean {
+        val isoBySim   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
+                as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
+                as? TelephonyManager)?.networkCountryIso?.uppercase(Locale.US)
+        val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
+
+        return listOf(isoBySim, isoByNet, isoByLocale).any { it in KM_COUNTRIES }
     }
 
     /**

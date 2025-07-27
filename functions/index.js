@@ -220,9 +220,28 @@ exports.getNearbyProfiles = functions
     let candidateIds = [];
 
     if (useDist) {
-      /* distance path – grab EVERYONE except me */
-      const snap = await db.ref('users').get();
-      snap.forEach(s => { if (s.key !== uid) candidateIds.push(s.key); });
+      /* distance path – query by geohash */
+            const bounds = geohashQueryBounds(myLoc, distLimit);
+            const snaps = await Promise.all(
+              bounds.map(([start, end]) =>
+                db.ref('geoFireLocations')
+                  .orderByChild('g')
+                  .startAt(start)
+                  .endAt(end)
+                  .get()
+              )
+            );
+
+            const seen = new Set();
+            snaps.forEach(snap => {
+              snap.forEach(loc => {
+                const id = loc.key;
+                if (id !== uid && !seen.has(id)) {
+                  seen.add(id);
+                  candidateIds.push(id);
+                }
+              });
+            });
     } else {
       /* country path – same-country only (if country known) */
       if (!myCountry) return { profiles: [] };

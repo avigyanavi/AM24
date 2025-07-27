@@ -57,6 +57,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
         const val WORLDWIDE_DISTANCE = 101
+        const val INDIA_MAX_DISTANCE = 65
     }
 
     private val TAG = "DatingViewModel"

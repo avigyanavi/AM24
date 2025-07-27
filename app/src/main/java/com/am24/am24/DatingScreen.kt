@@ -422,8 +422,20 @@ fun DatingScreen(
             FiltersOverlay(
                 ageRange           = filters.ageStart..filters.ageEnd,
                 onAgeRangeChange   = { datingViewModel.updateDatingFilters(filters.copy(ageStart = it.start, ageEnd = it.endInclusive)) },
-                maxDistance        = filters.distance,
-                onDistanceChange   = { datingViewModel.updateDatingFilters(filters.copy(distance = it)) },
+                maxDistance        = filters.distance
+                    .coerceAtMost(
+                        if (isIndian && !(myProfile!!.isPlus || myProfile!!.isPremium))
+                            DatingViewModel.INDIA_MAX_DISTANCE
+                        else
+                            DatingViewModel.WORLDWIDE_DISTANCE
+                    ),
+                onDistanceChange   = {
+                    val limit = if (isIndian && !(myProfile!!.isPlus || myProfile!!.isPremium))
+                        DatingViewModel.INDIA_MAX_DISTANCE
+                    else
+                        DatingViewModel.WORLDWIDE_DISTANCE
+                    datingViewModel.updateDatingFilters(filters.copy(distance = it.coerceAtMost(limit)))
+                },
                 selectedGenders    = filters.gender.split(",").toSet(),
                 onGenderChange     = { datingViewModel.updateDatingFilters(filters.copy(gender = it.joinToString(","))) },
                 selectedCommunity  = filters.community,
@@ -1113,17 +1125,22 @@ fun FiltersOverlay(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Max Distance Slider (unchanged)
+                val limit = if (isIndian && !(isPlus || isPremium))
+                    DatingViewModel.INDIA_MAX_DISTANCE
+                else
+                    DatingViewModel.WORLDWIDE_DISTANCE
+                val distanceValue = maxDistance.coerceAtMost(limit)
                 Text(
-                    text = if (maxDistance == DatingViewModel.WORLDWIDE_DISTANCE)
+                    text = if (distanceValue == DatingViewModel.WORLDWIDE_DISTANCE)
                         stringResource(R.string.worldwide)
                     else
-                        DistanceUtil.formatDistance(context, maxDistance.toFloat()),
+                        DistanceUtil.formatDistance(context, distanceValue.toFloat()),
                     color = Color.White
                 )
                 Slider(
-                    value = maxDistance.toFloat(),
+                    value = distanceValue.toFloat(),
                     onValueChange = { onDistanceChange(it.roundToInt()) },
-                    valueRange = 0f..DatingViewModel.WORLDWIDE_DISTANCE.toFloat(),
+                    valueRange = 0f..limit.toFloat(),
                     steps = 10,
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFFFF6000),
