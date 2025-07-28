@@ -219,7 +219,6 @@ fun DatingScreen(
     var showBoostFlash    by rememberSaveable { mutableStateOf(false) }
     val isPremium by profileViewModel.isPremium.collectAsState(false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(false)
-    val showAds = !isPremium && !isPlus
 
     // constants
     val BOOST_DURATION = 1 * 60 * 60 * 1000L
@@ -657,8 +656,6 @@ fun DatingScreen(
                         },
                         excludedUserIds = excludedUserIds,
                         onExcludeUser = { excludedUserIds = excludedUserIds + it },
-                        showAds  = showAds,
-                        adUnitId = "ca-app-pub-5094389629300846/4057317007",
                         onRefreshProfiles = {
                             datingViewModel.refreshFilteredProfiles()
                         }
@@ -1832,8 +1829,6 @@ fun DatingScreenContent(
     onSwipeLeft: () -> Unit,
     excludedUserIds: Set<String>,    // ← here!
     onExcludeUser: (String) -> Unit,
-    showAds: Boolean,            // ← pass this in from DatingScreen()
-    adUnitId: String,
     onRefreshProfiles: () -> Unit = {}
 ) {
     if (profiles.isEmpty() || currentIndex >= profiles.size) {
