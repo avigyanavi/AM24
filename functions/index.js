@@ -85,7 +85,7 @@ const LANG = { hi: "Hindi", bn: "Bengali", en: "English", ta: "Tamil", kn: "Kann
 
 exports.chatSuggestions = functions
   .region("asia-south1")
-  .runWith({ timeoutSeconds: 540, memory: "512MB" })
+  .runWith({ timeoutSeconds: 120, memory: "512MB" })
   .https.onRequest(async (req, res) => {
     /* CORS */
     if (req.method === "OPTIONS") {
@@ -195,7 +195,7 @@ const COUNTRY_WHITELIST = new Set([
 
 exports.getNearbyProfiles = functions
   .region('asia-south1')
-  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .runWith({ timeoutSeconds: 120, memory: '1GB' })
   .https.onCall(async (data, _ctx) => {
 
     const { uid, maxDistance } = data || {};

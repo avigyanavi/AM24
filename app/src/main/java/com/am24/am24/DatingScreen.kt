@@ -206,6 +206,7 @@ fun DatingScreen(
     val filteredProfiles  by datingViewModel.displayingProfiles.collectAsState()
     val allProfiles       by datingViewModel.allProfiles.collectAsState()
     val isLoading         by datingViewModel.isLoading.collectAsState()
+    val loadingProgress   by datingViewModel.loadingProgress.collectAsState()
     val matchPopUpState   by profileViewModel.matchPopUpState.collectAsState()
     val boostedUsers      by datingViewModel.boostedUsers.collectAsState()
     val complimentsLeft   by datingViewModel.complimentsLeft.collectAsState()
@@ -622,10 +623,20 @@ fun DatingScreen(
             // ── DECK / LOADING / EMPTY STATES ────────────────────────
             Box(Modifier.fillMaxSize()) {
                 when {
-                    isLoading -> CircularProgressIndicator(
+                    isLoading -> Box(
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color(0xFFFF6F00)
-                    )
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            progress = loadingProgress / 100f,
+                            color = Color(0xFFFF6F00)
+                        )
+                        Text(
+                            text = stringResource(R.string.percentage, loadingProgress),
+                            color = KupidxOrange,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
 
                     sortedDisplayedProfiles.isEmpty() -> NoMoreProfilesScreen(
                         autoTapCount = autoTapCount,
@@ -2052,6 +2063,7 @@ fun DatingProfileHeader(
                 Spacer(Modifier.width(6.dp))
             }
             Row {
+                Spacer(modifier = Modifier.width(6.dp))
                 if (community.isNotBlank()) {
                     TagBox(text = community)
                     Spacer(modifier = Modifier.width(6.dp))
@@ -2558,6 +2570,24 @@ fun ProfileCollapsibleSectionsAll(
             .background(Color.Black)
             .padding(8.dp)
     ) {
+        CollapsibleSection(
+            title = stringResource(R.string.basic_information),
+            icon = Icons.Default.Person
+        ) {
+            BasicInfoSection(profile)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        if (currentUserProfile?.isPremium == true) {
+            PerformanceMetricsSectionDating(profile)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        CollapsibleSection(
+            title = stringResource(R.string.bio),
+            icon = Icons.Default.Mic
+        ) {
+            showVoiceBio(profile = profile)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         /** ─────────── Compatibility ─────────── */
         /*  auto-run every time it OPENS  */
         LaunchedEffect(profile.userId) {
@@ -2580,24 +2610,6 @@ fun ProfileCollapsibleSectionsAll(
                 /* tiny placeholder while it’s working */
                 Text(stringResource(R.string.run_analysis), color = Color.White)
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        if (currentUserProfile?.isPremium == true) {
-            PerformanceMetricsSectionDating(profile)
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-        CollapsibleSection(
-            title = stringResource(R.string.bio),
-            icon = Icons.Default.Mic
-        ) {
-            showVoiceBio(profile = profile)
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        CollapsibleSection(
-            title = stringResource(R.string.basic_information),
-            icon = Icons.Default.Person
-        ) {
-            BasicInfoSection(profile)
         }
         Spacer(modifier = Modifier.height(8.dp))
         CollapsibleSection(

@@ -86,6 +86,10 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> get() = _isLoading
 
+    // progress percentage for profile refresh/loading
+    private val _loadingProgress = MutableStateFlow(0)
+    val loadingProgress: StateFlow<Int> get() = _loadingProgress
+
     private var profilesListener: ValueEventListener? = null
     private var complimentsRef: DatabaseReference? = null
     private var complimentsListener: ValueEventListener? = null
@@ -323,6 +327,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     fun refreshFilteredProfiles() {
         viewModelScope.launch {
             _isLoading.value = true
+            _loadingProgress.value = 0
             val me = FirebaseAuth.getInstance().currentUser?.uid
 
             try {
@@ -333,13 +338,18 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
                 // refresh blocks first
                 _blockedUsers.value = fetchBlockedUsers(me)
+                _loadingProgress.value = 25
 
                 val globalCompliments = fetchGlobalComplimenters(me)
+                _loadingProgress.value = 40
                 val globalBoosted = fetchGlobalBoostedUsers()
+                _loadingProgress.value = 55
                 val globalPremium = fetchGlobalPremiumUsers()
+                _loadingProgress.value = 70
 
                 val maxDist = _datingFilters.value.distance
                 val list = fetchNearbyProfilesCloud(me, maxDist)
+                _loadingProgress.value = 85
                 val merged = (globalCompliments + globalBoosted + globalPremium + list)
                     .distinctBy { it.userId }
                 _allProfiles.value = merged
@@ -350,6 +360,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 Log.e(TAG, "refreshFilteredProfiles() failed: ${e.message}", e)
             } finally {
                 _isLoading.value = false
+                _loadingProgress.value = 100
             }
         }
     }
@@ -406,53 +417,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         val callable = functions.getHttpsCallable("getGlobalComplimenters")
         callable.setTimeout(60, TimeUnit.SECONDS)
         val payload = hashMapOf("uid" to uid)
+
         @Suppress("UNCHECKED_CAST")
-        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
+        val data =
+            callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
         val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
         list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
     }
-
-    fun loadMoreProfiles() {
-        viewModelScope.launch {
-            val me = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-            try {
-                _isLoading.value = true
-                val maxDist = _datingFilters.value.distance
-                var newList = fetchNearbyProfilesCloud(me, maxDist)
-
-                // if we hit the end of the list, call once more so the
-                // cursor wraps around and returns profiles again
-                if (newList.isEmpty()) {
-                    newList = fetchNearbyProfilesCloud(me, maxDist)
-                }
-                if (newList.isNotEmpty()) {
-                    _allProfiles.update { it + newList }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "loadMoreProfiles() failed: ${e.message}", e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    suspend fun sortDisplayed(profiles: List<Profile>): List<Profile> = withContext(Dispatchers.IO) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@withContext profiles
-        val ids = profiles.map { it.userId }
-        val payload = hashMapOf(
-            "uid" to uid,
-            "ids" to ids
-        )
-        val callable: HttpsCallableReference =
-            functions.getHttpsCallable("sortDisplayedProfiles")
-        callable.setTimeout(60, TimeUnit.SECONDS)
-        @Suppress("UNCHECKED_CAST")
-        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext profiles
-        val sortedIds = data["ids"] as? List<*> ?: return@withContext profiles
-        val map = profiles.associateBy { it.userId }
-        sortedIds.mapNotNull { id -> map[id as? String] }
-    }
-
 
     /** call this when the user presses “Boost” */
     fun boostUser(
