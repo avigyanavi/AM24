@@ -35,7 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 
@@ -86,75 +88,74 @@ class KupidXAppActivity : AppCompatActivity(),
 
         auth = FirebaseAuth.getInstance()
 
-        // Splash UI
-        setContent {
-            AppTheme {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = Color(0xFFFF6F00)) }
-            }
-        }
 
         pendingOpenNotifications =
             intent?.getBooleanExtra("open_notifications", false) ?: false
         pendingOpenUpgradeLanding =
             intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
 
-        // 🔸 Start the real setup right away — no extra listener needed
-        auth.currentUser?.uid?.let { continueInitialization(it) }
-            ?: run {              // should never happen, but stay safe
-                startActivity(Intent(this, LandingActivity::class.java))
-                finish()
+        auth.currentUser?.uid?.let { uid ->
+            locationManager = LocationManager(this)
+
+            Coil.setImageLoader(
+                ImageLoader.Builder(applicationContext)
+                    .crossfade(true)
+                    .diskCache {
+                        DiskCache.Builder()
+                            .directory(cacheDir.resolve("image_cache"))
+                            .maxSizePercent(0.05)
+                            .build()
+                    }
+                    .memoryCache {
+                        MemoryCache.Builder(applicationContext)
+                            .maxSizePercent(0.25)
+                            .build()
+                    }
+                    .build()
+            )
+
+            setContent {
+                AppTheme {
+                    KupidXApp(
+                        postViewModel          = postViewModel,
+                        openNotifications      = pendingOpenNotifications,
+                        openUpgradeLanding     = pendingOpenUpgradeLanding,
+                        onNotificationsConsumed= { pendingOpenNotifications = false },
+                        onUpgradeConsumed      = { pendingOpenUpgradeLanding = false },
+                        onLogout               = {
+                            auth.signOut()
+                            TokenStorageManager.clearToken(this@KupidXAppActivity)
+                            startActivity(Intent(this, LandingActivity::class.java))
+                            finish()
+                        }
+                    )
+                }
             }
-    }
+
+            lifecycleScope.launch {
+                continueInitialization(uid)
+            }
+        } ?: run {
+            startActivity(Intent(this, LandingActivity::class.java))
+            finish()
+        }
+        }
 
     @RequiresApi(Build.VERSION_CODES.O_MR1)
-    private fun continueInitialization(uid: String) {
+    private suspend fun continueInitialization(uid: String) {
         auth.currentUser?.getIdToken(true)
             ?.addOnSuccessListener { res ->
                 res.token?.let { TokenStorageManager.saveToken(this@KupidXAppActivity, it) }
             }
-        PushService.uploadCurrentToken()          // <-- add this line
-        MobileAds.initialize(this)
-        FirebaseStorage.getInstance("gs://am-twentyfour.com")
-        locationManager = LocationManager(this)
-        checkLocationPermissionsAndUpdate(uid)
-        postViewModel.loadFiltersFromFirebase(uid)
+        checkLocationPermissions()
 
-        Coil.setImageLoader(
-            ImageLoader.Builder(applicationContext)
-                .crossfade(true)
-                .diskCache {
-                    DiskCache.Builder()
-                        .directory(cacheDir.resolve("image_cache"))
-                        .maxSizePercent(0.05)
-                        .build()
-                }
-                .memoryCache {
-                    MemoryCache.Builder(applicationContext)
-                        .maxSizePercent(0.25)
-                        .build()
-                }
-                .build()
-        )
+        runCatching { PushService.uploadCurrentToken() }.onFailure { it.printStackTrace() }
+        runCatching { MobileAds.initialize(this) }.onFailure { it.printStackTrace() }
+        runCatching { FirebaseStorage.getInstance("gs://am-twentyfour.com") }.onFailure { it.printStackTrace() }
+        runCatching { postViewModel.loadFiltersFromFirebase(uid) }.onFailure { it.printStackTrace() }
 
-        setContent {
-            AppTheme {
-                KupidXApp(
-                    postViewModel          = postViewModel,
-                    openNotifications      = pendingOpenNotifications,
-                    openUpgradeLanding     = pendingOpenUpgradeLanding,
-                    onNotificationsConsumed= { pendingOpenNotifications = false },
-                    onUpgradeConsumed      = { pendingOpenUpgradeLanding = false },
-                    onLogout               = {
-                        auth.signOut()
-                        TokenStorageManager.clearToken(this@KupidXAppActivity)
-                        startActivity(Intent(this, LandingActivity::class.java))
-                        finish()
-                    }
-                )
-            }
+        if (hasLocationPermission()) {
+            runCatching { locationManager.updateUserLocation(uid) }.onFailure { it.printStackTrace() }
         }
     }
     override fun onNewIntent(intent: Intent) {
@@ -172,12 +173,13 @@ class KupidXAppActivity : AppCompatActivity(),
     }
 
     /* ---------------------------------------------------------------- helpers */
-    private fun checkLocationPermissionsAndUpdate(uid: String) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED
-        ) {
-            locationManager.updateUserLocation(uid)
-        } else {
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED
+    }
+
+    private fun checkLocationPermissions() {
+        if (!hasLocationPermission()) {
             requestLocationPerms.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
