@@ -17,6 +17,10 @@
 
     <string name="no_education_label">ಏನು ಓದು ಇಲ್ಲ</string>
 
+    <string name="verify_email">Verify Email</string>
+    <string name="resend_link">Resend link</string>
+    <string name="ive_verified">I’ve verified</string>
+
     <string name="total_match_label">ಒಟ್ಟು ಹೊಂದಿಕೆ: %1$d%%</string>
     <string name="running_analysis">ವಿಶ್ಲೇಷಣೆ ನಡೆಯುತ್ತಿದೆ…</string>
     <string name="strengths">ಬಲಗಳು</string>

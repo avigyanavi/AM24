@@ -16,6 +16,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -40,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.am24.am24.KupidxOrange
 import com.am24.am24.ui.theme.AppTheme
 import com.facebook.*
 import com.facebook.login.LoginManager
@@ -374,8 +376,6 @@ fun LandingScreen(
     onGoogleSignIn: () -> Unit,
     onFacebookSignIn: () -> Unit
 ) {
-    val context = LocalContext.current
-
     Box(
         Modifier
             .fillMaxSize()
@@ -384,34 +384,44 @@ fun LandingScreen(
                 Brush.verticalGradient(listOf(Color.Black, Color(0xFF1A1A1A)))
             )
     ) {
-        /* Centre stack */
+
+        /* ─── 1. Top banner ─── */
+        Column(
+            modifier = Modifier                // top-centre, a bit of breathing room
+                .align(Alignment.TopCenter)
+                .padding(top = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(12.dp))
+            Image(                                   // your logo
+                painter = painterResource(R.drawable.kupidx_logo),
+                contentDescription = null,
+                modifier = Modifier.size(110.dp)
+            )
+        }
+
+        /* ─── 2. Main action stack ─── */
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                stringResource(R.string.welcome_kupidx),
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
             OutlinedButton(
                 onClick = onRegisterClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
+                border = BorderStroke(1.dp, KupidxOrange),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black
+                    containerColor = Color.Black,
+                    contentColor = KupidxOrange
                 )
             ) {
                 Text(
                     stringResource(R.string.register),
+                    color = KupidxOrange,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -425,22 +435,26 @@ fun LandingScreen(
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
+                border = BorderStroke(1.dp, KupidxOrange),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black
+                    containerColor = Color.Black,
+                    contentColor = KupidxOrange
                 )
             ) {
                 Text(
                     stringResource(R.string.login),
+                    color = KupidxOrange,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
+
             Spacer(Modifier.height(40.dp))
 
             SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
         }
 
+        /* ─── 3. Full-screen loading overlay ─── */
         if (isLoading) {
             Box(
                 Modifier
@@ -453,7 +467,6 @@ fun LandingScreen(
         }
     }
 }
-
 
 /* ───────── Social buttons ───────── */
 
@@ -471,14 +484,14 @@ fun SocialSignInButtons(
             modifier   = Modifier.weight(1f),
             logo = R.drawable.ic_google_logo,
         text = stringResource(R.string.continue_with_google),
-        contentColor = Color.Black,
+            contentColor = KupidxOrange,
         onClick = onGoogleSignIn
     )
     SocialSignInButton(
         modifier   = Modifier.weight(1f),
         logo = R.drawable.facebook_logo,
         text = stringResource(R.string.continue_with_facebook),
-        contentColor = Color.Black,
+        contentColor = KupidxOrange,
         onClick = onFacebookSignIn
     )
 }
@@ -488,7 +501,7 @@ fun SocialSignInButton(
     modifier: Modifier = Modifier,           // ← NEW
     @DrawableRes logo: Int,
     text: String,
-    backgroundColor: Color = Color.White,
+    backgroundColor: Color = Color.Black,
     contentColor: Color,
     onClick: () -> Unit
 ) {
@@ -496,7 +509,7 @@ fun SocialSignInButton(
         onClick,
         modifier = modifier.height(50.dp),
         shape = RoundedCornerShape(25.dp),
-        border = BorderStroke(1.dp, Color.LightGray),
+        border = BorderStroke(1.dp, KupidxOrange),
         colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
             contentColor = contentColor

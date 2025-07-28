@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -97,6 +98,7 @@ class LoginActivity : ComponentActivity() {
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
 
         val prefill = intent.getStringExtra("prefill_email") ?: ""
+        val allowPhoneAuth = CountryUtil.isProbablyInIndia(this)
 
         setContent {
             AppTheme {
@@ -105,6 +107,7 @@ class LoginActivity : ComponentActivity() {
                     initialUserOrEmail = prefill,
                     isLoading         = isLoading.value,
                     progress          = loginProgress.value,
+                    allowPhoneAuth    = allowPhoneAuth,
                     onLoginClick      = ::handleLogin,
                     onForgotPassword  = ::handlePasswordReset,
                     onPhoneLogin       = ::handlePhoneLogin,     // Add this
@@ -354,6 +357,7 @@ fun LoginScreen(
     initialUserOrEmail: String = "",
     isLoading: Boolean,
     progress: Float,
+    allowPhoneAuth: Boolean,
     onLoginClick: (String, String) -> Unit,
     onForgotPassword: (String) -> Unit,
     onPhoneLogin: (String) -> Unit,           // ◀︎ New param for phone OTP login
@@ -538,76 +542,80 @@ fun LoginScreen(
                 colors = orangeOutlinedColors()
             )
 
+            Spacer(Modifier.height(8.dp))
+
             OutlinedButton(
                 onClick = { onLoginClick(userOrEmail.text, password.text) },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                    .height(46.dp),
+                border = BorderStroke(1.dp, KupidxOrange),   // <- fixed line
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black
+                    containerColor = Color.Black,
                 ),
                 shape = RoundedCornerShape(25.dp)
             ) {
                 Text(
                     text = stringResource(id = R.string.login),
-                    color = Color.Black,
+                    color = KupidxOrange,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
+            Spacer(Modifier.height(8.dp))
 
-            Spacer(Modifier.height(16.dp))
-
-            // Phone OTP Section
-            Text(
-                text = "OR",
-                color = Color.White,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            OutlinedTextField(
-                value = phoneNumber,
-                onValueChange = { phoneNumber = it },
-                label = { Text("Phone Number", color = Color(0xFFFF6600)) },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                colors = orangeOutlinedColors()
-            )
-            Spacer(Modifier.height(16.dp))
-
-            OutlinedButton(
-                onClick = {
-                    // You can validate and start OTP flow here
-                    if (phoneNumber.text.length >= 10) {
-                        onPhoneLogin(phoneNumber.text)
-                        phoneForOtp = phoneNumber.text
-                        showOtpDialog = true   // Show OTP dialog for user input
-                    } else {
-                        Toast.makeText(context, "Enter valid phone number", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black
-                ),
-                shape = RoundedCornerShape(25.dp)
-            ) {
+            if (allowPhoneAuth) {
+                // Phone OTP Section
+                // Phone OTP Section
                 Text(
-                    "Login with OTP",
-                    color = Color.Black,
+                    text = "OR",
+                    color = Color.White,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    modifier = Modifier.padding(vertical = 8.dp)
                 )
-            }
 
-            Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("Phone Number", color = Color(0xFFFF6600)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = orangeOutlinedColors()
+                )
+                Spacer(Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        // You can validate and start OTP flow here
+                        if (phoneNumber.text.length >= 10) {
+                            onPhoneLogin(phoneNumber.text)
+                            phoneForOtp = phoneNumber.text
+                            showOtpDialog = true   // Show OTP dialog for user input
+                        } else {
+                            Toast.makeText(context, "Enter valid phone number", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(25.dp)
+                ) {
+                    Text(
+                        "Login with OTP",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+            }
 
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,

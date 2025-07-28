@@ -12,6 +12,10 @@
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">भाषाएँ</string>
     <string name="section_bio_and_voice">बायो</string>
+
+    <string name="verify_email">Verify Email</string>
+    <string name="resend_link">Resend link</string>
+    <string name="ive_verified">I’ve verified</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">आप केवल %1$d सामाजिक कारण चुन सकते हैं।</string>
     <string name="no_education_label">कोई शिक्षा नहीं</string>

@@ -10,7 +10,9 @@
     <string name="subscription_suspended">সাময়িকভাবে স্থগিত</string>
     <string name="subscription_expired">মেয়াদোত্তীর্ণ</string>
     <string name="payment_failed">পেমেন্ট ব্যর্থ হয়েছে</string>
-
+    <string name="verify_email">Verify Email</string>
+    <string name="resend_link">Resend link</string>
+    <string name="ive_verified">I’ve verified</string>
 
     <string name="app_name">কুপিডক্স</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>

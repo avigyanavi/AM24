@@ -17,6 +17,9 @@
         మీరు గరిష్ఠంగా %1$d సామాజిక కారణాలను మాత్రమే ఎంచుకోవచ్చు.
     </string>
 
+    <string name="verify_email">Verify Email</string>
+    <string name="resend_link">Resend link</string>
+    <string name="ive_verified">I’ve verified</string>
         <string name="no_education_label">ఎన్ని విద్యా సంస్థలు లేకపోవు</string>
 
         <string name="total_match_label">మొత్తం మ్యాచ్: %1$d%%</string>

@@ -1146,6 +1146,22 @@ exports.pushSummary = functions.pubsub
       return null;
     });
 
+    exports.flipGovtIdOnEmailVerify = functions
+      .region('asia-south1')
+      .https.onCall(async (_data, context) => {
+        const uid = context.auth?.uid;
+        if (!uid) throw new functions.https.HttpsError('unauthenticated', 'Sign-in required');
+
+        const record = await admin.auth().getUser(uid);
+        if (!record.emailVerified) {
+          throw new functions.https.HttpsError('failed-precondition', 'Email not verified');
+        }
+
+        await db.ref(`verifications/${uid}/status`).set('accepted');
+        await db.ref(`users/${uid}/isConsultantVerified`).set(true);
+        return { ok: true };
+      });
+
 exports.paypalWebhook = functions
   .region('asia-south1')
   .https.onRequest(async (req, res) => {

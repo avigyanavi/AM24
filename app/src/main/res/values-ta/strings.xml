@@ -14,6 +14,10 @@
         <string name="languages">மொழிகள்</string>
         <string name="section_bio_and_voice">சுயவிவரம்</string>
 
+        <string name="verify_email">Verify Email</string>
+        <string name="resend_link">Resend link</string>
+        <string name="ive_verified">I’ve verified</string>
+
         <!-- General Strings -->
         <string name="max_social_causes_error">நீங்கள் %1$d சமூக காரணங்களை மட்டுமே தேர்ந்தெடுக்க முடியும்.</string>
         <string name="no_education_label">கல்வி இல்லை</string>

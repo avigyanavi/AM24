@@ -34,6 +34,7 @@ import androidx.navigation.NavController
 import com.am24.am24.ui.purchase.PurchaseType
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -722,6 +723,11 @@ private fun AccountCard(uid: String) {
 
     /* password dialog */
     var showPassDialog by remember { mutableStateOf(false) }
+    var showVerifyDialog by remember { mutableStateOf(false) }
+    var isSendingEmail by remember { mutableStateOf(false) }
+    var needsVerification by remember {
+        mutableStateOf(FirebaseAuth.getInstance().currentUser?.isEmailVerified == false)
+    }
 
     /* load user data once */
     LaunchedEffect(uid) {
@@ -753,7 +759,16 @@ private fun AccountCard(uid: String) {
             leadingContent = { Icon(Icons.Default.Email, null) },
             headlineContent = { Text("Email: $email") }
         )
-        Divider(Modifier.padding(start = 56.dp))
+        if (needsVerification) {
+            SettingsRow(
+                icon = { Icon(Icons.Default.VerifiedUser, null) },
+                title = stringResource(R.string.verify_email),
+                showChevron = false
+            ) { showVerifyDialog = true }
+            Divider(Modifier.padding(start = 56.dp))
+        } else {
+            Divider(Modifier.padding(start = 56.dp))
+        }
 
         /* password row */
         SettingsRow(
@@ -802,6 +817,61 @@ private fun AccountCard(uid: String) {
                 headlineContent = { Text("Username: $username") },
                 trailingContent = {
                     TextButton(onClick = { editingUname = true }) { Text("Edit", color = KupidxOrange) }
+                }
+            )
+        }
+        if (showVerifyDialog) {
+            AlertDialog(
+                onDismissRequest = { showVerifyDialog = false },
+                title = { Text(stringResource(R.string.verify_email), color = Color(0xFFFF6F00)) },
+                text = { Text("Please verify your email address to use the app.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            isSendingEmail = true
+                            scope.launch {
+                                try {
+                                    FirebaseAuth.getInstance().currentUser?.sendEmailVerification()?.await()
+                                    Toast.makeText(ctx, "Verification email sent!", Toast.LENGTH_LONG).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(ctx, e.localizedMessage ?: "Error", Toast.LENGTH_LONG).show()
+                                } finally {
+                                    isSendingEmail = false
+                                }
+                            }
+                        },
+                        enabled = !isSendingEmail
+                    ) {
+                        if (isSendingEmail) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text(stringResource(R.string.resend_link), color = KupidxOrange)
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        scope.launch {
+                            try {
+                                FirebaseAuth.getInstance().currentUser?.reload()?.await()
+                                val refreshed = FirebaseAuth.getInstance().currentUser
+                                if (refreshed?.isEmailVerified == true) {
+                                    Toast.makeText(ctx, "Email verified – enjoy the app!", Toast.LENGTH_LONG).show()
+                                    needsVerification = false
+                                    showVerifyDialog = false
+                                    try {
+                                        FirebaseFunctions.getInstance("asia-south1")
+                                            .getHttpsCallable("flipGovtIdOnEmailVerify")
+                                            .call()
+                                    } catch (_: Exception) {}
+                                } else {
+                                    Toast.makeText(ctx, "Still not verified — please confirm the link first.", Toast.LENGTH_LONG).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(ctx, e.localizedMessage ?: "Error", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }) { Text(stringResource(R.string.ive_verified), color = KupidxOrange) }
                 }
             )
         }

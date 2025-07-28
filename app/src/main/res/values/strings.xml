@@ -1325,6 +1325,10 @@
     <string name="subscription_suspended">Suspended</string>
     <string name="subscription_expired">Expired</string>
     <string name="payment_failed">Payment failed</string>
+
+    <string name="verify_email">Verify Email</string>
+    <string name="resend_link">Resend link</string>
+    <string name="ive_verified">I’ve verified</string>
     <!-- Upload Media -->
     <string name="upload_media_title">Upload Media</string>
     <string name="profile_picture_label">Profile Picture</string>
