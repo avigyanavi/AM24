@@ -24,7 +24,6 @@ import androidx.compose.material3.MaterialTheme     as M3Theme
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
@@ -3455,9 +3454,20 @@ fun ComplimentDialog(
         },
         confirmButton = {
             Button(
-                enabled = (complimentText.isNotBlank() || audioFileUri != null) && complimentsLeft > 0,
+                enabled = !isRecording &&
+                        (complimentText.isNotBlank() || audioFileUri != null) &&
+                        complimentsLeft > 0,
                 onClick = {
-                    onSend(complimentText.trim().takeIf { it.isNotEmpty() }, audioFileUri)
+                    if (isRecording) {
+                        recorder?.stop()
+                        recorder?.release()
+                        recorder = null
+                        isRecording = false
+                    }
+                    onSend(
+                        complimentText.trim().takeIf { it.isNotEmpty() },
+                        audioFileUri
+                    )
                 },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
             ) {
