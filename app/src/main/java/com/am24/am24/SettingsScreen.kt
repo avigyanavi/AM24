@@ -134,9 +134,9 @@ fun SettingsScreen(navController: NavController) {
     var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
     val isIndian = remember(country) { country.equals("India", ignoreCase = true) }
     val activity = LocalContext.current as Activity
-    val rewardedBoostManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/4203186426") }
-    val rewardedComplimentManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6893779002") }
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
+    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
+    val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
 
     DisposableEffect(Unit) {
         onDispose {

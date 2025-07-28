@@ -77,7 +77,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         if (!isPremium && !isPlus) {
             InterstitialAdManager(
                 context,
-                "ca-app-pub-5094389629300846/6822241797"
+                AdUnitIds.interstitial(context)
             )
         } else null
     }

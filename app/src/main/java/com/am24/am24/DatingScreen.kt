@@ -231,9 +231,9 @@ fun DatingScreen(
 
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
-    val rewardedBoostManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/4203186426") }
-    val rewardedComplimentManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6893779002") }
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
+    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
+    val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -2547,7 +2547,7 @@ fun ProfileCollapsibleSectionsAll(
     var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
     val context = LocalContext.current // ✅ declare at the top of the Composable
     val activity = LocalContext.current as Activity
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/2665106990") }
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
 
     DisposableEffect(Unit) {
         onDispose { rewardedSwipeManager.clearCallbacks() }

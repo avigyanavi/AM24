@@ -77,7 +77,7 @@ fun DMScreenContent(navController: NavController) {
     var isLoadingProfile by remember { mutableStateOf(true) } // Track loading state
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     val activity = LocalContext.current as Activity
-    val lotteryAdManager = remember { RewardedAdManager(activity, "ca-app-pub-5094389629300846/6888542594") }
+    val lotteryAdManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedLottery(activity)) }
     DisposableEffect(Unit) { onDispose { lotteryAdManager.clearCallbacks() } }
 
     var showLotteryDialog by remember { mutableStateOf(false) }

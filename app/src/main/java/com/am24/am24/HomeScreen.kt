@@ -479,7 +479,7 @@ fun FeedSection(
                 if (showAds && (index + 1) % 5 == 0) {
                     Log.d("HomeScreen", ">>> inserting native ad at index: $index")
                     ComposeNativeAd(
-                        adUnitId  = "ca-app-pub-5094389629300846/4057317007",
+                        adUnitId  = AdUnitIds.native(context),
                         modifier  = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
