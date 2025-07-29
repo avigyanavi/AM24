@@ -199,164 +199,99 @@
 
         <!-- Pan‑India city list with Tier‑1 UAs (with satellites) + at least two other cities per state -->
     <string-array name="city_names">
-            <!-- National Capital Region (Delhi UA) -->
-            <item>NCT of Delhi</item>
-            <item>Gurugram</item>
-            <item>Noida</item>
-            <item>Greater Noida</item>
-            <item>Faridabad</item>
-            <item>Ghaziabad</item>
-
-            <!-- Andhra Pradesh -->
-            <item>Amaravati</item>
-            <item>Visakhapatnam</item>
-            <item>Vijayawada</item>
-
-            <!-- Arunachal Pradesh -->
-            <item>Itanagar</item>
-            <item>Tawang</item>
-            <item>Pasighat</item>
-
-            <!-- Assam -->
-            <item>Guwahati</item>
-            <item>Dibrugarh</item>
-            <item>Silchar</item>
-
-            <!-- Bihar -->
-            <item>Patna</item>
-            <item>Gaya</item>
-
-            <!-- Chhattisgarh -->
-            <item>Raipur</item>
-            <item>Bhilai</item>
-            <item>Bilaspur</item>
-
-            <!-- Goa -->
-            <item>Panaji</item>
-
-            <!-- Gujarat (Ahmedabad UA) -->
-            <item>Ahmedabad</item>
-            <item>Gandhinagar</item>
-            <!-- Other Gujarat -->
-            <item>Surat</item>
-            <item>Vadodara</item>
-
-            <!-- Haryana (NCR satellites already listed) -->
-            <item>Sonipat</item>
-            <item>Rohtak</item>
-            <item>Hisar</item>
-
-            <!-- Himachal Pradesh -->
-            <item>Shimla</item>
-            <item>Dharamshala</item>
-
-            <!-- Jharkhand -->
-            <item>Ranchi</item>
-            <item>Jamshedpur</item>
-
-            <!-- Karnataka (Bengaluru UA) -->
-            <item>Bengaluru</item>
-            <!-- Other Karnataka -->
-            <item>Mysuru</item>
-            <item>Mangaluru</item>
-
-            <!-- Kerala -->
-            <item>Thiruvananthapuram</item>
-            <item>Kochi</item>
-
-            <!-- Madhya Pradesh -->
-            <item>Bhopal</item>
-            <item>Indore</item>
-            <item>Gwalior</item>
-
-            <!-- Maharashtra (Mumbai UA) -->
-            <item>Mumbai</item>
-            <item>Navi Mumbai</item>
-            <item>Thane</item>
-            <!-- Other Maharashtra -->
-            <item>Pune</item>
-            <item>Nagpur</item>
-
-            <!-- Manipur -->
-            <item>Imphal</item>
-
-            <!-- Meghalaya -->
-            <item>Shillong</item>
-
-            <!-- Mizoram -->
-            <item>Aizawl</item>
-
-            <!-- Nagaland -->
-            <item>Kohima</item>
-
-            <!-- Odisha -->
-            <item>Bhubaneswar</item>
-            <item>Cuttack</item>
-            <item>Rourkela</item>
-
-            <!-- Punjab -->
-            <item>Chandigarh</item>
-            <item>Ludhiana</item>
-            <item>Amritsar</item>
-
-            <!-- Rajasthan -->
-            <item>Jaipur</item>
-            <item>Jodhpur</item>
-            <item>Udaipur</item>
-
-            <!-- Sikkim -->
-            <item>Gangtok</item>
-            <item>Namchi</item>
-            <item>Gyalshing</item>
-
-            <!-- Tamil Nadu (Chennai UA) -->
-            <item>Chennai</item>
-            <item>Vellore</item>
-            <item>Kancheepuram</item>
-            <!-- Other Tamil Nadu -->
-            <item>Coimbatore</item>
-            <item>Madurai</item>
-
-            <!-- Telangana (Hyderabad UA) -->
-            <item>Hyderabad</item>
-            <item>Secunderabad</item>
-            <!-- Other Telangana -->
-            <item>Warangal</item>
-
-            <!-- Tripura -->
-            <item>Agartala</item>
-
-            <!-- Uttar Pradesh (NCR satellites already listed) -->
-            <item>Lucknow</item>
-            <item>Kanpur</item>
-            <item>Varanasi</item>
-            <item>Prayagraj</item>
-
-            <!-- Uttarakhand -->
-            <item>Dehradun</item>
-            <item>Haridwar</item>
-            <item>Nainital</item>
-
-            <!-- West Bengal (Kolkata UA) -->
-            <item>Kolkata</item>
-            <item>Kharagpur</item>
-            <item>Siliguri</item>
-            <item>Asansol</item>
-            <item>Howrah</item>
-            <!-- Other West Bengal -->
-            <item>Darjeeling</item>
-            <item>Durgapur</item>
-
-            <!-- Union Territories / special cases -->
-            <item>Port Blair</item>
-            <item>Kavaratti</item>
-            <item>Leh</item>
-            <item>Kargil</item>
-            <item>Puducherry</item>
-            <item>Daman</item>
-
-            <!-- Fallback -->
-            <item>Other</item>
+        <!-- Fallback -->
+        <item>Other</item>
+        <item>Agartala</item>
+        <item>Ahmedabad</item>
+        <item>Aizawl</item>
+        <item>Amaravati</item>
+        <item>Amritsar</item>
+        <item>Asansol</item>
+        <item>Bengaluru</item>
+        <item>Bhilai</item>
+        <item>Bhopal</item>
+        <item>Bhubaneswar</item>
+        <item>Bilaspur</item>
+        <item>Chandigarh</item>
+        <item>Chennai</item>
+        <item>Coimbatore</item>
+        <item>Cuttack</item>
+        <item>Daman</item>
+        <item>Darjeeling</item>
+        <item>Dehradun</item>
+        <item>Dharamshala</item>
+        <item>Dibrugarh</item>
+        <item>Durgapur</item>
+        <item>Faridabad</item>
+        <item>Gandhinagar</item>
+        <item>Gangtok</item>
+        <item>Gaya</item>
+        <item>Ghaziabad</item>
+        <item>Greater Noida</item>
+        <item>Gurugram</item>
+        <item>Guwahati</item>
+        <item>Gwalior</item>
+        <item>Gyalshing</item>
+        <item>Haridwar</item>
+        <item>Hisar</item>
+        <item>Howrah</item>
+        <item>Hyderabad</item>
+        <item>Imphal</item>
+        <item>Indore</item>
+        <item>Itanagar</item>
+        <item>Jaipur</item>
+        <item>Jamshedpur</item>
+        <item>Jodhpur</item>
+        <item>Kancheepuram</item>
+        <item>Kanpur</item>
+        <item>Kargil</item>
+        <item>Kavaratti</item>
+        <item>Kharagpur</item>
+        <item>Kochi</item>
+        <item>Kohima</item>
+        <item>Kolkata</item>
+        <item>Leh</item>
+        <item>Lucknow</item>
+        <item>Ludhiana</item>
+        <item>Madurai</item>
+        <item>Mangaluru</item>
+        <item>Mumbai</item>
+        <item>Mysuru</item>
+        <item>NCT of Delhi</item>
+        <item>Nagpur</item>
+        <item>Nainital</item>
+        <item>Namchi</item>
+        <item>Navi Mumbai</item>
+        <item>Noida</item>
+        <item>Other</item>
+        <item>Panaji</item>
+        <item>Pasighat</item>
+        <item>Patna</item>
+        <item>Port Blair</item>
+        <item>Prayagraj</item>
+        <item>Puducherry</item>
+        <item>Pune</item>
+        <item>Raipur</item>
+        <item>Ranchi</item>
+        <item>Rohtak</item>
+        <item>Rourkela</item>
+        <item>Secunderabad</item>
+        <item>Shillong</item>
+        <item>Shimla</item>
+        <item>Silchar</item>
+        <item>Siliguri</item>
+        <item>Sonipat</item>
+        <item>Surat</item>
+        <item>Tawang</item>
+        <item>Thane</item>
+        <item>Thiruvananthapuram</item>
+        <item>Udaipur</item>
+        <item>Vadodara</item>
+        <item>Varanasi</item>
+        <item>Vellore</item>
+        <item>Vijayawada</item>
+        <item>Visakhapatnam</item>
+        <item>Warangal</item>
         </string-array>
 
     <string-array name="localities_daman">

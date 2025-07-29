@@ -333,7 +333,11 @@ fun DMScreenContent(navController: NavController) {
         ) {
             /* ①  COUNTRY / CITY CHIP ROW  **OR**  DROPDOWNs */
             if (showLocationSelector) {
-                LocationSelectorComposable(navController)
+                val userRef = usersRef.child(currentUserId)
+                LocationSelectorComposable(
+                    userRef = userRef,
+                    onSaved = { showLocationSelector = false }
+                )
                 Spacer(Modifier.height(8.dp))
                 TextButton(
                     onClick = { showLocationSelector = false },
@@ -655,7 +659,10 @@ fun DMScreenContent(navController: NavController) {
 }
 
 @Composable
-fun LocationSelectorComposable(navController: NavController) {
+fun LocationSelectorComposable(
+    userRef: DatabaseReference,
+    onSaved: () -> Unit
+) {
     val context = LocalContext.current
 
     val countryOptions = stringArrayResource(R.array.country_names).toList()
@@ -730,20 +737,16 @@ fun LocationSelectorComposable(navController: NavController) {
         Spacer(Modifier.height(16.dp))
 
         Button(onClick = {
-            val destination = when {
-                selectedLocality.isNotBlank() -> selectedLocality
-                selectedCity.isNotBlank() -> selectedCity
-                selectedCountry.isNotBlank() -> selectedCountry
-                else -> ""
-            }
-
-            if (destination.isNotBlank()) {
-                navController.navigate(
-                    "groupChat/group_${destination.replace(" ", "_").lowercase()}"
-                )
-            } else {
+            if (selectedCountry.isBlank()) {
                 Toast.makeText(context, "Please select at least Country", Toast.LENGTH_SHORT).show()
+                return@Button
             }
+            userRef.child("country").setValue(selectedCountry)
+            userRef.child("city").setValue(selectedCity)
+            userRef.child("hometown").setValue(selectedLocality)
+
+            Toast.makeText(context, "Location updated", Toast.LENGTH_SHORT).show()
+            onSaved()
         }) {
             Text("Save")
         }

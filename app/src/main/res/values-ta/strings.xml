@@ -4392,6 +4392,7 @@
         <string name="ethnicity_label">இனம்</string>
         <string name="select_ethnicity">இனத்தை தேர்வு செய்யவும்</string>
         <string name="ethnicity_option_not_selected">தேர்வு செய்யப்படவில்லை</string>
+        <string name="ethnicity_option_indian">இந்தியர்</string>
         <string name="ethnicity_option_white">வெள்ளை (காகேசியன்)</string>
         <string name="ethnicity_option_black">கருப்பு / ஆப்பிரிக்க அமெரிக்கர்</string>
         <string name="ethnicity_option_hispanic">ஹிஸ்பானிக் / லத்தீனோ</string>

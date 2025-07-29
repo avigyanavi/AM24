@@ -5831,6 +5831,7 @@
     <string name="ethnicity_label">জাতিগত পরিচয়</string>
     <string name="select_ethnicity">জাতিগত পরিচয় নির্বাচন করুন</string>
     <string name="ethnicity_option_not_selected">নির্বাচিত নয়</string>
+    <string name="ethnicity_option_indian">ভারতীয়</string>
     <string name="ethnicity_option_white">শ্বেত (ককেশীয়)</string>
     <string name="ethnicity_option_black">কৃষ্ণাঙ্গ / আফ্রিকান‑আমেরিকান</string>
     <string name="ethnicity_option_hispanic">হিস্পানিক / লাতিনো</string>

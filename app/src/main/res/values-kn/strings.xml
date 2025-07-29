@@ -1974,6 +1974,7 @@
     <string name="ethnicity_label">ಜಾತಿ</string>
     <string name="select_ethnicity">ಜಾತಿ ಆಯ್ಕೆಮಾಡಿ</string>
     <string name="ethnicity_option_not_selected">ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ</string>
+    <string name="ethnicity_option_indian">ಭಾರತೀಯ</string>
     <string name="ethnicity_option_white">ಬಿಳಿ (ಕಾಕೇಷಿಯನ್)</string>
     <string name="ethnicity_option_black">ಕಪ್ಪು / ಆಫ್ರಿಕನ್ ಅಮೇರಿಕನ್</string>
     <string name="ethnicity_option_hispanic">ಹಿಸ್ಪ್ಯಾನಿಕ್ / ಲ್ಯಾಟಿನೋ</string>

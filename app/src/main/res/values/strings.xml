@@ -687,6 +687,7 @@
     <string name="ethnicity_label">Ethnicity</string>
     <string name="select_ethnicity">Select ethnicity</string>
     <string name="ethnicity_option_not_selected">Not selected</string>
+    <string name="ethnicity_option_indian">Bharatiya</string>
     <string name="ethnicity_option_white">White (Caucasian)</string>
     <string name="ethnicity_option_black">Black / African American</string>
     <string name="ethnicity_option_hispanic">Hispanic / Latino</string>

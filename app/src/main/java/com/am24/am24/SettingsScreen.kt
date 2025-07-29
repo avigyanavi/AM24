@@ -104,8 +104,6 @@ fun SettingsScreen(navController: NavController) {
     val userRef = FirebaseRefs.db.getReference("users").child(uid)
     val blocksRef = FirebaseRefs.db.getReference("blocks").child(uid)
 
-    /*  state  */
-    var isPremium by remember { mutableStateOf(false) }
     var premiumTier by remember { mutableStateOf("Free") }           // "Free" / "Plus" / "Premium"
     var expiry by remember { mutableStateOf("N/A") }
     var boosts by remember { mutableStateOf(0) }
@@ -195,7 +193,7 @@ fun SettingsScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                if (isPremium) {
+                if (premiumTier != "Free") {
                     SettingsSection {
                         SettingsRow(
                             icon = { Icon(Icons.Default.Public, null, tint = Color(0xFFFF6F00)) },

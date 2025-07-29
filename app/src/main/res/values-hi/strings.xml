@@ -747,6 +747,7 @@
     <string name="ethnicity_label">जातीयता</string>
     <string name="select_ethnicity">जातीयता चुनें</string>
     <string name="ethnicity_option_not_selected">चयनित नहीं</string>
+    <string name="ethnicity_option_indian">भारतीय</string>
     <string name="ethnicity_option_white">श्वेत (कॉकसियाई)</string>
     <string name="ethnicity_option_black">काला / अफ्रीकी अमेरिकी</string>
     <string name="ethnicity_option_hispanic">हिस्पैनिक / लैटिनो</string>
