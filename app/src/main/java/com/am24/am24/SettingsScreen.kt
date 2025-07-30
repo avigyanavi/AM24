@@ -220,6 +220,7 @@ fun SettingsScreen(navController: NavController) {
                             val localityOptions = if (localityResId != 0)
                                 ctx.resources.getStringArray(localityResId).toList()
                             else emptyList()
+                            val isIndianCountry = country.equals("India", ignoreCase = true)
 
                             AlertDialog(
                                 onDismissRequest = { showLocationDialog = false },
@@ -232,18 +233,37 @@ fun SettingsScreen(navController: NavController) {
                                             selected = country,
                                             onSelectedChange = { country = it }
                                         )
-                                        SearchableDropdown(
-                                            label = "City",
-                                            options = cityOptions,
-                                            selected = city,
-                                            onSelectedChange = { city = it }
-                                        )
-                                        SearchableDropdown(
-                                            label = "Locality",
-                                            options = localityOptions,
-                                            selected = locality,
-                                            onSelectedChange = { locality = it }
-                                        )
+                                        if (isIndianCountry) {
+                                            SearchableDropdown(
+                                                label = "City",
+                                                options = cityOptions,
+                                                selected = city,
+                                                onSelectedChange = { city = it }
+                                            )
+                                            SearchableDropdown(
+                                                label = "Locality",
+                                                options = localityOptions,
+                                                selected = locality,
+                                                onSelectedChange = { locality = it }
+                                            )
+                                        } else {
+                                            OutlinedTextField(
+                                                value = city,
+                                                onValueChange = { city = it },
+                                                label = { Text("City") },
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
+                                            )
+                                            OutlinedTextField(
+                                                value = locality,
+                                                onValueChange = { locality = it },
+                                                label = { Text("Locality") },
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
+                                            )
+                                        }
                                     }
                                 },
                                 confirmButton = {

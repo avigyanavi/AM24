@@ -53,6 +53,9 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.random.Random
 
+private fun canonicalLocationId(name: String): String =
+    name.replace("\\s".toRegex(), "").lowercase()
+
 @Composable
 fun DMScreen(navController: NavController) {
     DMScreenContent(navController = navController)
@@ -76,12 +79,9 @@ fun DMScreenContent(navController: NavController) {
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
     var isLoadingProfile by remember { mutableStateOf(true) } // Track loading state
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
-    val activity = LocalContext.current as Activity
-    val lotteryAdManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedLottery(activity)) }
-    DisposableEffect(Unit) { onDispose { lotteryAdManager.clearCallbacks() } }
+    var showSmartMatchDialog by remember { mutableStateOf(false) }
+    var selectedSmartMatchGender by remember { mutableStateOf("Both") }
 
-    var showLotteryDialog by remember { mutableStateOf(false) }
-    var selectedLotteryGender by remember { mutableStateOf("Both") }
     LaunchedEffect(currentUserId) {
         usersRef.child(currentUserId).get()
             .addOnSuccessListener { snap ->
@@ -122,8 +122,8 @@ fun DMScreenContent(navController: NavController) {
     }
 
     val isPremiumUser = profile.isPremium || profile.isPlus
-    val todayDay = remember { Calendar.getInstance().get(Calendar.DAY_OF_YEAR) }
-    val lotteryAvailable = remember(profile.lastLotteryDayOfYear) { profile.lastLotteryDayOfYear != todayDay }
+    val todayWeek = remember { Calendar.getInstance().get(Calendar.WEEK_OF_YEAR) }
+    val smartMatchAvailable = remember(profile.lastSmartMatchWeekOfYear) { profile.lastSmartMatchWeekOfYear != todayWeek }
 
     // instead of   rememberScrollState()
     val autoScrollState = rememberScrollState()
@@ -381,19 +381,25 @@ fun DMScreenContent(navController: NavController) {
                             GroupChatChip(title) {
                                 val id = when (title) {
                                     "India" -> "group_india"
-                                    "United States" -> "group_usa"// ← new constant
-                                    else -> "group_${title.replace(" ", "_").lowercase()}"
+                                    "United States" -> "group_usa"
+                                    else -> "group_${canonicalLocationId(title)}"
                                 }
                                 navController.navigate("groupChat/$id")
                             }
                             Spacer(Modifier.width(6.dp))
                         }
-                        Button(
-                            onClick = { showLotteryDialog = true },
-                            enabled = lotteryAvailable,
-                            colors = ButtonDefaults.buttonColors(containerColor = if (lotteryAvailable) Color(0xFFFF4500) else Color.DarkGray)
-                        ) {
-                            Text("Lottery", color = Color.White, fontSize = 10.sp)
+                        if (isPremiumUser) {
+                            Button(
+                                onClick = { showSmartMatchDialog = true },
+                                enabled = smartMatchAvailable,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (smartMatchAvailable) Color(
+                                        0xFFFF4500
+                                    ) else Color.DarkGray
+                                )
+                            ) {
+                                Text("Smart Match", color = Color.White, fontSize = 10.sp)
+                            }
                         }
                     }
                 }
@@ -603,10 +609,10 @@ fun DMScreenContent(navController: NavController) {
             }
         }
 
-        if (showLotteryDialog) {
+        if (showSmartMatchDialog) {
             AlertDialog(
-                onDismissRequest = { showLotteryDialog = false },
-                title = { Text("Lottery Match", color = Color(0xFFFF4500)) },
+                onDismissRequest = { showSmartMatchDialog = false },
+                title = { Text("Smart Match", color = Color(0xFFFF4500)) },
                 text = {
                     Column {
                         Text("Select gender preference", color = Color.White, fontSize = 12.sp)
@@ -614,8 +620,8 @@ fun DMScreenContent(navController: NavController) {
                         opts.forEach { opt ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
-                                    selected = selectedLotteryGender == opt,
-                                    onClick = { selectedLotteryGender = opt },
+                                    selected = selectedSmartMatchGender == opt,
+                                    onClick = { selectedSmartMatchGender = opt },
                                     colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFF4500))
                                 )
                                 Text(opt, color = Color.White, fontSize = 12.sp)
@@ -625,25 +631,20 @@ fun DMScreenContent(navController: NavController) {
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        showLotteryDialog = false
-                        lotteryAdManager.showWithDailyLimit(
-                            userId = currentUserId,
-                            onReward = {
-                                handleLotteryResult(
-                                    currentUserId,
-                                    selectedLotteryGender,
-                                    database,
-                                    usersRef,
-                                    matchIds,
-                                    blockedIds,
-                                    context
-                                )
-                            }
+                        showSmartMatchDialog = false
+                        handleSmartMatch(
+                            currentUserId,
+                            selectedSmartMatchGender,
+                            database,
+                            usersRef,
+                            matchIds,
+                            blockedIds,
+                            context
                         )
-                    }) { Text("Watch Ad", color = Color(0xFFFF4500)) }
+                    }) { Text("Smart Match", color = Color(0xFFFF4500)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showLotteryDialog = false }) { Text("Cancel", color = Color.Gray) }
+                    TextButton(onClick = { showSmartMatchDialog = false }) { Text("Cancel", color = Color.Gray) }
                 }
             )
         }
@@ -671,7 +672,7 @@ fun LocationSelectorComposable(
     var selectedCountry by rememberSaveable { mutableStateOf("") }
     var selectedCity by rememberSaveable { mutableStateOf("") }
     var selectedLocality by rememberSaveable { mutableStateOf("") }
-
+    val isIndian = selectedCountry.equals("India", ignoreCase = true)
     var countryExpanded by remember { mutableStateOf(false) }
     var cityExpanded by remember { mutableStateOf(false) }
     var localityExpanded by remember { mutableStateOf(false) }
@@ -709,30 +710,52 @@ fun LocationSelectorComposable(
 
         Spacer(Modifier.height(8.dp))
 
-        DropdownField(
-            label = "City",
-            options = cityOptions,
-            selected = selectedCity,
-            onSelectionChange = {
-                selectedCity = it
-                selectedLocality = ""
-            },
-            expanded = cityExpanded,
-            onExpandedChange = { cityExpanded = it },
-            enabled = citySelectable
-        )
+        if (isIndian) {
+            DropdownField(
+                label = "City",
+                options = cityOptions,
+                selected = selectedCity,
+                onSelectionChange = {
+                    selectedCity = it
+                    selectedLocality = ""
+                },
+                expanded = cityExpanded,
+                onExpandedChange = { cityExpanded = it },
+                enabled = citySelectable
+            )
 
         Spacer(Modifier.height(8.dp))
 
-        DropdownField(
-            label = "Locality",
-            options = localityOptions,
-            selected = selectedLocality,
-            onSelectionChange = { selectedLocality = it },
-            expanded = localityExpanded,
-            onExpandedChange = { localityExpanded = it },
-            enabled = localitySelectable && localityOptions.isNotEmpty()
-        )
+            DropdownField(
+                label = "Locality",
+                options = localityOptions,
+                selected = selectedLocality,
+                onSelectionChange = { selectedLocality = it },
+                expanded = localityExpanded,
+                onExpandedChange = { localityExpanded = it },
+                enabled = localitySelectable && localityOptions.isNotEmpty()
+            )
+        } else {
+            OutlinedTextField(
+                value = selectedCity,
+                onValueChange = { selectedCity = it },
+                label = { Text("City") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = selectedLocality,
+                onValueChange = { selectedLocality = it },
+                label = { Text("Locality") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
 
@@ -1038,7 +1061,7 @@ private fun createMatch(
     database.reference.updateChildren(updates)
 }
 
-private fun handleLotteryResult(
+private fun handleSmartMatch(
     currentUserId: String,
     gender: String,
     database: FirebaseDatabase,
@@ -1047,21 +1070,17 @@ private fun handleLotteryResult(
     blockedIds: List<String>,
     context: android.content.Context
 ) {
-    val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-    database.getReference("users/$currentUserId/lastLotteryDayOfYear").setValue(today)
+    val week = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR)
+    database.getReference("users/$currentUserId/lastSmartMatchWeekOfYear").setValue(week)
 
-    if (Random.nextInt(100) < 25) {
-        val excluded = matchIds.toSet() + blockedIds.toSet() + setOf(currentUserId)
-        fetchRandomUserForLottery(usersRef, gender, excluded, currentUserId) { profile ->
-            if (profile != null) {
-                createMatch(database, currentUserId, profile.userId)
-                Toast.makeText(context, "Matched with ${profile.username}!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "No user found", Toast.LENGTH_SHORT).show()
-            }
+    val excluded = matchIds.toSet() + blockedIds.toSet() + setOf(currentUserId)
+    fetchRandomUserForLottery(usersRef, gender, excluded, currentUserId) { profile ->
+        if (profile != null) {
+            createMatch(database, currentUserId, profile.userId)
+            Toast.makeText(context, "Matched with ${profile.username}!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "No match currently available", Toast.LENGTH_SHORT).show()
         }
-    } else {
-        Toast.makeText(context, "Better luck next time!", Toast.LENGTH_SHORT).show()
     }
 }
 

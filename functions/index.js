@@ -708,14 +708,14 @@ const PAYPAL_PLANS = new Set([
 const PAYPAL_RETURN_URL = 'com.am24.am24://paypalreturn';
 const PAYPAL_CANCEL_URL = PAYPAL_RETURN_URL;
 
-const PAYPAL_ENV    = 'live';
+const PAYPAL_ENV    = 'sandbox';
 const PAYPAL_API    = PAYPAL_ENV === 'live'
                        ? 'https://api-m.paypal.com'
                        : 'https://api-m.sandbox.paypal.com';
-const PAYPAL_WEBHOOK_ID = '0FC21543K3777160D';
+const PAYPAL_WEBHOOK_ID = '6CA29543CD5032805';
 
-const PAYPAL_ID     = 'AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt';
-const PAYPAL_SECRET = 'EC84CUGF7inF6sOBV3RLGosS40F1G1wLOLUzJ_dDADcn06Xvph7zU2-FlLpptB7G_ARPVW82zgihmgUX';
+const PAYPAL_ID     = 'AdC7Cwbmy5UtG2UELx7JhgeGpTSyswtgbb4060mglvQ84vGaWEUYl9-nsroMthj5tz0HqTN2L2Pv4CM9';
+const PAYPAL_SECRET = 'EC0uhOf4G_hHg_mZa7PredQOv6SbgCmtYMFFYycXGcqAKN0bp4DxLeqgykVY_LMGJeVhS-dSq5WcHFr_';
 
 async function paypalToken () {
   const r = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
@@ -1269,8 +1269,8 @@ exports.paypalWebhook = functions
         res.status(200).send('ignored');
   });
 
-  // Push the `lastLotteryDayOfYear` field to every user
-  exports.backfillLastLotteryDayOfYear = functions
+  // Push the `lastSmartMatchWeekOfYear` field to every user
+exports.backfillLastSmartMatchWeekOfYear = functions
     .region('asia-south1')
     .https.onRequest(async (_req, res) => {
       try {
@@ -1280,15 +1280,15 @@ exports.paypalWebhook = functions
 
         snap.forEach(userSnap => {
           const data = userSnap.val() || {};
-          if (data.lastLotteryDayOfYear === undefined) {
-            updates[`${userSnap.key}/lastLotteryDayOfYear`] = null;
+            if (data.lastSmartMatchWeekOfYear === undefined) {
+            updates[`${userSnap.key}/lastSmartMatchWeekOfYear`] = null;
           }
         });
 
         await usersRef.update(updates);
         res.status(200).send(`updated ${Object.keys(updates).length} users`);
       } catch (err) {
-        console.error('backfillLastLotteryDayOfYear error:', err);
+        console.error('backfillLastSmartMatchWeekOfYear error:', err);
         res.status(500).send(err.message);
       }
       });
@@ -1384,8 +1384,8 @@ exports.backfillRewardAdFields = functions
 
         snap.forEach(userSnap => {
           const data = userSnap.val() || {};
-          if (data.lastLotteryDayOfYear === undefined) {
-            updates[`${userSnap.key}/lastLotteryDayOfYear`] = null;
+          if (data.lastSmartMatchWeekOfYear === undefined) {
+            updates[`${userSnap.key}/lastSmartMatchWeekOfYear`] = null;
           }
           if (data.rewardedAdsToday === undefined) {
             updates[`${userSnap.key}/rewardedAdsToday`] = null;
@@ -1415,7 +1415,7 @@ exports.backfillRewardAdFields = functions
         try {
           const SKIP = new Set([
             // ── already handled in earlier jobs ──
-            'lastLotteryDayOfYear', 'rewardedAdsToday', 'lastRewardAdDayOfYear',
+            'lastSmartMatchWeekOfYear', 'rewardedAdsToday', 'lastRewardAdDayOfYear',
             'customLoveLanguage',
             'mediaViewsToday', 'lastMediaResetDayOfYear',
             'country', 'customCountry', 'city', 'customCity',

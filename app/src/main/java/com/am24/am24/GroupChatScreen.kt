@@ -251,5 +251,7 @@ fun sendGroupChatMessage(
 
 fun formatGroupTitle(raw: String): String = when (raw) {
     "group_wb" -> "West Bengal"
-    else -> raw.removePrefix("group_").replaceFirstChar { it.uppercase() } + " Chat"
+    else -> raw.removePrefix("group_")
+        .replace('_', ' ')
+        .replaceFirstChar { it.uppercase() } + " Chat"
 }

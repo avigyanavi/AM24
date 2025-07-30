@@ -41,7 +41,7 @@ import com.am24.am24.BuildConfig
 import com.am24.am24.CountryUtil
 
 private const val PAYPAL_CLIENT_ID =
-    "AY6qu9OjnVJXXXwsqSkqpNuM1tNibNF8bh7Z2xvEpUZQSxCEZWSOkRdv50mp5DqeBItRRe0GLS9VpBIt"
+    "AdC7Cwbmy5UtG2UELx7JhgeGpTSyswtgbb4060mglvQ84vGaWEUYl9-nsroMthj5tz0HqTN2L2Pv4CM9"
 
 
 /* ─────── 1 · Purchase types ─────── */
@@ -80,7 +80,7 @@ fun OneTimePurchaseScreen(
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
     var ui by remember { mutableStateOf(UiState()) }
-    val ppConfig   = remember { CoreConfig(PAYPAL_CLIENT_ID, environment = Environment.LIVE) }
+    val ppConfig   = remember { CoreConfig(PAYPAL_CLIENT_ID, environment = Environment.SANDBOX) }
     val returnUrl  = remember { "${BuildConfig.APPLICATION_ID}://paypalreturn" }
     val payPalClient = remember {
                 PayPalWebCheckoutClient(act, ppConfig, returnUrl).apply {
