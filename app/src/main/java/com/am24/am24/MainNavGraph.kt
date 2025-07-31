@@ -176,8 +176,18 @@ fun MainNavGraph(
         }
         composable("create_post/image") { ImagePostComposable(navController, postViewModel) }
         composable("create_post/video") { VideoPostComposable(navController, postViewModel) }
-        composable("subscription") {
-            SubscriptionScreen(navController)
+        composable(
+            route = "subscription?allowIfSubscribed={allowIfSubscribed}",
+            arguments = listOf(
+                navArgument("allowIfSubscribed") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val allowUpgrade =
+                backStackEntry.arguments?.getBoolean("allowIfSubscribed") ?: false
+            SubscriptionScreen(navController, allowUpgrade)
         }
         composable("dating") {
             DatingScreen(

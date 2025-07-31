@@ -107,7 +107,10 @@ private fun usdPrice(plan: Plan): Double = when {
 
 /* ───────── Subscription screen – new version ───────── */
 @Composable
-fun SubscriptionScreen(navController: NavController) {
+fun SubscriptionScreen(
+    navController: NavController,
+    allowIfSubscribed: Boolean = false
+) {
     val scrollState = rememberScrollState()          // ← add
 
     /* geo-gate exactly like before */
@@ -154,7 +157,7 @@ fun SubscriptionScreen(navController: NavController) {
         return
     }
     /* already subscribed → leave */
-    if (plus == true || premium == true) {
+    if ((plus == true || premium == true) && !allowIfSubscribed) {
         LaunchedEffect(Unit) { navController.popBackStack() }
         return
     }

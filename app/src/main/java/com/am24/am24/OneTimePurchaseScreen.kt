@@ -80,6 +80,7 @@ fun OneTimePurchaseScreen(
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
     var ui by remember { mutableStateOf(UiState()) }
+    var pendingOrderId by remember { mutableStateOf<String?>(null) }
     val ppConfig   = remember { CoreConfig(PAYPAL_CLIENT_ID, environment = Environment.SANDBOX) }
     val returnUrl  = remember { "${BuildConfig.APPLICATION_ID}://paypalreturn" }
     val payPalClient = remember {
@@ -100,6 +101,7 @@ fun OneTimePurchaseScreen(
                                                     } catch (e: Exception) {
                                                         Toast.makeText(ctx, "PayPal capture failed", Toast.LENGTH_LONG).show()
                                                     } finally {
+                                                        pendingOrderId = null
                                                         ui = ui.copy(isProcessing = false)
                                                     }
                                             }
@@ -109,8 +111,36 @@ fun OneTimePurchaseScreen(
                                         ui = ui.copy(isProcessing = false)
                                     }
                                 override fun onPayPalWebCanceled() {
-                                        Toast.makeText(ctx, "Cancelled", Toast.LENGTH_SHORT).show()
+                                    scope.launch {
+                                        val orderId = pendingOrderId
+                                        var completed = false
+                                        if (!orderId.isNullOrBlank()) {
+                                            try {
+                                                @Suppress("UNCHECKED_CAST")
+                                                val res = fx.getHttpsCallable("capturePaypalOrder")
+                                                    .call(mapOf("orderId" to orderId))
+                                                    .await()
+                                                    .data as? Map<String, Any?>
+                                                val status = res?.get("status") as? String ?: ""
+                                                completed = (res?.get("ok") as? Boolean == true) || status == "COMPLETED"
+                                            } catch (_: Exception) {
+                                            }
+                                        }
+
+                                        if (completed) {
+                                            Toast.makeText(
+                                                ctx,
+                                                "Added ${ui.selectedQty} ${type.displayName}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            navController.popBackStack()
+                                        } else {
+                                            Toast.makeText(ctx, "Cancelled", Toast.LENGTH_SHORT).show()
+                                        }
+
+                                        pendingOrderId = null
                                         ui = ui.copy(isProcessing = false)
+                                    }
                                     }
                            }
                     }
@@ -145,6 +175,7 @@ fun OneTimePurchaseScreen(
                             }
 
                         ui = ui.copy(isProcessing = true)
+                        pendingOrderId = orderId
                         payPalClient.start(PayPalWebCheckoutRequest(orderId))
                     } catch (e: Exception) {
                         ui = ui.copy(isProcessing = false)

@@ -234,7 +234,9 @@ fun ManageSubscriptionScreen(navController: NavController) {
                     priceWeekly= 29,
                     priceMonth = 99,
                     priceYear  = 999,
-                    onAuto     = { navController.navigate("subscription") },
+                    onAuto     = {
+                        navController.navigate("subscription?allowIfSubscribed=true")
+                    },
                     onManual   = { p ->
                         launchOneTimeUpi(scope, ctx, host, fx, co, navController, uid, p)
                     },
