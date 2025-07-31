@@ -62,10 +62,10 @@ private const val PLAN_ID_MONTH_PREMIUM = "plan_QjplxIqveB0BVS"
 private const val PLAN_ID_YEAR_PLUS     = "plan_QjpmNjEkEPlObK"
 private const val PLAN_ID_YEAR_PREMIUM  = "plan_QjmpS4xg31rg"
 
-private const val PAYPAL_ID_MONTH_PLUS    = "P-1M705186NH640511WNBUUE3Q"
-private const val PAYPAL_ID_MONTH_PREMIUM = "P-0MX08011N33928941NBUUIEY"
-private const val PAYPAL_ID_YEAR_PLUS     = "P-1DH49334GG657434NMBUUGDQ"
-private const val PAYPAL_ID_YEAR_PREMIUM  = "P-58J68335TFT149934NBUUHPA"
+private const val PAYPAL_ID_MONTH_PLUS    = "P-6YV8029760219190UNCFTI4Y"
+private const val PAYPAL_ID_MONTH_PREMIUM = "P-58H44443N3388610GNCFTKDY"
+private const val PAYPAL_ID_YEAR_PLUS     = "P-6WR44643NU557510BNCFTJUY"
+private const val PAYPAL_ID_YEAR_PREMIUM  = "P-9W1343733C6775341NCFTQIA"
 
 /* ────────  Public key (only key_id!) ──────── */
 private const val RZP_KEY_ID = "rzp_live_DsoxJLeiCw940M"

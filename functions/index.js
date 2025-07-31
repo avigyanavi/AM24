@@ -708,7 +708,7 @@ const PAYPAL_PLANS = new Set([
 const PAYPAL_RETURN_URL = 'com.am24.am24://paypalreturn';
 const PAYPAL_CANCEL_URL = PAYPAL_RETURN_URL;
 
-const PAYPAL_ENV    = 'sandbox';
+const PAYPAL_ENV    = 'live';
 const PAYPAL_API    = PAYPAL_ENV === 'live'
                        ? 'https://api-m.paypal.com'
                        : 'https://api-m.sandbox.paypal.com';
