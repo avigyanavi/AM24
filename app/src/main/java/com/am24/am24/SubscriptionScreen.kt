@@ -98,10 +98,10 @@ private fun planToSlug(plan: Plan): String = when {
 }
 
 private fun usdPrice(plan: Plan): Double = when {
-    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> 4.99
-    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> 9.99
-    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> 49.99
-    else                                                       -> 99.99     // premium-annual
+    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> 1.99
+    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> 4.99
+    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> 19.99
+    else                                                       -> 49.99     // premium-annual
 }
 
 

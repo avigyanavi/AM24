@@ -459,10 +459,10 @@ const PLAN_TIERS = {
   plan_QjmpS4xg31rg:       { plus: false, premium: true  },  // ₹999 / year
 
     /* ---------- PayPal plans ---------- */
-    'P-1M705186NH640511WNBUUE3Q': { plus:true,  premium:false },
-    'P-1DH49334GG657434NMBUUGDQ': { plus:true,  premium:false },
-    'P-0MX08011N33928941NBUUIEY': { plus:false, premium:true  },
-    'P-58J68335TFT149934NBUUHPA': { plus:false, premium:true  },
+    'P-6YV8029760219190UNCFTI4Y': { plus:true,  premium:false },
+    'P-6WR44643NU557510BNCFTJUY': { plus:true,  premium:false },
+    'P-58H44443N3388610GNCFTKDY': { plus:false, premium:true  },
+    'P-9W1343733C6775341NCFTQIA': { plus:false, premium:true  },
 };
 
 
@@ -699,10 +699,10 @@ exports.onPostReport = functions
   });
 
 const PAYPAL_PLANS = new Set([
-  'P-1M705186NH640511WNBUUE3Q',   // Plus  – Monthly  $4.99
-  'P-0MX08011N33928941NBUUIEY',   // Premium – Monthly $9.99
-  'P-1DH49334GG657434NMBUUGDQ',   // Plus  – Annual   $49.99
-  'P-58J68335TFT149934NBUUHPA',   // Premium – Annual  $99.99
+  'P-6YV8029760219190UNCFTI4Y',   // Plus  – Monthly  $1.99
+  'P-58H44443N3388610GNCFTKDY',   // Premium – Monthly $4.99
+  'P-6WR44643NU557510BNCFTJUY',   // Plus  – Annual   $19.99
+  'P-9W1343733C6775341NCFTQIA',   // Premium – Annual  $49.99
 ]);
 
 const PAYPAL_RETURN_URL = 'com.am24.am24://paypalreturn';
