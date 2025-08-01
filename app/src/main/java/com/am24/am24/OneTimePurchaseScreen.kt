@@ -41,7 +41,7 @@ import com.am24.am24.BuildConfig
 import com.am24.am24.CountryUtil
 
 private const val PAYPAL_CLIENT_ID =
-    "AdC7Cwbmy5UtG2UELx7JhgeGpTSyswtgbb4060mglvQ84vGaWEUYl9-nsroMthj5tz0HqTN2L2Pv4CM9"
+    "AUmvjL-EfiBW1biVFomeow5SenIBBr-3oADpYM9ftoQXSLxwhXcN2GuA8zeUD13R8FfF2N-9PzM3fuoQ"
 
 
 /* ─────── 1 · Purchase types ─────── */

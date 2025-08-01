@@ -11,6 +11,7 @@ object LocalizationMaps {
         "en" to "%1\$s %2\$02d, %3\$d",           // January 01, 2025
         "bn" to "%2\$02d %1\$s, %3\$d",           // 01 জানুয়ারি, 2025
         "hi" to "%2\$02d %1\$s, %3\$d",           // 01 जनवरी, 2025
+        "es" to "%2\$02d de %1\$s de %3\$d",      // 01 de enero de 2025
         "ta" to "%2\$02d %1\$s, %3\$d",
         "or" to "%2\$02d %1\$s, %3\$d",
         "te" to "%2\$02d %1\$s, %3\$d",
@@ -27,6 +28,10 @@ object LocalizationMaps {
         "en" to listOf(
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
+        ),
+        "es" to listOf(
+            "enero", "febrero", "marzo", "abril", "mayo", "junio",
+            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
         ),
         "bn" to listOf(
             "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",

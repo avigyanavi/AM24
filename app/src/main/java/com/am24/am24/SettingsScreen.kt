@@ -989,11 +989,7 @@ private fun GlobalPrefCard(
     val isIndia = CountryUtil.isProbablyInIndia(ctx)
     val langs = listOf(
         "English" to "en",
-        "हिन्दी" to "hi",
-        "বাংলা" to "bn",
-        "தமிழ்" to "ta",
-        "ಕನ್ನಡ" to "kn",
-        "తెలుగు" to "te"
+        "Español" to "es"
     )
     var exp by remember { mutableStateOf(false) }
 
@@ -1029,7 +1025,7 @@ private fun GlobalPrefCard(
         Divider(Modifier.padding(start = 56.dp))
 
         /* language */
-        if (isIndia) {
+        if (!isIndia) {
             Row(
                 Modifier
                     .fillMaxWidth()

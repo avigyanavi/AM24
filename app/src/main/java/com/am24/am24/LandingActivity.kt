@@ -3,6 +3,7 @@ package com.am24.am24
 /* ──────────────────────────  IMPORTS  ────────────────────────── */
 
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -376,6 +377,17 @@ fun LandingScreen(
     onGoogleSignIn: () -> Unit,
     onFacebookSignIn: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
+    var shouldRestart by remember { mutableStateOf(false) }
+
+    if (shouldRestart) {
+        LaunchedEffect(Unit) {
+            delay(100)
+            (context as? Activity)?.recreate()
+        }
+    }
     Box(
         Modifier
             .fillMaxSize()
@@ -452,6 +464,21 @@ fun LandingScreen(
             Spacer(Modifier.height(40.dp))
 
             SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
+        }
+
+        val isIndia = remember { CountryUtil.isProbablyInIndia(context) }
+        if (!isIndia) {
+            LanguageSelectionBar(
+                selectedLanguage,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            ) { lang ->
+                if (lang != selectedLanguage) {
+                    prefs.edit().putString("language", lang).apply()
+                    shouldRestart = true
+                }
+            }
         }
 
         /* ─── 3. Full-screen loading overlay ─── */
@@ -541,14 +568,8 @@ fun LanguageSelectionBar(
     modifier: Modifier = Modifier,
     onLanguageSelected: (String) -> Unit
 ) {
-    val languages = listOf(
-        "English" to "en", "हिन्दी" to "hi", "বাংলা" to "bn",
-        "தமிழ்" to "ta", "ಕನ್ನಡ" to "kn", "తెలుగు" to "te",
-        /* locked ↓ */
-        "मराठी" to "mr", "ગુજરાતી" to "gu", "മലയാളം" to "ml",
-        "অসমীয়া" to "as", "ਪੰਜਾਬੀ" to "pa", "ଓଡ଼ିଆ" to "or"
-    )
-    val unlockedCodes = setOf("en", "hi", "bn", "ta", "kn", "te")
+    val languages = listOf("English" to "en", "Español" to "es")
+    val unlockedCodes = setOf("en", "es")
     val scroll = rememberScrollState()
 
     Row(

@@ -57,6 +57,26 @@ exports.verifyPayment = functions
   }
 });
 
+exports.debugPaypalPlanGET = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    // LIVE Plus Monthly ($1.99)
+    const planId = 'P-55K97468HS173831WNCGOEYY';
+    try {
+      const token = await paypalToken(); // will throw with details now
+      const r = await fetch(`${PAYPAL_API}/v1/billing/plans/${planId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const body = await r.text();
+      res.set('Access-Control-Allow-Origin','*')
+         .status(r.status)
+         .send(body);
+    } catch (e) {
+      console.error('[debugPaypalPlanGET]', e);
+      res.status(500).send(String(e?.message || e));
+    }
+  });
+
 // New: create one-time order
 exports.createOneTimeOrder = functions
   .region("asia-south1")
@@ -714,8 +734,8 @@ const PAYPAL_API    = PAYPAL_ENV === 'live'
                        : 'https://api-m.sandbox.paypal.com';
 const PAYPAL_WEBHOOK_ID = '6CA29543CD5032805';
 
-const PAYPAL_ID     = 'AdC7Cwbmy5UtG2UELx7JhgeGpTSyswtgbb4060mglvQ84vGaWEUYl9-nsroMthj5tz0HqTN2L2Pv4CM9';
-const PAYPAL_SECRET = 'EC0uhOf4G_hHg_mZa7PredQOv6SbgCmtYMFFYycXGcqAKN0bp4DxLeqgykVY_LMGJeVhS-dSq5WcHFr_';
+const PAYPAL_ID     = 'AUmvjL-EfiBW1biVFomeow5SenIBBr-3oADpYM9ftoQXSLxwhXcN2GuA8zeUD13R8FfF2N-9PzM3fuoQ';
+const PAYPAL_SECRET = 'EPBtlvr0KX8FILSsO9GPiu1CiD7XrcfBWy242wqtRo-jsYKKlLZjFNwa_9Gtp-PiguPfVpSllisfZL2q';
 
 async function paypalToken () {
   const r = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {

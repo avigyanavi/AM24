@@ -2860,6 +2860,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "இசை" to R.string.interest_music,             // Tamil
         "ಸಂಗೀತ" to R.string.interest_music,           // Kannada
         "సంగీతం" to R.string.interest_music,          // Telugu
+        "Música" to R.string.interest_music, // Spanish
 
         "Movies" to R.string.interest_movies,
         "সিনেমা" to R.string.interest_movies,          // Bengali
@@ -2867,6 +2868,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சினிமா" to R.string.interest_movies,         // Tamil
         "ಸಿನೆಮಾ" to R.string.interest_movies,         // Kannada
         "సినిమాలు" to R.string.interest_movies,       // Telugu
+        "Películas" to R.string.interest_movies, // Spanish
 
         "Sports" to R.string.interest_sports,
         "খেলাধুলা" to R.string.interest_sports,         // Bengali
@@ -2874,6 +2876,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "விளையாட்டு" to R.string.interest_sports,     // Tamil
         "ಕ್ರೀಡೆ" to R.string.interest_sports,           // Kannada
         "క్రీడలు" to R.string.interest_sports,          // Telugu
+        "Deportes" to R.string.interest_sports, // Spanish
 
         "Books" to R.string.interest_books,
         "বই" to R.string.interest_books,               // Bengali
@@ -2881,6 +2884,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "புத்தகங்கள்" to R.string.interest_books,       // Tamil
         "ಪುಸ್ತಕಗಳು" to R.string.interest_books,        // Kannada
         "పుస్తకాలు" to R.string.interest_books,         // Telugu
+        "Libros" to R.string.interest_books, // Spanish
 
         "Travel" to R.string.interest_travel,
         "ভ্রমণ" to R.string.interest_travel,           // Bengali
@@ -2888,6 +2892,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பயணம்" to R.string.interest_travel,           // Tamil
         "ಪ್ರಯಾಣ" to R.string.interest_travel,          // Kannada
         "ప్రయాణం" to R.string.interest_travel,         // Telugu
+        "Viajes" to R.string.interest_travel, // Spanish
 
         "Fitness" to R.string.interest_fitness,
         "ফিটনেস" to R.string.interest_fitness,          // Bengali
@@ -2895,6 +2900,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "உடற்பயிற்சி" to R.string.interest_fitness,     // Tamil
         "ಫಿಟ್ನೆಸ್" to R.string.interest_fitness,         // Kannada
         "ఫిట్నెస్" to R.string.interest_fitness,        // Telugu
+        "Fitness" to R.string.interest_fitness, // Spanish
 
         "Art" to R.string.interest_art,
         "শিল্প" to R.string.interest_art,               // Bengali
@@ -2902,6 +2908,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கலை" to R.string.interest_art,                 // Tamil
         "ಕಲೆ" to R.string.interest_art,                  // Kannada
         "కళ" to R.string.interest_art,                   // Telugu
+        "Arte" to R.string.interest_art, // Spanish
 
         "Gaming" to R.string.interest_gaming,
         "গেমিং" to R.string.interest_gaming,             // Bengali
@@ -2909,6 +2916,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வீடியோ கேமிங்" to R.string.interest_gaming,     // Tamil
         "ಗೇಮಿಂಗ್" to R.string.interest_gaming,           // Kannada
         "వీడియో గేమింగ్" to R.string.interest_gaming,    // Telugu
+        "Gaming" to R.string.interest_gaming, // Spanish
 
         "Photography" to R.string.interest_photography,
         "ফটোগ্রাফি" to R.string.interest_photography,    // Bengali
@@ -2916,6 +2924,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "புகைப்படக்கலை" to R.string.interest_photography, // Tamil
         "ಛಾಯಾಗ್ರಹಣ" to R.string.interest_photography,     // Kannada
         "ఫోటోగ్రఫీ" to R.string.interest_photography,    // Telugu
+        "Fotografía" to R.string.interest_photography, // Spanish
 
         "Cooking" to R.string.interest_cooking,
         "রান্না" to R.string.interest_cooking,            // Bengali
@@ -2923,6 +2932,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சமைத்தல்" to R.string.interest_cooking,          // Tamil
         "ಅಡಿಗೆ" to R.string.interest_cooking,             // Kannada
         "వండటం" to R.string.interest_cooking,             // Telugu
+        "Cocina" to R.string.interest_cooking, // Spanish
 
         "Dancing" to R.string.interest_dancing,
         "নাচ" to R.string.interest_dancing,               // Bengali
@@ -2930,6 +2940,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "நிறைவடைதல்" to R.string.interest_dancing,       // Tamil
         "ನೃತ್ಯ" to R.string.interest_dancing,              // Kannada
         "నృత్యం" to R.string.interest_dancing,            // Telugu
+        "Baile" to R.string.interest_dancing, // Spanish
 
         "Gardening" to R.string.interest_gardening,
         "বাগান করা" to R.string.interest_gardening,       // Bengali
@@ -2937,6 +2948,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தோட்டக்கலை" to R.string.interest_gardening,      // Tamil
         "ತೋಟಗಾರಿಕೆ" to R.string.interest_gardening,       // Kannada
         "తోటపనులు" to R.string.interest_gardening,        // Telugu
+        "Jardinería" to R.string.interest_gardening, // Spanish
 
         "Technology" to R.string.interest_technology,
         "প্রযুক্তি" to R.string.interest_technology,        // Bengali
@@ -2944,6 +2956,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தொழில்நுட்பம்" to R.string.interest_technology,    // Tamil
         "ತಂತ್ರಜ್ಞಾನ" to R.string.interest_technology,      // Kannada
         "సాంకేతికత" to R.string.interest_technology,      // Telugu
+        "Tecnología" to R.string.interest_technology, // Spanish
 
         "Fashion" to R.string.interest_fashion,
         "ফ্যাশন" to R.string.interest_fashion,              // Bengali
@@ -2951,6 +2964,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வசுதேவம்" to R.string.interest_fashion,            // Tamil
         "ಫ್ಯಾಷನ್" to R.string.interest_fashion,              // Kannada
         "ఫ్యాషన్" to R.string.interest_fashion,             // Telugu
+        "Moda" to R.string.interest_fashion, // Spanish
 
         "Volunteering" to R.string.interest_volunteering,
         "স্বেচ্ছাসেবা" to R.string.interest_volunteering,   // Bengali
@@ -2958,6 +2972,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தன்னார்வ சேவை" to R.string.interest_volunteering,   // Tamil
         "ಸ್ವಯಂಸೇವೆ" to R.string.interest_volunteering,        // Kannada
         "స్వచ్ఛంద సేవ" to R.string.interest_volunteering,     // Telugu
+        "Voluntariado" to R.string.interest_volunteering, // Spanish
 
         "Pets & Animals" to R.string.interest_pets,
         "পোষ্য" to R.string.interest_pets,                   // Bengali
@@ -2965,6 +2980,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "விலங்குகள்" to R.string.interest_pets,               // Tamil
         "ಜಾನುವಾರುಗಳು" to R.string.interest_pets,             // Kannada
         "పిల్లులు & జంతువులు" to R.string.interest_pets,      // Telugu
+        "Mascotas y animales" to R.string.interest_pets, // Spanish
 
         "Food" to R.string.interest_food,
         "খাবার" to R.string.interest_food,                     // Bengali
@@ -2972,6 +2988,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "உணவு" to R.string.interest_food,                      // Tamil
         "ಆಹಾರ" to R.string.interest_food,                      // Kannada
         "ఆహారం" to R.string.interest_food,                      // Telugu
+        "Comida" to R.string.interest_food, // Spanish
 
         "Nature" to R.string.interest_nature,
         "প্রকৃতি" to R.string.interest_nature,                 // Bengali
@@ -2979,6 +2996,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "இயற்கை" to R.string.interest_nature,                   // Tamil
         "ಪ್ರಕೃತಿ" to R.string.interest_nature,                  // Kannada
         "ప్రకృతి" to R.string.interest_nature,                  // Telugu
+        "Naturaleza" to R.string.interest_nature, // Spanish
 
         // Social & Community
         "Charity work" to R.string.interest_charity,
@@ -2987,6 +3005,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "நன்னை செயல்" to R.string.interest_charity,            // Tamil
         "ಧಾರ್ಮಿಕ ಕೆಲಸ" to R.string.interest_charity,           // Kannada
         "చారిటీ పనులు" to R.string.interest_charity,           // Telugu
+        "Trabajo de caridad" to R.string.interest_charity, // Spanish
 
         "Community organizing" to R.string.interest_community,
         "কমিউনিটি সংগঠন" to R.string.interest_community,      // Bengali
@@ -2994,6 +3013,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சமூகம் அமைத்தல்" to R.string.interest_community,       // Tamil
         "ಸಮುದಾಯ ಸಂಘಟನೆ" to R.string.interest_community,     // Kannada
         "క‌మ్యూనిటీ నిర్వాహనం" to R.string.interest_community,  // Telugu
+        "Organización comunitaria" to R.string.interest_community, // Spanish
 
         "Networking" to R.string.interest_networking,
         "নেটওয়ার্কিং" to R.string.interest_networking,        // Bengali
@@ -3001,6 +3021,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பிணையம்" to R.string.interest_networking,              // Tamil
         "ನೆಟ್ವರ್ಕಿಂಗ್" to R.string.interest_networking,         // Kannada
         "నెట్‌వర్కింగ్" to R.string.interest_networking,        // Telugu
+        "Red de contactos" to R.string.interest_networking, // Spanish
 
         "Public speaking" to R.string.interest_public_speaking,
         "পাবলিক স্পিকিং" to R.string.interest_public_speaking, // Bengali
@@ -3008,6 +3029,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பொது பேச்சு" to R.string.interest_public_speaking,      // Tamil
         "ಸಾರ್ವಜನಿಕ ಭಾಷಣ" to R.string.interest_public_speaking, // Kannada
         "పబ్లిక్ స్పీకింగ్" to R.string.interest_public_speaking, // Telugu
+        "Oratoria" to R.string.interest_public_speaking, // Spanish
 
         "Writing" to R.string.interest_writing,
         "লেখা" to R.string.interest_writing,                    // Bengali
@@ -3015,6 +3037,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "எழுத்து" to R.string.interest_writing,                   // Tamil
         "ಲೇಖನ" to R.string.interest_writing,                      // Kannada
         "రాత" to R.string.interest_writing,                       // Telugu
+        "Escritura" to R.string.interest_writing, // Spanish
 
         "Blogging" to R.string.interest_blogging,
         "ব্লগিং" to R.string.interest_blogging,                  // Bengali
@@ -3022,6 +3045,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வலைப்பதிவு" to R.string.interest_blogging,             // Tamil
         "ಬ್ಲಾಗಿಂಗ್" to R.string.interest_blogging,               // Kannada
         "బ్లాగింగ్" to R.string.interest_blogging,               // Telugu
+        "Blogueo" to R.string.interest_blogging, // Spanish
 
         "Podcasting" to R.string.interest_podcasting,
         "পডকাস্টিং" to R.string.interest_podcasting,             // Bengali
@@ -3029,6 +3053,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பாட்காஸ்டிங்" to R.string.interest_podcasting,           // Tamil
         "ಪಾಡ್‌ಕಾಸ್ಟಿಂಗ್" to R.string.interest_podcasting,        // Kannada
         "పోడ్కాస్టింగ్" to R.string.interest_podcasting,         // Telugu
+        "Creación de pódcast" to R.string.interest_podcasting, // Spanish
 
         "Social media" to R.string.interest_social_media,
         "সোশ্যাল মিডিয়া" to R.string.interest_social_media,     // Bengali
@@ -3036,6 +3061,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சமூக ஊடகம்" to R.string.interest_social_media,        // Tamil
         "ಸೋಷಿಯಲ್ ಮೀಡಿಯಾ" to R.string.interest_social_media,     // Kannada
         "సోషల్ మీడియా" to R.string.interest_social_media,      // Telugu
+        "Redes sociales" to R.string.interest_social_media, // Spanish
 
         "Online communities" to R.string.interest_online_communities,
         "অনলাইন কমিউনিটি" to R.string.interest_online_communities,    // Bengali
@@ -3043,6 +3069,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஆன்லைன் சமூகங்கள்" to R.string.interest_online_communities,   // Tamil
         "ಆನ್‌ಲೈನ್ ಸಮುದಾಯಗಳು" to R.string.interest_online_communities,  // Kannada
         "ఆన్లైన్ కమ్యూనిటీస్" to R.string.interest_online_communities,  // Telugu
+        "Comunidades en línea" to R.string.interest_online_communities, // Spanish
 
         // Adventurous & Thrilling
         "Skydiving" to R.string.interest_skydiving,
@@ -3051,6 +3078,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வான்வீழ்ச்சி" to R.string.interest_skydiving,               // Tamil
         "ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,             // Kannada
         "స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,           // Telugu
+        "Paracaidismo" to R.string.interest_skydiving, // Spanish
 
         "Scuba diving" to R.string.interest_scuba_diving,
         "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,           // Bengali
@@ -3058,6 +3086,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கடல் மூழ்குதல்" to R.string.interest_scuba_diving,           // Tamil
         "ಸ್ಕೂಬಾ ಡೈವಿಂಗ್" to R.string.interest_scuba_diving,         // Kannada
         "స్కూబా డైవింగ్" to R.string.interest_scuba_diving,         // Telugu
+        "Buceo" to R.string.interest_scuba_diving, // Spanish
 
         "Rock climbing" to R.string.interest_rock_climbing,
         "রক ক্লাইমিং" to R.string.interest_rock_climbing,            // Bengali
@@ -3065,6 +3094,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கல்லூரி ஏறுதல்" to R.string.interest_rock_climbing,         // Tamil
         "ರಾಕ್ ಕ್ಲೈಂಬಿಂಗ್" to R.string.interest_rock_climbing,       // Kannada
         "రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,         // Telugu
+        "Escalada" to R.string.interest_rock_climbing, // Spanish
 
         "Surfing" to R.string.interest_surfing,
         "সার্ফিং" to R.string.interest_surfing,                       // Bengali
@@ -3072,6 +3102,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அலைநோக்கம்" to R.string.interest_surfing,                    // Tamil
         "ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                     // Kannada
         "సర్ఫింగ్" to R.string.interest_surfing,                      // Telugu
+        "Surf" to R.string.interest_surfing, // Spanish
 
         "Skiing" to R.string.interest_skiing,
         "স্কিইং" to R.string.interest_skiing,                         // Bengali
@@ -3079,6 +3110,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அறிவியல்" to R.string.interest_skiing,                        // Tamil
         "ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                     // Kannada
         "స్కీయింగ్" to R.string.interest_skiing,                      // Telugu
+        "Esquí" to R.string.interest_skiing, // Spanish
 
         "Snowboarding" to R.string.interest_snowboarding,
         "স্নোবোর্ডিং" to R.string.interest_snowboarding,               // Bengali
@@ -3086,6 +3118,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பனிச்சறுக்கல்" to R.string.interest_snowboarding,             // Tamil
         "ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,            // Kannada
         "స్నోబోర్డింగ్" to R.string.interest_snowboarding,              // Telugu
+        "Snowboard" to R.string.interest_snowboarding, // Spanish
 
         "Mountain biking" to R.string.interest_mountain_biking,
         "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,         // Bengali
@@ -3093,6 +3126,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மலை சைக்கிள் ஓட்டுதல்" to R.string.interest_mountain_biking,       // Tamil
         "ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,       // Kannada
         "మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,         // Telugu
+        "Ciclismo de montaña" to R.string.interest_mountain_biking, // Spanish
 
         "Motorcycling" to R.string.interest_motorcycling,
         "মোটরসাইক্লিং" to R.string.interest_motorcycling,                  // Bengali
@@ -3100,6 +3134,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மோட்டார் சைக்கிள் ஓட்டுதல்" to R.string.interest_motorcycling,       // Tamil
         "ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,              // Kannada
         "మోటార్సైక్లింగ్" to R.string.interest_motorcycling,              // Telugu
+        "Motociclismo" to R.string.interest_motorcycling, // Spanish
 
         "Car racing" to R.string.interest_car_racing,
         "কার রেসিং" to R.string.interest_car_racing,                       // Bengali
@@ -3107,6 +3142,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கார் ஓட்டப்போட்டி" to R.string.interest_car_racing,                  // Tamil
         "ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                   // Kannada
         "కార్ రేసింగ్" to R.string.interest_car_racing,                    // Telugu
+        "Automovilismo" to R.string.interest_car_racing, // Spanish
 
         "Extreme sports" to R.string.interest_extreme_sports,
         "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,            // Bengali
@@ -3114,6 +3150,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கூடுதல் விளையாட்டுகள்" to R.string.interest_extreme_sports,         // Tamil
         "ಎಕ್ಸ್ಟ್ರೀಮ್ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,             // Kannada
         "ఎక్స్‌ట్రీమ్ స్పోర్ట్స్" to R.string.interest_extreme_sports,         // Telugu
+        "Deportes extremos" to R.string.interest_extreme_sports, // Spanish
 
         // Relaxation & Leisure
         "Puzzles" to R.string.interest_puzzles,
@@ -3122,6 +3159,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "முயிர்ப்போஷிட்சி" to R.string.interest_puzzles,                      // Tamil
         "ಪ್ರಶ್ನೆಗಳು" to R.string.interest_puzzles,                           // Kannada
         "పజిల్స్" to R.string.interest_puzzles,                              // Telugu
+        "Rompecabezas" to R.string.interest_puzzles, // Spanish
 
         "Board games" to R.string.interest_board_games,
         "বোর্ড গেমস" to R.string.interest_board_games,                       // Bengali
@@ -3129,6 +3167,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பிள்ளைகள் விளையாட்டு" to R.string.interest_board_games,              // Tamil
         "ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                     // Kannada
         "బోర్డ్ గేమ్స్" to R.string.interest_board_games,                     // Telugu
+        "Juegos de mesa" to R.string.interest_board_games, // Spanish
 
         "Video games" to R.string.interest_video_games,
         "ভিডিও গেমস" to R.string.interest_video_games,                       // Bengali
@@ -3136,6 +3175,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,              // Tamil
         "ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                     // Kannada
         "వీడియో గేమ్స్" to R.string.interest_video_games,                     // Telugu
+        "Videojuegos" to R.string.interest_video_games, // Spanish
 
         "Watching TV" to R.string.interest_watching_tv,
         "টিভি দেখা" to R.string.interest_watching_tv,                         // Bengali
@@ -3143,6 +3183,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தொலைக்காட்சி பார்ப்பது" to R.string.interest_watching_tv,             // Tamil
         "ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                       // Kannada
         "టీవీ వీక్షణ" to R.string.interest_watching_tv,                       // Telugu
+        "Ver televisión" to R.string.interest_watching_tv, // Spanish
 
         "Napping" to R.string.interest_napping,
         "ন্যাপিং" to R.string.interest_napping,                                // Bengali
@@ -3150,6 +3191,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கண்மூசப்பொழுது" to R.string.interest_napping,                        // Tamil
         "ನಾಪಿಂಗ್" to R.string.interest_napping,                               // Kannada
         "నాపింగ్" to R.string.interest_napping,                               // Telugu
+        "Siestas" to R.string.interest_napping, // Spanish
 
         "Spa days" to R.string.interest_spa_days,
         "স্পা ডে" to R.string.interest_spa_days,                               // Bengali
@@ -3157,6 +3199,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஸ்பா நாட்கள்" to R.string.interest_spa_days,                          // Tamil
         "ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                           // Kannada
         "స్పా రోజులు" to R.string.interest_spa_days,                           // Telugu
+        "Días de spa" to R.string.interest_spa_days, // Spanish
 
         "Beach days" to R.string.interest_beach_days,
         "বিচ ডে" to R.string.interest_beach_days,                              // Bengali
@@ -3164,6 +3207,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கடல் நாட்கள்" to R.string.interest_beach_days,                          // Tamil
         "ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                         // Kannada
         "బీచ్ రోజులు" to R.string.interest_beach_days,                          // Telugu
+        "Días de playa" to R.string.interest_beach_days, // Spanish
 
         "Picnics" to R.string.interest_picnics,
         "পিকনিক" to R.string.interest_picnics,                                 // Bengali
@@ -3171,6 +3215,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பட்ஜெட் உணவு" to R.string.interest_picnics,                            // Tamil
         "ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                 // Kannada
         "పిక్నిక్" to R.string.interest_picnics,                                 // Telugu
+        "Picnics" to R.string.interest_picnics, // Spanish
 
         // Tech & Intellectual
         "Coding" to R.string.interest_coding,
@@ -3179,6 +3224,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "குறியாக்கம்" to R.string.interest_coding,                               // Tamil
         "ಕೋಡಿಂಗ್" to R.string.interest_coding,                                   // Kannada
         "కోడింగ్" to R.string.interest_coding,                                   // Telugu
+        "Programación" to R.string.interest_coding, // Spanish
 
         "Robotics" to R.string.interest_robotics,
         "রোবোটিক্স" to R.string.interest_robotics,                             // Bengali
@@ -3186,6 +3232,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "இயந்திரவியல்" to R.string.interest_robotics,                          // Tamil
         "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                             // Kannada
         "రోబోటిక్స్" to R.string.interest_robotics,                             // Telugu
+        "Robótica" to R.string.interest_robotics, // Spanish
 
         "Space exploration" to R.string.interest_space,
         "মহাকাশ অন্বেষণ" to R.string.interest_space,                            // Bengali
@@ -3193,6 +3240,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வான் ஆய்வு" to R.string.interest_space,                                  // Tamil
         "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,                         // Kannada
         "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                           // Telugu
+        "Exploración espacial" to R.string.interest_space, // Spanish
 
         "Environmentalism" to R.string.interest_environmentalism,
         "পরিবেশবাদ" to R.string.interest_environmentalism,                      // Bengali
@@ -3200,6 +3248,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சுற்றுப்புறச் சங்கம்" to R.string.interest_environmentalism,               // Tamil
         "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,                       // Kannada
         "పర్యావరణవాదం" to R.string.interest_environmentalism,                     // Telugu
+        "Ambientalismo" to R.string.interest_environmentalism, // Spanish
 
         // Food & Drink
         "Baking" to R.string.interest_baking,
@@ -3208,6 +3257,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அடக்கு" to R.string.interest_baking,                                      // Tamil
         "ബേക്കിംഗ്" to R.string.interest_baking,                                    // Kannada
         "బేకింగ్" to R.string.interest_baking,                                    // Telugu
+        "Repostería" to R.string.interest_baking, // Spanish
 
         "Wine tasting" to R.string.interest_wine_tasting,
         "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,                       // Bengali
@@ -3215,6 +3265,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சாரம் சுவைத்தல்" to R.string.interest_wine_tasting,                         // Tamil
         "വൈൻ രുചി" to R.string.interest_wine_tasting,                             // Kannada
         "వైన్ రుచిచూడడం" to R.string.interest_wine_tasting,                         // Telugu
+        "Cata de vinos" to R.string.interest_wine_tasting, // Spanish
 
         "Craft beer" to R.string.interest_craft_beer,
         "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,                             // Bengali
@@ -3222,6 +3273,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கைவினை மது" to R.string.interest_craft_beer,                             // Tamil
         "ക്രാഫ്റ്റ് ബീർ" to R.string.interest_craft_beer,                              // Kannada
         "క్రాఫ్ట్ బీర్" to R.string.interest_craft_beer,                             // Telugu
+        "Cerveza artesanal" to R.string.interest_craft_beer, // Spanish
 
         "Coffee" to R.string.interest_coffee,
         "কফি" to R.string.interest_coffee,                                           // Bengali
@@ -3229,6 +3281,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "காபி" to R.string.interest_coffee,                                           // Tamil
         "காபி" to R.string.interest_coffee,                                           // Kannada
         "కాఫీ" to R.string.interest_coffee,                                           // Telugu
+        "Café" to R.string.interest_coffee, // Spanish
 
         // Wellness & Spiritual
         "Yoga" to R.string.interest_yoga,
@@ -3237,6 +3290,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "யோகா" to R.string.interest_yoga,                                            // Tamil
         "ಯೋಗ" to R.string.interest_yoga,                                             // Kannada
         "యోగ" to R.string.interest_yoga,                                             // Telugu
+        "Yoga" to R.string.interest_yoga, // Spanish
 
         "Meditation" to R.string.interest_meditation,
         "ধ্যান" to R.string.interest_meditation,                                      // Bengali
@@ -3244,6 +3298,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தியானம்" to R.string.interest_meditation,                                   // Tamil
         "ಧ್ಯಾನ" to R.string.interest_meditation,                                     // Kannada
         "ధ్యానం" to R.string.interest_meditation,                                    // Telugu
+        "Meditación" to R.string.interest_meditation, // Spanish
 
         "Astrology" to R.string.interest_astrology,
         "জ্যোতিষ" to R.string.interest_astrology,                                     // Bengali
@@ -3251,6 +3306,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஜோதிடம்" to R.string.interest_astrology,                                    // Tamil
         "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,                                    // Kannada
         "జ్యోతిష్యం" to R.string.interest_astrology,                                   // Telugu
+        "Astrología" to R.string.interest_astrology, // Spanish
 
         "Romance" to R.string.interest_romance,
         "রোমান্স" to R.string.interest_romance,                                        // Bengali
@@ -3258,6 +3314,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "காதல்" to R.string.interest_romance,                                           // Tamil
         "ರೊಮಾಂಸ್" to R.string.interest_romance,                                        // Kannada
         "రోమాన్స్" to R.string.interest_romance,                                         // Telugu
+        "Romance" to R.string.interest_romance, // Spanish
 
         "Crystals" to R.string.interest_crystals,
         "ক্রিস্টালস" to R.string.interest_crystals,                                     // Bengali
@@ -3265,6 +3322,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கிரிஸ்டல்கள்" to R.string.interest_crystals,                                   // Tamil
         "ಕ್ರಿಸ್ಟಲ್ಸ್" to R.string.interest_crystals,                                    // Kannada
         "క్రిస్టల్స్" to R.string.interest_crystals,                                    // Telugu
+        "Cristales" to R.string.interest_crystals, // Spanish
 
         // Style & DIY
         "Vintage clothing" to R.string.interest_vintage_clothing,
@@ -3273,6 +3331,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பழமையான ஆடை" to R.string.interest_vintage_clothing,                         // Tamil
         "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,                          // Kannada
         "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing,                       // Telugu
+        "Ropa vintage" to R.string.interest_vintage_clothing, // Spanish
 
         "Thrift shopping" to R.string.interest_thrift_shopping,
         "থ্রিফট শপিং" to R.string.interest_thrift_shopping,                             // Bengali
@@ -3280,6 +3339,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,                         // Tamil
         "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,                        // Kannada
         "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,                        // Telugu
+        "Compras de segunda mano" to R.string.interest_thrift_shopping, // Spanish
 
         "DIY projects" to R.string.interest_diy,
         "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,                                 // Bengali
@@ -3287,6 +3347,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "நீங்கள் செய்து கொள்ளும் திட்டங்கள்" to R.string.interest_diy,                    // Tamil
         "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                                       // Kannada
         "DIY ప్రాజెక్టులు" to R.string.interest_diy,                                    // Telugu
+        "Proyectos DIY" to R.string.interest_diy, // Spanish
 
         "Home improvement" to R.string.interest_home_improvement,
         "গৃহ উন্নয়ন" to R.string.interest_home_improvement,                           // Bengali
@@ -3294,6 +3355,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வீட்டுத் திருத்தம்" to R.string.interest_home_improvement,                      // Tamil
         "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,                           // Kannada
         "ఇంటిని మెరుగుపరచడం" to R.string.interest_home_improvement,                   // Telugu
+        "Mejoras del hogar" to R.string.interest_home_improvement, // Spanish
 
         "Interior design" to R.string.interest_interior_design,
         "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,                         // Bengali
@@ -3301,6 +3363,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "உள்ளமைப்பு வடிவமைப்பு" to R.string.interest_interior_design,                    // Tamil
         "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,                            // Kannada
         "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,                        // Telugu
+        "Diseño de interiores" to R.string.interest_interior_design, // Spanish
 
         // Intellectual & Tech
         "History" to R.string.interest_history,
@@ -3309,6 +3372,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வரலாறு" to R.string.interest_history,                                           // Tamil
         "ಇತಿಹಾಸ" to R.string.interest_history,                                           // Kannada
         "చరిత్ర" to R.string.interest_history,                                            // Telugu
+        "Historia" to R.string.interest_history, // Spanish
 
         "Science" to R.string.interest_science,
         "বিজ্ঞান" to R.string.interest_science,                                         // Bengali
@@ -3316,6 +3380,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அறிவியல்" to R.string.interest_science,                                        // Tamil
         "ವಿಜ್ಞಾನ" to R.string.interest_science,                                          // Kannada
         "విజ్ఞానం" to R.string.interest_science,                                        // Telugu
+        "Ciencia" to R.string.interest_science, // Spanish
 
         "Philosophy" to R.string.interest_philosophy,
         "দর্শন শাস্ত্র" to R.string.interest_philosophy,                                  // Bengali
@@ -3323,6 +3388,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தத்துவம்" to R.string.interest_philosophy,                                       // Tamil
         "ದರ್ಶನಶಾಸ್ತ್ರ" to R.string.interest_philosophy,                                   // Kannada
         "తత్వశాస్త్రం" to R.string.interest_philosophy,                                   // Telugu
+        "Filosofía" to R.string.interest_philosophy, // Spanish
 
         "Politics" to R.string.interest_politics,
         "রাজনীতি" to R.string.interest_politics,                                         // Bengali
@@ -3330,6 +3396,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அரசியல்" to R.string.interest_politics,                                         // Tamil
         "ರಾಜಕೀಯ" to R.string.interest_politics,                                         // Kannada
         "రాజకీయ శాస్త్రం" to R.string.interest_politics,                                // Telugu
+        "Política" to R.string.interest_politics, // Spanish
 
         "Economics" to R.string.interest_economics,
         "অর্থনীতি" to R.string.interest_economics,                                       // Bengali
@@ -3337,6 +3404,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பொருளாதாரம்" to R.string.interest_economics,                                    // Tamil
         "ಅರ್ಥಶಾಸ್ತ್ರ" to R.string.interest_economics,                                      // Kannada
         "ఆర్థిక శాస్త్రం" to R.string.interest_economics,                                  // Telugu
+        "Economía" to R.string.interest_economics, // Spanish
 
         // Outdoor & Nature
         "Hiking" to R.string.interest_hiking,
@@ -3345,6 +3413,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஹைகிங்" to R.string.interest_hiking,                                            // Tamil
         "ಹೈಕಿಂಗ್" to R.string.interest_hiking,                                            // Kannada
         "హైకింగ్" to R.string.interest_hiking,                                            // Telugu
+        "Senderismo" to R.string.interest_hiking, // Spanish
 
         "Camping" to R.string.interest_camping,
         "ক্যাম্পিং" to R.string.interest_camping,                                          // Bengali
@@ -3352,6 +3421,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கேம்பிங்" to R.string.interest_camping,                                           // Tamil
         "ಕ್ಯಾಂಪಿಂಗ್" to R.string.interest_camping,                                         // Kannada
         "క్యాంపింగ్" to R.string.interest_camping,                                         // Telugu
+        "Camping" to R.string.interest_camping, // Spanish
 
         "Fishing" to R.string.interest_fishing,
         "মাছ ধরা" to R.string.interest_fishing,                                          // Bengali
@@ -3359,6 +3429,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மீன் பிடித்தல்" to R.string.interest_fishing,                                     // Tamil
         "ಮೀನಿಂಗ್" to R.string.interest_fishing,                                          // Kannada
         "ఫిషింగ్" to R.string.interest_fishing,                                           // Telugu
+        "Pesca" to R.string.interest_fishing, // Spanish
 
         "Hunting" to R.string.interest_hunting,
         "শিকার" to R.string.interest_hunting,                                            // Bengali
@@ -3366,6 +3437,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வேட்டை" to R.string.interest_hunting,                                            // Tamil
         "ಹಂಟಿಂಗ್" to R.string.interest_hunting,                                          // Kannada
         "హంటింగ్" to R.string.interest_hunting,                                           // Telugu
+        "Caza" to R.string.interest_hunting, // Spanish
 
         // Food & Drink
         "Baking" to R.string.interest_baking,
@@ -3374,6 +3446,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அடுக்கு" to R.string.interest_baking,                                           // Tamil
         "ബേക്കിംഗ്" to R.string.interest_baking,                                           // Kannada
         "బేకింగ్" to R.string.interest_baking,                                           // Telugu
+        "Repostería" to R.string.interest_baking, // Spanish
 
         "Wine tasting" to R.string.interest_wine_tasting,
         "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting,                            // Bengali
@@ -3381,6 +3454,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சாரம் சுவைத்தல்" to R.string.interest_wine_tasting,                              // Tamil
         "വൈൻ രുചി" to R.string.interest_wine_tasting,                                   // Kannada
         "వైన్ రుచిచూడడం" to R.string.interest_wine_tasting,                              // Telugu
+        "Cata de vinos" to R.string.interest_wine_tasting, // Spanish
 
         "Craft beer" to R.string.interest_craft_beer,
         "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,                                 // Bengali
@@ -3388,6 +3462,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கைவினை மது" to R.string.interest_craft_beer,                                 // Tamil
         "ക്രാഫ്റ്റ് ബീർ" to R.string.interest_craft_beer,                                  // Kannada
         "క్రాఫ్ట్ బీర్" to R.string.interest_craft_beer,                                 // Telugu
+        "Cerveza artesanal" to R.string.interest_craft_beer, // Spanish
 
         "Coffee" to R.string.interest_coffee,
         "কফি" to R.string.interest_coffee,                                              // Bengali
@@ -3395,6 +3470,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "காபி" to R.string.interest_coffee,                                             // Tamil
         "ಕಾಫಿ" to R.string.interest_coffee,                                              // Kannada
         "కాఫీ" to R.string.interest_coffee,                                              // Telugu
+        "Café" to R.string.interest_coffee, // Spanish
 
         // Wellness & Spiritual
         "Yoga" to R.string.interest_yoga,
@@ -3403,6 +3479,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "யோகா" to R.string.interest_yoga,                                               // Tamil
         "ಯೋಗ" to R.string.interest_yoga,                                                // Kannada
         "యోగ" to R.string.interest_yoga,                                                // Telugu
+        "Yoga" to R.string.interest_yoga, // Spanish
 
         "Meditation" to R.string.interest_meditation,
         "ধ্যান" to R.string.interest_meditation,                                         // Bengali
@@ -3410,6 +3487,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தியானம்" to R.string.interest_meditation,                                      // Tamil
         "ಧ್ಯಾನ" to R.string.interest_meditation,                                        // Kannada
         "ధ్యానం" to R.string.interest_meditation,                                      // Telugu
+        "Meditación" to R.string.interest_meditation, // Spanish
 
         "Astrology" to R.string.interest_astrology,
         "জ্যোতিষ" to R.string.interest_astrology,                                        // Bengali
@@ -3417,6 +3495,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஜோதிடம்" to R.string.interest_astrology,                                       // Tamil
         "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,                                       // Kannada
         "జ్యోతిష్యం" to R.string.interest_astrology,                                      // Telugu
+        "Astrología" to R.string.interest_astrology, // Spanish
 
         "Romance" to R.string.interest_romance,
         "রোমান্স" to R.string.interest_romance,                                          // Bengali
@@ -3424,6 +3503,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "காதல்" to R.string.interest_romance,                                             // Tamil
         "ರೊಮಾಂಸ್" to R.string.interest_romance,                                          // Kannada
         "రోమాన్స్" to R.string.interest_romance,                                           // Telugu
+        "Romance" to R.string.interest_romance, // Spanish
 
         "Crystals" to R.string.interest_crystals,
         "ক্রিস্টালস" to R.string.interest_crystals,                                       // Bengali
@@ -3431,6 +3511,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கிரிஸ்டல்கள்" to R.string.interest_crystals,                                     // Tamil
         "ಕ್ರಿಸ್ಟಲ್ಸ್" to R.string.interest_crystals,                                       // Kannada
         "క్రిస్టల్స్" to R.string.interest_crystals,                                       // Telugu
+        "Cristales" to R.string.interest_crystals, // Spanish
 
         // Style & DIY
         "Vintage clothing" to R.string.interest_vintage_clothing,
@@ -3439,6 +3520,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பழமையான ஆடை" to R.string.interest_vintage_clothing,                           // Tamil
         "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,                              // Kannada
         "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing,                         // Telugu
+        "Ropa vintage" to R.string.interest_vintage_clothing, // Spanish
 
         "Thrift shopping" to R.string.interest_thrift_shopping,
         "থ্রিফট শপিং" to R.string.interest_thrift_shopping,                               // Bengali
@@ -3446,6 +3528,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,                           // Tamil
         "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,                            // Kannada
         "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,                            // Telugu
+        "Compras de segunda mano" to R.string.interest_thrift_shopping, // Spanish
 
         "DIY projects" to R.string.interest_diy,
         "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,                                     // Bengali
@@ -3453,6 +3536,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "நீங்கள் செய்து கொள்ளும் திட்டங்கள்" to R.string.interest_diy,                        // Tamil
         "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                                            // Kannada
         "DIY ప్రాజెక్టులు" to R.string.interest_diy,                                        // Telugu
+        "Proyectos DIY" to R.string.interest_diy, // Spanish
 
         "Home improvement" to R.string.interest_home_improvement,
         "গৃহ উন্নয়ন" to R.string.interest_home_improvement,                               // Bengali
@@ -3460,6 +3544,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வீட்டு மேம்பாடு" to R.string.interest_home_improvement,                             // Tamil
         "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,                               // Kannada
         "ఇంటి మెరుగుదల" to R.string.interest_home_improvement,                             // Telugu
+        "Mejoras del hogar" to R.string.interest_home_improvement, // Spanish
 
         "Interior design" to R.string.interest_interior_design,
         "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,                             // Bengali
@@ -3467,6 +3552,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "உள்ளமைத்து வடிவமைப்பு" to R.string.interest_interior_design,                       // Tamil
         "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,                               // Kannada
         "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,                            // Telugu
+        "Diseño de interiores" to R.string.interest_interior_design, // Spanish
 
         // Adventurous & Thrilling
         "Skydiving" to R.string.interest_skydiving,
@@ -3475,6 +3561,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வான்வீழ்ச்சி" to R.string.interest_skydiving,                                       // Tamil
         "ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,                                      // Kannada
         "స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,                                   // Telugu
+        "Paracaidismo" to R.string.interest_skydiving, // Spanish
 
         "Scuba diving" to R.string.interest_scuba_diving,
         "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,                                   // Bengali
@@ -3482,6 +3569,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கடல் மூழ்குதல்" to R.string.interest_scuba_diving,                                   // Tamil
         "ಸ್ಕೂಬಾ ಡೈವಿಂಗ್" to R.string.interest_scuba_diving,                                 // Kannada
         "స్కూబా డైవింగ్" to R.string.interest_scuba_diving,                                 // Telugu
+        "Buceo" to R.string.interest_scuba_diving, // Spanish
 
         "Rock climbing" to R.string.interest_rock_climbing,
         "রক ক্লাইমিং" to R.string.interest_rock_climbing,                                   // Bengali
@@ -3489,6 +3577,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கல்லூரி ஏறுதல்" to R.string.interest_rock_climbing,                                // Tamil
         "ರಾಕ್ ಕ್ಲೈಂಬಿಂಗ್" to R.string.interest_rock_climbing,                              // Kannada
         "రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,                                // Telugu
+        "Escalada" to R.string.interest_rock_climbing, // Spanish
 
         "Surfing" to R.string.interest_surfing,
         "সার্ফিং" to R.string.interest_surfing,                                             // Bengali
@@ -3496,6 +3585,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அலைபாய்ச்சி" to R.string.interest_surfing,                                          // Tamil
         "ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                                            // Kannada
         "సర్ఫింగ్" to R.string.interest_surfing,                                             // Telugu
+        "Surf" to R.string.interest_surfing, // Spanish
 
         "Skiing" to R.string.interest_skiing,
         "স্কিইং" to R.string.interest_skiing,                                               // Bengali
@@ -3503,6 +3593,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அரிசல் செலுத்துதல்" to R.string.interest_skiing,                                    // Tamil
         "ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                                           // Kannada
         "స్కీయింగ్" to R.string.interest_skiing,                                            // Telugu
+        "Esquí" to R.string.interest_skiing, // Spanish
 
         "Snowboarding" to R.string.interest_snowboarding,
         "স্নোবোর্ডিং" to R.string.interest_snowboarding,                                      // Bengali
@@ -3510,6 +3601,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மஞ்சுப் பலகை சறுக்குதல்" to R.string.interest_snowboarding,                          // Tamil
         "ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,                                   // Kannada
         "స్నోబోర్డింగ్" to R.string.interest_snowboarding,                                     // Telugu
+        "Snowboard" to R.string.interest_snowboarding, // Spanish
 
         "Mountain biking" to R.string.interest_mountain_biking,
         "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,                               // Bengali
@@ -3517,6 +3609,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மலை சைக்கிள் ஓட்டுதல்" to R.string.interest_mountain_biking,                          // Tamil
         "ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,                             // Kannada
         "మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,                             // Telugu
+        "Ciclismo de montaña" to R.string.interest_mountain_biking, // Spanish
 
         "Motorcycling" to R.string.interest_motorcycling,
         "মোটরসাইক্লিং" to R.string.interest_motorcycling,                                      // Bengali
@@ -3524,6 +3617,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மோட்டார் சைக்கிள் ஓட்டுதல்" to R.string.interest_motorcycling,                         // Tamil
         "ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,                                 // Kannada
         "మోటార్సైక్లింగ్" to R.string.interest_motorcycling,                                   // Telugu
+        "Motociclismo" to R.string.interest_motorcycling, // Spanish
 
         "Car racing" to R.string.interest_car_racing,
         "কার রেসিং" to R.string.interest_car_racing,                                           // Bengali
@@ -3531,6 +3625,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கார் ஓட்டப்போட்டி" to R.string.interest_car_racing,                                     // Tamil
         "ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                                       // Kannada
         "కార్ రేసింగ్" to R.string.interest_car_racing,                                        // Telugu
+        "Automovilismo" to R.string.interest_car_racing, // Spanish
 
         "Extreme sports" to R.string.interest_extreme_sports,
         "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,                                // Bengali
@@ -3538,6 +3633,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அதிக விளையாட்டு" to R.string.interest_extreme_sports,                                  // Tamil
         "ಎಕ್ಸ್ಟ್ರೀಮ್ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,                                 // Kannada
         "ఎక్స్‌ట్రీమ్ స్పోర్ట్స్" to R.string.interest_extreme_sports,                           // Telugu
+        "Deportes extremos" to R.string.interest_extreme_sports, // Spanish
 
         // Relaxation & Leisure
         "Puzzles" to R.string.interest_puzzles,
@@ -3546,6 +3642,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "முதிரடைபுதிர்கள்" to R.string.interest_puzzles,                                        // Tamil
         "ಪ್ರಶ್ನೆಗಳು" to R.string.interest_puzzles,                                            // Kannada
         "పజిల్స్" to R.string.interest_puzzles,                                               // Telugu
+        "Rompecabezas" to R.string.interest_puzzles, // Spanish
 
         "Board games" to R.string.interest_board_games,
         "বোর্ড গেমস" to R.string.interest_board_games,                                         // Bengali
@@ -3553,6 +3650,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தகடுப் பந்திகள்" to R.string.interest_board_games,                                    // Tamil
         "ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                                       // Kannada
         "బోర్డ్ గేమ్స్" to R.string.interest_board_games,                                       // Telugu
+        "Juegos de mesa" to R.string.interest_board_games, // Spanish
 
         "Video games" to R.string.interest_video_games,
         "ভিডিও গেমস" to R.string.interest_video_games,                                         // Bengali
@@ -3560,6 +3658,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,                                 // Tamil
         "ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                                      // Kannada
         "వీడియో గేమ్స్" to R.string.interest_video_games,                                       // Telugu
+        "Videojuegos" to R.string.interest_video_games, // Spanish
 
         "Watching TV" to R.string.interest_watching_tv,
         "টিভি দেখা" to R.string.interest_watching_tv,                                           // Bengali
@@ -3567,6 +3666,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தொலைக்காட்சி பார்க்குதல்" to R.string.interest_watching_tv,                             // Tamil
         "ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                                         // Kannada
         "టీవీ వీక్షణ" to R.string.interest_watching_tv,                                         // Telugu
+        "Ver televisión" to R.string.interest_watching_tv, // Spanish
 
         "Napping" to R.string.interest_napping,
         "ন্যাপিং" to R.string.interest_napping,                                                  // Bengali
@@ -3574,6 +3674,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கண்மூசப்பொழுது" to R.string.interest_napping,                                          // Tamil
         "ನಾಪಿಂಗ್" to R.string.interest_napping,                                                 // Kannada
         "నాపింగ్" to R.string.interest_napping,                                                 // Telugu
+        "Siestas" to R.string.interest_napping, // Spanish
 
         "Spa days" to R.string.interest_spa_days,
         "স্পা ডে" to R.string.interest_spa_days,                                                 // Bengali
@@ -3581,6 +3682,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஸ்பா நாட்கள்" to R.string.interest_spa_days,                                              // Tamil
         "ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                                             // Kannada
         "స్పా రోజులు" to R.string.interest_spa_days,                                             // Telugu
+        "Días de spa" to R.string.interest_spa_days, // Spanish
 
         "Beach days" to R.string.interest_beach_days,
         "বিচ ডে" to R.string.interest_beach_days,                                                // Bengali
@@ -3588,6 +3690,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கடல் நாட்கள்" to R.string.interest_beach_days,                                           // Tamil
         "ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                                         // Kannada
         "బీచ్ రోజులు" to R.string.interest_beach_days,                                           // Telugu
+        "Días de playa" to R.string.interest_beach_days, // Spanish
 
         "Picnics" to R.string.interest_picnics,
         "পিকনিক" to R.string.interest_picnics,                                                  // Bengali
@@ -3595,6 +3698,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "புனிச்சல்பூட்டி" to R.string.interest_picnics,                                            // Tamil
         "ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                                  // Kannada
         "పిక్నిక్" to R.string.interest_picnics,                                                  // Telugu
+        "Picnics" to R.string.interest_picnics, // Spanish
 
         // Tech & Intellectual
         "Coding" to R.string.interest_coding,
@@ -3603,6 +3707,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "குறியாக்கம்" to R.string.interest_coding,                                                 // Tamil
         "ಕೋಡಿಂಗ್" to R.string.interest_coding,                                                     // Kannada
         "కోడింగ్" to R.string.interest_coding,                                                     // Telugu
+        "Programación" to R.string.interest_coding, // Spanish
 
         "Robotics" to R.string.interest_robotics,
         "রোবোটিক্স" to R.string.interest_robotics,                                               // Bengali
@@ -3610,6 +3715,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "இயந்திரவியல்" to R.string.interest_robotics,                                            // Tamil
         "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                                               // Kannada
         "రోబోటిక్స్" to R.string.interest_robotics,                                               // Telugu
+        "Robótica" to R.string.interest_robotics, // Spanish
 
         "Space exploration" to R.string.interest_space,
         "মহাকাশ অন্বেষণ" to R.string.interest_space,                                              // Bengali
@@ -3617,6 +3723,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வான ஆய்வு" to R.string.interest_space,                                                    // Tamil
         "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,                                           // Kannada
         "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                                             // Telugu
+        "Exploración espacial" to R.string.interest_space, // Spanish
 
         "Environmentalism" to R.string.interest_environmentalism,
         "পরিবেশবাদ" to R.string.interest_environmentalism,                                        // Bengali
@@ -3624,6 +3731,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சுற்றுச்சூழலியல்" to R.string.interest_environmentalism,                                  // Tamil
         "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,                                           // Kannada
         "పర్యావరణవాదం" to R.string.interest_environmentalism,                                      // Telugu
+        "Ambientalismo" to R.string.interest_environmentalism, // Spanish
 
         // Wellness & Spiritual
         "Yoga" to R.string.interest_yoga,
@@ -3632,6 +3740,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "யோகா" to R.string.interest_yoga,                                                        // Tamil
         "ಯೋಗ" to R.string.interest_yoga,                                                         // Kannada
         "యోగ" to R.string.interest_yoga,                                                         // Telugu
+        "Yoga" to R.string.interest_yoga, // Spanish
 
         "Meditation" to R.string.interest_meditation,
         "ধ্যান" to R.string.interest_meditation,                                                  // Bengali
@@ -3639,6 +3748,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தியானம்" to R.string.interest_meditation,                                               // Tamil
         "ಧ್ಯಾನ" to R.string.interest_meditation,                                                 // Kannada
         "ధ్యానం" to R.string.interest_meditation,                                               // Telugu
+        "Meditación" to R.string.interest_meditation, // Spanish
 
         "Astrology" to R.string.interest_astrology,
         "জ্যোতিষ" to R.string.interest_astrology,                                                 // Bengali
@@ -3646,6 +3756,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஜோதிடம்" to R.string.interest_astrology,                                                // Tamil
         "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,                                                // Kannada
         "జ్యోతిష్యం" to R.string.interest_astrology,                                               // Telugu
+        "Astrología" to R.string.interest_astrology, // Spanish
 
         "Romance" to R.string.interest_romance,
         "রোমান্স" to R.string.interest_romance,                                                   // Bengali
@@ -3653,6 +3764,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "காதல்" to R.string.interest_romance,                                                     // Tamil
         "ರೊಮಾಂಸ್" to R.string.interest_romance,                                                  // Kannada
         "రోమాన్స్" to R.string.interest_romance,                                                     // Telugu
+        "Romance" to R.string.interest_romance, // Spanish
 
         "Crystals" to R.string.interest_crystals,
         "ক্রিস্টালস" to R.string.interest_crystals,                                               // Bengali
@@ -3660,6 +3772,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கிரிஸ்டல்கள்" to R.string.interest_crystals,                                             // Tamil
         "ಕ್ರಿಸ್ಟಲ್ಸ್" to R.string.interest_crystals,                                              // Kannada
         "క్రిస్టల్స్" to R.string.interest_crystals,                                              // Telugu
+        "Cristales" to R.string.interest_crystals, // Spanish
 
         // Style & DIY
         "Vintage clothing" to R.string.interest_vintage_clothing,
@@ -3668,6 +3781,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பழமையான ஆடை" to R.string.interest_vintage_clothing,                                   // Tamil
         "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,                                      // Kannada
         "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing,                                 // Telugu
+        "Ropa vintage" to R.string.interest_vintage_clothing, // Spanish
 
         "Thrift shopping" to R.string.interest_thrift_shopping,
         "থ্রিফট শপিং" to R.string.interest_thrift_shopping,                                         // Bengali
@@ -3675,6 +3789,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,                                   // Tamil
         "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,                                    // Kannada
         "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,                                    // Telugu
+        "Compras de segunda mano" to R.string.interest_thrift_shopping, // Spanish
 
         "DIY projects" to R.string.interest_diy,
         "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,                                             // Bengali
@@ -3682,6 +3797,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "நீங்கள் செய்யும் திட்டங்கள்" to R.string.interest_diy,                                       // Tamil
         "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                                                  // Kannada
         "DIY ప్రాజెక్టులు" to R.string.interest_diy,                                              // Telugu
+        "Proyectos DIY" to R.string.interest_diy, // Spanish
 
         "Home improvement" to R.string.interest_home_improvement,
         "গৃহ উন্নয়ন" to R.string.interest_home_improvement,                                       // Bengali
@@ -3689,6 +3805,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வீட்டு மேம்பாடு" to R.string.interest_home_improvement,                                     // Tamil
         "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,                                       // Kannada
         "ఇంటి మెరుగుదల" to R.string.interest_home_improvement,                                     // Telugu
+        "Mejoras del hogar" to R.string.interest_home_improvement, // Spanish
 
         "Interior design" to R.string.interest_interior_design,
         "অভ্যন্তরীণ নকশা" to R.string.interest_interior_design,                                     // Bengali
@@ -3696,6 +3813,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "உள்ளமைப்பு வடிவமைப்பு" to R.string.interest_interior_design,                               // Tamil
         "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,                                      // Kannada
         "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,                                   // Telugu
+        "Diseño de interiores" to R.string.interest_interior_design, // Spanish
 
         // Adventurous & Thrilling
         "Skydiving" to R.string.interest_skydiving,
@@ -3704,6 +3822,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வான்வீழ்ச்சி" to R.string.interest_skydiving,                                             // Tamil
         "ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,                                            // Kannada
         "స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,                                         // Telugu
+        "Paracaidismo" to R.string.interest_skydiving, // Spanish
 
         "Scuba diving" to R.string.interest_scuba_diving,
         "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,                                         // Bengali
@@ -3711,6 +3830,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கடல்கீழ் மூழ்குதல்" to R.string.interest_scuba_diving,                                    // Tamil
         "ಸ್ಕೂಬಾ ಡೈವಿಂಗ್" to R.string.interest_scuba_diving,                                       // Kannada
         "స్కూబా డైవింగ్" to R.string.interest_scuba_diving,                                       // Telugu
+        "Buceo" to R.string.interest_scuba_diving, // Spanish
 
         "Rock climbing" to R.string.interest_rock_climbing,
         "রক ক্লাইমিং" to R.string.interest_rock_climbing,                                          // Bengali
@@ -3718,6 +3838,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கல்லூரிப் பறக்குது" to R.string.interest_rock_climbing,                                    // Tamil
         "ರಾಕ್ ಕ್ಲೈಂಬಿಂಗ್" to R.string.interest_rock_climbing,                                    // Kannada
         "రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,                                      // Telugu
+        "Escalada" to R.string.interest_rock_climbing, // Spanish
 
         "Surfing" to R.string.interest_surfing,
         "সার্ফিং" to R.string.interest_surfing,                                                  // Bengali
@@ -3725,6 +3846,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அலைபாய்வு" to R.string.interest_surfing,                                                // Tamil
         "ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                                                // Kannada
         "సర్ఫింగ్" to R.string.interest_surfing,                                                // Telugu
+        "Surf" to R.string.interest_surfing, // Spanish
 
         "Skiing" to R.string.interest_skiing,
         "স্কিইং" to R.string.interest_skiing,                                                    // Bengali
@@ -3732,6 +3854,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மண்படா சறுக்கல்" to R.string.interest_skiing,                                              // Tamil
         "ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                                                 // Kannada
         "స్కీయింగ్" to R.string.interest_skiing,                                                  // Telugu
+        "Esquí" to R.string.interest_skiing, // Spanish
 
         "Snowboarding" to R.string.interest_snowboarding,
         "স্নোবোর্ডিং" to R.string.interest_snowboarding,                                          // Bengali
@@ -3739,6 +3862,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மஞ்சுப் பலகை சறுக்குதல்" to R.string.interest_snowboarding,                                 // Tamil
         "ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,                                        // Kannada
         "స్నోబోర్డింగ్" to R.string.interest_snowboarding,                                        // Telugu
+        "Snowboard" to R.string.interest_snowboarding, // Spanish
 
         "Mountain biking" to R.string.interest_mountain_biking,
         "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,                                   // Bengali
@@ -3746,6 +3870,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மலைசுழற்சி ஓட்டம்" to R.string.interest_mountain_biking,                                  // Tamil
         "ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,                                 // Kannada
         "మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,                                 // Telugu
+        "Ciclismo de montaña" to R.string.interest_mountain_biking, // Spanish
 
         "Motorcycling" to R.string.interest_motorcycling,
         "মোটরসাইক্লিং" to R.string.interest_motorcycling,                                          // Bengali
@@ -3753,6 +3878,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "மோட்டார் சைக்கிள் ஓட்டம்" to R.string.interest_motorcycling,                                 // Tamil
         "ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,                                       // Kannada
         "మోటార్సైక్లింగ్" to R.string.interest_motorcycling,                                       // Telugu
+        "Motociclismo" to R.string.interest_motorcycling, // Spanish
 
         "Car racing" to R.string.interest_car_racing,
         "কার রেসিং" to R.string.interest_car_racing,                                               // Bengali
@@ -3760,6 +3886,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கார் ஓட்டப் போட்டி" to R.string.interest_car_racing,                                        // Tamil
         "ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                                            // Kannada
         "కార్ రేసింగ్" to R.string.interest_car_racing,                                            // Telugu
+        "Automovilismo" to R.string.interest_car_racing, // Spanish
 
         "Extreme sports" to R.string.interest_extreme_sports,
         "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,                                     // Bengali
@@ -3767,6 +3894,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "அதிக விளையாட்டு" to R.string.interest_extreme_sports,                                       // Tamil
         "ಎಕ್ಸ್ಟ್ರೀಮ್ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,                                     // Kannada
         "ఎక్స్‌ట్రీమ్ స్పోర్ట్స్" to R.string.interest_extreme_sports,                                 // Telugu
+        "Deportes extremos" to R.string.interest_extreme_sports, // Spanish
 
         // Relaxation & Leisure
         "Puzzles" to R.string.interest_puzzles,
@@ -3775,6 +3903,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "முதிரைபுதிர்கள்" to R.string.interest_puzzles,                                              // Tamil
         "ಪ್ರಶ್ನೆಗಳು" to R.string.interest_puzzles,                                                   // Kannada
         "పజిల్స్" to R.string.interest_puzzles,                                                      // Telugu
+        "Rompecabezas" to R.string.interest_puzzles, // Spanish
 
         "Board games" to R.string.interest_board_games,
         "বোর্ড গেমস" to R.string.interest_board_games,                                             // Bengali
@@ -3782,6 +3911,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தகடுப் பந்திகள்" to R.string.interest_board_games,                                        // Tamil
         "ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                                           // Kannada
         "బోర్డ్ గేమ్స్" to R.string.interest_board_games,                                           // Telugu
+        "Juegos de mesa" to R.string.interest_board_games, // Spanish
 
         "Video games" to R.string.interest_video_games,
         "ভিডিও গেমস" to R.string.interest_video_games,                                             // Bengali
@@ -3789,6 +3919,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,                                     // Tamil
         "ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                                          // Kannada
         "వీడియో గేమ్స్" to R.string.interest_video_games,                                          // Telugu
+        "Videojuegos" to R.string.interest_video_games, // Spanish
 
         "Watching TV" to R.string.interest_watching_tv,
         "টিভি দেখা" to R.string.interest_watching_tv,                                               // Bengali
@@ -3796,6 +3927,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "தொலைக்காட்சி பார்ப்பது" to R.string.interest_watching_tv,                                 // Tamil
         "ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                                            // Kannada
         "టీవీ వీక్షణ" to R.string.interest_watching_tv,                                            // Telugu
+        "Ver televisión" to R.string.interest_watching_tv, // Spanish
 
         "Napping" to R.string.interest_napping,
         "ন্যাপিং" to R.string.interest_napping,                                                      // Bengali
@@ -3803,6 +3935,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கண்மூசப்பொழுது" to R.string.interest_napping,                                              // Tamil
         "ನಾಪಿಂಗ್" to R.string.interest_napping,                                                     // Kannada
         "నాపింగ్" to R.string.interest_napping,                                                     // Telugu
+        "Siestas" to R.string.interest_napping, // Spanish
 
         "Spa days" to R.string.interest_spa_days,
         "স্পা ডে" to R.string.interest_spa_days,                                                     // Bengali
@@ -3810,6 +3943,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "ஸ்பா நாட்கள்" to R.string.interest_spa_days,                                                // Tamil
         "ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                                                 // Kannada
         "స్పా రోజులు" to R.string.interest_spa_days,                                                 // Telugu
+        "Días de spa" to R.string.interest_spa_days, // Spanish
 
         "Beach days" to R.string.interest_beach_days,
         "বিচ ডে" to R.string.interest_beach_days,                                                    // Bengali
@@ -3817,6 +3951,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "கடல் நாட்கள்" to R.string.interest_beach_days,                                               // Tamil
         "ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                                              // Kannada
         "బీచ్ రోజులు" to R.string.interest_beach_days,                                              // Telugu
+        "Días de playa" to R.string.interest_beach_days, // Spanish
 
         "Picnics" to R.string.interest_picnics,
         "পিকনিক" to R.string.interest_picnics,                                                        // Bengali
@@ -3824,6 +3959,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "பட்ஜெட் உணவு" to R.string.interest_picnics,                                                    // Tamil
         "ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                                        // Kannada
         "పిక్నిక్" to R.string.interest_picnics,                                                        // Telugu
+        "Picnics" to R.string.interest_picnics, // Spanish
 
         // Technological & Intellectual
         "Coding" to R.string.interest_coding,
@@ -3832,6 +3968,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "குறியாக்கம்" to R.string.interest_coding,                                                         // Tamil
         "ಕೋಡಿಂಗ್" to R.string.interest_coding,                                                           // Kannada
         "కోడింగ్" to R.string.interest_coding,                                                           // Telugu
+        "Programación" to R.string.interest_coding, // Spanish
 
         "Robotics" to R.string.interest_robotics,
         "রোবোটিক্স" to R.string.interest_robotics,                                                     // Bengali
@@ -3839,6 +3976,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "இயந்திரவியல்" to R.string.interest_robotics,                                                    // Tamil
         "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                                                     // Kannada
         "రోబోటిక్స్" to R.string.interest_robotics,                                                     // Telugu
+        "Robótica" to R.string.interest_robotics, // Spanish
 
         "Space exploration" to R.string.interest_space,
         "মহাকাশ অন্বেষণ" to R.string.interest_space,                                                    // Bengali
@@ -3846,6 +3984,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "வான ஆய்வு" to R.string.interest_space,                                                          // Tamil
         "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,                                                 // Kannada
         "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                                                   // Telugu
+        "Exploración espacial" to R.string.interest_space, // Spanish
 
         "Environmentalism" to R.string.interest_environmentalism,
         "পরিবেশবাদ" to R.string.interest_environmentalism,                                              // Bengali
@@ -3853,6 +3992,7 @@ fun InterestsSectionInProfile(profile: Profile) {
         "சுற்றுச்சூழலியல்" to R.string.interest_environmentalism,                                        // Tamil
         "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,                                               // Kannada
         "పర్యావరణవాదం" to R.string.interest_environmentalism,                                            // Telugu
+        "Ambientalismo" to R.string.interest_environmentalism, // Spanish
 
         // Global Interest
         "Traveling" to R.string.interest_traveling,
@@ -3860,7 +4000,8 @@ fun InterestsSectionInProfile(profile: Profile) {
         "यात्रा" to R.string.interest_traveling,                                                         // Hindi
         "பயணம்" to R.string.interest_traveling,                                                         // Tamil
         "ಪ್ರಯಾಣ" to R.string.interest_traveling,                                                        // Kannada
-        "ప్రయాణం" to R.string.interest_traveling                                                          // Telugu
+        "ప్రయాణం" to R.string.interest_traveling,                                                          // Telugu
+        "Viajar" to R.string.interest_traveling, // Spanish
     )
 
     if (profile.interests.isEmpty()) {
@@ -4753,6 +4894,7 @@ fun InterestsEditSection(
         "பயணம்" to R.string.interest_traveling,       // Tamil
         "ಪ್ರಯಾಣ" to R.string.interest_traveling,      // Kannada
         "ప్రయాణం" to R.string.interest_traveling,     // Telugu
+        "Viajar" to R.string.interest_traveling, // Spanish
 
         "Music" to R.string.interest_music,
         "সঙ্গীত" to R.string.interest_music,           // Bengali
@@ -4760,6 +4902,7 @@ fun InterestsEditSection(
         "இசை" to R.string.interest_music,             // Tamil
         "ಸಂಗೀತ" to R.string.interest_music,           // Kannada
         "సంగీతం" to R.string.interest_music,          // Telugu
+        "Música" to R.string.interest_music, // Spanish
 
         "Food" to R.string.interest_food,
         "খাবার" to R.string.interest_food,             // Bengali
@@ -4767,6 +4910,7 @@ fun InterestsEditSection(
         "உணவு" to R.string.interest_food,              // Tamil
         "ಆಹಾರ" to R.string.interest_food,              // Kannada
         "ఆహారం" to R.string.interest_food,              // Telugu
+        "Comida" to R.string.interest_food, // Spanish
 
         "Sports" to R.string.interest_sports,
         "খেলাধুলা" to R.string.interest_sports,         // Bengali
@@ -4774,6 +4918,7 @@ fun InterestsEditSection(
         "விளையாட்டு" to R.string.interest_sports,      // Tamil
         "ಕ್ರೀಡೆ" to R.string.interest_sports,           // Kannada
         "క్రీడలు" to R.string.interest_sports,          // Telugu
+        "Deportes" to R.string.interest_sports, // Spanish
 
         "Movies" to R.string.interest_movies,
         "সিনেমা" to R.string.interest_movies,            // Bengali
@@ -4781,6 +4926,7 @@ fun InterestsEditSection(
         "சினிமா" to R.string.interest_movies,           // Tamil
         "ಸಿನೆಮಾ" to R.string.interest_movies,           // Kannada
         "సినిమాలు" to R.string.interest_movies,         // Telugu
+        "Películas" to R.string.interest_movies, // Spanish
 
         "Books" to R.string.interest_books,
         "বই" to R.string.interest_books,                // Bengali
@@ -4788,6 +4934,7 @@ fun InterestsEditSection(
         "புத்தகங்கள்" to R.string.interest_books,        // Tamil
         "ಪುಸ್ತಕಗಳು" to R.string.interest_books,         // Kannada
         "పుస్తకాలు" to R.string.interest_books,         // Telugu
+        "Libros" to R.string.interest_books, // Spanish
 
         "Art" to R.string.interest_art,
         "শিল্প" to R.string.interest_art,                // Bengali
@@ -4795,6 +4942,7 @@ fun InterestsEditSection(
         "கலை" to R.string.interest_art,                 // Tamil
         "ಕಲೆ" to R.string.interest_art,                  // Kannada
         "కళ" to R.string.interest_art,                   // Telugu
+        "Arte" to R.string.interest_art, // Spanish
 
         "Photography" to R.string.interest_photography,
         "ফটোগ্রাফি" to R.string.interest_photography,   // Bengali
@@ -4802,6 +4950,7 @@ fun InterestsEditSection(
         "புகைப்படக்கலை" to R.string.interest_photography, // Tamil
         "ಛಾಯಾಯ ukudಕಲೆ" to R.string.interest_photography, // Kannada
         "ఫోటోగ్రఫీ" to R.string.interest_photography,   // Telugu
+        "Fotografía" to R.string.interest_photography, // Spanish
 
         "Gaming" to R.string.interest_gaming,
         "গেমিং" to R.string.interest_gaming,              // Bengali
@@ -4809,6 +4958,7 @@ fun InterestsEditSection(
         "வீடியோ கேமிங்" to R.string.interest_gaming,      // Tamil
         "ಗೇಮಿಂಗ್" to R.string.interest_gaming,            // Kannada
         "వీడియో గేమింగ్" to R.string.interest_gaming,     // Telugu
+        "Gaming" to R.string.interest_gaming, // Spanish
 
         "Fitness" to R.string.interest_fitness,
         "ফিটনেস" to R.string.interest_fitness,            // Bengali
@@ -4816,6 +4966,7 @@ fun InterestsEditSection(
         "உடற்பயிற்சி" to R.string.interest_fitness,       // Tamil
         "ಫಿಟ್ನೆಸ್" to R.string.interest_fitness,            // Kannada
         "ఫిట్నెస్" to R.string.interest_fitness,           // Telugu
+        "Fitness" to R.string.interest_fitness, // Spanish
 
         // Specific Outdoor & Nature
         "Hiking" to R.string.interest_hiking,
@@ -4824,6 +4975,7 @@ fun InterestsEditSection(
         "ஹைக்கிங்" to R.string.interest_hiking,            // Tamil
         "ಹೈಕಿಂಗ್" to R.string.interest_hiking,            // Kannada
         "హైకింగ్" to R.string.interest_hiking,             // Telugu
+        "Senderismo" to R.string.interest_hiking, // Spanish
 
         "Camping" to R.string.interest_camping,
         "ক্যাম্পিং" to R.string.interest_camping,           // Bengali
@@ -4831,6 +4983,7 @@ fun InterestsEditSection(
         "கேம்பிங்" to R.string.interest_camping,            // Tamil
         "ಕ್ಯಾಂಪಿಂಗ್" to R.string.interest_camping,          // Kannada
         "క్యాంపింగ్" to R.string.interest_camping,          // Telugu
+        "Camping" to R.string.interest_camping, // Spanish
 
         "Fishing" to R.string.interest_fishing,
         "মাছ ধরা" to R.string.interest_fishing,            // Bengali
@@ -4838,6 +4991,7 @@ fun InterestsEditSection(
         "மீன் பிடித்தல்" to R.string.interest_fishing,       // Tamil
         "ಫಿಶಿಂಗ್" to R.string.interest_fishing,             // Kannada
         "ఫిషింగ్" to R.string.interest_fishing,              // Telugu
+        "Pesca" to R.string.interest_fishing, // Spanish
 
         "Hunting" to R.string.interest_hunting,
         "শিকার" to R.string.interest_hunting,               // Bengali
@@ -4845,6 +4999,7 @@ fun InterestsEditSection(
         "வேட்டை" to R.string.interest_hunting,              // Tamil
         "ಹಂಟಿಂಗ್" to R.string.interest_hunting,            // Kannada
         "హంటింగ్" to R.string.interest_hunting,             // Telugu
+        "Caza" to R.string.interest_hunting, // Spanish
 
         "Gardening" to R.string.interest_gardening,
         "বাগান করা" to R.string.interest_gardening,         // Bengali
@@ -4852,6 +5007,7 @@ fun InterestsEditSection(
         "தோட்டக்கலை" to R.string.interest_gardening,        // Tamil
         "ತೋಟಗಾರಿಕೆ" to R.string.interest_gardening,         // Kannada
         "తోటపనులు" to R.string.interest_gardening,          // Telugu
+        "Jardinería" to R.string.interest_gardening, // Spanish
 
         // Food & Drink
         "Cooking" to R.string.interest_cooking,
@@ -4860,6 +5016,7 @@ fun InterestsEditSection(
         "சமைத்தல்" to R.string.interest_cooking,            // Tamil
         "ಅಡಿಗೆ" to R.string.interest_cooking,               // Kannada
         "వండటం" to R.string.interest_cooking,               // Telugu
+        "Cocina" to R.string.interest_cooking, // Spanish
 
         "Baking" to R.string.interest_baking,
         "বেকিং" to R.string.interest_baking,                // Bengali
@@ -4867,6 +5024,7 @@ fun InterestsEditSection(
         "அடுக்கு" to R.string.interest_baking,              // Tamil
         "ಬೇಕಿಂಗ್" to R.string.interest_baking,             // Kannada
         "బేకింగ్" to R.string.interest_baking,              // Telugu
+        "Repostería" to R.string.interest_baking, // Spanish
 
         "Wine tasting" to R.string.interest_wine_tasting,
         "ওয়াইন টেস্টিং" to R.string.interest_wine_tasting, // Bengali
@@ -4874,6 +5032,7 @@ fun InterestsEditSection(
         "சாரம் சுவைத்தல்" to R.string.interest_wine_tasting,  // Tamil
         "ವೈನ್ ರುಚಿಸು" to R.string.interest_wine_tasting,    // Kannada
         "వైన్ రుచిచూడడం" to R.string.interest_wine_tasting,  // Telugu
+        "Cata de vinos" to R.string.interest_wine_tasting, // Spanish
 
         "Craft beer" to R.string.interest_craft_beer,
         "ক্রাফ্ট বিয়ার" to R.string.interest_craft_beer,       // Bengali
@@ -4881,6 +5040,7 @@ fun InterestsEditSection(
         "கைவினை மது" to R.string.interest_craft_beer,       // Tamil
         "ಕ್ರಾಫ್ಟ್ ಬಿಯರ್" to R.string.interest_craft_beer,      // Kannada
         "క్రాఫ్ట్ బియర్" to R.string.interest_craft_beer,     // Telugu
+        "Cerveza artesanal" to R.string.interest_craft_beer, // Spanish
 
         "Coffee" to R.string.interest_coffee,
         "কফি" to R.string.interest_coffee,                     // Bengali
@@ -4888,6 +5048,7 @@ fun InterestsEditSection(
         "காபி" to R.string.interest_coffee,                    // Tamil
         "ಕಾಫಿ" to R.string.interest_coffee,                     // Kannada
         "కాఫీ" to R.string.interest_coffee,                     // Telugu
+        "Café" to R.string.interest_coffee, // Spanish
 
         // Wellness & Spiritual
         "Yoga" to R.string.interest_yoga,
@@ -4896,6 +5057,7 @@ fun InterestsEditSection(
         "யோகா" to R.string.interest_yoga,                      // Tamil
         "ಯೋಗ" to R.string.interest_yoga,                       // Kannada
         "యోగ" to R.string.interest_yoga,                       // Telugu
+        "Yoga" to R.string.interest_yoga, // Spanish
 
         "Meditation" to R.string.interest_meditation,
         "ধ্যান" to R.string.interest_meditation,                // Bengali
@@ -4903,6 +5065,7 @@ fun InterestsEditSection(
         "தியானம்" to R.string.interest_meditation,             // Tamil
         "ಧ್ಯಾನ" to R.string.interest_meditation,               // Kannada
         "ధ్యానం" to R.string.interest_meditation,             // Telugu
+        "Meditación" to R.string.interest_meditation, // Spanish
 
         "Astrology" to R.string.interest_astrology,
         "জ্যোতিষ" to R.string.interest_astrology,               // Bengali
@@ -4910,6 +5073,7 @@ fun InterestsEditSection(
         "ஜோதிடம்" to R.string.interest_astrology,             // Tamil
         "ಜ್ಯೋತಿಷ್ಯ" to R.string.interest_astrology,             // Kannada
         "జ్యోతిష్యం" to R.string.interest_astrology,            // Telugu
+        "Astrología" to R.string.interest_astrology, // Spanish
 
         "Romance" to R.string.interest_romance,
         "রোমান্স" to R.string.interest_romance,                // Bengali
@@ -4917,6 +5081,7 @@ fun InterestsEditSection(
         "காதல்" to R.string.interest_romance,                   // Tamil
         "ರೊಮಾಂಸ್" to R.string.interest_romance,                // Kannada
         "రోమాన్స్" to R.string.interest_romance,                 // Telugu
+        "Romance" to R.string.interest_romance, // Spanish
 
         "Crystals" to R.string.interest_crystals,
         "ক্রিস্টালস" to R.string.interest_crystals,             // Bengali
@@ -4924,6 +5089,7 @@ fun InterestsEditSection(
         "கிரிஸ்டல்" to R.string.interest_crystals,               // Tamil
         "ಕ್ರಿಸ್ಟಲ್" to R.string.interest_crystals,               // Kannada
         "క్రిస్టల్" to R.string.interest_crystals,               // Telugu
+        "Cristales" to R.string.interest_crystals, // Spanish
 
         // Style & DIY
         "Vintage clothing" to R.string.interest_vintage_clothing,
@@ -4932,6 +5098,7 @@ fun InterestsEditSection(
         "பழமையான ஆடை" to R.string.interest_vintage_clothing,  // Tamil
         "ವಿಂಟೇಜ್ ಬಟ್ಟೆ" to R.string.interest_vintage_clothing,    // Kannada
         "వింటేజ్ వస్త్రాలు" to R.string.interest_vintage_clothing, // Telugu
+        "Ropa vintage" to R.string.interest_vintage_clothing, // Spanish
 
         "Thrift shopping" to R.string.interest_thrift_shopping,
         "থ্রিফট শপিং" to R.string.interest_thrift_shopping,       // Bengali
@@ -4939,6 +5106,7 @@ fun InterestsEditSection(
         "தள்ளுபடி ஷாப்பிங்" to R.string.interest_thrift_shopping,   // Tamil
         "ಥ್ರಿಫ್ಟ್ ಶಾಪಿಂಗ್" to R.string.interest_thrift_shopping,    // Kannada
         "థ్రిఫ్ట్ షాపింగ్" to R.string.interest_thrift_shopping,    // Telugu
+        "Compras de segunda mano" to R.string.interest_thrift_shopping, // Spanish
 
         "DIY projects" to R.string.interest_diy,
         "ডিআইওয়াই প্রকল্প" to R.string.interest_diy,             // Bengali
@@ -4946,6 +5114,7 @@ fun InterestsEditSection(
         "நீங்கள் செய்து கொள்ளும் திட்டங்கள்" to R.string.interest_diy, // Tamil
         "DIY ಯೋಜನೆಗಳು" to R.string.interest_diy,                  // Kannada
         "DIY ప్రాజెక్టులు" to R.string.interest_diy,               // Telugu
+        "Proyectos DIY" to R.string.interest_diy, // Spanish
 
         "Home improvement" to R.string.interest_home_improvement,
         "গৃহ উন্নয়ন" to R.string.interest_home_improvement,       // Bengali
@@ -4953,6 +5122,7 @@ fun InterestsEditSection(
         "வீட்டுத்துறை மேம்பாடு" to R.string.interest_home_improvement, // Tamil
         "ಮನೆ ಸುಧಾರಣೆ" to R.string.interest_home_improvement,       // Kannada
         "ఇంటిని మెరుగుపరచడం" to R.string.interest_home_improvement, // Telugu
+        "Mejoras del hogar" to R.string.interest_home_improvement, // Spanish
 
         "Interior design" to R.string.interest_interior_design,
         "অভ্যন্তরীண নকশা" to R.string.interest_interior_design,    // Bengali
@@ -4960,6 +5130,7 @@ fun InterestsEditSection(
         "உள்ளமைப்பு வடிவமைப்பு" to R.string.interest_interior_design, // Tamil
         "ಆಂತರಿಕ ವಿನ್ಯಾಸ" to R.string.interest_interior_design,       // Kannada
         "అంతర్గత రూపకల్పన" to R.string.interest_interior_design,    // Telugu
+        "Diseño de interiores" to R.string.interest_interior_design, // Spanish
 
         // Intellectual & Tech
         "History" to R.string.interest_history,
@@ -4968,6 +5139,7 @@ fun InterestsEditSection(
         "வரலாறு" to R.string.interest_history,                      // Tamil
         "ಇತಿಹಾಸ" to R.string.interest_history,                      // Kannada
         "చరిత్ర" to R.string.interest_history,                       // Telugu
+        "Historia" to R.string.interest_history, // Spanish
 
         "Science" to R.string.interest_science,
         "বিজ্ঞান" to R.string.interest_science,                     // Bengali
@@ -4975,6 +5147,7 @@ fun InterestsEditSection(
         "அறிவியல்" to R.string.interest_science,                    // Tamil
         "ವಿಜ್ಞಾನ" to R.string.interest_science,                      // Kannada
         "విజ్ఞానం" to R.string.interest_science,                    // Telugu
+        "Ciencia" to R.string.interest_science, // Spanish
 
         "Philosophy" to R.string.interest_philosophy,
         "দর্শন শাস্ত্র" to R.string.interest_philosophy,             // Bengali
@@ -4982,6 +5155,7 @@ fun InterestsEditSection(
         "தத்துவம்" to R.string.interest_philosophy,                  // Tamil
         "ದರ್ಶನಶಾಸ್ತ್ರ" to R.string.interest_philosophy,              // Kannada
         "తత్వశాస్త్రం" to R.string.interest_philosophy,              // Telugu
+        "Filosofía" to R.string.interest_philosophy, // Spanish
 
         "Politics" to R.string.interest_politics,
         "রাজনীতি" to R.string.interest_politics,                    // Bengali
@@ -4989,6 +5163,7 @@ fun InterestsEditSection(
         "அரசியல்" to R.string.interest_politics,                    // Tamil
         "ರಾಜಕೀಯ" to R.string.interest_politics,                     // Kannada
         "రాజకీయ శాస్త్రం" to R.string.interest_politics,           // Telugu
+        "Política" to R.string.interest_politics, // Spanish
 
         "Economics" to R.string.interest_economics,
         "অর্থনীতি" to R.string.interest_economics,                  // Bengali
@@ -4996,6 +5171,7 @@ fun InterestsEditSection(
         "பொருளாதாரம்" to R.string.interest_economics,               // Tamil
         "ಅರ್ಥಶಾಸ್ತ್ರ" to R.string.interest_economics,                 // Kannada
         "ఆర్థిక శాస్త్రం" to R.string.interest_economics,             // Telugu
+        "Economía" to R.string.interest_economics, // Spanish
 
         "Technology" to R.string.interest_technology,
         "প্রযুক্তি" to R.string.interest_technology,                  // Bengali
@@ -5003,6 +5179,7 @@ fun InterestsEditSection(
         "தொழில்நுட்பம்" to R.string.interest_technology,              // Tamil
         "ತಂತ್ರಜ್ಞಾನ" to R.string.interest_technology,                 // Kannada
         "సాంకేతికత" to R.string.interest_technology,                // Telugu
+        "Tecnología" to R.string.interest_technology, // Spanish
 
         "Coding" to R.string.interest_coding,
         "কোডিং" to R.string.interest_coding,                         // Bengali
@@ -5010,6 +5187,7 @@ fun InterestsEditSection(
         "குறியாக்கம்" to R.string.interest_coding,                     // Tamil
         "ಕೋಡಿಂಗ್" to R.string.interest_coding,                         // Kannada
         "కోడింగ్" to R.string.interest_coding,                         // Telugu
+        "Programación" to R.string.interest_coding, // Spanish
 
         "Robotics" to R.string.interest_robotics,
         "রোবোটিক্স" to R.string.interest_robotics,                   // Bengali
@@ -5017,6 +5195,7 @@ fun InterestsEditSection(
         "இயந்திரவியல்" to R.string.interest_robotics,                // Tamil
         "ರೋಬೋಟಿಕ್ಸ್" to R.string.interest_robotics,                   // Kannada
         "రోబోటిక్స్" to R.string.interest_robotics,                   // Telugu
+        "Robótica" to R.string.interest_robotics, // Spanish
 
         "Space exploration" to R.string.interest_space,
         "মহাকাশ অন্বেষণ" to R.string.interest_space,                  // Bengali
@@ -5024,6 +5203,7 @@ fun InterestsEditSection(
         "வான்கோள் ஆய்வு" to R.string.interest_space,                   // Tamil
         "ಅಂತರಿಕ್ಷ ಅನ್ವೇಷಣೆ" to R.string.interest_space,               // Kannada
         "అంతరిక్ష అన్వేషణ" to R.string.interest_space,                // Telugu
+        "Exploración espacial" to R.string.interest_space, // Spanish
 
         "Environmentalism" to R.string.interest_environmentalism,
         "পরিবেশবাদ" to R.string.interest_environmentalism,            // Bengali
@@ -5031,6 +5211,7 @@ fun InterestsEditSection(
         "சுற்றுச்சூழல் பாதுகாப்பு" to R.string.interest_environmentalism, // Tamil
         "ಪರಿಸರವಾದ" to R.string.interest_environmentalism,             // Kannada
         "పర్యావరణవాదం" to R.string.interest_environmentalism,         // Telugu
+        "Ambientalismo" to R.string.interest_environmentalism, // Spanish
 
         // Social & Community
         "Volunteering" to R.string.interest_volunteering,
@@ -5039,6 +5220,7 @@ fun InterestsEditSection(
         "தன்னார்வ சேவை" to R.string.interest_volunteering,             // Tamil
         "ಸ್ವಯಂಸೇವಾ" to R.string.interest_volunteering,                 // Kannada
         "స్వచ్ఛంద సేవ" to R.string.interest_volunteering,               // Telugu
+        "Voluntariado" to R.string.interest_volunteering, // Spanish
 
         "Charity work" to R.string.interest_charity,
         "দান কার্যক্রম" to R.string.interest_charity,                 // Bengali
@@ -5046,6 +5228,7 @@ fun InterestsEditSection(
         "நன்மை செயல்" to R.string.interest_charity,                    // Tamil
         "ಚಾರಿಟಿ ಕೆಲಸ" to R.string.interest_charity,                    // Kannada
         "దాన పనులు" to R.string.interest_charity,                      // Telugu
+        "Trabajo de caridad" to R.string.interest_charity, // Spanish
 
         "Community organizing" to R.string.interest_community,
         "কমিউনিটি সংগঠন" to R.string.interest_community,              // Bengali
@@ -5053,6 +5236,7 @@ fun InterestsEditSection(
         "சமூக ஏற்பாடு" to R.string.interest_community,                  // Tamil
         "ಸಮುದಾಯ ಸಂಘಟನೆ" to R.string.interest_community,             // Kannada
         "సమాజం నిర్వహణ" to R.string.interest_community,                // Telugu
+        "Organización comunitaria" to R.string.interest_community, // Spanish
 
         "Networking" to R.string.interest_networking,
         "নেটওয়ার্কিং" to R.string.interest_networking,               // Bengali
@@ -5060,6 +5244,7 @@ fun InterestsEditSection(
         "பிணையம்" to R.string.interest_networking,                      // Tamil
         "ನೆಟ್ವರ್ಕಿಂಗ್" to R.string.interest_networking,                  // Kannada
         "నెట్‌వర్కింగ్" to R.string.interest_networking,                 // Telugu
+        "Red de contactos" to R.string.interest_networking, // Spanish
 
         "Public speaking" to R.string.interest_public_speaking,
         "পাবলিক স্পিকিং" to R.string.interest_public_speaking,        // Bengali
@@ -5067,6 +5252,7 @@ fun InterestsEditSection(
         "பொது பேச்சு" to R.string.interest_public_speaking,             // Tamil
         "ಸಾರ್ವಜನಿಕ ಭಾಷಣ" to R.string.interest_public_speaking,       // Kannada
         "పబ్లిక్ స్పీకింగ్" to R.string.interest_public_speaking,       // Telugu
+        "Oratoria" to R.string.interest_public_speaking, // Spanish
 
         "Writing" to R.string.interest_writing,
         "লেখা" to R.string.interest_writing,                          // Bengali
@@ -5074,6 +5260,7 @@ fun InterestsEditSection(
         "எழுத்து" to R.string.interest_writing,                         // Tamil
         "ಲೇಖನ" to R.string.interest_writing,                           // Kannada
         "రాత" to R.string.interest_writing,                             // Telugu
+        "Escritura" to R.string.interest_writing, // Spanish
 
         "Blogging" to R.string.interest_blogging,
         "ব্লগিং" to R.string.interest_blogging,                        // Bengali
@@ -5081,6 +5268,7 @@ fun InterestsEditSection(
         "வலைப்பதிவு" to R.string.interest_blogging,                   // Tamil
         "ಬ್ಲಾಗಿಂಗ್" to R.string.interest_blogging,                      // Kannada
         "బ్లాగింగ్" to R.string.interest_blogging,                      // Telugu
+        "Blogueo" to R.string.interest_blogging, // Spanish
 
         "Podcasting" to R.string.interest_podcasting,
         "পডকাস্টিং" to R.string.interest_podcasting,                   // Bengali
@@ -5088,6 +5276,7 @@ fun InterestsEditSection(
         "பாட்காஸ்டிங்" to R.string.interest_podcasting,                 // Tamil
         "ಪಾಡ್‌ಕಾಸ್ಟಿಂಗ್" to R.string.interest_podcasting,              // Kannada
         "పొడ్కాస్టింగ్" to R.string.interest_podcasting,                // Telugu
+        "Creación de pódcast" to R.string.interest_podcasting, // Spanish
 
         "Social media" to R.string.interest_social_media,
         "সোশ্যাল মিডিয়া" to R.string.interest_social_media,            // Bengali
@@ -5095,142 +5284,162 @@ fun InterestsEditSection(
         "சமூக ஊடகம்" to R.string.interest_social_media,                 // Tamil
         "ಸುದ್ದಿ ಮಾಧ್ಯಮ" to R.string.interest_social_media,                // Kannada
         "సోషల్ మీడియా" to R.string.interest_social_media,             // Telugu
+        "Redes sociales" to R.string.interest_social_media, // Spanish
 
-"Online communities" to R.string.interest_online_communities,
-"অনলাইন কমিউনিটি" to R.string.interest_online_communities,    // Bengali
-"ऑनलाइन समुदाय" to R.string.interest_online_communities,       // Hindi
-"ஆன்லைன் சமூகங்கள்" to R.string.interest_online_communities,      // Tamil
-"ಆನ್‌ಲೈನ್ ಸಮುದಾಯಗಳು" to R.string.interest_online_communities,    // Kannada
-"ఆన్లైన్ కమ్యూనిటీస్" to R.string.interest_online_communities,     // Telugu
+        "Online communities" to R.string.interest_online_communities,
+        "অনলাইন কমিউনিটি" to R.string.interest_online_communities,    // Bengali
+        "ऑनलाइन समुदाय" to R.string.interest_online_communities,       // Hindi
+        "ஆன்லைன் சமூகங்கள்" to R.string.interest_online_communities,      // Tamil
+        "ಆನ್‌ಲೈನ್ ಸಮುದಾಯಗಳು" to R.string.interest_online_communities,    // Kannada
+        "ఆన్లైన్ కమ్యూనిటీస్" to R.string.interest_online_communities,     // Telugu
+        "Comunidades en línea" to R.string.interest_online_communities, // Spanish
 
 // Adventurous & Thrilling
-"Skydiving" to R.string.interest_skydiving,
-"স্কাইডাইভিং" to R.string.interest_skydiving,              // Bengali
-"स्काईडाइविंग" to R.string.interest_skydiving,             // Hindi
-"வான்வீழ்ச்சி" to R.string.interest_skydiving,               // Tamil
-"ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,             // Kannada
-"స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,           // Telugu
+        "Skydiving" to R.string.interest_skydiving,
+        "স্কাইডাইভিং" to R.string.interest_skydiving,              // Bengali
+        "स्काईडाइविंग" to R.string.interest_skydiving,             // Hindi
+        "வான்வீழ்ச்சி" to R.string.interest_skydiving,               // Tamil
+        "ಸ್ಕೈಡೈವಿಂಗ್" to R.string.interest_skydiving,             // Kannada
+        "స్కైవ్‌డైవింగ్" to R.string.interest_skydiving,           // Telugu
+        "Paracaidismo" to R.string.interest_skydiving, // Spanish
 
-"Scuba diving" to R.string.interest_scuba_diving,
-"স্কুবা ডাইভিং" to R.string.interest_scuba_diving,            // Bengali
-"स्कूबा डाइविंग" to R.string.interest_scuba_diving,           // Hindi
-"கடல் உறுள் மூழ்கல்" to R.string.interest_scuba_diving,         // Tamil
-"ಸ್ಕೂಬಾ ಹಾರಣೆ" to R.string.interest_scuba_diving,             // Kannada
-"స్కూబా డైవింగ్" to R.string.interest_scuba_diving,           // Telugu
+        "Scuba diving" to R.string.interest_scuba_diving,
+        "স্কুবা ডাইভিং" to R.string.interest_scuba_diving,            // Bengali
+        "स्कूबा डाइविंग" to R.string.interest_scuba_diving,           // Hindi
+        "கடல் உறுள் மூழ்கல்" to R.string.interest_scuba_diving,         // Tamil
+        "ಸ್ಕೂಬಾ ಹಾರಣೆ" to R.string.interest_scuba_diving,             // Kannada
+        "స్కూబా డైవింగ్" to R.string.interest_scuba_diving,           // Telugu
+        "Buceo" to R.string.interest_scuba_diving, // Spanish
 
-"Rock climbing" to R.string.interest_rock_climbing,
-"রক ক্লাইমিং" to R.string.interest_rock_climbing,             // Bengali
-"रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,          // Hindi
-"சிங்கரிச் ஏறுதல்" to R.string.interest_rock_climbing,          // Tamil
-"ರಾಕ್ ಎರಕ climbing" to R.string.interest_rock_climbing,      // Kannada
-"రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,          // Telugu
+        "Rock climbing" to R.string.interest_rock_climbing,
+        "রক ক্লাইমিং" to R.string.interest_rock_climbing,             // Bengali
+        "रॉक क्लाइम्बिंग" to R.string.interest_rock_climbing,          // Hindi
+        "சிங்கரிச் ஏறுதல்" to R.string.interest_rock_climbing,          // Tamil
+        "ರಾಕ್ ಎರಕ climbing" to R.string.interest_rock_climbing,      // Kannada
+        "రాక్ క్లైంబింగ్" to R.string.interest_rock_climbing,          // Telugu
+        "Escalada" to R.string.interest_rock_climbing, // Spanish
 
-"Surfing" to R.string.interest_surfing,
-"সার্ফিং" to R.string.interest_surfing,                       // Bengali
-"सर्फिंग" to R.string.interest_surfing,                       // Hindi
-"அலைபாய்ச்சி" to R.string.interest_surfing,                     // Tamil
-"ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                      // Kannada
-"సర్ఫింగ్" to R.string.interest_surfing,                       // Telugu
+        "Surfing" to R.string.interest_surfing,
+        "সার্ফিং" to R.string.interest_surfing,                       // Bengali
+        "सर्फिंग" to R.string.interest_surfing,                       // Hindi
+        "அலைபாய்ச்சி" to R.string.interest_surfing,                     // Tamil
+        "ಸರ್ಫಿಂಗ್" to R.string.interest_surfing,                      // Kannada
+        "సర్ఫింగ్" to R.string.interest_surfing,                       // Telugu
+        "Surf" to R.string.interest_surfing, // Spanish
 
-"Skiing" to R.string.interest_skiing,
-"স্কিইং" to R.string.interest_skiing,                          // Bengali
-"स्कीयिंग" to R.string.interest_skiing,                         // Hindi
-"அரிசல் செலுத்துதல்" to R.string.interest_skiing,                // Tamil
-"ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                      // Kannada
-"స్కీయింగ్" to R.string.interest_skiing,                       // Telugu
+        "Skiing" to R.string.interest_skiing,
+        "স্কিইং" to R.string.interest_skiing,                          // Bengali
+        "स्कीयिंग" to R.string.interest_skiing,                         // Hindi
+        "அரிசல் செலுத்துதல்" to R.string.interest_skiing,                // Tamil
+        "ಸ್ಕೀಯಿಂಗ್" to R.string.interest_skiing,                      // Kannada
+        "స్కీయింగ్" to R.string.interest_skiing,                       // Telugu
+        "Esquí" to R.string.interest_skiing, // Spanish
 
-"Snowboarding" to R.string.interest_snowboarding,
-"স্নোবোর্ডিং" to R.string.interest_snowboarding,                // Bengali
-"स्नोबोर्डिंग" to R.string.interest_snowboarding,               // Hindi
-"மஞ்சுப் பலகை சறுக்குதல்" to R.string.interest_snowboarding,       // Tamil
-"ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,             // Kannada
-"స్నోబోర్డింగ్" to R.string.interest_snowboarding,               // Telugu
+        "Snowboarding" to R.string.interest_snowboarding,
+        "স্নোবোর্ডিং" to R.string.interest_snowboarding,                // Bengali
+        "स्नोबोर्डिंग" to R.string.interest_snowboarding,               // Hindi
+        "மஞ்சுப் பலகை சறுக்குதல்" to R.string.interest_snowboarding,       // Tamil
+        "ಸ್ನೋಬೋರ್ಡಿಂಗ್" to R.string.interest_snowboarding,             // Kannada
+        "స్నోబోర్డింగ్" to R.string.interest_snowboarding,               // Telugu
+        "Snowboard" to R.string.interest_snowboarding, // Spanish
 
-"Mountain biking" to R.string.interest_mountain_biking,
-"মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,         // Bengali
-"माउंटेन बाइकिंग" to R.string.interest_mountain_biking,           // Hindi
-"மலை சைக்கிள் ஓட்டுதல்" to R.string.interest_mountain_biking,       // Tamil
-"ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,       // Kannada
-"మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,         // Telugu
+        "Mountain biking" to R.string.interest_mountain_biking,
+        "মাউন্টাইন বাইকিং" to R.string.interest_mountain_biking,         // Bengali
+        "माउंटेन बाइकिंग" to R.string.interest_mountain_biking,           // Hindi
+        "மலை சைக்கிள் ஓட்டுதல்" to R.string.interest_mountain_biking,       // Tamil
+        "ಮೌಂಟೇನ್ ಬೈಕಿಂಗ್" to R.string.interest_mountain_biking,       // Kannada
+        "మౌంటైన్ బైకింగ్" to R.string.interest_mountain_biking,         // Telugu
+        "Ciclismo de montaña" to R.string.interest_mountain_biking, // Spanish
 
-"Motorcycling" to R.string.interest_motorcycling,
-"মোটরসাইক্লিং" to R.string.interest_motorcycling,                  // Bengali
-"मोटरसाइक्लिंग" to R.string.interest_motorcycling,                // Hindi
-"மோட்டார் சைக்கிள் ஓட்டுதல்" to R.string.interest_motorcycling,       // Tamil
-"ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,              // Kannada
-"మోటార్సైక్లింగ్" to R.string.interest_motorcycling,              // Telugu
+        "Motorcycling" to R.string.interest_motorcycling,
+        "মোটরসাইক্লিং" to R.string.interest_motorcycling,                  // Bengali
+        "मोटरसाइक्लिंग" to R.string.interest_motorcycling,                // Hindi
+        "மோட்டார் சைக்கிள் ஓட்டுதல்" to R.string.interest_motorcycling,       // Tamil
+        "ಮೋಟಾರ್ಸೈಕ್ಲಿಂಗ್" to R.string.interest_motorcycling,              // Kannada
+        "మోటార్సైక్లింగ్" to R.string.interest_motorcycling,              // Telugu
+        "Motociclismo" to R.string.interest_motorcycling, // Spanish
 
-"Car racing" to R.string.interest_car_racing,
-"কার রেসিং" to R.string.interest_car_racing,                       // Bengali
-"कार रेसिंग" to R.string.interest_car_racing,                      // Hindi
-"கார் ஓட்டப்போட்டி" to R.string.interest_car_racing,                  // Tamil
-"ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                   // Kannada
-"కార్ రేసింగ్" to R.string.interest_car_racing,                    // Telugu
+        "Car racing" to R.string.interest_car_racing,
+        "কার রেসিং" to R.string.interest_car_racing,                       // Bengali
+        "कार रेसिंग" to R.string.interest_car_racing,                      // Hindi
+        "கார் ஓட்டப்போட்டி" to R.string.interest_car_racing,                  // Tamil
+        "ಕಾರ್ ರೇಸಿಂಗ್" to R.string.interest_car_racing,                   // Kannada
+        "కార్ రేసింగ్" to R.string.interest_car_racing,                    // Telugu
+        "Automovilismo" to R.string.interest_car_racing, // Spanish
 
-"Extreme sports" to R.string.interest_extreme_sports,
-"এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,            // Bengali
-"एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,            // Hindi
-"மிகுந்த விளையாட்டு" to R.string.interest_extreme_sports,             // Tamil
-"ಅತ್ಯಂತ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,                // Kannada
-"అత్యంత క్రీడలు" to R.string.interest_extreme_sports,               // Telugu
+        "Extreme sports" to R.string.interest_extreme_sports,
+        "এক্সট্রিম স্পোর্টস" to R.string.interest_extreme_sports,            // Bengali
+        "एक्सट्रीम स्पोर्ट्स" to R.string.interest_extreme_sports,            // Hindi
+        "மிகுந்த விளையாட்டு" to R.string.interest_extreme_sports,             // Tamil
+        "ಅತ್ಯಂತ ಕ್ರೀಡೆ" to R.string.interest_extreme_sports,                // Kannada
+        "అత్యంత క్రీడలు" to R.string.interest_extreme_sports,               // Telugu
+        "Deportes extremos" to R.string.interest_extreme_sports, // Spanish
 
 // Relaxation & Leisure
-"Puzzles" to R.string.interest_puzzles,
-"ধাঁধা" to R.string.interest_puzzles,                               // Bengali
-"पहेलियाँ" to R.string.interest_puzzles,                            // Hindi
-"முயற்சித்துப் புதிர்கள்" to R.string.interest_puzzles,              // Tamil
-"ಪುಟ들은" to R.string.interest_puzzles,                            // Kannada
-"పజిల్స్" to R.string.interest_puzzles,                              // Telugu
+        "Puzzles" to R.string.interest_puzzles,
+        "ধাঁধা" to R.string.interest_puzzles,                               // Bengali
+        "पहेलियाँ" to R.string.interest_puzzles,                            // Hindi
+        "முயற்சித்துப் புதிர்கள்" to R.string.interest_puzzles,              // Tamil
+        "ಪುಟ들은" to R.string.interest_puzzles,                            // Kannada
+        "పజిల్స్" to R.string.interest_puzzles,                              // Telugu
+        "Rompecabezas" to R.string.interest_puzzles, // Spanish
 
-"Board games" to R.string.interest_board_games,
-"বোর্ড গেমস" to R.string.interest_board_games,                       // Bengali
-"बोर्ड गेम्स" to R.string.interest_board_games,                       // Hindi
-"தகடுப் பந்திகள்" to R.string.interest_board_games,                  // Tamil
-"ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                     // Kannada
-"బోర్డ్ గేమ్స్" to R.string.interest_board_games,                     // Telugu
+        "Board games" to R.string.interest_board_games,
+        "বোর্ড গেমস" to R.string.interest_board_games,                       // Bengali
+        "बोर्ड गेम्स" to R.string.interest_board_games,                       // Hindi
+        "தகடுப் பந்திகள்" to R.string.interest_board_games,                  // Tamil
+        "ಬೋರ್ಡ್ ಗೇಮ್ಸ್" to R.string.interest_board_games,                     // Kannada
+        "బోర్డ్ గేమ్స్" to R.string.interest_board_games,                     // Telugu
+        "Juegos de mesa" to R.string.interest_board_games, // Spanish
 
-"Video games" to R.string.interest_video_games,
-"ভিডিও গেমস" to R.string.interest_video_games,                       // Bengali
-"वीडियो गेम्स" to R.string.interest_video_games,                      // Hindi
-"வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,              // Tamil
-"ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                     // Kannada
-"వీడియో గేమ్స్" to R.string.interest_video_games,                     // Telugu
+        "Video games" to R.string.interest_video_games,
+        "ভিডিও গেমস" to R.string.interest_video_games,                       // Bengali
+        "वीडियो गेम्स" to R.string.interest_video_games,                      // Hindi
+        "வீடியோ விளையாட்டுகள்" to R.string.interest_video_games,              // Tamil
+        "ವೀಡಿಯೊ ಗೇಮ್ಸ್" to R.string.interest_video_games,                     // Kannada
+        "వీడియో గేమ్స్" to R.string.interest_video_games,                     // Telugu
+        "Videojuegos" to R.string.interest_video_games, // Spanish
 
-"Watching TV" to R.string.interest_watching_tv,
-"টিভি দেখা" to R.string.interest_watching_tv,                         // Bengali
-"टीवी देखना" to R.string.interest_watching_tv,                        // Hindi
-"தொலைக்காட்சி பார்க்குதல்" to R.string.interest_watching_tv,           // Tamil
-"ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                       // Kannada
-"టీవీ వీక్షణ" to R.string.interest_watching_tv,                       // Telugu
+        "Watching TV" to R.string.interest_watching_tv,
+        "টিভি দেখা" to R.string.interest_watching_tv,                         // Bengali
+        "टीवी देखना" to R.string.interest_watching_tv,                        // Hindi
+        "தொலைக்காட்சி பார்க்குதல்" to R.string.interest_watching_tv,           // Tamil
+        "ಟಿವಿ ವೀಕ್ಷಣೆ" to R.string.interest_watching_tv,                       // Kannada
+        "టీవీ వీక్షణ" to R.string.interest_watching_tv,                       // Telugu
+        "Ver televisión" to R.string.interest_watching_tv, // Spanish
 
-"Napping" to R.string.interest_napping,
-"ন্যাপিং" to R.string.interest_napping,                                // Bengali
-"नैपिंग" to R.string.interest_napping,                                // Hindi
-"கண்மூசப்போழுது" to R.string.interest_napping,                        // Tamil
-"ನಾಪಿಂಗ್" to R.string.interest_napping,                               // Kannada
-"నాపింగ్" to R.string.interest_napping,                               // Telugu
+        "Napping" to R.string.interest_napping,
+        "ন্যাপিং" to R.string.interest_napping,                                // Bengali
+        "नैपिंग" to R.string.interest_napping,                                // Hindi
+        "கண்மூசப்போழுது" to R.string.interest_napping,                        // Tamil
+        "ನಾಪಿಂಗ್" to R.string.interest_napping,                               // Kannada
+        "నాపింగ్" to R.string.interest_napping,                               // Telugu
+        "Siestas" to R.string.interest_napping, // Spanish
 
-"Spa days" to R.string.interest_spa_days,
-"স্পা ডে" to R.string.interest_spa_days,                               // Bengali
-"स्पा दिन" to R.string.interest_spa_days,                              // Hindi
-"ஸ்பா நாட்கள்" to R.string.interest_spa_days,                          // Tamil
-"ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                           // Kannada
-"స్పా రోజులు" to R.string.interest_spa_days,                            // Telugu
+        "Spa days" to R.string.interest_spa_days,
+        "স্পা ডে" to R.string.interest_spa_days,                               // Bengali
+        "स्पा दिन" to R.string.interest_spa_days,                              // Hindi
+        "ஸ்பா நாட்கள்" to R.string.interest_spa_days,                          // Tamil
+        "ಸ್ಪಾ ದಿನಗಳು" to R.string.interest_spa_days,                           // Kannada
+        "స్పా రోజులు" to R.string.interest_spa_days,                            // Telugu
+        "Días de spa" to R.string.interest_spa_days, // Spanish
 
-"Beach days" to R.string.interest_beach_days,
-"বিচ ডে" to R.string.interest_beach_days,                              // Bengali
-"बीच डे" to R.string.interest_beach_days,                               // Hindi
-"கடல் பலகை நாட்கள்" to R.string.interest_beach_days,                     // Tamil
-"ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                         // Kannada
-"బీచ్ రోజులు" to R.string.interest_beach_days,                           // Telugu
+        "Beach days" to R.string.interest_beach_days,
+        "বিচ ডে" to R.string.interest_beach_days,                              // Bengali
+        "बीच डे" to R.string.interest_beach_days,                               // Hindi
+        "கடல் பலகை நாட்கள்" to R.string.interest_beach_days,                     // Tamil
+        "ಬೀಚ್ ದಿನಗಳು" to R.string.interest_beach_days,                         // Kannada
+        "బీచ్ రోజులు" to R.string.interest_beach_days,                           // Telugu
+        "Días de playa" to R.string.interest_beach_days, // Spanish
 
-"Picnics" to R.string.interest_picnics,
-"পিকনিক" to R.string.interest_picnics,                                 // Bengali
-"पिकनिक" to R.string.interest_picnics,                                 // Hindi
-"புண்ணிய உணவு" to R.string.interest_picnics,                              // Tamil
-"ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                 // Kannada
-"పిక్నిక్" to R.string.interest_picnics,                                 // Telugu
-)
+        "Picnics" to R.string.interest_picnics,
+        "পিকনিক" to R.string.interest_picnics,                                 // Bengali
+        "पिकनिक" to R.string.interest_picnics,                                 // Hindi
+        "புண்ணிய உணவு" to R.string.interest_picnics,                              // Tamil
+        "ಪಿಕ್ನಿಕ್" to R.string.interest_picnics,                                 // Kannada
+        "పిక్నిక్" to R.string.interest_picnics,                                 // Telugu
+        "Picnics" to R.string.interest_picnics, // Spanish
+    )
 
     // 2) Group by resId, pick one rawName per interest
     val availableInterests = remember {
