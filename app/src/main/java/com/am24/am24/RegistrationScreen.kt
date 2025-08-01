@@ -2283,7 +2283,7 @@ fun EnterGenderCommunityReligionScreen(
     LaunchedEffect(isIndian) {
         if (!isIndian) registrationViewModel.community = ""
     }
-    val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), other)
+    val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), stringResource(R.string.gender_either))
     val communityOptions = listOf(
         stringResource(R.string.community_other),
         stringResource(R.string.community_adi),

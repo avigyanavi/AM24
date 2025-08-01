@@ -1,63 +1,63 @@
 <resources>
-        <string name="upgrade_to_plus_to_unlock">Upgrade to Plus to unlock</string>
-        <string name="upgrade_to_premium_to_unlock">Upgrade to Premium to unlock</string>
+    <string name="upgrade_to_plus_to_unlock">Actualiza a Plus para desbloquear</string>
+    <string name="upgrade_to_premium_to_unlock">Actualiza a Premium para desbloquear</string>
 
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
-    <string name="languages">Languages</string>
-    <string name="section_bio_and_voice">Bio</string>
+    <string name="languages">Idiomas</string>
+    <string name="section_bio_and_voice">Biografía</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">
-    You can select up to %1$d social causes only.
+    Solo puedes seleccionar hasta %1$d causas sociales.
     </string>
 
-    <string name="no_education_label">No education</string>
+    <string name="no_education_label">Sin educación</string>
 
-    <string name="total_match_label">Total match: %1$d%%</string>
-    <string name="running_analysis">Running analysis…</string>
-    <string name="strengths">Strengths</string>
-    <string name="concerns">Concerns</string>
-    <string name="notes">Notes</string>
-    <string name="upgrade_to_plus">Upgrade to Plus</string>
+    <string name="total_match_label">Coincidencia total: %1$d%%</string>
+    <string name="running_analysis">Analizando…</string>
+    <string name="strengths">Fortalezas</string>
+    <string name="concerns">Preocupaciones</string>
+    <string name="notes">Notas</string>
+    <string name="upgrade_to_plus">Actualiza a Plus</string>
 
-    <string name="worldwide">Worldwide 🌍</string>
+    <string name="worldwide">Todo el mundo 🌍</string>
 
-    <string name="rating_label">Rating</string>
-    <string name="min_rating">Minimum ⭐ %.1f</string>
+    <string name="rating_label">Calificación</string>
+    <string name="min_rating">Mínima ⭐ %.1f</string>
 
-    <string name="ranking_label">Ranking</string>
-    <string name="top_n_ranking">Top %s profiles</string>
+    <string name="ranking_label">Clasificación</string>
+    <string name="top_n_ranking">Top %s perfiles</string>
 
-    <string name="cd_price_filter">Filter by price</string>
-    <string name="price_all">All</string>
+    <string name="cd_price_filter">Filtrar por precio</string>
+    <string name="price_all">Todos</string>
     <string name="price_1">$</string>
     <string name="price_2">$$</string>
     <string name="price_3">$$$</string>
     <string name="price_4">$$$$</string>
 
     <!-- Generic Location Types (Applicable Across India) -->
-    <string name="tag_budget_hotels">budget hotels</string>
-    <string name="tag_hotels">hotels</string>
-    <string name="tag_cafes">cafes</string>
-    <string name="tag_bars">bars</string>
-    <string name="tag_malls">malls</string>
-    <string name="tag_parks">parks</string>
-    <string name="tag_cinemas">cinemas</string>
-    <string name="tag_restaurants">restaurants</string>
-    <string name="tag_street_food">street food</string>
-    <string name="tag_clubs">clubs</string>
-    <string name="tag_bookstores">bookstores</string>
-    <string name="tag_gaming_centers">gaming centers</string>
-    <string name="tag_amusement_parks">amusement parks</string>
-    <string name="tag_beaches">beaches</string>
-    <string name="tag_museums">museums</string>
-    <string name="tag_national_parks">national parks</string>
-    <string name="tag_zoos">zoos</string>
-    <string name="tag_libraries">libraries</string>
-    <string name="tag_markets">markets</string>
-    <string name="tag_art_galleries">art galleries</string>
-    <string name="tag_lakes">lakes</string>
-    <string name="tag_sports_centers">sports centers</string>
+    <string name="tag_budget_hotels">hoteles económicos</string>
+    <string name="tag_hotels">hoteles</string>
+    <string name="tag_cafes">cafeterías</string>
+    <string name="tag_bars">bares</string>
+    <string name="tag_malls">centros comerciales</string>
+    <string name="tag_parks">parques</string>
+    <string name="tag_cinemas">cines</string>
+    <string name="tag_restaurants">restaurantes</string>
+    <string name="tag_street_food">comida callejera</string>
+    <string name="tag_clubs">clubes</string>
+    <string name="tag_bookstores">librerías</string>
+    <string name="tag_gaming_centers">centros de videojuegos</string>
+    <string name="tag_amusement_parks">parques de atracciones</string>
+    <string name="tag_beaches">playas</string>
+    <string name="tag_museums">museos</string>
+    <string name="tag_national_parks">parques nacionales</string>
+    <string name="tag_zoos">zoológicos</string>
+    <string name="tag_libraries">bibliotecas</string>
+    <string name="tag_markets">mercados</string>
+    <string name="tag_art_galleries">galerías de arte</string>
+    <string name="tag_lakes">lagos</string>
+    <string name="tag_sports_centers">centros deportivos</string>
     <string name="tag_night_markets">night markets</string>
     <string name="tag_food_courts">food courts</string>
 
@@ -76,67 +76,66 @@
     <string name="tag_red_fort">Red Fort</string>
     <string name="tag_jantar_mantar">Jantar Mantar</string>
 
-    <!-- Catch-all for other tags -->
-    <string name="tag_other">other</string>
+    <string name="tag_other">otros</string>
 
-    <string name="age_format">Age: %s</string>
-    <string name="age_only_format">Age: %s</string>
-    <string name="search_matches">Search matches</string>
-    <string name="no_matches_found">No matches found</string>
-    <string name="rate">Rate</string>
-    <string name="no_messages_yet">No messages yet</string>
-    <string name="sent_message">Sent: %s</string>
-    <string name="seen_status">✔✔ Seen</string>
-    <string name="delivered_status">✔ Delivered</string>
-    <string name="your_rating">Your Rating: %s</string>
-    <string name="scroll_to_top">Scroll to Top</string>
+    <string name="age_format">Edad: %s</string>
+    <string name="age_only_format">Edad: %s</string>
+    <string name="search_matches">Buscar coincidencias</string>
+    <string name="no_matches_found">No se encontraron coincidencias</string>
+    <string name="rate">Valorar</string>
+    <string name="no_messages_yet">Aún no hay mensajes</string>
+    <string name="sent_message">Enviado: %s</string>
+    <string name="seen_status">✔✔ Visto</string>
+    <string name="delivered_status">✔ Entregado</string>
+    <string name="your_rating">Tu valoración: %s</string>
+    <string name="scroll_to_top">Volver arriba</string>
 
-    <string name="logo_kupidx_desc">KupidX Logo</string>
-    <string name="date">Swipe</string>
-    <string name="map">Map</string>
+    <string name="logo_kupidx_desc">Logotipo de KupidX</string>
+    <string name="date">Deslizar</string>
+    <string name="map">Mapa</string>
     <string name="chat">Chat</string>
-    <string name="feed">Feed</string>
-    <string name="profile">Profile</string>
-    <string name="error_location_not_available">User location not available</string>
+    <string name="feed">Inicio</string>
+    <string name="profile">Perfil</string>
+    <string name="error_location_not_available">Ubicación del usuario no disponible</string>
 
     <!-- Bottom-navigation -->
-    <string name="nav_date">Date</string>
-    <string name="nav_map">Map</string>
+    <string name="nav_date">Deslizar</string>
+    <string name="nav_map">Mapa</string>
     <string name="nav_chat">Chat</string>
-    <string name="nav_feed">Feed</string>
-    <string name="nav_profile">Profile</string>
+    <string name="nav_feed">Inicio</string>
+    <string name="nav_profile">Perfil</string>
 
     <!-- Top-bar / actions -->
-    <string name="cd_leaderboard">Leaderboard</string>
-    <string name="cd_location_settings">Location Settings</string>
-    <string name="cd_for_you">For You</string>
-    <string name="cd_create_post">Create Post</string>
-    <string name="cd_user_settings">User Settings</string>
-    <string name="cd_logout">Logout</string>
-    <string name="cd_notifications">Notifications</string>
+    <string name="cd_leaderboard">Tabla de clasificación</string>
+    <string name="cd_location_settings">Configuración de ubicación</string>
+    <string name="cd_for_you">Para ti</string>
+    <string name="cd_create_post">Crear publicación</string>
+    <string name="cd_user_settings">Ajustes de usuario</string>
+    <string name="cd_logout">Cerrar sesión</string>
+    <string name="cd_notifications">Notificaciones</string>
 
     <!-- Location-visibility dialog -->
-    <string name="dialog_location_title">Location Visibility Settings</string>
-    <string name="lbl_visible_to_matches">Visible to Matches</string>
-    <string name="btn_save">Save</string>
+    <string name="dialog_location_title">Configuración de visibilidad de la ubicación</string>
+    <string name="lbl_visible_to_matches">Visible para tus coincidencias</string>
+    <string name="btn_save">Guardar</string>
 
-    <string name="hint_type_message">Type a message…</string>
-    <string name="btn_language">Language</string>
-    <string name="btn_suggestions">Suggestions</string>
-    <string name="btn_places">Places</string>
-    <string name="btn_record_voice">Record voice</string>
-    <string name="btn_stop_recording">Stop recording</string>
-    <string name="btn_pick_photo">Pick photo</string>
-    <string name="btn_pick_video">Pick video</string>
-    <string name="btn_capture_photo">Capture photo</string>
-    <string name="btn_capture_video">Capture video</string>
-    <string name="lbl_topics">Topics</string>
-    <string name="lbl_activities">Activities</string>
-    <string name="lbl_tips">Tips</string>
-    <string name="no_suggestions">No suggestions</string>
-    <string name="get_suggestions">Get Suggestions</string>
-    <string name="typing">Typing</string>
-    <string name="recording_left">Recording… Time left: %1$ds</string>
+    <string name="hint_type_message">Escribe un mensaje…</string>
+    <string name="btn_language">Idioma</string>
+    <string name="btn_suggestions">Sugerencias</string>
+    <string name="btn_places">Lugares</string>
+    <string name="btn_record_voice">Grabar voz</string>
+    <string name="btn_stop_recording">Detener grabación</string>
+    <string name="btn_pick_photo">Seleccionar foto</string>
+    <string name="btn_pick_video">Seleccionar video</string>
+    <string name="btn_capture_photo">Tomar foto</string>
+    <string name="btn_capture_video">Grabar video</string>
+    <string name="lbl_topics">Temas</string>
+    <string name="lbl_activities">Actividades</string>
+    <string name="lbl_tips">Consejos</string>
+    <string name="no_suggestions">No hay sugerencias</string>
+    <string name="get_suggestions">Obtener sugerencias</string>
+    <string name="typing">Escribiendo</string>
+    <string name="recording_left">Grabando… Tiempo restante: %1$ds</string>
 
     <!-- more education -->
     <!-- ─── Engineering Colleges ────────────────────────────────── -->
@@ -224,578 +223,573 @@
     <string name="college_st_xaviers_mumbai">St. Xavier’s College, Mumbai</string>
 
     <!-- Interests -->
-
-    <!-- GLOBAL interests -->
-    <string name="interest_food">Food</string>
-    <string name="interest_nature">Nature</string>
+    <string name="interest_food">Comida</string>
+    <string name="interest_nature">Naturaleza</string>
     <!-- ───── Global interests ───── -->
-    <string name="interest_music">Music</string>
-    <string name="interest_movies">Movies</string>
-    <string name="interest_sports">Sports</string>
-    <string name="interest_books">Books</string>
-    <string name="interest_travel">Travel</string>
+    <string name="interest_music">Música</string>
+    <string name="interest_movies">Películas</string>
+    <string name="interest_sports">Deportes</string>
+    <string name="interest_books">Libros</string>
+    <string name="interest_travel">Viajes</string>
     <string name="interest_fitness">Fitness</string>
-    <string name="interest_art">Art</string>
+    <string name="interest_art">Arte</string>
     <string name="interest_gaming">Gaming</string>
-    <string name="interest_photography">Photography</string>
-    <string name="interest_cooking">Cooking</string>
-    <string name="interest_dancing">Dancing</string>
-    <string name="interest_gardening">Gardening</string>
-    <string name="interest_technology">Technology</string>
-    <string name="interest_fashion">Fashion</string>
-    <string name="interest_volunteering">Volunteering</string>
-    <string name="interest_pets">Pets &amp; Animals</string>
-    <string name="interest_charity">Charity work</string>
-    <string name="interest_community">Community organizing</string>
-    <string name="interest_networking">Networking</string>
-    <string name="interest_public_speaking">Public speaking</string>
-    <string name="interest_writing">Writing</string>
-    <string name="interest_blogging">Blogging</string>
-    <string name="interest_podcasting">Podcasting</string>
-    <string name="interest_social_media">Social media</string>
-    <string name="interest_online_communities">Online communities</string>
+    <string name="interest_photography">Fotografía</string>
+    <string name="interest_cooking">Cocina</string>
+    <string name="interest_dancing">Baile</string>
+    <string name="interest_gardening">Jardinería</string>
+    <string name="interest_technology">Tecnología</string>
+    <string name="interest_fashion">Moda</string>
+    <string name="interest_volunteering">Voluntariado</string>
+    <string name="interest_pets">Mascotas y animales</string>
+    <string name="interest_charity">Trabajo de caridad</string>
+    <string name="interest_community">Organización comunitaria</string>
+    <string name="interest_networking">Red de contactos</string>
+    <string name="interest_public_speaking">Oratoria</string>
+    <string name="interest_writing">Escritura</string>
+    <string name="interest_blogging">Blogueo</string>
+    <string name="interest_podcasting">Creación de pódcast</string>
+    <string name="interest_social_media">Redes sociales</string>
+    <string name="interest_online_communities">Comunidades en línea</string>
 
-    <string name="interest_skydiving">Skydiving</string>
-    <string name="interest_scuba_diving">Scuba diving</string>
-    <string name="interest_rock_climbing">Rock climbing</string>
-    <string name="interest_surfing">Surfing</string>
-    <string name="interest_skiing">Skiing</string>
-    <string name="interest_snowboarding">Snowboarding</string>
-    <string name="interest_mountain_biking">Mountain biking</string>
-    <string name="interest_motorcycling">Motorcycling</string>
-    <string name="interest_car_racing">Car racing</string>
-    <string name="interest_extreme_sports">Extreme sports</string>
+    <string name="interest_skydiving">Paracaidismo</string>
+    <string name="interest_scuba_diving">Buceo</string>
+    <string name="interest_rock_climbing">Escalada</string>
+    <string name="interest_surfing">Surf</string>
+    <string name="interest_skiing">Esquí</string>
+    <string name="interest_snowboarding">Snowboard</string>
+    <string name="interest_mountain_biking">Ciclismo de montaña</string>
+    <string name="interest_motorcycling">Motociclismo</string>
+    <string name="interest_car_racing">Automovilismo</string>
+    <string name="interest_extreme_sports">Deportes extremos</string>
 
-    <string name="interest_puzzles">Puzzles</string>
-    <string name="interest_board_games">Board games</string>
-    <string name="interest_video_games">Video games</string>
-    <string name="interest_watching_tv">Watching TV</string>
-    <string name="interest_napping">Napping</string>
-    <string name="interest_spa_days">Spa days</string>
-    <string name="interest_beach_days">Beach days</string>
+    <string name="interest_puzzles">Rompecabezas</string>
+    <string name="interest_board_games">Juegos de mesa</string>
+    <string name="interest_video_games">Videojuegos</string>
+    <string name="interest_watching_tv">Ver televisión</string>
+    <string name="interest_napping">Siestas</string>
+    <string name="interest_spa_days">Días de spa</string>
+    <string name="interest_beach_days">Días de playa</string>
     <string name="interest_picnics">Picnics</string>
 
-    <string name="interest_coding">Coding</string>
-    <string name="interest_robotics">Robotics</string>
-    <string name="interest_space">Space exploration</string>
-    <string name="interest_environmentalism">Environmentalism</string>
+    <string name="interest_coding">Programación</string>
+    <string name="interest_robotics">Robótica</string>
+    <string name="interest_space">Exploración espacial</string>
+    <string name="interest_environmentalism">Ambientalismo</string>
 
-    <string name="interest_baking">Baking</string>
-    <string name="interest_wine_tasting">Wine tasting</string>
-    <string name="interest_craft_beer">Craft beer</string>
-    <string name="interest_coffee">Coffee</string>
+    <string name="interest_baking">Repostería</string>
+    <string name="interest_wine_tasting">Cata de vinos</string>
+    <string name="interest_craft_beer">Cerveza artesanal</string>
+    <string name="interest_coffee">Café</string>
 
     <string name="interest_yoga">Yoga</string>
-    <string name="interest_meditation">Meditation</string>
-    <string name="interest_astrology">Astrology</string>
+    <string name="interest_meditation">Meditación</string>
+    <string name="interest_astrology">Astrología</string>
     <string name="interest_romance">Romance</string>
-    <string name="interest_crystals">Crystals</string>
+    <string name="interest_crystals">Cristales</string>
 
-    <string name="interest_vintage_clothing">Vintage clothing</string>
-    <string name="interest_thrift_shopping">Thrift shopping</string>
-    <string name="interest_diy">DIY projects</string>
-    <string name="interest_home_improvement">Home improvement</string>
-    <string name="interest_interior_design">Interior design</string>
+    <string name="interest_vintage_clothing">Ropa vintage</string>
+    <string name="interest_thrift_shopping">Compras de segunda mano</string>
+    <string name="interest_diy">Proyectos DIY</string>
+    <string name="interest_home_improvement">Mejoras del hogar</string>
+    <string name="interest_interior_design">Diseño de interiores</string>
 
-    <string name="interest_history">History</string>
-    <string name="interest_science">Science</string>
-    <string name="interest_philosophy">Philosophy</string>
-    <string name="interest_politics">Politics</string>
-    <string name="interest_economics">Economics</string>
+    <string name="interest_history">Historia</string>
+    <string name="interest_science">Ciencia</string>
+    <string name="interest_philosophy">Filosofía</string>
+    <string name="interest_politics">Política</string>
+    <string name="interest_economics">Economía</string>
 
-    <string name="interest_hiking">Hiking</string>
+    <string name="interest_hiking">Senderismo</string>
     <string name="interest_camping">Camping</string>
-    <string name="interest_fishing">Fishing</string>
-    <string name="interest_hunting">Hunting</string>
+    <string name="interest_fishing">Pesca</string>
+    <string name="interest_hunting">Caza</string>
 
-    <string name="interest_traveling">Traveling</string>
-
+    <string name="interest_traveling">Viajar</string>
 
     <string name="match_summary_format">
-        Total Match: %1$d%%\nBreakdown:\n%2$s
+        Total de coincidencia: %1$d%%\nDesglose:\n%2$s
     </string>
 
-    <string name="enter_your_personal_details">Enter your personal details</string>
+    <string name="enter_your_personal_details">Introduce tus datos personales</string>
 
-    <string name="jan">Jan</string>
+    <string name="jan">Ene</string>
     <string name="feb">Feb</string>
     <string name="mar">Mar</string>
-    <string name="apr">Apr</string>
+    <string name="apr">Abr</string>
     <string name="may">May</string>
     <string name="jun">Jun</string>
     <string name="jul">Jul</string>
-    <string name="aug">Aug</string>
+    <string name="aug">Ago</string>
     <string name="sep">Sep</string>
     <string name="oct">Oct</string>
     <string name="nov">Nov</string>
-    <string name="dec">Dec</string>
+    <string name="dec">Dic</string>
 
     <!-- ProfileScreen -->
     <!-- GENERAL / COMMON -->
-    <string name="edit">Edit</string>
-    <string name="cancel_edit">Cancel Edit</string>
-    <string name="not_set">Not set</string>
+    <string name="edit">Editar</string>
+    <string name="cancel_edit">Cancelar edición</string>
+    <string name="not_set">Sin establecer</string>
 
-    <!-- PROFILE SCREEN TOP‑LEVEL -->
-    <string name="profile_loading">Loading your profile…</string>
-    <string name="looking_for_label">Looking For</string>
-
+    <!-- PROFILE SCREEN TOP-LEVEL -->
+    <string name="profile_loading">Cargando tu perfil…</string>
+    <string name="looking_for_label">Lo que buscas</string>
 
     <!-- VERIFICATION BADGE -->
-    <string name="verified_profile_cd">Verified profile</string>
-    <string name="verify_profile_cd">Verify profile</string>
+    <string name="verified_profile_cd">Perfil verificado</string>
+    <string name="verify_profile_cd">Verificar perfil</string>
 
     <!-- Lifestyle -->
-    <string name="family_information">Family Information</string>
-    <string name="add">Add</string>
+    <string name="family_information">Información familiar</string>
+    <string name="add">Agregar</string>
 
-    <string name="select_looking_for">Select Looking For</string>
-    <string name="looking_for_marriage">Marriage</string>
-    <string name="looking_for_partner">Partner</string>
-    <string name="looking_for_connection">Connection</string>
+    <string name="select_looking_for">Selecciona lo que buscas</string>
+    <string name="looking_for_marriage">Matrimonio</string>
+    <string name="looking_for_partner">Pareja</string>
+    <string name="looking_for_connection">Conexión</string>
     <string name="looking_for_romance">Romance</string>
-    <string name="looking_for_not_selected">Not Selected</string>
+    <string name="looking_for_not_selected">No seleccionado</string>
 
-    <string name="very_high">Very High</string>
-    <string name="high">High</string>
-    <string name="moderate">Moderate</string>
-    <string name="low">Low</string>
-    <string name="inactive">Inactive</string>
+    <string name="very_high">Muy alto</string>
+    <string name="high">Alto</string>
+    <string name="moderate">Moderado</string>
+    <string name="low">Bajo</string>
+    <string name="inactive">Inactivo</string>
 
-    <string name="extremely_introverted">Extremely Introverted</string>
-    <string name="very_introverted">Very Introverted</string>
-    <string name="moderately_introverted">Moderately Introverted</string>
-    <string name="slightly_introverted">Slightly Introverted</string>
-    <string name="not_introverted">Not Introverted</string>
+    <string name="extremely_introverted">Extremadamente introvertido</string>
+    <string name="very_introverted">Muy introvertido</string>
+    <string name="moderately_introverted">Moderadamente introvertido</string>
+    <string name="slightly_introverted">Ligeramente introvertido</string>
+    <string name="not_introverted">Nada introvertido</string>
 
-    <string name="sports_fanatic">Sports Fanatic</string>
-    <string name="sports_enthusiast">Sports Enthusiast</string>
-    <string name="occasional_player">Occasional Player</string>
-    <string name="casual_viewer">Casual Viewer</string>
-    <string name="non_sports">Non‑Sports</string>
+    <string name="sports_fanatic">Fanático de los deportes</string>
+    <string name="sports_enthusiast">Entusiasta de los deportes</string>
+    <string name="occasional_player">Jugador ocasional</string>
+    <string name="casual_viewer">Espectador casual</string>
+    <string name="non_sports">No practica deportes</string>
 
-    <string name="community_leader">Community Leader</string>
-    <string name="community_oriented">Community Oriented</string>
-    <string name="occasionally_involved">Occasionally Involved</string>
-    <string name="individualistic">Individualistic</string>
+    <string name="community_leader">Líder comunitario</string>
+    <string name="community_oriented">Orientado a la comunidad</string>
+    <string name="occasionally_involved">Ocasionalmente involucrado</string>
+    <string name="individualistic">Individualista</string>
 
-    <string name="politically_engaged">Politically Engaged</string>
-    <string name="aware">Aware</string>
-    <string name="occasionally_aware">Occasionally Aware</string>
-    <string name="unaware">Unaware</string>
+    <string name="politically_engaged">Comprometido políticamente</string>
+    <string name="aware">Consciente</string>
+    <string name="occasionally_aware">Ocasionalmente consciente</string>
+    <string name="unaware">Poco consciente</string>
 
-    <string name="tell_us_more_about_yourself">Tell us more about yourself</string>
-    <string name="enter_custom_value">Enter custom value</string>
+    <string name="tell_us_more_about_yourself">Cuéntanos más sobre ti</string>
+    <string name="enter_custom_value">Ingresa un valor personalizado</string>
 
     <string name="gourmet">Gourmet</string>
-    <string name="passionate_foodie">Passionate Foodie</string>
+    <string name="passionate_foodie">Amante de la comida apasionado</string>
     <string name="foodie">Foodie</string>
-    <string name="occasional_foodie">Occasional Foodie</string>
-    <string name="not_a_foodie">Not a Foodie</string>
+    <string name="occasional_foodie">Foodie ocasional</string>
+    <string name="not_a_foodie">No soy foodie</string>
 
-    <string name="eco_champion">Eco‑Champion</string>
-    <string name="eco_friendly">Eco‑Friendly</string>
-    <string name="occasionally_conscious">Occasionally Conscious</string>
-    <string name="not_conscious">Not Conscious</string>
+    <string name="eco_champion">Campeón ecológico</string>
+    <string name="eco_friendly">Amigable con el medio ambiente</string>
+    <string name="occasionally_conscious">Ocasionalmente consciente</string>
+    <string name="not_conscious">No consciente</string>
 
-    <string name="high_ambitious">Highly Ambitious</string>
-    <string name="ambitious">Ambitious</string>
-    <string name="occasionally_driven">Occasionally Driven</string>
-    <string name="relaxed">Relaxed</string>
+    <string name="high_ambitious">Muy ambicioso</string>
+    <string name="ambitious">Ambicioso</string>
+    <string name="occasionally_driven">Ocasionalmente motivado</string>
+    <string name="relaxed">Relajado</string>
 
-    <string name="life_of_the_party">Life of the Party</string>
-    <string name="humorous">Humorous</string>
-    <string name="somewhat_easygoing">Somewhat Easygoing</string>
-    <string name="serious">Serious</string>
+    <string name="life_of_the_party">Alma de la fiesta</string>
+    <string name="humorous">Con sentido del humor</string>
+    <string name="somewhat_easygoing">Algo relajado</string>
+    <string name="serious">Serio</string>
 
-    <string name="lifestyle_humor">Going Out</string>
+    <string name="lifestyle_humor">Salir</string>
 
-    <string name="deeply_mindful">Deeply Mindful</string>
-    <string name="spiritual">Spiritual</string>
-    <string name="occasionally_mindful">Occasionally Mindful</string>
-    <string name="not_spiritual">Not Spiritual</string>
+    <string name="deeply_mindful">Profundamente consciente</string>
+    <string name="spiritual">Espiritual</string>
+    <string name="occasionally_mindful">Ocasionalmente consciente</string>
+    <string name="not_spiritual">Nada espiritual</string>
 
-    <string name="peak_fitness">Peak Fitness</string>
-    <string name="athletic">Athletic</string>
-    <string name="fit">Fit</string>
-    <string name="somewhat_fit">Somewhat Fit</string>
-    <string name="sedentary">Sedentary</string>
+    <string name="peak_fitness">Máxima forma física</string>
+    <string name="athletic">Atlético</string>
+    <string name="fit">En forma</string>
+    <string name="somewhat_fit">Algo en forma</string>
+    <string name="sedentary">Sedentario</string>
 
-    <string name="artistic_genius">Artistic Genius</string>
-    <string name="very_creative">Very Creative</string>
-    <string name="creative">Creative</string>
-    <string name="somewhat_creative">Somewhat Creative</string>
-    <string name="not_creative">Not Creative</string>
+    <string name="artistic_genius">Genio artístico</string>
+    <string name="very_creative">Muy creativo</string>
+    <string name="creative">Creativo</string>
+    <string name="somewhat_creative">Algo creativo</string>
+    <string name="not_creative">Nada creativo</string>
 
-    <string name="philosopher">Philosopher</string>
-    <string name="intellectual">Intellectual</string>
-    <string name="knowledge_seeker">Knowledge Seeker</string>
-    <string name="inquisitive">Inquisitive</string>
-    <string name="casual_thinker">Casual Thinker</string>
+    <string name="philosopher">Filósofo</string>
+    <string name="intellectual">Intelectual</string>
+    <string name="knowledge_seeker">Buscador de conocimiento</string>
+    <string name="inquisitive">Inquisitivo</string>
+    <string name="casual_thinker">Pensador casual</string>
 
-    <string name="thrill_seeker">Thrill Seeker</string>
-    <string name="adventurous">Adventurous</string>
-    <string name="moderately_adventurous">Moderately Adventurous</string>
-    <string name="slightly_adventurous">Slightly Adventurous</string>
-    <string name="cautious">Cautious</string>
+    <string name="thrill_seeker">Buscador de emociones</string>
+    <string name="adventurous">Aventurero</string>
+    <string name="moderately_adventurous">Moderadamente aventurero</string>
+    <string name="slightly_adventurous">Ligeramente aventurero</string>
+    <string name="cautious">Cauto</string>
 
-    <string name="late_night_enthusiast">Late Night Enthusiast</string>
-    <string name="night_owl">Night Owl</string>
-    <string name="morning_person">Morning Person</string>
-    <string name="early_riser">Early Riser</string>
+    <string name="late_night_enthusiast">Entusiasta nocturno</string>
+    <string name="night_owl">Noctámbulo</string>
+    <string name="morning_person">Persona matutina</string>
+    <string name="early_riser">Madrugador</string>
 
-    <string name="very_family_oriented">Very Family‑Oriented</string>
-    <string name="more_family_oriented">More Family‑Oriented</string>
-    <string name="slightly_family_oriented">Slightly Family‑Oriented</string>
-    <string name="independent">Independent</string>
+    <string name="very_family_oriented">Muy familiar</string>
+    <string name="more_family_oriented">Más familiar</string>
+    <string name="slightly_family_oriented">Ligeramente familiar</string>
+    <string name="independent">Independiente</string>
 
-    <string name="very_active">Very Active</string>
-    <string name="active">Active</string>
-    <string name="moderately_active">Moderately Active</string>
-    <string name="rarely_active">Rarely Active</string>
+    <string name="very_active">Muy activo</string>
+    <string name="active">Activo</string>
+    <string name="moderately_active">Moderadamente activo</string>
+    <string name="rarely_active">Rara vez activo</string>
+    <string name="non_drinker">Abstemio</string>
 
-    <string name="more_life_oriented">More Life‑Oriented</string>
-    <string name="more_work_oriented">More Work‑Oriented</string>
-    <string name="workaholic">Workaholic</string>
+    <string name="more_life_oriented">Más orientado a la vida</string>
+    <string name="more_work_oriented">Más orientado al trabajo</string>
+    <string name="workaholic">Adicto al trabajo</string>
 
     <string name="influencer">Influencer</string>
-    <string name="engager">Engager</string>
-    <string name="casual_participant">Casual Participant</string>
-    <string name="watcher">Watcher</string>
+    <string name="engager">Participativo</string>
+    <string name="casual_participant">Participante casual</string>
+    <string name="watcher">Observador</string>
     <string name="invisible">Invisible</string>
 
-    <string name="very_outdoorsy">Very Outdoorsy</string>
-    <string name="mostly_outdoorsy">Mostly Outdoorsy</string>
-    <string name="mostly_indoorsy">Mostly Indoorsy</string>
-    <string name="very_indoorsy">Very Indoorsy</string>
+    <string name="very_outdoorsy">Muy de exteriores</string>
+    <string name="mostly_outdoorsy">Más de exteriores</string>
+    <string name="mostly_indoorsy">Más de interiores</string>
+    <string name="very_indoorsy">Muy de interiores</string>
 
-    <string name="heavy_drinker">Heavy Drinker</string>
-    <string name="frequent_drinker">Frequent Drinker</string>
-    <string name="social_drinker">Social Drinker</string>
-    <string name="rare_drinker">Rare Drinker</string>
-    <string name="non_drinker">Non‑Drinker</string>
+    <string name="heavy_drinker">Bebedor empedernido</string>
+    <string name="frequent_drinker">Bebedor frecuente</string>
+    <string name="social_drinker">Bebedor social</string>
+    <string name="rare_drinker">Bebedor ocasional</string>
 
-    <string name="heavy_smoker">Heavy Smoker</string>
-    <string name="frequent_smoker">Frequent Smoker</string>
-    <string name="social_smoker">Social Smoker</string>
-    <string name="rare_smoker">Rare Smoker</string>
-    <string name="non_smoker">Non‑Smoker</string>
+    <string name="heavy_smoker">Fumador empedernido</string>
+    <string name="frequent_smoker">Fumador frecuente</string>
+    <string name="social_smoker">Fumador social</string>
+    <string name="rare_smoker">Fumador ocasional</string>
+    <string name="non_smoker">No fumador</string>
 
-    <string name="record_voice_bio">Record Voice Bio</string>
-    <string name="edit_voice_bio">Edit Voice Bio</string>
+    <string name="record_voice_bio">Grabar biografía de voz</string>
+    <string name="edit_voice_bio">Editar biografía de voz</string>
 
     <!-- MATRIMONY TOGGLE & CARD -->
-    <string name="matrimony_mode">Marriage Dropdown</string>
-    <string name="matrimony_marriage_timeline">Marriage Timeline</string>
-    <string name="matrimony_relocation_preference">Relocation Preference</string>
-    <string name="matrimony_post_marriage_career_plan">Post‑Marriage Career Plan</string>
-    <string name="matrimony_traditional_vs_liberal">Traditional vs. Liberal</string>
-    <string name="matrimony_father_occupation">Father Occupation</string>
-    <string name="matrimony_mother_occupation">Mother Occupation</string>
-    <string name="edit_matrimony_info_cd">Edit Matrimony Info</string>
+    <string name="matrimony_mode">Desplegable de matrimonio</string>
+    <string name="matrimony_marriage_timeline">Cronograma de matrimonio</string>
+    <string name="matrimony_relocation_preference">Preferencia de reubicación</string>
+    <string name="matrimony_post_marriage_career_plan">Plan de carrera tras el matrimonio</string>
+    <string name="matrimony_traditional_vs_liberal">Tradicional vs. liberal</string>
+    <string name="matrimony_father_occupation">Ocupación del padre</string>
+    <string name="matrimony_mother_occupation">Ocupación de la madre</string>
+    <string name="edit_matrimony_info_cd">Editar información de matrimonio</string>
 
     <!-- PHOTO CAROUSEL OVERLAY -->
-    <string name="from_hometown">From %1$s</string>
-    <string name="posts_button">Posts</string>
-    <string name="edit_profile_cd">Edit Profile</string>
+    <string name="from_hometown">De %1$s</string>
+    <string name="posts_button">Publicaciones</string>
+    <string name="edit_profile_cd">Editar perfil</string>
 
     <!-- PROFILE COMPLETION -->
-    <string name="profile_percent">Profile %1$d%%</string>
+    <string name="profile_percent">Perfil %1$d%%</string>
 
     <!-- COLLAPSIBLE SECTION TITLES -->
-    <string name="section_matrimony_info">Matrimony Info</string>
-    <string name="section_bio">Bio</string>
-    <string name="section_voice_bio">Voice Bio</string>
-    <string name="section_basic_information">Basic Information</string>
-    <string name="section_preferences">Preferences</string>
-    <string name="section_social_causes">Social Causes</string>
-    <string name="section_lifestyle_attributes">Lifestyle Attributes</string>
-    <string name="section_interests">Interests</string>
+    <string name="section_matrimony_info">Información de matrimonio</string>
+    <string name="section_bio">Biografía</string>
+    <string name="section_voice_bio">Biografía de voz</string>
+    <string name="section_basic_information">Información básica</string>
+    <string name="section_preferences">Preferencias</string>
+    <string name="section_social_causes">Causas sociales</string>
+    <string name="section_lifestyle_attributes">Atributos de estilo de vida</string>
+    <string name="section_interests">Intereses</string>
 
-    <string name="settings_change_location">Change Location</string>
-    <string name="settings_select_location">Select your Location</string>
-    <string name="settings_membership">Membership</string>
-    <string name="settings_free_user">Free User</string>
-    <string name="settings_give_feedback">Give Feedback</string>
-    <string name="settings_policies_support">Policies &amp; Support</string>
-    <string name="settings_delete_account">Delete Account</string>
-    <string name="settings_account_settings">Account Settings</string>
-    <string name="settings_change_password">Change Password</string>
-    <string name="settings_global_preferences">Global Preferences</string>
-    <string name="settings_private_account">Private Account</string>
-    <string name="settings_preferred_language">Preferred Language</string>
-    <string name="settings_allow_matches_maps">Allow matches to view you in Maps</string>
-    <string name="settings_matrimony_mode">Matrimony Mode</string>
-    <string name="settings_blocked_users">Blocked Users</string>
-    <string name="settings_view_all_blocked_users">View All Blocked Users</string>
-    <string name="settings_no_users_blocked">No users are blocked</string>
-    <string name="settings_no_users_currently_blocked">No users are currently blocked.</string>
-    <string name="policies_support">Policies and Support</string>
-    <string name="policy_contact_us">Contact Us</string>
-    <string name="policy_privacy_policy">Privacy Policy</string>
-    <string name="policy_terms_conditions">Terms &amp; Conditions</string>
-    <string name="policy_refund_policy">Refund Policy</string>
-    <string name="policy_shipping_delivery">Shipping &amp; Delivery</string>
-    <string name="policy_delete_account">Delete Account</string>
+    <string name="settings_change_location">Cambiar ubicación</string>
+    <string name="settings_select_location">Selecciona tu ubicación</string>
+    <string name="settings_membership">Membresía</string>
+    <string name="settings_free_user">Usuario gratis</string>
+    <string name="settings_give_feedback">Enviar comentarios</string>
+    <string name="settings_policies_support">Políticas y soporte</string>
+    <string name="settings_delete_account">Eliminar cuenta</string>
+    <string name="settings_account_settings">Configuración de la cuenta</string>
+    <string name="settings_change_password">Cambiar contraseña</string>
+    <string name="settings_global_preferences">Preferencias globales</string>
+    <string name="settings_private_account">Cuenta privada</string>
+    <string name="settings_preferred_language">Idioma preferido</string>
+    <string name="settings_allow_matches_maps">Permitir que tus coincidencias te vean en Mapas</string>
+    <string name="settings_matrimony_mode">Modo matrimonio</string>
+    <string name="settings_blocked_users">Usuarios bloqueados</string>
+    <string name="settings_view_all_blocked_users">Ver todos los usuarios bloqueados</string>
+    <string name="settings_no_users_blocked">No hay usuarios bloqueados</string>
+    <string name="settings_no_users_currently_blocked">Actualmente no hay usuarios bloqueados.</string>
+    <string name="policies_support">Políticas y soporte</string>
+    <string name="policy_contact_us">Contáctanos</string>
+    <string name="policy_privacy_policy">Política de privacidad</string>
+    <string name="policy_terms_conditions">Términos y condiciones</string>
+    <string name="policy_refund_policy">Política de reembolso</string>
+    <string name="policy_shipping_delivery">Envío y entrega</string>
+    <string name="policy_delete_account">Eliminar cuenta</string>
+
     <!-- PROFILE DETAIL LABELS -->
-    <string name="label_name">Name</string>
-    <string name="label_gender">Gender</string>
-    <string name="label_locality">Locality</string>
-    <string name="label_love_language">Love language</string>
-    <string name="label_politics">Politics</string>
-    <string name="label_username">Username</string>
-    <string name="label_job_role">Job role</string>
-    <string name="label_work">Work</string>
-    <string name="label_high_school">High school</string>
-    <string name="label_college">College</string>
-    <string name="label_college_degree">College degree</string>
-    <string name="label_post_graduation">Post‑graduation</string>
-    <string name="label_post_graduation_degree">Post‑grad degree</string>
-    <string name="label_community">Community</string>
-    <string name="label_religion">Religion</string>
-    <string name="label_height">Height</string>
-    <string name="label_date_joined">Date joined</string>
+    <string name="label_name">Nombre</string>
+    <string name="label_gender">Género</string>
+    <string name="label_locality">Localidad</string>
+    <string name="label_love_language">Lenguaje del amor</string>
+    <string name="label_politics">Política</string>
+    <string name="label_username">Nombre de usuario</string>
+    <string name="label_job_role">Puesto de trabajo</string>
+    <string name="label_work">Trabajo</string>
+    <string name="label_high_school">Escuela secundaria</string>
+    <string name="label_college">Universidad</string>
+    <string name="label_college_degree">Título universitario</string>
+    <string name="label_post_graduation">Posgrado</string>
+    <string name="label_post_graduation_degree">Título de posgrado</string>
+    <string name="label_community">Comunidad</string>
+    <string name="label_religion">Religión</string>
+    <string name="label_height">Altura</string>
+    <string name="label_date_joined">Fecha de registro</string>
 
     <!-- METRICS & RANKINGS -->
-    <string name="swipe_right_probability">Swipe Right Probability</string>
+    <string name="swipe_right_probability">Probabilidad de deslizar a la derecha</string>
 
     <!-- BIO & VOICE BIO -->
-    <string name="bio_no_bio">No bio available</string>
-    <string name="voice_no_voice_bio">No voice bio available</string>
+    <string name="bio_no_bio">No hay biografía disponible</string>
+    <string name="voice_no_voice_bio">No hay biografía de voz disponible</string>
 
     <!-- BUTTON TEXTS -->
-    <string name="add_interest">Add Interest</string>
-    <string name="add_cause">Add a cause</string>
-    <string name="remove">Remove</string>
+    <string name="add_interest">Agregar interés</string>
+    <string name="add_cause">Agregar una causa</string>
+    <string name="remove">Quitar</string>
 
     <!-- DROPDOWN DEFAULTS -->
-    <string name="not_selected">Not Selected</string>
-    <string name="not_specified">Not specified</string>
+    <string name="not_selected">No seleccionado</string>
+    <string name="not_specified">No especificado</string>
 
-    <string name="pause_audio">Pause audio</string>
-    <string name="tap_to_play">Play Voice Message</string>
-    <string name="playing_seconds">Playing %1$d seconds</string>
+    <string name="pause_audio">Pausar audio</string>
+    <string name="tap_to_play">Reproducir mensaje de voz</string>
+    <string name="playing_seconds">Reproduciendo %1$d segundos</string>
 
-    <string name="select_love_language">Select love language</string>
-    <string name="love_language_option_not_selected">Not selected</string>
-    <string name="love_language_option_words_of_affirmation">Words of affirmation</string>
-    <string name="love_language_option_acts_of_service">Acts of service</string>
-    <string name="love_language_option_receiving_gifts">Receiving gifts</string>
-    <string name="love_language_option_quality_time">Quality time</string>
-    <string name="love_language_option_physical_touch">Physical touch</string>
-    <string name="love_language_option_other">Other</string>
+    <string name="select_love_language">Selecciona el lenguaje del amor</string>
+    <string name="love_language_option_not_selected">No seleccionado</string>
+    <string name="love_language_option_words_of_affirmation">Palabras de afirmación</string>
+    <string name="love_language_option_acts_of_service">Actos de servicio</string>
+    <string name="love_language_option_receiving_gifts">Recibir regalos</string>
+    <string name="love_language_option_quality_time">Tiempo de calidad</string>
+    <string name="love_language_option_physical_touch">Contacto físico</string>
+    <string name="love_language_option_other">Otro</string>
 
     <!-- ── Politics dropdown ── -->
-    <string name="select_politics">Select politics</string>
-    <string name="politics_option_not_selected">Not selected</string>
-    <!-- ── new options ── -->
-    <string name="politics_option_far_left">Far left</string>              <!-- new -->
-    <string name="politics_option_left">Left</string>                    <!-- new -->
-    <string name="politics_option_centre_left">Centre-left</string>      <!-- new -->
-    <string name="politics_option_centre">Centre</string>                 <!-- new -->
-    <string name="politics_option_centre_right">Centre-right</string>    <!-- new -->
-    <string name="politics_option_right">Right</string>                  <!-- new -->
-    <string name="politics_option_far_right">Far right</string>          <!-- new -->
+    <string name="select_politics">Selecciona política</string>
+    <string name="politics_option_not_selected">No seleccionado</string>
+    <string name="politics_option_far_left">Extrema izquierda</string>
+    <string name="politics_option_left">Izquierda</string>
+    <string name="politics_option_centre_left">Centroizquierda</string>
+    <string name="politics_option_centre">Centro</string>
+    <string name="politics_option_centre_right">Centroderecha</string>
+    <string name="politics_option_right">Derecha</string>
+    <string name="politics_option_far_right">Extrema derecha</string>
     <string name="politics_option_liberal">Liberal</string>
-    <string name="politics_option_conservative">Conservative</string>
-    <string name="politics_option_moderate">Moderate</string>
-    <string name="politics_option_socialist">Socialist</string>          <!-- new -->
-    <string name="politics_option_communist">Communist</string>          <!-- new -->
-    <string name="politics_option_other">Other</string>
+    <string name="politics_option_conservative">Conservador</string>
+    <string name="politics_option_moderate">Moderado</string>
+    <string name="politics_option_socialist">Socialista</string>
+    <string name="politics_option_communist">Comunista</string>
+    <string name="politics_option_other">Otro</string>
 
     <!-- ── Job-role dropdown ── -->
-    <string name="select_job_role">Select job role</string>
-    <string name="job_role_option_not_selected">Not selected</string>
-    <string name="job_role_option_software_developer">Software Engineer</string>
-    <string name="job_role_option_data_scientist">Data Scientist</string>
-    <string name="job_role_option_ux_ui_designer">UI/UX Designer</string>
-    <string name="job_role_option_civil_engineer">Civil Engineer</string>
-    <string name="job_role_option_mechanical_engineer">Mechanical Engineer</string>
-    <string name="job_role_option_electrical_engineer">Electrical Engineer</string>
-    <string name="job_role_option_project_manager">Project Manager</string>
-    <string name="job_role_option_product_manager">Product Manager</string>
-    <string name="job_role_option_business_analyst">Business Analyst</string>
-    <string name="job_role_option_accountant">Accountant</string>
-    <string name="job_role_option_chartered_accountant">Certified Public Accountant</string>
-    <string name="job_role_option_hr_manager">HR Manager</string>
-    <string name="job_role_option_marketing_manager">Marketing Manager</string>
-    <string name="job_role_option_sales_executive">Sales Executive</string>
+    <string name="select_job_role">Selecciona el puesto</string>
+    <string name="job_role_option_not_selected">No seleccionado</string>
+    <string name="job_role_option_software_developer">Ingeniero de software</string>
+    <string name="job_role_option_data_scientist">Científico de datos</string>
+    <string name="job_role_option_ux_ui_designer">Diseñador UI/UX</string>
+    <string name="job_role_option_civil_engineer">Ingeniero civil</string>
+    <string name="job_role_option_mechanical_engineer">Ingeniero mecánico</string>
+    <string name="job_role_option_electrical_engineer">Ingeniero eléctrico</string>
+    <string name="job_role_option_project_manager">Gerente de proyectos</string>
+    <string name="job_role_option_product_manager">Gerente de producto</string>
+    <string name="job_role_option_business_analyst">Analista de negocios</string>
+    <string name="job_role_option_accountant">Contador</string>
+    <string name="job_role_option_chartered_accountant">Contador público certificado</string>
+    <string name="job_role_option_hr_manager">Gerente de RR. HH.</string>
+    <string name="job_role_option_marketing_manager">Gerente de marketing</string>
+    <string name="job_role_option_sales_executive">Ejecutivo de ventas</string>
     <string name="job_role_option_director">Director</string>
     <string name="job_role_option_ceo">CEO</string>
-    <string name="job_role_option_teacher">Teacher</string>
-    <string name="job_role_option_professor">Professor</string>
-    <string name="job_role_option_researcher">Researcher</string>
-    <string name="job_role_option_scientist">Scientist</string>
-    <string name="job_role_option_doctor">Doctor</string>
-    <string name="job_role_option_surgeon">Surgeon</string>
-    <string name="job_role_option_nurse">Nurse</string>
-    <string name="job_role_option_pharmacist">Pharmacist</string>
-    <string name="job_role_option_lawyer">Attorney</string>
-    <string name="job_role_option_advocate">Advocate</string>
-    <string name="job_role_option_legal_consultant">Legal Consultant</string>
-    <string name="job_role_option_graphic_designer">Graphic Designer</string>
-    <string name="job_role_option_content_writer">Content Writer</string>
-    <string name="job_role_option_photographer">Photographer</string>
-    <string name="job_role_option_journalist">Journalist</string>
+    <string name="job_role_option_teacher">Profesor</string>
+    <string name="job_role_option_professor">Profesor universitario</string>
+    <string name="job_role_option_researcher">Investigador</string>
+    <string name="job_role_option_scientist">Científico</string>
+    <string name="job_role_option_doctor">Médico</string>
+    <string name="job_role_option_surgeon">Cirujano</string>
+    <string name="job_role_option_nurse">Enfermero</string>
+    <string name="job_role_option_pharmacist">Farmacéutico</string>
+    <string name="job_role_option_lawyer">Abogado</string>
+    <string name="job_role_option_advocate">Defensor</string>
+    <string name="job_role_option_legal_consultant">Consultor legal</string>
+    <string name="job_role_option_graphic_designer">Diseñador gráfico</string>
+    <string name="job_role_option_content_writer">Redactor de contenidos</string>
+    <string name="job_role_option_photographer">Fotógrafo</string>
+    <string name="job_role_option_journalist">Periodista</string>
     <string name="job_role_option_editor">Editor</string>
     <string name="job_role_option_chef">Chef</string>
     <string name="job_role_option_barista">Barista</string>
-    <string name="job_role_option_pilot">Pilot</string>
-    <string name="job_role_option_flight_attendant">Flight Attendant</string>
-    <string name="job_role_option_police_officer">Police Officer</string>
-    <string name="job_role_option_firefighter">Firefighter</string>
-    <string name="job_role_option_army_officer">Army Officer</string>
-    <string name="job_role_option_electrician">Electrician</string>
-    <string name="job_role_option_plumber">Plumber</string>
-    <string name="job_role_option_carpenter">Carpenter</string>
-    <string name="job_role_option_mechanic">Mechanic</string>
-    <string name="job_role_option_entrepreneur">Entrepreneur</string>
-    <string name="job_role_option_intern">Intern</string>
-    <string name="job_role_option_other">Other</string>
+    <string name="job_role_option_pilot">Piloto</string>
+    <string name="job_role_option_flight_attendant">Auxiliar de vuelo</string>
+    <string name="job_role_option_police_officer">Oficial de policía</string>
+    <string name="job_role_option_firefighter">Bombero</string>
+    <string name="job_role_option_army_officer">Oficial del ejército</string>
+    <string name="job_role_option_electrician">Electricista</string>
+    <string name="job_role_option_plumber">Fontanero</string>
+    <string name="job_role_option_carpenter">Carpintero</string>
+    <string name="job_role_option_mechanic">Mecánico</string>
+    <string name="job_role_option_entrepreneur">Emprendedor</string>
+    <string name="job_role_option_intern">Becario</string>
+    <string name="job_role_option_other">Otro</string>
 
     <!-- ── Work/Industry dropdown ── -->
-    <string name="select_work">Select work</string>
-    <string name="work_option_not_selected">Not selected</string>
-    <!-- ── new options ── -->
-    <string name="work_option_private_sector">Private sector</string>
-    <string name="work_option_government">Government</string>
-    <string name="work_option_information_technology">Information Technology</string> <!-- new -->
-    <string name="work_option_healthcare">Healthcare</string>                         <!-- new -->
-    <string name="work_option_education">Education</string>                           <!-- new -->
-    <string name="work_option_construction">Construction</string>                     <!-- new -->
-    <string name="work_option_manufacturing">Manufacturing</string>                   <!-- new -->
-    <string name="work_option_agriculture">Agriculture</string>                       <!-- new -->
-    <string name="work_option_pharmaceuticals">Pharmaceuticals</string>               <!-- new -->
-    <string name="work_option_banking">Banking</string>                               <!-- new -->
-    <string name="work_option_insurance">Insurance</string>                           <!-- new -->
-    <string name="work_option_real_estate">Real estate</string>                       <!-- new -->
-    <string name="work_option_retail">Retail</string>                                 <!-- new -->
-    <string name="work_option_e_commerce">E-commerce</string>                         <!-- new -->
-    <string name="work_option_telecom">Telecom</string>                               <!-- new -->
-    <string name="work_option_automobile">Automobile</string>                         <!-- new -->
-    <string name="work_option_mining">Mining</string>                                 <!-- new -->
-    <string name="work_option_media_entertainment">Media &amp; entertainment</string> <!-- new -->
-    <string name="work_option_hospitality">Hospitality</string>                       <!-- new -->
-    <string name="work_option_logistics">Logistics</string>                           <!-- new -->
-    <string name="work_option_non_profit">Non-profit</string>                         <!-- new -->
-    <string name="work_option_startup">Startup</string>                               <!-- new -->
+    <string name="select_work">Selecciona el trabajo</string>
+    <string name="work_option_not_selected">No seleccionado</string>
+    <string name="work_option_private_sector">Sector privado</string>
+    <string name="work_option_government">Gobierno</string>
+    <string name="work_option_information_technology">Tecnología de la información</string>
+    <string name="work_option_healthcare">Salud</string>
+    <string name="work_option_education">Educación</string>
+    <string name="work_option_construction">Construcción</string>
+    <string name="work_option_manufacturing">Manufactura</string>
+    <string name="work_option_agriculture">Agricultura</string>
+    <string name="work_option_pharmaceuticals">Farmacéutica</string>
+    <string name="work_option_banking">Banca</string>
+    <string name="work_option_insurance">Seguros</string>
+    <string name="work_option_real_estate">Bienes raíces</string>
+    <string name="work_option_retail">Venta minorista</string>
+    <string name="work_option_e_commerce">Comercio electrónico</string>
+    <string name="work_option_telecom">Telecomunicaciones</string>
+    <string name="work_option_automobile">Automotriz</string>
+    <string name="work_option_mining">Minería</string>
+    <string name="work_option_media_entertainment">Medios y entretenimiento</string>
+    <string name="work_option_hospitality">Hostelería</string>
+    <string name="work_option_logistics">Logística</string>
+    <string name="work_option_non_profit">Sin fines de lucro</string>
+    <string name="work_option_startup">Startup</string>
     <string name="work_option_freelance">Freelance</string>
-    <string name="work_option_unemployed">Unemployed</string>
-    <string name="work_option_other">Other</string>
+    <string name="work_option_unemployed">Desempleado</string>
+    <string name="work_option_other">Otro</string>
 
     <!-- Ethnicity & Income -->
-    <string name="ethnicity_label">Ethnicity</string>
-    <string name="select_ethnicity">Select ethnicity</string>
-    <string name="ethnicity_option_not_selected">Not selected</string>
+    <string name="ethnicity_label">Origen étnico</string>
+    <string name="select_ethnicity">Selecciona origen étnico</string>
+    <string name="ethnicity_option_not_selected">No seleccionado</string>
     <string name="ethnicity_option_indian">Bharatiya</string>
-    <string name="ethnicity_option_white">White (Caucasian)</string>
-    <string name="ethnicity_option_black">Black / African American</string>
-    <string name="ethnicity_option_hispanic">Hispanic / Latino</string>
-    <string name="ethnicity_option_asian">Asian</string>
-    <string name="ethnicity_option_native_american">Native American</string>
-    <string name="ethnicity_option_middle_eastern">Middle Eastern</string>
-    <string name="ethnicity_option_pacific_islander">Pacific Islander</string>
-    <string name="ethnicity_option_mixed_other">Mixed / Other</string>
+    <string name="ethnicity_option_white">Blanco (caucásico)</string>
+    <string name="ethnicity_option_black">Negro / Afroamericano</string>
+    <string name="ethnicity_option_hispanic">Hispano / Latino</string>
+    <string name="ethnicity_option_asian">Asiático</string>
+    <string name="ethnicity_option_native_american">Nativo americano</string>
+    <string name="ethnicity_option_middle_eastern">Medioriental</string>
+    <string name="ethnicity_option_pacific_islander">Isleño del Pacífico</string>
+    <string name="ethnicity_option_mixed_other">Mixto / Otro</string>
 
-    <string name="income_level_label">Income Level</string>
-    <string name="select_income_level">Select income level</string>
-    <string name="income_level_option_not_selected">Not selected</string>
-    <string name="income_level_under_25k">Under $25k</string>
+    <string name="income_level_label">Nivel de ingresos</string>
+    <string name="select_income_level">Selecciona nivel de ingresos</string>
+    <string name="income_level_option_not_selected">No seleccionado</string>
+    <string name="income_level_under_25k">Menos de $25k</string>
     <string name="income_level_25k_50k">$25k–$50k</string>
     <string name="income_level_50k_75k">$50k–$75k</string>
     <string name="income_level_75k_100k">$75k–$100k</string>
     <string name="income_level_100k_150k">$100k–$150k</string>
-    <string name="income_level_over_150k">Over $150k</string>
+    <string name="income_level_over_150k">Más de $150k</string>
 
-    <string name="looking_for_long_term">Long term</string>
-    <string name="looking_for_short_to_long">Short term - open to Long</string>
+    <string name="looking_for_long_term">A largo plazo</string>
+    <string name="looking_for_short_to_long">Corto plazo: abierto a largo</string>
     <string name="looking_for_casual">Casual</string>
-    <string name="looking_for_dating">Dating</string>
-    <string name="looking_for_exclusive">Exclusive</string>
+    <string name="looking_for_dating">Citas</string>
+    <string name="looking_for_exclusive">Exclusivo</string>
 
-    <string name="label_custom_love_language">Custom love language</string>
-    <string name="label_custom_politics">Custom politics</string>
-    <string name="label_custom_job_role">Custom job role</string>
-    <string name="label_custom_work">Custom work</string>
+    <string name="label_custom_love_language">Lenguaje del amor personalizado</string>
+    <string name="label_custom_politics">Política personalizada</string>
+    <string name="label_custom_job_role">Puesto personalizado</string>
+    <string name="label_custom_work">Trabajo personalizado</string>
 
     <!-- INTEREST / CAUSE PLACEHOLDERS -->
-    <string name="no_interests">No interests specified.</string>
-    <string name="no_social_causes">No social causes specified.</string>
+    <string name="no_interests">No hay intereses especificados.</string>
+    <string name="no_social_causes">No hay causas sociales especificadas.</string>
 
     <!-- DatingScreen -->
-    <string name="no_more_swipes_available">No more swipes available</string>
+    <string name="no_more_swipes_available">No hay más swipes disponibles</string>
 
-    <string name="college_mismatch_format">College mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="post_graduation_mismatch_format">Post-Graduation mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="workplace_mismatch_format">Workplace mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="job_role_mismatch_format">Job Role mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="love_language_mismatch_format">Love Language mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="relationship_intent_mismatch_format">Relationship intent mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="community_match_format">Community match: Both are \"%1$s\"</string>
-    <string name="religion_match_format">Religion match: Both are \"%1$s\"</string>
-    <string name="city_mismatch_format">City mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="relocation_mismatch_format">Relocation mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="career_plan_mismatch_format">Post-marriage career plan mismatch: \"%1$s\" vs \"%2$s\"</string>
-    <string name="cultural_mindset_mismatch_format">Cultural mindset mismatch: \"%1$s\" vs \"%2$s\"</string>
+    <string name="college_mismatch_format">Incompatibilidad de universidad: \"%1$s\" vs \"%2$s\"</string>
+    <string name="post_graduation_mismatch_format">Incompatibilidad de posgrado: \"%1$s\" vs \"%2$s\"</string>
+    <string name="workplace_mismatch_format">Incompatibilidad de lugar de trabajo: \"%1$s\" vs \"%2$s\"</string>
+    <string name="job_role_mismatch_format">Incompatibilidad de puesto: \"%1$s\" vs \"%2$s\"</string>
+    <string name="love_language_mismatch_format">Incompatibilidad de lenguaje del amor: \"%1$s\" vs \"%2$s\"</string>
+    <string name="relationship_intent_mismatch_format">Incompatibilidad de intención de relación: \"%1$s\" vs \"%2$s\"</string>
+    <string name="community_match_format">Coincidencia de comunidad: ambos son \"%1$s\"</string>
+    <string name="religion_match_format">Coincidencia de religión: ambos son \"%1$s\"</string>
+    <string name="city_mismatch_format">Incompatibilidad de ciudad: \"%1$s\" vs \"%2$s\"</string>
+    <string name="relocation_mismatch_format">Incompatibilidad de reubicación: \"%1$s\" vs \"%2$s\"</string>
+    <string name="career_plan_mismatch_format">Incompatibilidad en plan de carrera tras el matrimonio: \"%1$s\" vs \"%2$s\"</string>
+    <string name="cultural_mindset_mismatch_format">Incompatibilidad de mentalidad cultural: \"%1$s\" vs \"%2$s\"</string>
 
     <!-- calculateExhaustiveCompatibilityScore -->
-    <string name="workplace_label">Workplace</string>
-    <string name="job_role_label">Job Role</string>
-    <string name="love_language_label">Love Language</string>
-    <string name="relationship_intent_label">Relationship intent</string>
-    <string name="preferred_language_label">Preferred Language</string>
-    <string name="shared_interests_prefix">Shared interests: %1$s</string>
-    <string name="no_common_interests">No common interests</string>
-    <string name="interests_not_set">Interests: not set by both</string>
-    <string name="shared_social_causes_prefix">Shared social causes: %1$s</string>
-    <string name="no_common_social_causes">No common social causes</string>
-    <string name="social_causes_not_set">Social causes: not set by both</string>
-    <string name="zodiac_compatibility_prefix"> %1$s and %2$s have a compatibility of %3$d%%</string>
-    <string name="zodiac_mismatch_prefix">Zodiac mismatch: %1$s vs %2$s</string>
-    <string name="zodiac_not_set">Zodiac: not set</string>
-    <string name="age_compatibility_prefix">Age compatibility: %1$d vs %2$d (%3$d%%)</string>
-    <string name="age_not_set">Age: not set</string>
-    <string name="matrimony_mismatch">Matrimony mismatch: one is in marriage mode, the other is not</string>
-    <string name="matrimony_not_set">Matrimony mode: not set in both</string>
-    <string name="marriage_timeline_label">Marriage timeline</string>
-    <string name="relocation_label">Relocation</string>
-    <string name="post_marriage_career_plan_label">Post-marriage career plan</string>
-    <string name="cultural_mindset_label">Cultural mindset</string>
-    <string name="lifestyle_smoking">Smoking</string>
-    <string name="lifestyle_drinking">Drinking</string>
-    <string name="lifestyle_indoor_outdoor">Indoor/Outdoor</string>
-    <string name="lifestyle_sexual_activity">Sexual activity</string>
-    <string name="lifestyle_sociability">Sociability</string>
-    <string name="lifestyle_social_media">Social media</string>
-    <string name="lifestyle_dietary_preferences">Dietary Preferences</string>
-    <string name="lifestyle_sleep">Sleep</string>
-    <string name="lifestyle_work_life_balance">Work-life balance</string>
-    <string name="balanced">Balanced</string>
-    <string name="lifestyle_going_out">Going out</string>
-    <string name="lifestyle_exercise">Exercise</string>
-    <string name="lifestyle_adventurousness">Adventurousness</string>
-    <string name="lifestyle_family_oriented">Family oriented</string>
-    <string name="lifestyle_intellectual_curiosity">Intellectual curiosity</string>
-    <string name="lifestyle_creative_expression">Creative expression</string>
-    <string name="lifestyle_physical_fitness">Physical fitness</string>
-    <string name="lifestyle_spirituality">Spirituality</string>
-    <string name="lifestyle_professional_ambition">Professional ambition</string>
-    <string name="lifestyle_environmental_awareness">Environmental awareness</string>
-    <string name="lifestyle_culinary_enthusiasm">Culinary enthusiasm</string>
-    <string name="lifestyle_political_awareness">Political awareness</string>
-    <string name="lifestyle_community_engagement">Community engagement</string>
-    <string name="lifestyle_sports">Sports</string>
-    <string name="lifestyle_field_default">Lifestyle Field</string>
-    <string name="lifestyle_not_set_suffix">%1$s: not set by both</string>
-    <string name="lifestyle_one_not_set_suffix">%1$s: one not set</string>
-    <string name="lifestyle_match_format">Both of you align on these %1$d lifestyle traits: %2$s</string>
-    <string name="lifestyle_no_traits_to_compare">No lifestyle traits sufficiently set to compare</string>
-    <string name="lifestyle_similarity_format">Lifestyle similarity: %1$s%% match over %2$d factors. Common traits: %3$s</string>
-    <string name="lifestyle_none_common">None</string>
-    <string name="lifestyle_not_set_in_profiles">Lifestyle: not set in both profiles</string>
-    <string name="lifestyle_mismatches_format">Lifestyle mismatches: %1$s</string>
-    <string name="shared_tags_prefix">Shared tags: %1$s</string>
-    <string name="tags_not_set_or_no_overlap">User tags: not set or no overlap</string>
+    <string name="workplace_label">Lugar de trabajo</string>
+    <string name="job_role_label">Puesto de trabajo</string>
+    <string name="love_language_label">Lenguaje del amor</string>
+    <string name="relationship_intent_label">Intención de relación</string>
+    <string name="preferred_language_label">Idioma preferido</string>
+    <string name="shared_interests_prefix">Intereses compartidos: %1$s</string>
+    <string name="no_common_interests">No hay intereses en común</string>
+    <string name="interests_not_set">Intereses: no establecidos por ambos</string>
+    <string name="shared_social_causes_prefix">Causas sociales compartidas: %1$s</string>
+    <string name="no_common_social_causes">No hay causas sociales en común</string>
+    <string name="social_causes_not_set">Causas sociales: no establecidas por ambos</string>
+    <string name="zodiac_compatibility_prefix">%1$s y %2$s tienen una compatibilidad de %3$d%%</string>
+    <string name="zodiac_mismatch_prefix">Incompatibilidad zodiacal: %1$s vs %2$s</string>
+    <string name="zodiac_not_set">Zodiaco: no establecido</string>
+    <string name="age_compatibility_prefix">Compatibilidad de edad: %1$d vs %2$d (%3$d%%)</string>
+    <string name="age_not_set">Edad: no establecida</string>
+    <string name="matrimony_mismatch">Incompatibilidad de matrimonio: uno está en modo matrimonio y el otro no</string>
+    <string name="matrimony_not_set">Modo matrimonio: no establecido en ambos</string>
+    <string name="marriage_timeline_label">Cronograma de matrimonio</string>
+    <string name="relocation_label">Reubicación</string>
+    <string name="post_marriage_career_plan_label">Plan de carrera tras el matrimonio</string>
+    <string name="cultural_mindset_label">Mentalidad cultural</string>
+    <string name="lifestyle_smoking">Tabaco</string>
+    <string name="lifestyle_drinking">Alcohol</string>
+    <string name="lifestyle_indoor_outdoor">Interior/Exterior</string>
+    <string name="lifestyle_sexual_activity">Actividad sexual</string>
+    <string name="lifestyle_sociability">Sociabilidad</string>
+    <string name="lifestyle_social_media">Redes sociales</string>
+    <string name="lifestyle_dietary_preferences">Preferencias dietéticas</string>
+    <string name="lifestyle_sleep">Sueño</string>
+    <string name="lifestyle_work_life_balance">Equilibrio vida-trabajo</string>
+    <string name="balanced">Equilibrado</string>
+    <string name="lifestyle_going_out">Salir</string>
+    <string name="lifestyle_exercise">Ejercicio</string>
+    <string name="lifestyle_adventurousness">Espíritu aventurero</string>
+    <string name="lifestyle_family_oriented">Orientación familiar</string>
+    <string name="lifestyle_intellectual_curiosity">Curiosidad intelectual</string>
+    <string name="lifestyle_creative_expression">Expresión creativa</string>
+    <string name="lifestyle_physical_fitness">Condición física</string>
+    <string name="lifestyle_spirituality">Espiritualidad</string>
+    <string name="lifestyle_professional_ambition">Ambición profesional</string>
+    <string name="lifestyle_environmental_awareness">Conciencia ambiental</string>
+    <string name="lifestyle_culinary_enthusiasm">Entusiasmo culinario</string>
+    <string name="lifestyle_political_awareness">Conciencia política</string>
+    <string name="lifestyle_community_engagement">Compromiso comunitario</string>
+    <string name="lifestyle_sports">Deportes</string>
+    <string name="lifestyle_field_default">Campo de estilo de vida</string>
+    <string name="lifestyle_not_set_suffix">%1$s: no establecido por ambos</string>
+    <string name="lifestyle_one_not_set_suffix">%1$s: uno no establecido</string>
+    <string name="lifestyle_match_format">Ambos coinciden en estos %1$d rasgos de estilo de vida: %2$s</string>
+    <string name="lifestyle_no_traits_to_compare">No hay suficientes rasgos de estilo de vida para comparar</string>
+    <string name="lifestyle_similarity_format">Similitud de estilo de vida: %1$s%% de coincidencia sobre %2$d factores. Rasgos comunes: %3$s</string>
+    <string name="lifestyle_none_common">Ninguno</string>
+    <string name="lifestyle_not_set_in_profiles">Estilo de vida: no establecido en ambos perfiles</string>
+    <string name="lifestyle_mismatches_format">Desajustes de estilo de vida: %1$s</string>
+    <string name="shared_tags_prefix">Etiquetas compartidas: %1$s</string>
+    <string name="tags_not_set_or_no_overlap">Etiquetas de usuario: no establecidas o sin coincidencia</string>
 
     <!-- High school options for dropdown -->
     <!-- North India (Delhi, Haryana, Uttar Pradesh, Uttarakhand, Himachal Pradesh, Punjab, Rajasthan, Jammu & Kashmir) -->
@@ -908,7 +902,7 @@
 
     <!-- West India (Maharashtra, Gujarat, Goa) -->
     <string name="college_iit_bombay">Indian Institute of Technology Bombay</string>
-   <string name="college_mithibai_college">Mithibai College</string>
+    <string name="college_mithibai_college">Mithibai College</string>
     <string name="college_nmims_mumbai">NMIMS University</string>
     <string name="college_university_of_mumbai">University of Mumbai</string>
     <string name="college_jj_school_arts">Sir JJ School of Arts</string>
@@ -1041,10 +1035,10 @@
     <string name="postgrad_iim_vishakhapatnam">Indian Institute of Management Vishakhapatnam</string>
 
     <!-- Catch-all for other post-graduate institutions -->
-    <string name="postgrad_other">Other</string>
+    <string name="postgrad_other">Otro</string>
 
     <!-- ─────────── Communities / Regional-Identity Master List (pan-India, A-Z) ─────────── -->
-    <string name="community_other">All Other</string>
+    <string name="community_other">Todos los demás</string>
     <string name="community_adi">Adi</string>
     <string name="community_andamanese">Andamanese</string>
     <string name="community_anglo_indian">Anglo-Indian</string>
@@ -1098,68 +1092,66 @@
     <string name="community_tripuri">Tripuri</string>
     <string name="community_urdu_speaker">Urdu-speaker</string>
 
-
     <!-- Religion Dropdown -->
     <!-- ─────────── Religion (pan-Indian master list) ─────────── -->
-    <string name="religion_other">Other</string>
-    <string name="religion_buddhist">Buddhist</string>
+    <string name="religion_other">Otro</string>
+    <string name="religion_buddhist">Budista</string>
 
     <!-- Christianity -->
-    <string name="religion_christian">Christian</string>
-    <string name="religion_christian_catholic">Catholic</string>
-    <string name="religion_christian_protestant_mainline">Mainline Protestant</string>
-    <string name="religion_christian_evangelical">Evangelical Protestant</string>
-    <string name="religion_christian_orthodox">Eastern Orthodox</string>
-    <string name="religion_christian_latter_day_saint">Latter-day Saint (Mormon)</string>
-    <string name="religion_christian_jehovahs_witness">Jehovah’s Witness</string>
-    <string name="religion_christian_other">Other Christian</string>
+    <string name="religion_christian">Cristiano</string>
+    <string name="religion_christian_catholic">Católico</string>
+    <string name="religion_christian_protestant_mainline">Protestante histórico</string>
+    <string name="religion_christian_evangelical">Protestante evangélico</string>
+    <string name="religion_christian_orthodox">Ortodoxo oriental</string>
+    <string name="religion_christian_latter_day_saint">Santo de los Últimos Días (Mormón)</string>
+    <string name="religion_christian_jehovahs_witness">Testigo de Jehová</string>
+    <string name="religion_christian_other">Otro cristiano</string>
 
-    <string name="religion_hindu">Hindu</string>
-    <string name="religion_jain">Jain</string>
-    <string name="religion_jewish">Jewish</string>
+    <string name="religion_hindu">Hindú</string>
+    <string name="religion_jain">Jainista</string>
+    <string name="religion_jewish">Judío</string>
 
     <!-- Islam -->
-    <string name="religion_muslim">Muslim</string>
-    <string name="religion_muslim_sunni">Sunni</string>
-    <string name="religion_muslim_shia">Shia</string>
+    <string name="religion_muslim">Musulmán</string>
+    <string name="religion_muslim_sunni">Suní</string>
+    <string name="religion_muslim_shia">Chií</string>
     <string name="religion_muslim_ahmadiyya">Ahmadiyya</string>
-    <string name="religion_muslim_sufi">Sufi</string>
-    <string name="religion_muslim_other">Other Muslim</string>
+    <string name="religion_muslim_sufi">Sufí</string>
+    <string name="religion_muslim_other">Otro musulmán</string>
 
-    <string name="religion_no_religion">No Religion / Secular</string>
-    <string name="religion_parsi">Zoroastrian / Parsi</string>
-    <string name="religion_sikh">Sikh</string>
-    <string name="religion_indigenous_tribal">Indigenous / Tribal</string>
+    <string name="religion_no_religion">Sin religión / Laico</string>
+    <string name="religion_parsi">Zoroastrismo / Parsí</string>
+    <string name="religion_sikh">Sij</string>
+    <string name="religion_indigenous_tribal">Indígena / Tribal</string>
 
     <!-- Latin-American & Afro-Latin Syncretic Traditions -->
-    <string name="religion_santeria">Santería (Afro-Cuban)</string>
-    <string name="religion_voodou">Vodou (Haitian)</string>
-    <string name="religion_candomble">Candomblé (Afro-Brazilian)</string>
-    <string name="religion_umbanda">Umbanda (Brazilian Syncretic)</string>
+    <string name="religion_santeria">Santería (afrocubana)</string>
+    <string name="religion_voodou">Vudú (haitiano)</string>
+    <string name="religion_candomble">Candomblé (afrobrasileño)</string>
+    <string name="religion_umbanda">Umbanda (sincrética brasileña)</string>
     <string name="religion_palo_mayombe">Palo Mayombe</string>
 
     <!-- Native American Spiritual Traditions -->
-    <string name="religion_native_traditional">Native American Traditional</string>
-    <string name="religion_native_church">Native American Church (Peyotism)</string>
-    <string name="religion_vision_quest">Vision Quest / Ceremonial</string>
+    <string name="religion_native_traditional">Tradición nativa americana</string>
+    <string name="religion_native_church">Iglesia Nativa Americana (peyotismo)</string>
+    <string name="religion_vision_quest">Búsqueda de visión / ceremonial</string>
 
     <!-- African Diaspora & Black Spiritual Traditions -->
-    <string name="religion_african_traditional">African Traditional Religion</string>
-    <string name="religion_obeah">Obeah (Caribbean Folk)</string>
-    <string name="religion_hoodoo">Hoodoo (African-American Folk)</string>
-    <string name="religion_rastafari">Rastafarianism</string>
-    <string name="religion_black_protestant">Black Protestant Tradition (e.g. AME, COGIC)</string>
-
+    <string name="religion_african_traditional">Religión tradicional africana</string>
+    <string name="religion_obeah">Obeah (folclore caribeño)</string>
+    <string name="religion_hoodoo">Hoodoo (folclore afroamericano)</string>
+    <string name="religion_rastafari">Rastafarismo</string>
+    <string name="religion_black_protestant">Tradición protestante negra (p. ej., AME, COGIC)</string>
 
     <!-- Caste Dropdown -->
     <!-- ─────────── Caste / Jāti (master list) ─────────── -->
-    <string name="caste_other">All Other</string>
+    <string name="caste_other">Todos los demás</string>
     <string name="caste_baidya">Baidya</string>
     <string name="caste_bhumihar">Bhumihar</string>
     <string name="caste_bhil">Bhil</string>
     <string name="caste_brahmin">Brahmin</string>
     <string name="caste_ezhava">Ezhava / Thiyya</string>
-    <string name="caste_general">General / Open Category</string>
+    <string name="caste_general">General / Categoría abierta</string>
     <string name="caste_gowda">Gowda</string>
     <string name="caste_gurjar">Gurjar / Gujjar</string>
     <string name="caste_jat">Jat</string>
@@ -1184,215 +1176,213 @@
     <string name="caste_yadav">Yadav</string>
 
     <!--- Dating -->
-    <string name="profile_photo">Profile Photo</string>
-    <string name="no_images">No Images</string>
-    <string name="away">away</string>
-    <string name="featured_posts">Featured Posts</string>
-    <string name="analyzed_on">Analyzed on: %1$s</string>
-    <string name="run_analysis">Run Analysis</string>
-    <string name="no_bio_available">No bio available</string>
-    <string name="select_label">Select %1$s</string>
-    <string name="select_country">Located in</string>
-    <string name="type_country">Type your Country</string>
+    <string name="profile_photo">Foto de perfil</string>
+    <string name="no_images">Sin imágenes</string>
+    <string name="away">de distancia</string>
+    <string name="featured_posts">Publicaciones destacadas</string>
+    <string name="analyzed_on">Analizado el: %1$s</string>
+    <string name="run_analysis">Ejecutar análisis</string>
+    <string name="no_bio_available">No hay biografía disponible</string>
+    <string name="select_label">Seleccionar %1$s</string>
+    <string name="select_country">Ubicado en</string>
+    <string name="type_country">Escribe tu país</string>
 
-    <string name="performance_metrics">Performance Metrics</string>
-    <string name="matches">Matches</string>
-    <string name="rating">Rating</string>
-    <string name="swipe_right_percentage">Percentage who swipe right on this user</string>
+    <string name="performance_metrics">Métricas de rendimiento</string>
+    <string name="matches">Coincidencias</string>
+    <string name="rating">Calificación</string>
+    <string name="swipe_right_percentage">Porcentaje que desliza a la derecha en este usuario</string>
     <string name="west_bengal_ranking">Ranking</string>
-    <string name="city_ranking">City Ranking</string>
-    <string name="locality_ranking">Locality Ranking</string>
-    <string name="age_ranking">Age Ranking</string>
-    <string name="high_school_ranking">High School Ranking</string>
-    <string name="college_ranking">College Ranking</string>
-    <string name="high_school_graduation_year">Graduation Year from High School</string>
-    <string name="college_graduation_year">Graduation Year from College</string>
+    <string name="city_ranking">Ranking de ciudad</string>
+    <string name="locality_ranking">Ranking de localidad</string>
+    <string name="age_ranking">Ranking por edad</string>
+    <string name="high_school_ranking">Ranking de secundaria</string>
+    <string name="college_ranking">Ranking de universidad</string>
+    <string name="high_school_graduation_year">Año de graduación de secundaria</string>
+    <string name="college_graduation_year">Año de graduación de universidad</string>
     <string name="number">%d</string>
     <string name="percentage">%d%%</string>
-    <string name="city">City</string>
-    <string name="locality">Locality</string>
+    <string name="city">Ciudad</string>
+    <string name="locality">Localidad</string>
 
     <!-- Dating screen filters -->
-    <string name="filters">Filters</string>
-    <string name="save">Save</string>
-    <string name="clear_selection">Clear Selection</string>
-    <string name="basic_filters">Basic Filters</string>
-    <string name="gender_preference">Gender Preference:</string>
-    <string name="age_range">Age Range: %1$d - %2$d</string>
-    <string name="max_distance">Distance: %1$dkm</string>
-    <string name="max_distance_miles">Distance: %1$dmi</string>
+    <string name="filters">Filtros</string>
+    <string name="save">Guardar</string>
+    <string name="clear_selection">Borrar selección</string>
+    <string name="basic_filters">Filtros básicos</string>
+    <string name="gender_preference">Preferencia de género:</string>
+    <string name="age_range">Rango de edad: %1$d - %2$d</string>
+    <string name="max_distance">Distancia: %1$dkm</string>
+    <string name="max_distance_miles">Distancia: %1$dmi</string>
 
     <!-- Education Section -->
-    <string name="education">Education</string>
-    <string name="high_school">High School</string>
-    <string name="college">College</string>
-    <string name="post_grad">Post Grad</string>
+    <string name="education">Educación</string>
+    <string name="high_school">Secundaria</string>
+    <string name="college">Universidad</string>
+    <string name="post_grad">Posgrado</string>
 
     <!-- Preferences Section -->
-    <string name="preferences">Preferences</string>
-    <string name="community">Community</string>
-    <string name="religion">Religion</string>
-    <string name="caste">Caste/Jati</string>
+    <string name="preferences">Preferencias</string>
+    <string name="community">Comunidad</string>
+    <string name="religion">Religión</string>
+    <string name="caste">Casta/Jati</string>
 
     <!-- No profiles / posts -->
-    <string name="no_more_profiles">No more Profiles</string>
-    <string name="adjust_filters">Please adjust your filters using the - Filters - button above.</string>
-    <string name="no_posts">No posts available</string>
+    <string name="no_more_profiles">No hay más perfiles</string>
+    <string name="adjust_filters">Ajusta tus filtros usando el botón «Filtros» de arriba.</string>
+    <string name="no_posts">No hay publicaciones disponibles</string>
 
     <!-- Dating actions -->
-    <string name="super_swipe">Super Swipe</string>
-    <string name="force_match">Force Match</string>
-    <string name="swipe_left">Swipe Left</string>
-    <string name="swipe_right">Swipe Right</string>
-    <string name="swipe">Swipe!</string>
+    <string name="super_swipe">Súper swipe</string>
+    <string name="force_match">Forzar coincidencia</string>
+    <string name="swipe_left">Deslizar a la izquierda</string>
+    <string name="swipe_right">Deslizar a la derecha</string>
+    <string name="swipe">¡Desliza!</string>
     <string name="name_age">%1$s, %2$d</string>
 
     <!-- Collapsible Section -->
-    <string name="collapse">Collapse</string>
-    <string name="expand">Expand</string>
+    <string name="collapse">Contraer</string>
+    <string name="expand">Expandir</string>
 
     <!-- Profile Collapsible Sections Titles -->
-    <string name="compatibility_check">Compatibility Check</string>
-    <string name="bio">Bio</string>
-    <string name="basic_information">Basic Information</string>
-    <string name="lifestyle_attributes">Lifestyle Attributes</string>
-    <string name="interests">Interests</string>
-    <string name="social_causes">Social Causes</string>
+    <string name="compatibility_check">Verificación de compatibilidad</string>
+    <string name="bio">Biografía</string>
+    <string name="basic_information">Información básica</string>
+    <string name="lifestyle_attributes">Atributos de estilo de vida</string>
+    <string name="interests">Intereses</string>
+    <string name="social_causes">Causas sociales</string>
 
     <!-- Posts Overlay -->
-    <string name="posts">Posts</string>
-    <string name="view_more_posts">View More Posts</string>
+    <string name="posts">Publicaciones</string>
+    <string name="view_more_posts">Ver más publicaciones</string>
 
     <!-- Match PopUp -->
-    <string name="its_a_match">"It's a Match!"</string>
-    <string name="your_profile_picture">Your Profile Picture</string>
-    <string name="matched_profile_picture">Matched Profile Picture</string>
-    <string name="chat_now">Chat Now</string>
-    <string name="close">Close</string>
+    <string name="its_a_match">"¡Es un match!"</string>
+    <string name="your_profile_picture">Tu foto de perfil</string>
+    <string name="matched_profile_picture">Foto de perfil de la coincidencia</string>
+    <string name="chat_now">Chatear ahora</string>
+    <string name="close">Cerrar</string>
 
     <!-- Login Screen -->
-    <string name="username_or_email">Username or Email</string>
-    <string name="password">Password</string>
-    <string name="forgot_password">Forgot Password?</string>
-    <string name="forgot_email">Forgot Email?</string>
-    <string name="reset_password">Reset Password</string>
-    <string name="recover_email">Recover Email</string>
-    <string name="username">Username</string>
-    <string name="enter_username">Enter a username</string>
-    <string name="your_email">Your e‑mail</string>
-    <string name="submit">Submit</string>
-    <string name="cancel">Cancel</string>
+    <string name="username_or_email">Usuario o correo</string>
+    <string name="password">Contraseña</string>
+    <string name="forgot_password">¿Olvidaste la contraseña?</string>
+    <string name="forgot_email">¿Olvidaste el correo?</string>
+    <string name="reset_password">Restablecer contraseña</string>
+    <string name="recover_email">Recuperar correo</string>
+    <string name="username">Usuario</string>
+    <string name="enter_username">Ingresa un nombre de usuario</string>
+    <string name="your_email">Tu correo electrónico</string>
+    <string name="submit">Enviar</string>
+    <string name="cancel">Cancelar</string>
 
     <!-- Landing Screen (added for LandingActivity) -->
-    <string name="welcome_kupidx">Welcome to Kupidx</string>
-    <string name="register">Register</string>
-    <string name="login">Login</string>
+    <string name="welcome_kupidx">Bienvenido a Kupidx</string>
+    <string name="register">Registrarse</string>
+    <string name="login">Iniciar sesión</string>
     <string name="continue_with_google">Google</string>
     <string name="continue_with_facebook">Facebook</string>
 
-    <string name="leaderboard">Rank</string>
+    <string name="leaderboard">Puesto</string>
     <!-- Language Selection -->
-    <string name="choose_language_title">Choose Language</string>
-    <string name="select_preferred_language">Select your preferred language</string>
-    <string name="next_button">Next</string>
+    <string name="choose_language_title">Elige idioma</string>
+    <string name="select_preferred_language">Selecciona tu idioma preferido</string>
+    <string name="next_button">Siguiente</string>
 
     <!-- Create Account -->
-    <string name="create_account_title">Create Account</string>
-    <string name="email_label">Email</string>
-    <string name="password_label">Password</string>
-    <string name="confirm_password_label">Confirm Password</string>
-    <string name="password_mismatch_error">Passwords do not match</string>
+    <string name="create_account_title">Crear cuenta</string>
+    <string name="email_label">Correo electrónico</string>
+    <string name="password_label">Contraseña</string>
+    <string name="confirm_password_label">Confirmar contraseña</string>
+    <string name="password_mismatch_error">Las contraseñas no coinciden</string>
 
-    <string name="or_click_date_to_refresh">
-  Or click refresh!
-</string>
+    <string name="or_click_date_to_refresh">¡O pulsa actualizar!</string>
+
     <!-- Enter Name & Height -->
-    <string name="full_name_label">Name (Optional)</string>
-    <string name="height_label">Height</string>
-    <string name="feet_inches_label">Feet + Inches</string>
-    <string name="centimeters_label">Centimeters</string>
-    <string name="feet_label">Feet</string>
-    <string name="inches_label">Inches</string>
-    <string name="height_cm_label">Height (cm)</string>
-    <string name="caste_title">Caste</string>
-    <string name="select_or_type">Select or type</string>
-    <string name="interested_in_header">Who are you interested in?</string>
-    <string name="male_option">Male</string>
-    <string name="female_option">Female</string>
-    <string name="gender_either">Either</string>
-    <string name="subscription_active">Active</string>
-    <string name="subscription_inactive">Inactive</string>
-    <string name="subscription_completed">Completed</string>
-    <string name="subscription_cancelled">Cancelled</string>
-    <string name="subscription_suspended">Suspended</string>
-    <string name="subscription_expired">Expired</string>
-    <string name="payment_failed">Payment failed</string>
+    <string name="full_name_label">Nombre (opcional)</string>
+    <string name="height_label">Altura</string>
+    <string name="feet_inches_label">Pies + pulgadas</string>
+    <string name="centimeters_label">Centímetros</string>
+    <string name="feet_label">Pies</string>
+    <string name="inches_label">Pulgadas</string>
+    <string name="height_cm_label">Altura (cm)</string>
+    <string name="caste_title">Casta</string>
+    <string name="select_or_type">Seleccionar o escribir</string>
+    <string name="interested_in_header">¿En quién estás interesado?</string>
+    <string name="male_option">Hombre</string>
+    <string name="female_option">Mujer</string>
+    <string name="subscription_active">Activa</string>
+    <string name="subscription_inactive">Inactiva</string>
+    <string name="subscription_completed">Completada</string>
+    <string name="subscription_cancelled">Cancelada</string>
+    <string name="subscription_suspended">Suspendida</string>
+    <string name="subscription_expired">Vencida</string>
+    <string name="payment_failed">Pago fallido</string>
 
-    <string name="verify_email">Verify Email</string>
-    <string name="resend_link">Resend link</string>
-    <string name="ive_verified">I’ve verified</string>
+    <string name="verify_email">Verificar correo</string>
+    <string name="resend_link">Reenviar enlace</string>
+    <string name="ive_verified">Ya verifiqué</string>
+
     <!-- Upload Media -->
-    <string name="upload_media_title">Upload Media</string>
-    <string name="profile_picture_label">Profile Picture</string>
-    <string name="tap_placeholder">Tap</string>
-    <string name="optional_photos_label">Optional Photos</string>
-    <string name="optional_voice">Optional Voice</string>
-    <string name="add_photos_button">Add Photos</string>
-    <string name="voice_bio_label">Voice Bio [Tap icon to record/re-record]</string>
-    <string name="voice_bio_duration_error">Voice Bio exceeds 60 seconds. Please record a shorter one.</string>
+    <string name="upload_media_title">Subir contenido</string>
+    <string name="profile_picture_label">Foto de perfil</string>
+    <string name="tap_placeholder">Tocar</string>
+    <string name="optional_photos_label">Fotos opcionales</string>
+    <string name="optional_voice">Voz opcional</string>
+    <string name="add_photos_button">Agregar fotos</string>
+    <string name="voice_bio_label">Biografía de voz [Toca el ícono para grabar/volver a grabar]</string>
+    <string name="voice_bio_duration_error">La biografía de voz supera 60 segundos. Graba una más corta.</string>
 
-    <string name="select_day_label">Day</string>
-    <!-- values/strings.xml (English) -->
-    <string name="select_month_label">Month</string>
-    <string name="select_year_label">Year</string>
+    <string name="select_day_label">Día</string>
+    <string name="select_month_label">Mes</string>
+    <string name="select_year_label">Año</string>
 
     <!-- Birthdate, City & Locality -->
-    <string name="enter_birthdate_city_hometown_title">Enter Birthdate, City and Locality</string>
-    <string name="select_birth_date_label">Select Birth Date</string>
-    <string name="city_label">City</string>
-    <string name="select_city_default">Select City</string>
-    <string name="locality_label">Locality</string>
-    <string name="select_locality_default">Select Locality</string>
-    <string name="select_city">-- Select City --</string>
+    <string name="enter_birthdate_city_hometown_title">Ingresa fecha de nacimiento, ciudad y localidad</string>
+    <string name="select_birth_date_label">Selecciona fecha de nacimiento</string>
+    <string name="city_label">Ciudad</string>
+    <string name="select_city_default">Selecciona ciudad</string>
+    <string name="locality_label">Localidad</string>
+    <string name="select_locality_default">Selecciona localidad</string>
+    <string name="select_city">-- Selecciona ciudad --</string>
 
     <!-- Interests -->
-    <string name="enter_interests_title">Select (Upto 9)</string>
-    <string name="global_interests_label">Global Interests</string>
+    <string name="enter_interests_title">Selecciona (hasta 9)</string>
+    <string name="global_interests_label">Intereses globales</string>
     <!-- The %1$s placeholder can be used to inject the locality name -->
-    <string name="local_interests_label">Local Interests in locality</string>
-    <string name="max_interests_error">You can select up to 20 interests only.</string>
+    <string name="local_interests_label">Intereses locales en la localidad</string>
+    <string name="max_interests_error">Solo puedes seleccionar hasta 20 intereses.</string>
 
     <!-- Education and Location -->
-    <string name="education_and_location_title">Enter Education</string>
-    <string name="education_level_label">Education Level</string>
-    <string name="select_education_level">Select Education Level</string>
-    <string name="high_school_label">High School</string>
-    <string name="select_or_type_high_school">Select</string>
-    <string name="college_label">College</string>
-    <string name="select_or_type_college">Select</string>
-    <string name="post_graduation_label">Post-Graduation</string>
-    <string name="select_or_type_post_grad">Select</string>
-    <string name="select_graduation_year_label">Select</string>
-    <string name="search_year_label">Search Year</string>
+    <string name="education_and_location_title">Ingresa educación</string>
+    <string name="education_level_label">Nivel educativo</string>
+    <string name="select_education_level">Selecciona nivel educativo</string>
+    <string name="high_school_label">Secundaria</string>
+    <string name="select_or_type_high_school">Seleccionar</string>
+    <string name="college_label">Universidad</string>
+    <string name="select_or_type_college">Seleccionar</string>
+    <string name="post_graduation_label">Posgrado</string>
+    <string name="select_or_type_post_grad">Seleccionar</string>
+    <string name="select_graduation_year_label">Seleccionar</string>
+    <string name="search_year_label">Buscar año</string>
 
     <!-- Gender, Community, Religion -->
-    <string name="enter_gender_community_religion_title">Enter Your Gender, Community, and Religion</string>
-    <string name="gender_label">Gender</string>
-    <string name="select_gender">Select Gender</string>
-    <string name="community_label">Community</string>
-    <string name="select_community">Select Community</string>
-    <string name="religion_label">Religion</string>
-    <string name="select_religion">Select Religion</string>
+    <string name="enter_gender_community_religion_title">Ingresa tu género, comunidad y religión</string>
+    <string name="gender_label">Género</string>
+    <string name="select_gender">Selecciona género</string>
+    <string name="community_label">Comunidad</string>
+    <string name="select_community">Selecciona comunidad</string>
+    <string name="religion_label">Religión</string>
+    <string name="select_religion">Selecciona religión</string>
 
     <!-- Username -->
-    <string name="username_label">Username</string>
-    <string name="username_empty_error">Username cannot be empty</string>
-    <string name="finish_button">Finish</string>
-    <string name="locate">Locate</string>
+    <string name="username_label">Usuario</string>
+    <string name="username_empty_error">El nombre de usuario no puede estar vacío</string>
+    <string name="finish_button">Finalizar</string>
+    <string name="locate">Ubicar</string>
 
     <!-- Common Dropdown/Search -->
-    <string name="search_label">Search</string>
-    <string name="select_default">Select</string>
+    <string name="search_label">Buscar</string>
+    <string name="select_default">Seleccionar</string>
 
     <!-- Greater Noida (General) -->
     <string name="locality_greater_noida_greater_noida">Greater Noida</string>
@@ -5867,36 +5857,36 @@
     <string name="locality_secunderabad_kandlakoya">Kandlakoya</string>
     <string name="locality_secunderabad_bolarum">Bolarum</string>
     <string name="locality_secunderabad_other">Other</string>
+    <string name="compliment">Cumplido</string>
+    <string name="boost">Impulso</string>
+    <string name="show_boosted">Mostrar usuarios destacados</string>
+    <string name="boosted_users">Usuarios destacados cerca</string>
 
-    <string name="compliment">Compliment</string>
-    <string name="boost">Boost</string>
-    <string name="show_boosted">Show Boosted Users</string>
-    <string name="boosted_users">Boosted Users Nearby</string>
     <string-array name="social_causes_list">
         <!-- Environment & Sustainability -->
-        <item>Climate Action and Renewable Energy</item>
-        <item>Clean Air and Anti-Pollution</item>
-        <item>Water Conservation and River Revitalization</item>
-        <item>Plastic Waste and Recycling</item>
+        <item>Acción climática y energías renovables</item>
+        <item>Aire limpio y lucha contra la contaminación</item>
+        <item>Conservación del agua y revitalización de ríos</item>
+        <item>Residuos plásticos y reciclaje</item>
 
         <!-- Health & Well-Being -->
-        <item>Mental Health and Wellbeing</item>
-        <item>Comprehensive Sexual and Reproductive Health</item>
-        <item>Community Healthcare and Vaccination</item>
+        <item>Salud mental y bienestar</item>
+        <item>Salud sexual y reproductiva integral</item>
+        <item>Salud comunitaria y vacunación</item>
 
         <!-- Equality & Rights -->
-        <item>Gender Equality and Women’s Safety</item>
-        <item>Digital Privacy and Online Safety</item>
+        <item>Igualdad de género y seguridad de las mujeres</item>
+        <item>Privacidad digital y seguridad en línea</item>
 
         <!-- Opportunity & Mobility -->
-        <item>Skill Development and Youth Employment</item>
-        <item>Sustainable Urban Mobility</item>
+        <item>Desarrollo de habilidades y empleo juvenil</item>
+        <item>Movilidad urbana sostenible</item>
 
         <!-- Cultural Nationalism & Social Reforms -->
-        <item>Patriotic Education and Curriculum Reform</item>
-        <item>Population Control Measures</item>
-        <item>Traditional Family Values</item>
-        <item>Sex Positivity</item>
+        <item>Educación patriótica y reforma curricular</item>
+        <item>Medidas de control de la población</item>
+        <item>Valores familiares tradicionales</item>
+        <item>Positividad sexual</item>
     </string-array>
 
 </resources>

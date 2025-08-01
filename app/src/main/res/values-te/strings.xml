@@ -47,6 +47,10 @@
         <!-- Generic Location Types (Applicable Across India) -->
         <string name="tag_budget_hotels">బడ్జెట్ హోటళ్లు</string>
         <string name="tag_hotels">హోటళ్లు</string>
+        <string name="tag_museums">సంగ్రహాలయాలు</string>
+        <string name="tag_national_parks">జాతీయ ఉద్యానవనాలు</string>
+        <string name="tag_zoos">జంతుప్రదర్శనశాలలు</string>
+        <string name="tag_libraries">గ్రంథాలయాలు</string>
         <string name="tag_cafes">कैఫేలు</string>
         <string name="tag_bars">బార్లు</string>
         <string name="tag_malls">మాల్స్</string>
@@ -1298,6 +1302,7 @@
         <string name="interested_in_header">మీరు ఆసక్తి ఉన్నవారు ఎవరు?</string>
         <string name="male_option">పురుషుడు</string>
         <string name="female_option">స్త్రీ</string>
+        <string name="gender_either">ఏదైనా</string>
 
         <!-- Upload Media -->
         <string name="upload_media_title">మీడియాను అప్‌లోడ్ చేయండి</string>

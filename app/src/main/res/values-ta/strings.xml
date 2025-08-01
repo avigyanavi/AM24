@@ -43,6 +43,10 @@
         <string name="tag_budget_hotels">பட்ஜெட் ஹோட்டல்கள்</string>
         <string name="tag_hotels">ஹோட்டல்கள்</string>
         <string name="tag_cafes">கஃபேக்கள்</string>
+        <string name="tag_museums">அருங்காட்சியகங்கள்</string>
+        <string name="tag_national_parks">தேசிய பூங்காக்கள்</string>
+        <string name="tag_zoos">உயிரியல் பூங்காக்கள்</string>
+        <string name="tag_libraries">நூலகங்கள்</string>
         <string name="tag_bars">பார்கள்</string>
         <string name="tag_malls">மால்கள்</string>
         <string name="tag_parks">பூங்காக்கள்</string>
@@ -1264,6 +1268,7 @@
                 <string name="interested_in_header">நீங்கள் யாருக்கு ஆர்வமாக உள்ளீர்கள்?</string>
                 <string name="male_option">ஆண்</string>
                 <string name="female_option">பெண்</string>
+                <string name="gender_either">எதுவும்</string>
 
                 <!-- Upload Media -->
                 <string name="upload_media_title">மீடியாவை பதிவேற்று</string>

@@ -76,6 +76,10 @@
     <string name="tag_marine_drive">मरीन ड्राइव</string>
     <string name="tag_akshardham_temple">अक्षरधाम मंदिर</string>
     <string name="tag_red_fort">लाल किला</string>
+    <string name="tag_museums">संग्रहालय</string>
+    <string name="tag_national_parks">राष्ट्रीय उद्यान</string>
+    <string name="tag_zoos">चिड़ियाघर</string>
+    <string name="tag_libraries">पुस्तकालय</string>
     <string name="tag_jantar_mantar">जंतर मंतर</string>
 
     <!-- Catch-all for other tags -->
@@ -1317,6 +1321,7 @@
     <string name="interested_in_header">आप किसमें रुचि रखते हैं?</string>
     <string name="male_option">पुरुष</string>
     <string name="female_option">महिला</string>
+    <string name="gender_either">कोई भी</string>
 
     <!-- Upload Media -->
     <string name="upload_media_title">मीडिया अपलोड करें</string>

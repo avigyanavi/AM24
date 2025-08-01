@@ -117,6 +117,20 @@ val casteNameToRes = mapOf(
     "ব্ৰাহ্মণ" to R.string.caste_brahmin, // Assamese
     "ਬ੍ਰਾਹਮਣ" to R.string.caste_brahmin, // Punjabi
 
+    // Either
+    "Either" to R.string.gender_either,
+    "যেকোনো একটি" to R.string.gender_either, // Bengali
+    "कोई भी" to R.string.gender_either, // Hindi
+    "எதுவும்" to R.string.gender_either, // Tamil
+    "ଯେକୌଣସି" to R.string.gender_either, // Odia
+    "ఏదైనా" to R.string.gender_either, // Telugu
+    "कोणतेही" to R.string.gender_either, // Marathi
+    "કંઈપણ" to R.string.gender_either, // Gujarati
+    "ಯಾವುದೇ" to R.string.gender_either, // Kannada
+    "ഏതെങ്കിലും" to R.string.gender_either, // Malayalam
+    "যেকোনো এটা" to R.string.gender_either, // Assamese
+    "ਕੋਈ ਵੀ" to R.string.gender_either, // Punjabi
+
     // Kayastha
     "Kayastha" to R.string.caste_kayastha,
     "কায়স্থ" to R.string.caste_kayastha, // Bengali

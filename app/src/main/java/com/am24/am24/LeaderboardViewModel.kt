@@ -87,7 +87,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
                     null -> true
                     R.string.male_option -> gId == R.string.male_option
                     R.string.female_option -> gId == R.string.female_option
-                    else -> gId == R.string.male_option || gId == R.string.female_option || gId == R.string.college_other
+                    else -> gId == R.string.male_option || gId == R.string.female_option || gId == R.string.gender_either
                 }
             }
         }

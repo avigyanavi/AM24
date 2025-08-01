@@ -1135,7 +1135,7 @@ fun BasicInfoEditSection(
     val genderOptions = listOf(
         stringResource(R.string.male_option),
         stringResource(R.string.female_option),
-        stringResource(R.string.college_other)
+        stringResource(R.string.gender_either)
     )
     var selectedGender by remember {
         mutableStateOf(tempProfile.gender.ifBlank { notSelected })

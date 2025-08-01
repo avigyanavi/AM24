@@ -221,7 +221,7 @@ fun LeaderboardFilters(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            listOf("" to "All", "Male" to "Male", "Female" to "Female", "Other" to "Other")
+            listOf("" to "All", "Male" to "Male", "Female" to "Female", "Either" to "Either")
                 .forEach { (value, label) ->
                     FilterChip(
                         selected = selectedGender == value,

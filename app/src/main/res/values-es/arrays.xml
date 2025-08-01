@@ -1,203 +1,203 @@
 <resources>
     <string-array name="country_names">
-        <item>Other</item>        <!-- “Other…” string reuse -->
-        <item>Afghanistan</item>
+        <item>Otro</item>        <!-- “Other…” string reuse -->
+        <item>Afganistán</item>
         <item>Albania</item>
-        <item>Algeria</item>
+        <item>Argelia</item>
         <item>Andorra</item>
         <item>Angola</item>
-        <item>Antigua and Barbuda</item>
+        <item>Antigua y Barbuda</item>
         <item>Argentina</item>
         <item>Armenia</item>
         <item>Australia</item>
         <item>Austria</item>
-        <item>Azerbaijan</item>
+        <item>Azerbaiyán</item>
         <item>Bahamas</item>
-        <item>Bahrain</item>
-        <item>Bangladesh</item>
+        <item>Baréin</item>
+        <item>Bangladés</item>
         <item>Barbados</item>
-        <item>Belarus</item>
-        <item>Belgium</item>
-        <item>Belize</item>
-        <item>Benin</item>
-        <item>Bhutan</item>
+        <item>Bielorrusia</item>
+        <item>Bélgica</item>
+        <item>Belice</item>
+        <item>Benín</item>
+        <item>Bután</item>
         <item>Bolivia</item>
-        <item>Bosnia and Herzegovina</item>
-        <item>Botswana</item>
-        <item>Brazil</item>
-        <item>Brunei</item>
+        <item>Bosnia y Herzegovina</item>
+        <item>Botsuana</item>
+        <item>Brasil</item>
+        <item>Brunéi</item>
         <item>Bulgaria</item>
         <item>Burkina Faso</item>
         <item>Burundi</item>
         <item>Cabo Verde</item>
-        <item>Cambodia</item>
-        <item>Cameroon</item>
-        <item>Canada</item>
-        <item>Central African Republic</item>
+        <item>Camboya</item>
+        <item>Camerún</item>
+        <item>Canadá</item>
+        <item>República Centroafricana</item>
         <item>Chad</item>
         <item>Chile</item>
         <item>China</item>
         <item>Colombia</item>
-        <item>Comoros</item>
-        <item>Congo, Democratic Republic of the</item>
-        <item>Congo, Republic of the</item>
+        <item>Comoras</item>
+        <item>República Democrática del Congo</item>
+        <item>República del Congo</item>
         <item>Costa Rica</item>
-        <item>Croatia</item>
+        <item>Croacia</item>
         <item>Cuba</item>
-        <item>Cyprus</item>
-        <item>Czech Republic</item>
-        <item>Denmark</item>
-        <item>Djibouti</item>
+        <item>Chipre</item>
+        <item>República Checa</item>
+        <item>Dinamarca</item>
+        <item>Yibuti</item>
         <item>Dominica</item>
-        <item>Dominican Republic</item>
+        <item>República Dominicana</item>
         <item>Ecuador</item>
-        <item>Egypt</item>
+        <item>Egipto</item>
         <item>El Salvador</item>
-        <item>Equatorial Guinea</item>
+        <item>Guinea Ecuatorial</item>
         <item>Eritrea</item>
         <item>Estonia</item>
-        <item>Eswatini</item>
-        <item>Ethiopia</item>
-        <item>Fiji</item>
-        <item>Finland</item>
-        <item>France</item>
-        <item>Gabon</item>
+        <item>Esuatini</item>
+        <item>Etiopía</item>
+        <item>Fiyi</item>
+        <item>Finlandia</item>
+        <item>Francia</item>
+        <item>Gabón</item>
         <item>Gambia</item>
         <item>Georgia</item>
-        <item>Germany</item>
+        <item>Alemania</item>
         <item>Ghana</item>
-        <item>Greece</item>
-        <item>Grenada</item>
+        <item>Grecia</item>
+        <item>Granada</item>
         <item>Guatemala</item>
         <item>Guinea</item>
-        <item>Guinea-Bissau</item>
+        <item>Guinea-Bisáu</item>
         <item>Guyana</item>
-        <item>Haiti</item>
+        <item>Haití</item>
         <item>Honduras</item>
-        <item>Hungary</item>
-        <item>Iceland</item>
+        <item>Hungría</item>
+        <item>Islandia</item>
         <item>India</item>
         <item>Indonesia</item>
-        <item>Iran</item>
-        <item>Iraq</item>
-        <item>Ireland</item>
+        <item>Irán</item>
+        <item>Irak</item>
+        <item>Irlanda</item>
         <item>Israel</item>
-        <item>Italy</item>
+        <item>Italia</item>
         <item>Jamaica</item>
-        <item>Japan</item>
-        <item>Jordan</item>
-        <item>Kazakhstan</item>
-        <item>Kenya</item>
+        <item>Japón</item>
+        <item>Jordania</item>
+        <item>Kazajistán</item>
+        <item>Kenia</item>
         <item>Kiribati</item>
         <item>Kuwait</item>
-        <item>Kyrgyzstan</item>
+        <item>Kirguistán</item>
         <item>Laos</item>
-        <item>Latvia</item>
-        <item>Lebanon</item>
-        <item>Lesotho</item>
+        <item>Letonia</item>
+        <item>Líbano</item>
+        <item>Lesoto</item>
         <item>Liberia</item>
-        <item>Libya</item>
+        <item>Libia</item>
         <item>Liechtenstein</item>
-        <item>Lithuania</item>
-        <item>Luxembourg</item>
+        <item>Lituania</item>
+        <item>Luxemburgo</item>
         <item>Madagascar</item>
-        <item>Malawi</item>
-        <item>Malaysia</item>
-        <item>Maldives</item>
-        <item>Mali</item>
+        <item>Malaui</item>
+        <item>Malasia</item>
+        <item>Maldivas</item>
+        <item>Malí</item>
         <item>Malta</item>
-        <item>Marshall Islands</item>
+        <item>Islas Marshall</item>
         <item>Mauritania</item>
-        <item>Mauritius</item>
-        <item>Mexico</item>
+        <item>Mauricio</item>
+        <item>México</item>
         <item>Micronesia</item>
-        <item>Moldova</item>
-        <item>Monaco</item>
+        <item>Moldavia</item>
+        <item>Mónaco</item>
         <item>Mongolia</item>
         <item>Montenegro</item>
-        <item>Morocco</item>
+        <item>Marruecos</item>
         <item>Mozambique</item>
         <item>Myanmar</item>
         <item>Namibia</item>
         <item>Nauru</item>
         <item>Nepal</item>
-        <item>Netherlands</item>
-        <item>New Zealand</item>
+        <item>Países Bajos</item>
+        <item>Nueva Zelanda</item>
         <item>Nicaragua</item>
-        <item>Niger</item>
+        <item>Níger</item>
         <item>Nigeria</item>
-        <item>North Korea</item>
-        <item>North Macedonia</item>
-        <item>Norway</item>
-        <item>Oman</item>
-        <item>Pakistan</item>
-        <item>Palau</item>
-        <item>Balochistan</item>
-        <item>Panama</item>
-        <item>Papua New Guinea</item>
+        <item>Corea del Norte</item>
+        <item>Macedonia del Norte</item>
+        <item>Noruega</item>
+        <item>Omán</item>
+        <item>Pakistán</item>
+        <item>Palaos</item>
+        <item>Baluchistán</item>
+        <item>Panamá</item>
+        <item>Papúa Nueva Guinea</item>
         <item>Paraguay</item>
-        <item>Peru</item>
-        <item>Philippines</item>
-        <item>Poland</item>
+        <item>Perú</item>
+        <item>Filipinas</item>
+        <item>Polonia</item>
         <item>Portugal</item>
-        <item>Qatar</item>
-        <item>Romania</item>
-        <item>Russia</item>
-        <item>Rwanda</item>
-        <item>Saint Kitts and Nevis</item>
-        <item>Saint Lucia</item>
-        <item>Saint Vincent and the Grenadines</item>
+        <item>Catar</item>
+        <item>Rumanía</item>
+        <item>Rusia</item>
+        <item>Ruanda</item>
+        <item>San Cristóbal y Nieves</item>
+        <item>Santa Lucía</item>
+        <item>San Vicente y las Granadinas</item>
         <item>Samoa</item>
         <item>San Marino</item>
-        <item>Sao Tome and Principe</item>
-        <item>Saudi Arabia</item>
+        <item>Santo Tomé y Príncipe</item>
+        <item>Arabia Saudita</item>
         <item>Senegal</item>
         <item>Serbia</item>
         <item>Seychelles</item>
-        <item>Sierra Leone</item>
-        <item>Singapore</item>
-        <item>Slovakia</item>
-        <item>Slovenia</item>
-        <item>Solomon Islands</item>
+        <item>Sierra Leona</item>
+        <item>Singapur</item>
+        <item>Eslovaquia</item>
+        <item>Eslovenia</item>
+        <item>Islas Salomón</item>
         <item>Somalia</item>
-        <item>South Africa</item>
-        <item>South Korea</item>
-        <item>South Sudan</item>
-        <item>Spain</item>
+        <item>Sudáfrica</item>
+        <item>Corea del Sur</item>
+        <item>Sudán del Sur</item>
+        <item>España</item>
         <item>Sri Lanka</item>
-        <item>Sudan</item>
-        <item>Suriname</item>
-        <item>Sweden</item>
-        <item>Switzerland</item>
-        <item>Syria</item>
-        <item>Taiwan</item>
-        <item>Tajikistan</item>
+        <item>Sudán</item>
+        <item>Surinam</item>
+        <item>Suecia</item>
+        <item>Suiza</item>
+        <item>Siria</item>
+        <item>Taiwán</item>
+        <item>Tayikistán</item>
         <item>Tanzania</item>
-        <item>Thailand</item>
+        <item>Tailandia</item>
         <item>Timor-Leste</item>
         <item>Togo</item>
         <item>Tonga</item>
-        <item>Trinidad and Tobago</item>
-        <item>Tunisia</item>
-        <item>Turkey</item>
-        <item>Turkmenistan</item>
+        <item>Trinidad y Tobago</item>
+        <item>Túnez</item>
+        <item>Turquía</item>
+        <item>Turkmenistán</item>
         <item>Tuvalu</item>
         <item>Uganda</item>
-        <item>Ukraine</item>
-        <item>United Arab Emirates</item>
-        <item>United Kingdom</item>
-        <item>United States</item>
+        <item>Ucrania</item>
+        <item>Emiratos Árabes Unidos</item>
+        <item>Reino Unido</item>
+        <item>Estados Unidos</item>
         <item>Uruguay</item>
-        <item>Uzbekistan</item>
+        <item>Uzbekistán</item>
         <item>Vanuatu</item>
         <item>Venezuela</item>
         <item>Vietnam</item>
         <item>Yemen</item>
         <item>Zambia</item>
-        <item>Zimbabwe</item>
+        <item>Zimbabue</item>
     </string-array>
 
-        <!-- Pan‑India city list with Tier‑1 UAs (with satellites) + at least two other cities per state -->
+    <!-- Pan‑India city list with Tier‑1 UAs (with satellites) + at least two other cities per state -->
     <string-array name="city_names">
         <!-- Fallback -->
         <item>Other</item>
@@ -292,7 +292,7 @@
         <item>Vijayawada</item>
         <item>Visakhapatnam</item>
         <item>Warangal</item>
-        </string-array>
+    </string-array>
 
     <string-array name="localities_daman">
         <!-- Daman (General) -->
@@ -3301,75 +3301,75 @@
     </string-array>
 
     <string-array name="localities_bhopal">
-            <!-- Bhopal (General) -->
-            <item>Bhopal</item>
+        <!-- Bhopal (General) -->
+        <item>Bhopal</item>
 
-            <!-- Central and Commercial Areas -->
-            <item>MP Nagar</item>
-            <item>New Market</item>
-            <item>Chowk Bazaar</item>
-            <item>Bittan Market</item>
-            <item>HDB Area</item>
-            <item>Peer Gate</item>
-            <item>Hamidia Road</item>
-            <item>Malviya Nagar</item>
-            <item>IBD Hallmark City</item>
+        <!-- Central and Commercial Areas -->
+        <item>MP Nagar</item>
+        <item>New Market</item>
+        <item>Chowk Bazaar</item>
+        <item>Bittan Market</item>
+        <item>HDB Area</item>
+        <item>Peer Gate</item>
+        <item>Hamidia Road</item>
+        <item>Malviya Nagar</item>
+        <item>IBD Hallmark City</item>
 
-            <!-- Residential Neighborhoods -->
-            <item>Arera Colony</item>
-            <item>Shyamla Hills</item>
-            <item>Habibganj</item>
-            <item>Shastri Nagar</item>
-            <item>Kolar Road</item>
-            <item>Chunabhatti</item>
-            <item>Trilanga</item>
-            <item>Bawaria Kalan</item>
-            <item>Bagmugalia</item>
-            <item>Ayodhya Nagar</item>
-            <item>TT Nagar</item>
-            <item>BHEL Township</item>
-            <item>Koh-e-Fiza</item>
-            <item>Shahpura</item>
+        <!-- Residential Neighborhoods -->
+        <item>Arera Colony</item>
+        <item>Shyamla Hills</item>
+        <item>Habibganj</item>
+        <item>Shastri Nagar</item>
+        <item>Kolar Road</item>
+        <item>Chunabhatti</item>
+        <item>Trilanga</item>
+        <item>Bawaria Kalan</item>
+        <item>Bagmugalia</item>
+        <item>Ayodhya Nagar</item>
+        <item>TT Nagar</item>
+        <item>BHEL Township</item>
+        <item>Koh-e-Fiza</item>
+        <item>Shahpura</item>
 
-            <!-- Administrative and Institutional Areas -->
-            <item>Vallabh Bhawan</item>
-            <item>Satpura Bhawan</item>
-            <item>High Court Area</item>
-            <item>MANIT (Maulana Azad National Institute of Technology) Area</item>
-            <item>Bhopal Junction Railway Station Area</item>
-            <item>AIIMS Bhopal Area</item>
-            <item>People’s University Area</item>
-            <item>Rani Kamlapati Railway Station Area</item>
+        <!-- Administrative and Institutional Areas -->
+        <item>Vallabh Bhawan</item>
+        <item>Satpura Bhawan</item>
+        <item>High Court Area</item>
+        <item>MANIT (Maulana Azad National Institute of Technology) Area</item>
+        <item>Bhopal Junction Railway Station Area</item>
+        <item>AIIMS Bhopal Area</item>
+        <item>People’s University Area</item>
+        <item>Rani Kamlapati Railway Station Area</item>
 
-            <!-- Cultural and Historical Areas -->
-            <item>Taj-ul-Masajid Area</item>
-            <item>Birla Mandir Area</item>
-            <item>Moti Mahal</item>
-            <item>Gauhar Mahal</item>
-            <item>Shaukat Mahal</item>
+        <!-- Cultural and Historical Areas -->
+        <item>Taj-ul-Masajid Area</item>
+        <item>Birla Mandir Area</item>
+        <item>Moti Mahal</item>
+        <item>Gauhar Mahal</item>
+        <item>Shaukat Mahal</item>
 
-            <!-- Tourist and Recreational Areas -->
-            <item>Upper Lake (Bhoj Tal)</item>
-            <item>Lower Lake</item>
-            <item>Van Vihar National Park</item>
-            <item>Kerwa Dam</item>
-            <item>Bhimbetka (Peripheral)</item>
-            <item>Sanchi (Peripheral)</item>
+        <!-- Tourist and Recreational Areas -->
+        <item>Upper Lake (Bhoj Tal)</item>
+        <item>Lower Lake</item>
+        <item>Van Vihar National Park</item>
+        <item>Kerwa Dam</item>
+        <item>Bhimbetka (Peripheral)</item>
+        <item>Sanchi (Peripheral)</item>
 
-            <!-- Industrial and Commercial Zones -->
-            <item>Govindpura Industrial Area</item>
-            <item>Mandideep Industrial Area</item>
+        <!-- Industrial and Commercial Zones -->
+        <item>Govindpura Industrial Area</item>
+        <item>Mandideep Industrial Area</item>
 
-            <!-- Emerging and Peripheral Areas -->
-            <item>Airport Road</item>
-            <item>Neelbad</item>
-            <item>Hoshangabad Road</item>
-            <item>Misrod</item>
-            <item>Awadhpuri</item>
+        <!-- Emerging and Peripheral Areas -->
+        <item>Airport Road</item>
+        <item>Neelbad</item>
+        <item>Hoshangabad Road</item>
+        <item>Misrod</item>
+        <item>Awadhpuri</item>
 
-            <!-- Other -->
-            <item>Other</item>
-        </string-array>
+        <!-- Other -->
+        <item>Other</item>
+    </string-array>
 
     <string-array name="localities_kochi">
         <!-- Kochi (General) -->
@@ -3980,27 +3980,27 @@
         <item>Norbulingka Institute</item>
         <item>Triund</item>
         <item>Kangra Karam</item>
-    <!-- Administrative and Institutional Areas -->
-    <item>Deputy Commissioner Office Area</item>
-    <item>Himachal Pradesh Cricket Association Stadium Area</item>
-    <item>Central University of Himachal Pradesh Area</item>
-    <!-- Central University of Kangra</item> -->
-    <item>Tapkeshwar Mahadev Temple Area</item>
-    <!-- Tapkeshawar</item> -->
-    <item>District Court Area</item>
-    <item>Police Ground</item>
+        <!-- Administrative and Institutional Areas -->
+        <item>Deputy Commissioner Office Area</item>
+        <item>Himachal Pradesh Cricket Association Stadium Area</item>
+        <item>Central University of Himachal Pradesh Area</item>
+        <!-- Central University of Kangra</item> -->
+        <item>Tapkeshwar Mahadev Temple Area</item>
+        <!-- Tapkeshawar</item> -->
+        <item>District Court Area</item>
+        <item>Police Ground</item>
 
-    <!-- Emerging and Peripheral Areas -->
-    <item>Palampur Road</item>
-    <item>Chetru</item>
-    <item>Gaggal</item>
-    <item>Chamunda</item>
-    <item>Forsyth Ganj</item>
-    <item>Khaniyara</item>
+        <!-- Emerging and Peripheral Areas -->
+        <item>Palampur Road</item>
+        <item>Chetru</item>
+        <item>Gaggal</item>
+        <item>Chamunda</item>
+        <item>Forsyth Ganj</item>
+        <item>Khaniyara</item>
 
-    <!-- Other -->
-    <item>Other</item>
-</string-array>
+        <!-- Other -->
+        <item>Other</item>
+    </string-array>
 
     <string-array name="localities_shimla">
         <!-- Shimla (General) -->
@@ -5480,12 +5480,12 @@
         <!-- Institutional and Educational Areas -->
         <item>NAD Junction</item>
         <item>Andhra University Area</item>
-    <item>Gitam University Area</item>
-    <item>Simhachalam</item>
+        <item>Gitam University Area</item>
+        <item>Simhachalam</item>
 
-    <!-- Other -->
-    <item>Other</item>
-</string-array>
+        <!-- Other -->
+        <item>Other</item>
+    </string-array>
 
     <string-array name="localities_amaravati">
         <!-- Amaravati (General) -->

@@ -49,6 +49,10 @@
     <string name="tag_budget_hotels">বাজেট হোটেল</string>
     <string name="tag_hotels">হোটেল</string>
     <string name="tag_cafes">ক্যাফে</string>
+    <string name="tag_museums">জাদুঘর</string>
+    <string name="tag_national_parks">জাতীয় উদ্যান</string>
+    <string name="tag_zoos">চিড়িয়াখানা</string>
+    <string name="tag_libraries">গ্রন্থাগার</string>
     <string name="tag_bars">বার</string>
     <string name="tag_malls">মল</string>
     <string name="tag_parks">পার্ক</string>
@@ -1269,6 +1273,7 @@
     <string name="interested_in_header">আপনি কার সাথে আগ্রহী?</string>
     <string name="male_option">পুরুষ</string>
     <string name="female_option">মহিলা</string>
+    <string name="gender_either">যেকোনো একটি</string>
 
     <!-- Upload Media -->
     <string name="upload_media_title">মিডিয়া আপলোড করুন</string>
