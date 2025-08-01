@@ -61,7 +61,7 @@ exports.debugPaypalPlanGET = functions
   .region('asia-south1')
   .https.onRequest(async (_req, res) => {
     // LIVE Plus Monthly ($1.99)
-    const planId = 'P-55K97468HS173831WNCGOEYY';
+    const planId = 'P-6YV8029760219190UNCFTI4Y';
     try {
       const token = await paypalToken(); // will throw with details now
       const r = await fetch(`${PAYPAL_API}/v1/billing/plans/${planId}`, {
