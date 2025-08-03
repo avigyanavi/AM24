@@ -158,7 +158,7 @@ fun MapScreen(
     /* ───── state ───── */
     var searchQuery by remember { mutableStateOf("") }
     var showSearchBar by remember { mutableStateOf(false) }
-    var showLeaderboard by remember { mutableStateOf(false) }   // ⭐ new
+    var showLeaderboard by remember { mutableStateOf(false) }
     val camera = rememberCameraPositionState()
     val matchMarkers = remember { mutableStateListOf<MarkerData>() }
     val searchResults = remember { mutableStateListOf<PlaceResult>() }
@@ -178,8 +178,13 @@ fun MapScreen(
     val matchProfiles = remember { mutableStateListOf<MatchProfile>() }
     val clusterLatLngs = remember { mutableStateMapOf<String, LatLng?>() }
 
-    /* quick tags */
-    val quickTags = listOf(
+    /* region */
+    val region = detectRegion(userLatLng)
+    val isUserInLA = region == Region.LA
+    val isUserInBay = region == Region.SF_BAY
+
+    /* ───────── base quick tags ───────── */
+    val baseQuickTags = listOf(
         TagItem(ctx.getString(R.string.tag_cafes), "cafes"),
         TagItem(ctx.getString(R.string.tag_bars), "bars"),
         TagItem(ctx.getString(R.string.tag_malls), "malls"),
@@ -204,6 +209,46 @@ fun MapScreen(
         TagItem(ctx.getString(R.string.tag_night_markets), "night_markets"),
         TagItem(ctx.getString(R.string.tag_food_courts), "food_courts")
     )
+
+    /* ───────── LA-specific quick tags (expanded) ───────── */
+    val laQuickTags = if (isUserInLA) listOf(
+        TagItem(ctx.getString(R.string.la_tag_dtla_rooftops_label), ctx.getString(R.string.la_tag_dtla_rooftops_query)),
+        TagItem(ctx.getString(R.string.la_tag_ktown_bbq_label), ctx.getString(R.string.la_tag_ktown_bbq_query)),
+        TagItem(ctx.getString(R.string.la_tag_beach_sunset_label), ctx.getString(R.string.la_tag_beach_sunset_query)),
+        TagItem(ctx.getString(R.string.la_tag_runyon_hikes_label), ctx.getString(R.string.la_tag_runyon_hikes_query)),
+        TagItem(ctx.getString(R.string.la_tag_live_music_label), ctx.getString(R.string.la_tag_live_music_query)),
+        TagItem(ctx.getString(R.string.la_tag_brunch_westside_label), ctx.getString(R.string.la_tag_brunch_westside_query)),
+        TagItem(ctx.getString(R.string.la_tag_arts_district_label), ctx.getString(R.string.la_tag_arts_district_query)),
+        TagItem(ctx.getString(R.string.la_tag_museums_label), ctx.getString(R.string.la_tag_museums_query)),
+        // NEW adds
+        TagItem(ctx.getString(R.string.la_tag_malibu_beaches_label), ctx.getString(R.string.la_tag_malibu_beaches_query)),
+        TagItem(ctx.getString(R.string.la_tag_dockweiler_bonfire_label), ctx.getString(R.string.la_tag_dockweiler_bonfire_query)),
+        TagItem(ctx.getString(R.string.la_tag_surf_rental_label), ctx.getString(R.string.la_tag_surf_rental_query)),
+        TagItem(ctx.getString(R.string.la_tag_manhattan_volleyball_label), ctx.getString(R.string.la_tag_manhattan_volleyball_query)),
+        TagItem(ctx.getString(R.string.la_tag_speakeasy_label), ctx.getString(R.string.la_tag_speakeasy_query)),
+        TagItem(ctx.getString(R.string.la_tag_karaoke_ktown_label), ctx.getString(R.string.la_tag_karaoke_ktown_query)),
+        TagItem(ctx.getString(R.string.la_tag_comedy_label), ctx.getString(R.string.la_tag_comedy_query)),
+        TagItem(ctx.getString(R.string.la_tag_food_trucks_label), ctx.getString(R.string.la_tag_food_trucks_query))
+    ) else emptyList()
+
+    /* ───────── SF Bay-specific quick tags ───────── */
+    val bayQuickTags = if (isUserInBay) listOf(
+        TagItem(ctx.getString(R.string.ba_tag_ocean_beach_sunset_label), ctx.getString(R.string.ba_tag_ocean_beach_sunset_query)),
+        TagItem(ctx.getString(R.string.ba_tag_gg_viewpoints_label), ctx.getString(R.string.ba_tag_gg_viewpoints_query)),
+        TagItem(ctx.getString(R.string.ba_tag_mission_tacos_label), ctx.getString(R.string.ba_tag_mission_tacos_query)),
+        TagItem(ctx.getString(R.string.ba_tag_north_beach_pizza_label), ctx.getString(R.string.ba_tag_north_beach_pizza_query)),
+        TagItem(ctx.getString(R.string.ba_tag_soma_coffee_label), ctx.getString(R.string.ba_tag_soma_coffee_query)),
+        TagItem(ctx.getString(R.string.ba_tag_marin_hikes_label), ctx.getString(R.string.ba_tag_marin_hikes_query)),
+        TagItem(ctx.getString(R.string.ba_tag_napa_wineries_label), ctx.getString(R.string.ba_tag_napa_wineries_query)),
+        TagItem(ctx.getString(R.string.ba_tag_berkeley_bookstores_label), ctx.getString(R.string.ba_tag_berkeley_bookstores_query)),
+        TagItem(ctx.getString(R.string.ba_tag_paloalto_coffee_label), ctx.getString(R.string.ba_tag_paloalto_coffee_query)),
+        TagItem(ctx.getString(R.string.ba_tag_oakland_music_label), ctx.getString(R.string.ba_tag_oakland_music_query)),
+        TagItem(ctx.getString(R.string.ba_tag_ferry_market_label), ctx.getString(R.string.ba_tag_ferry_market_query)),
+        TagItem(ctx.getString(R.string.ba_tag_sf_museums_label), ctx.getString(R.string.ba_tag_sf_museums_query))
+    ) else emptyList()
+
+    /* final quickTags used by UI */
+    val quickTags = laQuickTags + bayQuickTags + baseQuickTags
 
     /* fetch user location */
     LaunchedEffect(userId) {
@@ -233,24 +278,21 @@ fun MapScreen(
             })
     }
 
-    /* load nearby check-ins for heat-map */
     /*──────── load nearby check-ins for heat-map ────────*/
     LaunchedEffect(userLatLng) {
-        if (userLatLng == null) return@LaunchedEffect     // just a trigger
-
+        if (userLatLng == null) return@LaunchedEffect
         try {
             val snap = FirebaseRefs.db.getReference("posts")
                 .orderByChild("checkIn/placeId")
                 .limitToLast(50)
                 .get().await()
 
-            clusters       .clear()
-            heatPoints     .clear()
-            clusterLatLngs .clear()
+            clusters.clear()
+            heatPoints.clear()
+            clusterLatLngs.clear()
 
-            /* ---- 1) group posts by placeId and grab lat/lng when present ---- */
             val grouped = mutableMapOf<String, MutableList<String>>()   // placeId → postIds
-            val nameCache = mutableMapOf<String, String>()            // placeId → placeName
+            val nameCache = mutableMapOf<String, String>()              // placeId → placeName
 
             snap.children.forEach { postSnap ->
                 val postId  = postSnap.key ?: return@forEach
@@ -259,19 +301,16 @@ fun MapScreen(
                 val placeNm = ci.child("name").getValue(String::class.java) ?: "Unknown"
 
                 nameCache[placeId] = placeNm
-
                 grouped.getOrPut(placeId) { mutableListOf() }.add(postId)
 
-                // fast path: we already have coordinates
                 val lat = ci.child("lat").getValue(Double::class.java)
                 val lng = ci.child("lng").getValue(Double::class.java)
                 if (lat != null && lng != null) {
                     val ll = LatLng(lat, lng)
                     clusterLatLngs[placeId] = ll
-                    heatPoints            += ll
-                    return@forEach                                // done with this post
+                    heatPoints += ll
+                    return@forEach
                 }
-                // else -> will resolve via Places SDK below
             }
 
             grouped.forEach { (pid, postIds) ->
@@ -279,7 +318,6 @@ fun MapScreen(
                 clusters += CheckInCluster(pid, name, postIds)
             }
 
-            /* ---- 2) resolve the *missing* ones in parallel ------------------ */
             val toResolve = grouped.keys.filter { !clusterLatLngs.containsKey(it) }
             if (toResolve.isNotEmpty()) {
                 val resolvedPairs = toResolve.map { pid ->
@@ -289,7 +327,7 @@ fun MapScreen(
                 resolvedPairs.forEach { (pid, ll) ->
                     ll?.let {
                         clusterLatLngs[pid] = it
-                        heatPoints        += it
+                        heatPoints += it
                     }
                 }
             }
@@ -299,6 +337,7 @@ fun MapScreen(
             Log.e("MapScreen", "Check-in load failed: ${e.message}", e)
         }
     }
+
     /* nav to full profile */
     LaunchedEffect(navigateToProfile) {
         navigateToProfile?.let {
@@ -320,7 +359,7 @@ fun MapScreen(
         selectedPlace = null
         if (results.isNotEmpty()) {
             val b = LatLngBounds.builder().apply { results.forEach { include(it.latLng) } }
-            camera.move(CameraUpdateFactory.newLatLngBounds(b.build(), 100))
+            camera.move(CameraUpdateFactory.newLatLngBounds(b.build(), 80))
         }
     }
 
@@ -429,7 +468,107 @@ fun MapScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text(tag.label, color = Color.LightGray, fontSize = 10.sp)
+                            Text(tag.label, color = Color.LightGray, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
+
+            /* LA curated collections (second row of chips) */
+            if (isUserInLA) {
+                val laCollections = listOf(
+                    TagItem(ctx.getString(R.string.la_col_date_westside_label), ctx.getString(R.string.la_col_date_westside_query)),
+                    TagItem(ctx.getString(R.string.la_col_beach_day_label), ctx.getString(R.string.la_col_beach_day_query)),
+                    TagItem(ctx.getString(R.string.la_col_studio_city_night_label), ctx.getString(R.string.la_col_studio_city_night_query)),
+                    TagItem(ctx.getString(R.string.la_col_views_griffith_hollywood_label), ctx.getString(R.string.la_col_views_griffith_hollywood_query)),
+                    TagItem(ctx.getString(R.string.la_col_weho_label), ctx.getString(R.string.la_col_weho_query)),
+                    TagItem(ctx.getString(R.string.la_col_little_tokyo_label), ctx.getString(R.string.la_col_little_tokyo_query))
+                )
+                val collListState = rememberLazyListState()
+                LazyRow(
+                    state = collListState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(laCollections) { tag ->
+                        Box(
+                            Modifier
+                                .padding(end = 6.dp)
+                                .background(Color(0xFF121212), RoundedCornerShape(16.dp))
+                                .border(BorderStroke(1.dp, KupidxOrange), RoundedCornerShape(16.dp))
+                                .clickable(enabled = !isLoadingQuickSearch) {
+                                    scope.launch {
+                                        loadingTag = tag.label
+                                        isLoadingQuickSearch = true
+                                        searchQuery = tag.query
+                                        runSearch(tag.query)
+                                        isLoadingQuickSearch = false
+                                        loadingTag = null
+                                    }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            if (isLoadingQuickSearch && tag.label == loadingTag) {
+                                CircularProgressIndicator(
+                                    strokeWidth = 1.dp,
+                                    modifier = Modifier.size(12.dp),
+                                    color = Color.White
+                                )
+                            } else {
+                                Text(tag.label, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+            }
+
+            /* SF Bay curated collections */
+            if (isUserInBay) {
+                val baCollections = listOf(
+                    TagItem(ctx.getString(R.string.ba_col_date_sf_label), ctx.getString(R.string.ba_col_date_sf_query)),
+                    TagItem(ctx.getString(R.string.ba_col_ocean_beach_evening_label), ctx.getString(R.string.ba_col_ocean_beach_evening_query)),
+                    TagItem(ctx.getString(R.string.ba_col_south_bay_night_label), ctx.getString(R.string.ba_col_south_bay_night_query)),
+                    TagItem(ctx.getString(R.string.ba_col_wine_day_napa_label), ctx.getString(R.string.ba_col_wine_day_napa_query)),
+                    TagItem(ctx.getString(R.string.ba_col_berkeley_vintage_label), ctx.getString(R.string.ba_col_berkeley_vintage_query)),
+                    TagItem(ctx.getString(R.string.ba_col_marin_headlands_label), ctx.getString(R.string.ba_col_marin_headlands_query))
+                )
+                val collListState = rememberLazyListState()
+                LazyRow(
+                    state = collListState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(baCollections) { tag ->
+                        Box(
+                            Modifier
+                                .padding(end = 6.dp)
+                                .background(Color(0xFF121212), RoundedCornerShape(16.dp))
+                                .border(BorderStroke(1.dp, KupidxOrange), RoundedCornerShape(16.dp))
+                                .clickable(enabled = !isLoadingQuickSearch) {
+                                    scope.launch {
+                                        loadingTag = tag.label
+                                        isLoadingQuickSearch = true
+                                        searchQuery = tag.query
+                                        runSearch(tag.query)
+                                        isLoadingQuickSearch = false
+                                        loadingTag = null
+                                    }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            if (isLoadingQuickSearch && tag.label == loadingTag) {
+                                CircularProgressIndicator(
+                                    strokeWidth = 1.dp,
+                                    modifier = Modifier.size(12.dp),
+                                    color = Color.White
+                                )
+                            } else {
+                                Text(tag.label, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                     }
                 }
@@ -451,7 +590,10 @@ fun MapScreen(
                 GoogleMap(
                     cameraPositionState = camera,
                     modifier = Modifier.fillMaxSize(),
-                    properties = MapProperties(isMyLocationEnabled = isLocationGranted),
+                    properties = MapProperties(
+                        isMyLocationEnabled = isLocationGranted,
+                        isTrafficEnabled = isUserInLA || isUserInBay
+                    ),
                     uiSettings = MapUiSettings(
                         zoomControlsEnabled = true,
                         myLocationButtonEnabled = isLocationGranted,
@@ -595,6 +737,8 @@ fun MapScreen(
                 }
             }
         }
+
+        /* Leaderboard FAB */
         FloatingActionButton(
             onClick = { showLeaderboard = true },
             containerColor = Color(0xFFFF6F00),
@@ -602,11 +746,41 @@ fun MapScreen(
                 .align(Alignment.BottomStart)
                 .padding(start = 16.dp, bottom = 32.dp)
         ) {
-            // use Icons.Outlined.Leaderboard (needs icons-extended) or fallback:
             Icon(Icons.Outlined.Leaderboard, contentDescription = "Leaderboard")
         }
+
+        /* Region recenter FABs */
+        when {
+            isUserInLA -> {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            camera.animate(CameraUpdateFactory.newLatLngBounds(GREATER_LA_BOUNDS, 80))
+                        }
+                    },
+                    containerColor = Color.Black,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 96.dp, bottom = 32.dp)
+                ) { Text(ctx.getString(R.string.la_fab_recenter_text), color = Color.White, fontWeight = FontWeight.Bold) }
+            }
+            isUserInBay -> {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            camera.animate(CameraUpdateFactory.newLatLngBounds(SF_BAY_BOUNDS, 80))
+                        }
+                    },
+                    containerColor = Color.Black,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 96.dp, bottom = 32.dp)
+                ) { Text(ctx.getString(R.string.ba_fab_recenter_text), color = Color.White, fontWeight = FontWeight.Bold) }
+            }
+        }
+
+        /* Leaderboard overlay */
         if (showLeaderboard) {
-            // build a sorted snapshot whenever clusters change
             val leaderboardEntries = remember(clusters) {
                 clusters.sortedByDescending { it.postIds.size }
                     .map { LeaderboardEntry(it.placeId, it.placeName, it.postIds.size) }
@@ -615,16 +789,15 @@ fun MapScreen(
                 entries = leaderboardEntries,
                 onDismiss = { showLeaderboard = false },
                 onEntryClick = { entry ->
-                    showLeaderboard = false                   // close overlay
-                    clusterLatLngs[entry.placeId]?.let { ll ->   // zoom map
-                        scope.launch {
-                            camera.animate(CameraUpdateFactory.newLatLngZoom(ll, 18f))
-                        }
+                    showLeaderboard = false
+                    clusterLatLngs[entry.placeId]?.let { ll ->
+                        scope.launch { camera.animate(CameraUpdateFactory.newLatLngZoom(ll, 18f)) }
                     }
-                    navController.navigate("checkinFeed/${entry.placeId}") // open feed
+                    navController.navigate("checkinFeed/${entry.placeId}")
                 }
             )
         }
+
         /* global loading overlay */
         if (isLoadingMatches || isLoadingSearch || isLoadingQuickSearch) {
             Box(
@@ -1101,3 +1274,43 @@ data class MatchProfile(
     val hometown: String,
     val photoUrl: String?
 )
+
+enum class Region { LA, SF_BAY, NONE }
+
+private val LA_CITY_HALL = LatLng(34.0536909, -118.242766)
+private val SF_CITY_HALL = LatLng(37.7793, -122.4193)
+
+/** Broad Greater LA (covers Santa Monica/Malibu, Long Beach/South Bay, SFV, SGV to Pomona, Anaheim–Irvine, Thousand Oaks, Santa Clarita edge). */
+private val GREATER_LA_BOUNDS = LatLngBounds(
+    LatLng(33.35, -119.10), // SW
+    LatLng(34.65, -117.35)  // NE
+)
+
+/** Broad SF Bay Area (Marin + SF + Peninsula + East Bay + Napa/Sonoma fringe + South Bay). */
+private val SF_BAY_BOUNDS = LatLngBounds(
+    LatLng(36.80, -123.20), // SW (near Santa Cruz coast / offshore)
+    LatLng(38.30, -121.50)  // NE (Napa/Vallejo/Concord corridor)
+)
+
+fun detectRegion(latLng: LatLng?): Region {
+    latLng ?: return Region.NONE
+    return when {
+        GREATER_LA_BOUNDS.contains(latLng) ||
+                distanceMeters(latLng, LA_CITY_HALL) <= 100_000.0 -> Region.LA
+        SF_BAY_BOUNDS.contains(latLng) ||
+                distanceMeters(latLng, SF_CITY_HALL) <= 80_000.0 -> Region.SF_BAY
+        else -> Region.NONE
+    }
+}
+
+private fun distanceMeters(a: LatLng, b: LatLng): Double {
+    val R = 6371000.0
+    val dLat = Math.toRadians(b.latitude - a.latitude)
+    val dLon = Math.toRadians(b.longitude - a.longitude)
+    val lat1 = Math.toRadians(a.latitude)
+    val lat2 = Math.toRadians(b.latitude)
+    val sinDLat = kotlin.math.sin(dLat / 2)
+    val sinDLon = kotlin.math.sin(dLon / 2)
+    val h = sinDLat * sinDLat + kotlin.math.cos(lat1) * kotlin.math.cos(lat2) * sinDLon * sinDLon
+    return 2 * R * kotlin.math.asin(kotlin.math.min(1.0, kotlin.math.sqrt(h)))
+}

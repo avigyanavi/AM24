@@ -26,9 +26,11 @@ fun PostCard(
 
     if (currentUserId == null || myProfile == null) {
         Log.e("PostCard", "Skipping render: currentUserId=$currentUserId, myProfile=$myProfile")
-        CircularProgressIndicator(modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp))
+        CircularProgressIndicator(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        )
         return
     }
 
@@ -37,13 +39,41 @@ fun PostCard(
         userProfiles.values.filter { it.relationship == "match" }.map { it.userId }
     }
 
+    // ── Author profile resolution ─────────────────────────────────────────────
+    val authorFromCache = userProfiles[post.userId]
+
+    // If the author's profile isn't cached, try to fetch it (if your VM exposes such a call).
+    LaunchedEffect(post.userId) {
+        if (authorFromCache == null) {
+            // Implement this in your VM if you haven't already:
+            // postViewModel.loadUserProfile(post.userId)
+        }
+    }
+
+    // Avoid showing *my* username ("AM") as a fallback: use a display-safe profile.
+    // We keep myProfile's fields (to satisfy FeedItem), but override the username for UI until author loads.
+    val displayAuthor = authorFromCache ?: myProfile.copy(username = post.username)
+
+    // Optional: show a tiny inline spinner instead of rendering with a wrong name.
+    val authorReady = authorFromCache != null
+
+    if (!authorReady && post.username.isNullOrBlank()) {
+        // If even post.username is blank, show a small loader while profile loads.
+        CircularProgressIndicator(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        )
+        return
+    }
+
     FeedItem(
         post = post,
         isSaved = isSaved,
         currentUserId = currentUserId,
         currentUserProfile = myProfile,
         matches = matches,
-        userProfile = myProfile,
+        userProfile = displayAuthor,              // ✅ shows author's name or post.username, not "AM"
         userProfiles = userProfiles,
         postViewModel = postViewModel,
         onUpvote = { postViewModel.upvotePost(post.postId, currentUserId, {}, {}) },
@@ -72,7 +102,7 @@ fun PostCard(
             val comment = Comment(
                 commentId = UUID.randomUUID().toString(),
                 userId = currentUserId,
-                username = myProfile.username,
+                username = myProfile.username, // your (current user) username for the comment
                 commentText = commentText,
                 timestamp = ServerValue.TIMESTAMP
             )
@@ -83,9 +113,7 @@ fun PostCard(
                 onFailure = {}
             )
         },
-        onTagClick = { tag ->
-            postViewModel.setSearchQuery(tag)
-        },
+        onTagClick = { tag -> postViewModel.setSearchQuery(tag) },
         onUserClick = onUserClick
     )
 }

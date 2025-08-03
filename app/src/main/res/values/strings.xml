@@ -79,6 +79,127 @@
     <!-- Catch-all for other tags -->
     <string name="tag_other">other</string>
 
+    <!-- LA Quick Tags (labels) -->
+    <string name="la_tag_dtla_rooftops_label">DTLA rooftops</string>
+    <string name="la_tag_ktown_bbq_label">K-Town BBQ</string>
+    <string name="la_tag_beach_sunset_label">Beach sunset</string>
+    <string name="la_tag_runyon_hikes_label">Runyon hikes</string>
+    <string name="la_tag_live_music_label">Live music</string>
+    <string name="la_tag_brunch_westside_label">Brunch Westside</string>
+    <string name="la_tag_arts_district_label">Art District coffee</string>
+    <string name="la_tag_museums_label">Museums (LACMA/Getty/MOCA)</string>
+
+    <!-- LA Quick Tags (queries) -->
+    <string name="la_tag_dtla_rooftops_query">rooftop bars near Downtown Los Angeles</string>
+    <string name="la_tag_ktown_bbq_query">korean bbq near Koreatown Los Angeles</string>
+    <string name="la_tag_beach_sunset_query">sunset viewpoints near Santa Monica</string>
+    <string name="la_tag_runyon_hikes_query">hikes near Runyon Canyon</string>
+    <string name="la_tag_live_music_query">live music venues near Silver Lake</string>
+    <string name="la_tag_brunch_westside_query">brunch near Santa Monica</string>
+    <string name="la_tag_arts_district_query">coffee near Arts District Los Angeles</string>
+    <string name="la_tag_museums_query">museums near Los Angeles (LACMA Getty MOCA)</string>
+
+    <!-- LA Collections (labels) -->
+    <string name="la_col_date_westside_label">Date night (Westside)</string>
+    <string name="la_col_beach_day_label">Beach day (SM/Venice)</string>
+    <string name="la_col_studio_city_night_label">Studio City night</string>
+    <string name="la_col_views_griffith_hollywood_label">Views (Griffith/Hollywood)</string>
+    <string name="la_col_weho_label">West Hollywood</string>
+    <string name="la_col_little_tokyo_label">Little Tokyo</string>
+
+    <!-- LA Collections (queries) -->
+    <string name="la_col_date_westside_query">romantic restaurants near Santa Monica</string>
+    <string name="la_col_beach_day_query">beach bars near Venice Beach</string>
+    <string name="la_col_studio_city_night_query">cocktail bars near Universal CityWalk</string>
+    <string name="la_col_views_griffith_hollywood_query">viewpoints near Griffith Observatory</string>
+    <string name="la_col_weho_query">cocktail bars near West Hollywood</string>
+    <string name="la_col_little_tokyo_query">sushi near Little Tokyo Los Angeles</string>
+
+    <!-- LA recenter FAB -->
+    <string name="la_fab_recenter_text">LA</string>
+
+    <!-- LA new quick tags -->
+    <string name="la_tag_malibu_beaches_label">Malibu beaches</string>
+    <string name="la_tag_malibu_beaches_query">beaches near Malibu</string>
+
+    <string name="la_tag_dockweiler_bonfire_label">Beach bonfires (Dockweiler)</string>
+    <string name="la_tag_dockweiler_bonfire_query">bonfire pits near Dockweiler Beach</string>
+
+    <string name="la_tag_surf_rental_label">Surf rentals (Venice)</string>
+    <string name="la_tag_surf_rental_query">surf rental near Venice Beach</string>
+
+    <string name="la_tag_manhattan_volleyball_label">Manhattan Beach volleyball</string>
+    <string name="la_tag_manhattan_volleyball_query">volleyball courts near Manhattan Beach</string>
+
+    <string name="la_tag_speakeasy_label">Speakeasies</string>
+    <string name="la_tag_speakeasy_query">speakeasy bars near Los Angeles</string>
+
+    <string name="la_tag_karaoke_ktown_label">Karaoke (K-Town)</string>
+    <string name="la_tag_karaoke_ktown_query">karaoke near Koreatown Los Angeles</string>
+
+    <string name="la_tag_comedy_label">Comedy clubs</string>
+    <string name="la_tag_comedy_query">comedy clubs near Los Angeles</string>
+
+    <string name="la_tag_food_trucks_label">Food trucks</string>
+    <string name="la_tag_food_trucks_query">food trucks near Los Angeles</string>
+
+    <!-- SF Bay quick tags -->
+    <string name="ba_tag_ocean_beach_sunset_label">Ocean Beach sunset</string>
+    <string name="ba_tag_ocean_beach_sunset_query">sunset viewpoints near Ocean Beach San Francisco</string>
+
+    <string name="ba_tag_gg_viewpoints_label">Golden Gate viewpoints</string>
+    <string name="ba_tag_gg_viewpoints_query">viewpoints near Golden Gate Bridge</string>
+
+    <string name="ba_tag_mission_tacos_label">Mission tacos</string>
+    <string name="ba_tag_mission_tacos_query">tacos near Mission District San Francisco</string>
+
+    <string name="ba_tag_north_beach_pizza_label">North Beach pizza</string>
+    <string name="ba_tag_north_beach_pizza_query">pizza near North Beach San Francisco</string>
+
+    <string name="ba_tag_soma_coffee_label">SoMa craft coffee</string>
+    <string name="ba_tag_soma_coffee_query">craft coffee near SoMa San Francisco</string>
+
+    <string name="ba_tag_marin_hikes_label">Marin hikes</string>
+    <string name="ba_tag_marin_hikes_query">hikes near Marin Headlands</string>
+
+    <string name="ba_tag_napa_wineries_label">Napa wineries</string>
+    <string name="ba_tag_napa_wineries_query">wineries near Napa</string>
+
+    <string name="ba_tag_berkeley_bookstores_label">Berkeley bookstores</string>
+    <string name="ba_tag_berkeley_bookstores_query">bookstores near Berkeley</string>
+
+    <string name="ba_tag_paloalto_coffee_label">Palo Alto coffee</string>
+    <string name="ba_tag_paloalto_coffee_query">coffee near Palo Alto</string>
+
+    <string name="ba_tag_oakland_music_label">Oakland live music</string>
+    <string name="ba_tag_oakland_music_query">live music venues near Oakland</string>
+
+    <string name="ba_tag_ferry_market_label">Ferry Building market</string>
+    <string name="ba_tag_ferry_market_query">farmers market near Ferry Building</string>
+
+    <string name="ba_tag_sf_museums_label">SF museums</string>
+    <string name="ba_tag_sf_museums_query">museums near San Francisco (SFMOMA de Young Exploratorium)</string>
+
+    <string name="ba_col_date_sf_label">Date night (SF)</string>
+    <string name="ba_col_date_sf_query">romantic restaurants near San Francisco</string>
+
+    <string name="ba_col_ocean_beach_evening_label">Ocean Beach evening</string>
+    <string name="ba_col_ocean_beach_evening_query">beach bars near Outer Sunset San Francisco</string>
+
+    <string name="ba_col_south_bay_night_label">South Bay night</string>
+    <string name="ba_col_south_bay_night_query">cocktail bars near Santana Row San Jose</string>
+
+    <string name="ba_col_wine_day_napa_label">Wine day (Napa)</string>
+    <string name="ba_col_wine_day_napa_query">wineries near Napa</string>
+
+    <string name="ba_col_berkeley_vintage_label">Berkeley vintage crawl</string>
+    <string name="ba_col_berkeley_vintage_query">vintage stores near Telegraph Avenue Berkeley</string>
+
+    <string name="ba_col_marin_headlands_label">Marin Headlands hike</string>
+    <string name="ba_col_marin_headlands_query">hiking trails near Marin Headlands</string>
+
+    <string name="ba_fab_recenter_text">BAY</string>
+
     <string name="age_format">Age: %s</string>
     <string name="age_only_format">Age: %s</string>
     <string name="search_matches">Search matches</string>
