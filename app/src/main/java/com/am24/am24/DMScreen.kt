@@ -390,7 +390,26 @@ fun DMScreenContent(navController: NavController) {
                         }
                         if (isPremiumUser) {
                             Button(
-                                onClick = { showSmartMatchDialog = true },
+                                onClick = {
+                                    if (smartMatchAvailable) {
+                                        showSmartMatchDialog = true
+                                    } else {
+                                        val now = Calendar.getInstance()
+                                        val nextReset = Calendar.getInstance().apply {
+                                            firstDayOfWeek = now.firstDayOfWeek
+                                            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+                                            add(Calendar.WEEK_OF_YEAR, 1)
+                                        }
+                                        val millisInDay = 24 * 60 * 60 * 1000L
+                                        val daysLeft =
+                                            ((nextReset.timeInMillis - now.timeInMillis) / millisInDay).toInt()
+                                        Toast.makeText(
+                                            context,
+                                            "Next available in: ${'$'}daysLeft days",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
                                 enabled = smartMatchAvailable,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = if (smartMatchAvailable) Color(

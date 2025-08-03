@@ -1790,7 +1790,9 @@ fun BasicInfoEditSection(
             incomeOpts.forEach { option ->
                 FilterChip(
                     selected = incomeLevel == option,
-                    onClick = { incomeLevel = option },
+                    onClick = {
+                        incomeLevel = if (incomeLevel == option) notSelected else option
+                    },
                     label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
                         disabledContainerColor = Color.Transparent,

@@ -308,17 +308,27 @@ fun DatingScreen(
         }
     }
 
+    val plusList by remember(base, complimentersList, boostedList) {
+        derivedStateOf {
+            base
+                .filter { it.userId !in complimentersList.map { p -> p.userId } }
+                .filter { it.userId !in boostedList.map { p -> p.userId } }
+                .filter { it.isPlus && !it.isPremium }
+                .also { it.dump("PLUS") }
+        }
+    }
+
     val restList by remember(base, complimentersList, boostedList) {
         derivedStateOf {
             base
                 .filter { it.userId !in complimentersList.map { p -> p.userId } }
                 .filter { it.userId !in boostedList.map { p -> p.userId } }
-                .filter { !it.isPremium }
+                .filter { !it.isPremium && !it.isPlus }
                 .also { it.dump("REST") }
         }
     }
 
-    val displayedProfiles = complimentersList + boostedList + premiumList + restList
+    val displayedProfiles = complimentersList + boostedList + premiumList + plusList + restList
     Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
 
 //    var sortedDisplayedProfiles by remember { mutableStateOf(displayedProfiles) }
