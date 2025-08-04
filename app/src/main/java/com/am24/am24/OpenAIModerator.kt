@@ -74,13 +74,20 @@ private suspend fun postModeration(input: JSONArray): Boolean =
 
         try {
             client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) false
-                else {
-                    val flagged = JSONObject(resp.body!!.string())
-                        .getJSONArray("results")
-                        .getJSONObject(0)
-                        .getBoolean("flagged")
-                    flagged
+                if (!resp.isSuccessful) {
+                    false
+                } else {
+                    val bodyString = resp.body?.string()
+                    if (bodyString == null) {
+                        moderationErrorCallback?.invoke()
+                        false
+                    } else {
+                        val flagged = JSONObject(bodyString)
+                            .getJSONArray("results")
+                            .getJSONObject(0)
+                            .getBoolean("flagged")
+                        flagged
+                    }
                 }
             }
         } catch (e: IOException) {

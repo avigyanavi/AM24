@@ -14,6 +14,7 @@ import kotlinx.coroutines.tasks.await
 import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.update
@@ -404,7 +405,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val voiceNoteRef = storageRef.child("users/$userId/voice_note.mp3") // Adjust file extension if needed
         voiceNoteRef.putFile(uri)
-            .continueWithTask { it.result!!.storage.downloadUrl }
+            .continueWithTask { uploadTask ->
+                val result = uploadTask.result
+                if (!uploadTask.isSuccessful || result == null) {
+                    val exception = uploadTask.exception ?: Exception("Upload failed")
+                    return@continueWithTask Tasks.forException<Uri>(exception)
+                }
+                result.storage.downloadUrl
+            }
             .addOnSuccessListener { downloadUri ->
                 voiceNoteUrl = downloadUri.toString()
                 onUploaded(voiceNoteUrl!!)

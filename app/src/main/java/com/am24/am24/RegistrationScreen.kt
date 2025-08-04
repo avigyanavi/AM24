@@ -4139,7 +4139,8 @@ fun UploadMediaComposable(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val outUri = UCrop.getOutput(result.data!!) ?: return@rememberLauncherForActivityResult
+            val resultData = result.data ?: return@rememberLauncherForActivityResult
+            val outUri = UCrop.getOutput(resultData) ?: return@rememberLauncherForActivityResult
             scope.launch {
                 if (isExplicit(outUri)) {
                     withContext(Dispatchers.Main) {

@@ -225,7 +225,8 @@ fun DatingScreen(
     val now = remember { System.currentTimeMillis() }
     val last = myProfile?.lastBoostTimestamp ?: 0L
     val inCooldown = now - last < BOOST_DURATION
-    val canBoost = myProfile?.availableBoosts!! > 0 && !inCooldown
+    val availableBoosts = myProfile?.availableBoosts ?: 0
+    val canBoost = availableBoosts > 0 && !inCooldown
 
     var showComplimentDlg by remember { mutableStateOf(false) }
 

@@ -65,7 +65,10 @@ class LoginActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
-                val account = task.getResult(ApiException::class.java)!!
+                val account = task.getResult(ApiException::class.java) ?: run {
+                    Toast.makeText(this, "Google sign-in failed.", Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
+                }
                 val credential = GoogleAuthProvider.getCredential(account.idToken, null)
                 auth.signInWithCredential(credential)
                     .addOnSuccessListener {
