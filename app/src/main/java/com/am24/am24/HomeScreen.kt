@@ -537,6 +537,45 @@ fun FeedItem(
     var showDownvoteAnimation by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
 
+    // Local vote state
+    var localUpvotes by remember(post.postId) { mutableStateOf(post.upvotes) }
+    var localDownvotes by remember(post.postId) { mutableStateOf(post.downvotes) }
+    var hasUpvoted by remember(post.postId) {
+        mutableStateOf(post.upvotedUsers[currentUserId] == true)
+    }
+    var hasDownvoted by remember(post.postId) {
+        mutableStateOf(post.downvotedUsers[currentUserId] == true)
+    }
+
+    val handleUpvote = {
+        if (hasUpvoted) {
+            localUpvotes--
+            hasUpvoted = false
+        } else {
+            localUpvotes++
+            hasUpvoted = true
+            if (hasDownvoted) {
+                hasDownvoted = false
+                localDownvotes--
+            }
+        }
+        onUpvote()
+    }
+
+    val handleDownvote = {
+        if (hasDownvoted) {
+            localDownvotes--
+            hasDownvoted = false
+        } else {
+            localDownvotes++
+            hasDownvoted = true
+            if (hasUpvoted) {
+                hasUpvoted = false
+                localUpvotes--
+            }
+        }
+        onDownvote()
+    }
 
     // Gesture detector for double-tap and long-press
     val gestureDetector = Modifier.pointerInput(Unit) {
@@ -545,14 +584,14 @@ fun FeedItem(
                 // Trigger haptic feedback
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 // Trigger upvote action and show animation
-                onUpvote()
+                handleUpvote()
                 showUpvoteAnimation = true
             },
             onLongPress = {
                 // Trigger haptic feedback
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 // Trigger downvote action and show animation
-                onDownvote()
+                handleDownvote()
                 showDownvoteAnimation = true
 
             }
@@ -1048,30 +1087,30 @@ fun FeedItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = onUpvote) {
+                            IconButton(onClick = handleUpvote) {
                                 Icon(
-                                    Icons.Default.ThumbUpOffAlt,
+                                    imageVector = if (hasUpvoted) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
                                     contentDescription = "Upvote",
-                                    tint = Color(0xFFFFDB00)
+                                    tint = if (hasUpvoted) Color(0xFFFFDB00) else Color.Gray
                                 )
                             }
                             Text(
-                                text = "${post.upvotes}",
+                                text = "${localUpvotes}",
                                 color = Color(0xFFFFDB00),
                                 fontWeight = FontWeight.Bold
                             )
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = onDownvote) {
+                            IconButton(onClick = handleDownvote) {
                                 Icon(
-                                    Icons.Default.ThumbDownOffAlt,
+                                    imageVector = if (hasDownvoted) Icons.Default.ThumbDown else Icons.Default.ThumbDownOffAlt,
                                     contentDescription = "Downvote",
-                                    tint = Color(0xFFFF6F00)
+                                    tint = if (hasDownvoted) Color(0xFFFF6F00) else Color.Gray
                                 )
                             }
                             Text(
-                                text = "${post.downvotes}",
+                                text = "${localDownvotes}",
                                 color = Color(0xFFFF6F00),
                                 fontWeight = FontWeight.Bold
                             )

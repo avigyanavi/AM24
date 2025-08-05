@@ -61,8 +61,6 @@ private const val CANCEL_URL =
     "https://dashboard.razorpay.com/app/subscriptions"   // ← change if you have a bespoke deeplink
 // … PLUS_FEATURES & PREMIUM_FEATURES remain unchanged …
 
-private const val PAYPAL_MANAGE_URL  = "https://www.paypal.com/myaccount/autopay"
-
 private fun cancelKupidxPlusSub(
     fx: FirebaseFunctions,
     scope: CoroutineScope,
@@ -110,7 +108,7 @@ private fun handleCancelClick(
     if (isIndia) {
         cancelKupidxPlusSub(fx, scope, ctx, nav)                           // Razorpay  :contentReference[oaicite:0]{index=0}
     } else {
-        ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PAYPAL_MANAGE_URL)))   // PayPal  :contentReference[oaicite:1]{index=1}
+        Toast.makeText(ctx, "Cancelling is currently unavailable", Toast.LENGTH_LONG).show()
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)

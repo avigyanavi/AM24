@@ -57,26 +57,6 @@ exports.verifyPayment = functions
   }
 });
 
-exports.debugPaypalPlanGET = functions
-  .region('asia-south1')
-  .https.onRequest(async (_req, res) => {
-    // LIVE Plus Monthly ($1.99)
-    const planId = 'P-6YV8029760219190UNCFTI4Y';
-    try {
-      const token = await paypalToken(); // will throw with details now
-      const r = await fetch(`${PAYPAL_API}/v1/billing/plans/${planId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const body = await r.text();
-      res.set('Access-Control-Allow-Origin','*')
-         .status(r.status)
-         .send(body);
-    } catch (e) {
-      console.error('[debugPaypalPlanGET]', e);
-      res.status(500).send(String(e?.message || e));
-    }
-  });
-
 // New: create one-time order
 exports.createOneTimeOrder = functions
   .region("asia-south1")
@@ -477,12 +457,6 @@ const PLAN_TIERS = {
   plan_QjplxIqveB0BVS:     { plus: false, premium: true  },  // ₹99 / month
   plan_QjpmNjEkEPlObK:     { plus: true,  premium: false },  // ₹399 / year
   plan_QjmpS4xg31rg:       { plus: false, premium: true  },  // ₹999 / year
-
-    /* ---------- PayPal plans ---------- */
-    'P-6YV8029760219190UNCFTI4Y': { plus:true,  premium:false },
-    'P-6WR44643NU557510BNCFTJUY': { plus:true,  premium:false },
-    'P-58H44443N3388610GNCFTKDY': { plus:false, premium:true  },
-    'P-9W1343733C6775341NCFTQIA': { plus:false, premium:true  },
 };
 
 
@@ -718,240 +692,6 @@ exports.onPostReport = functions
     return null;
   });
 
-const PAYPAL_PLANS = new Set([
-  'P-6YV8029760219190UNCFTI4Y',   // Plus  – Monthly  $1.99
-  'P-58H44443N3388610GNCFTKDY',   // Premium – Monthly $4.99
-  'P-6WR44643NU557510BNCFTJUY',   // Plus  – Annual   $19.99
-  'P-9W1343733C6775341NCFTQIA',   // Premium – Annual  $49.99
-]);
-
-const PAYPAL_RETURN_URL = 'com.am24.am24://paypalreturn';
-const PAYPAL_CANCEL_URL = PAYPAL_RETURN_URL;
-
-const PAYPAL_ENV    = 'live';
-const PAYPAL_API    = PAYPAL_ENV === 'live'
-                       ? 'https://api-m.paypal.com'
-                       : 'https://api-m.sandbox.paypal.com';
-const PAYPAL_WEBHOOK_ID = '6CA29543CD5032805';
-
-const PAYPAL_ID     = 'AUmvjL-EfiBW1biVFomeow5SenIBBr-3oADpYM9ftoQXSLxwhXcN2GuA8zeUD13R8FfF2N-9PzM3fuoQ';
-const PAYPAL_SECRET = 'EPBtlvr0KX8FILSsO9GPiu1CiD7XrcfBWy242wqtRo-jsYKKlLZjFNwa_9Gtp-PiguPfVpSllisfZL2q';
-
-async function paypalToken () {
-  const r = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
-    method : 'POST',
-    headers: { 'Content-Type':'application/x-www-form-urlencoded',
-               'Authorization':'Basic ' + Buffer.from(`${PAYPAL_ID}:${PAYPAL_SECRET}`).toString('base64') },
-    body   : 'grant_type=client_credentials'
-  });
-  const { access_token } = await r.json();
-  return access_token;
-}
-
-/* ① create an order – called from Android for *non-IN* users */
-exports.createPaypalOrder = functions
-  .region('asia-south1')
-  .https.onCall(async (data, _ctx) => {
-    const { amountUsd, label } = data || {};
-    const uid = _ctx.auth?.uid;
-
-    /* ① validate & normalise amount ------------------------------------- */
-    const value = Number(amountUsd);                       // handles strings too
-    if (!value || isNaN(value) || value <= 0) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        'amountUsd must be a positive number'
-      );
-    }
-    if (!label) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        'label is required'
-      );
-    }
-
-    /* ② get an access-token (this can still throw – that’s OK) ---------- */
-    const token = await paypalToken();
-
-    /* ③ call PayPal safely --------------------------------------------- */
-    let res;
-    try {
-      res = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
-        method : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization : `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          intent: 'CAPTURE',
-          purchase_units: [{
-            amount: { currency_code: 'USD', value: value.toFixed(2) },
-            custom_id: uid ? `${uid}|${label}` : label     // uid|label                 // e.g. "swipes_5"
-          }],
-          application_context: {
-            return_url: PAYPAL_RETURN_URL + '?oneTime=true',
-            cancel_url: PAYPAL_CANCEL_URL
-          }
-        })
-      });
-
-      /* ④ handle non-2xx responses explicitly -------------------------- */
-      if (!res.ok) {
-        const text = await res.text();                 // PayPal error payload
-        console.error('[createPaypalOrder] PayPal', res.status, text);
-        throw new functions.https.HttpsError(
-          'internal',
-          `PayPal ${res.status}: ${text || res.statusText}`
-        );
-      }
-    } catch (err) {
-      /* network error, timeout, DNS, … */
-      if (err instanceof functions.https.HttpsError) throw err; // re-throw ours
-      console.error('[createPaypalOrder] fetch failed', err);
-      throw new functions.https.HttpsError('internal', 'Unable to reach PayPal');
-    }
-
-    /* ⑤ success path ---------------------------------------------------- */
-    const json = await res.json();
-    const approve = json.links
-      ?.find(l => l.rel === 'payer-action' || l.rel === 'approve')?.href || null;
-
-      if (uid) {
-            await admin.database().ref('paypalOrders').child(json.id).set(uid);
-          }
-
-    return { id: json.id, approve };
-  });
-
-exports.createPaypalSubscription = functions
-  .region('asia-south1')
-  .https.onCall(async (data, _ctx) => {
-    const { planId, label } = data || {};
-     const uid = _ctx.auth?.uid;
-    if (!planId) throw new functions.https.HttpsError('invalid-argument','planId missing');
-
-    const token = await paypalToken();
-    const res   = await fetch(`${PAYPAL_API}/v1/billing/subscriptions`, {
-      method : 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
-      body   : JSON.stringify({
-        plan_id: planId,
-        custom_id: uid ? `${uid}|${label}` : label,
-        application_context: {
-          return_url: PAYPAL_RETURN_URL,
-          cancel_url: PAYPAL_CANCEL_URL
-        }
-      })
-    });
-    const json    = await res.json();
-    const approve = json.links?.find(l => l.rel === 'approve')?.href;
-
-    if (uid) {
-          await admin.database().ref('paypalOrders').child(json.id).set(uid);
-        }
-
-    return { id: json.id, approve };
-  });
-
-/* ② after the user is sent back, Android → this callable to capture & credit */
-exports.capturePaypalOrder = functions
-  .region('asia-south1')
-  .https.onCall(async (data, _ctx) => {
-    const { orderId } = data || {};
-    if (!orderId) throw new functions.https.HttpsError('invalid-argument','orderId missing');
-
-    const token  = await paypalToken();
-    const res    = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}/capture`, {
-      method : 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` }
-    });
-    const json   = await res.json();
-    const status = json.status;                       // COMPLETED ?
-
-    if (status !== 'COMPLETED') return { ok:false, status, raw: json };
-
-    /* pull what the Android labelled it with                        *
-     * custom_id format = "<apiType>_<qty>"  → e.g. "swipes_10"     */
-    const custom = json.purchase_units?.[0]?.custom_id || '';
-    let [uidFromCustom, label] = custom.split('|');
-    const [apiType, qtyStr] = (label || uidFromCustom || '').split('_');
-    const qty = Number(qtyStr || 0);
-
-     let uid = uidFromCustom;
-        if (!uid) {
-          const snap = await admin.database().ref(`paypalOrders/${orderId}`).get();
-          uid = snap.val() || null;
-        }
-
-    /* credit the user exactly like you do in OneTimePurchaseScreen */
-    if (!uid) uid = _ctx.auth?.uid || json.payer?.payer_id;
-    if (uid && qty > 0) {
-      const ref = admin.database().ref(`users/${uid}`);
-      const field = {
-        swipes      :'swipesInfo/remainingSwipes',
-        compliments :'availableCompliments',
-        boosts      :'availableBoosts',
-        aiMessages  :'availableAiMessages'
-      }[apiType];
-
-      if (field) {
-        await ref.child(field).transaction(v => (v || 0) + qty);
-      }
-    }
-
-     return {
-          ok: true,
-          status,
-          captureId: json.purchase_units?.[0]?.payments?.captures?.[0]?.id || null
-        };
-  });
-
-/**
- * Callable ⇢ verifyPaypalSubscription({ subscriptionId: "I-XXXX" }) → { valid:Boolean, status:String }
- */
-exports.verifyPaypalSubscription = functions
-  .region('asia-south1')              // 👈 added
-  .https.onCall(async (data, context) => {
-  const subId = data?.subscriptionId;
-  const uid   = context.auth?.uid;
-  if (!subId) {
-    throw new functions.https.HttpsError("invalid-argument", "subscriptionId missing");
-  }
-
-/* ── PayPal API base ── */
-  const apiBase = PAYPAL_API;
-
-  const access_token = await paypalToken();
-
-  /* ── 2) Subscription details ── */
-  const subRes = await fetch(`${apiBase}/v1/billing/subscriptions/${subId}`, {
-    headers: { Authorization: `Bearer ${access_token}` }
-  });
-
-  if (!subRes.ok) {
-    throw new functions.https.HttpsError("internal", "Subscription lookup failed");
-  }
-
-  const subJson = await subRes.json();
-  const status  = subJson.status;    // ACTIVE | APPROVAL_PENDING | CANCELLED …
-  const planId  = subJson.plan_id;
-
-  const valid = status === "ACTIVE" && PAYPAL_PLANS.has(planId);
-
-   if (valid && uid) {
-      const tier = PLAN_TIERS[planId] || { plus:false, premium:false };
-      const updates = {
-        subscriptionStatus: "active",
-        isPlus: tier.plus,
-        isPremium: tier.premium,
-        subscription: { id: subId, planId }
-      };
-      await admin.database().ref(`users/${uid}`).update(updates);
-    }
-
-    return { valid, status, planId };
-});
-
 exports.grantWeeklyQuotas = functions.pubsub
   .schedule('every 10080 minutes')
   .timeZone('Asia/Kolkata')
@@ -1182,113 +922,6 @@ exports.pushSummary = functions.pubsub
         return { ok: true };
       });
 
-exports.paypalWebhook = functions
-  .region('asia-south1')
-  .https.onRequest(async (req, res) => {
-     const apiBase = PAYPAL_API;
-
-    /* 1️⃣ Verify the signature */
-    const verifyRes = await fetch(`${PAYPAL_API}/v1/notifications/verify-webhook-signature`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(
-           `${PAYPAL_ID}:${PAYPAL_SECRET}`
-        ).toString('base64')
-      },
-      body: JSON.stringify({
-        auth_algo:          req.headers['paypal-auth-algo'],
-        cert_url:           req.headers['paypal-cert-url'],
-        transmission_id:    req.headers['paypal-transmission-id'],
-        transmission_sig:   req.headers['paypal-transmission-sig'],
-        transmission_time:  req.headers['paypal-transmission-time'],
-        webhook_id:         PAYPAL_WEBHOOK_ID,          // 👈 from PayPal dashboard
-        webhook_event:      req.body
-      })
-    });
-    const { verification_status } = await verifyRes.json();
-    if (verification_status !== 'SUCCESS') {
-      console.error('[paypalWebhook] bad sig');
-      return res.status(400).send('bad signature');
-    }
-
-     /* 2️⃣ Process the event */
-        const evType  = req.body.event_type;
-        const resource= req.body.resource;
-
-        // Handle one-time capture webhook (optional redundancy)
-        if (evType === 'PAYMENT.CAPTURE.COMPLETED') {
-          const custom = resource?.custom_id || '';
-          let [uid, label] = custom.split('|');
-          const [apiType, qtyStr] = (label || uid || '').split('_');
-          const qty = Number(qtyStr || 0);
-         if (!uid) {
-                     const oid = resource?.supplementary_data?.related_ids?.order_id;
-                     if (oid) {
-                       const snap = await admin.database().ref(`paypalOrders/${oid}`).get();
-                       uid = snap.val() || null;
-                     }
-                   }
-          if (!uid) uid = resource?.payer?.payer_id;
-          if (uid && qty > 0) {
-            const field = {
-              swipes      :'swipesInfo/remainingSwipes',
-              compliments :'availableCompliments',
-              boosts      :'availableBoosts',
-              aiMessages  :'availableAiMessages'
-            }[apiType];
-            if (field) {
-              await admin.database().ref(`users/${uid}/${field}`)
-                .transaction(v => (v || 0) + qty);
-            }
-          }
-          return res.status(200).send('ok');
-        }
-
-        // Subscription events (if you still use PayPal subs)
-        if (evType.startsWith('BILLING.SUBSCRIPTION')) {
-          const plan = resource.plan_id;
-          const tier = PLAN_TIERS[plan] || { plus:false, premium:false };
-          let [uid] = (resource.custom_id || '').split('|');
-                    if (!uid) {
-                      const snap = await admin.database().ref(`paypalOrders/${resource.id}`).get();
-                      uid = snap.val() || resource.id;
-                    }
-          const db   = admin.database().ref(`users/${uid}`);
-
-          switch (evType) {
-            case 'BILLING.SUBSCRIPTION.ACTIVATED':
-            case 'PAYMENT.SALE.COMPLETED':
-              await db.update({
-                isPlus: tier.plus,
-                isPremium: tier.premium,
-                subscriptionStatus: 'active',
-                nextRenewal: resource.billing_info?.next_billing_time
-                  ? new Date(resource.billing_info.next_billing_time).getTime()
-                  : null,
-                swipesInfo: { remainingSwipes: tier.premium ? 2147483647 : 50 },
-                availableBoosts:      tier.premium ? 5 : 3,
-                availableCompliments: tier.premium ? 5 : 3,
-                ...(tier.premium && { availableAiMessages: 2 }),
-              });
-              break;
-            case 'BILLING.SUBSCRIPTION.CANCELLED':
-            case 'BILLING.SUBSCRIPTION.SUSPENDED':
-            case 'BILLING.SUBSCRIPTION.EXPIRED':
-              await db.update({
-                isPlus:false, isPremium:false,
-                subscriptionStatus: evType.split('.').pop().toLowerCase(),
-                nextRenewal:null,
-              });
-              break;
-          }
-          return res.status(200).send('ok');
-        }
-
-        // Ignore other PayPal events
-        res.status(200).send('ignored');
-  });
-
   // Push the `lastSmartMatchWeekOfYear` field to every user
 exports.backfillLastSmartMatchWeekOfYear = functions
     .region('asia-south1')
@@ -1394,7 +1027,7 @@ exports.backfillRewardAdFields = functions
   });
 
   // Backfill all fields required for posting in a single function
-  exports.backfillProfileFieldsForPosts = functions
+exports.backfillProfileFieldsForPosts = functions
     .region('asia-south1')
     .https.onRequest(async (_req, res) => {
       try {
@@ -1429,7 +1062,7 @@ exports.backfillRewardAdFields = functions
       }
     });
 
-    exports.backfillProfileDefaults = functions
+exports.backfillProfileDefaults = functions
       .region('asia-south1')
       .https.onRequest(async (_req, res) => {
         try {
@@ -1771,7 +1404,7 @@ exports.recomputeLeaderboard = functions.pubsub
     console.log(`recomputed leaderboard with ${profiles.length} profiles`);
   });
 
-    exports.backfillEthnicityIncome = functions
+exports.backfillEthnicityIncome = functions
       .region('asia-south1')
       .https.onRequest(async (_req, res) => {
         try {
@@ -1797,7 +1430,7 @@ exports.recomputeLeaderboard = functions.pubsub
         }
         });
 
-        exports.sortDisplayedProfiles = functions
+exports.sortDisplayedProfiles = functions
           .region('asia-south1')
           .https.onCall(async (data, _context) => {
             const { uid, ids } = data || {};
@@ -1827,7 +1460,7 @@ exports.recomputeLeaderboard = functions.pubsub
             return { ids: pairs.map(p => p.id) };
           });
           // functions/index.js
-          exports.userActivityReport = functions
+exports.userActivityReport = functions
             .region('asia-south1')
             .https.onRequest(async (req, res) => {
               try {
@@ -1855,7 +1488,7 @@ exports.recomputeLeaderboard = functions.pubsub
               }
             });
 
-            exports.listUsaUsers = functions
+exports.listUsaUsers = functions
               .region('asia-south1')
               .https.onRequest(async (_req, res) => {
                 try {
@@ -1881,7 +1514,7 @@ exports.recomputeLeaderboard = functions.pubsub
                 }
               });
 
-              exports.listWomenInUsa = functions
+exports.listWomenInUsa = functions
                 .region('asia-south1')
                 .https.onRequest(async (_req, res) => {
                   try {

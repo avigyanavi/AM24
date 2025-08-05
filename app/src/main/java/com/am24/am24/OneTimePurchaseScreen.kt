@@ -1,16 +1,7 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 package com.am24.am24.ui.purchase
 
-/* Android / Compose */
-import android.app.Activity
 import android.widget.Toast
-import com.paypal.android.corepayments.CoreConfig
-import com.paypal.android.corepayments.Environment
-import com.paypal.android.corepayments.PayPalSDKError
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutClient
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutListener
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutRequest
-import com.paypal.android.paypalwebpayments.PayPalWebCheckoutResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -34,14 +25,9 @@ import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 import java.util.Locale
 import android.telephony.TelephonyManager
-import androidx.activity.ComponentActivity
 import androidx.core.content.getSystemService
 import androidx.fragment.app.FragmentActivity
-import com.am24.am24.BuildConfig
 import com.am24.am24.CountryUtil
-
-private const val PAYPAL_CLIENT_ID =
-    "AUmvjL-EfiBW1biVFomeow5SenIBBr-3oADpYM9ftoQXSLxwhXcN2GuA8zeUD13R8FfF2N-9PzM3fuoQ"
 
 
 /* ─────── 1 · Purchase types ─────── */
@@ -80,71 +66,8 @@ fun OneTimePurchaseScreen(
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
 
     var ui by remember { mutableStateOf(UiState()) }
-    var pendingOrderId by remember { mutableStateOf<String?>(null) }
-    val ppConfig   = remember { CoreConfig(PAYPAL_CLIENT_ID, environment = Environment.SANDBOX) }
-    val returnUrl  = remember { "${BuildConfig.APPLICATION_ID}://paypalreturn" }
-    val payPalClient = remember {
-                PayPalWebCheckoutClient(act, ppConfig, returnUrl).apply {
-                        listener = object : PayPalWebCheckoutListener {
-                                override fun onPayPalWebSuccess(result: PayPalWebCheckoutResult) {
-                                        scope.launch {
-                                                try {
-                                                        fx.getHttpsCallable("capturePaypalOrder")
-                                                            .call(mapOf("orderId" to result.orderId))
-                                                            .await()
-                                                        Toast.makeText(
-                                                                ctx,
-                                                                "Added ${ui.selectedQty} ${type.displayName}",
-                                                                Toast.LENGTH_LONG
-                                                                    ).show()
-                                                        navController.popBackStack()
-                                                    } catch (e: Exception) {
-                                                        Toast.makeText(ctx, "PayPal capture failed", Toast.LENGTH_LONG).show()
-                                                    } finally {
-                                                        pendingOrderId = null
-                                                        ui = ui.copy(isProcessing = false)
-                                                    }
-                                            }
-                                    }
-                                override fun onPayPalWebFailure(error: PayPalSDKError) {
-                                        Toast.makeText(ctx, "PayPal error: ${error.message}", Toast.LENGTH_LONG).show()
-                                        ui = ui.copy(isProcessing = false)
-                                    }
-                                override fun onPayPalWebCanceled() {
-                                    scope.launch {
-                                        val orderId = pendingOrderId
-                                        var completed = false
-                                        if (!orderId.isNullOrBlank()) {
-                                            try {
-                                                @Suppress("UNCHECKED_CAST")
-                                                val res = fx.getHttpsCallable("capturePaypalOrder")
-                                                    .call(mapOf("orderId" to orderId))
-                                                    .await()
-                                                    .data as? Map<String, Any?>
-                                                val status = res?.get("status") as? String ?: ""
-                                                completed = (res?.get("ok") as? Boolean == true) || status == "COMPLETED"
-                                            } catch (_: Exception) {
-                                            }
-                                        }
 
-                                        if (completed) {
-                                            Toast.makeText(
-                                                ctx,
-                                                "Added ${ui.selectedQty} ${type.displayName}",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            navController.popBackStack()
-                                        } else {
-                                            Toast.makeText(ctx, "Cancelled", Toast.LENGTH_SHORT).show()
-                                        }
 
-                                        pendingOrderId = null
-                                        ui = ui.copy(isProcessing = false)
-                                    }
-                                    }
-                           }
-                    }
-            }
     /* ════════════════════ Razorpay helpers (₹) ════════════════════ */
     fun launchRazorpay(orderId: String, keyId: String) {
         val opts = JSONObject().apply {
@@ -158,30 +81,6 @@ fun OneTimePurchaseScreen(
         }
         checkout.open(act, opts)
     }
-
-    fun startPaypalFlow() = scope.launch {
-                try {
-                        val amount = ui.selectedQty * type.unitPriceUsd
-                        val label  = "${type.apiType}_${ui.selectedQty}"
-
-                        val res = fx.getHttpsCallable("createPaypalOrder")
-                            .call(mapOf("amountUsd" to amount, "label" to label))
-                            .await().data as Map<*, *>
-
-                        val orderId = res["id"] as? String
-                        if (orderId.isNullOrBlank()) {
-                                Toast.makeText(ctx, "PayPal order failed, try again", Toast.LENGTH_LONG).show()
-                                return@launch
-                            }
-
-                        ui = ui.copy(isProcessing = true)
-                        pendingOrderId = orderId
-                        payPalClient.start(PayPalWebCheckoutRequest(orderId))
-                    } catch (e: Exception) {
-                        ui = ui.copy(isProcessing = false)
-                        Toast.makeText(ctx, "PayPal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                    }
-            }
 
     /* ════════════════════ common Razorpay callbacks ════════════════════ */
     DisposableEffect(Unit) {
@@ -288,7 +187,7 @@ fun OneTimePurchaseScreen(
                             }
                         }
                     } else {                /* Pay-Pal path */
-                        startPaypalFlow()
+                        Toast.makeText(ctx, "PayPal is currently unavailable", Toast.LENGTH_LONG).show()
                     }
                 },
                 enabled = !ui.isProcessing,

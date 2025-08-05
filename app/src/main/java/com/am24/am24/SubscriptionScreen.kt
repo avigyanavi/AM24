@@ -195,37 +195,7 @@ fun SubscriptionScreen(
     fun handlePlan(plan: Plan) {
         if (isIndia) { launchCheckout(plan); return }
 
-                // PayPal path: create & start checkout order (recurring backend later)
-                scope.launch {
-                        if (ui.isProcessing) return@launch
-                        try {
-                                ui = ui.copy(
-                                    isProcessing = true,
-                                    selectedPlanId = plan.paypalId
-                                )
-                                val label = "sub_${planToSlug(plan)}"
-                                val res = fx.getHttpsCallable("createPaypalSubscription")
-                                    .call(mapOf("planId" to plan.paypalId, "label" to label))
-                                    .await().data as Map<*, *>
-                            val subId   = res["id"] as? String
-                            val approve = res["approve"] as? String
-                            if (subId.isNullOrBlank() || approve.isNullOrBlank()) {
-                                    Toast.makeText(ctx, "PayPal subscription failed", Toast.LENGTH_LONG).show()
-                                ui = ui.copy(
-                                    isProcessing = false,
-                                    selectedPlanId = null
-                                )
-                                return@launch
-                            }
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(approve)))
-                            } catch (e: Exception) {
-                                ui = ui.copy(
-                                    isProcessing = false,
-                                    selectedPlanId = null
-                                )
-                                Toast.makeText(ctx, "PayPal error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                            }
-                   }
+        Toast.makeText(ctx, "PayPal is currently unavailable", Toast.LENGTH_LONG).show()
     }
 
     /* ---------- attach success / error to the host activity ---------- */
