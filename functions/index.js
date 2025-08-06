@@ -18,7 +18,7 @@ admin.initializeApp({
 const db     = admin.database();
 const USERS  = db.ref('users');
 const now    = () => Date.now();
-const BOOST_DURATION_MS = 6 * 60 * 60 * 1_000;   // 6 h
+const BOOST_DURATION_MS = 1 * 60 * 60 * 1_000;   // 1 h
 const PAGE_SIZE = 50;
 
 // ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
@@ -283,7 +283,34 @@ exports.getNearbyProfiles = functions
       candidateIds = pairs.map(p => p.id);
     } else {
       /* just deterministic uid-ordering */
-      candidateIds.sort();
+       /* compute distances for ordering when distance filter not used */
+            if (Array.isArray(myLoc) && myLoc.length === 2) {
+              const { distanceBetween } = require('geofire-common');
+              const chunk = 400;
+
+              for (let i = 0; i < candidateIds.length; i += chunk) {
+                const ids = candidateIds.slice(i, i + chunk);
+                const locSnaps = await Promise.all(
+                  ids.map(id => db.ref(`geoFireLocations/${id}/l`).get())
+                );
+
+                locSnaps.forEach((snap, idx) => {
+                  const loc = snap.val();
+                  const id = ids[idx];
+                  let dist = Infinity;
+                  if (Array.isArray(loc) && loc.length === 2) {
+                    dist = distanceBetween(loc, myLoc);
+                  }
+                  pairs.push({ id, dist });
+                });
+              }
+
+              pairs.sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id));
+              candidateIds = pairs.map(p => p.id);
+            } else {
+              /* fallback deterministic ordering if caller has no location */
+              candidateIds.sort();
+            }
     }
 
     /* ── STEP 3: fetch the profiles ──────────────────────────────── */

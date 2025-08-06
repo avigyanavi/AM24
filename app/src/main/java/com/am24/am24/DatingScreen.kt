@@ -332,12 +332,9 @@ fun DatingScreen(
     val displayedProfiles = complimentersList + boostedList + premiumList + plusList + restList
     Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
 
-//    var sortedDisplayedProfiles by remember { mutableStateOf(displayedProfiles) }
-//    LaunchedEffect(displayedProfiles) {
-//        sortedDisplayedProfiles = datingViewModel.sortDisplayed(displayedProfiles)
-//    }
-    val sortedDisplayedProfiles by remember(displayedProfiles) {
-        derivedStateOf { displayedProfiles }
+    var sortedDisplayedProfiles by remember { mutableStateOf(displayedProfiles) }
+    LaunchedEffect(displayedProfiles) {
+        sortedDisplayedProfiles = datingViewModel.sortDisplayed(displayedProfiles)
     }
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
@@ -1218,6 +1215,21 @@ fun FiltersOverlay(
                         disabledLabelColor  = Color.Gray
                     )
                 )
+            }
+
+            // bottom save button visible to everyone, before premium gate
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = { onSaveFilters() },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(stringResource(R.string.save), color = Color.White)
+                }
             }
 
             /* ───── POWER FILTERS ──────────────────────────────────────── */

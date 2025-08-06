@@ -228,20 +228,20 @@ fun SettingsScreen(navController: NavController) {
                                 text = {
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         SearchableDropdown(
-                                            label = "Country",
+                                            label = stringResource(R.string.select_country),
                                             options = countryOptions,
                                             selected = country,
                                             onSelectedChange = { country = it }
                                         )
                                         if (isIndianCountry) {
                                             SearchableDropdown(
-                                                label = "City",
+                                                label = stringResource(R.string.city),
                                                 options = cityOptions,
                                                 selected = city,
                                                 onSelectedChange = { city = it }
                                             )
                                             SearchableDropdown(
-                                                label = "Locality",
+                                                label = stringResource(R.string.locality),
                                                 options = localityOptions,
                                                 selected = locality,
                                                 onSelectedChange = { locality = it }
@@ -250,7 +250,7 @@ fun SettingsScreen(navController: NavController) {
                                             OutlinedTextField(
                                                 value = city,
                                                 onValueChange = { city = it },
-                                                label = { Text("City") },
+                                                label = { Text(stringResource(R.string.city)) },
                                                 singleLine = true,
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
@@ -258,7 +258,7 @@ fun SettingsScreen(navController: NavController) {
                                             OutlinedTextField(
                                                 value = locality,
                                                 onValueChange = { locality = it },
-                                                label = { Text("Locality") },
+                                                label = { Text(stringResource(R.string.locality)) },
                                                 singleLine = true,
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
@@ -275,11 +275,11 @@ fun SettingsScreen(navController: NavController) {
                                             userRef.child("hometown").setValue(locality)
                                         }
                                         showLocationDialog = false
-                                    }) { Text("Save") }
+                                    }) { Text(stringResource(R.string.save), color = KupidxOrange) }
                                 },
                                 dismissButton = {
                                     TextButton(onClick = { showLocationDialog = false }) {
-                                        Text("Cancel")
+                                        Text(stringResource(R.string.cancel), color = KupidxOrange)
                                     }
                                 }
                             )

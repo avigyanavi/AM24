@@ -96,6 +96,20 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private var boostsRef: DatabaseReference? = null
     private var boostsListener: ValueEventListener? = null
 
+    private val auth = FirebaseAuth.getInstance()
+    private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        firebaseAuth.currentUser?.uid?.let { me ->
+            loadFilters()
+            viewModelScope.launch {
+                _blockedUsers.value = fetchBlockedUsers(me)
+                _complimentsLeft.value = fetchComplimentsBalance(me)
+            }
+            updateBoostedUsers(me)
+            loadCompliments(me)
+            refreshFilteredProfiles()
+        }
+    }
+
     // ─── NEW: track compliments sent *to* me ─────────────
     private val _complimentsReceived = MutableStateFlow<Map<String, ComplimentData>>(emptyMap()) // ← NEW
     val complimentsReceived: StateFlow<Map<String, ComplimentData>> get() = _complimentsReceived // ← NEW
@@ -148,16 +162,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     // ── init() is unchanged except we no longer call startRealtimeProfilesListener() ──
     init {
-        loadFilters()
-        FirebaseAuth.getInstance().currentUser?.uid?.let { me ->
-            viewModelScope.launch {
-                _blockedUsers.value    = fetchBlockedUsers(me)    // ← NEW (must precede refresh)
-                _complimentsLeft.value = fetchComplimentsBalance(me)
-            }
-            updateBoostedUsers(me)
-            loadCompliments(me)
-        }
-        refreshFilteredProfiles()    // keep this AFTER the launch block        }
+        auth.addAuthStateListener(authListener)
     }
 
     private fun loadFilters() {
@@ -311,13 +316,15 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun updateDatingFilters(updatedFilters: DatingFilterSettings) {
         viewModelScope.launch {
-            _datingFilters.value = updatedFilters
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            val previous = _datingFilters.value
             try {
                 usersRef.child(userId).child("datingFilters").setValue(updatedFilters).await()
+                _datingFilters.value = updatedFilters
                 refreshFilteredProfiles()
             } catch (e: Exception) {
-                Log.e(TAG, "Error updating filters: ${e.message}")
+                Log.e(TAG, "Error updating filters: ${e.message}", e)
+                _datingFilters.value = previous
             }
         }
     }
@@ -352,7 +359,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 _loadingProgress.value = 85
                 val merged = (globalCompliments + globalBoosted + globalPremium + list)
                     .distinctBy { it.userId }
-                _allProfiles.value = merged
+                _allProfiles.value = merged.filterNot { it.userId == me }
 
                 updateBoostedUsers(me)
                 loadCompliments(me)
@@ -672,6 +679,15 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         kept
     }
 
+    suspend fun sortDisplayed(profiles: List<Profile>): List<Profile> {
+        val me = FirebaseAuth.getInstance().uid ?: return profiles
+        val withDistances = profiles.map { profile ->
+            val d = calculateDistance(me, profile.userId, geoFire)
+            profile to (d ?: Float.MAX_VALUE)
+        }
+        return withDistances.sortedBy { it.second }.map { it.first }
+    }
+
     private val _verificationStatuses =
         MutableStateFlow<Map<String,String>>(emptyMap())
     val verificationStatuses: StateFlow<Map<String,String>>
@@ -707,6 +723,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     override fun onCleared() {
+        auth.removeAuthStateListener(authListener)
         super.onCleared()
         profilesListener?.let { usersRef.removeEventListener(it) }
         stopInventoryWatcher()
