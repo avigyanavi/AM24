@@ -1,7 +1,16 @@
 <resources>
     <string name="upgrade_to_plus_to_unlock">Actualiza a Plus para desbloquear</string>
     <string name="upgrade_to_premium_to_unlock">Actualiza a Premium para desbloquear</string>
-
+    <string name="create_post_title">Crear nueva publicación</string>
+    <string name="text_post_label">Publicación de texto</string>
+    <string name="voice_post_label">Publicación de voz</string>
+    <string name="image_post_label">Publicación de imagen</string>
+    <string name="video_post_label">Publicación de video</string>
+    <string name="upgrade_plus_image_warning">Actualiza a Plus para crear publicaciones de imagen</string>
+    <string name="upgrade_premium_video_warning">Actualiza a Premium para crear publicaciones de video</string>
+    <string name="whats_on_your_mind">¿Qué estás pensando?</string>
+    <string name="add_tags_comma_separated">Agregar etiquetas (separadas por comas)</string>
+    <string name="add_location_optional">Agregar una ubicación (opcional)</string>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Idiomas</string>
@@ -129,12 +138,17 @@
     <string name="ba_col_marin_headlands_query">rutas de senderismo cerca de Marin Headlands</string>
 
     <string name="ba_fab_recenter_text">BAY</string>
+    <string name="settings_get_more_boosts">Obtener más impulsos</string>
+    <string name="settings_get_more_swipes">Obtener más deslizamientos</string>
+    <string name="settings_get_more_compliments">Obtener más cumplidos</string>
+    <string name="settings_ai_messages_remaining">Mensajes de IA restantes</string>
+
 
     <string name="ba_tag_sf_museums_label">Museos de SF</string>
     <string name="ba_tag_sf_museums_query">museos cerca de San Francisco (SFMOMA de Young Exploratorium)</string>
 
     <string name="no_education_label">Sin educación</string>
-
+    <string name="upgrade">Actualizar</string>
     <string name="total_match_label">Coincidencia total: %1$d%%</string>
     <string name="running_analysis">Analizando…</string>
     <string name="strengths">Fortalezas</string>

@@ -38,6 +38,23 @@
         <string name="price_2">$$</string>
         <string name="price_3">$$$</string>
         <string name="price_4">$$$$</string>
+        <string name="upgrade">மேம்படுத்தவும்</string>
+        <string name="add_location_optional">இடத்தைச் சேர்க்கவும் (விருப்பம்)</string>
+        <string name="create_post_title">புதிய பதிவு உருவாக்கவும்</string>
+        <string name="text_post_label">உரை பதிவு</string>
+        <string name="voice_post_label">ஒலி பதிவு</string>
+        <string name="image_post_label">பட பதிவு</string>
+        <string name="video_post_label">வீடியோ பதிவு</string>
+        <string name="upgrade_plus_image_warning">பட பதிவுகளை உருவாக்க Plus-க்கு மேம்படுத்தவும்</string>
+        <string name="upgrade_premium_video_warning">வீடியோ பதிவுகளை உருவாக்க Premium-க்கு மேம்படுத்தவும்</string>
+        <string name="whats_on_your_mind">உங்களுக்கு என்ன எண்ணம்?</string>
+        <string name="add_tags_comma_separated">டேக்குகளைச் சேர்க்கவும் (கமாவால் பிரிக்கப்பட்ட)</string>
+
+
+        <string name="settings_get_more_boosts">மேலும் பூஸ்ட்களைப் பெறவும்</string>
+        <string name="settings_get_more_swipes">மேலும் ஸ்வைப் பெறவும்</string>
+        <string name="settings_get_more_compliments">மேலும் பாராட்டுக்களைப் பெறவும்</string>
+        <string name="settings_ai_messages_remaining">ஏஐ செய்திகள் மீதமுள்ளன</string>
 
         <!-- Generic Location Types -->
         <string name="tag_budget_hotels">பட்ஜெட் ஹோட்டல்கள்</string>

@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Photo
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.am24.am24.ui.theme.DarkGrayBackground
@@ -95,7 +96,7 @@ fun CreatePostScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create New Post", color = Color.White) },
+                title = { Text(stringResource(R.string.create_post_title), color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
@@ -119,7 +120,7 @@ fun CreatePostScreen(
                 // 1) Text posts are always enabled
                 PostTypeButton(
                     icon = Icons.Default.TextFields,
-                    label = "Text Post",
+                    label = stringResource(R.string.text_post_label),
                     enabled = true,
                     onClick = {
                         navController.navigate("create_post/text")
@@ -131,7 +132,7 @@ fun CreatePostScreen(
                 // 4) Voice Post – locked for non-premium/non-plus
                 PostTypeButton(
                     icon = Icons.Default.Mic,
-                    label = "Voice Post",
+                    label = stringResource(R.string.voice_post_label),
                     enabled = isPremium || isPlus,
                     onClick = {
                         if (isPremium || isPlus) {
@@ -139,7 +140,7 @@ fun CreatePostScreen(
                         } else {
                             Toast.makeText(
                                 context,
-                                "Upgrade to Plus to create Image Posts",
+                                context.getString(R.string.upgrade_plus_image_warning),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -151,7 +152,7 @@ fun CreatePostScreen(
                 // 2) Image Post – locked for non-premium/non-plus
                 PostTypeButton(
                     icon = Icons.Default.Photo,
-                    label = "Image Post",
+                    label = stringResource(R.string.image_post_label),
                     enabled = isPremium || isPlus,
                     onClick = {
                         if (isPremium || isPlus) {
@@ -159,7 +160,7 @@ fun CreatePostScreen(
                         } else {
                             Toast.makeText(
                                 context,
-                                "Upgrade to Plus to create Image Posts",
+                                context.getString(R.string.upgrade_plus_image_warning),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -171,7 +172,7 @@ fun CreatePostScreen(
                 // 3) Video Post – locked for non-premium/non-plus
                 PostTypeButton(
                     icon = Icons.Default.Videocam,
-                    label = "Video Post",
+                    label = stringResource(R.string.video_post_label),
                     enabled = isPremium,
                     onClick = {
                         if (isPremium) {
@@ -179,7 +180,7 @@ fun CreatePostScreen(
                         } else {
                             Toast.makeText(
                                 context,
-                                "Upgrade to Premium to create Video Posts",
+                                context.getString(R.string.upgrade_premium_video_warning),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -419,7 +420,7 @@ fun TextPostComposable(
                     OutlinedTextField(
                         value = contentText,
                         onValueChange = { contentText = it },
-                        label = { Text("What's on your mind?", color = Color.Gray) },
+                        label = { Text(stringResource(R.string.whats_on_your_mind), color = Color.Gray) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
@@ -438,7 +439,7 @@ fun TextPostComposable(
                 item {
                     OutlinedTextField(
                         value = userTags, onValueChange = { userTags = it },
-                        label = { Text("Add Tags (comma separated)", color = Color.Gray) },
+                        label = { Text(stringResource(R.string.add_tags_comma_separated), color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = otfColors()
                     )
@@ -448,7 +449,7 @@ fun TextPostComposable(
                 item { Spacer(Modifier.height(20.dp)) }
                 item {
                     Text(
-                        "Add a location (optional)",
+                        text = stringResource(R.string.add_location_optional),
                         fontSize = 14.sp,
                         color = Color.LightGray
                     )
@@ -761,7 +762,7 @@ fun ImagePostComposable(
             item {
                 OutlinedTextField(
                     value = userTags, onValueChange = { userTags = it },
-                    label  = { Text("Tags (comma separated)", color = Color.Gray) },
+                    label  = { Text(stringResource(R.string.add_tags_comma_separated), color = Color.Gray) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = otfColors()
                 )
@@ -769,7 +770,13 @@ fun ImagePostComposable(
 
             /* ------------ PLACE SEARCH ------------ */
             item { Spacer(Modifier.height(20.dp)) }
-            item { Text("Add a location (optional)", fontSize = 14.sp, color = Color.LightGray) }
+            item {
+                Text(
+                    text = stringResource(R.string.add_location_optional),
+                    fontSize = 14.sp,
+                    color = Color.LightGray
+                )
+            }
 
             /* the anchored box */
             item {
@@ -1110,7 +1117,7 @@ fun VideoPostComposable(
             item {
                 OutlinedTextField(
                     value = userTags, onValueChange = { userTags = it },
-                    label  = { Text("Tags (comma separated)", color = Color.Gray) },
+                    label  = { Text(stringResource(R.string.add_tags_comma_separated), color = Color.Gray) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = otfColors()
                 )
@@ -1118,7 +1125,13 @@ fun VideoPostComposable(
 
             /* ---------------- place search ---------------- */
             item { Spacer(Modifier.height(20.dp)) }
-            item { Text("Add a location (optional)", fontSize = 14.sp, color = Color.LightGray) }
+            item {
+                Text(
+                    text = stringResource(R.string.add_location_optional),
+                    fontSize = 14.sp,
+                    color = Color.LightGray
+                )
+            }
 
             item {
                 ExposedDropdownMenuBox(

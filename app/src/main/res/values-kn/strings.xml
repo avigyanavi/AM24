@@ -42,7 +42,22 @@
     <string name="price_2">$$</string>
     <string name="price_3">$$$</string>
     <string name="price_4">$$$$</string>
+    <string name="upgrade">ಅಪ್‌ಗ್ರೇಡ್</string>
+    <string name="add_location_optional">ಒಂದು ಸ್ಥಳವನ್ನು ಸೇರಿಸಿ (ಐಚ್ಛಿಕ)</string>
+    <string name="create_post_title">ಹೊಸ ಪೋಸ್ಟ್ ರಚಿಸಿ</string>
+    <string name="text_post_label">ಟೆಕ್ಸ್ಟ್ ಪೋಸ್ಟ್</string>
+    <string name="voice_post_label">ವಾಯ್ಸ್ ಪೋಸ್ಟ್</string>
+    <string name="image_post_label">ಚಿತ್ರ ಪೋಸ್ಟ್</string>
+    <string name="video_post_label">ವೀಡಿಯೊ ಪೋಸ್ಟ್</string>
+    <string name="upgrade_plus_image_warning">ಚಿತ್ರ ಪೋಸ್ಟ್ ರಚಿಸಲು Plus ಗೆ ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ</string>
+    <string name="upgrade_premium_video_warning">ವೀಡಿಯೊ ಪೋಸ್ಟ್ ರಚಿಸಲು Premium ಗೆ ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ</string>
+    <string name="whats_on_your_mind">ನಿಮ್ಮ ಮನಸ್ಸಿನಲ್ಲಿ ಏನು ಇದೆ?</string>
+    <string name="add_tags_comma_separated">ಟ್ಯಾಗ್‌ಗಳನ್ನು ಸೇರಿಸಿ (ಕೋಮಾ ವಿಭಜಿತ)</string>
 
+    <string name="settings_get_more_boosts">ಹೆಚ್ಚಿನ ಬೂಸ್ಟ್‌ಗಳನ್ನು ಪಡೆಯಿರಿ</string>
+    <string name="settings_get_more_swipes">ಹೆಚ್ಚಿನ ಸ್ವೈಪ್‌ಗಳನ್ನು ಪಡೆಯಿರಿ</string>
+    <string name="settings_get_more_compliments">ಹೆಚ್ಚಿನ ಮೆಚ್ಚುಗೆಗಳನ್ನು ಪಡೆಯಿರಿ</string>
+    <string name="settings_ai_messages_remaining">ಉಳಿದ AI ಸಂದೇಶಗಳು</string>
     <!-- Generic Location Types (Applicable Across India) -->
     <string name="tag_budget_hotels">ಬಜೆಟ್ ಹೋಟೆಲುಗಳು</string>
     <string name="tag_hotels">ಹೋಟೆಲುಗಳು</string>

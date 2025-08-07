@@ -69,6 +69,23 @@
         <string name="tag_sports_centers">క్రీడా కేంద్రాలు</string>
         <string name="tag_night_markets">రాత్రి బజార్లు</string>
         <string name="tag_food_courts">ఫుడ్ కోర్టులు</string>
+        <string name="upgrade">అప్గ్రేడ్</string>
+    <string name="add_location_optional">ఒక స్థానాన్ని జోడించండి (ఐచ్ఛిక)</string>
+
+    <string name="create_post_title">క్రొత్త పోస్ట్ సృష్టించండి</string>
+    <string name="text_post_label">టెక్స్ట్ పోస్ట్</string>
+    <string name="voice_post_label">వాయిస్ పోస్ట్</string>
+    <string name="image_post_label">చిత్ర పోస్ట్</string>
+    <string name="video_post_label">వీడియో పోస్ట్</string>
+    <string name="upgrade_plus_image_warning">చిత్ర పోస్టులు తయారుచేయడానికి Plus కి అప్గ్రేడ్ చేయండి</string>
+    <string name="upgrade_premium_video_warning">వీడియో పోస్టులు తయారుచేయడానికి Premium కి అప్గ్రేడ్ చేయండి</string>
+    <string name="whats_on_your_mind">మీ మనసులో ఏమి ఉంది?</string>
+    <string name="add_tags_comma_separated">ట్యాగ్‌లను జోడించండి (కామా విభజన)</string>
+
+    <string name="settings_get_more_boosts">అధిక బూస్ట్‌లు పొందండి</string>
+    <string name="settings_get_more_swipes">అధిక స్వైప్‌లు పొందండి</string>
+    <string name="settings_get_more_compliments">అధిక ప్రశంసలు పొందండి</string>
+    <string name="settings_ai_messages_remaining">మిగిలిన ఏఐ సందేశాలు</string>
 
         <!-- Iconic Landmarks (Major Cities Across India) -->
         <string name="tag_india_gate">ఇండియా గేట్</string>

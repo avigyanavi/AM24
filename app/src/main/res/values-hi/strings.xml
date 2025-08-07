@@ -12,6 +12,24 @@
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">भाषाएँ</string>
     <string name="section_bio_and_voice">बायो</string>
+    <string name="upgrade">अपग्रेड</string>
+
+    <string name="create_post_title">नया पोस्ट बनाएं</string>
+    <string name="text_post_label">टेक्स्ट पोस्ट</string>
+    <string name="voice_post_label">वॉयस पोस्ट</string>
+    <string name="image_post_label">इमेज पोस्ट</string>
+    <string name="video_post_label">वीडियो पोस्ट</string>
+    <string name="upgrade_plus_image_warning">इमेज पोस्ट बनाने के लिए Plus में अपग्रेड करें</string>
+    <string name="upgrade_premium_video_warning">वीडियो पोस्ट बनाने के लिए Premium में अपग्रेड करें</string>
+    <string name="whats_on_your_mind">आप क्या सोच रहे हैं?</string>
+    <string name="add_tags_comma_separated">टैग जोड़ें (कॉमा द्वारा अलग किए गए)</string>
+    <string name="add_location_optional">एक स्थान जोड़ें (वैकल्पिक)</string>
+
+
+    <string name="settings_get_more_boosts">और बूस्ट प्राप्त करें</string>
+    <string name="settings_get_more_swipes">और स्वाइप प्राप्त करें</string>
+    <string name="settings_get_more_compliments">और प्रशंसा प्राप्त करें</string>
+    <string name="settings_ai_messages_remaining">शेष एआई संदेश</string>
 
     <string name="verify_email">Verify Email</string>
     <string name="resend_link">Resend link</string>

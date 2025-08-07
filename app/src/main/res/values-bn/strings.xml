@@ -3,6 +3,17 @@
         <string name="upgrade_to_plus_to_unlock">অনলক করতে প্লাসে আপগ্রেড করুন</string>
         <string name="upgrade_to_premium_to_unlock">অনলক করতে প্রিমিয়ামে আপগ্রেড করুন</string>
 
+    <string name="create_post_title">নতুন পোস্ট তৈরি করুন</string>
+    <string name="text_post_label">টেক্সট পোস্ট</string>
+    <string name="voice_post_label">ভয়েস পোস্ট</string>
+    <string name="image_post_label">ছবি পোস্ট</string>
+    <string name="video_post_label">ভিডিও পোস্ট</string>
+    <string name="upgrade_plus_image_warning">ছবি পোস্ট তৈরি করতে Plus-এ আপগ্রেড করুন</string>
+    <string name="upgrade_premium_video_warning">ভিডিও পোস্ট তৈরি করতে Premium-এ আপগ্রেড করুন</string>
+    <string name="whats_on_your_mind">আপনার মনে কী আছে?</string>
+    <string name="add_tags_comma_separated">ট্যাগ যোগ করুন (কমা দ্বারা পৃথক)</string>
+    <string name="add_location_optional">একটি অবস্থান যোগ করুন (ঐচ্ছিক)</string>
+
     <string name="subscription_active">সক্রিয়</string>
     <string name="subscription_inactive">নিষ্ক্রিয়</string>
     <string name="subscription_completed">সম্পন্ন</string>
@@ -44,6 +55,12 @@
     <string name="price_2">$$</string>
     <string name="price_3">$$$</string>
     <string name="price_4">$$$$</string>
+    <string name="upgrade">আপগ্রেড</string>
+
+    <string name="settings_get_more_boosts">আরও বুস্ট পান</string>
+    <string name="settings_get_more_swipes">আরও সোয়াইপ পান</string>
+    <string name="settings_get_more_compliments">আরও প্রশংসা পান</string>
+    <string name="settings_ai_messages_remaining">বাকি AI বার্তা</string>
 
     <!-- Generic Location Types (Applicable Across India) -->
     <string name="tag_budget_hotels">বাজেট হোটেল</string>

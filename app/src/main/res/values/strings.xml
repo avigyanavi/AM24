@@ -1,6 +1,20 @@
 <resources>
         <string name="upgrade_to_plus_to_unlock">Upgrade to Plus to unlock</string>
         <string name="upgrade_to_premium_to_unlock">Upgrade to Premium to unlock</string>
+    <string name="settings_get_more_boosts">Get More Boosts</string>
+    <string name="settings_get_more_swipes">Get more Swipes</string>
+    <string name="settings_get_more_compliments">Get more Compliments</string>
+    <string name="settings_ai_messages_remaining">AI messages remaining</string>
+    <string name="create_post_title">Create New Post</string>
+    <string name="text_post_label">Text Post</string>
+    <string name="voice_post_label">Voice Post</string>
+    <string name="image_post_label">Image Post</string>
+    <string name="video_post_label">Video Post</string>
+    <string name="upgrade_plus_image_warning">Upgrade to Plus to create Image Posts</string>
+    <string name="upgrade_premium_video_warning">Upgrade to Premium to create Video Posts</string>
+    <string name="whats_on_your_mind">What is on your mind?</string>
+    <string name="add_tags_comma_separated">Add Tags (comma separated)</string>
+    <string name="add_location_optional">Add a location (optional)</string>
 
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
@@ -194,6 +208,7 @@
 
     <string name="ba_col_berkeley_vintage_label">Berkeley vintage crawl</string>
     <string name="ba_col_berkeley_vintage_query">vintage stores near Telegraph Avenue Berkeley</string>
+    <string name="upgrade">Upgrade</string>
 
     <string name="ba_col_marin_headlands_label">Marin Headlands hike</string>
     <string name="ba_col_marin_headlands_query">hiking trails near Marin Headlands</string>

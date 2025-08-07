@@ -201,7 +201,7 @@ fun SettingsScreen(navController: NavController) {
                             trailingText = listOf(country, city, locality)
                                 .filter { it.isNotBlank() }
                                 .joinToString(", ")
-                                .ifBlank { "Not set" }
+                                .ifBlank { stringResource(R.string.not_set) }
                         ) {
                             showLocationDialog = true
                         }
@@ -302,7 +302,7 @@ fun SettingsScreen(navController: NavController) {
                         SettingsRow(
                             icon  = { Icon(Icons.Default.StarOutline, null) },
                             title = stringResource(R.string.settings_free_user),
-                            trailingText = "Upgrade", // ⬅️ change only this line
+                            trailingText = stringResource(R.string.upgrade),
                                 onClick = {
                                     if (premiumTier == "Plus") {
                                         navController.navigate("manageSubscription")
@@ -365,7 +365,7 @@ fun SettingsScreen(navController: NavController) {
                     /* STATIC BOOSTS ROW  */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.FlashOn, null) },
-                        title        = "Get More Boosts",
+                        title        = stringResource(R.string.settings_get_more_boosts),
                         trailingText = "$boosts",
                         onClick = {
                             if (isIndian) navController.navigate("buyBoosts")
@@ -377,7 +377,7 @@ fun SettingsScreen(navController: NavController) {
                     /* STATIC SWIPES ROW  */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.Swipe, null) },
-                        title        = "Get more Swipes",
+                        title        = stringResource(R.string.settings_get_more_swipes),
                         trailingText = "$swipes",
                         onClick = {
                             if (isIndian) navController.navigate("buySwipes")
@@ -389,7 +389,7 @@ fun SettingsScreen(navController: NavController) {
                     /* STATIC COMPLIMENTS ROW  */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.FavoriteBorder, null) },
-                        title        = "Get more Compliments",
+                        title        = stringResource(R.string.settings_get_more_compliments),
                         trailingText = "$compliments",
                         onClick = {
                             if (isIndian) navController.navigate("buyCompliments")
@@ -400,7 +400,7 @@ fun SettingsScreen(navController: NavController) {
                     /* AI messages  ★ NEW ★ */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.SmartToy, null) },
-                        title        = "AI messages remaining",
+                        stringResource(R.string.settings_ai_messages_remaining),
                         trailingText = aiMessages.toString(),
                         onClick = {
                             navController.navigate("buyAiMessages")
@@ -453,7 +453,7 @@ fun SettingsScreen(navController: NavController) {
                 SettingsSection {
                     SettingsRow(
                         icon = { Icon(Icons.Default.ExitToApp, null, tint = Color(0xFFFF5722)) },
-                        title = "Logout",
+                        title = stringResource(R.string.cd_logout),
                         showChevron = false,
                         tint = Color(0xFFFF5722)
                     ) {
@@ -479,7 +479,7 @@ fun SettingsScreen(navController: NavController) {
                 SettingsSection {
                     SettingsRow(
                         icon = { Icon(Icons.Default.Description, null, tint = Color(0xFFFF6F00)) },
-                        title = "Policies & Support",
+                        title = stringResource(R.string.settings_policies_support),
                         onClick = { navController.navigate("policies") }
                     )
                 }
@@ -501,14 +501,14 @@ fun SettingsScreen(navController: NavController) {
             item {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Kupidx™",
+                    stringResource(R.string.app_name),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "v1.0",
+                    "v${BuildConfig.VERSION_NAME}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -775,7 +775,7 @@ private fun AccountCard(uid: String) {
         /* email (display only) */
         ListItem(
             leadingContent = { Icon(Icons.Default.Email, null) },
-            headlineContent = { Text("Email: $email") }
+            headlineContent = { Text("${stringResource(R.string.email_label)}: $email") }
         )
         if (needsVerification) {
             SettingsRow(
@@ -834,7 +834,9 @@ private fun AccountCard(uid: String) {
                 leadingContent = { Icon(Icons.Default.Person, null) },
                 headlineContent = { Text("Username: $username") },
                 trailingContent = {
-                    TextButton(onClick = { editingUname = true }) { Text("Edit", color = KupidxOrange) }
+                    TextButton(onClick = { editingUname = true }) {
+                        Text(stringResource(R.string.edit), color = KupidxOrange)
+                    }
                 }
             )
         }
