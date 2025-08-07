@@ -54,6 +54,26 @@
     <string name="whats_on_your_mind">ನಿಮ್ಮ ಮನಸ್ಸಿನಲ್ಲಿ ಏನು ಇದೆ?</string>
     <string name="add_tags_comma_separated">ಟ್ಯಾಗ್‌ಗಳನ್ನು ಸೇರಿಸಿ (ಕೋಮಾ ವಿಭಜಿತ)</string>
 
+    <string name="watch_ad_boost">1 ಬೂಸ್ಟ್‌ಗಾಗಿ ಜಾಹೀರಾತನ್ನು ವೀಕ್ಷಿಸಿ</string>
+    <string name="watch_ad_compliment">1 ಮೆಚ್ಚುಗೆಗಾಗಿ ಜಾಹೀರಾತನ್ನು ವೀಕ್ಷಿಸಿ</string>
+    <string name="watch_ad_swipes">5 ಸ್ವೈಪುಗಳಿಗಾಗಿ ಜಾಹೀರಾತನ್ನು ವೀಕ್ಷಿಸಿ</string>
+    <string name="watch">ವೀಕ್ಷಿಸಿ</string>
+    <string name="pay_instead">ಬೇಗನೆ ಪಾವತಿಸಿ</string>
+    <string name="send_feedback">ಪ್ರತಿಕ್ರಿಯೆ ಕಳುಹಿಸಿ</string>
+    <string name="your_feedback">ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ</string>
+    <string name="send">ಕಳುಹಿಸಿ</string>
+    <string name="confirm_delete_account">ನೀವು ಖಚಿತವಾಗಿಯೇ ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಅಳಿಸಲು ಬಯಸುತ್ತೀರಾ? ಎಲ್ಲಾ ಡೇಟಾ ಅಳಿಸಲಾಗುವುದು.</string>
+    <string name="delete">ಅಳಿಸಿ</string>
+    <string name="username_with_value">ಬಳಕೆದಾರ ಹೆಸರು: %1$s</string>
+    <string name="done">ಮುಗಿದಿದೆ</string>
+    <string name="current_password">ಪ್ರಸ್ತುತ密码</string>
+    <string name="new_password">ಹಿಮ್ಮುಖ密码</string>
+    <string name="confirm_password">密码ಧೃಡೀಾಕರಿಸಿ</string>
+    <string name="global_preferences">ವಿಶ್ವ preferences</string>
+    <string name="private_account">ಖಾಸಗಿ ಖಾತೆ</string>
+    <string name="private_account_desc">ನೀವು only swipe ಮಾಡಿದವರಿಗೆ ಮಾತ್ರ card stack ನಲ್ಲಿ ಕಾಣಿಸಿಕೊಳ್ಳಿ</string>
+    <string name="unblock">ಅನ್‌ಬ್ಲಾಕ್</string>
+
     <string name="feature_no_ads">ಜಾಹिरಾತುಗಳಿಲ್ಲ</string>
     <string name="feature_priority_profile">ಡೇಟಿಂಗ್ ಸ್ಟ್ಯಾಕ್‌ನಲ್ಲಿ ಆದ್ಯತಾ ಪ್ರೊಫೈಲ್</string>
     <string name="feature_people_liked_me">ನನಗೆ ಇಷ್ಟಪಟ್ಟವರನ್ನು ಅನ್ಲಾಕ್ ಮಾಡಿ ಮತ್ತು ಪಕ್ಷವಲ್‌ಕೆಯ ಆಯ್ಕೆ</string>

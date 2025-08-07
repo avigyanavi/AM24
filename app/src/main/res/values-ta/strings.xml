@@ -50,6 +50,26 @@
         <string name="whats_on_your_mind">உங்களுக்கு என்ன எண்ணம்?</string>
         <string name="add_tags_comma_separated">டேக்குகளைச் சேர்க்கவும் (கமாவால் பிரிக்கப்பட்ட)</string>
 
+        <string name="watch_ad_boost">1 புஸ்டிற்கான விளம்பரத்தைப் பார்க்கவும்</string>
+        <string name="watch_ad_compliment">1 பாராட்டிற்கான விளம்பரத்தைப் பார்க்கவும்</string>
+        <string name="watch_ad_swipes">5 ஸ்வைப்‌கள் கண விசேப்ப அ விளம்பரத்தைப் பார்க்கவும்</string>
+        <string name="watch">பார்க்கவும்</string>
+        <string name="pay_instead">மாறாக செலுத்தவும்</string>
+        <string name="send_feedback">கருத்துகளைச் சமர்ப்பிக்கவும்</string>
+        <string name="your_feedback">உங்கள் கருத்து</string>
+        <string name="send">சமர்ப்பிக்கவும்</string>
+        <string name="confirm_delete_account">உங்கள் கணக்கினை நீக்க விரும்புகிறீர்களா? அனைத்து தரவுகளும் நீக்கப்படும்.</string>
+        <string name="delete">நீக்கவும்</string>
+        <string name="username_with_value">பயனர்பெயர்: %1$s</string>
+        <string name="done">முடிந்தது</string>
+        <string name="current_password">தற்போதைய கடவுச்சொல்</string>
+        <string name="new_password">புதிய கடவுச்சொல்</string>
+        <string name="confirm_password">கடவுச்சொல்லை உறுதி செய்யவும்</string>
+        <string name="global_preferences">உலகத் திட்டங்கள்</string>
+        <string name="private_account">தனிப்பட்ட கணக்கு</string>
+        <string name="private_account_desc">நீங்கள் வலதுச் சுழற்சியில் ஸ்வைப் செய்யும் பயனர்கள் தவிரா கார்டு சட்டத்தில் தெரியாமல் இருங்கள்</string>
+        <string name="unblock">தடை அகற்றவும்</string>
+
         <string name="feature_no_ads">விளம்பரங்கள் இல்லை</string>
         <string name="feature_priority_profile">டேட்டிங் ஸ்டாகில் முன்னுரிமைப் பெற்ற پروஃபைல்</string>
         <string name="feature_people_liked_me">என்னைப் பிடித்தவர்களை திறக்கவும் மற்றும் இடம் மாற்றும் விருப்பம்</string>

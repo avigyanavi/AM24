@@ -16,6 +16,27 @@
     <string name="add_tags_comma_separated">Add Tags (comma separated)</string>
     <string name="add_location_optional">Add a location (optional)</string>
 
+
+    <string name="watch_ad_boost">Watch ad for 1 Boost</string>
+    <string name="watch_ad_compliment">Watch ad for 1 Compliment</string>
+    <string name="watch_ad_swipes">Watch ad for 5 Swipes</string>
+    <string name="watch">Watch</string>
+    <string name="pay_instead">Pay Instead</string>
+    <string name="send_feedback">Send Feedback</string>
+    <string name="your_feedback">Your feedback</string>
+    <string name="send">Send</string>
+    <string name="confirm_delete_account">Are you sure you want to delete your account? All data will be removed.</string>
+    <string name="delete">Delete</string>
+    <string name="username_with_value">Username: %1$s</string>
+    <string name="done">Done</string>
+    <string name="current_password">Current Password</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="global_preferences">Global Preferences</string>
+    <string name="private_account">Private Account</string>
+    <string name="private_account_desc">Be undiscoverable in card stack except those you swipe right on</string>
+    <string name="unblock">Unblock</string>
+
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">No ads</string>
     <string name="feature_priority_profile">Priority Profile in the dating stack</string>

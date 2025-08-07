@@ -1028,31 +1028,33 @@ private fun GlobalPrefCard(
 
         /* language */
         if (!isIndia) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { exp = true }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Language, null)
-                Spacer(Modifier.width(16.dp))
-                Text(stringResource(R.string.settings_preferred_language), Modifier.weight(1f))
-                Text(langs.first { it.second == lang }.first)
-                Icon(Icons.Default.KeyboardArrowRight, null)
-            }
-            DropdownMenu(
-                expanded = exp,
-                onDismissRequest = { exp = false }
-            ) {
-                langs.forEach { (label, code) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            exp = false
-                            onLangChange(code)
-                        }
-                    )
+            Box {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { exp = true }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Language, null)
+                    Spacer(Modifier.width(16.dp))
+                    Text(stringResource(R.string.settings_preferred_language), Modifier.weight(1f))
+                    Text(langs.first { it.second == lang }.first)
+                    Icon(Icons.Default.KeyboardArrowRight, null)
+                }
+                DropdownMenu(
+                    expanded = exp,
+                    onDismissRequest = { exp = false }
+                ) {
+                    langs.forEach { (label, code) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = {
+                                exp = false
+                                onLangChange(code)
+                            }
+                        )
+                    }
                 }
             }
             Divider(Modifier.padding(start = 56.dp))

@@ -85,7 +85,25 @@
     <string name="feature_5_boosts">వారం‌కు 5 బూస్ట్‌లు</string>
     <string name="feature_performance_metrics_rank">పనితీరు మీట్రిక్స్ మరియు ప్రొఫైల్ వారీగా ర్యాంక్ అన్లాక్ చేయండి</string>
     <string name="feature_everything_plus">Plus లోని ప్రతిదీ</string>
-
+    <string name="watch_ad_boost">1 బూస్ట్ కోసం ప్రకటన చూడండి</string>
+    <string name="watch_ad_compliment">1 ప్రశంస కోసం ప్రకటన చూడండి</string>
+    <string name="watch_ad_swipes">5 స్వైప్స్ కోసం ప్రకటన చూడండి</string>
+    <string name="watch">చూడండి</string>
+    <string name="pay_instead">పూర్తిగా చెల్లించండి</string>
+    <string name="send_feedback">విందును పంపండి</string>
+    <string name="your_feedback">మీ అభిప్రాయం</string>
+    <string name="send">పంపండి</string>
+    <string name="confirm_delete_account">మీ ఖాతాను మాయం చేయాలనుకుంటున్నారా? మొత్తం డేటా తొలగించబడుతుంది.</string>
+    <string name="delete">తొలగించు</string>
+    <string name="username_with_value">వినియోగదారిపేరు: %1$s</string>
+    <string name="done">పూర్తి</string>
+    <string name="current_password">ప్రస్తుత పాస్వర్డ్</string>
+    <string name="new_password">కొత్త పాస్వర్డ్</string>
+    <string name="confirm_password">పాస్వర్డ్‌ని నిర్ధారించు</string>
+    <string name="global_preferences">ప్రపంచ వెఱ్ఱక</string>
+    <string name="private_account">ప్రైవేట్ ఖాతా</string>
+    <string name="private_account_desc">మీరు స్వైప్ చేసిన వారి dışında ఇతరులకు görünmez</string>
+    <string name="unblock">అన్‌బ్లాక్</string>
     <string name="create_post_title">క్రొత్త పోస్ట్ సృష్టించండి</string>
     <string name="text_post_label">టెక్స్ట్ పోస్ట్</string>
     <string name="voice_post_label">వాయిస్ పోస్ట్</string>

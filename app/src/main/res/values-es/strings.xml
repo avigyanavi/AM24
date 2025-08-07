@@ -20,6 +20,26 @@
     Solo puedes seleccionar hasta %1$d causas sociales.
     </string>
 
+    <string name="watch_ad_boost">Ver anuncio para 1 impulso</string>
+    <string name="watch_ad_compliment">Ver anuncio para 1 halago</string>
+    <string name="watch_ad_swipes">Ver anuncio para 5 deslizamientos</string>
+    <string name="watch">Ver</string>
+    <string name="pay_instead">Pagar en su lugar</string>
+    <string name="send_feedback">Enviar comentarios</string>
+    <string name="your_feedback">Tus comentarios</string>
+    <string name="send">Enviar</string>
+    <string name="confirm_delete_account">¿Estás seguro de que deseas eliminar tu cuenta? Todos los datos se borrarán.</string>
+    <string name="delete">Eliminar</string>
+    <string name="username_with_value">Nombre de usuario: %1$s</string>
+    <string name="done">Hecho</string>
+    <string name="current_password">Contraseña actual</string>
+    <string name="new_password">Nueva contraseña</string>
+    <string name="confirm_password">Confirmar contraseña</string>
+    <string name="global_preferences">Preferencias globales</string>
+    <string name="private_account">Cuenta privada</string>
+    <string name="private_account_desc">No ser visible en la pila de tarjetas salvo si deslizas a la derecha</string>
+    <string name="unblock">Desbloquear</string>
+
     <string name="feature_no_ads">Sin anuncios</string>
     <string name="feature_priority_profile">Perfil prioritario en la lista de citas</string>
     <string name="feature_people_liked_me">Desbloquear personas que me gustaron y opción de cambiar ubicación</string>

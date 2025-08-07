@@ -17,6 +17,26 @@
     <string name="feature_performance_metrics_rank">পারফরম্যান্স মেট্রিক্স এবং প্রোফাইল অনুযায়ী র‌্যাঙ্ক আনলক করুন</string>
     <string name="feature_everything_plus">Plus-এ সবকিছু</string>
 
+    <string name="watch_ad_boost">১টি বুস্টের জন্য বিজ্ঞাপন দেখুন</string>
+    <string name="watch_ad_compliment">১টি প্রশংসার জন্য বিজ্ঞাপন দেখুন</string>
+    <string name="watch_ad_swipes">৫টি সোয়াইপের জন্য বিজ্ঞাপন দেখুন</string>
+    <string name="watch">দেখুন</string>
+    <string name="pay_instead">পরে পরিশোধ করুন</string>
+    <string name="send_feedback">মতামত পাঠান</string>
+    <string name="your_feedback">আপনার মতামত</string>
+    <string name="send">পাঠান</string>
+    <string name="confirm_delete_account">আপনি কি সত্যিই আপনার অ্যাকাউন্ট মুছে ফেলতে চান? সমস্ত ডেটা মুছে ফেলা হবে।</string>
+    <string name="delete">মুছে ফেলুন</string>
+    <string name="username_with_value">ইউজারনেম: %1$s</string>
+    <string name="done">সম্পন্ন</string>
+    <string name="current_password">বর্তমান পাসওয়ার্ড</string>
+    <string name="new_password">নতুন পাসওয়ার্ড</string>
+    <string name="confirm_password">পাসওয়ার্ড নিশ্চিত করুন</string>
+    <string name="global_preferences">গ্লোবাল পছন্দসমূহ</string>
+    <string name="private_account">ব্যক্তিগত অ্যাকাউন্ট</string>
+    <string name="private_account_desc">আপনি শুধুমাত্র যাদের কাছে সোয়াইপ করবেন, তাদের কার্ড স্ট্যাকে দেখা যাবে</string>
+    <string name="unblock">আনব্লক</string>
+
     <string name="create_post_title">নতুন পোস্ট তৈরি করুন</string>
     <string name="text_post_label">টেক্সট পোস্ট</string>
     <string name="voice_post_label">ভয়েস পোস্ট</string>
