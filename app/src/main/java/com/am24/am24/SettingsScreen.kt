@@ -520,9 +520,9 @@ fun SettingsScreen(navController: NavController) {
 
         if (!isIndian) rewardDialogFor?.let { type ->
             val msg = when (type) {
-                PurchaseType.Boosts -> "Watch ad for 1 Boost"
-                PurchaseType.Compliments -> "Watch ad for 1 Compliment"
-                PurchaseType.Swipes -> "Watch ad for 5 Swipes"
+                PurchaseType.Boosts -> stringResource(R.string.watch_ad_boost)
+                PurchaseType.Compliments -> stringResource(R.string.watch_ad_compliment)
+                PurchaseType.Swipes -> stringResource(R.string.watch_ad_swipes)
                 else -> ""
             }
             AlertDialog(
@@ -557,7 +557,7 @@ fun SettingsScreen(navController: NavController) {
                             }
                             }
                         )
-                    }) { Text("Watch", color = kupidxOrange) }
+                    }) { Text(stringResource(R.string.watch), color = kupidxOrange) }
                 },
                 dismissButton = {
                     TextButton(onClick = {
@@ -571,7 +571,7 @@ fun SettingsScreen(navController: NavController) {
                             rewardDialogFor = null
                             route?.let { r -> navController.navigate(r) }
                         }
-                    }) { Text("Pay Instead", color = kupidxOrange) }
+                    }) { Text(stringResource(R.string.pay_instead), color = kupidxOrange) }
                 }
             )
         }

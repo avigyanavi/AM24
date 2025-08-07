@@ -137,6 +137,7 @@ fun TopNavBar(
     val isNotificationsSelected = currentRoute == "notifications"
     val isUserSettings = currentRoute == "settings"
     val isProfileScreen = currentRoute == "profile"
+    val isDMScreen = currentRoute == "dms"
 
     val unreadCount = remember { mutableStateOf(0) }
     val isPremium = remember { mutableStateOf(false) }
@@ -355,7 +356,7 @@ fun TopNavBar(
             val isDatingScreen = currentRoute == "dating" ||
                     currentRoute?.startsWith("dating_screen") == true
             // User Settings Icon (Profile or Settings screen)
-            if (isProfileScreen || isUserSettings || isDatingScreen) {
+            if (isProfileScreen || isUserSettings || isDatingScreen || isOnHome || isDMScreen) {
 
                 IconButton(onClick = {
                     if (isUserSettings) {
