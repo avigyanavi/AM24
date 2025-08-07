@@ -34,6 +34,7 @@ import java.util.UUID
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.HttpsCallableReference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
@@ -343,23 +344,28 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
 
-                // refresh blocks first
-                _blockedUsers.value = fetchBlockedUsers(me)
-                _loadingProgress.value = 25
-
-                val globalCompliments = fetchGlobalComplimenters(me)
-                _loadingProgress.value = 40
-                val globalBoosted = fetchGlobalBoostedUsers()
-                _loadingProgress.value = 55
-                val globalPremium = fetchGlobalPremiumUsers()
-                _loadingProgress.value = 70
-
                 val maxDist = _datingFilters.value.distance
-                val list = fetchNearbyProfilesCloud(me, maxDist)
-                _loadingProgress.value = 85
-                val merged = (globalCompliments + globalBoosted + globalPremium + list)
-                    .distinctBy { it.userId }
-                _allProfiles.value = merged.filterNot { it.userId == me }
+                coroutineScope {
+                    val blockedDeferred = async { fetchBlockedUsers(me) }
+                    val complimentsDeferred = async { fetchGlobalComplimenters(me) }
+                    val boostedDeferred = async { fetchGlobalBoostedUsers() }
+                    val premiumDeferred = async { fetchGlobalPremiumUsers() }
+                    val nearbyDeferred = async { fetchNearbyProfilesCloud(me, maxDist) }
+
+                    _blockedUsers.value = blockedDeferred.await()
+                    _loadingProgress.value = 25
+                    val globalCompliments = complimentsDeferred.await()
+                    _loadingProgress.value = 40
+                    val globalBoosted = boostedDeferred.await()
+                    _loadingProgress.value = 55
+                    val globalPremium = premiumDeferred.await()
+                    _loadingProgress.value = 70
+                    val list = nearbyDeferred.await()
+                    _loadingProgress.value = 85
+                    val merged = (globalCompliments + globalBoosted + globalPremium + list)
+                        .distinctBy { it.userId }
+                    _allProfiles.value = merged.filterNot { it.userId == me }
+                }
 
                 updateBoostedUsers(me)
                 loadCompliments(me)
