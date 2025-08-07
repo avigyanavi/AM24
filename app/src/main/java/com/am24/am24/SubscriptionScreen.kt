@@ -33,21 +33,22 @@ import org.json.JSONObject
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
 
 private val PLUS_FEATURES = listOf(
-    "No ads",
-    "Priority Profile in the dating stack",
-    "Unlock People Who Liked Me and Change Location Option",
-    "Unlock Picture and Voice posts",
-    "3 compliments per week",
-    "3 boosts per week"
+    R.string.feature_no_ads,
+    R.string.feature_priority_profile,
+    R.string.feature_people_liked_me,
+    R.string.feature_picture_voice_posts,
+    R.string.feature_50_swipes,
+    R.string.feature_3_compliments,
+    R.string.feature_3_boosts
 )
 
 private val PREMIUM_FEATURES = listOf(
-    "Unlock Video posts and Rank section",
-    "Unlimited Swipes",
-    "5 compliments per week",
-    "5 boosts per week",
-    "Unlocked Performance Metrics per profile",
-    "Everything in Plus"
+    R.string.feature_video_rank_section,
+    R.string.feature_unlimited_swipes,
+    R.string.feature_5_compliments,
+    R.string.feature_5_boosts,
+    R.string.feature_performance_metrics_rank,
+    R.string.feature_everything_plus
 )
 private data class UiState(
     val isProcessing: Boolean = false,

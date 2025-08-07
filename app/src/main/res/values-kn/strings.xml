@@ -54,6 +54,20 @@
     <string name="whats_on_your_mind">ನಿಮ್ಮ ಮನಸ್ಸಿನಲ್ಲಿ ಏನು ಇದೆ?</string>
     <string name="add_tags_comma_separated">ಟ್ಯಾಗ್‌ಗಳನ್ನು ಸೇರಿಸಿ (ಕೋಮಾ ವಿಭಜಿತ)</string>
 
+    <string name="feature_no_ads">ಜಾಹिरಾತುಗಳಿಲ್ಲ</string>
+    <string name="feature_priority_profile">ಡೇಟಿಂಗ್ ಸ್ಟ್ಯಾಕ್‌ನಲ್ಲಿ ಆದ್ಯತಾ ಪ್ರೊಫೈಲ್</string>
+    <string name="feature_people_liked_me">ನನಗೆ ಇಷ್ಟಪಟ್ಟವರನ್ನು ಅನ್ಲಾಕ್ ಮಾಡಿ ಮತ್ತು ಪಕ್ಷವಲ್‌ಕೆಯ ಆಯ್ಕೆ</string>
+    <string name="feature_picture_voice_posts">ಚಿತ್ರ ಮತ್ತು ಧ್ವನಿ ಪೋಸ್ಟುಗಳನ್ನು ಅನ್ಲಾಕ್ ಮಾಡಿ</string>
+    <string name="feature_50_swipes">ಪ್ರತಿದಿನ 50 ಸ್ವೈಪ್</string>
+    <string name="feature_3_compliments">ವಾರಕ್ಕೆ 3 ಮೆಚ್ಚುಗೆ</string>
+    <string name="feature_3_boosts">ವಾರಕ್ಕೆ 3 ಬೂสต์್</string>
+    <string name="feature_video_rank_section">ವೀಡಿಯೊ ಪೋಸ್ಟ್‌ಗಳು ಮತ್ತು ರ್ಯಾಂಕ್ ವಿಭಾಗ ಅನ್ಲಾಕ್ ಮಾಡಿ</string>
+    <string name="feature_unlimited_swipes">ಅಸೀಮ ಸ್ವೈಪ್</string>
+    <string name="feature_5_compliments">ವಾರಕ್ಕೆ 5 ಮೆಚ್ಚುಗೆ</string>
+    <string name="feature_5_boosts">ವಾರಕ್ಕೆ 5 ಬೂಸ್ಟ್್</string>
+    <string name="feature_performance_metrics_rank">ಕಾರ್ಯಕ್ಷಮತೆ ಮೆಟ್ರಿಕ್ಸ್ ಮತ್ತು ಪ್ರೊಫೈಲ್ ಪ್ರಕಾರ ರ್ಯಾಂಕ್ ಅನ್ಲಾಕ್ ಮಾಡಿ</string>
+    <string name="feature_everything_plus">Plus‌ನಲ್ಲಿನ ಎಲ್ಲವು</string>
+
     <string name="settings_get_more_boosts">ಹೆಚ್ಚಿನ ಬೂಸ್ಟ್‌ಗಳನ್ನು ಪಡೆಯಿರಿ</string>
     <string name="settings_get_more_swipes">ಹೆಚ್ಚಿನ ಸ್ವೈಪ್‌ಗಳನ್ನು ಪಡೆಯಿರಿ</string>
     <string name="settings_get_more_compliments">ಹೆಚ್ಚಿನ ಮೆಚ್ಚುಗೆಗಳನ್ನು ಪಡೆಯಿರಿ</string>

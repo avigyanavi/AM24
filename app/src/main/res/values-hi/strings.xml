@@ -13,6 +13,19 @@
     <string name="languages">भाषाएँ</string>
     <string name="section_bio_and_voice">बायो</string>
     <string name="upgrade">अपग्रेड</string>
+    <string name="feature_no_ads">कोई विज्ञापन नहीं</string>
+    <string name="feature_priority_profile">डेटिंग स्टैक में प्राथमिक प्रोफ़ाइल</string>
+    <string name="feature_people_liked_me">जिन्होंने मुझे पसंद किया उन्हें अनलॉक करें और स्थान बदलने का विकल्प</string>
+    <string name="feature_picture_voice_posts">चित्र और वॉयस पोस्ट अनलॉक करें</string>
+    <string name="feature_50_swipes">दैनिक 50 स्वाइप</string>
+    <string name="feature_3_compliments">साप्ताहिक 3 प्रशंसा</string>
+    <string name="feature_3_boosts">साप्ताहिक 3 बूस्ट</string>
+    <string name="feature_video_rank_section">वीडियो पोस्ट और रैंक सेक्शन अनलॉक करें</string>
+    <string name="feature_unlimited_swipes">असीमित स्वाइप</string>
+    <string name="feature_5_compliments">साप्ताहिक 5 प्रशंसा</string>
+    <string name="feature_5_boosts">साप्ताहिक 5 बूस्ट</string>
+    <string name="feature_performance_metrics_rank">प्रदर्शन मीट्रिक और प्रोफ़ाइल अनुसार रैंक अनलॉक करें</string>
+    <string name="feature_everything_plus">Plus में सब कुछ</string>
 
     <string name="create_post_title">नया पोस्ट बनाएं</string>
     <string name="text_post_label">टेक्स्ट पोस्ट</string>

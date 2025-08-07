@@ -16,6 +16,21 @@
     <string name="add_tags_comma_separated">Add Tags (comma separated)</string>
     <string name="add_location_optional">Add a location (optional)</string>
 
+    <!-- Subscription feature bullet points -->
+    <string name="feature_no_ads">No ads</string>
+    <string name="feature_priority_profile">Priority Profile in the dating stack</string>
+    <string name="feature_people_liked_me">Unlock People Who Liked Me and Change Location Option</string>
+    <string name="feature_picture_voice_posts">Unlock Picture and Voice posts</string>
+    <string name="feature_50_swipes">50 swipes a day</string>
+    <string name="feature_3_compliments">3 compliments per week</string>
+    <string name="feature_3_boosts">3 boosts per week</string>
+    <string name="feature_video_rank_section">Unlock Video posts and Rank section</string>
+    <string name="feature_unlimited_swipes">Unlimited Swipes</string>
+    <string name="feature_5_compliments">5 compliments per week</string>
+    <string name="feature_5_boosts">5 boosts per week</string>
+    <string name="feature_performance_metrics_rank">Unlocked Performance Metrics and Rank per profile</string>
+    <string name="feature_everything_plus">Everything in Plus</string>
+
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Languages</string>

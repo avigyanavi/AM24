@@ -72,6 +72,20 @@
         <string name="upgrade">అప్గ్రేడ్</string>
     <string name="add_location_optional">ఒక స్థానాన్ని జోడించండి (ఐచ్ఛిక)</string>
 
+    <string name="feature_no_ads">విజ्ञాపనలు లేవు</string>
+    <string name="feature_priority_profile">డేటింగ్ స్టాక్‌లో ప్రాధాన్యత ప్రొఫైల్</string>
+    <string name="feature_people_liked_me">నన్ను ఇష్టపడిన వారిని అన్లాక్ చేయండి మరియు స్థానం మార్చే ఎంపిక</string>
+    <string name="feature_picture_voice_posts">చిత్రాలు మరియు వాయిస్ పోస్టులను అన్లాక్ చేయండి</string>
+    <string name="feature_50_swipes">రోజుకు 50 స్వైప్‌లు</string>
+    <string name="feature_3_compliments">వారం‌కు 3 ప్రశంసలు</string>
+    <string name="feature_3_boosts">వారం‌కు 3 బూస్ట్‌లు</string>
+    <string name="feature_video_rank_section">వీడియో పోస్టులు మరియు ర్యాంక్ సెక్షన్ అన్లాక్ చేయండి</string>
+    <string name="feature_unlimited_swipes">అనిర్వర్య స్వైప్‌లు</string>
+    <string name="feature_5_compliments">వారం‌కు 5 ప్రశంసలు</string>
+    <string name="feature_5_boosts">వారం‌కు 5 బూస్ట్‌లు</string>
+    <string name="feature_performance_metrics_rank">పనితీరు మీట్రిక్స్ మరియు ప్రొఫైల్ వారీగా ర్యాంక్ అన్లాక్ చేయండి</string>
+    <string name="feature_everything_plus">Plus లోని ప్రతిదీ</string>
+
     <string name="create_post_title">క్రొత్త పోస్ట్ సృష్టించండి</string>
     <string name="text_post_label">టెక్స్ట్ పోస్ట్</string>
     <string name="voice_post_label">వాయిస్ పోస్ట్</string>

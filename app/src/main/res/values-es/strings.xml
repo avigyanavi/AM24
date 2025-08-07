@@ -20,6 +20,20 @@
     Solo puedes seleccionar hasta %1$d causas sociales.
     </string>
 
+    <string name="feature_no_ads">Sin anuncios</string>
+    <string name="feature_priority_profile">Perfil prioritario en la lista de citas</string>
+    <string name="feature_people_liked_me">Desbloquear personas que me gustaron y opción de cambiar ubicación</string>
+    <string name="feature_picture_voice_posts">Desbloquear publicaciones con foto y voz</string>
+    <string name="feature_50_swipes">50 deslizamientos al día</string>
+    <string name="feature_3_compliments">3 cumplidos por semana</string>
+    <string name="feature_3_boosts">3 impulsos por semana</string>
+    <string name="feature_video_rank_section">Desbloquear publicaciones de video y sección de clasificación</string>
+    <string name="feature_unlimited_swipes">Deslizamientos ilimitados</string>
+    <string name="feature_5_compliments">5 cumplidos por semana</string>
+    <string name="feature_5_boosts">5 impulsos por semana</string>
+    <string name="feature_performance_metrics_rank">Desbloquear métricas de rendimiento y clasificación por perfil</string>
+    <string name="feature_everything_plus">Todo en Plus</string>
+
     <!-- LA Quick Tags (labels) -->
     <string name="la_tag_dtla_rooftops_label">Azoteas en DTLA</string>
     <string name="la_tag_ktown_bbq_label">BBQ coreana (K-Town)</string>

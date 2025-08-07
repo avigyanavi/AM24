@@ -969,6 +969,17 @@ fun FiltersOverlay(
     onMaxRankingChange: (Int) -> Unit
 ) {
     val context = LocalContext.current
+
+    val limit = if (isIndian && !(isPlus || isPremium))
+        DatingViewModel.INDIA_MAX_DISTANCE
+    else
+        DatingViewModel.WORLDWIDE_DISTANCE
+
+    var pendingDistance by remember { mutableStateOf(maxDistance.coerceAtMost(limit)) }
+
+    LaunchedEffect(maxDistance, limit) {
+        pendingDistance = maxDistance.coerceAtMost(limit)
+    }
     // Local state for place search
     var highSchoolQuery by remember { mutableStateOf(selectedHighSchool) }
     var collegeQuery by remember { mutableStateOf(selectedCollege) }
@@ -1037,7 +1048,10 @@ fun FiltersOverlay(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Button(
-                onClick = { onSaveFilters() },
+                onClick = {
+                    onDistanceChange(pendingDistance)
+                    onSaveFilters()
+                },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier.height(48.dp)
@@ -1135,24 +1149,24 @@ fun FiltersOverlay(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Max Distance Slider (unchanged)
-                val limit = if (isIndian && !(isPlus || isPremium))
-                    DatingViewModel.INDIA_MAX_DISTANCE
-                else
-                    DatingViewModel.WORLDWIDE_DISTANCE
-                val distanceValue = maxDistance.coerceAtMost(limit)
                 Text(
-                    text = if (distanceValue == DatingViewModel.WORLDWIDE_DISTANCE)
+                    text = if (pendingDistance == DatingViewModel.WORLDWIDE_DISTANCE)
                         stringResource(R.string.worldwide)
                     else
-                        DistanceUtil.formatDistance(context, distanceValue.toFloat()),
+                        DistanceUtil.formatDistance(context, pendingDistance.toFloat()),
                     color = Color.White
                 )
                 Slider(
-                    value = distanceValue.toFloat(),
-                    onValueChange = { onDistanceChange(it.roundToInt()) },
+                    value = pendingDistance.toFloat(),
+                    onValueChange = {
+                        var newDistance = it.roundToInt().coerceAtMost(limit)
+                        if (newDistance != DatingViewModel.WORLDWIDE_DISTANCE) {
+                            newDistance = (newDistance / 5) * 5
+                        }
+                        pendingDistance = newDistance
+                    },
                     valueRange = 0f..limit.toFloat(),
-                    steps = 10,
+                    steps = ((limit / 5) - 1).coerceAtLeast(0),
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFFFF6000),
                         activeTrackColor = Color.White,
@@ -1217,7 +1231,10 @@ fun FiltersOverlay(
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
-                    onClick = { onSaveFilters() },
+                    onClick = {
+                        onDistanceChange(pendingDistance)
+                        onSaveFilters()
+                    },
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                     shape = RoundedCornerShape(50),
                     modifier = Modifier
