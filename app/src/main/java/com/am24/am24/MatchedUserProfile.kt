@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import DatingViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -17,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.Log
 import androidx.navigation.NavController
 import com.am24.am24.Post
@@ -45,6 +47,7 @@ fun MatchedUserProfileScreen(
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
     val coroutineScope = rememberCoroutineScope()
     var isVerified by remember { mutableStateOf(false) }
+    val datingViewModel: DatingViewModel = viewModel()
 
 
     // Fetch data on initial load
@@ -67,7 +70,7 @@ fun MatchedUserProfileScreen(
     LaunchedEffect(profile.userId, currentUserProfile) {
         println("LaunchedEffect for profile: ${profile.userId}, currentUserProfile: $currentUserProfile")
         try {
-            val distance = calculateDistance(currentUserId, profile.userId, geoFire)
+            val distance = datingViewModel.distanceBetween(currentUserId, profile.userId, geoFire)
             userDistance = distance
             println("Distance calculated: $distance km")
         } catch (e: Exception) {

@@ -332,14 +332,10 @@ fun DatingScreen(
     val displayedProfiles = complimentersList + boostedList + premiumList + plusList + restList
     Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
 
-    var sortedDisplayedProfiles by remember { mutableStateOf(displayedProfiles) }
-    LaunchedEffect(displayedProfiles) {
-        sortedDisplayedProfiles = datingViewModel.sortDisplayed(displayedProfiles)
-    }
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
-    val currentSwipeProfile by remember(currentIndex, sortedDisplayedProfiles) {
-        derivedStateOf { sortedDisplayedProfiles.getOrNull(currentIndex) }
+    val currentSwipeProfile by remember(currentIndex, displayedProfiles) {
+        derivedStateOf { displayedProfiles.getOrNull(currentIndex) }
     }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
@@ -381,23 +377,23 @@ fun DatingScreen(
     }
     // add this:
     var initialProcessed by remember { mutableStateOf(false) }
-    LaunchedEffect(initialQuery, sortedDisplayedProfiles) {
+    LaunchedEffect(initialQuery, displayedProfiles) {
         if (!initialProcessed && initialQuery.isNotBlank()) {
             // find the deep-link target
-            val idx = sortedDisplayedProfiles.indexOfFirst { it.userId == initialQuery }
+            val idx = displayedProfiles.indexOfFirst { it.userId == initialQuery }
             if (idx >= 0) {
                 currentIndex = idx
             }
             initialProcessed = true
         }
-        sortedDisplayedProfiles.forEach { datingViewModel.loadVerification(it.userId) }
+        displayedProfiles.forEach { datingViewModel.loadVerification(it.userId) }
     }
 
     /* Auto-tap dating icon when profiles are empty */
-    LaunchedEffect(currentRoute, sortedDisplayedProfiles, isLoading) {
+    LaunchedEffect(currentRoute, displayedProfiles, isLoading) {
         if (currentRoute == "dating"                     // only run if we’re still here
             && !isLoading
-            && sortedDisplayedProfiles.isEmpty()
+            && displayedProfiles.isEmpty()
             && autoTapCount < maxAutoTaps
         ) {
             delay(1_000)  // give Firebase a chance to come back
@@ -646,7 +642,7 @@ fun DatingScreen(
                         )
                     }
 
-                    sortedDisplayedProfiles.isEmpty() -> NoMoreProfilesScreen(
+                    displayedProfiles.isEmpty() -> NoMoreProfilesScreen(
                         autoTapCount = autoTapCount,
                         maxAutoTaps = maxAutoTaps,
                         onRefresh = {
@@ -659,7 +655,7 @@ fun DatingScreen(
                         geoFire          = geoFire,
                         profileViewModel = profileViewModel,
                         postViewModel    = postViewModel,
-                        profiles         = sortedDisplayedProfiles,
+                        profiles         = displayedProfiles,
                         currentIndex     = currentIndex,   // 🔹
                         boostedUsers     = boostedUsers,
                         onSwipeRight     = {
@@ -722,12 +718,12 @@ fun DatingScreen(
                 onClose = { profileViewModel.clearMatchPopUp() }
             )
         }
-        if (showComplimentDlg && sortedDisplayedProfiles.isNotEmpty()) {
+        if (showComplimentDlg && displayedProfiles.isNotEmpty()) {
             ComplimentDialog(
                 complimentsLeft = complimentsLeft,
                 onSend = { text, voiceUri ->
                     coroutineScope.launch {
-                        val receiver = sortedDisplayedProfiles[currentIndex]
+                        val receiver = displayedProfiles[currentIndex]
                         datingViewModel.sendCompliment(
                             receiverId       = receiver.userId,
                             textMessage      = text,
@@ -1918,6 +1914,7 @@ fun DatingScreenContent(
             onSwipeRight = {
                 onSwipeRight()
                 handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
+                onExcludeUser(currentProfile.userId)
             },
             onSwipeLeft = {
                 onSwipeLeft()

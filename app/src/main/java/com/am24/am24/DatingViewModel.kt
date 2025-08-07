@@ -484,7 +484,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
             /* 4️⃣  Recompute distance map & StateFlows */
             val distMap = boosted.mapNotNull { p ->
-                calculateDistance(currentUserId, p.userId, geoFire)?.let { p.userId to it }
+                distanceBetween(currentUserId, p.userId, geoFire)?.let { p.userId to it }
             }.toMap()
 
             _userDistanceMap.value = distMap
@@ -631,11 +631,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
-        // Apply distance filter
-        if (filters.distance in 0 until WORLDWIDE_DISTANCE) {   // ✅ BEFORE it was 0..100
-            result = filterByDistance(result, filters.distance)
-        }
-
         return@coroutineScope result
     }
 
@@ -654,38 +649,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         val d = calculateDistance(uidA, uidB, geoFire)
         if (d != null) distanceCache[key] = d
         return d
-    }
-
-    private suspend fun filterByDistance(
-        profiles: List<Profile>,
-        maxDistance: Int
-    ): List<Profile> = coroutineScope {
-
-        val me = FirebaseAuth.getInstance().uid ?: return@coroutineScope profiles
-        if (maxDistance >= WORLDWIDE_DISTANCE) return@coroutineScope profiles   // keep all
-
-        val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
-        val kept    = mutableListOf<Profile>()
-
-        profiles.forEach { other ->
-            launch {
-                val d = calculateDistance(me, other.userId, geoFire)  // <-- may be null
-                /* keep if distance is unknown **OR** ≤ slider value  */
-                if (d == null || d <= maxDistance) {                  // <-- THIS LINE
-                    synchronized(kept) { kept.add(other) }
-                }
-            }
-        }
-        kept
-    }
-
-    suspend fun sortDisplayed(profiles: List<Profile>): List<Profile> {
-        val me = FirebaseAuth.getInstance().uid ?: return profiles
-        val withDistances = profiles.map { profile ->
-            val d = calculateDistance(me, profile.userId, geoFire)
-            profile to (d ?: Float.MAX_VALUE)
-        }
-        return withDistances.sortedBy { it.second }.map { it.first }
     }
 
     private val _verificationStatuses =
