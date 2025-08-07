@@ -2004,7 +2004,7 @@ fun DatingProfileCard(
                 .padding(8.dp),
             backgroundColor = DarkGrayBackground,
             shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
+//            border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -2954,6 +2954,26 @@ fun handleSwipeRight(
     profileViewModel.sendLikeNotification(currentUserId, otherUserId, {}, {})
     database.getReference("swipesReceived/$otherUserId/$currentUserId").setValue(true)
 
+    // Increment swipe count and mark permanent exclusion after 3 swipes
+    val swipeCountRef = database.getReference("users/$currentUserId/swipeCounts/$otherUserId")
+    swipeCountRef.runTransaction(object : Transaction.Handler {
+        override fun doTransaction(mutableData: MutableData): Transaction.Result {
+            val current = mutableData.getValue(Int::class.java) ?: 0
+            mutableData.value = current + 1
+            return Transaction.success(mutableData)
+        }
+
+        override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
+            if (committed) {
+                val count = snapshot?.getValue(Int::class.java) ?: 0
+                if (count >= 3) {
+                    database.getReference("users/$currentUserId/permanentExcludes/$otherUserId")
+                        .setValue(true)
+                }
+            }
+        }
+    })
+
     // 2) Increment their counters
     database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
         .get().addOnSuccessListener { snap ->
@@ -3022,6 +3042,7 @@ fun handleSwipeRight(
                     }
             }
         }
+
 }
 
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
@@ -3032,12 +3053,33 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
 
+    // Increment swipe count and mark permanent exclusion after 3 swipes
+    val swipeCountRef = database.getReference("users/$currentUserId/swipeCounts/$otherUserId")
+    swipeCountRef.runTransaction(object : Transaction.Handler {
+        override fun doTransaction(mutableData: MutableData): Transaction.Result {
+            val current = mutableData.getValue(Int::class.java) ?: 0
+            mutableData.value = current + 1
+            return Transaction.success(mutableData)
+        }
+
+        override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
+            if (committed) {
+                val count = snapshot?.getValue(Int::class.java) ?: 0
+                if (count >= 3) {
+                    database.getReference("users/$currentUserId/permanentExcludes/$otherUserId")
+                        .setValue(true)
+                }
+            }
+        }
+    })
+
     // 🆕 track dislikes for 14‑day exclusion
     database.getReference("dislikesGiven/$currentUserId/$otherUserId").setValue(timestamp)
 
     val otherUserTotalSwipesRef =
         database.getReference("swipesReceived/$otherUserId/$currentUserId")
     otherUserTotalSwipesRef.setValue(true)
+
 
     val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
     otherUserProfileRef.get().addOnSuccessListener { snapshot ->
@@ -3099,6 +3141,16 @@ private suspend fun fetchExcludedUsers(me: String): Set<String> {
     dislikeSnap.children.forEach { child ->
         val ts = child.getValue(Long::class.java) ?: 0L
         if (ts >= twoWeeksAgo) excludedIds += child.key!!
+    }
+
+    // ④ permanent excludes based on swipe counts
+    val permSnap = db.getReference("users/$me/permanentExcludes").get().await()
+    permSnap.children.forEach { excludedIds += it.key!! }
+
+    val countsSnap = db.getReference("users/$me/swipeCounts").get().await()
+    countsSnap.children.forEach { child ->
+        val cnt = child.getValue(Int::class.java) ?: 0
+        if (cnt >= 3) excludedIds += child.key!!
     }
 
     return excludedIds

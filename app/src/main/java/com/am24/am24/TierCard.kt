@@ -78,11 +78,11 @@ fun TierCard(
                 Tier.PREMIUM -> PREMIUM_FEATURES
                 else -> PLUS_FEATURES
             }
-            features.forEach { bullet ->
+            features.forEach { bulletResId ->
                 Text(
-                    "• ${stringResource(bullet)}",
-                    color = Color.White,
-                    fontSize = 13.sp,
+                    text = "• ${stringResource(bulletResId)}",
+                    color = Color.LightGray,
+                    fontSize = 12.sp,
                     modifier = Modifier.padding(vertical = 2.dp)
                 )
             }

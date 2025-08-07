@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -318,9 +319,9 @@ fun SubscriptionScreen(
                             Spacer(Modifier.height(8.dp))
                             val features =
                                 if (plan.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
-                            features.forEach { bullet ->
+                            features.forEach { bulletResId ->
                                 Text(
-                                    "• $bullet",
+                                    text = "• ${stringResource(bulletResId)}",
                                     color = Color.LightGray,
                                     fontSize = 12.sp,
                                     modifier = Modifier.padding(vertical = 2.dp)

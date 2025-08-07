@@ -216,10 +216,11 @@ fun ManageSubscriptionScreen(navController: NavController) {
             }
             if (featureList.isNotEmpty()) {
                 Text("Your Benefits:", fontWeight = FontWeight.SemiBold)
-                featureList.forEach { bullet ->
-                    Text("• ${stringResource(bullet)}",
+                featureList.forEach { bulletResId ->
+                    Text(
+                        text = "• ${stringResource(bulletResId)}",
                         color = Color.LightGray,
-                        fontSize = 14.sp,
+                        fontSize = 12.sp,
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }

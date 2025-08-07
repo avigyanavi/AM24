@@ -1576,3 +1576,26 @@ exports.listWomenInUsa = functions
                     res.status(500).send(err.message);
                   }
                 });
+
+exports.backfillSwipeCounts = functions
+                  .region('asia-south1')
+                  .https.onRequest(async (_req, res) => {
+                    try {
+                      const db = admin.database();
+                      const swipesSnap = await db.ref('swipes').once('value');
+                      const updates = {};
+
+                      swipesSnap.forEach(userSnap => {
+                        const uid = userSnap.key;
+                        userSnap.forEach(otherSnap => {
+                          updates[`users/${uid}/swipeCounts/${otherSnap.key}`] = 1;
+                        });
+                      });
+
+                      await db.ref().update(updates);
+                      res.status(200).send(`Updated ${Object.keys(updates).length} swipe count entries`);
+                    } catch (err) {
+                      console.error('backfillSwipeCounts error:', err);
+                      res.status(500).send(err.message);
+                    }
+                  });

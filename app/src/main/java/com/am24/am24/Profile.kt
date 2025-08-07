@@ -79,6 +79,7 @@ data class Profile(
     var isBoosted: Boolean = false,
     /** when that profile was boosted (ms since epoch) */
     var boostedAt: Long? = null,
+    val swipeCounts: MutableMap<String, Int> = mutableMapOf(),
 
     /** NEW  ➜  running total of GPT / Places-AI requests made by this user */
     var aiMessagesSent: Int = 0,
