@@ -54,7 +54,7 @@ data class ComplimentData(
 
 class DatingViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
-        private const val BOOST_DURATION_MS = 6 * 60 * 60 * 1000L
+        private const val BOOST_DURATION_MS = 1 * 60 * 60 * 1000L
 
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
         const val WORLDWIDE_DISTANCE = 101
@@ -397,7 +397,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             functions.getHttpsCallable("getNearbyProfiles")
 
         // … 2️⃣  and adjust its timeout (default is 60 s)
-        callable.setTimeout(3000, TimeUnit.SECONDS)     // 2 minutes
+        callable.setTimeout(60, TimeUnit.SECONDS)     // 2 minutes
 
         // 3️⃣  invoke the function
         @Suppress("UNCHECKED_CAST")
@@ -488,13 +488,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 it.isBoosted && it.boostedAt != null && now - it.boostedAt!! <= BOOST_DURATION_MS
             }
 
-            /* 4️⃣  Recompute distance map & StateFlows */
-            val distMap = boosted.mapNotNull { p ->
-                distanceBetween(currentUserId, p.userId, geoFire)?.let { p.userId to it }
-            }.toMap()
-
-            _userDistanceMap.value = distMap
-            _boostedUsers.value    = boosted.sortedBy { distMap[it.userId] ?: Float.MAX_VALUE }
+            _boostedUsers.value = boosted // preserve arrival/boostedAt order
         }
     }
 
@@ -505,7 +499,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             id             = id,
             type           = "boost_over",
             senderId       = FirebaseAuth.getInstance().uid ?: "",
-            senderUsername = "",
+            senderUsername = "Kupidx",
             message        = "Your Boost has ended. Ready for another? ⚡",
             timestamp      = System.currentTimeMillis(),
             isRead         = "false"
@@ -523,15 +517,14 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
         // Apply localities filter
         if (filters.localities.isNotEmpty()) {
-            val normalizedLocs = filters.localities.map {
-                it.replace("\\s".toRegex(), "").lowercase()
-            }
-            result = result.filter { profile ->
-                filters.localities.contains(profile.hometown)
-                val profLoc = profile.hometown.replace("\\s".toRegex(), "").lowercase()
+            val normalizedLocs = filters.localities.map { it.replace("\\s".toRegex(), "").lowercase() }
+            result = result.filter { p ->
+                val raw = p.hometown.ifBlank { p.customHometown.orEmpty() }
+                val profLoc = raw.replace("\\s".toRegex(), "").lowercase()
                 normalizedLocs.contains(profLoc)
             }
         }
+
 
         if (filters.city.isNotBlank() && filters.city != "All") {
             val target = filters.city.replace("\\s".toRegex(), "").lowercase()

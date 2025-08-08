@@ -282,46 +282,41 @@ fun DatingScreen(
         }
     }
 
-    val complimentersList by remember(complimentsRecv, base) {
+    val premiumList by remember(base) {
+        derivedStateOf { base.also { it.dump("PREM") }.filter { it.isPremium } }
+    }
+    val plusList by remember(base, premiumList) {
+        derivedStateOf {
+            base.filter { !it.isPremium }            // not premium
+                .filter { it.isPlus }                 // plus only
+                .filter { it.userId !in premiumList.map { p -> p.userId } }
+                .also { it.dump("PLUS") }
+        }
+    }
+    val complimentersList by remember(complimentsRecv, base, premiumList, plusList) {
         derivedStateOf {
             complimentsRecv.keys
                 .mapNotNull { id -> base.find { it.userId == id } }
+                .filter { it.userId !in premiumList.map { p -> p.userId } }
+                .filter { it.userId !in plusList.map { p -> p.userId } }
                 .also { it.dump("COMP") }
         }
     }
-
-    val boostedList by remember(boostedUsers, complimentersList, excludedUserIds) {
+    val boostedList by remember(boostedUsers, premiumList, plusList, complimentersList, excludedUserIds) {
         derivedStateOf {
             boostedUsers
+                .filter { it.userId !in premiumList.map { p -> p.userId } }
+                .filter { it.userId !in plusList.map { p -> p.userId } }
                 .filter { it.userId !in complimentersList.map { p -> p.userId } }
                 .filter { it.userId !in excludedUserIds }
                 .also { it.dump("BOOST") }
         }
     }
-
-    val premiumList by remember(base, complimentersList, boostedList) {
+    val restList by remember(base, premiumList, plusList, complimentersList, boostedList) {
         derivedStateOf {
             base
-                .filter { it.userId !in complimentersList.map { p -> p.userId } }
-                .filter { it.userId !in boostedList.map { p -> p.userId } }
-                .filter { it.isPremium }
-                .also { it.dump("PREM") }
-        }
-    }
-
-    val plusList by remember(base, complimentersList, boostedList) {
-        derivedStateOf {
-            base
-                .filter { it.userId !in complimentersList.map { p -> p.userId } }
-                .filter { it.userId !in boostedList.map { p -> p.userId } }
-                .filter { it.isPlus && !it.isPremium }
-                .also { it.dump("PLUS") }
-        }
-    }
-
-    val restList by remember(base, complimentersList, boostedList) {
-        derivedStateOf {
-            base
+                .filter { it.userId !in premiumList.map { p -> p.userId } }
+                .filter { it.userId !in plusList.map { p -> p.userId } }
                 .filter { it.userId !in complimentersList.map { p -> p.userId } }
                 .filter { it.userId !in boostedList.map { p -> p.userId } }
                 .filter { !it.isPremium && !it.isPlus }
@@ -329,7 +324,7 @@ fun DatingScreen(
         }
     }
 
-    val displayedProfiles = complimentersList + boostedList + premiumList + plusList + restList
+    val displayedProfiles = premiumList + plusList + complimentersList + boostedList + restList
     Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
 
     // ── Hoisted deck pointer ─────────────────────────────────────────
