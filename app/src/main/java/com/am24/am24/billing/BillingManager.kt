@@ -2,6 +2,7 @@ package com.am24.am24.billing
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import com.android.billingclient.api.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,8 +81,19 @@ object BillingManager : PurchasesUpdatedListener {
     }
 
     private fun handlePurchases(purchases: List<Purchase>) {
-        _purchases.value = purchases
-        purchases.forEach { purchase ->
+        val validPurchases = purchases.filter { purchase ->
+            val verified = Security.verifyPurchase(
+                Security.PLAY_BILLING_PUBLIC_KEY,
+                purchase.originalJson,
+                purchase.signature
+            )
+            if (!verified) {
+                Log.w("BillingManager", "Invalid signature for purchase: ${purchase.purchaseToken}")
+            }
+            verified
+        }
+        _purchases.value = validPurchases
+        validPurchases.forEach { purchase ->
             if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                 if (!purchase.isAcknowledged) {
                     val acknowledgeParams = AcknowledgePurchaseParams.newBuilder()
