@@ -19,7 +19,9 @@
     "node-fetch": "^2.7.0",
     "openai": "^4.94.0",
     "razorpay": "^2.9.6",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "googleapis": "^132.0.0",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.1.0"
