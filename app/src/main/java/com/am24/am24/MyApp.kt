@@ -7,6 +7,7 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.database.FirebaseDatabase
+import com.am24.am24.billing.BillingManager
 
 // later for production: PlayIntegrityAppCheckProviderFactory
 
@@ -30,6 +31,9 @@ class MyApp : Application() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        // Initialize Play Billing and query products
+        BillingManager.startConnection(this, listOf("premium"))
 
         FirebaseStorage.getInstance("gs://am-twentyfour")
     }
