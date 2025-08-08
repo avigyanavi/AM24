@@ -5,8 +5,6 @@ const functions  = require("firebase-functions");
 const admin      = require("firebase-admin");
 const OpenAI     = require("openai").default;
 const crypto  = require("crypto");
-const { google } = require("googleapis");
-const jwt = require("jsonwebtoken");
 
 const fetch = require("node-fetch");
 
@@ -79,76 +77,6 @@ exports.createOneTimeOrder = functions
     });
     return { id: order.id, key: razorpay.key_id };
   });
-
-exports.playBillingRtdn = functions.pubsub.topic('play-billing').onPublish(async (msg) => {
-  try {
-    const json = Buffer.from(msg.data, 'base64').toString();
-    const notification = JSON.parse(json);
-    console.log('[playBillingRtdn] Notification:', notification);
-
-    const jwtToken = msg.attributes && msg.attributes.jwt;
-    if (jwtToken && process.env.PLAY_JWT_PUBLIC_KEY) {
-      try {
-        jwt.verify(jwtToken, process.env.PLAY_JWT_PUBLIC_KEY);
-        console.log('[playBillingRtdn] JWT verified');
-      } catch (err) {
-        console.error('[playBillingRtdn] JWT verification failed', err);
-        return;
-      }
-    }
-
-    const auth = new google.auth.GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/androidpublisher'],
-    });
-    const authClient = await auth.getClient();
-    const androidpublisher = google.androidpublisher({ version: 'v3', auth: authClient });
-    const pkg = notification.packageName;
-
-    if (notification.subscriptionNotification) {
-      const { subscriptionId, purchaseToken, notificationType } = notification.subscriptionNotification;
-      const res = await androidpublisher.purchases.subscriptions.get({
-        packageName: pkg,
-        subscriptionId,
-        token: purchaseToken,
-      });
-      await updateEntitlements(res.data, notificationType);
-    } else if (notification.oneTimeProductNotification) {
-      const { sku, purchaseToken, notificationType } = notification.oneTimeProductNotification;
-      const res = await androidpublisher.purchases.products.get({
-        packageName: pkg,
-        productId: sku,
-        token: purchaseToken,
-      });
-      await updateEntitlements(res.data, notificationType);
-    } else {
-      console.log('[playBillingRtdn] Unknown notification type');
-    }
-  } catch (err) {
-    console.error('[playBillingRtdn] Error handling message', err);
-  }
-});
-
-async function updateEntitlements(purchase, notificationType) {
-  try {
-    const payload = purchase.developerPayload ? JSON.parse(purchase.developerPayload) : {};
-    const uid = payload.uid;
-    if (!uid) {
-      console.warn('[playBillingRtdn] Missing uid');
-      return;
-    }
-    const ref = USERS.child(uid).child('entitlements');
-    let update = { lastNotificationType: notificationType };
-    if ([1, 2].includes(notificationType)) {
-      update = { premium: true, expiryTimeMillis: purchase.expiryTimeMillis };
-    } else if ([3, 12].includes(notificationType)) {
-      update = { premium: false };
-    }
-    await ref.update(update);
-    console.log('[playBillingRtdn] Updated entitlements', { uid, update });
-  } catch (err) {
-    console.error('[playBillingRtdn] updateEntitlements error', err);
-  }
-}
 
 /* ───────────────────────────── Chat suggestions ───────────────────────────── */
 
