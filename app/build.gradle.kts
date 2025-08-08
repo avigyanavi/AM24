@@ -98,7 +98,7 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
     implementation("com.google.maps.android:android-maps-utils:2.3.0")
-    implementation("com.android.billingclient:billing-ktx:6.1.0")
+    implementation("com.android.billingclient:billing-ktx:6.2.1")
     implementation("phonepe.intentsdk.android.release:IntentSDK:5.1.0")
     implementation(libs.places)
     // For Coil image loading
@@ -159,8 +159,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.play.services.cast.tv)
     implementation(libs.firebase.auth)
-    implementation("com.paypal.android:paypal-web-payments:1.4.0")   // or latest
-    implementation("com.paypal.android:core-payments:1.4.0")         // bring Core explicitly if needed
     implementation(libs.mediation.test.suite)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

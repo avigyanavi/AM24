@@ -45,6 +45,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.tasks.await
+import com.am24.am24.billing.BillingScreen
 
 // Initialize GeoFire instance globally
 val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
@@ -197,6 +198,7 @@ fun MainNavGraph(
             )
         }
         composable("paywall")    { SubscriptionScreen(navController) }
+        composable("billing") { BillingScreen() }
         composable(
             route = "userPosts/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })

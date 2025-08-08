@@ -64,11 +64,6 @@ private const val PLAN_ID_MONTH_PREMIUM = "plan_QjplxIqveB0BVS"
 private const val PLAN_ID_YEAR_PLUS     = "plan_QjpmNjEkEPlObK"
 private const val PLAN_ID_YEAR_PREMIUM  = "plan_QjmpS4xg31rg"
 
-private const val PAYPAL_ID_MONTH_PLUS    = "P-6YV8029760219190UNCFTI4Y"
-private const val PAYPAL_ID_MONTH_PREMIUM = "P-58H44443N3388610GNCFTKDY"
-private const val PAYPAL_ID_YEAR_PLUS     = "P-6WR44643NU557510BNCFTJUY"
-private const val PAYPAL_ID_YEAR_PREMIUM  = "P-9W1343733C6775341NCFTQIA"
-
 /* ────────  Public key (only key_id!) ──────── */
 private const val RZP_KEY_ID = "rzp_live_DsoxJLeiCw940M"
 
@@ -78,18 +73,17 @@ private data class Plan(
     val period: Period,
     val tier: Tier,
     val price: Int,          // in rupees
-    val razorpayId: String,
-    val paypalId: String? = null
+    val razorpayId: String
 )
 
 /* all 6 plans */
 private val PLANS = listOf(
     Plan(Period.WEEK,  Tier.PLUS,    9,   PLAN_ID_WEEK_PLUS),
     Plan(Period.WEEK,  Tier.PREMIUM, 29,  PLAN_ID_WEEK_PREMIUM),
-    Plan(Period.MONTH, Tier.PLUS,    39,  PLAN_ID_MONTH_PLUS,   PAYPAL_ID_MONTH_PLUS),
-    Plan(Period.MONTH, Tier.PREMIUM, 99,  PLAN_ID_MONTH_PREMIUM,PAYPAL_ID_MONTH_PREMIUM),
-    Plan(Period.YEAR,  Tier.PLUS,    399, PLAN_ID_YEAR_PLUS,    PAYPAL_ID_YEAR_PLUS),
-    Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM, PAYPAL_ID_YEAR_PREMIUM),
+    Plan(Period.MONTH, Tier.PLUS,    39,  PLAN_ID_MONTH_PLUS),
+    Plan(Period.MONTH, Tier.PREMIUM, 99,  PLAN_ID_MONTH_PREMIUM),
+    Plan(Period.YEAR,  Tier.PLUS,    399, PLAN_ID_YEAR_PLUS),
+    Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM),
 )
 
 private fun planToSlug(plan: Plan): String = when {
@@ -197,7 +191,7 @@ fun SubscriptionScreen(
     fun handlePlan(plan: Plan) {
         if (isIndia) { launchCheckout(plan); return }
 
-        Toast.makeText(ctx, "PayPal is currently unavailable", Toast.LENGTH_LONG).show()
+        navController.navigate("billing")
     }
 
     /* ---------- attach success / error to the host activity ---------- */
@@ -329,7 +323,7 @@ fun SubscriptionScreen(
                             }
                         }
                         val processing = ui.isProcessing &&
-                                ui.selectedPlanId == if (isIndia) plan.razorpayId else plan.paypalId
+                                ui.selectedPlanId == if (isIndia) plan.razorpayId else planToSlug(plan)
                         Button(
                             onClick = { if (!ui.isProcessing) handlePlan(plan) },
                             enabled = !ui.isProcessing

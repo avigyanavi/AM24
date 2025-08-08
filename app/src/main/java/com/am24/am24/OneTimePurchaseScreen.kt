@@ -23,29 +23,28 @@ import com.razorpay.Checkout
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
-import java.util.Locale
-import android.telephony.TelephonyManager
-import androidx.core.content.getSystemService
 import androidx.fragment.app.FragmentActivity
 import com.am24.am24.CountryUtil
+import com.am24.am24.billing.BillingViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-
-/* ─────── 1 · Purchase types ─────── */
-enum class PurchaseType(val apiType: String,
-                        val displayName: String,
-                        val unitPricePaise: Int,   // ₹ in paise
-                        val unitPriceUsd: Double)  // $ in dollars
-{
+enum class PurchaseType(
+    val apiType: String,
+    val displayName: String,
+    val unitPricePaise: Int,
+    val unitPriceUsd: Double
+) {
     Swipes      ("swipes",      "Swipes",       100, 0.29),
     Compliments ("compliments", "Compliments",  150, 0.29),
     Boosts      ("boosts",      "Boosts",       200, 0.29),
-    AiMessages  ("aiMessages",  "AI messages",  200, 1.99)
+    AiMessages  ("aiMessages",  "AI messages",  200, 1.99);
+
+    fun skuFor(qty: Int): String = "${apiType.lowercase()}_${qty}"
+    fun skuPrefix(): String = "${apiType.lowercase()}_"
 }
 
-/* ─────── 2 · UI state ─────── */
 private data class UiState(val selectedQty: Int = 5, val isProcessing: Boolean = false)
 
-/* ─────── 3 · Screen ─────── */
 @Composable
 fun OneTimePurchaseScreen(
     type: PurchaseType,
@@ -59,6 +58,7 @@ fun OneTimePurchaseScreen(
     val fx         = FirebaseFunctions.getInstance("asia-south1")
     val checkout   = remember { Checkout().apply { setKeyID("rzp_live_DsoxJLeiCw940M") } }
     val act        = ctx as FragmentActivity
+
     var userCountry by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(uid) {
         userCountry = userRoot.child("country").get().await().getValue(String::class.java)
@@ -67,22 +67,20 @@ fun OneTimePurchaseScreen(
 
     var ui by remember { mutableStateOf(UiState()) }
 
+    val billingViewModel: BillingViewModel = viewModel()
+    val products by billingViewModel.products.collectAsState()
+    val purchases by billingViewModel.purchases.collectAsState()
 
-    /* ════════════════════ Razorpay helpers (₹) ════════════════════ */
     fun launchRazorpay(orderId: String, keyId: String) {
         val opts = JSONObject().apply {
             put("order_id", orderId)
             put("key", keyId)
             put("name", "AM24")
             put("description", "${type.displayName} x${ui.selectedQty}")
-            put("prefill", JSONObject().apply {
-                put("email", FirebaseAuth.getInstance().currentUser?.email)
-            })
         }
         checkout.open(act, opts)
     }
 
-    /* ════════════════════ common Razorpay callbacks ════════════════════ */
     DisposableEffect(Unit) {
         (act as? PaymentResultListenerHost)?.setPaymentCallbacks(
             onSuccess = { paymentId ->
@@ -92,11 +90,8 @@ fun OneTimePurchaseScreen(
                         val ok = resp.data as Boolean
                         if (ok) {
                             val inc = ui.selectedQty.toLong()
-                            userRoot.updateChildren(
-                                mapOf(qtyField(type) to increment(inc))
-                            )
-                            Toast.makeText(ctx,
-                                "Added $inc ${type.displayName}", Toast.LENGTH_LONG).show()
+                            userRoot.updateChildren(mapOf(qtyField(type) to increment(inc)))
+                            Toast.makeText(ctx,"Added $inc ${type.displayName}", Toast.LENGTH_LONG).show()
                             navController.popBackStack()
                         } else {
                             Toast.makeText(ctx, "Verification failed", Toast.LENGTH_LONG).show()
@@ -116,7 +111,6 @@ fun OneTimePurchaseScreen(
         onDispose { (act as? PaymentResultListenerHost)?.setPaymentCallbacks({}, {}) }
     }
 
-    /* ════════════════════ UI ════════════════════ */
     val totalInrPaise = ui.selectedQty * type.unitPricePaise
     val totalUsd      = ui.selectedQty * type.unitPriceUsd
 
@@ -160,10 +154,8 @@ fun OneTimePurchaseScreen(
 
             Spacer(Modifier.height(12.dp))
             Text(
-                if (isIndia)
-                    "₹%.2f".format(totalInrPaise / 100.0)
-                else
-                    "$%.2f".format(totalUsd),
+                if (isIndia) "₹%.2f".format(totalInrPaise / 100.0)
+                else "$%.2f".format(totalUsd),
                 color = Color.White,
                 fontSize = 16.sp
             )
@@ -171,7 +163,7 @@ fun OneTimePurchaseScreen(
 
             Button(
                 onClick = {
-                    if (isIndia) {          /* Razorpay path */
+                    if (isIndia) {
                         scope.launch {
                             ui = ui.copy(isProcessing = true)
                             try {
@@ -186,30 +178,44 @@ fun OneTimePurchaseScreen(
                                 Toast.makeText(ctx, e.message, Toast.LENGTH_LONG).show()
                             }
                         }
-                    } else {                /* Pay-Pal path */
-                        Toast.makeText(ctx, "PayPal is currently unavailable", Toast.LENGTH_LONG).show()
+                    } else {
+                        val sku = type.skuFor(ui.selectedQty) // e.g. swipes_10
+                        val product = products.firstOrNull { it.productId == sku }
+                        if (product != null) {
+                            billingViewModel.purchase(act, product)
+                            ui = ui.copy(isProcessing = true)
+                        } else {
+                            Toast.makeText(ctx, "Product not available ($sku)", Toast.LENGTH_LONG).show()
+                        }
                     }
                 },
                 enabled = !ui.isProcessing,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
+                modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 if (ui.isProcessing) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
                 } else {
-                    Text(if (isIndia) "Pay with Razorpay" else "Pay with Pay-Pal")
+                    Text(if (isIndia) "Pay with Razorpay" else "Pay with Google Play")
                 }
             }
         }
     }
+
+    // Grant by actual productId purchased (e.g., swipes_10 → +10)
+    LaunchedEffect(purchases) {
+        val prefix = type.skuPrefix()
+        val p = purchases.firstOrNull { it.products.any { pid -> pid.startsWith(prefix) } }
+        if (p != null) {
+            val productId = p.products.first { it.startsWith(prefix) }
+            val qty = productId.removePrefix(prefix).toIntOrNull() ?: 1
+            userRoot.updateChildren(mapOf(qtyField(type) to increment(qty.toLong())))
+            Toast.makeText(ctx, "Added $qty ${type.displayName}", Toast.LENGTH_LONG).show()
+            navController.popBackStack()
+            ui = ui.copy(isProcessing = false)
+        }
+    }
 }
 
-/* ─────── helper: which RTDB field to increment ─────── */
 private fun qtyField(t: PurchaseType) = when (t) {
     PurchaseType.Swipes      -> "swipesInfo/remainingSwipes"
     PurchaseType.Compliments -> "availableCompliments"
@@ -217,16 +223,6 @@ private fun qtyField(t: PurchaseType) = when (t) {
     PurchaseType.AiMessages  -> "availableAiMessages"
 }
 
-/* ─────── helper: quick geo gate ─────── */
-fun isProbablyInIndia(ctx: android.content.Context): Boolean {
-    val tel       = ctx.getSystemService<TelephonyManager>()
-    val simIso    = tel?.simCountryIso ?: ""
-    val netIso    = tel?.networkCountryIso ?: ""
-    val localeIso = Locale.getDefault().country
-    return listOf(simIso, netIso, localeIso).any { it.equals("IN", true) }
-}
-
-/* Host-activity contract remains unchanged */
 interface PaymentResultListenerHost {
     fun setPaymentCallbacks(onSuccess: (String) -> Unit, onError: (String) -> Unit)
 }
