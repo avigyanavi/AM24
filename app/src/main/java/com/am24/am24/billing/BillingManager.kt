@@ -9,11 +9,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Billing manager that:
- *  - Queries both INAPP (managed) and SUBS (subscriptions)
- *  - Launches purchase flows for either type
- *  - Restores purchases for both types
- *  - Verifies signatures client-side (keep your public key up to date)
+ * Billing manager (BillingClient 8.0.0):
+ *  • Queries INAPP packs and SUBS
+ *  • Launches purchase flows for either type
+ *  • Restores purchases (INAPP + SUBS)
+ *  • Client-side signature verification
+ *  • Consumes INAPP so packs can be repurchased
  */
 object BillingManager : PurchasesUpdatedListener {
 
@@ -22,13 +23,16 @@ object BillingManager : PurchasesUpdatedListener {
     private var inappIds: List<String> = emptyList()
     private var subsIds:  List<String> = emptyList()
 
-    private val _products = MutableStateFlow<List<ProductDetails>>(emptyList())       // INAPP
+    // INAPP product details
+    private val _products = MutableStateFlow<List<ProductDetails>>(emptyList())
     val products: StateFlow<List<ProductDetails>> = _products.asStateFlow()
 
-    private val _subsProducts = MutableStateFlow<List<ProductDetails>>(emptyList())   // SUBS
+    // SUBS product details
+    private val _subsProducts = MutableStateFlow<List<ProductDetails>>(emptyList())
     val subsProducts: StateFlow<List<ProductDetails>> = _subsProducts.asStateFlow()
 
-    private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())            // all
+    // All purchases (INAPP + SUBS)
+    private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
     val purchases: StateFlow<List<Purchase>> = _purchases.asStateFlow()
 
     /** Back-compat init (INAPP only). */
@@ -41,9 +45,13 @@ object BillingManager : PurchasesUpdatedListener {
         this.inappIds = inappIds.distinct()
         this.subsIds  = subsIds.distinct()
 
+        val pendingParams = PendingPurchasesParams.newBuilder()
+            .enableOneTimeProducts() // INAPP pending flows
+            .build()
+
         billingClient = BillingClient.newBuilder(context)
             .setListener(this)
-            .enablePendingPurchases()
+            .enablePendingPurchases(pendingParams)
             .build()
 
         billingClient.startConnection(object : BillingClientStateListener {
@@ -62,89 +70,122 @@ object BillingManager : PurchasesUpdatedListener {
     }
 
     private fun queryProducts() {
-        // INAPP packs
+        // INAPP
         if (inappIds.isNotEmpty()) {
-            val inappList = inappIds.map {
+            val list = inappIds.map {
                 QueryProductDetailsParams.Product.newBuilder()
                     .setProductId(it)
                     .setProductType(BillingClient.ProductType.INAPP)
                     .build()
             }
-            val inappParams = QueryProductDetailsParams.newBuilder()
-                .setProductList(inappList)
+            val params = QueryProductDetailsParams.newBuilder()
+                .setProductList(list)
                 .build()
-            billingClient.queryProductDetailsAsync(inappParams) { result, list ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    _products.value = list
+
+            // Billing 8.0.0 signature: (BillingResult, QueryProductDetailsResult)
+            billingClient.queryProductDetailsAsync(params) { br, res ->
+                if (br.responseCode == BillingClient.BillingResponseCode.OK) {
+                    _products.value = res.productDetailsList
                 } else {
-                    Log.w("BillingManager", "Query INAPP failed: ${result.responseCode}")
+                    Log.w("BillingManager", "Query INAPP failed: ${br.responseCode}")
                 }
             }
-        } else {
-            _products.value = emptyList()
-        }
+        } else _products.value = emptyList()
 
         // SUBS
         if (subsIds.isNotEmpty()) {
-            val subsList = subsIds.map {
+            val list = subsIds.map {
                 QueryProductDetailsParams.Product.newBuilder()
                     .setProductId(it)
                     .setProductType(BillingClient.ProductType.SUBS)
                     .build()
             }
-            val subsParams = QueryProductDetailsParams.newBuilder()
-                .setProductList(subsList)
+            val params = QueryProductDetailsParams.newBuilder()
+                .setProductList(list)
                 .build()
-            billingClient.queryProductDetailsAsync(subsParams) { result, list ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    _subsProducts.value = list
+
+            // Billing 8.0.0 signature: (BillingResult, QueryProductDetailsResult)
+            billingClient.queryProductDetailsAsync(params) { br, res ->
+                if (br.responseCode == BillingClient.BillingResponseCode.OK) {
+                    _subsProducts.value = res.productDetailsList
                 } else {
-                    Log.w("BillingManager", "Query SUBS failed: ${result.responseCode}")
+                    Log.w("BillingManager", "Query SUBS failed: ${br.responseCode}")
                 }
             }
-        } else {
-            _subsProducts.value = emptyList()
-        }
+        } else _subsProducts.value = emptyList()
     }
 
     /** Generic entrypoint. Detects INAPP vs SUBS automatically. */
-    fun launchBillingFlow(activity: Activity, productDetails: ProductDetails) {
+    fun launchBillingFlow(
+        activity: Activity,
+        productDetails: ProductDetails,
+        obfuscatedAccountId: String? = null
+    ) {
         val isInapp = productDetails.oneTimePurchaseOfferDetails != null
         val isSubs  = productDetails.subscriptionOfferDetails != null
 
         when {
-            isInapp -> launchInappFlow(activity, productDetails)
-            isSubs  -> launchSubsFlow(activity, productDetails)
+            isInapp -> launchInappFlow(activity, productDetails, obfuscatedAccountId)
+            isSubs  -> launchSubsFlow(activity, productDetails, obfuscatedAccountId)
             else    -> Log.w("BillingManager", "Unknown product type for ${productDetails.productId}")
         }
     }
 
-    /** INAPP (consumable) flow. */
-    fun launchInappFlow(activity: Activity, productDetails: ProductDetails) {
+    /** INAPP (consumable) – we use separate SKUs for quantities. */
+    fun launchInappFlow(
+        activity: Activity,
+        productDetails: ProductDetails,
+        obfuscatedAccountId: String? = null
+    ) {
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(productDetails)
             .build()
-        val params = BillingFlowParams.newBuilder()
+
+        val builder = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productParams))
-            .build()
-        billingClient.launchBillingFlow(activity, params)
+
+        if (!obfuscatedAccountId.isNullOrBlank()) {
+            builder.setObfuscatedAccountId(obfuscatedAccountId)
+        }
+
+        billingClient.launchBillingFlow(activity, builder.build())
     }
 
-    /** SUBS flow (pick first available offer). */
-    fun launchSubsFlow(activity: Activity, productDetails: ProductDetails) {
-        val offer = productDetails.subscriptionOfferDetails?.firstOrNull()
+    /** SUBS (pick a reasonable offer/base plan). */
+    fun launchSubsFlow(
+        activity: Activity,
+        productDetails: ProductDetails,
+        obfuscatedAccountId: String? = null
+    ) {
+        val offer = pickBestOffer(productDetails)
         if (offer == null) {
             Log.w("BillingManager", "No subscription offers for ${productDetails.productId}")
             return
         }
+
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(productDetails)
             .setOfferToken(offer.offerToken)
             .build()
-        val params = BillingFlowParams.newBuilder()
+
+        val builder = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productParams))
-            .build()
-        billingClient.launchBillingFlow(activity, params)
+
+        if (!obfuscatedAccountId.isNullOrBlank()) {
+            builder.setObfuscatedAccountId(obfuscatedAccountId)
+        }
+
+        billingClient.launchBillingFlow(activity, builder.build())
+    }
+
+    /** Choose an offer; here we pick the lowest current price phase. */
+    private fun pickBestOffer(pd: ProductDetails): ProductDetails.SubscriptionOfferDetails? {
+        val offers = pd.subscriptionOfferDetails ?: return null
+        return offers.minByOrNull { offer ->
+            val phases = offer.pricingPhases.pricingPhaseList
+            val phase = phases.lastOrNull() ?: phases.first()
+            phase.priceAmountMicros
+        }
     }
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: MutableList<Purchase>?) {
@@ -177,7 +218,7 @@ object BillingManager : PurchasesUpdatedListener {
                         .build()
                     billingClient.acknowledgePurchase(ack) { /* no-op */ }
                 }
-                // Only INAPP should be consumed so users can rebuy packs
+                // Consume INAPP so packs can be rebought
                 val isInappPurchase = purchase.products.any { inappIds.contains(it) }
                 if (isInappPurchase) {
                     val consume = ConsumeParams.newBuilder()
@@ -190,18 +231,28 @@ object BillingManager : PurchasesUpdatedListener {
     }
 
     fun restorePurchases() {
+        // INAPP
         val inappParams = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
-        billingClient.queryPurchasesAsync(inappParams) { _, inappPurchases ->
-            handlePurchases(inappPurchases)
+        billingClient.queryPurchasesAsync(inappParams) { br, purchases ->
+            if (br.responseCode == BillingClient.BillingResponseCode.OK) {
+                handlePurchases(purchases)
+            } else {
+                Log.w("BillingManager", "Restore INAPP failed: ${br.responseCode}")
+            }
         }
 
+        // SUBS
         val subsParams = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.SUBS)
             .build()
-        billingClient.queryPurchasesAsync(subsParams) { _, subsPurchases ->
-            handlePurchases(subsPurchases)
+        billingClient.queryPurchasesAsync(subsParams) { br, purchases ->
+            if (br.responseCode == BillingClient.BillingResponseCode.OK) {
+                handlePurchases(purchases)
+            } else {
+                Log.w("BillingManager", "Restore SUBS failed: ${br.responseCode}")
+            }
         }
     }
 }

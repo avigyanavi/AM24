@@ -98,7 +98,7 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
     implementation("com.google.maps.android:android-maps-utils:2.3.0")
-    implementation("com.android.billingclient:billing-ktx:6.2.1")
+    implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation("phonepe.intentsdk.android.release:IntentSDK:5.1.0")
     implementation(libs.places)
     // For Coil image loading
