@@ -210,6 +210,7 @@ exports.getNearbyProfiles = functions
 
     const myLoc     = locSnap.val();
     const myCountry = countrySnap.val() || null;
+    const cutoff    = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
     const distLimit = Number(maxDistance);
     const useDist   =
@@ -247,8 +248,8 @@ exports.getNearbyProfiles = functions
       if (!myCountry) return { profiles: [] };
       const snap = await db
         .ref('users')
-        .orderByChild('country')
-        .equalTo(myCountry)
+        .orderByChild('lastActive')
+        .startAt(cutoff)
         .get();
       snap.forEach(s => { if (s.key !== uid) candidateIds.push(s.key); });
     }
@@ -320,7 +321,7 @@ exports.getNearbyProfiles = functions
 
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
-      .filter(Boolean);
+      .filter(p => p && p.lastActive >= cutoff && p.country === myCountry);
 
     return { profiles };
   });
