@@ -7,6 +7,7 @@ const OpenAI     = require("openai").default;
 const crypto  = require("crypto");
 
 const fetch = require("node-fetch");
+const {google} = require("googleapis");
 
 const openai = new OpenAI({
   apiKey: "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"   // make sure this env var is set
@@ -1600,3 +1601,39 @@ exports.backfillSwipeCounts = functions
                       res.status(500).send(err.message);
                     }
                   });
+
+exports.verifyPlayPurchase = functions
+  .region('asia-south1')
+  .https.onCall(async (data, _ctx) => {
+    try {
+      const {purchaseToken, productId, packageName, productType} = data || {};
+      if (!purchaseToken || !productId || !packageName || !productType) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing parameters');
+      }
+
+      const auth = new google.auth.GoogleAuth({
+        scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+      });
+      const client = await auth.getClient();
+      const api = google.androidpublisher({version: 'v3', auth: client});
+
+      if (productType === 'inapp') {
+        const res = await api.purchases.products.get({
+          packageName,
+          productId,
+          token: purchaseToken,
+        });
+        return res.data;
+      } else {
+        const res = await api.purchases.subscriptions.get({
+          packageName,
+          subscriptionId: productId,
+          token: purchaseToken,
+        });
+        return res.data;
+      }
+    } catch (err) {
+      console.error('verifyPlayPurchase error:', err);
+      throw new functions.https.HttpsError('internal', err.message);
+    }
+  });

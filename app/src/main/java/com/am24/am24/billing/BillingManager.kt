@@ -4,6 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.android.billingclient.api.*
+import com.am24.am24.BuildConfig
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +26,11 @@ object BillingManager : PurchasesUpdatedListener {
 
     private var inappIds: List<String> = emptyList()
     private var subsIds:  List<String> = emptyList()
+
+    private val plusIds    = setOf("plus", "plus-monthly", "plus-annual")
+    private val premiumIds = setOf("premium", "premium-monthly", "premium-annual")
+
+    private val functions = FirebaseFunctions.getInstance("asia-south1")
 
     // INAPP product details
     private val _products = MutableStateFlow<List<ProductDetails>>(emptyList())
@@ -235,32 +244,74 @@ object BillingManager : PurchasesUpdatedListener {
                     billingClient.consumeAsync(consume) { _, _ -> }
                 }
             }
+            verifyPurchaseOnServer(purchase)
         }
+        applyEntitlementsFrom(valid)
     }
 
     fun restorePurchases() {
-        // INAPP
         val inappParams = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
-        billingClient.queryPurchasesAsync(inappParams) { br, purchases ->
-            if (br.responseCode == BillingClient.BillingResponseCode.OK) {
-                handlePurchases(purchases)
-            } else {
-                Log.w("BillingManager", "Restore INAPP failed: ${br.responseCode}")
-            }
-        }
 
         // SUBS
         val subsParams = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.SUBS)
             .build()
-        billingClient.queryPurchasesAsync(subsParams) { br, purchases ->
-            if (br.responseCode == BillingClient.BillingResponseCode.OK) {
-                handlePurchases(purchases)
-            } else {
-                Log.w("BillingManager", "Restore SUBS failed: ${br.responseCode}")
+
+        billingClient.queryPurchasesAsync(inappParams) { br1, list1 ->
+            val ownedInapp =
+                if (br1.responseCode == BillingClient.BillingResponseCode.OK) list1 else emptyList()
+            if (br1.responseCode != BillingClient.BillingResponseCode.OK) {
+                Log.w("BillingManager", "Restore INAPP failed: ${br1.responseCode}")
+            }
+
+            billingClient.queryPurchasesAsync(subsParams) { br2, list2 ->
+                val ownedSubs =
+                    if (br2.responseCode == BillingClient.BillingResponseCode.OK) list2 else emptyList()
+                if (br2.responseCode != BillingClient.BillingResponseCode.OK) {
+                    Log.w("BillingManager", "Restore SUBS failed: ${br2.responseCode}")
+                }
+
+                handlePurchases(ownedInapp + ownedSubs)
             }
         }
+    }
+
+
+    private fun applyEntitlementsFrom(all: List<Purchase>) {
+        val activeSubProductIds = all
+            .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+            .flatMap { it.products }
+            .toSet()
+
+        val isPlus = activeSubProductIds.any { it in plusIds }
+        val isPremium = activeSubProductIds.any { it in premiumIds }
+
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            FirebaseDatabase.getInstance().reference
+                .child("users/$uid")
+                .updateChildren(mapOf("isPlus" to isPlus, "isPremium" to isPremium))
+        }
+    }
+
+    private fun verifyPurchaseOnServer(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull() ?: return
+        val type = when {
+            inappIds.contains(productId) -> "inapp"
+            subsIds.contains(productId) -> "subs"
+            else -> return
+        }
+        val data = hashMapOf(
+            "purchaseToken" to purchase.purchaseToken,
+            "productId" to productId,
+            "packageName" to BuildConfig.APPLICATION_ID,
+            "productType" to type,
+        )
+        functions.getHttpsCallable("verifyPlayPurchase").call(data)
+            .addOnFailureListener { e ->
+                Log.w("BillingManager", "Server verify failed", e)
+            }
     }
 }
