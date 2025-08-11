@@ -126,7 +126,7 @@ object BillingManager : PurchasesUpdatedListener {
 
         when {
             isInapp -> launchInappFlow(activity, productDetails, obfuscatedAccountId)
-            isSubs  -> launchSubsFlow(activity, productDetails, obfuscatedAccountId)
+            isSubs  -> launchSubsFlow(activity, productDetails, obfuscatedAccountId = obfuscatedAccountId)
             else    -> Log.w("BillingManager", "Unknown product type for ${productDetails.productId}")
         }
     }
@@ -155,11 +155,19 @@ object BillingManager : PurchasesUpdatedListener {
     fun launchSubsFlow(
         activity: Activity,
         productDetails: ProductDetails,
+        offerToken: String? = null,
+        basePlanId: String? = null,
         obfuscatedAccountId: String? = null
     ) {
-        val offer = pickBestOffer(productDetails)
+        val offer = when {
+            !offerToken.isNullOrBlank() ->
+                productDetails.subscriptionOfferDetails?.find { it.offerToken == offerToken }
+            !basePlanId.isNullOrBlank() ->
+                productDetails.subscriptionOfferDetails?.find { it.basePlanId == basePlanId }
+            else -> pickBestOffer(productDetails)
+        }
         if (offer == null) {
-            Log.w("BillingManager", "No subscription offers for ${productDetails.productId}")
+            Log.w("BillingManager", "No matching subscription offer for ${productDetails.productId}")
             return
         }
 

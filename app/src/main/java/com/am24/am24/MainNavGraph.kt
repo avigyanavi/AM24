@@ -198,7 +198,19 @@ fun MainNavGraph(
             )
         }
         composable("paywall")    { SubscriptionScreen(navController) }
-        composable("billing") { BillingScreen() }
+        composable(
+            route = "billing?basePlanId={basePlanId}",
+            arguments = listOf(
+                navArgument("basePlanId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val basePlanId = backStackEntry.arguments?.getString("basePlanId")
+            BillingScreen(selectedBasePlanId = basePlanId)
+        }
         composable(
             route = "userPosts/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })

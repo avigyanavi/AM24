@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -16,12 +17,25 @@ import java.time.Period
 import java.time.format.DateTimeParseException
 
 @Composable
-fun BillingScreen(viewModel: BillingViewModel = viewModel()) {
+fun BillingScreen(
+    selectedBasePlanId: String? = null,
+    viewModel: BillingViewModel = viewModel()
+) {
     val inapps     by viewModel.products.collectAsState()                 // INAPP ProductDetails
     val subs       by BillingManager.subsProducts.collectAsState()        // SUBS ProductDetails
     val purchases  by viewModel.purchases.collectAsState()
     val activity   = LocalContext.current as Activity
 
+    LaunchedEffect(subs, selectedBasePlanId) {
+        if (!selectedBasePlanId.isNullOrBlank() && subs.isNotEmpty()) {
+            val productId = if (selectedBasePlanId.startsWith("premium")) "premium" else "plus"
+            val pd = subs.firstOrNull { it.productId == productId }
+            val offer = pd?.subscriptionOfferDetails?.firstOrNull { it.basePlanId == selectedBasePlanId }
+            if (pd != null && offer != null) {
+                BillingManager.launchSubsFlow(activity, pd, offerToken = offer.offerToken)
+            }
+        }
+    }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
 
         Text("Subscriptions")
@@ -29,13 +43,15 @@ fun BillingScreen(viewModel: BillingViewModel = viewModel()) {
 
         if (subs.isEmpty()) {
             Text("— none loaded —")
-        } else {
+        } else if (selectedBasePlanId == null) {
             subs.forEach { pd ->
-                val priceLabel = firstSubsPriceLabel(pd) ?: "(no offer)"
-                Button(onClick = { BillingManager.launchSubsFlow(activity, pd) }) {
-                    Text("${pd.productId} • $priceLabel")
+                pd.subscriptionOfferDetails?.forEach { offer ->
+                    val priceLabel = subsPriceLabel(offer) ?: "(no offer)"
+                    Button(onClick = { BillingManager.launchSubsFlow(activity, pd, offerToken = offer.offerToken) }) {
+                        Text("${offer.basePlanId} • $priceLabel")
+                    }
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(8.dp))
             }
         }
 
@@ -64,9 +80,8 @@ fun BillingScreen(viewModel: BillingViewModel = viewModel()) {
     }
 }
 
-/** Human-ish label for first subscription offer, e.g. “₹99.00 / month”. */
-private fun firstSubsPriceLabel(pd: ProductDetails): String? {
-    val offer = pd.subscriptionOfferDetails?.firstOrNull() ?: return null
+/** Human-ish label for a subscription offer, e.g. “₹99.00 / month”. */
+private fun subsPriceLabel(offer: ProductDetails.SubscriptionOfferDetails): String? {
     val phase = offer.pricingPhases.pricingPhaseList.firstOrNull() ?: return null
     val periodStr = phase.billingPeriod?.let { prettyIsoPeriod(it) } ?: ""
     return if (periodStr.isNotEmpty()) "${phase.formattedPrice} / $periodStr" else phase.formattedPrice

@@ -191,7 +191,8 @@ fun SubscriptionScreen(
     fun handlePlan(plan: Plan) {
         if (isIndia) { launchCheckout(plan); return }
 
-        navController.navigate("billing")
+        val slug = planToSlug(plan)
+        navController.navigate("billing?basePlanId=$slug")
     }
 
     /* ---------- attach success / error to the host activity ---------- */
