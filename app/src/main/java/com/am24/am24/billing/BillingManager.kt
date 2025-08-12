@@ -8,8 +8,11 @@ import com.am24.am24.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.functions.FirebaseFunctions
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
@@ -44,6 +47,10 @@ object BillingManager : PurchasesUpdatedListener {
     private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
     val purchases: StateFlow<List<Purchase>> = _purchases.asStateFlow()
 
+    // Signal when a purchase flow finishes (success or cancel)
+    private val _purchaseFlowFinished = MutableSharedFlow<Unit>()
+    val purchaseFlowFinished: SharedFlow<Unit> = _purchaseFlowFinished.asSharedFlow()
+
     /** Back-compat init (INAPP only). */
     fun startConnection(context: Context, ids: List<String>) {
         startConnection(context, inappIds = ids, subsIds = emptyList())
@@ -68,8 +75,12 @@ object BillingManager : PurchasesUpdatedListener {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                     queryProducts()
                     restorePurchases()
+                    _purchaseFlowFinished.tryEmit(Unit)
                 } else {
-                    Log.w("BillingManager", "Billing setup failed: ${result.responseCode}")
+                    if (result.responseCode != BillingClient.BillingResponseCode.USER_CANCELED) {
+                        Log.w("BillingManager", "Purchase failed: ${result.responseCode}")
+                    }
+                    _purchaseFlowFinished.tryEmit(Unit)
                 }
             }
             override fun onBillingServiceDisconnected() {
@@ -312,6 +323,24 @@ object BillingManager : PurchasesUpdatedListener {
         functions.getHttpsCallable("verifyPlayPurchase").call(data)
             .addOnFailureListener { e ->
                 Log.w("BillingManager", "Server verify failed", e)
+            }
+
+        if (type == "subs") {
+            syncSubscriptionOnServer(purchase)
+        }
+    }
+
+    private fun syncSubscriptionOnServer(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull() ?: return
+        if (!subsIds.contains(productId)) return
+        val data = hashMapOf(
+            "purchaseToken" to purchase.purchaseToken,
+            "productId" to productId,
+            "packageName" to BuildConfig.APPLICATION_ID,
+        )
+        functions.getHttpsCallable("syncPlaySubscription").call(data)
+            .addOnFailureListener { e ->
+                Log.w("BillingManager", "Subscription sync failed", e)
             }
     }
 }

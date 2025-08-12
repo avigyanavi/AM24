@@ -209,7 +209,7 @@ fun MainNavGraph(
             )
         ) { backStackEntry ->
             val basePlanId = backStackEntry.arguments?.getString("basePlanId")
-            BillingScreen(selectedBasePlanId = basePlanId)
+            BillingScreen(selectedBasePlanId = basePlanId, navController = navController)
         }
         composable(
             route = "userPosts/{userId}",

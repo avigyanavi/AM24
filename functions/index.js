@@ -1637,3 +1637,121 @@ exports.verifyPlayPurchase = functions
       throw new functions.https.HttpsError('internal', err.message);
     }
   });
+
+/**
+ * Handle Google Play Real-Time Developer Notifications (RTDN) for
+ * subscription status changes. Requires a Pub/Sub topic `play-subs` to be
+ * configured in the Play Console.
+ */
+exports.onPlaySubscriptionNotification = functions
+  .region('asia-south1')
+  .pubsub.topic('play-subs')
+  .onPublish(async message => {
+    try {
+      const data = JSON.parse(Buffer.from(message.data, 'base64').toString());
+      const sn = data.subscriptionNotification;
+      if (!sn) return;
+
+      const { purchaseToken, subscriptionId, notificationType } = sn;
+      const packageName = data.packageName;
+
+      const auth = new google.auth.GoogleAuth({
+        scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+      });
+      const client = await auth.getClient();
+      const api = google.androidpublisher({ version: 'v3', auth: client });
+      const res = await api.purchases.subscriptions.get({
+        packageName,
+        subscriptionId,
+        token: purchaseToken,
+      });
+
+      const purchase = res.data;
+      const uid = purchase.obfuscatedExternalAccountId;
+      if (!uid) {
+        console.warn('[onPlaySubscriptionNotification] Missing uid', purchase);
+        return;
+      }
+
+      const ref = admin.database().ref(`users/${uid}`);
+      const cancelTypes = [3, 12, 13]; // CANCELLED, REVOKED, EXPIRED
+      if (cancelTypes.includes(notificationType)) {
+        await ref.update({
+          isPlus: false,
+          isPremium: false,
+          subscriptionStatus: 'inactive',
+          nextRenewal: null,
+        });
+      } else {
+        await ref.update({
+          subscriptionStatus: 'active',
+          nextRenewal: purchase.expiryTimeMillis
+            ? Number(purchase.expiryTimeMillis)
+            : null,
+        });
+      }
+    } catch (err) {
+      console.error('onPlaySubscriptionNotification error:', err);
+    }
+  });
+
+/**
+ * Callable used by the client to force a subscription status check. This can
+ * be invoked on app startup to ensure server state matches Play Billing.
+ */
+exports.syncPlaySubscription = functions
+  .region('asia-south1')
+  .https.onCall(async (data, _ctx) => {
+    try {
+      const { purchaseToken, productId, packageName } = data || {};
+      if (!purchaseToken || !productId || !packageName) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing parameters');
+      }
+
+      const auth = new google.auth.GoogleAuth({
+        scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+      });
+      const client = await auth.getClient();
+      const api = google.androidpublisher({ version: 'v3', auth: client });
+      const res = await api.purchases.subscriptions.get({
+        packageName,
+        subscriptionId: productId,
+        token: purchaseToken,
+      });
+
+      const purchase = res.data;
+      const uid = purchase.obfuscatedExternalAccountId;
+      if (!uid) {
+        throw new functions.https.HttpsError(
+          'internal',
+          'Missing obfuscatedExternalAccountId'
+        );
+      }
+
+      const ref = admin.database().ref(`users/${uid}`);
+      const cancelReason = purchase.cancelReason;
+      const expired =
+        purchase.expiryTimeMillis &&
+        Number(purchase.expiryTimeMillis) < Date.now();
+      if (cancelReason != null || expired) {
+        await ref.update({
+          isPlus: false,
+          isPremium: false,
+          subscriptionStatus: 'inactive',
+          nextRenewal: null,
+        });
+      } else {
+        await ref.update({
+          subscriptionStatus: 'active',
+          nextRenewal: purchase.expiryTimeMillis
+            ? Number(purchase.expiryTimeMillis)
+            : null,
+        });
+      }
+
+      return purchase;
+    } catch (err) {
+      console.error('syncPlaySubscription error:', err);
+      throw new functions.https.HttpsError('internal', err.message);
+    }
+  });
