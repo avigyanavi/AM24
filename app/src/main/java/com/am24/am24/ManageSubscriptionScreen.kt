@@ -22,10 +22,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.am24.am24.ui.TierCard
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.razorpay.Checkout
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
@@ -138,20 +142,32 @@ fun ManageSubscriptionScreen(navController: NavController) {
 
     /* ───── one-shot fetch ───── */
     LaunchedEffect(uid) {
-        val snap = userRef.get().await()
-        isPlus       = snap.child("isPlus").getValue(Boolean::class.java)  ?: false
-        isPremium    = snap.child("isPremium").getValue(Boolean::class.java) ?: false
-        premiumTier  = when {
-            isPremium -> "Premium"
-            isPlus    -> "Plus"
-            else      -> "Free"
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                isPlus    = snap.child("isPlus").getValue(Boolean::class.java)  ?: false
+                isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
+                premiumTier = when {
+                    isPremium -> "Premium"
+                    isPlus    -> "Plus"
+                    else      -> "Free"
+                }
+                subscriptionId = snap.child("subscription").child("id").getValue(String::class.java)
+                expiry = if (!subscriptionId.isNullOrBlank()) "Never" else
+                    snap.child("nextRenewal").getValue(Long::class.java)
+                        ?.let { DateFormat.getDateInstance().format(Date(it)) } ?: "N/A"
+                userCountry = snap.child("country").getValue(String::class.java)
+                subscriptionStatus = snap.child("subscriptionStatus").getValue(String::class.java)
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
         }
-        expiry = if (!subscriptionId.isNullOrBlank()) "Never" else
-            snap.child("nextRenewal").getValue(Long::class.java)
-                ?.let { DateFormat.getDateInstance().format(Date(it)) } ?: "N/A"
-        subscriptionId   = snap.child("subscription").child("id").getValue(String::class.java)
-        userCountry      = snap.child("country").getValue(String::class.java)
-        subscriptionStatus = snap.child("subscriptionStatus").getValue(String::class.java)
+
+        userRef.addValueEventListener(listener)
+        try {
+            awaitCancellation()
+        } finally {
+            userRef.removeEventListener(listener)
+        }
     }
 
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)

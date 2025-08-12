@@ -188,6 +188,7 @@ object BillingManager : PurchasesUpdatedListener {
         }
         if (offer == null) {
             Log.w("BillingManager", "No matching subscription offer for ${productDetails.productId}")
+            _purchaseFlowFinished.tryEmit(Unit)
             return
         }
 
@@ -219,8 +220,10 @@ object BillingManager : PurchasesUpdatedListener {
     override fun onPurchasesUpdated(result: BillingResult, purchases: MutableList<Purchase>?) {
         if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
             handlePurchases(purchases)
+            _purchaseFlowFinished.tryEmit(Unit)
         } else if (result.responseCode != BillingClient.BillingResponseCode.USER_CANCELED) {
             Log.w("BillingManager", "Purchase failed: ${result.responseCode}")
+            _purchaseFlowFinished.tryEmit(Unit)
         }
     }
 
@@ -234,7 +237,10 @@ object BillingManager : PurchasesUpdatedListener {
             if (!ok) Log.w("BillingManager", "Invalid signature: ${p.purchaseToken}")
             ok
         }
-        if (valid.isEmpty()) return
+        if (valid.isEmpty()) {
+            _purchaseFlowFinished.tryEmit(Unit)
+            return
+        }
 
         _purchases.value = valid
 
