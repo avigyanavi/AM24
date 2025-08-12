@@ -139,7 +139,7 @@ object BillingManager : PurchasesUpdatedListener {
     fun launchBillingFlow(
         activity: Activity,
         productDetails: ProductDetails,
-        obfuscatedAccountId: String? = null
+        obfuscatedAccountId: String
     ) {
         val isInapp = productDetails.oneTimePurchaseOfferDetails != null
         val isSubs  = productDetails.subscriptionOfferDetails != null
@@ -155,7 +155,7 @@ object BillingManager : PurchasesUpdatedListener {
     fun launchInappFlow(
         activity: Activity,
         productDetails: ProductDetails,
-        obfuscatedAccountId: String? = null
+        obfuscatedAccountId: String
     ) {
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(productDetails)
@@ -164,9 +164,7 @@ object BillingManager : PurchasesUpdatedListener {
         val builder = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productParams))
 
-        if (!obfuscatedAccountId.isNullOrBlank()) {
-            builder.setObfuscatedAccountId(obfuscatedAccountId)
-        }
+        builder.setObfuscatedAccountId(obfuscatedAccountId)
 
         billingClient.launchBillingFlow(activity, builder.build())
     }
@@ -177,7 +175,7 @@ object BillingManager : PurchasesUpdatedListener {
         productDetails: ProductDetails,
         offerToken: String? = null,
         basePlanId: String? = null,
-        obfuscatedAccountId: String? = null
+        obfuscatedAccountId: String
     ) {
         val offer = when {
             !offerToken.isNullOrBlank() ->
@@ -200,12 +198,11 @@ object BillingManager : PurchasesUpdatedListener {
         val builder = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productParams))
 
-        if (!obfuscatedAccountId.isNullOrBlank()) {
-            builder.setObfuscatedAccountId(obfuscatedAccountId)
-        }
+        .setObfuscatedAccountId(obfuscatedAccountId)
 
         billingClient.launchBillingFlow(activity, builder.build())
     }
+
 
     /** Choose an offer; here we pick the lowest current price phase. */
     private fun pickBestOffer(pd: ProductDetails): ProductDetails.SubscriptionOfferDetails? {
@@ -307,9 +304,22 @@ object BillingManager : PurchasesUpdatedListener {
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null) {
+            val updates = mutableMapOf<String, Any>(
+                "isPlus" to isPlus,
+                "isPremium" to isPremium,
+            )
+
+            if (isPlus || isPremium) {
+                updates["swipesInfo/remainingSwipes"] =
+                    if (isPremium) Int.MAX_VALUE else 50
+                updates["availableBoosts"] = if (isPremium) 5 else 3
+                updates["availableCompliments"] = if (isPremium) 5 else 3
+                if (isPremium) updates["availableAiMessages"] = 2
+            }
+
             FirebaseDatabase.getInstance().reference
                 .child("users/$uid")
-                .updateChildren(mapOf("isPlus" to isPlus, "isPremium" to isPremium))
+                .updateChildren(updates)
         }
     }
 

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.android.billingclient.api.ProductDetails
+import com.google.firebase.auth.FirebaseAuth
 import java.time.Period
 import java.time.format.DateTimeParseException
 
@@ -29,14 +30,20 @@ fun BillingScreen(
     val subs       by BillingManager.subsProducts.collectAsState()        // SUBS ProductDetails
     val purchases  by viewModel.purchases.collectAsState()
     val activity   = LocalContext.current as Activity
+    val uid        = FirebaseAuth.getInstance().currentUser?.uid
 
     LaunchedEffect(subs, selectedBasePlanId) {
         if (!selectedBasePlanId.isNullOrBlank() && subs.isNotEmpty()) {
             val productId = if (selectedBasePlanId.startsWith("premium")) "premium" else "plus"
             val pd = subs.firstOrNull { it.productId == productId }
             val offer = pd?.subscriptionOfferDetails?.firstOrNull { it.basePlanId == selectedBasePlanId }
-            if (pd != null && offer != null) {
-                BillingManager.launchSubsFlow(activity, pd, offerToken = offer.offerToken)
+            if (pd != null && offer != null && uid != null) {
+                BillingManager.launchSubsFlow(
+                    activity,
+                    pd,
+                    offerToken = offer.offerToken,
+                    obfuscatedAccountId = uid,
+                )
             }
         }
     }
@@ -56,7 +63,15 @@ fun BillingScreen(
                 subs.forEach { pd ->
                     pd.subscriptionOfferDetails?.forEach { offer ->
                         val priceLabel = subsPriceLabel(offer) ?: "(no offer)"
-                        Button(onClick = { BillingManager.launchSubsFlow(activity, pd, offerToken = offer.offerToken) }) {
+                        Button(onClick = {
+                            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
+                            BillingManager.launchSubsFlow(
+                                activity,
+                                pd,
+                                offerToken = offer.offerToken,
+                                obfuscatedAccountId = uid,
+                            )
+                        }) {
                             Text("${offer.basePlanId} • $priceLabel")
                         }
                         Spacer(Modifier.height(8.dp))
