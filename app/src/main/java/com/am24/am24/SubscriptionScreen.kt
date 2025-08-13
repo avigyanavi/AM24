@@ -201,7 +201,11 @@ fun SubscriptionScreen(
                 val sid = pendingSubId
                 if (sid == null) {
                     Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
-                    navController.popBackStack()
+                    pendingSubId = null
+                    ui = UiState()
+                    navController.navigate("settings") {
+                        popUpTo("subscription") { inclusive = true }
+                    }
                     return@setPaymentCallbacks
                 }
                 scope.launch {
@@ -210,16 +214,24 @@ fun SubscriptionScreen(
                             .call(mapOf("subscriptionId" to sid))
                             .await()
                         Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
-                        navController.popBackStack()
                     } catch (e: Exception) {
                         Toast.makeText(ctx, "Verification failed", Toast.LENGTH_LONG).show()
                     } finally {
                         pendingSubId = null
+                        ui = UiState()
+                        navController.navigate("settings") {
+                            popUpTo("subscription") { inclusive = true }
+                        }
                     }
                 }
             },
             onError = { msg ->
                 Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+                pendingSubId = null
+                ui = UiState()
+                navController.navigate("settings") {
+                    popUpTo("subscription") { inclusive = true }
+                }
             }
         )
         onDispose { host?.setPaymentCallbacks({},{}) }
