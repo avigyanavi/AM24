@@ -20,7 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.TierCard
+import com.android.billingclient.api.BillingClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -102,7 +104,7 @@ private fun cancelKupidxPlusSub(
     }
 }
 
-/* ───── unified click handler ───── */
+/* ───── unified click handler (updated) ───── */
 private fun handleCancelClick(
     isIndia: Boolean,
     fx: FirebaseFunctions,
@@ -111,9 +113,17 @@ private fun handleCancelClick(
     nav: NavController
 ) {
     if (isIndia) {
-        cancelKupidxPlusSub(fx, scope, ctx, nav)                           // Razorpay  :contentReference[oaicite:0]{index=0}
+        // Razorpay path (unchanged)
+        cancelKupidxPlusSub(fx, scope, ctx, nav)
     } else {
-        Toast.makeText(ctx, "Cancelling is currently unavailable", Toast.LENGTH_LONG).show()
+        // Try to find a subscription SKU; fall back to the list page
+        val subProductId = BillingManager.purchases.value
+            .flatMap { it.products }
+            .firstOrNull { id -> id.startsWith("plus") || id.startsWith("premium") }
+
+        // Uses the new helper you added earlier
+        BillingManager.openPlaySubscriptionManagement(ctx, subProductId)
+        Toast.makeText(ctx, "Opening Play subscription settings…", Toast.LENGTH_SHORT).show()
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,7 +1,10 @@
 package com.am24.am24.billing
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import com.android.billingclient.api.*
 import com.am24.am24.BuildConfig
@@ -203,7 +206,32 @@ object BillingManager : PurchasesUpdatedListener {
         billingClient.launchBillingFlow(activity, builder.build())
     }
 
+    fun openPlaySubscriptionManagement(
+        context: Context,
+        productId: String? = null
+    ) {
+        val uri = if (productId.isNullOrBlank()) {
+            Uri.parse("https://play.google.com/store/account/subscriptions")
+        } else {
+            Uri.parse(
+                "https://play.google.com/store/account/subscriptions" +
+                        "?sku=${Uri.encode(productId)}&package=${Uri.encode(context.packageName)}"
+            )
+        }
 
+        // Prefer the Play Store app; fall back to a browser if unavailable
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+            .setPackage("com.android.vending")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        try {
+            context.startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+    }
     /** Choose an offer; here we pick the lowest current price phase. */
     private fun pickBestOffer(pd: ProductDetails): ProductDetails.SubscriptionOfferDetails? {
         val offers = pd.subscriptionOfferDetails ?: return null
