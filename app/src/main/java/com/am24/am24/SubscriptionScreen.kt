@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
+import com.am24.am24.billing.BillingManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.functions.FirebaseFunctions
@@ -128,6 +129,8 @@ fun SubscriptionScreen(
     val fx     = FirebaseFunctions.getInstance("asia-south1")
     var ui by remember { mutableStateOf(UiState()) }
     var pendingSubId by remember { mutableStateOf<String?>(null) }
+    val subs by BillingManager.subsProducts.collectAsState()
+
 
     /* real-time flags to hide the screen if user already subscribed */
     var plus    by remember { mutableStateOf<Boolean?>(null) }
@@ -189,9 +192,20 @@ fun SubscriptionScreen(
         }
     }
     fun handlePlan(plan: Plan) {
-        if (isIndia) { launchCheckout(plan); return }
         val slug = planToSlug(plan)
-        navController.navigate("billing?basePlanId=$slug")
+        val selectedId = if (isIndia) plan.razorpayId else slug
+        ui = UiState(isProcessing = true, selectedPlanId = selectedId)
+        if (isIndia) {
+            launchCheckout(plan)
+            return
+        }
+        val productId = if (slug.startsWith("premium")) "premium" else "plus"
+        val pd = subs.firstOrNull { it.productId == productId }
+        if (pd != null) {
+            BillingManager.launchSubsFlow(act, pd, basePlanId = slug, obfuscatedAccountId = uid)
+        } else {
+            ui = UiState()
+        }
     }
 
     /* ---------- attach success / error to the host activity ---------- */
@@ -235,6 +249,16 @@ fun SubscriptionScreen(
             }
         )
         onDispose { host?.setPaymentCallbacks({},{}) }
+    }
+
+    LaunchedEffect(Unit) {
+        BillingManager.purchaseFlowFinished.collect {
+            pendingSubId = null
+            ui = UiState()
+            navController.navigate("settings") {
+                popUpTo("subscription") { inclusive = true }
+            }
+        }
     }
 
     /* ---------- UI ---------- */
