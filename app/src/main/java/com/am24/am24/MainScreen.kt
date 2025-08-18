@@ -527,11 +527,11 @@ fun TopNavBar(
                         .child("allowLocationForMatches").setValue(allowLocationForMatches)
                         .addOnSuccessListener {
                             Log.d("TopNavBar", "Location preference saved: $allowLocationForMatches")
-                            showLocationPrefDialog = false
                         }
                         .addOnFailureListener { e ->
                             Log.e("TopNavBar", "Failed to save preference: ${e.message}")
                         }
+                    showLocationPrefDialog = false
                 }) { Text(stringResource(R.string.btn_save)) }
             }
         )
