@@ -203,6 +203,7 @@ fun DatingScreen(
         return
     }
     val filters           by datingViewModel.datingFilters.collectAsState()
+    var localDistance by remember(filters.distance) { mutableStateOf(filters.distance) }
     val filteredProfiles  by datingViewModel.displayingProfiles.collectAsState()
     val allProfiles       by datingViewModel.allProfiles.collectAsState()
     val isLoading         by datingViewModel.isLoading.collectAsState()
@@ -420,7 +421,7 @@ fun DatingScreen(
             FiltersOverlay(
                 ageRange           = filters.ageStart..filters.ageEnd,
                 onAgeRangeChange   = { datingViewModel.updateDatingFilters(filters.copy(ageStart = it.start, ageEnd = it.endInclusive)) },
-                maxDistance        = filters.distance
+                maxDistance        = localDistance
                     .coerceAtMost(
                         if (isIndian && !(myProfile!!.isPlus || myProfile!!.isPremium))
                             DatingViewModel.INDIA_MAX_DISTANCE
@@ -432,7 +433,7 @@ fun DatingScreen(
                         DatingViewModel.INDIA_MAX_DISTANCE
                     else
                         DatingViewModel.WORLDWIDE_DISTANCE
-                    datingViewModel.updateDatingFilters(filters.copy(distance = it.coerceAtMost(limit)))
+                    localDistance = it.coerceAtMost(limit)
                 },
                 selectedGenders    = filters.gender.split(",").toSet(),
                 onGenderChange     = { datingViewModel.updateDatingFilters(filters.copy(gender = it.joinToString(","))) },
@@ -458,6 +459,7 @@ fun DatingScreen(
                 onLocalitiesChange = { datingViewModel.updateDatingFilters(filters.copy(localities = it)) },
                 onSaveFilters = {
                     coroutineScope.launch {
+                        datingViewModel.updateDatingFilters(filters.copy(distance = localDistance))
                         sheetState.hide()
                         datingViewModel.refreshFilteredProfiles()
                     }
