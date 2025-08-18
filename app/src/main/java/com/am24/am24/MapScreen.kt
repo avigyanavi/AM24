@@ -168,8 +168,6 @@ private fun usesMiles(context: android.content.Context): Boolean {
 }
 private const val KM_PER_MILE = 1.609344
 private const val METERS_PER_MILE = 1609.344
-private fun kmToMi(km: Double) = km * 0.621_371
-private fun miToKm(mi: Double) = mi / 0.621_371
 
 private fun prettyDistance(meters: Double): String {
     if (!meters.isFinite()) return "—"

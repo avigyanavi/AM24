@@ -93,7 +93,7 @@ fun PreviewUserProfileScreen(
                         scope.launch {
                             handleSwipeLeft(currentUserId, targetUserId)
                             updateDailySwipeCount()          // helper below
-                            navController.popBackStack("home", false)
+                            navController.popBackStack()
                         }
                     },
                     shape           = CircleShape,
@@ -109,9 +109,9 @@ fun PreviewUserProfileScreen(
                         scope.launch {
                             handleSwipeRight(currentUserId, targetUserId, profileViewModel)
                             updateDailySwipeCount()
+                            navController.popBackStack()
 //                            navController.popBackStack("home", false)
                         }
-                        navController.popBackStack()
                     },
                     shape          = CircleShape,
                     containerColor = Color(0xFFFF6F00)
