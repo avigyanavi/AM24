@@ -224,7 +224,7 @@ fun TopNavBar(
                 modifier = Modifier.size(40.dp)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.kupidx_logo),
+                    painter = painterResource(id = R.drawable.kupidx_logo1),
                     contentDescription = stringResource(R.string.logo_kupidx_desc),
                     modifier = Modifier.size(56.dp)
                 )

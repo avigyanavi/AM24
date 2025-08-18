@@ -2,8 +2,10 @@
 
 package com.am24.am24
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -12,6 +14,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -21,15 +26,14 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*       // ⬅ add this line
+import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -41,11 +45,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
-import coil.imageLoader
-import coil.request.ImageRequest
 import com.firebase.geofire.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.*
@@ -55,45 +58,66 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.firebase.database.*
 import com.google.maps.android.compose.*
 import com.google.maps.android.heatmaps.HeatmapTileProvider
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import kotlin.math.*
-import java.text.SimpleDateFormat
-import java.util.*
-
-/* ——— shared helper & model ——— */
-import com.am24.am24.searchPlacesRich
-import com.am24.am24.PlaceResult
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.math.*
+
+/* ——— shared helper & model from your project ——— */
+import com.am24.am24.searchPlacesRich
+import com.am24.am24.PlaceResult
+
+/* ======================================================================================= */
+/*  Theme bits                                                                             */
+/* ======================================================================================= */
 
 val KupidxOrange = Color(0xFFFF6F00)
 
-// ───────── leaderboard model ─────────
+/* ======================================================================================= */
+/*  Data models (existing)                                                                 */
+/* ======================================================================================= */
+
+data class MarkerData(val userId: String, val position: LatLng)
+
+data class MatchProfile(
+    val userId: String,
+    val name: String,
+    val age: Int,
+    val hometown: String,
+    val photoUrl: String?
+)
+
+enum class SortMode { NEARBY, ACTIVE }
+
+enum class Region { LA, SF_BAY, NONE }
+
+data class NearbyUser(
+    val userId: String,
+    val username: String,
+    val age: Int,
+    val photoUrl: String?,
+    val lastActiveAt: Long,
+    val latLng: LatLng?,
+    val distanceMeters: Double
+)
+
+// Leaderboard
 data class LeaderboardEntry(
     val placeId: String,
-    val placeName: String,   // NEW
+    val placeName: String,
     val checkInCount: Int
 )
 
+/* ======================================================================================= */
+/*  Place caching (from old code)                                                          */
+/* ======================================================================================= */
 
-/*────────────────── utils ──────────────────*/
-private fun getBearing(from: LatLng, to: LatLng): Float {
-    val lat1 = Math.toRadians(from.latitude)
-    val lon1 = Math.toRadians(from.longitude)
-    val lat2 = Math.toRadians(to.latitude)
-    val lon2 = Math.toRadians(to.longitude)
-    val dLon = lon2 - lon1
-    val y = sin(dLon) * cos(lat2)
-    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-    return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
-}
+private val latLngCache = mutableMapOf<String, LatLng?>()
 
-/* ────────── cache for LatLng ────────── */
-val latLngCache = mutableMapOf<String, LatLng?>()
-
-/* ────────── fetch LatLng from placeId ────────── */
 suspend fun getLatLngFromPlaceId(placeId: String, context: android.content.Context): LatLng? {
     latLngCache[placeId]?.let { return it }
     return try {
@@ -101,7 +125,6 @@ suspend fun getLatLngFromPlaceId(placeId: String, context: android.content.Conte
         val request = FetchPlaceRequest.newInstance(placeId, listOf(Place.Field.LAT_LNG))
         val response = placesClient.fetchPlace(request).await()
         val latLng = response.place.latLng
-        Log.d("MapScreen", "Fetched LatLng for placeId: $placeId -> $latLng")
         latLngCache[placeId] = latLng
         latLng
     } catch (e: Exception) {
@@ -111,9 +134,8 @@ suspend fun getLatLngFromPlaceId(placeId: String, context: android.content.Conte
     }
 }
 
-/* ────────── fetch place name from placeId ────────── */
-suspend fun getPlaceNameFromPlaceId(placeId: String, context: android.content.Context): String? {
-    return try {
+suspend fun getPlaceNameFromPlaceId(placeId: String, context: android.content.Context): String? =
+    try {
         val placesClient = Places.createClient(context)
         val request = FetchPlaceRequest.newInstance(placeId, listOf(Place.Field.NAME))
         val response = placesClient.fetchPlace(request).await()
@@ -122,16 +144,57 @@ suspend fun getPlaceNameFromPlaceId(placeId: String, context: android.content.Co
         Log.e("MapScreen", "Failed to fetch name for placeId: $placeId", e)
         null
     }
-}
 
-/* ────────── cluster model ────────── */
-private data class CheckInCluster(
-    val placeId: String,
-    val placeName: String,   // NEW
-    val postIds: List<String>
+/* ======================================================================================= */
+/*  Units helpers (NEW)                                                                    */
+/* ======================================================================================= */
+
+private val MILE_COUNTRIES = setOf(
+    "US", "GB", "LR", "MM", // primary mile countries
+    "PR", "GU", "VI", "AS", "MP" // US territories using miles
 )
 
-private data class TagItem(val label: String, val query: String)
+private fun usesMilesUnits(): Boolean =
+    when (Locale.getDefault().country.uppercase(Locale.ROOT)) {
+        "US", "GB", "LR", "MM", "PR", "GU", "VI", "AS", "MP" -> true   // United States, Liberia, Myanmar
+        else -> false
+    }
+
+private fun usesMiles(context: android.content.Context): Boolean {
+    val locales = context.resources.configuration.locales
+    val country = (if (locales.size() > 0) locales[0] else Locale.getDefault())
+        .country.uppercase(Locale.ROOT)
+    return country in MILE_COUNTRIES
+}
+private const val KM_PER_MILE = 1.609344
+private const val METERS_PER_MILE = 1609.344
+private fun kmToMi(km: Double) = km * 0.621_371
+private fun miToKm(mi: Double) = mi / 0.621_371
+
+private fun prettyDistance(meters: Double): String {
+    if (!meters.isFinite()) return "—"
+    val useMiles = usesMilesUnits()
+
+    return if (useMiles) {
+        val feet = meters * 3.28084
+        if (feet < 1000) "${feet.roundToInt()} ft"
+        else {
+            val mi = meters / METERS_PER_MILE
+            val miRounded = (mi * 10).roundToInt() / 10.0
+            "$miRounded mi"
+        }
+    } else {
+        if (meters < 1000) "${meters.roundToInt()} m"
+        else {
+            val km = meters / 1000.0
+            val kmRounded = (km * 10).roundToInt() / 10.0
+            "$kmRounded km"
+        }
+    }
+}
+/* ======================================================================================= */
+/*  Main screen                                                                            */
+/* ======================================================================================= */
 
 @Composable
 fun MapScreen(
@@ -140,50 +203,60 @@ fun MapScreen(
     geoFireDatabaseRef: DatabaseReference,
     navController: NavController,
     onProfileMarkerClicked: (String) -> Unit,
-    currentPrice: String
+    currentPrice: String,
+    radiusKmDefault: Double = 10.0
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
-    val isLocationGranted =
-        ContextCompat.checkSelfPermission(
-            ctx,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(
-                    ctx,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
+    val useMiles = remember { usesMiles(ctx) } // NEW: decide unit once
 
-    /* ───── state ───── */
+    val isLocationGranted =
+        ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    /* ---------------- People / grid state ---------------- */
+    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
+    val people = remember { mutableStateListOf<NearbyUser>() }
+    var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
+    var radiusKm by remember { mutableStateOf(radiusKmDefault) }
+    var selectedTab by remember { mutableStateOf(0) } // 0: People, 1: Map
+
+    /* ---------------- Matches (markers, popup) ---------------- */
+    val matchMarkers = remember { mutableStateListOf<MarkerData>() }
+    val matchUids = remember { mutableStateListOf<String>() }
+    var selectedProfile by remember { mutableStateOf<Profile?>(null) }
+    var navigateToProfile by remember { mutableStateOf<String?>(null) }
+    var isLoadingMatches by remember { mutableStateOf(false) }
+
+    /* ---------------- Map + old features state ---------------- */
+    val camera = rememberCameraPositionState()
+
+    // search + tags
     var searchQuery by remember { mutableStateOf("") }
     var showSearchBar by remember { mutableStateOf(false) }
-    var showLeaderboard by remember { mutableStateOf(false) }
-    val camera = rememberCameraPositionState()
-    val matchMarkers = remember { mutableStateListOf<MarkerData>() }
-    val searchResults = remember { mutableStateListOf<PlaceResult>() }
-    var selectedPlace by remember { mutableStateOf<PlaceResult?>(null) }
-    var selectedProfile by remember { mutableStateOf<Profile?>(null) }
-    val matchUids = remember { mutableStateListOf<String>() }
-    var navigateToProfile by remember { mutableStateOf<String?>(null) }
-    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
-    val clusters = remember { mutableStateListOf<CheckInCluster>() }
-    val heatPoints = remember { mutableStateListOf<LatLng>() }
     var isLoadingSearch by remember { mutableStateOf(false) }
     var isLoadingQuickSearch by remember { mutableStateOf(false) }
     var loadingTag by remember { mutableStateOf<String?>(null) }
-    var isLoadingMatches by remember { mutableStateOf(false) }
+    val searchResults = remember { mutableStateListOf<PlaceResult>() }
+
+    // heatmap / clusters / leaderboard
+    val clusters = remember { mutableStateListOf<CheckInCluster>() }
+    val heatPoints = remember { mutableStateListOf<LatLng>() }
+    val clusterLatLngs = remember { mutableStateMapOf<String, LatLng?>() }
+    var showLeaderboard by remember { mutableStateOf(false) }
+
+    // place sheet + send-to-match
+    var selectedPlace by remember { mutableStateOf<PlaceResult?>(null) }
     var showSendOverlay by remember { mutableStateOf(false) }
     var placeToSend by remember { mutableStateOf<PlaceResult?>(null) }
     val matchProfiles = remember { mutableStateListOf<MatchProfile>() }
-    val clusterLatLngs = remember { mutableStateMapOf<String, LatLng?>() }
 
-    /* region */
-    val region = detectRegion(userLatLng)
+    /* ---------------- Region & curated tags ---------------- */
+    var region by remember { mutableStateOf(Region.NONE) }
     val isUserInLA = region == Region.LA
     val isUserInBay = region == Region.SF_BAY
 
-    /* ───────── base quick tags ───────── */
     val baseQuickTags = listOf(
         TagItem(ctx.getString(R.string.tag_cafes), "cafes"),
         TagItem(ctx.getString(R.string.tag_bars), "bars"),
@@ -209,8 +282,6 @@ fun MapScreen(
         TagItem(ctx.getString(R.string.tag_night_markets), "night_markets"),
         TagItem(ctx.getString(R.string.tag_food_courts), "food_courts")
     )
-
-    /* ───────── LA-specific quick tags (expanded) ───────── */
     val laQuickTags = if (isUserInLA) listOf(
         TagItem(ctx.getString(R.string.la_tag_dtla_rooftops_label), ctx.getString(R.string.la_tag_dtla_rooftops_query)),
         TagItem(ctx.getString(R.string.la_tag_ktown_bbq_label), ctx.getString(R.string.la_tag_ktown_bbq_query)),
@@ -220,7 +291,6 @@ fun MapScreen(
         TagItem(ctx.getString(R.string.la_tag_brunch_westside_label), ctx.getString(R.string.la_tag_brunch_westside_query)),
         TagItem(ctx.getString(R.string.la_tag_arts_district_label), ctx.getString(R.string.la_tag_arts_district_query)),
         TagItem(ctx.getString(R.string.la_tag_museums_label), ctx.getString(R.string.la_tag_museums_query)),
-        // NEW adds
         TagItem(ctx.getString(R.string.la_tag_malibu_beaches_label), ctx.getString(R.string.la_tag_malibu_beaches_query)),
         TagItem(ctx.getString(R.string.la_tag_dockweiler_bonfire_label), ctx.getString(R.string.la_tag_dockweiler_bonfire_query)),
         TagItem(ctx.getString(R.string.la_tag_surf_rental_label), ctx.getString(R.string.la_tag_surf_rental_query)),
@@ -230,8 +300,6 @@ fun MapScreen(
         TagItem(ctx.getString(R.string.la_tag_comedy_label), ctx.getString(R.string.la_tag_comedy_query)),
         TagItem(ctx.getString(R.string.la_tag_food_trucks_label), ctx.getString(R.string.la_tag_food_trucks_query))
     ) else emptyList()
-
-    /* ───────── SF Bay-specific quick tags ───────── */
     val bayQuickTags = if (isUserInBay) listOf(
         TagItem(ctx.getString(R.string.ba_tag_ocean_beach_sunset_label), ctx.getString(R.string.ba_tag_ocean_beach_sunset_query)),
         TagItem(ctx.getString(R.string.ba_tag_gg_viewpoints_label), ctx.getString(R.string.ba_tag_gg_viewpoints_query)),
@@ -246,18 +314,27 @@ fun MapScreen(
         TagItem(ctx.getString(R.string.ba_tag_ferry_market_label), ctx.getString(R.string.ba_tag_ferry_market_query)),
         TagItem(ctx.getString(R.string.ba_tag_sf_museums_label), ctx.getString(R.string.ba_tag_sf_museums_query))
     ) else emptyList()
-
-    /* final quickTags used by UI */
     val quickTags = laQuickTags + bayQuickTags + baseQuickTags
 
-    /* fetch user location */
+    /* ---------------- Effects ---------------- */
+
+    // fetch user location + set region
     LaunchedEffect(userId) {
         locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
             userLatLng = lat?.let { LatLng(it, lng ?: 0.0) }
+            userLatLng?.let {
+                camera.position = CameraPosition.fromLatLngZoom(it, 15f)
+                region = detectRegion(it)
+            } ?: run {
+                val kol = LatLng(22.5726, 88.3639)
+                userLatLng = kol
+                region = detectRegion(kol)
+                camera.position = CameraPosition.fromLatLngZoom(kol, 14f)
+            }
         }
     }
 
-    /* load matches */
+    // load matches and keep markers updated (unchanged logic)
     LaunchedEffect(userId) {
         isLoadingMatches = true
         FirebaseRefs.db.getReference("matches").child(userId)
@@ -278,7 +355,21 @@ fun MapScreen(
             })
     }
 
-    /*──────── load nearby check-ins for heat-map ────────*/
+    // listen for nearby users (grid)
+    LaunchedEffect(userLatLng, radiusKm) {
+        val me = userLatLng ?: return@LaunchedEffect
+        people.clear()
+        observeNearbyUsers(
+            currentUserId = userId,
+            center = me,
+            radiusKm = radiusKm,
+            geoFireDatabaseRef = geoFireDatabaseRef,
+            onEnterOrMove = { upsert(people, it) },
+            onExit = { uid -> people.removeAll { it.userId == uid } }
+        )
+    }
+
+    // heatmap data
     LaunchedEffect(userLatLng) {
         if (userLatLng == null) return@LaunchedEffect
         try {
@@ -320,34 +411,34 @@ fun MapScreen(
 
             val toResolve = grouped.keys.filter { !clusterLatLngs.containsKey(it) }
             if (toResolve.isNotEmpty()) {
-                val resolvedPairs = toResolve.map { pid ->
-                    async { pid to getLatLngFromPlaceId(pid, ctx) }
-                }.awaitAll()
-
-                resolvedPairs.forEach { (pid, ll) ->
-                    ll?.let {
-                        clusterLatLngs[pid] = it
-                        heatPoints += it
-                    }
-                }
+                val resolvedPairs = toResolve.map { pid -> async { pid to getLatLngFromPlaceId(pid, ctx) } }.awaitAll()
+                resolvedPairs.forEach { (pid, ll) -> ll?.let { clusterLatLngs[pid] = it; heatPoints += it } }
             }
-
-            Log.d("MapScreen", "🌡  heatPoints = ${heatPoints.size}, clusters = ${clusters.size}")
         } catch (e: Exception) {
             Log.e("MapScreen", "Check-in load failed: ${e.message}", e)
         }
     }
 
-    /* nav to full profile */
+    // navigate to preview profile
     LaunchedEffect(navigateToProfile) {
         navigateToProfile?.let {
-            navController.navigate("matchedUserProfile/$it")
+            navController.navigate("previewUserProfile/$it")
             navigateToProfile = null
             selectedProfile = null
         }
     }
 
-    /* helper to perform any search */
+    // derived sorting (wrapped in remember)
+    val sortedPeople by remember(sortMode) {
+        derivedStateOf {
+            when (sortMode) {
+                SortMode.NEARBY -> people.sortedBy { it.distanceMeters }
+                SortMode.ACTIVE -> people.sortedByDescending { it.lastActiveAt }
+            }
+        }
+    }
+
+    /* ---------------- search helper ---------------- */
     suspend fun runSearch(query: String) {
         if (query.isBlank()) return
         val bias = userLatLng ?: run {
@@ -363,451 +454,927 @@ fun MapScreen(
         }
     }
 
-    /* UI */
-    Box(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                    if (showSearchBar) {
-                        showSearchBar = false
-                        focusManager.clearFocus()
-                    }
-                }
-        ) {
-            /* TAG / SEARCH ROW */
-            val listState = rememberLazyListState()
-            LazyRow(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                item {
-                    if (showSearchBar) {
-                        Box(
-                            Modifier
-                                .height(36.dp)
-                                .background(Color.White, RoundedCornerShape(18.dp))
-                                .padding(start = 12.dp, end = 40.dp, top = 8.dp, bottom = 8.dp)
-                        ) {
-                            BasicTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                singleLine = true,
-                                textStyle = TextStyle(Color.Black, fontSize = 14.sp),
-                                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-                                keyboardActions = KeyboardActions(
-                                    onSearch = {
-                                        scope.launch {
-                                            isLoadingSearch = true
-                                            runSearch(searchQuery)
-                                            isLoadingSearch = false
-                                        }
-                                    },
-                                ),
-                                cursorBrush = SolidColor(KupidxOrange)
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                if (searchQuery.isNotBlank()) {
-                                    scope.launch {
-                                        isLoadingSearch = true
-                                        runSearch(searchQuery)
-                                        isLoadingSearch = false
-                                    }
-                                } else {
-                                    showSearchBar = false
-                                    focusManager.clearFocus()
-                                }
-                            },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .offset((-36).dp)
-                        ) {
-                            Icon(
-                                if (searchQuery.isNotBlank()) Icons.Default.Search else Icons.Default.Close,
-                                contentDescription = null,
-                                tint = if (searchQuery.isNotBlank()) Color(0xFFFF6F00) else Color.Gray
-                            )
-                        }
-                    } else {
-                        IconButton(
-                            onClick = { showSearchBar = true },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                items(quickTags) { tag ->
-                    Box(
-                        Modifier
-                            .padding(end = 6.dp)
-                            .background(Color.Black, RoundedCornerShape(4.dp))
-                            .border(BorderStroke(1.dp, Color(0xFFFF6F00)), RoundedCornerShape(4.dp))
-                            .clickable(enabled = !isLoadingQuickSearch) {
-                                scope.launch {
-                                    loadingTag = tag.label
-                                    isLoadingQuickSearch = true
-                                    searchQuery = tag.query
-                                    runSearch(tag.query)
-                                    isLoadingQuickSearch = false
-                                    loadingTag = null
-                                }
-                            }
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+    /* ---------------- UI ---------------- */
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Nearby", fontWeight = FontWeight.SemiBold) },
+                actions = {
+                    FilledTonalButton(
+                        onClick = { sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = KupidxOrange.copy(alpha = 0.20f),
+                            contentColor = KupidxOrange
+                        ),
+                        shape = RoundedCornerShape(20.dp)
                     ) {
-                        if (isLoadingQuickSearch && tag.label == loadingTag) {
-                            CircularProgressIndicator(
-                                strokeWidth = 1.dp,
-                                modifier = Modifier.size(12.dp),
-                                color = Color.White
-                            )
-                        } else {
-                            Text(tag.label, color = Color.LightGray, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                }
-            }
-
-            /* LA curated collections (second row of chips) */
-            if (isUserInLA) {
-                val laCollections = listOf(
-                    TagItem(ctx.getString(R.string.la_col_date_westside_label), ctx.getString(R.string.la_col_date_westside_query)),
-                    TagItem(ctx.getString(R.string.la_col_beach_day_label), ctx.getString(R.string.la_col_beach_day_query)),
-                    TagItem(ctx.getString(R.string.la_col_studio_city_night_label), ctx.getString(R.string.la_col_studio_city_night_query)),
-                    TagItem(ctx.getString(R.string.la_col_views_griffith_hollywood_label), ctx.getString(R.string.la_col_views_griffith_hollywood_query)),
-                    TagItem(ctx.getString(R.string.la_col_weho_label), ctx.getString(R.string.la_col_weho_query)),
-                    TagItem(ctx.getString(R.string.la_col_little_tokyo_label), ctx.getString(R.string.la_col_little_tokyo_query))
-                )
-                val collListState = rememberLazyListState()
-                LazyRow(
-                    state = collListState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(laCollections) { tag ->
-                        Box(
-                            Modifier
-                                .padding(end = 6.dp)
-                                .background(Color(0xFF121212), RoundedCornerShape(16.dp))
-                                .border(BorderStroke(1.dp, KupidxOrange), RoundedCornerShape(16.dp))
-                                .clickable(enabled = !isLoadingQuickSearch) {
-                                    scope.launch {
-                                        loadingTag = tag.label
-                                        isLoadingQuickSearch = true
-                                        searchQuery = tag.query
-                                        runSearch(tag.query)
-                                        isLoadingQuickSearch = false
-                                        loadingTag = null
-                                    }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            if (isLoadingQuickSearch && tag.label == loadingTag) {
-                                CircularProgressIndicator(
-                                    strokeWidth = 1.dp,
-                                    modifier = Modifier.size(12.dp),
-                                    color = Color.White
-                                )
-                            } else {
-                                Text(tag.label, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                }
-            }
-
-            /* SF Bay curated collections */
-            if (isUserInBay) {
-                val baCollections = listOf(
-                    TagItem(ctx.getString(R.string.ba_col_date_sf_label), ctx.getString(R.string.ba_col_date_sf_query)),
-                    TagItem(ctx.getString(R.string.ba_col_ocean_beach_evening_label), ctx.getString(R.string.ba_col_ocean_beach_evening_query)),
-                    TagItem(ctx.getString(R.string.ba_col_south_bay_night_label), ctx.getString(R.string.ba_col_south_bay_night_query)),
-                    TagItem(ctx.getString(R.string.ba_col_wine_day_napa_label), ctx.getString(R.string.ba_col_wine_day_napa_query)),
-                    TagItem(ctx.getString(R.string.ba_col_berkeley_vintage_label), ctx.getString(R.string.ba_col_berkeley_vintage_query)),
-                    TagItem(ctx.getString(R.string.ba_col_marin_headlands_label), ctx.getString(R.string.ba_col_marin_headlands_query))
-                )
-                val collListState = rememberLazyListState()
-                LazyRow(
-                    state = collListState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(baCollections) { tag ->
-                        Box(
-                            Modifier
-                                .padding(end = 6.dp)
-                                .background(Color(0xFF121212), RoundedCornerShape(16.dp))
-                                .border(BorderStroke(1.dp, KupidxOrange), RoundedCornerShape(16.dp))
-                                .clickable(enabled = !isLoadingQuickSearch) {
-                                    scope.launch {
-                                        loadingTag = tag.label
-                                        isLoadingQuickSearch = true
-                                        searchQuery = tag.query
-                                        runSearch(tag.query)
-                                        isLoadingQuickSearch = false
-                                        loadingTag = null
-                                    }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            if (isLoadingQuickSearch && tag.label == loadingTag) {
-                                CircularProgressIndicator(
-                                    strokeWidth = 1.dp,
-                                    modifier = Modifier.size(12.dp),
-                                    color = Color.White
-                                )
-                            } else {
-                                Text(tag.label, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                }
-            }
-
-            /* MAP */
-            Box(Modifier.weight(1f)) {
-                val heatProvider = remember(heatPoints.size) {
-                    if (heatPoints.isNotEmpty()) {
-                        HeatmapTileProvider.Builder()
-                            .data(heatPoints)
-                            .radius(40)
-                            .opacity(0.65)
-                            .build()
-                    } else null
-                }
-                val heatState = rememberTileOverlayState()
-
-                GoogleMap(
-                    cameraPositionState = camera,
-                    modifier = Modifier.fillMaxSize(),
-                    properties = MapProperties(
-                        isMyLocationEnabled = isLocationGranted,
-                        isTrafficEnabled = isUserInLA || isUserInBay
-                    ),
-                    uiSettings = MapUiSettings(
-                        zoomControlsEnabled = true,
-                        myLocationButtonEnabled = isLocationGranted,
-                        mapToolbarEnabled = false
-                    )
-                ) {
-                    /* match markers */
-                    matchMarkers.forEach { m ->
-                        Marker(
-                            state = MarkerState(m.position),
-                            title = m.userId,
-                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
-                            onClick = {
-                                scope.launch {
-                                    FirebaseRefs.db.getReference("users").child(m.userId)
-                                        .get().addOnSuccessListener { snap ->
-                                            snap.getValue(Profile::class.java)?.let { p ->
-                                                if (matchUids.contains(p.userId) && p.allowLocationForMatches) {
-                                                    selectedProfile = p
-                                                }
-                                            }
-                                        }
-                                }
-                                true
-                            }
+                        Icon(
+                            imageVector = if (sortMode == SortMode.NEARBY) Icons.Default.MyLocation else Icons.Default.Schedule,
+                            contentDescription = null
                         )
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (sortMode == SortMode.NEARBY) "Nearby" else "Last active")
                     }
-
-                    /* place search markers */
-                    searchResults.forEach { p ->
-                        Marker(
-                            state = MarkerState(p.latLng),
-                            title = p.name,
-                            onClick = {
-                                selectedPlace = p
-                                true
-                            }
-                        )
-                    }
-
-                    /* heat‐map overlay */
-                    heatProvider?.let {
-                        TileOverlay(tileProvider = it, state = heatState)
-                    }
-
-                    /* clusters */
-                    clusters.forEach { cluster ->
-                        clusterLatLngs[cluster.placeId]?.let { latLng ->
-                            Marker(
-                                state = MarkerState(latLng),
-                                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED),
-                                alpha = 0f,
-                                onClick = {
-                                    Log.d("MapScreen", "Navigating to checkinFeed with placeId: ${cluster.placeId}")
-                                    navController.navigate("checkinFeed/${cluster.placeId}")
-                                    true
-                                }
-                            )
-                        }
-                    }
-                }
-
-                /* directional arrows toward matches */
-                userLatLng?.let { me ->
-                    DirectionalArrowsOverlay(
-                        userLocation = me,
-                        matchLocations = matchMarkers.map { it.position },
-                        modifier = Modifier.fillMaxSize()
-                    ) { loc ->
-                        scope.launch {
-                            camera.animate(CameraUpdateFactory.newLatLngZoom(loc, 18f), 500)
-                        }
-                    }
-                }
-
-                /* place details popup */
-                selectedPlace?.let { place ->
-                    PlaceDetailsPopup(
-                        placeId = place.placeId,
-                        name = place.name,
-                        onDismiss = { selectedPlace = null },
-                        onSendToMatch = {
-                            placeToSend = place
-                            showSendOverlay = true
-                        }
-                    )
-                }
-
-                /* profile popup */
-                selectedProfile?.let { prof ->
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = .3f)),
-                        Alignment.Center
-                    ) {
-                        UserProfilePopup(
-                            profile = prof,
-                            onProfileClick = { navigateToProfile = it },
-                            onCloseClick = { selectedProfile = null }
-                        )
-                    }
-                }
-
-                /* send-to-match overlay */
-                if (showSendOverlay) {
-                    LaunchedEffect(Unit) {
-                        if (matchProfiles.isEmpty()) {
-                            matchUids.forEach { uid ->
-                                FirebaseRefs.db.getReference("users").child(uid).get()
-                                    .addOnSuccessListener { snap ->
-                                        snap.getValue(Profile::class.java)?.let { p ->
-                                            matchProfiles += MatchProfile(
-                                                userId = uid,
-                                                name = p.name,
-                                                age = calculateAge(p.dob),
-                                                hometown = p.hometown,
-                                                photoUrl = p.profilepicUrl
-                                            )
-                                        }
-                                    }
-                            }
-                        }
-                    }
-                    MatchesListOverlay(
-                        matches = matchProfiles,
-                        onDismiss = { showSendOverlay = false },
-                        onSend = { match ->
-                            placeToSend?.let { pl ->
-                                val msg =
-                                    "Check out this place: ${pl.name}. Directions: https://maps.google.com/?q=place_id:${pl.placeId}"
-                                val chatId = getChatId2(userId, match.userId)
-                                val ref = FirebaseRefs.db.getReference("messages/$chatId")
-                                sendMessage2(userId, match.userId, chatId, msg, ref)
-                                Toast.makeText(ctx, "Sent to ${match.name}", Toast.LENGTH_SHORT).show()
-                                showSendOverlay = false
-                                placeToSend = null
-                            }
-                        }
-                    )
-                }
-            }
-        }
-
-        /* Leaderboard FAB */
-        FloatingActionButton(
-            onClick = { showLeaderboard = true },
-            containerColor = Color(0xFFFF6F00),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 16.dp, bottom = 32.dp)
-        ) {
-            Icon(Icons.Outlined.Leaderboard, contentDescription = "Leaderboard")
-        }
-
-        /* Region recenter FABs */
-        when {
-            isUserInLA -> {
-                FloatingActionButton(
-                    onClick = {
-                        scope.launch {
-                            camera.animate(CameraUpdateFactory.newLatLngBounds(GREATER_LA_BOUNDS, 80))
-                        }
-                    },
-                    containerColor = Color.Black,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 96.dp, bottom = 32.dp)
-                ) { Text(ctx.getString(R.string.la_fab_recenter_text), color = Color.White, fontWeight = FontWeight.Bold) }
-            }
-            isUserInBay -> {
-                FloatingActionButton(
-                    onClick = {
-                        scope.launch {
-                            camera.animate(CameraUpdateFactory.newLatLngBounds(SF_BAY_BOUNDS, 80))
-                        }
-                    },
-                    containerColor = Color.Black,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 96.dp, bottom = 32.dp)
-                ) { Text(ctx.getString(R.string.ba_fab_recenter_text), color = Color.White, fontWeight = FontWeight.Bold) }
-            }
-        }
-
-        /* Leaderboard overlay */
-        if (showLeaderboard) {
-            val leaderboardEntries = remember(clusters) {
-                clusters.sortedByDescending { it.postIds.size }
-                    .map { LeaderboardEntry(it.placeId, it.placeName, it.postIds.size) }
-            }
-            LeaderboardOverlay(
-                entries = leaderboardEntries,
-                onDismiss = { showLeaderboard = false },
-                onEntryClick = { entry ->
-                    showLeaderboard = false
-                    clusterLatLngs[entry.placeId]?.let { ll ->
-                        scope.launch { camera.animate(CameraUpdateFactory.newLatLngZoom(ll, 18f)) }
-                    }
-                    navController.navigate("checkinFeed/${entry.placeId}")
                 }
             )
         }
+    ) { padding ->
+        Column(Modifier.padding(padding)) {
 
-        /* global loading overlay */
+            // Tabs: People | Map  (orange selected)
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = KupidxOrange,
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = KupidxOrange
+                    )
+                }
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    selectedContentColor = KupidxOrange,
+                    unselectedContentColor = Color.Gray,
+                    text = { Text("People") }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    selectedContentColor = KupidxOrange,   // ← Map tab in orange when selected
+                    unselectedContentColor = Color.Gray,
+                    text = { Text("Map") }
+                )
+            }
+
+            when (selectedTab) {
+                /* ======================= PEOPLE TAB (grid + mini map) ======================= */
+                0 -> {
+                    Box(Modifier.fillMaxSize()) {
+                        PeopleGrid(
+                            users = sortedPeople,
+                            onClick = { navController.navigate("previewUserProfile/${it.userId}") },
+                            useMiles = useMiles // NEW
+                        )
+
+                        MiniMapCard(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(12.dp),
+                            isLocationGranted = isLocationGranted,
+                            cameraPositionState = camera,
+                            me = userLatLng,
+                            markers = sortedPeople.mapNotNull { it.latLng } + matchMarkers.map { it.position },
+                            onExpand = { selectedTab = 1 }
+                        )
+
+                        RadiusChip(
+                            radiusKm = radiusKm,
+                            onChange = { radiusKm = it },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                        )
+                    }
+                }
+
+                /* ======================= MAP TAB (old map restored) ======================= */
+                1 -> {
+                    Box(Modifier.fillMaxSize()) {
+                        Column(Modifier.fillMaxSize()) {
+
+                            // SEARCH + TAG ROW
+                            val listState = rememberLazyListState()
+                            LazyRow(
+                                state = listState,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                item {
+                                    if (showSearchBar) {
+                                        Box(
+                                            Modifier
+                                                .height(36.dp)
+                                                .background(Color.White, RoundedCornerShape(18.dp))
+                                                .padding(
+                                                    start = 12.dp,
+                                                    end = 40.dp,
+                                                    top = 8.dp,
+                                                    bottom = 8.dp
+                                                )
+                                        ) {
+                                            BasicTextField(
+                                                value = searchQuery,
+                                                onValueChange = { searchQuery = it },
+                                                singleLine = true,
+                                                textStyle = TextStyle(
+                                                    Color.Black,
+                                                    fontSize = 14.sp
+                                                ),
+                                                keyboardOptions = KeyboardOptions.Default.copy(
+                                                    imeAction = ImeAction.Search
+                                                ),
+                                                keyboardActions = KeyboardActions(
+                                                    onSearch = {
+                                                        scope.launch {
+                                                            isLoadingSearch = true
+                                                            runSearch(searchQuery)
+                                                            isLoadingSearch = false
+                                                        }
+                                                    },
+                                                ),
+                                                cursorBrush = SolidColor(KupidxOrange)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                if (searchQuery.isNotBlank()) {
+                                                    scope.launch {
+                                                        isLoadingSearch = true
+                                                        runSearch(searchQuery)
+                                                        isLoadingSearch = false
+                                                    }
+                                                } else {
+                                                    showSearchBar = false
+                                                    focusManager.clearFocus()
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .offset((-36).dp)
+                                        ) {
+                                            Icon(
+                                                if (searchQuery.isNotBlank()) Icons.Default.Search else Icons.Default.Close,
+                                                contentDescription = null,
+                                                tint = if (searchQuery.isNotBlank()) KupidxOrange else Color.Gray
+                                            )
+                                        }
+                                    } else {
+                                        IconButton(
+                                            onClick = { showSearchBar = true },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Search,
+                                                contentDescription = null,
+                                                tint = Color.White
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                items(quickTags) { tag ->
+                                    Box(
+                                        Modifier
+                                            .padding(end = 6.dp)
+                                            .background(Color.Black, RoundedCornerShape(4.dp))
+                                            .border(
+                                                BorderStroke(1.dp, KupidxOrange),
+                                                RoundedCornerShape(4.dp)
+                                            )
+                                            .clickable(enabled = !isLoadingQuickSearch) {
+                                                scope.launch {
+                                                    loadingTag = tag.label
+                                                    isLoadingQuickSearch = true
+                                                    searchQuery = tag.query
+                                                    runSearch(tag.query)
+                                                    isLoadingQuickSearch = false
+                                                    loadingTag = null
+                                                }
+                                            }
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        if (isLoadingQuickSearch && tag.label == loadingTag) {
+                                            CircularProgressIndicator(
+                                                strokeWidth = 1.dp,
+                                                modifier = Modifier.size(12.dp),
+                                                color = Color.White
+                                            )
+                                        } else {
+                                            Text(
+                                                tag.label,
+                                                color = Color.LightGray,
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (isUserInLA) {
+                                val laCollections = listOf(
+                                    TagItem(
+                                        ctx.getString(R.string.la_col_date_westside_label),
+                                        ctx.getString(R.string.la_col_date_westside_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.la_col_beach_day_label),
+                                        ctx.getString(R.string.la_col_beach_day_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.la_col_studio_city_night_label),
+                                        ctx.getString(R.string.la_col_studio_city_night_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.la_col_views_griffith_hollywood_label),
+                                        ctx.getString(R.string.la_col_views_griffith_hollywood_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.la_col_weho_label),
+                                        ctx.getString(R.string.la_col_weho_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.la_col_little_tokyo_label),
+                                        ctx.getString(R.string.la_col_little_tokyo_query)
+                                    )
+                                )
+                                LazyRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    items(laCollections) { tag ->
+                                        Box(
+                                            Modifier
+                                                .padding(end = 6.dp)
+                                                .background(
+                                                    Color(0xFF121212),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .border(
+                                                    BorderStroke(1.dp, KupidxOrange),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .clickable(enabled = !isLoadingQuickSearch) {
+                                                    scope.launch {
+                                                        loadingTag = tag.label
+                                                        isLoadingQuickSearch = true
+                                                        searchQuery = tag.query
+                                                        runSearch(tag.query)
+                                                        isLoadingQuickSearch = false
+                                                        loadingTag = null
+                                                    }
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                tag.label,
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (isUserInBay) {
+                                val baCollections = listOf(
+                                    TagItem(
+                                        ctx.getString(R.string.ba_col_date_sf_label),
+                                        ctx.getString(R.string.ba_col_date_sf_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.ba_col_ocean_beach_evening_label),
+                                        ctx.getString(R.string.ba_col_ocean_beach_evening_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.ba_col_south_bay_night_label),
+                                        ctx.getString(R.string.ba_col_south_bay_night_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.ba_col_wine_day_napa_label),
+                                        ctx.getString(R.string.ba_col_wine_day_napa_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.ba_col_berkeley_vintage_label),
+                                        ctx.getString(R.string.ba_col_berkeley_vintage_query)
+                                    ),
+                                    TagItem(
+                                        ctx.getString(R.string.ba_col_marin_headlands_label),
+                                        ctx.getString(R.string.ba_col_marin_headlands_query)
+                                    )
+                                )
+                                LazyRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    items(baCollections) { tag ->
+                                        Box(
+                                            Modifier
+                                                .padding(end = 6.dp)
+                                                .background(
+                                                    Color(0xFF121212),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .border(
+                                                    BorderStroke(1.dp, KupidxOrange),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .clickable(enabled = !isLoadingQuickSearch) {
+                                                    scope.launch {
+                                                        loadingTag = tag.label
+                                                        isLoadingQuickSearch = true
+                                                        searchQuery = tag.query
+                                                        runSearch(tag.query)
+                                                        isLoadingQuickSearch = false
+                                                        loadingTag = null
+                                                    }
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                tag.label,
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ---------- MAP BOX ----------
+                            Box(Modifier.weight(1f)) {
+                                val heatProvider = remember(heatPoints.size) {
+                                    if (heatPoints.isNotEmpty()) {
+                                        HeatmapTileProvider.Builder()
+                                            .data(heatPoints)
+                                            .radius(40)
+                                            .opacity(0.65)
+                                            .build()
+                                    } else null
+                                }
+                                val heatState = rememberTileOverlayState()
+
+                                GoogleMap(
+                                    cameraPositionState = camera,
+                                    modifier = Modifier.fillMaxSize(),
+                                    properties = MapProperties(
+                                        isMyLocationEnabled = isLocationGranted,
+                                        isTrafficEnabled = isUserInLA || isUserInBay
+                                    ),
+                                    uiSettings = MapUiSettings(
+                                        zoomControlsEnabled = true,
+                                        myLocationButtonEnabled = isLocationGranted,
+                                        mapToolbarEnabled = false
+                                    )
+                                ) {
+                                    // People markers (neutral)
+                                    sortedPeople.forEach { u ->
+                                        u.latLng?.let { ll ->
+                                            Marker(
+                                                state = MarkerState(ll),
+                                                title = u.username
+                                            )
+                                        }
+                                    }
+
+                                    // Match markers (blue) — click shows profile popup
+                                    matchMarkers.forEach { m ->
+                                        Marker(
+                                            state = MarkerState(m.position),
+                                            title = m.userId,
+                                            icon = BitmapDescriptorFactory.defaultMarker(
+                                                BitmapDescriptorFactory.HUE_BLUE
+                                            ),
+                                            onClick = {
+                                                FirebaseRefs.db.getReference("users")
+                                                    .child(m.userId)
+                                                    .get().addOnSuccessListener { snap ->
+                                                        snap.getValue(Profile::class.java)
+                                                            ?.let { p ->
+                                                                if (matchUids.contains(p.userId) && p.allowLocationForMatches) {
+                                                                    selectedProfile = p
+                                                                }
+                                                            }
+                                                    }
+                                                true
+                                            }
+                                        )
+                                    }
+
+                                    // Search results markers
+                                    searchResults.forEach { p ->
+                                        Marker(
+                                            state = MarkerState(p.latLng),
+                                            title = p.name,
+                                            onClick = { selectedPlace = p; true }
+                                        )
+                                    }
+
+                                    // Heatmap overlay
+                                    heatProvider?.let {
+                                        TileOverlay(
+                                            tileProvider = it,
+                                            state = heatState
+                                        )
+                                    }
+
+                                    // Invisible cluster pins (tap → feed)
+                                    clusters.forEach { cluster ->
+                                        clusterLatLngs[cluster.placeId]?.let { latLng ->
+                                            Marker(
+                                                state = MarkerState(latLng),
+                                                icon = BitmapDescriptorFactory.defaultMarker(
+                                                    BitmapDescriptorFactory.HUE_RED
+                                                ),
+                                                alpha = 0f,
+                                                onClick = {
+                                                    navController.navigate("checkinFeed/${cluster.placeId}")
+                                                    true
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Directional arrows toward matches
+                                userLatLng?.let { me ->
+                                    DirectionalArrowsOverlay(
+                                        userLocation = me,
+                                        matchLocations = matchMarkers.map { it.position },
+                                        modifier = Modifier.fillMaxSize()
+                                    ) { loc ->
+                                        scope.launch {
+                                            camera.animate(
+                                                CameraUpdateFactory.newLatLngZoom(
+                                                    loc,
+                                                    18f
+                                                ), 500
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Place details popup
+                                selectedPlace?.let { place ->
+                                    PlaceDetailsPopup(
+                                        placeId = place.placeId,
+                                        name = place.name,
+                                        onDismiss = { selectedPlace = null },
+                                        onSendToMatch = {
+                                            placeToSend = place
+                                            showSendOverlay = true
+                                        }
+                                    )
+                                }
+
+                                // Profile popup (from match marker)
+                                selectedProfile?.let { prof ->
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = .3f)),
+                                        Alignment.Center
+                                    ) {
+                                        UserProfilePopup(
+                                            profile = prof,
+                                            onProfileClick = { navigateToProfile = it },
+                                            onCloseClick = { selectedProfile = null }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Leaderboard FAB
+                        FloatingActionButton(
+                            onClick = { showLeaderboard = true },
+                            containerColor = KupidxOrange,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 16.dp, bottom = 32.dp)
+                        ) { Icon(Icons.Outlined.Leaderboard, contentDescription = "Leaderboard") }
+
+                        // Region recenter FABs
+                        when {
+                            isUserInLA -> {
+                                FloatingActionButton(
+                                    onClick = {
+                                        scope.launch {
+                                            camera.animate(
+                                                CameraUpdateFactory.newLatLngBounds(
+                                                    GREATER_LA_BOUNDS,
+                                                    80
+                                                )
+                                            )
+                                        }
+                                    },
+                                    containerColor = Color.Black,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(start = 96.dp, bottom = 32.dp)
+                                ) {
+                                    Text(
+                                        ctx.getString(R.string.la_fab_recenter_text),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            isUserInBay -> {
+                                FloatingActionButton(
+                                    onClick = {
+                                        scope.launch {
+                                            camera.animate(
+                                                CameraUpdateFactory.newLatLngBounds(
+                                                    SF_BAY_BOUNDS,
+                                                    80
+                                                )
+                                            )
+                                        }
+                                    },
+                                    containerColor = Color.Black,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(start = 96.dp, bottom = 32.dp)
+                                ) {
+                                    Text(
+                                        ctx.getString(R.string.ba_fab_recenter_text),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        // Leaderboard overlay
+                        if (showLeaderboard) {
+                            val leaderboardEntries = remember(clusters) {
+                                clusters.sortedByDescending { it.postIds.size }
+                                    .map {
+                                        LeaderboardEntry(
+                                            it.placeId,
+                                            it.placeName,
+                                            it.postIds.size
+                                        )
+                                    }
+                            }
+                            LeaderboardOverlay(
+                                entries = leaderboardEntries,
+                                onDismiss = { showLeaderboard = false },
+                                onEntryClick = { entry ->
+                                    showLeaderboard = false
+                                    clusterLatLngs[entry.placeId]?.let { ll ->
+                                        scope.launch {
+                                            camera.animate(
+                                                CameraUpdateFactory.newLatLngZoom(
+                                                    ll,
+                                                    18f
+                                                )
+                                            )
+                                        }
+                                    }
+                                    navController.navigate("checkinFeed/${entry.placeId}")
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // global loading overlay
         if (isLoadingMatches || isLoadingSearch || isLoadingQuickSearch) {
             Box(
                 Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = .3f)),
                 Alignment.Center
-            ) {
-                CircularProgressIndicator(color = Color.White)
+            ) { CircularProgressIndicator(color = Color.White) }
+        }
+    }
+
+    // send-to-match overlay (outside of Tab when shown)
+    if (showSendOverlay) {
+        LaunchedEffect(Unit) {
+            if (matchProfiles.isEmpty()) {
+                matchUids.forEach { uid ->
+                    FirebaseRefs.db.getReference("users").child(uid).get()
+                        .addOnSuccessListener { snap ->
+                            snap.getValue(Profile::class.java)?.let { p ->
+                                matchProfiles += MatchProfile(
+                                    userId = uid,
+                                    name = p.name,
+                                    age = calculateAge(p.dob),
+                                    hometown = p.hometown,
+                                    photoUrl = p.profilepicUrl
+                                )
+                            }
+                        }
+                }
             }
+        }
+        MatchesListOverlay(
+            matches = matchProfiles,
+            onDismiss = { showSendOverlay = false },
+            onSend = { match ->
+                placeToSend?.let { pl ->
+                    val msg = "Check out this place: ${pl.name}. Directions: https://maps.google.com/?q=place_id:${pl.placeId}"
+                    val chatId = getChatId2(userId, match.userId)
+                    val ref = FirebaseRefs.db.getReference("messages/$chatId")
+                    sendMessage2(userId, match.userId, chatId, msg, ref)
+                    Toast.makeText(ctx, "Sent to ${match.name}", Toast.LENGTH_SHORT).show()
+                    showSendOverlay = false
+                    placeToSend = null
+                }
+            }
+        )
+    }
+}
+
+/* ======================================================================================= */
+/*  People grid + cards                                                                    */
+/* ======================================================================================= */
+
+@Composable
+private fun PeopleGrid(
+    users: List<NearbyUser>,
+    onClick: (NearbyUser) -> Unit,
+    useMiles: Boolean
+) {
+    if (users.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No one nearby yet", color = Color.Gray)
+        }
+        return
+    }
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 120.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        items(users, key = { it.userId }) { u ->
+            NearbyCard(user = u, onClick = { onClick(u) }, useMiles = useMiles)
+        }
+    }
+}
+
+@Composable
+private fun NearbyCard(user: NearbyUser, onClick: () -> Unit, useMiles: Boolean) {
+    val placeholder = painterResource(R.drawable.local_placeholder)
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(3f / 4f)
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = user.photoUrl,
+                placeholder = placeholder,
+                error = placeholder,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
+                            startY = 200f
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${user.username} · ${user.age}",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    if (System.currentTimeMillis() - user.lastActiveAt < TimeUnit.MINUTES.toMillis(5)) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF2ECC71)))
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = buildString {
+                        append(timeAgoShort(user.lastActiveAt))
+                        if (user.distanceMeters.isFinite()) {
+                            append(" · "); append(prettyDistance(user.distanceMeters))
+                        }
+                    },
+                    color = Color(0xFFE0E0E0),
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/* ======================================================================================= */
+/*  Mini map + full map                                                                    */
+/* ======================================================================================= */
+
+@Composable
+private fun MiniMapCard(
+    modifier: Modifier = Modifier,
+    isLocationGranted: Boolean,
+    cameraPositionState: CameraPositionState,
+    me: LatLng?,
+    markers: List<LatLng>,
+    onExpand: () -> Unit
+) {
+    Card(
+        modifier = modifier.size(width = 220.dp, height = 160.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF101010))
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            GoogleMap(
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(isMyLocationEnabled = isLocationGranted),
+                uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
+            ) {
+                me?.let { Marker(state = MarkerState(it), title = "You") }
+                markers.forEach { ll -> Marker(state = MarkerState(ll)) }
+            }
+            IconButton(onClick = onExpand, modifier = Modifier.align(Alignment.TopEnd)) {
+                Icon(Icons.Default.OpenInFull, contentDescription = "Expand map", tint = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RadiusChip(
+    radiusKm: Double,                  // keep km internally for GeoFire
+    onChange: (Double) -> Unit,        // expects km
+    modifier: Modifier = Modifier
+) {
+    val useMiles = usesMilesUnits()
+    val minKm = 1.0
+    val maxKm = 50.0
+
+    // Slider displays miles when needed but converts back to km for state
+    val sliderValue = if (useMiles) (radiusKm / KM_PER_MILE).toFloat() else radiusKm.toFloat()
+    val sliderRange = if (useMiles)
+        (minKm / KM_PER_MILE).toFloat()..(maxKm / KM_PER_MILE).toFloat()
+    else
+        minKm.toFloat()..maxKm.toFloat()
+
+    val label = if (useMiles) {
+        val mi = (radiusKm / KM_PER_MILE)
+        "${(mi * 10).roundToInt() / 10.0} mi"
+    } else {
+        "${radiusKm.roundToInt()} km"
+    }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = 3.dp,
+        shadowElevation = 3.dp,
+        border = BorderStroke(1.dp, Color(0x33FFFFFF))
+    ) {
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Radar, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text(label)
+            Spacer(Modifier.width(6.dp))
+            Slider(
+                value = sliderValue,
+                onValueChange = {
+                    val newKm = if (useMiles) it.toDouble() * KM_PER_MILE else it.toDouble()
+                    onChange(newKm.coerceIn(minKm, maxKm))
+                },
+                valueRange = sliderRange,
+                modifier = Modifier.width(120.dp)
+            )
+        }
+    }
+}
+
+/* ======================================================================================= */
+/*  Overlays & sheets (unchanged from old)                                                 */
+/* ======================================================================================= */
+
+@Composable
+fun PlaceDetailsPopup(
+    placeId: String,
+    name: String? = null,
+    onDismiss: () -> Unit,
+    onSendToMatch: () -> Unit
+) {
+    val ctx = LocalContext.current
+    var placeName by remember { mutableStateOf(name ?: "Loading...") }
+
+    LaunchedEffect(placeId) {
+        if (name == null) placeName = getPlaceNameFromPlaceId(placeId, ctx) ?: "Unknown Place"
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp)
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(Modifier.fillMaxWidth(), Arrangement.End) {
+            Icon(Icons.Default.Close, contentDescription = null, tint = Color.Gray,
+                modifier = Modifier.size(24.dp).clickable { onDismiss() })
+        }
+        Text(placeName, color = KupidxOrange)
+        Spacer(Modifier.height(8.dp))
+        Row {
+            Button(onClick = {
+                val gmm = Uri.parse("google.navigation:q=place_id:$placeId")
+                val intent = Intent(Intent.ACTION_VIEW, gmm).apply {
+                    setPackage("com.google.android.apps.maps")
+                    // addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // uncomment if ctx might not be an Activity
+                }
+                try {
+                    ctx.startActivity(intent)
+                } catch (e: Exception) {
+                    // Fallback: open without forcing the Maps package
+                    ctx.startActivity(Intent(Intent.ACTION_VIEW, gmm))
+                }
+            }) { Text("Directions") }
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = onSendToMatch) { Text("Send to Match") }
+        }
+    }
+}
+
+@Composable
+fun MatchesListOverlay(
+    matches: List<MatchProfile>,
+    onDismiss: () -> Unit,
+    onSend: (MatchProfile) -> Unit
+) {
+    var selectedMatch by remember { mutableStateOf<MatchProfile?>(null) }
+    Box(
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier.fillMaxWidth(0.9f).background(Color.White, RoundedCornerShape(12.dp)).padding(16.dp)
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Select a Match", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(Modifier.height(12.dp))
+            LazyRow {
+                items(matches) { match ->
+                    Card(
+                        modifier = Modifier.padding(8.dp).clickable { selectedMatch = match },
+                        border = if (selectedMatch?.userId == match.userId) BorderStroke(2.dp, Color.Green) else null,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(Modifier.padding(8.dp).width(200.dp), verticalAlignment = Alignment.CenterVertically) {
+                            match.photoUrl?.let { url ->
+                                Image(
+                                    painter = rememberAsyncImagePainter(model = url),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp).clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(match.name, fontWeight = FontWeight.Bold)
+                                Text("Age: ${match.age}")
+                                Text("From: ${match.hometown}")
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            if (selectedMatch != null) Button(onClick = { onSend(selectedMatch!!) }) { Text("Send") }
         }
     }
 }
@@ -819,40 +1386,21 @@ fun LeaderboardOverlay(
     onEntryClick: (LeaderboardEntry) -> Unit
 ) {
     Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f))
-            .clickable(indication = null,
-                interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Column(
-            Modifier
-                .fillMaxWidth(0.85f)
-                .fillMaxHeight(0.6f)
-                .background(Color.White, RoundedCornerShape(12.dp))
-                .padding(16.dp)
-                .clickable(indication = null,
-                    interactionSource = remember { MutableInteractionSource() }) { },
+            Modifier.fillMaxWidth(0.85f).fillMaxHeight(0.6f)
+                .background(Color.White, RoundedCornerShape(12.dp)).padding(16.dp)
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Top Places",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp))
+            Text("Top Places", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
             Divider()
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                // Use itemsIndexed so we know each entry’s position (i.e. rank)
+            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 itemsIndexed(entries) { index, entry ->
-                    // index starts at 0, so rank = index + 1
-                    LeaderboardRow(
-                        rank = index + 1,
-                        entry = entry,
-                        onClick = { onEntryClick(entry) }
-                    )
+                    LeaderboardRow(rank = index + 1, entry = entry, onClick = { onEntryClick(entry) })
                     Divider()
                 }
             }
@@ -863,58 +1411,29 @@ fun LeaderboardOverlay(
 }
 
 @Composable
-private fun LeaderboardRow(
-    rank: Int,
-    entry: LeaderboardEntry,
-    onClick: () -> Unit
-) {
+private fun LeaderboardRow(rank: Int, entry: LeaderboardEntry, onClick: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp, horizontal = 12.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1) Show the rank (e.g. “1.”)
-        Text(
-            text = "$rank.",
-            fontWeight = FontWeight.Bold,
-            // fixed width so numbers line up
-            modifier = Modifier.width(24.dp)
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // 2) Show placeName and count of posts
+        Text("$rank.", fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
+        Spacer(Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
-            // place name
-            Text(
-                text = entry.placeName,
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
-                color = KupidxOrange,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            // “12 posts” (or whatever number)
-            Text(
-                text = "${entry.checkInCount} posts",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
+            Text(entry.placeName, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = KupidxOrange, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(2.dp))
+            Text("${entry.checkInCount} posts", fontSize = 12.sp, color = Color.Gray)
         }
-
-        // (Optional) If you want a chevron icon on the right to show it’s clickable:
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = "Go to feed",
-            tint = Color.Gray
-        )
+        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Go to feed", tint = Color.Gray)
     }
 }
 
-/* Supporting Composables and Functions (unchanged unless noted) */
+/* ======================================================================================= */
+/*  Helpers & math                                                                         */
+/* ======================================================================================= */
+
+private data class CheckInCluster(val placeId: String, val placeName: String, val postIds: List<String>)
+private data class TagItem(val label: String, val query: String)
+
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun DirectionalArrowsOverlay(
@@ -946,227 +1465,115 @@ fun DirectionalArrowsOverlay(
     }
 }
 
-@Composable
-fun PlaceDetailsPopup(
-    placeId: String,
-    name: String? = null,
-    onDismiss: () -> Unit,
-    onSendToMatch: () -> Unit
-) {
-    val ctx = LocalContext.current
-    var placeName by remember { mutableStateOf(name ?: "Loading...") }
+private fun getBearing(from: LatLng, to: LatLng): Float {
+    val lat1 = Math.toRadians(from.latitude)
+    val lon1 = Math.toRadians(from.longitude)
+    val lat2 = Math.toRadians(to.latitude)
+    val lon2 = Math.toRadians(to.longitude)
+    val dLon = lon2 - lon1
+    val y = sin(dLon) * cos(lat2)
+    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+    return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
+}
 
-    LaunchedEffect(placeId) {
-        if (name == null) {
-            placeName = getPlaceNameFromPlaceId(placeId, ctx) ?: "Unknown Place"
-        }
-    }
-
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(16.dp)
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(Modifier.fillMaxWidth(), Arrangement.End) {
-            Icon(
-                Icons.Default.Close, contentDescription = null, tint = Color.Gray,
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onDismiss() }
-            )
-        }
-        Text(placeName, color = KupidxOrange)
-        Spacer(Modifier.height(8.dp))
-        Row {
-            Button(onClick = {
-                val gmm = Uri.parse("google.navigation:q=place_id:$placeId")
-                ctx.startActivity(
-                    Intent(Intent.ACTION_VIEW, gmm)
-                        .apply { setPackage("com.google.android.apps.maps") }
-                )
-            }) { Text("Directions") }
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = onSendToMatch) { Text("Send to Match") }
-        }
+private fun timeAgoShort(ts: Long): String {
+    if (ts <= 0) return "—"
+    val diff = System.currentTimeMillis() - ts
+    val m = TimeUnit.MILLISECONDS.toMinutes(diff)
+    val h = TimeUnit.MILLISECONDS.toHours(diff)
+    val d = TimeUnit.MILLISECONDS.toDays(diff)
+    return when {
+        diff < TimeUnit.MINUTES.toMillis(1) -> "now"
+        m < 60 -> "$m min"
+        h < 24 -> "$h hr"
+        d < 7 -> "$d d"
+        else -> "${d / 7} wk"
     }
 }
 
-@Composable
-fun MatchesListOverlay(
-    matches: List<MatchProfile>,
-    onDismiss: () -> Unit,
-    onSend: (MatchProfile) -> Unit
-) {
-    var selectedMatch by remember { mutableStateOf<MatchProfile?>(null) }
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f))
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth(0.9f)
-                .background(Color.White, RoundedCornerShape(12.dp))
-                .padding(16.dp)
-                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Select a Match", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(Modifier.height(12.dp))
-            LazyRow {
-                items(matches) { match ->
-                    Card(
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .clickable { selectedMatch = match },
-                        border = if (selectedMatch?.userId == match.userId) BorderStroke(2.dp, Color.Green) else null,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            Modifier
-                                .padding(8.dp)
-                                .width(200.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            match.photoUrl?.let { url ->
-                                Image(
-                                    painter = rememberAsyncImagePainter(model = url),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(match.name, fontWeight = FontWeight.Bold)
-                                Text("Age: ${match.age}")
-                                Text("From: ${match.hometown}")
-                            }
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            if (selectedMatch != null) {
-                Button(onClick = { onSend(selectedMatch!!) }) { Text("Send") }
-            }
-        }
-    }
+private fun distanceMeters(a: LatLng, b: LatLng): Double {
+    val R = 6371000.0
+    val dLat = Math.toRadians(b.latitude - a.latitude)
+    val dLon = Math.toRadians(b.longitude - a.longitude)
+    val lat1 = Math.toRadians(a.latitude)
+    val lat2 = Math.toRadians(b.latitude)
+    val sinDLat = kotlin.math.sin(dLat / 2)
+    val sinDLon = kotlin.math.sin(dLon / 2)
+    val h = sinDLat * sinDLat + kotlin.math.cos(lat1) * kotlin.math.cos(lat2) * sinDLon * sinDLon
+    return 2 * R * kotlin.math.asin(kotlin.math.min(1.0, kotlin.math.sqrt(h)))
 }
 
-@Composable
-fun UserProfilePopup(
-    profile: Profile,
-    onProfileClick: (String) -> Unit,
-    onCloseClick: () -> Unit
-) {
-    val context = LocalContext.current
-    Column(
-        Modifier
-            .background(Color.White, RoundedCornerShape(12.dp))
-            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
-            .padding(16.dp)
-            .width(260.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = null,
-                tint = Color.Gray,
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onCloseClick() }
-            )
-        }
-        val placeholder = painterResource(R.drawable.local_placeholder)
-        val url = profile.profilepicUrl
-        AsyncImage(
-            model = url.takeIf { !it.isNullOrBlank() },
-            contentDescription = null,
-            placeholder = placeholder,
-            error = placeholder,
-            modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(Modifier.height(12.dp))
-        val displayName = profile.name.ifBlank { profile.username }
-        Text(
-            text = displayName,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            color = KupidxOrange
-        )
-        Spacer(Modifier.height(6.dp))
-        RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = {
-            Log.d("MapScreen", "View Full Profile clicked for ${profile.userId}")
-            onProfileClick(profile.userId)
-        }) {
-            Text("View Full Profile")
-        }
-    }
+fun calculateAge(dob: String): Int {
+    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val birthDate = try { sdf.parse(dob) } catch (_: Exception) { return 0 }
+    val birthCalendar = Calendar.getInstance().apply { time = birthDate }
+    val today = Calendar.getInstance()
+    var age = today.get(Calendar.YEAR) - birthCalendar.get(Calendar.YEAR)
+    if (today.get(Calendar.DAY_OF_YEAR) < birthCalendar.get(Calendar.DAY_OF_YEAR)) age--
+    return age
 }
 
-@Composable
-fun RatingBar2(rating: Double, ratingCount: Int) {
-    val starSize = 25.dp
-    val fullStars = floor(rating).toInt()
-    val fraction = rating - fullStars
-    val orange = Color(0xFFFF6F00)
-    val backgroundColor = Color.White
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        repeat(fullStars) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = orange,
-                modifier = Modifier.size(starSize)
-            )
-        }
-        if (fraction > 0) {
-            Box(modifier = Modifier.size(starSize)) {
-                Icon(
-                    imageVector = Icons.Default.StarBorder,
-                    contentDescription = null,
-                    tint = orange,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = orange,
-                    modifier = Modifier.fillMaxSize()
-                )
-                val fractionUnfilled = 1 - fraction
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(starSize * fractionUnfilled.toFloat())
-                        .align(Alignment.CenterEnd)
-                        .background(backgroundColor)
+/* ======================================================================================= */
+/*  Firebase wiring                                                                        */
+/* ======================================================================================= */
+
+private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {
+    val idx = list.indexOfFirst { it.userId == item.userId }
+    if (idx >= 0) list[idx] = item else list.add(item)
+}
+
+private fun observeNearbyUsers(
+    currentUserId: String,
+    center: LatLng,
+    radiusKm: Double,
+    geoFireDatabaseRef: DatabaseReference,
+    onEnterOrMove: (NearbyUser) -> Unit,
+    onExit: (String) -> Unit
+) {
+    val geoFire = GeoFire(geoFireDatabaseRef)
+    val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(center.latitude, center.longitude), radiusKm)
+
+    fun buildUser(uid: String, loc: GeoLocation?) {
+        val usersRef = FirebaseRefs.db.getReference("users").child(uid)
+        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val p = snapshot.getValue(Profile::class.java) ?: return
+                if (uid == currentUserId) return
+
+                val username = p.username.ifBlank { p.name }
+                val age = calculateAge(p.dob)
+                val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
+                val latLng = if (loc != null) LatLng(loc.latitude, loc.longitude) else null
+                val distM = if (latLng != null) distanceMeters(center, latLng) else Double.POSITIVE_INFINITY
+
+                onEnterOrMove(
+                    NearbyUser(
+                        userId = uid,
+                        username = username,
+                        age = age,
+                        photoUrl = p.profilepicUrl,
+                        lastActiveAt = lastActive,
+                        latLng = latLng,
+                        distanceMeters = distM
+                    )
                 )
             }
-        }
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = String.format("%.2f (%d)", rating, ratingCount),
-            color = KupidxOrange,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("MapScreenV2", "User fetch cancelled $uid: ${error.message}")
+            }
+        })
     }
+
+    query.addGeoQueryEventListener(object : GeoQueryEventListener {
+        override fun onKeyEntered(key: String, location: GeoLocation) = buildUser(key, location)
+        override fun onKeyExited(key: String) = onExit(key)
+        override fun onKeyMoved(key: String, location: GeoLocation) = buildUser(key, location)
+        override fun onGeoQueryReady() {}
+        override fun onGeoQueryError(error: DatabaseError) { Log.e("MapScreenV2", "GeoQuery error: ${error.message}") }
+    })
 }
+
+/* ==== existing helpers from old file ==== */
 
 fun loadUserLocationAndMatches(
     userId: String,
@@ -1185,43 +1592,28 @@ fun loadUserLocationAndMatches(
             val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(lat, lng), 10.0)
             query.addGeoQueryEventListener(object : GeoQueryEventListener {
                 override fun onKeyEntered(key: String, location: GeoLocation) {
-                    Log.d("MapScreen", "GeoFire key entered: $key at ${location.latitude}, ${location.longitude}")
                     FirebaseRefs.db.getReference("users").child(key).get().addOnSuccessListener { snapshot ->
                         val profile = snapshot.getValue(Profile::class.java)
                         if (profile != null && matchesSet.contains(key) && profile.allowLocationForMatches) {
                             markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
-                            Log.d("MapScreen", "Added match marker for $key. Markers state size: ${markersState.size}")
                         }
                     }
                 }
-
-                override fun onKeyExited(key: String) {
-                    markersState.removeAll { it.userId == key }
-                    Log.d("MapScreen", "Key exited: $key. Markers state size: ${markersState.size}")
-                }
-
+                override fun onKeyExited(key: String) { markersState.removeAll { it.userId == key } }
                 override fun onKeyMoved(key: String, location: GeoLocation) {
                     if (matchesSet.contains(key)) {
                         markersState.replaceAll {
-                            if (it.userId == key) it.copy(position = LatLng(location.latitude, location.longitude))
-                            else it
+                            if (it.userId == key) it.copy(position = LatLng(location.latitude, location.longitude)) else it
                         }
-                        Log.d("MapScreen", "Key moved: $key to ${location.latitude}, ${location.longitude}")
                     }
                 }
-
-                override fun onGeoQueryReady() {
-                    Log.d("MapScreen", "GeoQuery ready. Markers state: ${markersState.size}")
-                }
-
+                override fun onGeoQueryReady() {}
                 override fun onGeoQueryError(error: DatabaseError) {
                     Toast.makeText(context, "GeoQuery error: ${error.message}", Toast.LENGTH_SHORT).show()
-                    Log.e("MapScreen", "GeoQuery error: ${error.message}")
                 }
             })
         } else {
             cameraPositionState.position = CameraPosition.fromLatLngZoom(LatLng(22.5726, 88.3639), 16f)
-            Log.d("MapScreen", "User location not found, using default Kolkata position")
         }
     }
 }
@@ -1249,68 +1641,100 @@ fun sendMessage2(
     messagesRef.child(messageId).setValue(message)
 }
 
-fun calculateAge(dob: String): Int {
-    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    val birthDate = try {
-        sdf.parse(dob)
-    } catch (e: Exception) {
-        return 0
-    }
-    val birthCalendar = Calendar.getInstance().apply { time = birthDate }
-    val today = Calendar.getInstance()
-    var age = today.get(Calendar.YEAR) - birthCalendar.get(Calendar.YEAR)
-    if (today.get(Calendar.DAY_OF_YEAR) < birthCalendar.get(Calendar.DAY_OF_YEAR)) {
-        age--
-    }
-    return age
-}
-
-/* data classes */
-data class MarkerData(val userId: String, val position: LatLng)
-data class MatchProfile(
-    val userId: String,
-    val name: String,
-    val age: Int,
-    val hometown: String,
-    val photoUrl: String?
-)
-
-enum class Region { LA, SF_BAY, NONE }
+/* ======================================================================================= */
+/*  Region detection & bounds (from old)                                                   */
+/* ======================================================================================= */
 
 private val LA_CITY_HALL = LatLng(34.0536909, -118.242766)
 private val SF_CITY_HALL = LatLng(37.7793, -122.4193)
 
-/** Broad Greater LA (covers Santa Monica/Malibu, Long Beach/South Bay, SFV, SGV to Pomona, Anaheim–Irvine, Thousand Oaks, Santa Clarita edge). */
 private val GREATER_LA_BOUNDS = LatLngBounds(
     LatLng(33.35, -119.10), // SW
     LatLng(34.65, -117.35)  // NE
 )
 
-/** Broad SF Bay Area (Marin + SF + Peninsula + East Bay + Napa/Sonoma fringe + South Bay). */
 private val SF_BAY_BOUNDS = LatLngBounds(
-    LatLng(36.80, -123.20), // SW (near Santa Cruz coast / offshore)
-    LatLng(38.30, -121.50)  // NE (Napa/Vallejo/Concord corridor)
+    LatLng(36.80, -123.20), // SW
+    LatLng(38.30, -121.50)  // NE
 )
 
 fun detectRegion(latLng: LatLng?): Region {
     latLng ?: return Region.NONE
     return when {
-        GREATER_LA_BOUNDS.contains(latLng) ||
-                distanceMeters(latLng, LA_CITY_HALL) <= 100_000.0 -> Region.LA
-        SF_BAY_BOUNDS.contains(latLng) ||
-                distanceMeters(latLng, SF_CITY_HALL) <= 80_000.0 -> Region.SF_BAY
+        GREATER_LA_BOUNDS.contains(latLng) || distanceMeters(latLng, LA_CITY_HALL) <= 100_000.0 -> Region.LA
+        SF_BAY_BOUNDS.contains(latLng) || distanceMeters(latLng, SF_CITY_HALL) <= 80_000.0 -> Region.SF_BAY
         else -> Region.NONE
     }
 }
 
-private fun distanceMeters(a: LatLng, b: LatLng): Double {
-    val R = 6371000.0
-    val dLat = Math.toRadians(b.latitude - a.latitude)
-    val dLon = Math.toRadians(b.longitude - a.longitude)
-    val lat1 = Math.toRadians(a.latitude)
-    val lat2 = Math.toRadians(b.latitude)
-    val sinDLat = kotlin.math.sin(dLat / 2)
-    val sinDLon = kotlin.math.sin(dLon / 2)
-    val h = sinDLat * sinDLat + kotlin.math.cos(lat1) * kotlin.math.cos(lat2) * sinDLon * sinDLon
-    return 2 * R * kotlin.math.asin(kotlin.math.min(1.0, kotlin.math.sqrt(h)))
+@Composable
+fun UserProfilePopup(
+    profile: Profile,
+    onProfileClick: (String) -> Unit,
+    onCloseClick: () -> Unit
+) {
+    Column(
+        Modifier
+            .background(Color.White, RoundedCornerShape(12.dp))
+            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+            .padding(16.dp)
+            .width(260.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = null,
+                tint = Color.Gray,
+                modifier = Modifier.size(24.dp).clickable { onCloseClick() }
+            )
+        }
+        val placeholder = painterResource(R.drawable.local_placeholder)
+        val url = profile.profilepicUrl
+        AsyncImage(
+            model = url.takeIf { !it.isNullOrBlank() },
+            contentDescription = null,
+            placeholder = placeholder,
+            error = placeholder,
+            modifier = Modifier.size(72.dp).clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(Modifier.height(12.dp))
+        val displayName = profile.name.ifBlank { profile.username }
+        Text(text = displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = KupidxOrange)
+        Spacer(Modifier.height(6.dp))
+        RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = { onProfileClick(profile.userId) }) { Text("View Full Profile") }
+    }
+}
+
+@Composable
+fun RatingBar2(rating: Double, ratingCount: Int) {
+    val starSize = 25.dp
+    val fullStars = floor(rating).toInt()
+    val fraction = rating - fullStars
+    val orange = Color(0xFFFF6F00)
+    val backgroundColor = Color.White
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        repeat(fullStars) {
+            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = orange, modifier = Modifier.size(starSize))
+        }
+        if (fraction > 0) {
+            Box(modifier = Modifier.size(starSize)) {
+                Icon(imageVector = Icons.Default.StarBorder, contentDescription = null, tint = orange, modifier = Modifier.fillMaxSize())
+                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = orange, modifier = Modifier.fillMaxSize())
+                val fractionUnfilled = 1 - fraction
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(starSize * fractionUnfilled.toFloat())
+                        .align(Alignment.CenterEnd)
+                        .background(backgroundColor)
+                )
+            }
+        }
+        Spacer(Modifier.width(4.dp))
+        Text(text = String.format("%.2f (%d)", rating, ratingCount), color = KupidxOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+    }
 }

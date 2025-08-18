@@ -406,7 +406,7 @@ fun LandingScreen(
         ) {
             Spacer(Modifier.height(12.dp))
             Image(                                   // your logo
-                painter = painterResource(R.drawable.kupidx_logo),
+                painter = painterResource(R.drawable.kupidx_logo1),
                 contentDescription = null,
                 modifier = Modifier.size(110.dp)
             )

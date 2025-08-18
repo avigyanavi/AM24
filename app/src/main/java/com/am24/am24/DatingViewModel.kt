@@ -630,6 +630,28 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
+        // Apply distance filter and populate distance map
+        val currentUserId = auth.currentUser?.uid
+        if (currentUserId != null) {
+            val distanceMap = mutableMapOf<String, Float>()
+            val filteredByDistance = mutableListOf<Profile>()
+
+            for (profile in result) {
+                val dist = distanceBetween(currentUserId, profile.userId, geoFire)
+                if (dist != null) {
+                    distanceMap[profile.userId] = dist
+                }
+                val withinRange = filters.distance == WORLDWIDE_DISTANCE ||
+                        dist == null || dist <= filters.distance.toFloat()
+                if (withinRange) {
+                    filteredByDistance.add(profile)
+                }
+            }
+
+            _userDistanceMap.value = distanceMap
+            result = filteredByDistance
+        }
+
         return@coroutineScope result
     }
 
