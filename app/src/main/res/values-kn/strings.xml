@@ -14,12 +14,16 @@
     <string name="section_bio_and_voice">ಬಯೋ</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">ನೀವು ಹೆಚ್ಚಿನವಾಗಿ %1$d ಸಾಮಾಜಿಕ ಕಾರಣಗಳನ್ನು ಮಾತ್ರ ಆಯ್ಕೆ ಮಾಡಬಹುದು.</string>
+    <string name="tab_map">Mapa</string>
 
     <string name="no_education_label">ಏನು ಓದು ಇಲ್ಲ</string>
 
     <string name="verify_email">Verify Email</string>
     <string name="resend_link">Resend link</string>
     <string name="ive_verified">I’ve verified</string>
+
+    <string name="tab_people">People</string>
+    <string name="tab_nearby">Nearby</string>
 
     <string name="total_match_label">ಒಟ್ಟು ಹೊಂದಿಕೆ: %1$d%%</string>
     <string name="running_analysis">ವಿಶ್ಲೇಷಣೆ ನಡೆಯುತ್ತಿದೆ…</string>

@@ -19,7 +19,10 @@
     <string name="max_social_causes_error">
     Solo puedes seleccionar hasta %1$d causas sociales.
     </string>
+    <string name="tab_map">Mapa</string>
 
+    <string name="tab_people">Personas</string>
+    <string name="tab_nearby">Cerca</string>
     <string name="watch_ad_boost">Ver anuncio para 1 impulso</string>
     <string name="watch_ad_compliment">Ver anuncio para 1 halago</string>
     <string name="watch_ad_swipes">Ver anuncio para 5 deslizamientos</string>

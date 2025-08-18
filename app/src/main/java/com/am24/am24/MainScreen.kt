@@ -45,7 +45,7 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
-        BottomNavItem(stringResource(R.string.map), Icons.Default.Map, "map"),
+        BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Map, "map"),
         BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.date), Icons.Default.Favorite, "dating"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),

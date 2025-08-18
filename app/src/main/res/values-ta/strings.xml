@@ -17,6 +17,10 @@
         <string name="verify_email">Verify Email</string>
         <string name="resend_link">Resend link</string>
         <string name="ive_verified">I’ve verified</string>
+        <string name="tab_map">Mapa</string>
+
+        <string name="tab_people">People</string>
+        <string name="tab_nearby">Nearby</string>
 
         <!-- General Strings -->
         <string name="max_social_causes_error">நீங்கள் %1$d சமூக காரணங்களை மட்டுமே தேர்ந்தெடுக்க முடியும்.</string>

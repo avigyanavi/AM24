@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -234,6 +235,7 @@ fun MapScreen(
     var excludedUserIds by excludedUserIdsState
     var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
     var radiusKm by remember { mutableStateOf(radiusKmDefault) }
+    var lastActiveHours by remember { mutableStateOf(24.0) }
     var selectedTab by remember { mutableStateOf(0) } // 0: People, 1: Map
     var hasShownLocationDialog by rememberSaveable { mutableStateOf(false) }
     var genderFilter by remember { mutableStateOf(GenderFilter.BOTH) }
@@ -492,13 +494,18 @@ fun MapScreen(
     }
 
     // filtering + sorting (wrapped in remember)
-    val filteredPeople by remember(people, genderFilter) {
+    val filteredPeople by remember(people, genderFilter, sortMode, lastActiveHours) {
         derivedStateOf {
-            when (genderFilter) {
+            var list = when (genderFilter) {
                 GenderFilter.BOTH -> people
                 GenderFilter.WOMEN -> people.filter { it.gender.equals("Female", true) }
                 GenderFilter.MEN -> people.filter { it.gender.equals("Male", true) }
             }
+            if (sortMode == SortMode.ACTIVE) {
+                val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
+                list = list.filter { it.lastActiveAt >= cutoff }
+            }
+            list
         }
     }
 
@@ -531,8 +538,9 @@ fun MapScreen(
 
     Scaffold(
         topBar = {
+            if (selectedTab == 0) {
             TopAppBar(
-                title = { Text("Nearby", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(R.string.tab_nearby), fontWeight = FontWeight.SemiBold) },
                 actions = {
                     FilledTonalButton(
                         onClick = { sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY },
@@ -552,6 +560,7 @@ fun MapScreen(
                 } ,
                 windowInsets = WindowInsets(0, 0, 0, 0)
             )
+                }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -574,14 +583,14 @@ fun MapScreen(
                     onClick = { selectedTab = 0 },
                     selectedContentColor = KupidxOrange,
                     unselectedContentColor = Color.Gray,
-                    text = { Text("People") }
+                    text = { Text(stringResource(R.string.tab_people)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     selectedContentColor = KupidxOrange,   // ← Map tab in orange when selected
                     unselectedContentColor = Color.Gray,
-                    text = { Text("Map") }
+                    text = { Text(stringResource(R.string.tab_map)) }
                 )
             }
 
@@ -610,14 +619,25 @@ fun MapScreen(
                                 .scale(0.9f)
                         )
 
-                        RadiusChip(
-                            radiusKm = radiusKm,
-                            onChange = { radiusKm = it },
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(8.dp)
-                                .scale(0.9f)
-                        )
+                        if (sortMode == SortMode.NEARBY) {
+                            RadiusChip(
+                                radiusKm = radiusKm,
+                                onChange = { radiusKm = it },
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(8.dp)
+                                    .scale(0.9f)
+                            )
+                        } else {
+                            LastActiveChip(
+                                hours = lastActiveHours,
+                                onChange = { lastActiveHours = it },
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(8.dp)
+                                    .scale(0.9f)
+                            )
+                        }
                     }
                 }
 
@@ -1372,6 +1392,41 @@ private fun RadiusChip(
                     onChange(newKm.coerceIn(minKm, maxKm))
                 },
                 valueRange = sliderRange,
+                modifier = Modifier.width(100.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LastActiveChip(
+    hours: Double,
+    onChange: (Double) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val minHours = 1.0
+    val maxHours = 72.0
+    val label = if (hours < 24) "${hours.roundToInt()} hr" else "${(hours / 24).roundToInt()} d"
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 3.dp,
+        shadowElevation = 3.dp,
+        border = BorderStroke(1.dp, Color(0x33FFFFFF))
+    ) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Schedule, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text(label)
+            Spacer(Modifier.width(6.dp))
+            Slider(
+                value = hours.toFloat(),
+                onValueChange = { onChange(it.toDouble().coerceIn(minHours, maxHours)) },
+                valueRange = minHours.toFloat()..maxHours.toFloat(),
                 modifier = Modifier.width(100.dp)
             )
         }

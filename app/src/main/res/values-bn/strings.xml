@@ -16,6 +16,10 @@
     <string name="feature_5_boosts">সপ্তাহে ৫টি বুস্ট</string>
     <string name="feature_performance_metrics_rank">পারফরম্যান্স মেট্রিক্স এবং প্রোফাইল অনুযায়ী র‌্যাঙ্ক আনলক করুন</string>
     <string name="feature_everything_plus">Plus-এ সবকিছু</string>
+    <string name="tab_people">People</string>
+    <string name="tab_nearby">Nearby</string>
+    <string name="tab_map">Mapa</string>
+
 
     <string name="watch_ad_boost">১টি বুস্টের জন্য বিজ্ঞাপন দেখুন</string>
     <string name="watch_ad_compliment">১টি প্রশংসার জন্য বিজ্ঞাপন দেখুন</string>

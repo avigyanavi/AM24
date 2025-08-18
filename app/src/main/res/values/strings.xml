@@ -15,7 +15,9 @@
     <string name="whats_on_your_mind">What is on your mind?</string>
     <string name="add_tags_comma_separated">Add Tags (comma separated)</string>
     <string name="add_location_optional">Add a location (optional)</string>
-
+    <string name="tab_people">People</string>
+    <string name="tab_nearby">Nearby</string>
+    <string name="tab_map">Map</string>
 
     <string name="watch_ad_boost">Watch ad for 1 Boost</string>
     <string name="watch_ad_compliment">Watch ad for 1 Compliment</string>

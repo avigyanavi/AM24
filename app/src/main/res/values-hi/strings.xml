@@ -26,6 +26,10 @@
     <string name="feature_5_boosts">साप्ताहिक 5 बूस्ट</string>
     <string name="feature_performance_metrics_rank">प्रदर्शन मीट्रिक और प्रोफ़ाइल अनुसार रैंक अनलॉक करें</string>
     <string name="feature_everything_plus">Plus में सब कुछ</string>
+    <string name="tab_map">Mapa</string>
+
+    <string name="tab_people">People</string>
+    <string name="tab_nearby">Nearby</string>
 
     <string name="watch_ad_boost">1 बूस्ट के लिए विज्ञापन देखें</string>
     <string name="watch_ad_compliment">1 प्रशंसा के लिए विज्ञापन देखें</string>
