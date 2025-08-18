@@ -549,9 +549,11 @@ fun MapScreen(
                         Spacer(Modifier.width(6.dp))
                         Text(if (sortMode == SortMode.NEARBY) "Nearby" else "Last active")
                     }
-                }
+                } ,
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(Modifier.padding(padding)) {
 
@@ -1311,14 +1313,15 @@ private fun GenderFilterChip(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Show only Women / Men chips
             listOf(
-                GenderFilter.BOTH to "Both",
                 GenderFilter.WOMEN to "Women",
-                GenderFilter.MEN to "Men"
+                GenderFilter.MEN   to "Men"
             ).forEach { (type, label) ->
                 FilterChip(
                     selected = selected == type,
-                    onClick = { onChange(type) },
+                    // tap selected chip again → clear to BOTH (i.e., show everyone)
+                    onClick = { onChange(if (selected == type) GenderFilter.BOTH else type) },
                     label = { Text(label) }
                 )
             }
