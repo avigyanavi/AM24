@@ -496,7 +496,7 @@ fun TopNavBar(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFFFF6F00),
                                 uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color.White
+                                uncheckedTrackColor = Color.Gray
                             )
                         )
                     }

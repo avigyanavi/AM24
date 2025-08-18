@@ -4,6 +4,7 @@ package com.am24.am24
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -71,6 +72,7 @@ import kotlin.math.*
 /* ——— shared helper & model from your project ——— */
 import com.am24.am24.searchPlacesRich
 import com.am24.am24.PlaceResult
+import com.google.firebase.auth.FirebaseAuth
 
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
@@ -96,6 +98,8 @@ enum class SortMode { NEARBY, ACTIVE }
 
 enum class Region { LA, SF_BAY, NONE }
 
+enum class GenderFilter { BOTH, WOMEN, MEN }
+
 data class NearbyUser(
     val userId: String,
     val username: String,
@@ -103,7 +107,8 @@ data class NearbyUser(
     val photoUrl: String?,
     val lastActiveAt: Long,
     val latLng: LatLng?,
-    val distanceMeters: Double
+    val distanceMeters: Double,
+    val gender: String
 )
 
 // Leaderboard
@@ -209,6 +214,12 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val useMiles = remember { usesMiles(ctx) } // NEW: decide unit once
+    val activity = LocalContext.current as Activity
+    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
+
+    DisposableEffect(Unit) {
+        onDispose { rewardedSwipeManager.clearCallbacks() }
+    }
 
     val isLocationGranted =
         ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
@@ -222,6 +233,23 @@ fun MapScreen(
     var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
     var radiusKm by remember { mutableStateOf(radiusKmDefault) }
     var selectedTab by remember { mutableStateOf(0) } // 0: People, 1: Map
+    var genderFilter by remember { mutableStateOf(GenderFilter.BOTH) }
+    var remainingSwipes by remember { mutableStateOf(0) }
+    var swipesLoaded by remember { mutableStateOf(false) }
+    var showSwipeLimitOverlay by remember { mutableStateOf(false) }
+    var isPlus by remember { mutableStateOf(false) }
+    var isPremium by remember { mutableStateOf(false) }
+    var isIndian by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userId) {
+        val snap = FirebaseRefs.db.getReference("users").child(userId).get().await()
+        isPlus = snap.child("isPlus").getValue(Boolean::class.java) ?: false
+        isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
+        val country = snap.child("country").getValue(String::class.java) ?: ""
+        isIndian = country.equals("India", true)
+        remainingSwipes = loadAndResetSwipesDaily(userId)
+        swipesLoaded = true
+    }
 
     /* ---------------- Matches (markers, popup) ---------------- */
     val matchMarkers = remember { mutableStateListOf<MarkerData>() }
@@ -449,12 +477,22 @@ fun MapScreen(
         }
     }
 
-    // derived sorting (wrapped in remember)
-    val sortedPeople by remember(sortMode) {
+    // filtering + sorting (wrapped in remember)
+    val filteredPeople by remember(people, genderFilter) {
+        derivedStateOf {
+            when (genderFilter) {
+                GenderFilter.BOTH -> people
+                GenderFilter.WOMEN -> people.filter { it.gender.equals("Female", true) }
+                GenderFilter.MEN -> people.filter { it.gender.equals("Male", true) }
+            }
+        }
+    }
+
+    val sortedPeople by remember(sortMode, filteredPeople) {
         derivedStateOf {
             when (sortMode) {
-                SortMode.NEARBY -> people.sortedBy { it.distanceMeters }
-                SortMode.ACTIVE -> people.sortedByDescending { it.lastActiveAt }
+                SortMode.NEARBY -> filteredPeople.sortedBy { it.distanceMeters }
+                SortMode.ACTIVE -> filteredPeople.sortedByDescending { it.lastActiveAt }
             }
         }
     }
@@ -537,8 +575,22 @@ fun MapScreen(
                     Box(Modifier.fillMaxSize()) {
                         PeopleGrid(
                             users = sortedPeople,
-                            onClick = { navController.navigate("previewUserProfile/${it.userId}") },
+                            onClick = {
+                                if (swipesLoaded && remainingSwipes <= 0) {
+                                    showSwipeLimitOverlay = true
+                                } else {
+                                    navController.navigate("previewUserProfile/${it.userId}")
+                                }
+                            },
                             useMiles = useMiles // NEW
+                        )
+
+                        GenderFilterChip(
+                            selected = genderFilter,
+                            onChange = { genderFilter = it },
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(12.dp)
                         )
 
                         RadiusChip(
@@ -1067,6 +1119,29 @@ fun MapScreen(
                 Alignment.Center
             ) { CircularProgressIndicator(color = Color.White) }
         }
+        if (showSwipeLimitOverlay) {
+            SwipeLimitOverlay(
+                remainingSwipes = remainingSwipes,
+                isPlus = isPlus,
+                isPremium = isPremium,
+                isIndian = isIndian,
+                onWatchAd = {
+                    if (isIndian) {
+                        navController.navigate("buySwipes")
+                        showSwipeLimitOverlay = false
+                    } else {
+                        rewardedSwipeManager.showWithDailyLimit(
+                            userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@SwipeLimitOverlay,
+                            onReward = {
+                                remainingSwipes += 5
+                                updateSwipesInFirebase(remainingSwipes)
+                            },
+                            afterAd = { showSwipeLimitOverlay = false }
+                        )
+                    }
+                }
+            )
+        }
     }
 
     // send-to-match overlay (outside of Tab when shown)
@@ -1202,6 +1277,38 @@ private fun NearbyCard(user: NearbyUser, onClick: () -> Unit, useMiles: Boolean)
     }
 }
 
+@Composable
+private fun GenderFilterChip(
+    selected: GenderFilter,
+    onChange: (GenderFilter) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = 3.dp,
+        shadowElevation = 3.dp,
+        border = BorderStroke(1.dp, Color(0x33FFFFFF))
+    ) {
+        Row(
+            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            listOf(
+                GenderFilter.BOTH to "Both",
+                GenderFilter.WOMEN to "Women",
+                GenderFilter.MEN to "Men"
+            ).forEach { (type, label) ->
+                FilterChip(
+                    selected = selected == type,
+                    onClick = { onChange(type) },
+                    label = { Text(label) }
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun RadiusChip(
@@ -1530,7 +1637,8 @@ private fun observeNearbyUsers(
                         photoUrl = p.profilepicUrl,
                         lastActiveAt = lastActive,
                         latLng = latLng,
-                        distanceMeters = distM
+                        distanceMeters = distM,
+                        gender = p.gender
                     )
                 )
             }
