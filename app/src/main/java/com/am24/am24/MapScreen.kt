@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.lifecycle.asFlow
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -216,6 +217,8 @@ fun MapScreen(
     /* ---------------- People / grid state ---------------- */
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
     val people = remember { mutableStateListOf<NearbyUser>() }
+    val excludedUserIdsState = remember { mutableStateOf<Set<String>>(emptySet()) }
+    var excludedUserIds by excludedUserIdsState
     var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
     var radiusKm by remember { mutableStateOf(radiusKmDefault) }
     var selectedTab by remember { mutableStateOf(0) } // 0: People, 1: Map
@@ -314,6 +317,10 @@ fun MapScreen(
     ) else emptyList()
     val quickTags = laQuickTags + bayQuickTags + baseQuickTags
 
+    // initial excludes list
+    LaunchedEffect(userId) {
+        excludedUserIdsState.value = fetchExcludedUsers(userId)
+    }
     /* ---------------- Effects ---------------- */
 
     // fetch user location + set region
@@ -362,9 +369,25 @@ fun MapScreen(
             center = me,
             radiusKm = radiusKm,
             geoFireDatabaseRef = geoFireDatabaseRef,
-            onEnterOrMove = { upsert(people, it) },
+            onEnterOrMove = { if (it.userId !in excludedUserIdsState.value) upsert(people, it) },
             onExit = { uid -> people.removeAll { it.userId == uid } }
         )
+    }
+
+    // react to new excludes coming back from PreviewUserProfile
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntry?.savedStateHandle
+            ?.getLiveData<String>("exclude_uid")
+            ?.asFlow()
+            ?.collect { uid ->
+                excludedUserIdsState.value = excludedUserIdsState.value + uid
+                people.removeAll { it.userId == uid }
+            }
+    }
+
+    // purge any newly excluded IDs from current list
+    LaunchedEffect(excludedUserIds) {
+        people.removeAll { it.userId in excludedUserIds }
     }
 
     // heatmap data
@@ -516,17 +539,6 @@ fun MapScreen(
                             users = sortedPeople,
                             onClick = { navController.navigate("previewUserProfile/${it.userId}") },
                             useMiles = useMiles // NEW
-                        )
-
-                        MiniMapCard(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(12.dp),
-                            isLocationGranted = isLocationGranted,
-                            cameraPositionState = camera,
-                            me = userLatLng,
-                            markers = sortedPeople.mapNotNull { it.latLng } + matchMarkers.map { it.position },
-                            onExpand = { selectedTab = 1 }
                         )
 
                         RadiusChip(
@@ -1190,40 +1202,6 @@ private fun NearbyCard(user: NearbyUser, onClick: () -> Unit, useMiles: Boolean)
     }
 }
 
-/* ======================================================================================= */
-/*  Mini map + full map                                                                    */
-/* ======================================================================================= */
-
-@Composable
-private fun MiniMapCard(
-    modifier: Modifier = Modifier,
-    isLocationGranted: Boolean,
-    cameraPositionState: CameraPositionState,
-    me: LatLng?,
-    markers: List<LatLng>,
-    onExpand: () -> Unit
-) {
-    Card(
-        modifier = modifier.size(width = 220.dp, height = 160.dp),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF101010))
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            GoogleMap(
-                cameraPositionState = cameraPositionState,
-                properties = MapProperties(isMyLocationEnabled = isLocationGranted),
-                uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
-            ) {
-                me?.let { Marker(state = MarkerState(it), title = "You") }
-                markers.forEach { ll -> Marker(state = MarkerState(ll)) }
-            }
-            IconButton(onClick = onExpand, modifier = Modifier.align(Alignment.TopEnd)) {
-                Icon(Icons.Default.OpenInFull, contentDescription = "Expand map", tint = Color.White)
-            }
-        }
-    }
-}
 
 @Composable
 private fun RadiusChip(

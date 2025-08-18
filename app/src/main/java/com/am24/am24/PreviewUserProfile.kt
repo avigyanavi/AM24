@@ -93,6 +93,7 @@ fun PreviewUserProfileScreen(
                         scope.launch {
                             handleSwipeLeft(currentUserId, targetUserId)
                             updateDailySwipeCount()          // helper below
+                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", targetUserId)
                             navController.popBackStack()
                         }
                     },
@@ -109,6 +110,7 @@ fun PreviewUserProfileScreen(
                         scope.launch {
                             handleSwipeRight(currentUserId, targetUserId, profileViewModel)
                             updateDailySwipeCount()
+                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", targetUserId)
                             navController.popBackStack()
 //                            navController.popBackStack("home", false)
                         }
