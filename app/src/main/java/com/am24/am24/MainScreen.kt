@@ -144,6 +144,19 @@ fun TopNavBar(
     var showLocationPrefDialog by remember { mutableStateOf(false) }
     var allowLocationForMatches by remember { mutableStateOf(false) }
 
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val mapSelectedTab by savedStateHandle?.getStateFlow("mapSelectedTab", 0)?.collectAsState()
+        ?: remember { mutableStateOf(0) }
+    val triggerLocationDialog by savedStateHandle?.getStateFlow("showLocationPrefDialog", false)
+        ?.collectAsState() ?: remember { mutableStateOf(false) }
+
+    LaunchedEffect(triggerLocationDialog) {
+        if (triggerLocationDialog) {
+            showLocationPrefDialog = true
+            savedStateHandle?.set("showLocationPrefDialog", false)
+        }
+    }
+
     /*  ─────────  STATE FOR PRICE FILTER  ────────── */
     val priceAll = stringResource(id = R.string.price_all)
     var priceMenuExpanded by rememberSaveable { mutableStateOf(false) }
@@ -164,7 +177,10 @@ fun TopNavBar(
                 isPremium.value = profile?.isPremium ?: false
                 // Fetch allowLocationForMatches
                 val savedPref = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java)
-                if (savedPref != null) {
+                if (savedPref == null) {
+                    profileRef.child("allowLocationForMatches").setValue(false)
+                    allowLocationForMatches = false
+                } else {
                     allowLocationForMatches = savedPref
                 }
             }
@@ -272,44 +288,47 @@ fun TopNavBar(
             // Location settings icon (map screen)
             if (currentRoute == "map") {
                 /* 1) Price-Filter icon (new) – shows before the old Location icon */
-                IconButton(onClick = { priceMenuExpanded = true }) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = stringResource(R.string.cd_price_filter),
-                        tint = if (selectedPriceRange != stringResource(R.string.price_all))
-                            Color(0xFFFF6F00) else Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                /* ▼ Dropdown for price tiers */
-                DropdownMenu(
-                    expanded = priceMenuExpanded,
-                    onDismissRequest = { priceMenuExpanded = false }
-                ) {
-                    val tiers = listOf(
-                        stringResource(R.string.price_all),
-                        stringResource(R.string.price_1),
-                        stringResource(R.string.price_2),
-                        stringResource(R.string.price_3),
-                        stringResource(R.string.price_4)
-                    )
-                    tiers.forEach { tier ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    tier,
-                                    color = if (tier == selectedPriceRange) Color(0xFFFF6F00) else Color.White
-                                )
-                            },
-                            onClick = {
-                                priceMenuExpanded = false
-                                if (tier != selectedPriceRange) {
-                                    selectedPriceRange = tier
-                                    onPriceChange(tier)
-                                }
-                            }
+                if (mapSelectedTab == 1) {
+                    /* 1) Price-Filter icon (new) – shows before the old Location icon */
+                    IconButton(onClick = { priceMenuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = stringResource(R.string.cd_price_filter),
+                            tint = if (selectedPriceRange != stringResource(R.string.price_all))
+                                Color(0xFFFF6F00) else Color.White,
+                            modifier = Modifier.size(24.dp)
                         )
+                    }
+
+                    /* ▼ Dropdown for price tiers */
+                    DropdownMenu(
+                        expanded = priceMenuExpanded,
+                        onDismissRequest = { priceMenuExpanded = false }
+                    ) {
+                        val tiers = listOf(
+                            stringResource(R.string.price_all),
+                            stringResource(R.string.price_1),
+                            stringResource(R.string.price_2),
+                            stringResource(R.string.price_3),
+                            stringResource(R.string.price_4)
+                        )
+                        tiers.forEach { tier ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        tier,
+                                        color = if (tier == selectedPriceRange) Color(0xFFFF6F00) else Color.White
+                                    )
+                                },
+                                onClick = {
+                                    priceMenuExpanded = false
+                                    if (tier != selectedPriceRange) {
+                                        selectedPriceRange = tier
+                                        onPriceChange(tier)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
 

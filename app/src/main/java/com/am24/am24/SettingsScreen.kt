@@ -171,7 +171,7 @@ fun SettingsScreen(navController: NavController) {
 
         isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
         preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: "en"
-        allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: true
+        allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
         isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
 
         // ── load the new fields too ──

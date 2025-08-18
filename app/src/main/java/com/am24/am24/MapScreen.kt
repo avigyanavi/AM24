@@ -33,8 +33,10 @@ import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -233,6 +235,7 @@ fun MapScreen(
     var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
     var radiusKm by remember { mutableStateOf(radiusKmDefault) }
     var selectedTab by remember { mutableStateOf(0) } // 0: People, 1: Map
+    var hasShownLocationDialog by rememberSaveable { mutableStateOf(false) }
     var genderFilter by remember { mutableStateOf(GenderFilter.BOTH) }
     var remainingSwipes by remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
@@ -240,6 +243,17 @@ fun MapScreen(
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedTab) {
+        navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasShownLocationDialog) {
+            navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
+            hasShownLocationDialog = true
+        }
+    }
 
     LaunchedEffect(userId) {
         val snap = FirebaseRefs.db.getReference("users").child(userId).get().await()
@@ -589,16 +603,18 @@ fun MapScreen(
                             selected = genderFilter,
                             onChange = { genderFilter = it },
                             modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(12.dp)
+                                .align(Alignment.BottomStart)
+                                .padding(8.dp)
+                                .scale(0.9f)
                         )
 
                         RadiusChip(
                             radiusKm = radiusKm,
                             onChange = { radiusKm = it },
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(12.dp)
+                                .align(Alignment.BottomEnd)
+                                .padding(8.dp)
+                                .scale(0.9f)
                         )
                     }
                 }
@@ -1285,14 +1301,14 @@ private fun GenderFilterChip(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         tonalElevation = 3.dp,
         shadowElevation = 3.dp,
         border = BorderStroke(1.dp, Color(0x33FFFFFF))
     ) {
         Row(
-            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             listOf(
@@ -1336,12 +1352,12 @@ private fun RadiusChip(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         tonalElevation = 3.dp,
         shadowElevation = 3.dp,
         border = BorderStroke(1.dp, Color(0x33FFFFFF))
     ) {
-        Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Radar, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text(label)
@@ -1353,7 +1369,7 @@ private fun RadiusChip(
                     onChange(newKm.coerceIn(minKm, maxKm))
                 },
                 valueRange = sliderRange,
-                modifier = Modifier.width(120.dp)
+                modifier = Modifier.width(100.dp)
             )
         }
     }
