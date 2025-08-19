@@ -293,7 +293,18 @@ fun TopNavBar(
             if (currentRoute == "map") {
                 if (mapSelectedTab == 0) {
                     val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
-                    IconButton(onClick = { orientationMenuExpanded = true }) {
+                    IconButton(onClick = {
+                        if (myProfile?.isPlus == true || myProfile?.isPremium == true) {
+                            orientationMenuExpanded = true
+                        } else {
+                            navController.navigate("subscription")
+                            Toast.makeText(
+                                context,
+                                "Upgrade to Plus to use the orientation filter",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Wc,
                             contentDescription = stringResource(R.string.sexual_orientation_label),

@@ -514,14 +514,22 @@ fun MapScreen(
     }
 
     // filtering + sorting (wrapped in remember)
-    val filteredPeople by remember(people, genderFilter, sortMode, lastActiveHours, orientationFilter) {
+    val filteredPeople by remember(
+        people,
+        genderFilter,
+        sortMode,
+        lastActiveHours,
+        orientationFilter,
+        isPlus,
+        isPremium
+    ) {
         derivedStateOf {
             var list = when (genderFilter) {
                 GenderFilter.BOTH -> people
                 GenderFilter.WOMEN -> people.filter { it.gender.equals("Female", true) }
                 GenderFilter.MEN -> people.filter { it.gender.equals("Male", true) }
             }
-            if (orientationFilter.isNotBlank()) {
+            if (orientationFilter.isNotBlank() && (isPlus || isPremium)) {
                 list = list.filter { it.sexualOrientation.equals(orientationFilter, true) }
             }
             if (sortMode == SortMode.ACTIVE) {
