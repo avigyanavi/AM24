@@ -58,6 +58,35 @@ exports.verifyPayment = functions
   }
 });
 
+exports.backfillProfilepicThumbnailUrl = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const snap = await USERS.once('value');
+      const updates = {};
+
+      snap.forEach(userSnap => {
+        const data = userSnap.val() || {};
+        if (data.profilepicUrl && data.profilepicThumbnailUrl === undefined) {
+          updates[`${userSnap.key}/profilepicThumbnailUrl`] = data.profilepicUrl;
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('No users needed back-fill.');
+      }
+
+      await USERS.update(updates);
+      res
+        .status(200)
+        .send(`Updated ${Object.keys(updates).length} user(s).`);
+    } catch (err) {
+      console.error('backfillProfilepicThumbnailUrl error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+
+
 // New: create one-time order
 exports.createOneTimeOrder = functions
   .region("asia-south1")
