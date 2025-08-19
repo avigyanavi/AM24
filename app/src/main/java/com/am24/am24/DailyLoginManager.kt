@@ -20,11 +20,24 @@ suspend fun checkDailyLoginReward(): DailyLoginInfo? {
     var streak = snap.child("loginStreak").getValue(Int::class.java) ?: 0
     val isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
     val rewardExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+    val country = snap.child("country").getValue(String::class.java)
+    val isIndian = country?.equals("India", true) == true
 
     if (rewardExpiry > 0 && rewardExpiry < now && !isPremium) {
         ref.child("loginPlusExpiry").removeValue()
         ref.child("isPlus").setValue(false)
     }
+
+    if (isIndian) {
+        ref.child("loginPlusExpiry").removeValue()
+        if (!isPremium) {
+            ref.child("isPlus").setValue(false)
+        }
+        return null
+    }
+
+    if (isPremium) return null
+
 
     if (lastLoginDay == today) return null
 

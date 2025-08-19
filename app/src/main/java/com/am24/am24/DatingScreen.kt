@@ -271,7 +271,7 @@ fun DatingScreen(
         likers = snap.children.mapNotNull { it.key }.toSet()
     }
 
-    dailyLoginInfo?.let { info ->
+    if (!isPremium && !isIndian) dailyLoginInfo?.let { info ->
         val kupidxOrange = Color(0xFFFF6F00)
         AlertDialog(
             onDismissRequest = { dailyLoginInfo = null },
