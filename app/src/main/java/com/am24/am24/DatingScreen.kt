@@ -10,6 +10,7 @@ import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 /* Material 3 (add these – they won’t clash with existing M2 widgets) */
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.DropdownMenuItem
@@ -111,6 +112,7 @@ import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
 import java.util.Calendar
@@ -1891,6 +1893,12 @@ fun DatingScreenContent(
     val myPosts = allPosts.filter { it.userId == currentProfile.userId }
     val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
 
+    val todayWeek = remember { Calendar.getInstance().get(Calendar.WEEK_OF_YEAR) }
+    var smartMatchAvailable by remember(currentUserProfile?.lastSmartMatchWeekOfYear) {
+        mutableStateOf(currentUserProfile?.lastSmartMatchWeekOfYear != todayWeek)
+    }
+    val context = LocalContext.current
+
     LaunchedEffect(currentProfile.userId) {
         snapshotFlow { currentProfile.userId }
             .filterNotNull()
@@ -1935,6 +1943,28 @@ fun DatingScreenContent(
                 onExcludeUser(currentProfile.userId)
             }
         )
+
+        if (smartMatchAvailable) {
+            Button(
+                onClick = {
+                    smartMatchAvailable = false
+                    handleSmartMatchDating(
+                        currentUserId,
+                        currentProfile,
+                        currentUserProfile,
+                        context
+                    )
+                    onExcludeUser(currentProfile.userId)
+                    onSwipeRight()
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF4500)),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Text("Smart Match", color = Color.White, fontSize = 10.sp)
+            }
+        }
     }
 }
 
@@ -3082,6 +3112,32 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
         val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
         otherUserProfileRef.setValue(currentCount + 1)
     }
+}
+private fun handleSmartMatchDating(
+    currentUserId: String,
+    otherProfile: Profile,
+    currentUserProfile: Profile?,
+    context: Context
+) {
+    val database = FirebaseRefs.db
+    val week = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR)
+    database.getReference("users/$currentUserId/lastSmartMatchWeekOfYear").setValue(week)
+    currentUserProfile?.lastSmartMatchWeekOfYear = week
+    createMatch(database, currentUserId, otherProfile.userId)
+    Toast.makeText(context, "Matched with ${otherProfile.username}!", Toast.LENGTH_SHORT).show()
+}
+
+private fun createMatch(
+    database: FirebaseDatabase,
+    currentUserId: String,
+    otherUserId: String
+) {
+    val ts = System.currentTimeMillis()
+    val updates = mapOf(
+        "matches/$currentUserId/$otherUserId" to ts,
+        "matches/$otherUserId/$currentUserId" to ts
+    )
+    database.reference.updateChildren(updates)
 }
 
 private fun incrementMatchStats(userId: String) {
