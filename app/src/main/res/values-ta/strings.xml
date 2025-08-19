@@ -13,32 +13,32 @@
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
         <string name="languages">மொழிகள்</string>
         <string name="section_bio_and_voice">சுயவிவரம்</string>
-        <string name="advanced_compatibility">Compatibilidad avanzada</string>
+        <string name="tab_people">மக்கள்</string>
+        <string name="tab_nearby">அருகில்</string>
+        <string name="tab_map">வரைபடம்</string>
 
-        <string name="daily_login_title">Inicio de sesión diario</string>
-        <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
-        <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
-        <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
-        <string name="sexual_orientation_label">Orientación sexual</string>
-        <string name="kinks_label">Fetiches</string>
+        <string name="daily_login_title">தினசரி உள்நுழைவு</string>
+        <string name="daily_login_message">நீங்கள் தொடர்ச்சியாக %1$d நாட்கள் உள்நுழைந்துள்ளீர்கள்</string>
+        <string name="daily_login_plus_award">Plus %1$d மணி நேரங்களுக்கு அன்லாக் செய்யப்பட்டது</string>
+        <string name="settings_streak_line">உள்நுழைவு தொடர்ச்சி: %1$d நாட்கள் • %2$s</string>
+        <string name="sexual_orientation_label">பாலியல் நோக்கம்</string>
+        <string name="kinks_label">கிங்க்ஸ் (ஃபெட்டிஷ்)</string>
+
+        <string name="advanced_compatibility">மேம்பட்ட பொருந்துதன்மை</string>
 
         <string-array name="sexual_orientation_options">
-                <item>Heterosexual</item>
-                <item>Gay</item>
-                <item>Lesbiana</item>
-                <item>Bisexual</item>
-                <item>Pansexual</item>
-                <item>Asexual</item>
-                <item>Queer</item>
+                <item>எதிர்பாலர் ஈர்ப்பு</item>
+                <item>கே</item>
+                <item>லெஸ்பியன்</item>
+                <item>இருபாலின ஈர்ப்பு</item>
+                <item>பான்செக்ஷுவல்</item>
+                <item>அசெக்ஷுவல்</item>
+                <item>க்வியர்</item>
         </string-array>
 
         <string name="verify_email">Verify Email</string>
         <string name="resend_link">Resend link</string>
         <string name="ive_verified">I’ve verified</string>
-        <string name="tab_map">Mapa</string>
-
-        <string name="tab_people">People</string>
-        <string name="tab_nearby">Nearby</string>
 
         <!-- General Strings -->
         <string name="max_social_causes_error">நீங்கள் %1$d சமூக காரணங்களை மட்டுமே தேர்ந்தெடுக்க முடியும்.</string>

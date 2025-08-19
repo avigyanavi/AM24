@@ -16,28 +16,28 @@
         <string name="max_social_causes_error">
         మీరు గరిష్ఠంగా %1$d సామాజిక కారణాలను మాత్రమే ఎంచుకోవచ్చు.
     </string>
-    <string name="sexual_orientation_label">Orientación sexual</string>
-    <string name="kinks_label">Fetiches</string>
-    <string name="advanced_compatibility">Compatibilidad avanzada</string>
+    <string name="tab_people">వ్యక్తులు</string>
+    <string name="tab_nearby">దగ్గరలో</string>
+    <string name="tab_map">మ్యాప్</string>
+
+    <string name="daily_login_title">దినసరి లాగిన్</string>
+    <string name="daily_login_message">మీరు వరుసగా %1$d రోజులు లాగిన్ చేశారు</string>
+    <string name="daily_login_plus_award">Plus %1$d గంటల పాటు అన్‌లాక్ అయింది</string>
+    <string name="settings_streak_line">లాగిన్ స్ట్రీక్: %1$d రోజులు • %2$s</string>
+    <string name="sexual_orientation_label">లైంగిక అభిముఖత</string>
+    <string name="kinks_label">కింక్స్ (ఫెటిష్‌లు)</string>
+
+    <string name="advanced_compatibility">అధునాతన అనుకూలత</string>
 
     <string-array name="sexual_orientation_options">
-        <item>Heterosexual</item>
-        <item>Gay</item>
-        <item>Lesbiana</item>
-        <item>Bisexual</item>
-        <item>Pansexual</item>
-        <item>Asexual</item>
-        <item>Queer</item>
+        <item>హెటెరోసెక్సువల్</item>
+        <item>గే</item>
+        <item>లెస్బియన్</item>
+        <item>ద్విలింగి (బై)</item>
+        <item>పాన్‌సెక్సువల్</item>
+        <item>అలైంగిక</item>
+        <item>క్వీర్</item>
     </string-array>
-    <string name="daily_login_title">Inicio de sesión diario</string>
-    <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
-    <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
-    <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
-
-
-    <string name="tab_people">People</string>
-    <string name="tab_nearby">Nearby</string>
-    <string name="tab_map">Mapa</string>
 
 
     <string name="verify_email">Verify Email</string>

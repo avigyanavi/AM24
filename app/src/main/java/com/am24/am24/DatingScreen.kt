@@ -1935,6 +1935,7 @@ fun DatingScreenContent(
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
+    val isPremiumUser = currentUserProfile?.isPremium == true || currentUserProfile?.isPlus == true
     val currentProfile = profiles[currentIndex]
     val isBoostedProfile = boostedUsers.any { it.userId == currentProfile.userId }
     val datingViewModel: DatingViewModel = viewModel()   // ← add this line
@@ -1996,26 +1997,27 @@ fun DatingScreenContent(
                 onExcludeUser(currentProfile.userId)
             }
         )
-
-        if (smartMatchAvailable) {
-            Button(
-                onClick = {
-                    smartMatchAvailable = false
-                    handleSmartMatchDating(
-                        currentUserId,
-                        currentProfile,
-                        currentUserProfile,
-                        context
-                    )
-                    onExcludeUser(currentProfile.userId)
-                    onSwipeRight()
-                },
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF4500)),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-            ) {
-                Text("Smart Match", color = Color.White, fontSize = 10.sp)
+        if (isPremiumUser) {
+            if (smartMatchAvailable) {
+                Button(
+                    onClick = {
+                        smartMatchAvailable = false
+                        handleSmartMatchDating(
+                            currentUserId,
+                            currentProfile,
+                            currentUserProfile,
+                            context
+                        )
+                        onExcludeUser(currentProfile.userId)
+                        onSwipeRight()
+                    },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF4500)),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Text("Smart Match", color = Color.White, fontSize = 10.sp)
+                }
             }
         }
     }

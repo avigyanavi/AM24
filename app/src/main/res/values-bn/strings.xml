@@ -16,27 +16,27 @@
     <string name="feature_5_boosts">সপ্তাহে ৫টি বুস্ট</string>
     <string name="feature_performance_metrics_rank">পারফরম্যান্স মেট্রিক্স এবং প্রোফাইল অনুযায়ী র‌্যাঙ্ক আনলক করুন</string>
     <string name="feature_everything_plus">Plus-এ সবকিছু</string>
-    <string name="tab_people">People</string>
-    <string name="tab_nearby">Nearby</string>
-    <string name="tab_map">Mapa</string>
+    <string name="tab_people">মানুষ</string>
+    <string name="tab_nearby">নিকটবর্তী</string>
+    <string name="tab_map">মানচিত্র</string>
 
-    <string name="daily_login_title">Inicio de sesión diario</string>
-    <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
-    <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
-    <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
-    <string name="sexual_orientation_label">Orientación sexual</string>
-    <string name="kinks_label">Fetiches</string>
+    <string name="daily_login_title">দৈনিক লগইন</string>
+    <string name="daily_login_message">আপনি টানা %1$d দিন লগইন করেছেন</string>
+    <string name="daily_login_plus_award">Plus %1$d ঘণ্টার জন্য আনলক হয়েছে</string>
+    <string name="settings_streak_line">লগইন স্ট্রিক: %1$d দিন • %2$s</string>
+    <string name="sexual_orientation_label">যৌন অভিমুখতা</string>
+    <string name="kinks_label">কিঙ্কস (ফেটিশ)</string>
 
-    <string name="advanced_compatibility">Compatibilidad avanzada</string>
+    <string name="advanced_compatibility">উন্নত সামঞ্জস্যতা</string>
 
     <string-array name="sexual_orientation_options">
-        <item>Heterosexual</item>
-        <item>Gay</item>
-        <item>Lesbiana</item>
-        <item>Bisexual</item>
-        <item>Pansexual</item>
-        <item>Asexual</item>
-        <item>Queer</item>
+        <item>বিপরীতকামী</item>
+        <item>গে</item>
+        <item>লেসবিয়ান</item>
+        <item>উভকামী</item>
+        <item>প্যানসেক্সুয়াল</item>
+        <item>অযৌন</item>
+        <item>কুইয়ার</item>
     </string-array>
 
     <string name="watch_ad_boost">১টি বুস্টের জন্য বিজ্ঞাপন দেখুন</string>

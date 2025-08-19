@@ -26,29 +26,28 @@
     <string name="feature_5_boosts">साप्ताहिक 5 बूस्ट</string>
     <string name="feature_performance_metrics_rank">प्रदर्शन मीट्रिक और प्रोफ़ाइल अनुसार रैंक अनलॉक करें</string>
     <string name="feature_everything_plus">Plus में सब कुछ</string>
-    <string name="tab_map">Mapa</string>
+    <string name="tab_people">लोग</string>
+    <string name="tab_nearby">पास में</string>
+    <string name="tab_map">मानचित्र</string>
 
-    <string name="advanced_compatibility">Compatibilidad avanzada</string>
+    <string name="daily_login_title">दैनिक लॉगिन</string>
+    <string name="daily_login_message">आपने लगातार %1$d दिन लॉगिन किया है</string>
+    <string name="daily_login_plus_award">Plus %1$d घंटे के लिए अनलॉक हुआ</string>
+    <string name="settings_streak_line">लॉगिन स्ट्रीक: %1$d दिन • %2$s</string>
+    <string name="sexual_orientation_label">यौन अभिविन्यास</string>
+    <string name="kinks_label">किंक्स (फेटिश)</string>
 
-    <string name="daily_login_title">Inicio de sesión diario</string>
-    <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
-    <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
-    <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
-    <string name="sexual_orientation_label">Orientación sexual</string>
-    <string name="kinks_label">Fetiches</string>
+    <string name="advanced_compatibility">उन्नत अनुकूलता</string>
 
     <string-array name="sexual_orientation_options">
-        <item>Heterosexual</item>
-        <item>Gay</item>
-        <item>Lesbiana</item>
-        <item>Bisexual</item>
-        <item>Pansexual</item>
-        <item>Asexual</item>
-        <item>Queer</item>
+        <item>विषमलैंगिक</item>
+        <item>गे</item>
+        <item>लेस्बियन</item>
+        <item>उभयलिंगी</item>
+        <item>पैनसेक्शुअल</item>
+        <item>अयौन</item>
+        <item>क्वीयर</item>
     </string-array>
-
-    <string name="tab_people">People</string>
-    <string name="tab_nearby">Nearby</string>
 
     <string name="watch_ad_boost">1 बूस्ट के लिए विज्ञापन देखें</string>
     <string name="watch_ad_compliment">1 प्रशंसा के लिए विज्ञापन देखें</string>

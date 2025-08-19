@@ -531,7 +531,9 @@ fun SettingsScreen(navController: NavController) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
                 )
             }
         }
@@ -1007,10 +1009,14 @@ private fun GlobalPrefCard(
     onMatrimonyChange: (Boolean) -> Unit
 ) {
     val ctx = LocalContext.current
-    val isIndia = CountryUtil.isProbablyInIndia(ctx)
     val langs = listOf(
         "English" to "en",
-        "Español" to "es"
+        "Español" to "es",
+        "हिन्दी" to "hi",
+        "বাংলা" to "bn",
+        "தமிழ்" to "ta",
+        "తెలుగు" to "te",
+        "ಕನ್ನಡ" to "kn"
     )
     var exp by remember { mutableStateOf(false) }
 
@@ -1046,7 +1052,6 @@ private fun GlobalPrefCard(
         Divider(Modifier.padding(start = 56.dp))
 
         /* language */
-        if (!isIndia) {
             Box {
                 Row(
                     Modifier
@@ -1076,8 +1081,8 @@ private fun GlobalPrefCard(
                     }
                 }
             }
-            Divider(Modifier.padding(start = 56.dp))
-        }
+        Divider(Modifier.padding(start = 56.dp))
+
 
         /* location */
         Row(

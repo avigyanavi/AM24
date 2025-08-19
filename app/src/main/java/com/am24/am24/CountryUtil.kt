@@ -44,9 +44,11 @@ object CountryUtil {
      * If the device locale suggests India but the user has selected a
      * different country during registration, prefer PayPal instead.
      */
+    @Suppress("UNUSED_PARAMETER")
     fun useRazorpay(ctx: Context, selectedCountry: String?): Boolean {
-        val deviceIndia = isProbablyInIndia(ctx)
-        if (!deviceIndia) return false
-        return selectedCountry?.equals("India", ignoreCase = true) ?: true
+//        val deviceIndia = isProbablyInIndia(ctx)
+//        if (!deviceIndia) return false
+//        return selectedCountry?.equals("India", ignoreCase = true) ?: true
+        return false
     }
 }
