@@ -271,19 +271,18 @@ fun DatingScreen(
     }
 
     dailyLoginInfo?.let { info ->
+        val kupidxOrange = Color(0xFFFF6F00)
         AlertDialog(
             onDismissRequest = { dailyLoginInfo = null },
             confirmButton = {
-                TextButton(onClick = { dailyLoginInfo = null }) { Text("OK") }
+                TextButton(onClick = { dailyLoginInfo = null }) { Text("OK", color = kupidxOrange) }
             },
             title = { Text(stringResource(R.string.daily_login_title)) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(
                         horizontalArrangement = Arrangement.SpaceEvenly,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         for (i in 1..5) {
                             val checked = i <= info.streak
@@ -294,6 +293,7 @@ fun DatingScreen(
                             )
                         }
                     }
+                    Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.daily_login_message, info.streak))
                     if (info.rewardHours > 0) {
                         Spacer(Modifier.height(4.dp))
@@ -303,6 +303,7 @@ fun DatingScreen(
             }
         )
     }
+
 
     // —— see which Profile objects are being dropped ————————————————
     val excludedProfiles = filteredProfiles.filter { it.userId in excludedUserIds }
