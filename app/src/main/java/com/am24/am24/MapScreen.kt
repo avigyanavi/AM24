@@ -5,6 +5,7 @@ package com.am24.am24
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -127,6 +128,8 @@ data class LeaderboardEntry(
 /* ======================================================================================= */
 
 private val latLngCache = mutableMapOf<String, LatLng?>()
+private var hasShownLocationDialogThisSession = false
+
 
 suspend fun getLatLngFromPlaceId(placeId: String, context: android.content.Context): LatLng? {
     latLngCache[placeId]?.let { return it }
@@ -215,6 +218,7 @@ fun MapScreen(
     radiusKmDefault: Double = 10.0
 ) {
     val ctx = LocalContext.current
+    val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val useMiles = remember { usesMiles(ctx) } // NEW: decide unit once
@@ -234,12 +238,24 @@ fun MapScreen(
     val people = remember { mutableStateListOf<NearbyUser>() }
     val excludedUserIdsState = remember { mutableStateOf<Set<String>>(emptySet()) }
     var excludedUserIds by excludedUserIdsState
-    var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
-    var radiusKm by remember { mutableStateOf(radiusKmDefault) }
-    var lastActiveHours by remember { mutableStateOf(24.0) }
-    var selectedTab by remember { mutableStateOf(0) } // 0: People, 1: Map
-    var hasShownLocationDialog by rememberSaveable { mutableStateOf(false) }
-    var genderFilter by remember { mutableStateOf(GenderFilter.BOTH) }
+    var sortMode by rememberSaveable {
+        mutableStateOf(
+            prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
+        )
+    }
+    var radiusKm by rememberSaveable {
+        mutableStateOf(prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble())
+    }
+    var lastActiveHours by rememberSaveable {
+        mutableStateOf(prefs.getFloat("map_last_active_hours", 24f).toDouble())
+    }
+    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Map
+    var genderFilter by rememberSaveable {
+        mutableStateOf(
+            prefs.getString("map_gender_filter", null)?.let { GenderFilter.valueOf(it) }
+                ?: GenderFilter.BOTH
+        )
+    }
     var remainingSwipes by remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
@@ -255,9 +271,9 @@ fun MapScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (!hasShownLocationDialog) {
+        if (!hasShownLocationDialogThisSession) {
             navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
-            hasShownLocationDialog = true
+            hasShownLocationDialogThisSession = true
         }
     }
 
@@ -550,7 +566,10 @@ fun MapScreen(
                 title = { Text(stringResource(R.string.tab_nearby), fontWeight = FontWeight.SemiBold) },
                 actions = {
                     FilledTonalButton(
-                        onClick = { sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY },
+                        onClick = {
+                            sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
+                            prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                        },
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = KupidxOrange.copy(alpha = 0.20f),
                             contentColor = KupidxOrange
@@ -619,7 +638,10 @@ fun MapScreen(
 
                         GenderFilterChip(
                             selected = genderFilter,
-                            onChange = { genderFilter = it },
+                            onChange = {
+                                genderFilter = it
+                                prefs.edit().putString("map_gender_filter", it.name).apply()
+                            },
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(8.dp)
@@ -629,7 +651,10 @@ fun MapScreen(
                         if (sortMode == SortMode.NEARBY) {
                             RadiusChip(
                                 radiusKm = radiusKm,
-                                onChange = { radiusKm = it },
+                                onChange = {
+                                    radiusKm = it
+                                    prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
+                                },
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
                                     .padding(8.dp)
@@ -638,7 +663,10 @@ fun MapScreen(
                         } else {
                             LastActiveChip(
                                 hours = lastActiveHours,
-                                onChange = { lastActiveHours = it },
+                                onChange = {
+                                    lastActiveHours = it
+                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
+                                },
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
                                     .padding(8.dp)
