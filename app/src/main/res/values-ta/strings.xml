@@ -14,6 +14,12 @@
         <string name="languages">மொழிகள்</string>
         <string name="section_bio_and_voice">சுயவிவரம்</string>
 
+        <string name="daily_login_title">Inicio de sesión diario</string>
+        <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
+        <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
+        <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
+
+
         <string name="verify_email">Verify Email</string>
         <string name="resend_link">Resend link</string>
         <string name="ive_verified">I’ve verified</string>

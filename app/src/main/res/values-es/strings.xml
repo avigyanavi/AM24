@@ -21,6 +21,12 @@
     </string>
     <string name="tab_map">Mapa</string>
 
+    <string name="daily_login_title">Inicio de sesión diario</string>
+    <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
+    <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
+    <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
+
+
     <string name="tab_people">Personas</string>
     <string name="tab_nearby">Cerca</string>
     <string name="watch_ad_boost">Ver anuncio para 1 impulso</string>

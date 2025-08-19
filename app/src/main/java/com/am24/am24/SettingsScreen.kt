@@ -110,7 +110,8 @@ fun SettingsScreen(navController: NavController) {
     var swipes by remember { mutableStateOf(0) }
     var compliments by remember { mutableStateOf(0) }
     var aiMessages    by remember { mutableStateOf(0) }       // ★ NEW ★
-
+    var loginStreak   by remember { mutableStateOf(0) }
+    var loginPlusExpiry by remember { mutableStateOf(0L) }
     var isPrivate by remember { mutableStateOf(false) }
     var preferredLang by remember { mutableStateOf("en") }
     var allowLoc by remember { mutableStateOf(true) }
@@ -179,6 +180,9 @@ fun SettingsScreen(navController: NavController) {
         city     = s.child("city").getValue(String::class.java) ?: ""
         locality = s.child("hometown").getValue(String::class.java) ?: ""
 
+        loginStreak = s.child("loginStreak").getValue(Int::class.java) ?: 0
+        loginPlusExpiry = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+
         blocksRef.get().addOnSuccessListener { snap ->
             blocked = snap.children.mapNotNull { it.key }
         }
@@ -192,6 +196,21 @@ fun SettingsScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item {
+                val now = System.currentTimeMillis()
+                val plusText = if (loginPlusExpiry > now)
+                    "Plus ${(loginPlusExpiry - now) / 3600000}h left"
+                else
+                    "No Plus"
+                Text(
+                    stringResource(R.string.settings_streak_line, loginStreak, plusText),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             item {
                 if (premiumTier != "Free") {
                     SettingsSection {

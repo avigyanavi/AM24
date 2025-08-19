@@ -18,6 +18,11 @@
     <string name="tab_people">People</string>
     <string name="tab_nearby">Nearby</string>
     <string name="tab_map">Map</string>
+    <string name="daily_login_title">Daily login</string>
+    <string name="daily_login_message">Logged in %1$d days in a row</string>
+    <string name="daily_login_plus_award">Plus unlocked for %1$d hours</string>
+    <string name="settings_streak_line">Login streak: %1$d days • %2$s</string>
+
 
     <string name="watch_ad_boost">Watch ad for 1 Boost</string>
     <string name="watch_ad_compliment">Watch ad for 1 Compliment</string>

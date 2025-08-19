@@ -19,7 +19,8 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme     as M3Theme
-
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 /* Icons */
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
@@ -180,6 +181,7 @@ fun DatingScreen(
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
     val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
     var likers by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var dailyLoginInfo by remember { mutableStateOf<DailyLoginInfo?>(null) }
 
     // 1) watch for “are we still on the Dating route?”
     val backstackEntry by navController.currentBackStackEntryAsState()
@@ -193,6 +195,7 @@ fun DatingScreen(
     LaunchedEffect(Unit) {
         profileViewModel.fetchCurrentUserProfile()
         datingViewModel.startInventoryWatcher(myUid)        // NEW  ←───────────────★
+        dailyLoginInfo = checkDailyLoginReward()
     }
 
     // ── StateFlows ────────────────────────────────────────────────────
@@ -265,6 +268,40 @@ fun DatingScreen(
             .get()
             .await()
         likers = snap.children.mapNotNull { it.key }.toSet()
+    }
+
+    dailyLoginInfo?.let { info ->
+        AlertDialog(
+            onDismissRequest = { dailyLoginInfo = null },
+            confirmButton = {
+                TextButton(onClick = { dailyLoginInfo = null }) { Text("OK") }
+            },
+            title = { Text(stringResource(R.string.daily_login_title)) },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        for (i in 1..5) {
+                            val checked = i <= info.streak
+                            Icon(
+                                imageVector = if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                contentDescription = null,
+                                tint = if (checked) Color(0xFF4CAF50) else MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                    Text(stringResource(R.string.daily_login_message, info.streak))
+                    if (info.rewardHours > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(stringResource(R.string.daily_login_plus_award, info.rewardHours))
+                    }
+                }
+            }
+        )
     }
 
     // —— see which Profile objects are being dropped ————————————————

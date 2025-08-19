@@ -20,6 +20,11 @@
     <string name="tab_nearby">Nearby</string>
     <string name="tab_map">Mapa</string>
 
+    <string name="daily_login_title">Inicio de sesión diario</string>
+    <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
+    <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
+    <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
+
 
     <string name="watch_ad_boost">১টি বুস্টের জন্য বিজ্ঞাপন দেখুন</string>
     <string name="watch_ad_compliment">১টি প্রশংসার জন্য বিজ্ঞাপন দেখুন</string>

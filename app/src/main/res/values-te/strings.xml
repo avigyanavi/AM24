@@ -17,6 +17,12 @@
         మీరు గరిష్ఠంగా %1$d సామాజిక కారణాలను మాత్రమే ఎంచుకోవచ్చు.
     </string>
 
+    <string name="daily_login_title">Inicio de sesión diario</string>
+    <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
+    <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
+    <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
+
+
     <string name="tab_people">People</string>
     <string name="tab_nearby">Nearby</string>
     <string name="tab_map">Mapa</string>
