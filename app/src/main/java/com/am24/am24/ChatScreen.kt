@@ -804,56 +804,60 @@ fun ChatScreenContent(
                                     .size(40.dp)
                                     .clip(CircleShape)
                             )
-                        } else if (otherUserProfile?.profilepicUrl?.isNotBlank() == true) {
-                            val placeholder = painterResource(R.drawable.local_placeholder)
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(otherUserProfile!!.profilepicUrl)
-                                    .diskCacheKey(otherUserProfile!!.profilepicUrl)
-                                    .memoryCacheKey(otherUserProfile!!.profilepicUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile",
-                                placeholder = placeholder,
-                                error = placeholder,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray),
-                                contentScale = ContentScale.Crop
-                            )
-                            if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
-                                Icon(
-                                    Icons.Default.Block,
-                                    contentDescription = null,
-                                    tint = Color.Red,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterVertically)      // RowScope.align – vertical only
-                                        .offset(x = (-6).dp, y = (-10).dp)
-                                        .size(14.dp)
-                                        .pointerInput(Unit) { /* consume nothing */ }
-                                )
-                            }
                         } else {
-                            otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
-                            AIOrProfileImage(
-                                profile = otherUserProfile ?: Profile(userId = "", username = "", name = ""),
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray)
-                            )
-                            if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
-                                Icon(
-                                    Icons.Default.Block,
-                                    contentDescription = null,
-                                    tint = Color.Red,
+                            val url = otherUserProfile?.profilepicThumbnailUrl ?: otherUserProfile?.profilepicUrl
+                            if (url?.isNotBlank() == true) {
+                                val placeholder = painterResource(R.drawable.local_placeholder)
+                                val pathKey = Uri.parse(url).path
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(url)
+                                        .diskCacheKey(pathKey)
+                                        .memoryCacheKey(pathKey)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Profile",
+                                    placeholder = placeholder,
+                                    error = placeholder,
                                     modifier = Modifier
-                                        .align(Alignment.CenterVertically)      // RowScope.align – vertical only
-                                        .offset(x = (-6).dp, y = (-10).dp)
-                                        .size(14.dp)
-                                        .pointerInput(Unit) { /* consume nothing */ }
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Gray),
+                                    contentScale = ContentScale.Crop
                                 )
+                                if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
+                                    Icon(
+                                        Icons.Default.Block,
+                                        contentDescription = null,
+                                        tint = Color.Red,
+                                        modifier = Modifier
+                                            .align(Alignment.CenterVertically)      // RowScope.align – vertical only
+                                            .offset(x = (-6).dp, y = (-10).dp)
+                                            .size(14.dp)
+                                            .pointerInput(Unit) { /* consume nothing */ }
+                                    )
+                                }
+                            } else {
+                                otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
+                                AIOrProfileImage(
+                                    profile = otherUserProfile ?: Profile(userId = "", username = "", name = ""),
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Gray)
+                                )
+                                if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
+                                    Icon(
+                                        Icons.Default.Block,
+                                        contentDescription = null,
+                                        tint = Color.Red,
+                                        modifier = Modifier
+                                            .align(Alignment.CenterVertically)      // RowScope.align – vertical only
+                                            .offset(x = (-6).dp, y = (-10).dp)
+                                            .size(14.dp)
+                                            .pointerInput(Unit) { /* consume nothing */ }
+                                    )
+                                }
                             }
                         }
                         Spacer(Modifier.width(8.dp))
@@ -2481,12 +2485,14 @@ fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit, modifier: Modifier
 fun AIOrProfileImage(profile: Profile, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val placeholder = painterResource(R.drawable.local_placeholder)
-    profile.profilepicUrl?.takeIf { it.isNotBlank() }?.let { url ->
+    val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
+    url?.takeIf { it.isNotBlank() }?.let {
+        val pathKey = Uri.parse(it).path
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(url)
-                .diskCacheKey(url)
-                .memoryCacheKey(url)
+                .data(it)
+                .diskCacheKey(pathKey)
+                .memoryCacheKey(pathKey)
                 .crossfade(true)
                 .build(),
             contentDescription = profile.username,

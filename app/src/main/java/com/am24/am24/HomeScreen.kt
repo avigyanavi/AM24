@@ -72,6 +72,7 @@ import java.util.UUID
 import kotlin.math.roundToInt
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.request.ImageRequest
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -664,8 +665,20 @@ fun FeedItem(
                 ) {
                     // User profile picture
                     val placeholder = painterResource(R.drawable.local_placeholder)
+                    val context = LocalContext.current
+                    val model = userProfile?.let { profile ->
+                        val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
+                        url?.let {
+                            val pathKey = Uri.parse(it).path
+                            ImageRequest.Builder(context)
+                                .data(it)
+                                .diskCacheKey(pathKey)
+                                .memoryCacheKey(pathKey)
+                                .build()
+                        }
+                    }
                     AsyncImage(
-                        model = userProfile?.profilepicUrl.takeIf { !it.isNullOrBlank() },
+                        model = model,
                         contentDescription = "Profile Picture",
                         placeholder = placeholder,
                         error = placeholder,

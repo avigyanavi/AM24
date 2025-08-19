@@ -3,6 +3,7 @@
 package com.am24.am24
 
 import android.app.Activity
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -196,6 +197,7 @@ fun DMScreenContent(navController: NavController) {
     val matchedUsers = remember { mutableStateListOf<Profile>() }
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
+    val prefetchedUrls = remember { mutableStateSetOf<String>() }
     // — new: grab your blocks
     val blockedRef = database.getReference("blocks/$currentUserId")
     val blockedIds = remember { mutableStateListOf<String>() }
@@ -262,14 +264,18 @@ fun DMScreenContent(navController: NavController) {
             }
 
             matchedUsers.forEach { profile ->
-                profile.profilepicUrl?.let { url ->
-                    val request = ImageRequest.Builder(context)
-                        .data(url)
-                        .diskCacheKey(url)
-                        .memoryCacheKey(url)
-                        .crossfade(true)
-                        .build()
-                    context.imageLoader.enqueue(request)
+                val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
+                url?.let {
+                    if (prefetchedUrls.add(it)) {
+                        val pathKey = Uri.parse(it).path
+                        val request = ImageRequest.Builder(context)
+                            .data(it)
+                            .diskCacheKey(pathKey)
+                            .memoryCacheKey(pathKey)
+                            .crossfade(true)
+                            .build()
+                        context.imageLoader.enqueue(request)
+                    }
                 }
             }
 
@@ -1037,7 +1043,7 @@ private fun fetchUsersFromNode(
             Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
         }
     }
-    ref.addValueEventListener(listener)
+    ref.addListenerForSingleValueEvent(listener)
     return listener
 }
 

@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.launch
@@ -204,9 +206,21 @@ fun PeopleWhoLikeMeScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val placeholder = painterResource(R.drawable.local_placeholder)
+                                val context = LocalContext.current
+                                val model = run {
+                                    val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
+                                    url?.let {
+                                        val pathKey = Uri.parse(it).path
+                                        ImageRequest.Builder(context)
+                                            .data(it)
+                                            .diskCacheKey(pathKey)
+                                            .memoryCacheKey(pathKey)
+                                            .build()
+                                    }
+                                }
                                 // Profile Picture
                                 AsyncImage(
-                                    model = profile.profilepicUrl.takeIf { !it.isNullOrBlank() },
+                                    model = model,
                                     contentDescription = "Profile Picture",
                                     placeholder = placeholder,
                                     error = placeholder,
