@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -149,6 +150,8 @@ fun TopNavBar(
         ?: remember { mutableStateOf(0) }
     val triggerLocationDialog by savedStateHandle?.getStateFlow("showLocationPrefDialog", false)
         ?.collectAsState() ?: remember { mutableStateOf(false) }
+    val orientationFilter by savedStateHandle?.getStateFlow("mapOrientationFilter", "")?.collectAsState()
+        ?: remember { mutableStateOf("") }
 
     LaunchedEffect(triggerLocationDialog) {
         if (triggerLocationDialog) {
@@ -161,6 +164,7 @@ fun TopNavBar(
     val priceAll = stringResource(id = R.string.price_all)
     var priceMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedPriceRange by rememberSaveable { mutableStateOf(priceAll) }
+    var orientationMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     val myProfile by profileViewModel.currentUserProfile.collectAsState()
     LaunchedEffect(Unit) { profileViewModel.fetchCurrentUserProfile() }
@@ -287,6 +291,43 @@ fun TopNavBar(
 
             // Location settings icon (map screen)
             if (currentRoute == "map") {
+                if (mapSelectedTab == 0) {
+                    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
+                    IconButton(onClick = { orientationMenuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Wc,
+                            contentDescription = stringResource(R.string.sexual_orientation_label),
+                            tint = if (orientationFilter.isNotBlank()) Color(0xFFFF6F00) else Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = orientationMenuExpanded,
+                        onDismissRequest = { orientationMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.price_all)) },
+                            onClick = {
+                                orientationMenuExpanded = false
+                                savedStateHandle?.set("mapOrientationFilter", "")
+                            }
+                        )
+                        orientationOptions.forEach { opt ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        opt,
+                                        color = if (opt == orientationFilter) Color(0xFFFF6F00) else Color.White
+                                    )
+                                },
+                                onClick = {
+                                    orientationMenuExpanded = false
+                                    savedStateHandle?.set("mapOrientationFilter", opt)
+                                }
+                            )
+                        }
+                    }
+                }
                 /* 1) Price-Filter icon (new) – shows before the old Location icon */
                 if (mapSelectedTab == 1) {
                     /* 1) Price-Filter icon (new) – shows before the old Location icon */

@@ -111,7 +111,8 @@ data class NearbyUser(
     val lastActiveAt: Long,
     val latLng: LatLng?,
     val distanceMeters: Double,
-    val gender: String
+    val gender: String,
+    val sexualOrientation: String
 )
 
 // Leaderboard
@@ -245,6 +246,9 @@ fun MapScreen(
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
+    val orientationFilter by navController.currentBackStackEntry?.savedStateHandle
+        ?.getStateFlow("mapOrientationFilter", "")?.collectAsState()
+        ?: remember { mutableStateOf("") }
 
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
@@ -494,12 +498,15 @@ fun MapScreen(
     }
 
     // filtering + sorting (wrapped in remember)
-    val filteredPeople by remember(people, genderFilter, sortMode, lastActiveHours) {
+    val filteredPeople by remember(people, genderFilter, sortMode, lastActiveHours, orientationFilter) {
         derivedStateOf {
             var list = when (genderFilter) {
                 GenderFilter.BOTH -> people
                 GenderFilter.WOMEN -> people.filter { it.gender.equals("Female", true) }
                 GenderFilter.MEN -> people.filter { it.gender.equals("Male", true) }
+            }
+            if (orientationFilter.isNotBlank()) {
+                list = list.filter { it.sexualOrientation.equals(orientationFilter, true) }
             }
             if (sortMode == SortMode.ACTIVE) {
                 val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
@@ -1712,7 +1719,8 @@ private fun observeNearbyUsers(
                         lastActiveAt = lastActive,
                         latLng = latLng,
                         distanceMeters = distM,
-                        gender = p.gender
+                        gender = p.gender,
+                        sexualOrientation = p.sexualOrientation
                     )
                 )
             }
