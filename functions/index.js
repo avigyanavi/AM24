@@ -86,6 +86,47 @@ exports.backfillProfilepicThumbnailUrl = functions
     }
   });
 
+exports.backfillOrientationAndKinks = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const snap = await USERS.once('value');
+      const updates = {};
+
+      snap.forEach(userSnap => {
+        const data = userSnap.val() || {};
+        const gender = (data.gender || '').toLowerCase();
+        const interestedIn = (data.interestedIn || []).map(s => (s || '').toLowerCase());
+
+        if (!data.sexualOrientation) {
+          const men = interestedIn.includes('men');
+          const women = interestedIn.includes('women');
+          let orientation = '';
+          if (men && women) orientation = 'Bisexual';
+          else if (gender === 'male' && women) orientation = 'Straight';
+          else if (gender === 'female' && men) orientation = 'Straight';
+          else if (men) orientation = gender === 'male' ? 'Gay' : '';
+          else if (women) orientation = gender === 'female' ? 'Lesbian' : '';
+          if (orientation) updates[`${userSnap.key}/sexualOrientation`] = orientation;
+        }
+        if (data.kinks === undefined) {
+          updates[`${userSnap.key}/kinks`] = [];
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('No users needed back-fill.');
+      }
+
+      await USERS.update(updates);
+      res
+        .status(200)
+        .send(`Updated ${Object.keys(updates).length} user(s).`);
+    } catch (err) {
+      console.error('backfillOrientationAndKinks error:', err);
+      res.status(500).send(err.message);
+    }
+  });
 
 // New: create one-time order
 exports.createOneTimeOrder = functions

@@ -630,6 +630,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
+        // Apply sexual orientation filter
+        if (filters.sexualOrientation.isNotBlank()) {
+            result = result.filter { profile ->
+                profile.sexualOrientation.equals(filters.sexualOrientation, ignoreCase = true)
+            }
+        }
+
         // Apply distance filter and populate distance map
         val currentUserId = auth.currentUser?.uid
         if (currentUserId != null) {

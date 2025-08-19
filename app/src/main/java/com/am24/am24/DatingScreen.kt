@@ -103,6 +103,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -476,6 +477,8 @@ fun DatingScreen(
                 },
                 selectedGenders    = filters.gender.split(",").toSet(),
                 onGenderChange     = { datingViewModel.updateDatingFilters(filters.copy(gender = it.joinToString(","))) },
+                selectedOrientation = filters.sexualOrientation,
+                onOrientationChange = { datingViewModel.updateDatingFilters(filters.copy(sexualOrientation = it)) },
                 selectedCommunity  = filters.community,
                 onCommunityChange  = { datingViewModel.updateDatingFilters(filters.copy(community = it)) },
                 selectedReligion   = filters.religion,
@@ -970,6 +973,8 @@ fun FiltersOverlay(
     onDistanceChange: (Int) -> Unit,
     selectedGenders: Set<String>,
     onGenderChange: (Set<String>) -> Unit,
+    selectedOrientation: String,
+    onOrientationChange: (String) -> Unit,
     selectedCommunity: String,
     onCommunityChange: (String) -> Unit,
     selectedReligion: String,
@@ -1362,6 +1367,16 @@ fun FiltersOverlay(
                 /* ─── PREFERENCES Filters ───────────────────────────────── */
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Sexual orientation filter
+                    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
+                    DropdownFilter(
+                        label = stringResource(R.string.sexual_orientation_label),
+                        options = orientationOptions,
+                        selectedOption = selectedOrientation,
+                        onOptionChange = onOrientationChange
+                    )
+
                     Spacer(modifier = Modifier.height(8.dp))
                     if (isIndian) {
                         Row(
@@ -2397,7 +2412,12 @@ fun PhotoWithTwoOverlays(
                         4 -> lifestyleTexts2
                         else -> emptyList()
                     }
-                    overlayStrings.filter { it.isNotBlank() }.forEach { TagBox(it) }
+                    val tags = overlayStrings.filter { it.isNotBlank() }
+                    if (tags.isEmpty()) {
+                        profile.kinks.forEach { TagBox(it) }
+                    } else {
+                        tags.forEach { TagBox(it) }
+                    }
                 }
             }
 

@@ -45,6 +45,7 @@ data class DatingFilterSettings(
     val ageEnd: Int = 100,
     val distance: Int = 100,
     val gender: String = "",
+    val sexualOrientation: String = "",
     val minRating:   Float  = 0f,   //  0  = ignore filter
     val maxRanking:  Int    = 0,    //  0  = ignore filter
     val community: String = "",
