@@ -24,6 +24,9 @@
     <string name="settings_streak_line">ಲಾಗಿನ್ ಸ್ಟ್ರೀಕ್: %1$d ದಿನಗಳು • %2$s</string>
     <string name="sexual_orientation_label">ಲೈಂಗಿಕ ಅಭಿಮುಖತೆ</string>
     <string name="kinks_label">ಕಿಂಕ್ಸ್ (ಫೆಟಿಷ್)</string>
+    <string name="shared_kinks_prefix">ಹಂಚಿದ ಕಿಂಕ್ಸ್: %1$s</string>
+    <string name="no_common_kinks">ಸಾಮಾನ್ಯ ಕಿಂಕ್ಸ್ ಯಾವುದೂ ಇಲ್ಲ</string>
+    <string name="kinks_not_set">ಕಿಂಕ್ಸ್: ಇಬ್ಬರೂ ಸೆಟ್ ಮಾಡಿಲ್ಲ</string>
 
     <string name="advanced_compatibility">ಮುನ್ನತ ಹೊಂದಾಣಿಕೆ</string>
 

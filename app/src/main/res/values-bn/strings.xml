@@ -26,6 +26,9 @@
     <string name="settings_streak_line">লগইন স্ট্রিক: %1$d দিন • %2$s</string>
     <string name="sexual_orientation_label">যৌন অভিমুখতা</string>
     <string name="kinks_label">কিঙ্কস (ফেটিশ)</string>
+    <string name="shared_kinks_prefix">শেয়ার করা কিঙ্কস: %1$s</string>
+    <string name="no_common_kinks">মিল থাকা কোনো কিঙ্কস নেই</string>
+    <string name="kinks_not_set">কিঙ্কস: দুজনই সেট করেননি</string>
 
     <string name="advanced_compatibility">উন্নত সামঞ্জস্যতা</string>
 

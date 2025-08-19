@@ -3286,6 +3286,8 @@ fun calculateExhaustiveCompatibilityScore(
     var score    = 0.0
     var possible = 0.0
     val insights = mutableListOf<MatchInsight>()
+    var kinkScore = 0.0
+    var kinkWeight = 0.0
 
     fun compareStringField(a: String?, b: String?, label: String, pts: Double) {
         val aTrim = a.orEmpty().trim()
@@ -3325,6 +3327,21 @@ fun calculateExhaustiveCompatibilityScore(
         )
     } else insights += MatchInsight("ℹ️", context.getString(R.string.age_not_set), false)
 
+    val kinksA = profileA.kinks.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+    val kinksB = profileB.kinks.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+    if (kinksA.isNotEmpty() && kinksB.isNotEmpty()) {
+        kinkWeight = 0.25
+        val shared = kinksA intersect kinksB
+        val union = kinksA union kinksB
+        kinkScore = if (union.isNotEmpty()) (shared.size.toDouble() / union.size.toDouble()) * 100.0 else 0.0
+        if (shared.isNotEmpty()) {
+            insights += MatchInsight("✅", context.getString(R.string.shared_kinks_prefix, shared.joinToString()), true)
+        } else {
+            insights += MatchInsight("⚠️", context.getString(R.string.no_common_kinks), false)
+        }
+    } else {
+        insights += MatchInsight("ℹ️", context.getString(R.string.kinks_not_set), false)
+    }
     // ───── Lifestyle Compatibility ─────
     val (lifeScore, lifeCount, lifeCommonKeys) = lifestyleCompatibilityMetrics(profileA.lifestyle, profileB.lifestyle)
     if (lifeCount > 0) {
@@ -3493,8 +3510,9 @@ fun calculateExhaustiveCompatibilityScore(
     // target user's overall composite score for better weighting.
     // base: score achieved vs total possible (0–100)
     val base = if (possible == 0.0) 0.0 else (score / possible) * 100.0
+    val combinedBase = base * (1 - kinkWeight) + kinkScore * kinkWeight
     val targetCompositePct = profileB.compositeScorePct
-    val blended = ((2 * base) + targetCompositePct) / 3.0
+    val blended = ((2 * combinedBase) + targetCompositePct) / 3.0
     val finalScore = blended.roundToInt().coerceIn(0, 100)
     return finalScore to insights
 }

@@ -36,6 +36,9 @@
     <string name="settings_streak_line">लॉगिन स्ट्रीक: %1$d दिन • %2$s</string>
     <string name="sexual_orientation_label">यौन अभिविन्यास</string>
     <string name="kinks_label">किंक्स (फेटिश)</string>
+    <string name="shared_kinks_prefix">साझा किंक्स: %1$s</string>
+    <string name="no_common_kinks">कोई साझा किंक्स नहीं</string>
+    <string name="kinks_not_set">किंक्स: दोनों ने सेट नहीं किए</string>
 
     <string name="advanced_compatibility">उन्नत अनुकूलता</string>
 

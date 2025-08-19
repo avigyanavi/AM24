@@ -26,6 +26,9 @@
     <string name="settings_streak_line">లాగిన్ స్ట్రీక్: %1$d రోజులు • %2$s</string>
     <string name="sexual_orientation_label">లైంగిక అభిముఖత</string>
     <string name="kinks_label">కింక్స్ (ఫెటిష్‌లు)</string>
+    <string name="shared_kinks_prefix">పంచుకున్న కింక్స్: %1$s</string>
+    <string name="no_common_kinks">సామ్యమైన కింక్స్ లేవు</string>
+    <string name="kinks_not_set">కింక్స్: ఇద్దరూ సెట్ చేయలేదు</string>
 
     <string name="advanced_compatibility">అధునాతన అనుకూలత</string>
 

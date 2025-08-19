@@ -1496,7 +1496,9 @@
     <string name="password_label">Password</string>
     <string name="confirm_password_label">Confirm Password</string>
     <string name="password_mismatch_error">Passwords do not match</string>
-
+    <string name="shared_kinks_prefix">Shared kinks: %1$s</string>
+    <string name="no_common_kinks">No common kinks</string>
+    <string name="kinks_not_set">Kinks: not set by both</string>
     <string name="or_click_date_to_refresh">
   Or click refresh!
 </string>

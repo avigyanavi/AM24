@@ -1396,6 +1396,9 @@
     <string name="percentage">%d%%</string>
     <string name="city">Ciudad</string>
     <string name="locality">Localidad</string>
+    <string name="shared_kinks_prefix">Fetiches compartidos: %1$s</string>
+    <string name="no_common_kinks">Sin fetiches en común</string>
+    <string name="kinks_not_set">Fetiches: no configurados por ambos</string>
 
     <!-- Dating screen filters -->
     <string name="filters">Filtros</string>

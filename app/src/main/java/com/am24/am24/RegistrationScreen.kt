@@ -865,196 +865,196 @@ fun EnterLifestyleScreen(
                                 stringResource(R.string.very_active)
                             )
                         )
+
+
+                        // 2. Adventurousness
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_adventurousness),
+                            value = registrationViewModel.lifestyle.adventurousness,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(adventurousness = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.cautious),
+                                stringResource(R.string.slightly_adventurous),
+                                stringResource(R.string.moderately_adventurous),
+                                stringResource(R.string.adventurous),
+                                stringResource(R.string.thrill_seeker)
+                            )
+                        )
+
+
+                        // 3. Intellectual Curiosity
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_intellectual_curiosity),
+                            value = registrationViewModel.lifestyle.intellectual_curiosity,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(intellectual_curiosity = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.casual_thinker),
+                                stringResource(R.string.inquisitive),
+                                stringResource(R.string.knowledge_seeker),
+                                stringResource(R.string.intellectual),
+                                stringResource(R.string.philosopher)
+                            )
+                        )
+
+
+                        // 4. Smoking Habit
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_smoking),
+                            value = registrationViewModel.lifestyle.smoking_habit,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(smoking_habit = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.non_smoker),
+                                stringResource(R.string.rare_smoker),
+                                stringResource(R.string.social_smoker),
+                                stringResource(R.string.frequent_smoker),
+                                stringResource(R.string.heavy_smoker)
+                            )
+                        )
+
+
+                        // 5. Drinking Habit
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_drinking),
+                            value = registrationViewModel.lifestyle.drinking_habit,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(drinking_habit = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.non_drinker),
+                                stringResource(R.string.rare_drinker),
+                                stringResource(R.string.social_drinker),
+                                stringResource(R.string.frequent_drinker),
+                                stringResource(R.string.heavy_drinker)
+                            )
+                        )
+
+
+                        // 6. Work–Life Balance
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_work_life_balance),
+                            value = registrationViewModel.lifestyle.work_life_balance,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(work_life_balance = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.workaholic),
+                                stringResource(R.string.more_work_oriented),
+                                stringResource(R.string.balanced),
+                                stringResource(R.string.more_life_oriented),
+                                stringResource(R.string.relaxed)
+                            )
+                        )
+
+
+                        // 7. Sleep Pattern
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_sleep),
+                            value = registrationViewModel.lifestyle.sleep_pattern,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(sleep_pattern = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.early_riser),
+                                stringResource(R.string.morning_person),
+                                stringResource(R.string.balanced),
+                                stringResource(R.string.night_owl),
+                                stringResource(R.string.late_night_enthusiast)
+                            )
+                        )
+
+
+                        // 8. Creative Expression
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_creative_expression),
+                            value = registrationViewModel.lifestyle.creative_expression,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(creative_expression = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.not_creative),
+                                stringResource(R.string.somewhat_creative),
+                                stringResource(R.string.creative),
+                                stringResource(R.string.very_creative),
+                                stringResource(R.string.artistic_genius)
+                            )
+                        )
+
+
+                        // 9. Physical Fitness
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_physical_fitness),
+                            value = registrationViewModel.lifestyle.physical_fitness,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(physical_fitness = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.sedentary),
+                                stringResource(R.string.somewhat_fit),
+                                stringResource(R.string.fit),
+                                stringResource(R.string.athletic),
+                                stringResource(R.string.peak_fitness)
+                            )
+                        )
+
+
+                        // 10. Professional Ambition
+
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_professional_ambition),
+                            value = registrationViewModel.lifestyle.professional_ambition,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(professional_ambition = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.relaxed),
+                                stringResource(R.string.occasionally_driven),
+                                stringResource(R.string.balanced),
+                                stringResource(R.string.ambitious),
+                                stringResource(R.string.high_ambitious)
+                            )
+                        )
                     }
-
-
-                    // 2. Adventurousness
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_adventurousness),
-                        value = registrationViewModel.lifestyle.adventurousness,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(adventurousness = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.cautious),
-                            stringResource(R.string.slightly_adventurous),
-                            stringResource(R.string.moderately_adventurous),
-                            stringResource(R.string.adventurous),
-                            stringResource(R.string.thrill_seeker)
-                        )
-                    )
-
-
-                    // 3. Intellectual Curiosity
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_intellectual_curiosity),
-                        value = registrationViewModel.lifestyle.intellectual_curiosity,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(intellectual_curiosity = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.casual_thinker),
-                            stringResource(R.string.inquisitive),
-                            stringResource(R.string.knowledge_seeker),
-                            stringResource(R.string.intellectual),
-                            stringResource(R.string.philosopher)
-                        )
-                    )
-
-
-                    // 4. Smoking Habit
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_smoking),
-                        value = registrationViewModel.lifestyle.smoking_habit,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(smoking_habit = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.non_smoker),
-                            stringResource(R.string.rare_smoker),
-                            stringResource(R.string.social_smoker),
-                            stringResource(R.string.frequent_smoker),
-                            stringResource(R.string.heavy_smoker)
-                        )
-                    )
-
-
-                    // 5. Drinking Habit
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_drinking),
-                        value = registrationViewModel.lifestyle.drinking_habit,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(drinking_habit = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.non_drinker),
-                            stringResource(R.string.rare_drinker),
-                            stringResource(R.string.social_drinker),
-                            stringResource(R.string.frequent_drinker),
-                            stringResource(R.string.heavy_drinker)
-                        )
-                    )
-
-
-                    // 6. Work–Life Balance
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_work_life_balance),
-                        value = registrationViewModel.lifestyle.work_life_balance,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(work_life_balance = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.workaholic),
-                            stringResource(R.string.more_work_oriented),
-                            stringResource(R.string.balanced),
-                            stringResource(R.string.more_life_oriented),
-                            stringResource(R.string.relaxed)
-                        )
-                    )
-
-
-                    // 7. Sleep Pattern
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_sleep),
-                        value = registrationViewModel.lifestyle.sleep_pattern,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(sleep_pattern = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.early_riser),
-                            stringResource(R.string.morning_person),
-                            stringResource(R.string.balanced),
-                            stringResource(R.string.night_owl),
-                            stringResource(R.string.late_night_enthusiast)
-                        )
-                    )
-
-
-                    // 8. Creative Expression
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_creative_expression),
-                        value = registrationViewModel.lifestyle.creative_expression,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(creative_expression = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.not_creative),
-                            stringResource(R.string.somewhat_creative),
-                            stringResource(R.string.creative),
-                            stringResource(R.string.very_creative),
-                            stringResource(R.string.artistic_genius)
-                        )
-                    )
-
-
-                    // 9. Physical Fitness
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_physical_fitness),
-                        value = registrationViewModel.lifestyle.physical_fitness,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(physical_fitness = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.sedentary),
-                            stringResource(R.string.somewhat_fit),
-                            stringResource(R.string.fit),
-                            stringResource(R.string.athletic),
-                            stringResource(R.string.peak_fitness)
-                        )
-                    )
-
-
-                    // 10. Professional Ambition
-
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_professional_ambition),
-                        value = registrationViewModel.lifestyle.professional_ambition,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle =
-                                registrationViewModel.lifestyle.copy(professional_ambition = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.relaxed),
-                            stringResource(R.string.occasionally_driven),
-                            stringResource(R.string.balanced),
-                            stringResource(R.string.ambitious),
-                            stringResource(R.string.high_ambitious)
-                        )
-                    )
                 }
 
 //                item {

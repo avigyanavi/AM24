@@ -23,6 +23,9 @@
         <string name="settings_streak_line">உள்நுழைவு தொடர்ச்சி: %1$d நாட்கள் • %2$s</string>
         <string name="sexual_orientation_label">பாலியல் நோக்கம்</string>
         <string name="kinks_label">கிங்க்ஸ் (ஃபெட்டிஷ்)</string>
+        <string name="shared_kinks_prefix">பகிரப்பட்ட கிங்க்ஸ்: %1$s</string>
+        <string name="no_common_kinks">பொதுவான கிங்க்ஸ் இல்லை</string>
+        <string name="kinks_not_set">கிங்க்ஸ்: இருவரும் அமைக்கவில்லை</string>
 
         <string name="advanced_compatibility">மேம்பட்ட பொருந்துதன்மை</string>
 
