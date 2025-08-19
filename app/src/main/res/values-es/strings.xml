@@ -38,6 +38,9 @@
         <item>Queer</item>
     </string-array>
 
+    <string name="advanced_compatibility">Compatibilidad avanzada</string>
+
+
     <string name="tab_people">Personas</string>
     <string name="tab_nearby">Cerca</string>
     <string name="watch_ad_boost">Ver anuncio para 1 impulso</string>

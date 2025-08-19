@@ -27,6 +27,8 @@
     <string name="sexual_orientation_label">Orientación sexual</string>
     <string name="kinks_label">Fetiches</string>
 
+    <string name="advanced_compatibility">Compatibilidad avanzada</string>
+
     <string-array name="sexual_orientation_options">
         <item>Heterosexual</item>
         <item>Gay</item>

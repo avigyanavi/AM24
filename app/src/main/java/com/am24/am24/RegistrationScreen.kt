@@ -20,6 +20,8 @@ import android.graphics.BitmapFactory
 import android.location.Geocoder
 import android.media.MediaPlayer
 import android.os.Bundle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -783,6 +785,46 @@ private fun createFreshAccount(
 //        }
 //    )
 //}
+
+@Composable
+fun RegistrationAccordion(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(2.dp, Color(0xFFFF6F00), RoundedCornerShape(10.dp))
+            .background(Color(0xFF1A1A1A))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = Color.White
+            )
+        }
+        if (expanded) {
+            Divider(color = Color(0xFFFF6F00))
+            Column(modifier = Modifier.padding(12.dp)) {
+                content()
+            }
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterLifestyleScreen(
@@ -792,43 +834,50 @@ fun EnterLifestyleScreen(
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
     Scaffold(
         content = { innerPadding ->
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xFF1A1A1A))
                     .padding(innerPadding)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 1. Exercise Frequency
-                item {
-                    LifestyleSlider(
-                        label = stringResource(R.string.lifestyle_exercise),
-                        value = registrationViewModel.lifestyle.exercise_frequency,
-                        valueRangeStart = 0,
-                        valueRangeEnd = 4,
-                        onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(exercise_frequency = it)
-                        },
-                        nouns = listOf(
-                            stringResource(R.string.inactive),
-                            stringResource(R.string.rarely_active),
-                            stringResource(R.string.moderately_active),
-                            stringResource(R.string.active),
-                            stringResource(R.string.very_active)
+                RegistrationAccordion(title = stringResource(R.string.section_lifestyle_attributes)) {
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        LifestyleSlider(
+                            label = stringResource(R.string.lifestyle_exercise),
+                            value = registrationViewModel.lifestyle.exercise_frequency,
+                            valueRangeStart = 0,
+                            valueRangeEnd = 4,
+                            onValueChange = {
+                                registrationViewModel.lifestyle =
+                                    registrationViewModel.lifestyle.copy(exercise_frequency = it)
+                            },
+                            nouns = listOf(
+                                stringResource(R.string.inactive),
+                                stringResource(R.string.rarely_active),
+                                stringResource(R.string.moderately_active),
+                                stringResource(R.string.active),
+                                stringResource(R.string.very_active)
+                            )
                         )
-                    )
-                }
+                    }
 
-                // 2. Adventurousness
-                item {
+
+                    // 2. Adventurousness
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_adventurousness),
                         value = registrationViewModel.lifestyle.adventurousness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(adventurousness = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(adventurousness = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.cautious),
@@ -838,17 +887,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.thrill_seeker)
                         )
                     )
-                }
 
-                // 3. Intellectual Curiosity
-                item {
+
+                    // 3. Intellectual Curiosity
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_intellectual_curiosity),
                         value = registrationViewModel.lifestyle.intellectual_curiosity,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(intellectual_curiosity = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(intellectual_curiosity = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.casual_thinker),
@@ -858,17 +908,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.philosopher)
                         )
                     )
-                }
 
-                // 4. Smoking Habit
-                item {
+
+                    // 4. Smoking Habit
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_smoking),
                         value = registrationViewModel.lifestyle.smoking_habit,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(smoking_habit = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(smoking_habit = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.non_smoker),
@@ -878,17 +929,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.heavy_smoker)
                         )
                     )
-                }
 
-                // 5. Drinking Habit
-                item {
+
+                    // 5. Drinking Habit
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_drinking),
                         value = registrationViewModel.lifestyle.drinking_habit,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(drinking_habit = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(drinking_habit = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.non_drinker),
@@ -898,17 +950,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.heavy_drinker)
                         )
                     )
-                }
 
-                // 6. Work–Life Balance
-                item {
+
+                    // 6. Work–Life Balance
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_work_life_balance),
                         value = registrationViewModel.lifestyle.work_life_balance,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(work_life_balance = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(work_life_balance = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.workaholic),
@@ -918,17 +971,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.relaxed)
                         )
                     )
-                }
 
-                // 7. Sleep Pattern
-                item {
+
+                    // 7. Sleep Pattern
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_sleep),
                         value = registrationViewModel.lifestyle.sleep_pattern,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(sleep_pattern = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(sleep_pattern = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.early_riser),
@@ -938,17 +992,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.late_night_enthusiast)
                         )
                     )
-                }
 
-                // 8. Creative Expression
-                item {
+
+                    // 8. Creative Expression
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_creative_expression),
                         value = registrationViewModel.lifestyle.creative_expression,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(creative_expression = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(creative_expression = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.not_creative),
@@ -958,17 +1013,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.artistic_genius)
                         )
                     )
-                }
 
-                // 9. Physical Fitness
-                item {
+
+                    // 9. Physical Fitness
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_physical_fitness),
                         value = registrationViewModel.lifestyle.physical_fitness,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(physical_fitness = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(physical_fitness = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.sedentary),
@@ -978,17 +1034,18 @@ fun EnterLifestyleScreen(
                             stringResource(R.string.peak_fitness)
                         )
                     )
-                }
 
-                // 10. Professional Ambition
-                item {
+
+                    // 10. Professional Ambition
+
                     LifestyleSlider(
                         label = stringResource(R.string.lifestyle_professional_ambition),
                         value = registrationViewModel.lifestyle.professional_ambition,
                         valueRangeStart = 0,
                         valueRangeEnd = 4,
                         onValueChange = {
-                            registrationViewModel.lifestyle = registrationViewModel.lifestyle.copy(professional_ambition = it)
+                            registrationViewModel.lifestyle =
+                                registrationViewModel.lifestyle.copy(professional_ambition = it)
                         },
                         nouns = listOf(
                             stringResource(R.string.relaxed),
@@ -4016,63 +4073,67 @@ fun EnterInterestsScreen(
                 .fillMaxSize()
                 .background(Color(0xFF1A1A1A))
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 32.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
-            categorized.forEach { (header, list) ->
-                /* section header */
-                Text(
-                    text = header,
-                    color = Color(0xFFFF6000),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(4.dp))
-
-                /* interests inside the section */
-                list.forEach { interest ->
-                    val isSelected = registrationViewModel.interests.contains(interest)
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (isSelected) {
-                                    registrationViewModel.interests.remove(interest)
-                                } else if (registrationViewModel.interests.size < maxInterests) {
-                                    registrationViewModel.interests.add(interest)
-                                }
-                            }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = null,
-                            colors = CheckboxDefaults.colors(
-                                checkedColor   = Color(0xFFFF6000),
-                                uncheckedColor = Color.White
-                            )
-                        )
+            RegistrationAccordion(title = stringResource(R.string.section_interests)) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 32.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    categorized.forEach { (header, list) ->
+                        /* section header */
                         Text(
-                            text  = "${interest.emoji}  ${interest.name}",
-                            color = if (isSelected) Color(0xFFFF6000) else Color.White
+                            text = header,
+                            color = Color(0xFFFF6000),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(4.dp))
+
+                        /* interests inside the section */
+                        list.forEach { interest ->
+                            val isSelected = registrationViewModel.interests.contains(interest)
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (isSelected) {
+                                            registrationViewModel.interests.remove(interest)
+                                        } else if (registrationViewModel.interests.size < maxInterests) {
+                                            registrationViewModel.interests.add(interest)
+                                        }
+                                    }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = null,
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = Color(0xFFFF6000),
+                                        uncheckedColor = Color.White
+                                    )
+                                )
+                                Text(
+                                    text = "${interest.emoji}  ${interest.name}",
+                                    color = if (isSelected) Color(0xFFFF6000) else Color.White
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
+
+                    if (interestsOverLimit) {
+                        Text(
+                            text = stringResource(R.string.max_interests_error, maxInterests),
+                            color = Color.Red
                         )
                     }
-                }
-                Spacer(Modifier.height(12.dp))
-            }
 
-            if (interestsOverLimit) {
-                Text(
-                    text  = stringResource(R.string.max_interests_error, maxInterests),
-                    color = Color.Red
-                )
-            }
+                    Spacer(Modifier.height(24.dp))
 
-            Spacer(Modifier.height(24.dp))
 
 //            /* Next button */
 //            Button(
@@ -4095,6 +4156,8 @@ fun EnterInterestsScreen(
 //                    fontWeight = FontWeight.Bold
 //                )
 //            }
+                }
+            }
         }
     }
 }
@@ -4146,25 +4209,27 @@ fun EnterOrientationScreen(
                         Text(opt, color = Color.White)
                     }
                 }
-                OutlinedTextField(
-                    value = kinksText,
-                    onValueChange = {
-                        kinksText = it
-                        registrationViewModel.kinks.clear()
-                        registrationViewModel.kinks.addAll(
-                            it.split(",").map { s -> s.trim() }.filter { s -> s.isNotEmpty() }
-                        )
-                    },
-                    label = { Text(stringResource(R.string.kinks_label), color = Color(0xFFFF6F00)) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFFF6F00),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color.White,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                RegistrationAccordion(title = stringResource(R.string.advanced_compatibility)) {
+                    OutlinedTextField(
+                        value = kinksText,
+                        onValueChange = {
+                            kinksText = it
+                            registrationViewModel.kinks.clear()
+                            registrationViewModel.kinks.addAll(
+                                it.split(",").map { s -> s.trim() }.filter { s -> s.isNotEmpty() }
+                            )
+                        },
+                        label = { Text(stringResource(R.string.kinks_label), color = Color(0xFFFF6F00)) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFF6F00),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color.White,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 Button(
                     onClick = onNext,
                     modifier = Modifier.fillMaxWidth(),

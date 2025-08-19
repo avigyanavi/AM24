@@ -24,7 +24,8 @@
     <string name="settings_streak_line">Login streak: %1$d days • %2$s</string>
 
     <string name="sexual_orientation_label">Sexual Orientation</string>
-    <string name="kinks_label">Kinks (separated by comma)</string>
+    <string name="kinks_label">Kinks (separated by ,)</string>
+    <string name="advanced_compatibility">Advanced Compatibility</string>
 
     <string-array name="sexual_orientation_options">
         <item>Straight</item>

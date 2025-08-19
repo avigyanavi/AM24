@@ -15,6 +15,7 @@
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">ನೀವು ಹೆಚ್ಚಿನವಾಗಿ %1$d ಸಾಮಾಜಿಕ ಕಾರಣಗಳನ್ನು ಮಾತ್ರ ಆಯ್ಕೆ ಮಾಡಬಹುದು.</string>
     <string name="tab_map">Mapa</string>
+    <string name="advanced_compatibility">Compatibilidad avanzada</string>
 
     <string name="daily_login_title">Inicio de sesión diario</string>
     <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
