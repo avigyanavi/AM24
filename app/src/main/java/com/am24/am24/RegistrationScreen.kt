@@ -303,6 +303,10 @@ class RegistrationViewModel : ViewModel() {
     var interestedIn = mutableStateListOf<String>()      // List for "Men," "Women," "Other"
     var zodiac: String = "" // Add this to hold the zodiac sign
 
+    // Sexual orientation & kinks
+    var sexualOrientation by mutableStateOf("")
+    var kinks = mutableStateListOf<String>()
+
     // ---------------------------------------------------
     // Voice Recording Methods
     // ---------------------------------------------------
@@ -361,7 +365,7 @@ fun RegistrationScreen(
     val registrationViewModel: RegistrationViewModel = viewModel()
     val context = LocalContext.current
     var currentStep by remember { mutableStateOf(initialStep) }
-    val totalSteps = 7 // now 7 screens after dropping EnterNameScreen
+    val totalSteps = 8 // now includes orientation screen
     val progress = currentStep.toFloat() / totalSteps.toFloat()
     val displayProgress = when (currentStep) {
         1           -> 0f      // Step-1 should read 0 %
@@ -423,7 +427,7 @@ fun RegistrationScreen(
                                             else -> {}
                                         }
                                     }
-                                    7 -> {
+                                    8 -> {
                                         Toast.makeText(context, "Pick a valid username and tap Finish", Toast.LENGTH_LONG).show()
                                     }
                                     else -> {
@@ -471,8 +475,9 @@ fun RegistrationScreen(
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
                     5 -> EnterInterestsScreen(registrationViewModel, onNext)
-                    6 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    7 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    6 -> EnterOrientationScreen(registrationViewModel, onNext)
+                    7 -> EnterLifestyleScreen(registrationViewModel, onNext)
+                    8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }
@@ -2798,6 +2803,8 @@ suspend fun saveProfileToFirebase(
             educationLevel = registrationViewModel.educationLevel,
             lifestyle = registrationViewModel.lifestyle,
             lookingFor = registrationViewModel.lookingFor,
+            sexualOrientation = registrationViewModel.sexualOrientation,
+            kinks = registrationViewModel.kinks.toList(),
             politics = registrationViewModel.politics,
             socialCauses = registrationViewModel.socialCauses.toList(),
             height = finalHeightCm,
@@ -4092,6 +4099,93 @@ fun EnterInterestsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnterOrientationScreen(
+    registrationViewModel: RegistrationViewModel,
+    onNext: () -> Unit
+) {
+    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
+    val options = stringArrayResource(R.array.sexual_orientation_options).toList()
+    var kinksText by remember { mutableStateOf(registrationViewModel.kinks.joinToString(", ")) }
+    Scaffold(
+        content = { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1A1A1A))
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(stringResource(R.string.sexual_orientation_label), color = Color.White, fontSize = 16.sp)
+                options.forEach { opt ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                registrationViewModel.sexualOrientation = opt
+                                registrationViewModel.interestedIn.clear()
+                                registrationViewModel.interestedIn.addAll(
+                                    inferInterestedIn(registrationViewModel.gender, opt)
+                                )
+                            }
+                    ) {
+                        RadioButton(
+                            selected = registrationViewModel.sexualOrientation == opt,
+                            onClick = {
+                                registrationViewModel.sexualOrientation = opt
+                                registrationViewModel.interestedIn.clear()
+                                registrationViewModel.interestedIn.addAll(
+                                    inferInterestedIn(registrationViewModel.gender, opt)
+                                )
+                            },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFF6F00))
+                        )
+                        Text(opt, color = Color.White)
+                    }
+                }
+                OutlinedTextField(
+                    value = kinksText,
+                    onValueChange = {
+                        kinksText = it
+                        registrationViewModel.kinks.clear()
+                        registrationViewModel.kinks.addAll(
+                            it.split(",").map { s -> s.trim() }.filter { s -> s.isNotEmpty() }
+                        )
+                    },
+                    label = { Text(stringResource(R.string.kinks_label), color = Color(0xFFFF6F00)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
+                ) {
+                    Text(stringResource(R.string.next_button), color = Color.White)
+                }
+            }
+        }
+    )
+}
+
+fun inferInterestedIn(gender: String, orientation: String): List<String> {
+    return when (orientation.lowercase()) {
+        "straight" -> if (gender.equals("male", true)) listOf("Women") else listOf("Men")
+        "gay" -> listOf("Men")
+        "lesbian" -> listOf("Women")
+        "bisexual", "pansexual", "queer" -> listOf("Men", "Women")
+        else -> emptyList()
+    }
+}
 
 
 @Composable

@@ -16,6 +16,8 @@ data class Profile(
     var premiumExpiryDate: Long? = null,      // ms-since-epoch of next renewal
     var razorpaySubscriptionId: String? = null,
     val profilepicThumbnailUrl: String? = null,
+    val sexualOrientation: String = "", // User's sexual orientation
+    val kinks: List<String> = emptyList(),
 
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),

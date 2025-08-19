@@ -2519,7 +2519,7 @@ fun PreferencesSection(profile: Profile) {
     ProfileDetailRow(
         stringResource(R.string.label_love_language),
         displayLoveLanguage.ifBlank { stringResource(R.string.not_set) },
-        Icons.Default.Favorite
+        Icons.Default.SignLanguage
     )
     val displayPolitics = profile.customPolitics
         ?.takeIf { it.isNotBlank() }
@@ -2528,6 +2528,16 @@ fun PreferencesSection(profile: Profile) {
         stringResource(R.string.label_politics),
         displayPolitics.ifBlank { stringResource(R.string.not_set) },
         Icons.Default.HowToVote
+    )
+    ProfileDetailRow(
+        stringResource(R.string.sexual_orientation_label),
+        profile.sexualOrientation.ifBlank { stringResource(R.string.not_specified) },
+        Icons.Default.Favorite
+    )
+    ProfileDetailRow(
+        stringResource(R.string.kinks_label),
+        if (profile.kinks.isEmpty()) stringResource(R.string.not_specified) else profile.kinks.joinToString(", "),
+        Icons.Default.LocalParking
     )
 }
 
@@ -4285,6 +4295,10 @@ fun PreferencesEditSection(
         )
     }
 
+    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
+    var selectedOrientation by remember { mutableStateOf(tempProfile.sexualOrientation.ifBlank { notSelected }) }
+    var kinksText by remember { mutableStateOf(tempProfile.kinks.joinToString(", ")) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -4393,10 +4407,46 @@ fun PreferencesEditSection(
             )
         }
 
+        // --- Sexual Orientation ---
+        Text(stringResource(R.string.sexual_orientation_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            orientationOptions.forEach { option ->
+                FilterChip(
+                    selected = selectedOrientation == option,
+                    onClick = {
+                        selectedOrientation = if (selectedOrientation == option) notSelected else option
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
+                )
+            }
+        }
+        OutlinedTextField(
+            value = kinksText,
+            onValueChange = { kinksText = it },
+            label = { Text(stringResource(R.string.kinks_label), fontSize = 12.sp, color = Color(0xFFFF6F00)) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                unfocusedBorderColor = Color.Gray,
+                cursorColor = Color.White,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            )
+        )
+
         Spacer(Modifier.height(8.dp))
 
         ButtonRow(
             onSave = {
+                val orientationFinal = selectedOrientation.takeIf { it != notSelected } ?: ""
+                val kinksList = kinksText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                val orientGenders = inferInterestedIn(tempProfile.gender, orientationFinal)
                 val updated = tempProfile.copy(
                     lookingFor   = selectedLookingFor.takeIf { it != notSelected } ?: "",
                     loveLanguage = selectedLoveLanguage.takeIf { it != notSelected } ?: "",
@@ -4404,7 +4454,10 @@ fun PreferencesEditSection(
                         customLoveLanguage.ifBlank { null } else null,
                     politics     = selectedPolitics.takeIf { it != notSelected } ?: "",
                     customPolitics = if (selectedPolitics == politicsOptions.last())
-                        customPolitics.ifBlank { null } else null
+                        customPolitics.ifBlank { null } else null,
+                    sexualOrientation = orientationFinal,
+                    kinks = kinksList,
+                    interestedIn = if (orientGenders.isNotEmpty()) orientGenders else tempProfile.interestedIn
                 )
                 onSave(updated)
             },
@@ -5978,6 +6031,9 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "ethnicity" to updatedProfile.ethnicity,
         "incomeLevel" to updatedProfile.incomeLevel,
         "lookingFor" to updatedProfile.lookingFor,
+        "sexualOrientation" to updatedProfile.sexualOrientation,
+        "kinks" to updatedProfile.kinks,
+        "interestedIn" to updatedProfile.interestedIn,
         "interests" to updatedProfile.interests.map {
             mapOf("name" to it.name, "emoji" to it.emoji)
         },

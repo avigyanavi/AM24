@@ -2284,8 +2284,14 @@ fun PhotoWithTwoOverlays(
         profile.lifestyle?.drinking_habit?.takeIf { it >= 0 }?.let { Triple(it, drinkingNouns, "🍷") },
         profile.lifestyle?.exercise_frequency?.takeIf { it >= 0 }?.let { Triple(it, exerciseNouns, "🏃") }
     )
-    val lifestyleTexts = lifestyleList.sortedByDescending { it.first }.take(3)
-        .map { (v, nouns, e) -> "$e ${nouns.getOrNull(v) ?: ""}" }
+    val orientationTag = profile.sexualOrientation.takeIf { it.isNotBlank() }?.let { "🏳️‍🌈 $it" }
+    val lifestyleTexts = buildList {
+        orientationTag?.let { add(it) }
+        addAll(
+            lifestyleList.sortedByDescending { it.first }.take(3)
+                .map { (v, nouns, e) -> "$e ${nouns.getOrNull(v) ?: ""}" }
+        )
+    }
     val lifestyleTexts2 = lifestyleList.sortedByDescending { it.first }.drop(3).take(6)
         .map { (v, nouns, e) -> "$e ${nouns.getOrNull(v) ?: ""}" }
 

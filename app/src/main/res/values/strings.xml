@@ -23,6 +23,20 @@
     <string name="daily_login_plus_award">Plus unlocked for %1$d hours</string>
     <string name="settings_streak_line">Login streak: %1$d days • %2$s</string>
 
+    <string name="sexual_orientation_label">Sexual Orientation</string>
+    <string name="kinks_label">Kinks (separated by comma)</string>
+
+    <string-array name="sexual_orientation_options">
+        <item>Straight</item>
+        <item>Gay</item>
+        <item>Lesbian</item>
+        <item>Bisexual</item>
+        <item>Pansexual</item>
+        <item>Asexual</item>
+        <item>Queer</item>
+    </string-array>
+
+
 
     <string name="watch_ad_boost">Watch ad for 1 Boost</string>
     <string name="watch_ad_compliment">Watch ad for 1 Compliment</string>
