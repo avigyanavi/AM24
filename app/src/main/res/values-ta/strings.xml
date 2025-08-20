@@ -16,6 +16,8 @@
         <string name="tab_people">மக்கள்</string>
         <string name="tab_nearby">அருகில்</string>
         <string name="tab_map">வரைபடம்</string>
+        <string name="settings_reset_swipe_history">ஸ்வைப் விலக்கல்களை மீட்டமை</string>
+        <string name="confirm_reset_swipe_history">இது உங்கள் பொருத்தங்கள், விருப்பங்கள், விருப்பமின்மைகள் மற்றும் ஸ்வைப் எண்ணிக்கைகளை அழிக்கும். தொடரவா?</string>
 
         <string name="daily_login_title">தினசரி உள்நுழைவு</string>
         <string name="daily_login_message">நீங்கள் தொடர்ச்சியாக %1$d நாட்கள் உள்நுழைந்துள்ளீர்கள்</string>
@@ -26,7 +28,7 @@
         <string name="shared_kinks_prefix">பகிரப்பட்ட கிங்க்ஸ்: %1$s</string>
         <string name="no_common_kinks">பொதுவான கிங்க்ஸ் இல்லை</string>
         <string name="kinks_not_set">கிங்க்ஸ்: இருவரும் அமைக்கவில்லை</string>
-
+        <string name="settings">அமைப்புகள்</string>
         <string name="advanced_compatibility">மேம்பட்ட பொருந்துதன்மை</string>
 
         <string-array name="sexual_orientation_options">

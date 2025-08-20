@@ -19,6 +19,9 @@
     <string name="tab_people">মানুষ</string>
     <string name="tab_nearby">নিকটবর্তী</string>
     <string name="tab_map">মানচিত্র</string>
+    <string name="settings">সেটিংস</string>
+    <string name="settings_reset_swipe_history">সুইপ বর্জনসমূহ রিসেট করুন</string>
+    <string name="confirm_reset_swipe_history">এটি আপনার ম্যাচ, পছন্দ, অপছন্দ এবং সুইপ গণনা মুছে দেবে। চালিয়ে যাবেন?</string>
 
     <string name="daily_login_title">দৈনিক লগইন</string>
     <string name="daily_login_message">আপনি টানা %1$d দিন লগইন করেছেন</string>

@@ -19,6 +19,8 @@
     <string name="tab_people">వ్యక్తులు</string>
     <string name="tab_nearby">దగ్గరలో</string>
     <string name="tab_map">మ్యాప్</string>
+    <string name="settings_reset_swipe_history">స్వైప్ మినహాయింపులను రీసెట్ చేయండి</string>
+    <string name="confirm_reset_swipe_history">దీంతో మీ మ్యాచ్‌లు, లైక్‌లు, డిస్‌లైక్‌లు మరియు స్వైప్ లెక్కలు తుడిచివేయబడతాయి. కొనసాగించాలా?</string>
 
     <string name="daily_login_title">దినసరి లాగిన్</string>
     <string name="daily_login_message">మీరు వరుసగా %1$d రోజులు లాగిన్ చేశారు</string>
@@ -29,7 +31,7 @@
     <string name="shared_kinks_prefix">పంచుకున్న కింక్స్: %1$s</string>
     <string name="no_common_kinks">సామ్యమైన కింక్స్ లేవు</string>
     <string name="kinks_not_set">కింక్స్: ఇద్దరూ సెట్ చేయలేదు</string>
-
+    <string name="settings">సెట్టింగ్స్</string>
     <string name="advanced_compatibility">అధునాతన అనుకూలత</string>
 
     <string-array name="sexual_orientation_options">

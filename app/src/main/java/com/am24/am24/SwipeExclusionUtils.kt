@@ -41,3 +41,18 @@ suspend fun fetchExcludedUsers(me: String): Set<String> {
 
     return excludedIds
 }
+
+/**
+ * Remove all swipe related exclusions for the given user.
+ *
+ * Deletes matches, likes, dislikes and any permanent exclusion or
+ * swipe count entries for [userId] so they can start fresh.
+ */
+suspend fun clearExcludedUsers(userId: String) {
+    val db = FirebaseRefs.db
+    db.getReference("matches/$userId").removeValue().await()
+    db.getReference("likesGiven/$userId").removeValue().await()
+    db.getReference("dislikesGiven/$userId").removeValue().await()
+    db.getReference("users/$userId/permanentExcludes").removeValue().await()
+    db.getReference("users/$userId/swipeCounts").removeValue().await()
+}

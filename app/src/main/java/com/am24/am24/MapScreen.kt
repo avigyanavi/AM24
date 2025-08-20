@@ -76,6 +76,8 @@ import kotlin.math.*
 /* ——— shared helper & model from your project ——— */
 import com.am24.am24.searchPlacesRich
 import com.am24.am24.PlaceResult
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.auth.FirebaseAuth
 
 /* ======================================================================================= */
@@ -215,6 +217,7 @@ fun MapScreen(
     navController: NavController,
     onProfileMarkerClicked: (String) -> Unit,
     currentPrice: String,
+    nearbyViewModel: NearbyViewModel,
     radiusKmDefault: Double = 10.0
 ) {
     val ctx = LocalContext.current
@@ -235,32 +238,17 @@ fun MapScreen(
 
     /* ---------------- People / grid state ---------------- */
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
-    val people = remember { mutableStateListOf<NearbyUser>() }
-    val excludedUserIdsState = remember { mutableStateOf<Set<String>>(emptySet()) }
-    var excludedUserIds by excludedUserIdsState
-    var sortMode by rememberSaveable {
-        mutableStateOf(
-            prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
-        )
-    }
-    var radiusKm by rememberSaveable {
-        mutableStateOf(prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble())
-    }
-    var lastActiveHours by rememberSaveable {
-        mutableStateOf(prefs.getFloat("map_last_active_hours", 24f).toDouble())
-    }
+    val people = nearbyViewModel.people
+    var sortMode by nearbyViewModel::sortMode
+    var radiusKm by nearbyViewModel::radiusKm
+    var lastActiveHours by nearbyViewModel::lastActiveHours
     var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Map
-    var genderFilter by rememberSaveable {
-        mutableStateOf(
-            prefs.getString("map_gender_filter", null)?.let { GenderFilter.valueOf(it) }
-                ?: GenderFilter.BOTH
-        )
-    }
+    var genderFilter by nearbyViewModel::genderFilter
+    var isPlus by nearbyViewModel::isPlus
+    var isPremium by nearbyViewModel::isPremium
     var remainingSwipes by remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
-    var isPlus by remember { mutableStateOf(false) }
-    var isPremium by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
     val orientationFilter by navController.currentBackStackEntry?.savedStateHandle
         ?.getStateFlow("mapOrientationFilter", "")?.collectAsState()
@@ -275,6 +263,11 @@ fun MapScreen(
             navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
             hasShownLocationDialogThisSession = true
         }
+        sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
+        radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
+        lastActiveHours = prefs.getFloat("map_last_active_hours", 24f).toDouble()
+        genderFilter = prefs.getString("map_gender_filter", null)?.let { GenderFilter.valueOf(it) }
+            ?: GenderFilter.BOTH
     }
 
     LaunchedEffect(userId) {
@@ -285,6 +278,7 @@ fun MapScreen(
         isIndian = country.equals("India", true)
         remainingSwipes = loadAndResetSwipesDaily(userId)
         swipesLoaded = true
+        nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
     }
 
     /* ---------------- Matches (markers, popup) ---------------- */
@@ -381,10 +375,6 @@ fun MapScreen(
     ) else emptyList()
     val quickTags = laQuickTags + bayQuickTags + baseQuickTags
 
-    // initial excludes list
-    LaunchedEffect(userId) {
-        excludedUserIdsState.value = fetchExcludedUsers(userId)
-    }
     /* ---------------- Effects ---------------- */
 
     // fetch user location + set region
@@ -427,15 +417,7 @@ fun MapScreen(
     // listen for nearby users (grid)
     LaunchedEffect(userLatLng, radiusKm) {
         val me = userLatLng ?: return@LaunchedEffect
-        people.clear()
-        observeNearbyUsers(
-            currentUserId = userId,
-            center = me,
-            radiusKm = radiusKm,
-            geoFireDatabaseRef = geoFireDatabaseRef,
-            onEnterOrMove = { if (it.userId !in excludedUserIdsState.value) upsert(people, it) },
-            onExit = { uid -> people.removeAll { it.userId == uid } }
-        )
+        nearbyViewModel.refreshNearbyUsers(userId, me, geoFireDatabaseRef)
     }
 
     // react to new excludes coming back from PreviewUserProfile
@@ -444,14 +426,8 @@ fun MapScreen(
             ?.getLiveData<String>("exclude_uid")
             ?.asFlow()
             ?.collect { uid ->
-                excludedUserIdsState.value = excludedUserIdsState.value + uid
-                people.removeAll { it.userId == uid }
+                nearbyViewModel.addExcluded(uid)
             }
-    }
-
-    // purge any newly excluded IDs from current list
-    LaunchedEffect(excludedUserIds) {
-        people.removeAll { it.userId in excludedUserIds }
     }
 
     // heatmap data
@@ -575,8 +551,12 @@ fun MapScreen(
                 actions = {
                     FilledTonalButton(
                         onClick = {
-                            sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
-                            prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                            if (isPlus || isPremium) {
+                                sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
+                                prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                            } else {
+                                navController.navigate("paywall")
+                            }
                         },
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = KupidxOrange.copy(alpha = 0.20f),
@@ -632,17 +612,25 @@ fun MapScreen(
                 /* ======================= PEOPLE TAB (grid + mini map) ======================= */
                 0 -> {
                     Box(Modifier.fillMaxSize()) {
-                        PeopleGrid(
-                            users = sortedPeople,
-                            onClick = {
-                                if (swipesLoaded && remainingSwipes <= 0) {
-                                    showSwipeLimitOverlay = true
-                                } else {
-                                    navController.navigate("previewUserProfile/${it.userId}")
-                                }
-                            },
-                            useMiles = useMiles // NEW
-                        )
+                        val refreshState = rememberSwipeRefreshState(nearbyViewModel.isRefreshing)
+                        SwipeRefresh(
+                            state = refreshState,
+                            onRefresh = {
+                                userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
+                            }
+                        ) {
+                            PeopleGrid(
+                                users = sortedPeople,
+                                onClick = {
+                                    if (swipesLoaded && remainingSwipes <= 0) {
+                                        showSwipeLimitOverlay = true
+                                    } else {
+                                        navController.navigate("previewUserProfile/${it.userId}")
+                                    }
+                                },
+                                useMiles = useMiles // NEW
+                            )
+                        }
 
                         GenderFilterChip(
                             selected = genderFilter,
@@ -657,29 +645,52 @@ fun MapScreen(
                         )
 
                         if (sortMode == SortMode.NEARBY) {
-                            RadiusChip(
-                                radiusKm = radiusKm,
-                                onChange = {
-                                    radiusKm = it
-                                    prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(8.dp)
-                                    .scale(0.9f)
-                            )
+                            if (isPlus || isPremium) {
+                                RadiusChip(
+                                    radiusKm = radiusKm,
+                                    onChange = {
+                                        radiusKm = it
+                                        prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
+                                        userLatLng?.let { center ->
+                                            nearbyViewModel.refreshNearbyUsers(userId, center, geoFireDatabaseRef)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(8.dp)
+                                        .scale(0.9f)
+                                )
+                            } else {
+                                LockedChip(
+                                    label = "Radius",
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(8.dp)
+                                        .scale(0.9f)
+                                ) { navController.navigate("paywall") }
+                            }
                         } else {
-                            LastActiveChip(
-                                hours = lastActiveHours,
-                                onChange = {
-                                    lastActiveHours = it
-                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(8.dp)
-                                    .scale(0.9f)
-                            )
+                            if (isPlus || isPremium) {
+                                LastActiveChip(
+                                    hours = lastActiveHours,
+                                    onChange = {
+                                        lastActiveHours = it
+                                        prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(8.dp)
+                                        .scale(0.9f)
+                                )
+                            } else {
+                                LockedChip(
+                                    label = "Last active",
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(8.dp)
+                                        .scale(0.9f)
+                                ) { navController.navigate("paywall") }
+                            }
                         }
                     }
                 }
@@ -1337,7 +1348,10 @@ private fun NearbyCard(user: NearbyUser, onClick: () -> Unit, useMiles: Boolean)
                     )
                     Spacer(Modifier.width(6.dp))
                     if (System.currentTimeMillis() - user.lastActiveAt < TimeUnit.MINUTES.toMillis(5)) {
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF2ECC71)))
+                        Box(Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF2ECC71)))
                     }
                 }
                 Spacer(Modifier.height(2.dp))
@@ -1476,6 +1490,30 @@ private fun LastActiveChip(
     }
 }
 
+@Composable
+private fun LockedChip(
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 3.dp,
+        shadowElevation = 3.dp,
+        border = BorderStroke(1.dp, Color(0x33FFFFFF))
+    ) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Lock, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text(label)
+        }
+    }
+}
+
 /* ======================================================================================= */
 /*  Overlays & sheets (unchanged from old)                                                 */
 /* ======================================================================================= */
@@ -1499,12 +1537,16 @@ fun PlaceDetailsPopup(
             .fillMaxWidth()
             .background(Color.White)
             .padding(16.dp)
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }) { },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(Modifier.fillMaxWidth(), Arrangement.End) {
             Icon(Icons.Default.Close, contentDescription = null, tint = Color.Gray,
-                modifier = Modifier.size(24.dp).clickable { onDismiss() })
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onDismiss() })
         }
         Text(placeName, color = KupidxOrange)
         Spacer(Modifier.height(8.dp))
@@ -1536,13 +1578,22 @@ fun MatchesListOverlay(
 ) {
     var selectedMatch by remember { mutableStateOf<MatchProfile?>(null) }
     Box(
-        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Column(
-            Modifier.fillMaxWidth(0.9f).background(Color.White, RoundedCornerShape(12.dp)).padding(16.dp)
-                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
+            Modifier
+                .fillMaxWidth(0.9f)
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(16.dp)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }) { },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Select a Match", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -1550,16 +1601,22 @@ fun MatchesListOverlay(
             LazyRow {
                 items(matches) { match ->
                     Card(
-                        modifier = Modifier.padding(8.dp).clickable { selectedMatch = match },
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable { selectedMatch = match },
                         border = if (selectedMatch?.userId == match.userId) BorderStroke(2.dp, Color.Green) else null,
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Row(Modifier.padding(8.dp).width(200.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier
+                            .padding(8.dp)
+                            .width(200.dp), verticalAlignment = Alignment.CenterVertically) {
                             match.photoUrl?.let { url ->
                                 Image(
                                     painter = rememberAsyncImagePainter(model = url),
                                     contentDescription = null,
-                                    modifier = Modifier.size(48.dp).clip(CircleShape),
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape),
                                     contentScale = ContentScale.Crop
                                 )
                             }
@@ -1586,19 +1643,30 @@ fun LeaderboardOverlay(
     onEntryClick: (LeaderboardEntry) -> Unit
 ) {
     Box(
-        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Column(
-            Modifier.fillMaxWidth(0.85f).fillMaxHeight(0.6f)
-                .background(Color.White, RoundedCornerShape(12.dp)).padding(16.dp)
-                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { },
+            Modifier
+                .fillMaxWidth(0.85f)
+                .fillMaxHeight(0.6f)
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(16.dp)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }) { },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Top Places", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
             Divider()
-            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            LazyColumn(modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)) {
                 itemsIndexed(entries) { index, entry ->
                     LeaderboardRow(rank = index + 1, entry = entry, onClick = { onEntryClick(entry) })
                     Divider()
@@ -1613,7 +1681,10 @@ fun LeaderboardOverlay(
 @Composable
 private fun LeaderboardRow(rank: Int, entry: LeaderboardEntry, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp, horizontal = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("$rank.", fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
@@ -1717,63 +1788,63 @@ fun calculateAge(dob: String): Int {
 /*  Firebase wiring                                                                        */
 /* ======================================================================================= */
 
-private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {
-    val idx = list.indexOfFirst { it.userId == item.userId }
-    if (idx >= 0) list[idx] = item else list.add(item)
-}
-
-private fun observeNearbyUsers(
-    currentUserId: String,
-    center: LatLng,
-    radiusKm: Double,
-    geoFireDatabaseRef: DatabaseReference,
-    onEnterOrMove: (NearbyUser) -> Unit,
-    onExit: (String) -> Unit
-) {
-    val geoFire = GeoFire(geoFireDatabaseRef)
-    val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(center.latitude, center.longitude), radiusKm)
-
-    fun buildUser(uid: String, loc: GeoLocation?) {
-        val usersRef = FirebaseRefs.db.getReference("users").child(uid)
-        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val p = snapshot.getValue(Profile::class.java) ?: return
-                if (uid == currentUserId) return
-
-                val username = p.username.ifBlank { p.name }
-                val age = calculateAge(p.dob)
-                val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
-                val latLng = if (loc != null) LatLng(loc.latitude, loc.longitude) else null
-                val distM = if (latLng != null) distanceMeters(center, latLng) else Double.POSITIVE_INFINITY
-
-                onEnterOrMove(
-                    NearbyUser(
-                        userId = uid,
-                        username = username,
-                        age = age,
-                        photoUrl = p.profilepicUrl,
-                        lastActiveAt = lastActive,
-                        latLng = latLng,
-                        distanceMeters = distM,
-                        gender = p.gender,
-                        sexualOrientation = p.sexualOrientation
-                    )
-                )
-            }
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("MapScreenV2", "User fetch cancelled $uid: ${error.message}")
-            }
-        })
-    }
-
-    query.addGeoQueryEventListener(object : GeoQueryEventListener {
-        override fun onKeyEntered(key: String, location: GeoLocation) = buildUser(key, location)
-        override fun onKeyExited(key: String) = onExit(key)
-        override fun onKeyMoved(key: String, location: GeoLocation) = buildUser(key, location)
-        override fun onGeoQueryReady() {}
-        override fun onGeoQueryError(error: DatabaseError) { Log.e("MapScreenV2", "GeoQuery error: ${error.message}") }
-    })
-}
+//private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {
+//    val idx = list.indexOfFirst { it.userId == item.userId }
+//    if (idx >= 0) list[idx] = item else list.add(item)
+//}
+//
+//private fun observeNearbyUsers(
+//    currentUserId: String,
+//    center: LatLng,
+//    radiusKm: Double,
+//    geoFireDatabaseRef: DatabaseReference,
+//    onEnterOrMove: (NearbyUser) -> Unit,
+//    onExit: (String) -> Unit
+//) {
+//    val geoFire = GeoFire(geoFireDatabaseRef)
+//    val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(center.latitude, center.longitude), radiusKm)
+//
+//    fun buildUser(uid: String, loc: GeoLocation?) {
+//        val usersRef = FirebaseRefs.db.getReference("users").child(uid)
+//        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+//            override fun onDataChange(snapshot: DataSnapshot) {
+//                val p = snapshot.getValue(Profile::class.java) ?: return
+//                if (uid == currentUserId) return
+//
+//                val username = p.username.ifBlank { p.name }
+//                val age = calculateAge(p.dob)
+//                val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
+//                val latLng = if (loc != null) LatLng(loc.latitude, loc.longitude) else null
+//                val distM = if (latLng != null) distanceMeters(center, latLng) else Double.POSITIVE_INFINITY
+//
+//                onEnterOrMove(
+//                    NearbyUser(
+//                        userId = uid,
+//                        username = username,
+//                        age = age,
+//                        photoUrl = p.profilepicUrl,
+//                        lastActiveAt = lastActive,
+//                        latLng = latLng,
+//                        distanceMeters = distM,
+//                        gender = p.gender,
+//                        sexualOrientation = p.sexualOrientation
+//                    )
+//                )
+//            }
+//            override fun onCancelled(error: DatabaseError) {
+//                Log.e("MapScreenV2", "User fetch cancelled $uid: ${error.message}")
+//            }
+//        })
+//    }
+//
+//    query.addGeoQueryEventListener(object : GeoQueryEventListener {
+//        override fun onKeyEntered(key: String, location: GeoLocation) = buildUser(key, location)
+//        override fun onKeyExited(key: String) = onExit(key)
+//        override fun onKeyMoved(key: String, location: GeoLocation) = buildUser(key, location)
+//        override fun onGeoQueryReady() {}
+//        override fun onGeoQueryError(error: DatabaseError) { Log.e("MapScreenV2", "GeoQuery error: ${error.message}") }
+//    })
+//}
 
 /* ==== existing helpers from old file ==== */
 
@@ -1888,7 +1959,9 @@ fun UserProfilePopup(
                 imageVector = Icons.Filled.Close,
                 contentDescription = null,
                 tint = Color.Gray,
-                modifier = Modifier.size(24.dp).clickable { onCloseClick() }
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onCloseClick() }
             )
         }
         val placeholder = painterResource(R.drawable.local_placeholder)
@@ -1898,7 +1971,9 @@ fun UserProfilePopup(
             contentDescription = null,
             placeholder = placeholder,
             error = placeholder,
-            modifier = Modifier.size(72.dp).clip(CircleShape),
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape),
             contentScale = ContentScale.Crop
         )
         Spacer(Modifier.height(12.dp))

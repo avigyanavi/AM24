@@ -29,6 +29,8 @@
     <string name="tab_people">लोग</string>
     <string name="tab_nearby">पास में</string>
     <string name="tab_map">मानचित्र</string>
+    <string name="settings_reset_swipe_history">स्वाइप अपवर्जन रीसेट करें</string>
+    <string name="confirm_reset_swipe_history">इससे आपके मैच, लाइक्स, डिस्लाइक्स और स्वाइप गिनतियाँ मिट जाएँगी। जारी रखें?</string>
 
     <string name="daily_login_title">दैनिक लॉगिन</string>
     <string name="daily_login_message">आपने लगातार %1$d दिन लॉगिन किया है</string>
@@ -39,7 +41,7 @@
     <string name="shared_kinks_prefix">साझा किंक्स: %1$s</string>
     <string name="no_common_kinks">कोई साझा किंक्स नहीं</string>
     <string name="kinks_not_set">किंक्स: दोनों ने सेट नहीं किए</string>
-
+    <string name="settings">सेटिंग्स</string>
     <string name="advanced_compatibility">उन्नत अनुकूलता</string>
 
     <string-array name="sexual_orientation_options">

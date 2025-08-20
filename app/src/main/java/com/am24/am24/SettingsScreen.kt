@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.DateFormat
 import java.util.Date
+import java.util.Locale
 
 /* ───────────────────────────────────────────────  small helpers ── */
 
@@ -113,7 +114,8 @@ fun SettingsScreen(navController: NavController) {
     var loginStreak   by remember { mutableStateOf(0) }
     var loginPlusExpiry by remember { mutableStateOf(0L) }
     var isPrivate by remember { mutableStateOf(false) }
-    var preferredLang by remember { mutableStateOf("en") }
+    val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+    var preferredLang by remember { mutableStateOf(defaultLang) }
     var allowLoc by remember { mutableStateOf(true) }
     var isMatrimony by remember { mutableStateOf(false) }
     var blocked by remember { mutableStateOf(listOf<String>()) }
@@ -127,6 +129,7 @@ fun SettingsScreen(navController: NavController) {
     var subscriptionId by remember { mutableStateOf<String?>(null) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
+    var showResetExcludesDialog by remember { mutableStateOf(false) }
     var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
 
@@ -171,7 +174,7 @@ fun SettingsScreen(navController: NavController) {
         aiMessages    = s.child("availableAiMessages").getValue(Int::class.java) ?: 0   // ← NEW
 
         isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
-        preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: "en"
+        preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: defaultLang
         allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
         isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
 
@@ -379,6 +382,12 @@ fun SettingsScreen(navController: NavController) {
                             onClick = { navController.navigate("leaderboard") }
                         )
                         Divider(Modifier.padding(start = 56.dp))
+                        SettingsRow(
+                            icon  = { Icon(Icons.Default.RssFeed, null) },
+                            title = stringResource(R.string.feed),
+                            onClick = { navController.navigate("home") }
+                        )
+                        Divider(Modifier.padding(start = 56.dp))
                     }
 
                     /* STATIC BOOSTS ROW  */
@@ -466,6 +475,17 @@ fun SettingsScreen(navController: NavController) {
 
             /*──────────────── Blocked users ───────────────────────────*/
             item { BlockedUsersCard(blocksRef, blocked) }
+
+            /*──────────────── Reset swipe exclusions ──────────────────*/
+            item {
+                SettingsSection {
+                    SettingsRow(
+                        icon = { Icon(Icons.Default.Refresh, null, tint = Color(0xFFFF6F00)) },
+                        title = stringResource(R.string.settings_reset_swipe_history),
+                        showChevron = false
+                    ) { showResetExcludesDialog = true }
+                }
+            }
 
             /*──────────────── Logout row ──────────────────────────────*/
             item {
@@ -646,6 +666,33 @@ fun SettingsScreen(navController: NavController) {
                         TextButton(onClick = { showFeedbackDialog = false }) {
                             Text("Cancel", color = kupidxOrange)
                         }
+                }
+            )
+        }
+        if (showResetExcludesDialog) {
+            AlertDialog(
+                onDismissRequest = { showResetExcludesDialog = false },
+                title = { Text(stringResource(R.string.settings_reset_swipe_history), color = kupidxOrange) },
+                text = { Text(stringResource(R.string.confirm_reset_swipe_history)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showResetExcludesDialog = false
+                        scope.launch {
+                            try {
+                                clearExcludedUsers(uid)
+                                Toast.makeText(ctx, "Swipe exclusions cleared", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }) {
+                        Text("Reset", color = kupidxOrange)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showResetExcludesDialog = false }) {
+                        Text(stringResource(R.string.cancel), color = kupidxOrange)
+                    }
                 }
             )
         }

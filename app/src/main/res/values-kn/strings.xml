@@ -17,6 +17,8 @@
     <string name="tab_people">ಜನರು</string>
     <string name="tab_nearby">ಸಮೀಪದ</string>
     <string name="tab_map">ನಕ್ಷೆ</string>
+    <string name="settings_reset_swipe_history">ಸ್ವೈಪ್ ಹೊರತುಪಡಿಸುವಿಕೆಗಳನ್ನು ಮರುಹೊಂದಿಸಿ</string>
+    <string name="confirm_reset_swipe_history">ಇದರಿಂದ ನಿಮ್ಮ ಮ್ಯಾಚ್‌ಗಳು, ಲೈಕ್‌ಗಳು, ಡಿಸ್ಲೈಕ್‌ಗಳು ಮತ್ತು ಸ್ವೈಪ್ ಎಣಿಕೆಗಳನ್ನು ಅಳಿಸಲಾಗುತ್ತದೆ. ಮುಂದುವರಿಸಬೇಕೆ?</string>
 
     <string name="daily_login_title">ದೈನಂದಿನ ಲಾಗಿನ್</string>
     <string name="daily_login_message">ನೀವು ನಿರಂತರವಾಗಿ %1$d ದಿನಗಳು ಲಾಗಿನ್ ಮಾಡಿದ್ದೀರಿ</string>
@@ -27,7 +29,7 @@
     <string name="shared_kinks_prefix">ಹಂಚಿದ ಕಿಂಕ್ಸ್: %1$s</string>
     <string name="no_common_kinks">ಸಾಮಾನ್ಯ ಕಿಂಕ್ಸ್ ಯಾವುದೂ ಇಲ್ಲ</string>
     <string name="kinks_not_set">ಕಿಂಕ್ಸ್: ಇಬ್ಬರೂ ಸೆಟ್ ಮಾಡಿಲ್ಲ</string>
-
+    <string name="settings">ಸೆಟ್ಟಿಂಗ್ಸ್</string>
     <string name="advanced_compatibility">ಮುನ್ನತ ಹೊಂದಾಣಿಕೆ</string>
 
     <string-array name="sexual_orientation_options">

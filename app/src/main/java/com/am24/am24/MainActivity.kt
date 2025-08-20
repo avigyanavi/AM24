@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -56,7 +57,8 @@ class MainActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val languageCode = prefs.getString("language", "en") ?: "en"
+        val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+        val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
 

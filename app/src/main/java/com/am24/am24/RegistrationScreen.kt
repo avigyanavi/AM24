@@ -192,7 +192,8 @@ class RegistrationActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
         // Retrieve the language code from SharedPreferences (default "en")
         val prefs = newBase.getSharedPreferences("settings", MODE_PRIVATE)
-        val languageCode = prefs.getString("language", "en") ?: "en"
+        val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+        val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         val updatedContext = updateLocale(newBase, languageCode)
         super.attachBaseContext(updatedContext)
     }

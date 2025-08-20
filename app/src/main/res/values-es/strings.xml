@@ -1379,6 +1379,8 @@
     <string name="select_label">Seleccionar %1$s</string>
     <string name="select_country">Ubicado en</string>
     <string name="type_country">Escribe tu país</string>
+    <string name="settings_reset_swipe_history">Restablecer exclusiones de deslizamiento</string>
+    <string name="confirm_reset_swipe_history">Esto borrará tus coincidencias, me gusta, no me gusta y conteos de deslizamiento. ¿Continuar?</string>
 
     <string name="performance_metrics">Métricas de rendimiento</string>
     <string name="matches">Coincidencias</string>
@@ -1399,7 +1401,7 @@
     <string name="shared_kinks_prefix">Fetiches compartidos: %1$s</string>
     <string name="no_common_kinks">Sin fetiches en común</string>
     <string name="kinks_not_set">Fetiches: no configurados por ambos</string>
-
+    <string name="settings">Configuración</string>
     <!-- Dating screen filters -->
     <string name="filters">Filtros</string>
     <string name="save">Guardar</string>

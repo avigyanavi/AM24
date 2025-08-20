@@ -91,6 +91,7 @@ fun MainNavGraph(
             LocalContext.current.applicationContext as Application
         )
     )
+    val nearbyViewModel: NearbyViewModel = viewModel()
 
     // Initialize LocationManager (safe inside Composable)
     val context = LocalContext.current
@@ -327,7 +328,8 @@ fun MainNavGraph(
                         navController.navigate("dating_screen?initialQuery=$profileId")
                     }
                 },
-                currentPrice = currentPrice
+                currentPrice = currentPrice,
+                nearbyViewModel = nearbyViewModel
             )
         }
 

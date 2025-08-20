@@ -46,11 +46,11 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
+        BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Map, "map"),
-        BottomNavItem(stringResource(R.string.feed), Icons.Default.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.date), Icons.Default.Favorite, "dating"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
-        BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile")
+        BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
     )
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -384,6 +384,27 @@ fun TopNavBar(
                     }
                 }
 
+                IconButton(onClick = {
+                    if (myProfile?.isPlus == true || myProfile?.isPremium == true) {
+                        navController.navigate("home")
+                    } else {
+                        navController.navigate("subscription")
+                        Toast.makeText(
+                            context,
+                            "Upgrade to Plus to access the feed",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.RssFeed,
+                        contentDescription = stringResource(R.string.feed),
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+
                 /* 2) Existing location icon */
                 IconButton(onClick = { showLocationPrefDialog = true }) {
                     Icon(
@@ -427,7 +448,18 @@ fun TopNavBar(
             val isDatingScreen = currentRoute == "dating" ||
                     currentRoute?.startsWith("dating_screen") == true
             // User Settings Icon (Profile or Settings screen)
-            if (isProfileScreen || isUserSettings || isDatingScreen || isOnHome || isDMScreen) {
+            if (isProfileScreen) {
+                if (myProfile?.isPlus == true || myProfile?.isPremium == true) {
+                    IconButton(onClick = { navController.navigate("home") }) {
+                        Icon(
+                            imageVector = Icons.Default.RssFeed,
+                            contentDescription = stringResource(R.string.feed),
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            } else if (isUserSettings || isDatingScreen || isOnHome || isDMScreen) {
 
                 IconButton(onClick = {
                     if (isUserSettings) {
@@ -618,18 +650,21 @@ fun BottomNavigationBar(
                 "profile" -> {
                     currentRoute == "profile" ||
                             currentRoute == "govtIdVerification" ||
-                            currentRoute == "settings" ||
-                            currentRoute == "saved_posts"
-                }
-                "home" -> {
-                    currentRoute == "home" ||
-                            currentRoute == "create_post" ||
-                            currentRoute == "create_post/text" ||
-                            currentRoute == "create_post/voice" ||
-                            currentRoute == "create_post/image" ||
-                            currentRoute == "create_post/video" ||
+                            currentRoute == "saved_posts" ||
+                            currentRoute == "editPicAndVoiceBio" ||
                             (currentRoute?.startsWith("previewUserProfile/") == true &&
-                                    navController.previousBackStackEntry?.destination?.route == "home")
+                                    navController.previousBackStackEntry?.destination?.route == "profile")
+                }
+                "settings" -> {
+                    currentRoute == "settings" ||
+                            currentRoute == "manageSubscription" ||
+                            currentRoute == "buyBoosts" ||
+                            currentRoute == "buySwipes" ||
+                            currentRoute == "buyCompliments" ||
+                            currentRoute == "buyAiMessages" ||
+                            currentRoute == "subscription" ||
+                            currentRoute == "upgradeLanding" ||
+                            currentRoute == "policies"
                 }
                 else -> {
                     currentDestination?.hierarchy?.any { it.route == item.route } == true
