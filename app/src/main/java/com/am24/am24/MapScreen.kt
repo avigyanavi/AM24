@@ -494,24 +494,21 @@ fun MapScreen(
 
     // filtering + sorting (wrapped in remember)
     val filteredPeople by remember(
-        people,
-        genderFilter,
-        sortMode,
-        lastActiveHours,
-        orientationFilter,
-        isPlus,
-        isPremium
+        people, genderFilter, sortMode, lastActiveHours, orientationFilter, isPlus, isPremium
     ) {
         derivedStateOf {
             var list = when (genderFilter) {
                 GenderFilter.BOTH -> people
                 GenderFilter.WOMEN -> people.filter { it.gender.equals("Female", true) }
-                GenderFilter.MEN -> people.filter { it.gender.equals("Male", true) }
+                GenderFilter.MEN   -> people.filter { it.gender.equals("Male", true) }
             }
             if (orientationFilter.isNotBlank() && (isPlus || isPremium)) {
                 list = list.filter { it.sexualOrientation.equals(orientationFilter, true) }
             }
-            if (sortMode == SortMode.ACTIVE) {
+
+            // PREMIUM GATE: only filter by last-active if user has Plus/Premium
+            val effectiveSort = if (isPlus || isPremium) sortMode else SortMode.NEARBY
+            if (effectiveSort == SortMode.ACTIVE) {
                 val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
                 list = list.filter { it.lastActiveAt >= cutoff }
             }
@@ -529,26 +526,26 @@ fun MapScreen(
     }
 
     LaunchedEffect(selectedTab, sortedPeople, matchUids) {
-        if (selectedTab != 1) return@LaunchedEffect  // only when Map tab is open
+        if (selectedTab != 1) return@LaunchedEffect
 
-        // prune entries that are no longer in the list
         val currentIds = sortedPeople.map { it.userId }.toSet()
-        (mapVisibility.keys - currentIds).forEach { mapVisibility.remove(it) }
 
-        // fetch flags for unknown users
+        // keep only users still present
+        mapVisibility.keys.retainAll(currentIds)
+
+        // IMPORTANT: force recompute for current users whenever matches set changes
+        // (ensures we re-evaluate allowForMatches vs allowPublic correctly)
+        currentIds.forEach { mapVisibility.remove(it) }
+
         sortedPeople.forEach { u ->
             if (!mapVisibility.containsKey(u.userId)) {
                 try {
                     val snap = FirebaseRefs.db.getReference("users")
-                        .child(u.userId)
-                        .get()
-                        .await()
-
+                        .child(u.userId).get().await()
                     val allowForMatches = snap.child("allowLocationForMatches")
                         .getValue(Boolean::class.java) ?: false
                     val allowPublic = snap.child("allowLocationPublic")
                         .getValue(Boolean::class.java) ?: false
-
                     val isMatch = matchUids.contains(u.userId)
                     mapVisibility[u.userId] = if (isMatch) allowForMatches else allowPublic
                 } catch (_: Exception) {
@@ -587,6 +584,7 @@ fun MapScreen(
                             if (isPlus || isPremium) {
                                 sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
                                 prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                                userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
                             } else {
                                 navController.navigate("paywall")
                             }
