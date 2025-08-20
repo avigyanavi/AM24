@@ -59,8 +59,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val currentRoute = navBackStackEntry?.destination?.route
     val priceAll = stringResource(id = R.string.price_all)
 
-    val datingViewModel: DatingViewModel = viewModel()
-
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
     val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
             currentRoute != "leaderboard"
@@ -112,7 +110,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         val paddingValues = if (showGlobalBars) innerPadding else PaddingValues(0.dp)
         MainNavGraph(
             navController = navController,
-            datingViewModel = datingViewModel,
             modifier = Modifier.padding(paddingValues),
             postViewModel = postViewModel,
             currentPrice = priceTier.value

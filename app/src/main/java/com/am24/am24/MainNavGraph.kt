@@ -3,7 +3,6 @@
 // ----------------------------------
 package com.am24.am24
 
-import DatingViewModel
 import EditPicAndVoiceBioScreen
 import android.app.Application
 import android.net.Uri
@@ -54,7 +53,6 @@ val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
 @Composable
 fun MainNavGraph(
     navController: NavHostController,
-    datingViewModel: DatingViewModel,
     modifier: Modifier = Modifier,
     postViewModel: PostViewModel,
     currentPrice  : String
@@ -407,7 +405,6 @@ fun MainNavGraph(
                 geoFire          = geoFire,          // ← add this line
                 profileViewModel = profileViewModel,
                 postViewModel    = postViewModel,
-                datingViewModel  = datingViewModel
             )
         }
     }

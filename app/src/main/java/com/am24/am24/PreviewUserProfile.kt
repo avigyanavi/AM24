@@ -31,12 +31,13 @@ fun PreviewUserProfileScreen(
     geoFire          : GeoFire,
     profileViewModel : ProfileViewModel   = viewModel(),
     postViewModel    : PostViewModel      = viewModel(),   // re-use for posts inside the card
-    datingViewModel  : DatingViewModel    = viewModel(),
 ) {
     var profile      by remember { mutableStateOf<Profile?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope        = rememberCoroutineScope()
     var showComplimentDlg by remember { mutableStateOf(false) }
+
+    val datingViewModel: DatingViewModel = viewModel()
 
     LaunchedEffect(Unit) {
         profileViewModel.fetchCurrentUserProfile()
