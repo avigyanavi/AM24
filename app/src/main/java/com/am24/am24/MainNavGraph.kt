@@ -180,7 +180,19 @@ fun MainNavGraph(
                 backStackEntry.arguments?.getBoolean("allowIfSubscribed") ?: false
             SubscriptionScreen(navController, allowUpgrade)
         }
-        composable("paywall")    { SubscriptionScreen(navController) }
+        composable(
+            route = "paywall?toast={toast}",
+            arguments = listOf(
+                navArgument("toast") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val toast = backStackEntry.arguments?.getString("toast")
+            SubscriptionScreen(navController, toastMessage = toast)
+        }
         composable(
             route = "billing?basePlanId={basePlanId}",
             arguments = listOf(

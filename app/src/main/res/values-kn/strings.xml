@@ -96,12 +96,7 @@
     <string name="feed_tab_matches">ಮ್ಯಾಚ್‌ಗಳು</string>
     <string name="no_more_older_posts">ಹಳೆಯ ಪೋಸ್ಟ್‌ಗಳು ಇನ್ನಿಲ್ಲ</string>
 
-    <!-- Post options -->
-    <string name="menu_edit_post">ಪೋಸ್ಟ್ ಸಂಪಾದಿಸಿ</string>
-    <string name="menu_delete_post">ಪೋಸ್ಟ್ ಅಳಿಸಿ</string>
-    <string name="menu_report_post">ಪೋಸ್ಟ್ ವರದಿ ಮಾಡಿ</string>
     <string name="see_more">ಇನ್ನಷ್ಟು ನೋಡಿ</string>
-    <string name="free_tier_media_limit">ಉಚಿತ ಟಿಯರ್‌ನಲ್ಲಿ ದಿನಕ್ಕೆ ಕೇವಲ 5 ಮೀಡಿಯಾ ವೀಕ್ಷಣೆಗಳಿಗೆ ಮಾತ್ರ ಅನುಮತಿ</string>
 
     <!-- Share dialog & actions -->
     <string name="share">ಹಂಚಿಕೊಳ್ಳಿ</string>
@@ -118,9 +113,7 @@
 
     <!-- Report flow -->
     <string name="report_reason_prompt">ಈ ಪೋಸ್ಟ್‌ನ್ನು ವರದಿ ಮಾಡುವ ಕಾರಣವನ್ನು ನೀಡಿ:</string>
-    <string name="report_reason_hint">ಕಾರಣ ನಮೂದಿಸಿ</string>
     <string name="reason_required">ಕಾರಣ ಅಗತ್ಯವಿದೆ</string>
-    <string name="report_success">ವರದಿ ಮಾಡಲಾಗಿದೆ, ತಡೆಗಟ್ಟಲಾಗಿದೆ ಮತ್ತು ಅನ್ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ</string>
     <string name="submit">ಸಲ್ಲಿಸು</string>
 
     <!-- Kannada (kn) -->
@@ -131,7 +124,11 @@
     <string name="report_reason_placeholder">ಕಾರಣ ನಮೂದಿಸಿ</string>
     <string name="reported_blocked_unmatched">ವರದಿ ಮಾಡಲಾಗಿದೆ, ಬ್ಲಾಕ್ ಮಾಡಲಾಗಿದೆ &amp; ಅನ್‌ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ</string>
     <string name="search_tags_placeholder">ಟ್ಯಾಗ್‌ಗಳನ್ನು ಹುಡುಕಿ</string>
-
+    <string name="plus_time_left">ಪ್ಲಸ್ %1$dh ಬಾಕಿ</string>
+    <string name="no_plus">ಪ್ಲಸ್ ಇಲ್ಲ</string>
+    <string name="na">ಅನ್ವಯಿಸುವುದಿಲ್ಲ</string>
+    <string name="expires_prefix">ಕಾಲಾವಧಿ ಮುಗಿಯುವ ದಿನಾಂಕ: %1$s</string>
+    <string name="status_prefix">ಸ್ಥಿತಿ: %1$s</string>
     <!-- Recording / time / input -->
     <string name="no_comments_yet">ಇನ್ನೂ ಯಾವುದೇ ಕಾಮೆಂಟ್‌ಗಳಿಲ್ಲ.</string>
     <string name="recording_time_left">ರೆಕಾರ್ಡಿಂಗ್... ಉಳಿದ ಸಮಯ: %1$ds</string>
@@ -142,7 +139,6 @@
     <string name="play_pause">ಪ್ಲೇ/ಪಾಸ್</string>
 
     <!-- Tag search -->
-    <string name="search_tags">ಟ್ಯಾಗ್‌ಗಳನ್ನು ಹುಡುಕಿ</string>
 
     <!-- Leaderboard -->
     <string name="leaderboard_title">ಅತ್ಯುತ್ತಮ ಸ್ಥಳಗಳು</string>

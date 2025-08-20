@@ -88,11 +88,7 @@
     <string name="no_more_older_posts">ఇంకా పాత పోస్టులు లేవు</string>
 
     <!-- Post options -->
-    <string name="menu_edit_post">పోస్టును సవరించండి</string>
-    <string name="menu_delete_post">పోస్టును తొలగించండి</string>
-    <string name="menu_report_post">పోస్టును నివేదించండి</string>
     <string name="see_more">మరింత చూడండి</string>
-    <string name="free_tier_media_limit">ఫ్రీ టియర్‌లో రోజుకు 5 మీడియా వీయూస్ మాత్రమే అనుమతి</string>
 
     <!-- Share dialog & actions -->
     <string name="share">షేర్ చేయండి</string>
@@ -109,9 +105,7 @@
 
     <!-- Report flow -->
     <string name="report_reason_prompt">దయచేసి ఈ పోస్టును నివేదించడానికి కారణాన్ని అందించండి:</string>
-    <string name="report_reason_hint">కారణం నమోదు చేయండి</string>
     <string name="reason_required">కారణం అవసరం</string>
-    <string name="report_success">నివేదించబడింది, బ్లాక్ చేయబడింది మరియు అన్మ్యాచ్ చేయబడింది</string>
     <string name="submit">సబ్మిట్ చేయండి</string>
 
     <!-- Telugu (te) -->
@@ -122,6 +116,11 @@
     <string name="report_reason_placeholder">కారణాన్ని నమోదు చేయండి</string>
     <string name="reported_blocked_unmatched">రిపోర్ట్ చేయబడింది, బ్లాక్ చేయబడింది &amp; అన్‌మ్యాచ్ చేయబడింది</string>
     <string name="search_tags_placeholder">ట్యాగ్‌లను శోధించండి</string>
+    <string name="plus_time_left">ప్లస్ %1$dh మిగిలింది</string>
+    <string name="no_plus">ప్లస్ లేదు</string>
+    <string name="na">వర్తించదు</string>
+    <string name="expires_prefix">గడువు ముగుస్తుంది: %1$s</string>
+    <string name="status_prefix">స్థితి: %1$s</string>
 
     <!-- Recording / time / input -->
     <string name="no_comments_yet">ఇంకా వ్యాఖ్యలు లేవు.</string>
@@ -133,7 +132,6 @@
     <string name="play_pause">ప్లే/పాజ్</string>
 
     <!-- Tag search -->
-    <string name="search_tags">ట్యాగ్‌లను శోధించండి</string>
 
     <!-- Leaderboard -->
     <string name="leaderboard_title">అగ్ర ప్రదేశాలు</string>

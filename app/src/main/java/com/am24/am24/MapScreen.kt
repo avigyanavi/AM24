@@ -586,7 +586,7 @@ fun MapScreen(
                                 prefs.edit().putString("map_sort_mode", sortMode.name).apply()
                                 userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
                             } else {
-                                navController.navigate("paywall")
+                                navController.navigate("paywall?toast=plus")
                             }
                         },
                         colors = ButtonDefaults.filledTonalButtonColors(
@@ -704,7 +704,8 @@ fun MapScreen(
                                         .align(Alignment.BottomEnd)
                                         .padding(8.dp)
                                         .scale(0.9f)
-                                ) { navController.navigate("paywall") }
+                                ) { navController.navigate("paywall?toast=plus") }
+
                             }
                         } else {
                             if (isPlus || isPremium) {

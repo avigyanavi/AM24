@@ -78,11 +78,7 @@
         <string name="no_more_older_posts">மேலும் பழைய பதிவுகள் இல்லை</string>
 
         <!-- Post options -->
-        <string name="menu_edit_post">பதிவைத் திருத்து</string>
-        <string name="menu_delete_post">பதிவை நீக்கு</string>
-        <string name="menu_report_post">பதிவை புகார் செய்</string>
         <string name="see_more">மேலும் காண்க</string>
-        <string name="free_tier_media_limit">இலவச அடுக்கு தினமும் 5 மீடியா காட்சிகள் மட்டுமே அனுமதிக்கிறது</string>
 
         <!-- Share dialog & actions -->
         <string name="share">பகிர்</string>
@@ -97,9 +93,7 @@
 
         <!-- Report flow -->
         <string name="report_reason_prompt">இந்த பதிவை புகார் செய்வதற்கான காரணத்தை வழங்கவும்:</string>
-        <string name="report_reason_hint">காரணத்தை உள்ளிடவும்</string>
         <string name="reason_required">காரணம் தேவையானது</string>
-        <string name="report_success">புகார் செய்யப்பட்டது, தடை செய்யப்பட்டது மற்றும் அன்‌மேட்ச் செய்யப்பட்டது</string>
 
         <!-- Recording / time / input -->
         <string name="no_comments_yet">இன்னும் கருத்துகள் இல்லை.</string>
@@ -110,7 +104,6 @@
         <string name="play_pause">பிளே/பாஸ்</string>
 
         <!-- Tag search -->
-        <string name="search_tags">டேக்குகளைத் தேடுங்கள்</string>
 
         <!-- Leaderboard -->
         <string name="leaderboard_title">சிறந்த இடங்கள்</string>
@@ -1440,7 +1433,11 @@
         <string name="report_reason_placeholder">காரணத்தை உள்ளிடவும்</string>
         <string name="reported_blocked_unmatched">புகார் செய்யப்பட்டது, தடை செய்யப்பட்டது &amp; மேட்ச் நீக்கப்பட்டது</string>
         <string name="search_tags_placeholder">குறிச்சொற்களைத் தேடவும்</string>
-
+        <string name="plus_time_left">ப்ளஸ் %1$dh மீதம்</string>
+        <string name="no_plus">ப்ளஸ் இல்லை</string>
+        <string name="na">பொருந்தாது</string>
+        <string name="expires_prefix">காலாவதி: %1$s</string>
+        <string name="status_prefix">நிலை: %1$s</string>
         <!-- Landing Screen (added for LandingActivity) -->
                 <string name="welcome_kupidx">Kupidx-க்கு வரவேற்கிறோம்</string>
                 <string name="register">பதிவு செய்</string>

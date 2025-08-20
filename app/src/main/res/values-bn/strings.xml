@@ -70,6 +70,11 @@
     <string name="reported_blocked_unmatched">রিপোর্ট করা হয়েছে, ব্লক করা হয়েছে &amp; আনম্যাচ করা হয়েছে</string>
     <string name="search_tags_placeholder">ট্যাগ খুঁজুন</string>
 
+    <string name="plus_time_left">প্লাস %1$dh বাকি</string>
+    <string name="no_plus">কোনো প্লাস নেই</string>
+    <string name="na">প্রযোজ্য নয়</string>
+    <string name="expires_prefix">মেয়াদ শেষ: %1$s</string>
+    <string name="status_prefix">অবস্থা: %1$s</string>
     <!-- Profile popup -->
     <string name="btn_view_full_profile">সম্পূর্ণ প্রোফাইল দেখুন</string>
     <string name="prompt_country">দেশ</string>
@@ -98,11 +103,7 @@
     <string name="no_more_older_posts">আর পুরনো পোস্ট নেই</string>
 
     <!-- Post options -->
-    <string name="menu_edit_post">পোস্ট সম্পাদনা করুন</string>
-    <string name="menu_delete_post">পোস্ট মুছুন</string>
-    <string name="menu_report_post">পোস্ট রিপোর্ট করুন</string>
     <string name="see_more">আরও দেখুন</string>
-    <string name="free_tier_media_limit">ফ্রি টিয়ারে দিনে মাত্র 5টি মিডিয়া ভিউ অনুমোদিত</string>
 
     <!-- Share dialog & actions -->
     <string name="share">শেয়ার</string>
@@ -118,9 +119,7 @@
 
     <!-- Report flow -->
     <string name="report_reason_prompt">এই পোস্ট রিপোর্ট করার কারণ দিন:</string>
-    <string name="report_reason_hint">কারণ লিখুন</string>
     <string name="reason_required">কারণ প্রয়োজন</string>
-    <string name="report_success">রিপোর্ট করা হয়েছে, ব্লক করা হয়েছে ও আনম্যাচ করা হয়েছে</string>
     <string name="submit">জমা দিন</string>
 
     <!-- Recording / time / input -->
@@ -133,7 +132,6 @@
     <string name="play_pause">প্লে/পজ</string>
 
     <!-- Tag search -->
-    <string name="search_tags">ট্যাগ অনুসন্ধান করুন</string>
 
     <string name="dm_change_location">লোকেশন পরিবর্তন করুন</string>
     <string name="feature_no_ads">কোনও বিজ্ঞাপন নেই</string>

@@ -95,27 +95,6 @@
     <string name="expires_prefix">Expira: %1$s</string>
     <string name="status_prefix">Estado: %1$s</string>
 
-    <!-- Feedback dialog -->
-    <string name="feedback_sent">Comentarios enviados</string>
-    <string name="error_prefix">Error: %1$s</string>
-
-    <!-- Reset / delete -->
-    <string name="swipe_exclusions_cleared">Exclusiones de swipe borradas</string>
-    <string name="reset">Restablecer</string>
-    <string name="delete_confirm_msg">¿Seguro que quieres eliminar tu cuenta? Se borrarán todos los datos.</string>
-    <string name="account_deleted">Cuenta eliminada</string>
-
-    <!-- Profile settings -->
-    <string name="username_updated">Nombre de usuario actualizado</string>
-    <string name="please_verify_email">Verifica tu correo para usar la app.</string>
-    <string name="verification_email_sent">¡Correo de verificación enviado!</string>
-    <string name="still_not_verified">Aún sin verificar: confirma el enlace primero.</string>
-    <string name="password_updated">Contraseña actualizada</string>
-
-    <!-- Global preferences -->
-    <string name="global_prefs">Preferencias globales</string>
-    <string name="private_account_hint">Sé indetectable en el stack salvo a quienes des like</string>
-
     <!-- Leaderboard -->
     <string name="leaderboard_title">Lugares destacados</string>
     <plurals name="post_count">

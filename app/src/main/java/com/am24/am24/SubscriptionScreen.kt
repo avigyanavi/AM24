@@ -103,12 +103,25 @@ private fun usdPrice(plan: Plan): Double = when {
 @Composable
 fun SubscriptionScreen(
     navController: NavController,
-    allowIfSubscribed: Boolean = false
+    allowIfSubscribed: Boolean = false,
+    toastMessage: String? = null,
 ) {
     val scrollState = rememberScrollState()          // ← add
 
     /* geo-gate exactly like before */
     val ctx = LocalContext.current
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            val msgRes = when (it) {
+                "plus" -> R.string.upgrade_to_plus_to_unlock
+                "premium" -> R.string.upgrade_to_premium_to_unlock
+                else -> null
+            }
+            msgRes?.let { id ->
+                Toast.makeText(ctx, ctx.getString(id), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val userRoot = FirebaseDatabase.getInstance().getReference("users/$uid")
     var userCountry by remember { mutableStateOf<String?>(null) }

@@ -352,7 +352,6 @@
 
     <!-- Navigation / actions -->
     <string name="leaderboard">leaderboard</string>
-    <string name="feed">feed</string>
     <string name="settings_get_more_swipes">Get more swipes</string>
     <string name="settings_get_more_compliments">Get more compliments</string>
     <string name="settings_ai_messages_remaining">AI messages</string>
@@ -360,46 +359,23 @@
     <!-- Feedback dialog -->
     <string name="send_feedback">Send Feedback</string>
     <string name="your_feedback">Your feedback</string>
-    <string name="feedback_sent">Feedback sent</string>
-    <string name="error_prefix">Error: %1$s</string>
-    <string name="send">Send</string>
-    <string name="cancel">Cancel</string>
-
-    <!-- Reset / delete -->
-    <string name="swipe_exclusions_cleared">Swipe exclusions cleared</string>
-    <string name="reset">Reset</string>
-    <string name="delete_confirm_msg">Are you sure you want to delete your account? All data will be removed.</string>
-    <string name="account_deleted">Account deleted</string>
-    <string name="delete">Delete</string>
 
     <!-- Profile settings -->
     <string name="username_label">Username</string>
-    <string name="username_updated">Username updated</string>
-    <string name="please_verify_email">Please verify your email address to use the app.</string>
-    <string name="verification_email_sent">Verification email sent!</string>
-    <string name="still_not_verified">Still not verified — please confirm the link first.</string>
     <string name="current_password">Current Password</string>
     <string name="new_password">New Password</string>
     <string name="confirm_password">Confirm Password</string>
-    <string name="password_updated">Password updated</string>
     <string name="done">Done</string>
 
     <!-- Global preferences -->
-    <string name="global_prefs">Global Preferences</string>
     <string name="private_account">Private Account</string>
-    <string name="private_account_hint">Be undiscoverable in card stack except those you swipe right on</string>
 
     <!-- Feed tabs & footer -->
     <string name="feed_tab_everyone">Everyone</string>
     <string name="feed_tab_matches">Matches</string>
     <string name="no_more_older_posts">No more older posts</string>
 
-    <!-- Post options -->
-    <string name="menu_edit_post">Edit Post</string>
-    <string name="menu_delete_post">Delete Post</string>
-    <string name="menu_report_post">Report Post</string>
     <string name="see_more">See more</string>
-    <string name="free_tier_media_limit">Free tier allows only 5 media views per day</string>
 
     <!-- Share dialog & actions -->
     <string name="share">Share</string>
@@ -416,9 +392,7 @@
 
     <!-- Report flow -->
     <string name="report_reason_prompt">Please provide a reason for reporting this post:</string>
-    <string name="report_reason_hint">Enter reason</string>
     <string name="reason_required">Reason required</string>
-    <string name="report_success">Reported, blocked &amp; unmatched</string>
     <string name="submit">Submit</string>
 
     <!-- Recording / time / input -->
@@ -431,7 +405,6 @@
     <string name="play_pause">Play/Pause</string>
 
     <!-- Tag search -->
-    <string name="search_tags">Search tags</string>
 
     <!-- Sort control -->
     <string name="sort_nearby">Nearby</string>
