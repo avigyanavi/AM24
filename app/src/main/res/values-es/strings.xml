@@ -57,6 +57,17 @@
     <!-- Post options / body -->
     <string name="see_more">Ver más</string>
 
+    <!-- values-es/strings.xml (Spanish) -->
+    <resources>
+        <string name="post_edit">Editar publicación</string>
+        <string name="post_delete">Eliminar publicación</string>
+        <string name="post_report">Reportar publicación</string>
+        <string name="free_tier_media_limit_msg">El nivel gratuito permite solo 5 visualizaciones de medios por día</string>
+        <string name="report_reason_placeholder">Ingresa el motivo</string>
+        <string name="reported_blocked_unmatched">Reportado, bloqueado y desemparejado</string>
+        <string name="search_tags_placeholder">Buscar etiquetas</string>
+    </resources>
+
     <!-- Share dialog -->
     <string name="share">Compartir</string>
     <string name="save_post">Guardar publicación</string>
