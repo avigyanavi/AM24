@@ -163,30 +163,11 @@ suspend fun getPlaceNameFromPlaceId(placeId: String, context: android.content.Co
 /* ======================================================================================= */
 /*  Units helpers (NEW)                                                                    */
 /* ======================================================================================= */
-
-private val MILE_COUNTRIES = setOf(
-    "US", "GB", "LR", "MM", // primary mile countries
-    "PR", "GU", "VI", "AS", "MP" // US territories using miles
-)
-
-private fun usesMilesUnits(): Boolean =
-    when (Locale.getDefault().country.uppercase(Locale.ROOT)) {
-        "US", "GB", "LR", "MM", "PR", "GU", "VI", "AS", "MP" -> true   // United States, Liberia, Myanmar
-        else -> false
-    }
-
-private fun usesMiles(context: android.content.Context): Boolean {
-    val locales = context.resources.configuration.locales
-    val country = (if (locales.size() > 0) locales[0] else Locale.getDefault())
-        .country.uppercase(Locale.ROOT)
-    return country in MILE_COUNTRIES
-}
 private const val KM_PER_MILE = 1.609344
 private const val METERS_PER_MILE = 1609.344
 
-private fun prettyDistance(meters: Double): String {
+private fun prettyDistance(meters: Double, useMiles: Boolean): String {
     if (!meters.isFinite()) return "—"
-    val useMiles = usesMilesUnits()
 
     return if (useMiles) {
         val feet = meters * 3.28084
@@ -224,7 +205,7 @@ fun MapScreen(
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
-    val useMiles = remember { usesMiles(ctx) } // NEW: decide unit once
+    val useMiles = remember { !CountryUtil.usesKilometers(ctx) } // decide unit once
     val activity = LocalContext.current as Activity
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
 
@@ -655,6 +636,7 @@ fun MapScreen(
                                             nearbyViewModel.refreshNearbyUsers(userId, center, geoFireDatabaseRef)
                                         }
                                     },
+                                    useMiles = useMiles,
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
                                         .padding(8.dp)
@@ -1359,7 +1341,7 @@ private fun NearbyCard(user: NearbyUser, onClick: () -> Unit, useMiles: Boolean)
                     text = buildString {
                         append(timeAgoShort(user.lastActiveAt))
                         if (user.distanceMeters.isFinite()) {
-                            append(" · "); append(prettyDistance(user.distanceMeters))
+                            append(" · "); append(prettyDistance(user.distanceMeters, useMiles))
                         }
                     },
                     color = Color(0xFFE0E0E0),
@@ -1409,10 +1391,10 @@ private fun GenderFilterChip(
 @Composable
 private fun RadiusChip(
     radiusKm: Double,                  // keep km internally for GeoFire
+    useMiles: Boolean,
     onChange: (Double) -> Unit,        // expects km
     modifier: Modifier = Modifier
 ) {
-    val useMiles = usesMilesUnits()
     val minKm = 1.0
     val maxKm = 50.0
 

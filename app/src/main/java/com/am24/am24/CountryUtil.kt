@@ -16,7 +16,8 @@ object CountryUtil {
         "ES", // Spain
         "HK", // Hong Kong
         "CN", // China
-        "IE"  // Ireland
+        "IE",  // Ireland
+        "MX"  // Mexico
     )
 
     fun isProbablyInIndia(ctx: Context): Boolean {
