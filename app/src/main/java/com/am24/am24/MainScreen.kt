@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.graphics.TransformOrigin
@@ -48,6 +49,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Map, "map"),
+        BottomNavItem(stringResource(R.string.feed), Icons.Outlined.Home, "home"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
         BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
     )
@@ -373,18 +375,7 @@ fun TopNavBar(
                     }
                 }
 
-                IconButton(onClick = {
-                    if (myProfile?.isPlus == true || myProfile?.isPremium == true) {
-                        navController.navigate("home")
-                    } else {
-                        navController.navigate("subscription")
-                        Toast.makeText(
-                            context,
-                            "Upgrade to Plus to access the feed",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }) {
+                IconButton(onClick = { navController.navigate("home") }) {
                     Icon(
                         imageVector = Icons.Default.RssFeed,
                         contentDescription = stringResource(R.string.feed),
@@ -434,20 +425,7 @@ fun TopNavBar(
                 }
             }
 
-            // User Settings Icon (Profile or Settings screen)
-            if (isProfileScreen) {
-                if (myProfile?.isPlus == true || myProfile?.isPremium == true) {
-                    IconButton(onClick = { navController.navigate("home") }) {
-                        Icon(
-                            imageVector = Icons.Default.RssFeed,
-                            contentDescription = stringResource(R.string.feed),
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            } else if (isUserSettings || isOnHome || isDMScreen) {
-
+            if (isUserSettings || isOnHome || isProfileScreen || isDMScreen) {
                 IconButton(onClick = {
                     if (isUserSettings) {
                         navController.popBackStack()
