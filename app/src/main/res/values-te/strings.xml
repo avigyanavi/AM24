@@ -114,6 +114,15 @@
     <string name="report_success">నివేదించబడింది, బ్లాక్ చేయబడింది మరియు అన్మ్యాచ్ చేయబడింది</string>
     <string name="submit">సబ్మిట్ చేయండి</string>
 
+    <!-- Telugu (te) -->
+    <string name="post_edit">పోస్ట్‌ను సవరించండి</string>
+    <string name="post_delete">పోస్ట్‌ను తొలగించండి</string>
+    <string name="post_report">పోస్ట్‌ను రిపోర్ట్ చేయండి</string>
+    <string name="free_tier_media_limit_msg">ఉచిత స్థాయిలో రోజుకు కేవలం 5 మీడియా వీక్షణలు మాత్రమే అనుమతించబడతాయి</string>
+    <string name="report_reason_placeholder">కారణాన్ని నమోదు చేయండి</string>
+    <string name="reported_blocked_unmatched">రిపోర్ట్ చేయబడింది, బ్లాక్ చేయబడింది &amp; అన్‌మ్యాచ్ చేయబడింది</string>
+    <string name="search_tags_placeholder">ట్యాగ్‌లను శోధించండి</string>
+
     <!-- Recording / time / input -->
     <string name="no_comments_yet">ఇంకా వ్యాఖ్యలు లేవు.</string>
     <string name="recording_time_left">రికార్డింగ్... మిగిలిన సమయం: %1$ds</string>

@@ -123,6 +123,15 @@
     <string name="report_success">ವರದಿ ಮಾಡಲಾಗಿದೆ, ತಡೆಗಟ್ಟಲಾಗಿದೆ ಮತ್ತು ಅನ್ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ</string>
     <string name="submit">ಸಲ್ಲಿಸು</string>
 
+    <!-- Kannada (kn) -->
+    <string name="post_edit">ಪೋಸ್ಟ್ ಸಂಪಾದಿಸಿ</string>
+    <string name="post_delete">ಪೋಸ್ಟ್ ಅಳಿಸಿ</string>
+    <string name="post_report">ಪೋಸ್ಟ್ ವರದಿ ಮಾಡಿ</string>
+    <string name="free_tier_media_limit_msg">ಉಚಿತ ಮಟ್ಟದಲ್ಲಿ ದಿನಕ್ಕೆ ಕೇವಲ 5 ಮಾಧ್ಯಮ ವೀಕ್ಷಣೆಗಳಿಗೆ ಅವಕಾಶ</string>
+    <string name="report_reason_placeholder">ಕಾರಣ ನಮೂದಿಸಿ</string>
+    <string name="reported_blocked_unmatched">ವರದಿ ಮಾಡಲಾಗಿದೆ, ಬ್ಲಾಕ್ ಮಾಡಲಾಗಿದೆ &amp; ಅನ್‌ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ</string>
+    <string name="search_tags_placeholder">ಟ್ಯಾಗ್‌ಗಳನ್ನು ಹುಡುಕಿ</string>
+
     <!-- Recording / time / input -->
     <string name="no_comments_yet">ಇನ್ನೂ ಯಾವುದೇ ಕಾಮೆಂಟ್‌ಗಳಿಲ್ಲ.</string>
     <string name="recording_time_left">ರೆಕಾರ್ಡಿಂಗ್... ಉಳಿದ ಸಮಯ: %1$ds</string>

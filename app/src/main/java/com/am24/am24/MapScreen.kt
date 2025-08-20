@@ -220,6 +220,8 @@ fun MapScreen(
         ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+    val mapVisibility = remember { mutableStateMapOf<String, Boolean>() } // uid -> allowed on map
+
     /* ---------------- People / grid state ---------------- */
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
     val people = nearbyViewModel.people
@@ -241,6 +243,7 @@ fun MapScreen(
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
     }
+
 
     LaunchedEffect(Unit) {
         if (!hasShownLocationDialogThisSession) {
@@ -521,6 +524,36 @@ fun MapScreen(
             when (sortMode) {
                 SortMode.NEARBY -> filteredPeople.sortedBy { it.distanceMeters }
                 SortMode.ACTIVE -> filteredPeople.sortedByDescending { it.lastActiveAt }
+            }
+        }
+    }
+
+    LaunchedEffect(selectedTab, sortedPeople, matchUids) {
+        if (selectedTab != 1) return@LaunchedEffect  // only when Map tab is open
+
+        // prune entries that are no longer in the list
+        val currentIds = sortedPeople.map { it.userId }.toSet()
+        (mapVisibility.keys - currentIds).forEach { mapVisibility.remove(it) }
+
+        // fetch flags for unknown users
+        sortedPeople.forEach { u ->
+            if (!mapVisibility.containsKey(u.userId)) {
+                try {
+                    val snap = FirebaseRefs.db.getReference("users")
+                        .child(u.userId)
+                        .get()
+                        .await()
+
+                    val allowForMatches = snap.child("allowLocationForMatches")
+                        .getValue(Boolean::class.java) ?: false
+                    val allowPublic = snap.child("allowLocationPublic")
+                        .getValue(Boolean::class.java) ?: false
+
+                    val isMatch = matchUids.contains(u.userId)
+                    mapVisibility[u.userId] = if (isMatch) allowForMatches else allowPublic
+                } catch (_: Exception) {
+                    mapVisibility[u.userId] = false
+                }
             }
         }
     }
@@ -993,13 +1026,15 @@ fun MapScreen(
                                     )
                                 ) {
                                     // People markers (neutral)
-                                    sortedPeople.forEach { u ->
-                                        u.latLng?.let { ll ->
-                                            Marker(
-                                                state = MarkerState(ll),
-                                                title = u.username
-                                            )
-                                        }
+                                    val visibleMapPeople = sortedPeople.filter { u ->
+                                        u.latLng != null && (mapVisibility[u.userId] == true)
+                                    }
+                                    visibleMapPeople.forEach { u ->
+                                        val ll = u.latLng!!
+                                        Marker(
+                                            state = MarkerState(ll),
+                                            title = u.username
+                                        )
                                     }
 
                                     // Match markers (blue) — click shows profile popup

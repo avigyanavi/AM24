@@ -61,6 +61,15 @@
     <string name="btn_close">বন্ধ করুন</string>
     <string name="cd_go_to_feed">ফিডে যান</string>
 
+    <!-- Bengali (bn) -->
+    <string name="post_edit">পোস্ট সম্পাদনা</string>
+    <string name="post_delete">পোস্ট মুছুন</string>
+    <string name="post_report">পোস্ট রিপোর্ট করুন</string>
+    <string name="free_tier_media_limit_msg">ফ্রি টিয়ারে দিনে মাত্র 5টি মিডিয়া দেখা যায়</string>
+    <string name="report_reason_placeholder">কারণ লিখুন</string>
+    <string name="reported_blocked_unmatched">রিপোর্ট করা হয়েছে, ব্লক করা হয়েছে &amp; আনম্যাচ করা হয়েছে</string>
+    <string name="search_tags_placeholder">ট্যাগ খুঁজুন</string>
+
     <!-- Profile popup -->
     <string name="btn_view_full_profile">সম্পূর্ণ প্রোফাইল দেখুন</string>
     <string name="prompt_country">দেশ</string>

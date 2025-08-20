@@ -1432,7 +1432,16 @@
                 <string name="submit">சமர்ப்பி</string>
                 <string name="cancel">ரத்துசெய்</string>
 
-                <!-- Landing Screen (added for LandingActivity) -->
+        <!-- Tamil (ta) -->
+        <string name="post_edit">பதிவை திருத்து</string>
+        <string name="post_delete">பதிவை நீக்கு</string>
+        <string name="post_report">பதிவை புகார் செய்</string>
+        <string name="free_tier_media_limit_msg">இலவச நிலையில் ஒரு நாளுக்கு 5 ஊடகக் காட்சிகள் மட்டுமே அனுமதி</string>
+        <string name="report_reason_placeholder">காரணத்தை உள்ளிடவும்</string>
+        <string name="reported_blocked_unmatched">புகார் செய்யப்பட்டது, தடை செய்யப்பட்டது &amp; மேட்ச் நீக்கப்பட்டது</string>
+        <string name="search_tags_placeholder">குறிச்சொற்களைத் தேடவும்</string>
+
+        <!-- Landing Screen (added for LandingActivity) -->
                 <string name="welcome_kupidx">Kupidx-க்கு வரவேற்கிறோம்</string>
                 <string name="register">பதிவு செய்</string>
                 <string name="login">உள்நுழை</string>
