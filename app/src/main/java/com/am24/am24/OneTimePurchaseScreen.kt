@@ -36,7 +36,6 @@ enum class PurchaseType(
 ) {
     Swipes      ("swipes",      "Swipes",       100, 0.29),
     Compliments ("compliments", "Compliments",  150, 0.29),
-    Boosts      ("boosts",      "Boosts",       200, 0.29),
     AiMessages  ("aiMessages",  "AI messages",  200, 1.99);
 
     fun skuFor(qty: Int): String = "${apiType.lowercase()}_${qty}"
@@ -219,7 +218,6 @@ fun OneTimePurchaseScreen(
 private fun qtyField(t: PurchaseType) = when (t) {
     PurchaseType.Swipes      -> "swipesInfo/remainingSwipes"
     PurchaseType.Compliments -> "availableCompliments"
-    PurchaseType.Boosts      -> "availableBoosts"
     PurchaseType.AiMessages  -> "availableAiMessages"
 }
 

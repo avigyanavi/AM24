@@ -45,15 +45,12 @@ private val PLUS_FEATURES = listOf(
     R.string.feature_picture_voice_posts,
     R.string.feature_50_swipes,
     R.string.feature_3_compliments,
-    R.string.feature_3_boosts
 )
 
 private val PREMIUM_FEATURES = listOf(
     R.string.feature_video_rank_section,
     R.string.feature_unlimited_swipes,
     R.string.feature_5_compliments,
-    R.string.feature_5_boosts,
-    R.string.feature_performance_metrics_rank,
     R.string.feature_everything_plus
 )
 /* deep link each major UPI app to its AutoPay list */
@@ -355,7 +352,6 @@ private fun launchOneTimeUpi(
                         "isPlus"      to (tier == Tier.PLUS),
                         "isPremium"   to (tier == Tier.PREMIUM),
                         "nextRenewal" to now + validityMs,
-                        "availableBoosts"       to if (tier == Tier.PREMIUM) 5 else 3,
                         "availableCompliments"  to if (tier == Tier.PREMIUM) 5 else 3,
                         "swipesInfo/remainingSwipes" to if (tier == Tier.PREMIUM) Int.MAX_VALUE else 50
                     ).apply {

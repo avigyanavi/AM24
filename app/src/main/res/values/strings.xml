@@ -272,7 +272,8 @@
     <string name="ba_col_marin_headlands_query">hiking trails near Marin Headlands</string>
 
     <string name="ba_fab_recenter_text">BAY</string>
-
+    <string name="lbl_visible_to_public">Visible to Public</string>
+    <string name="settings_allow_public_maps">Allow public to view you in Maps</string>
     <string name="settings_reset_swipe_history">Reset Swipe Exclusions</string>
     <string name="confirm_reset_swipe_history">This will clear your matches, likes, dislikes, and swipe counts. Continue?</string>
     <string name="age_format">Age: %s</string>

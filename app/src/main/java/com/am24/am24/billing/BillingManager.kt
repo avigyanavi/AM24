@@ -340,7 +340,6 @@ object BillingManager : PurchasesUpdatedListener {
             if (isPlus || isPremium) {
                 updates["swipesInfo/remainingSwipes"] =
                     if (isPremium) Int.MAX_VALUE else 50
-                updates["availableBoosts"] = if (isPremium) 5 else 3
                 updates["availableCompliments"] = if (isPremium) 5 else 3
                 if (isPremium) updates["availableAiMessages"] = 2
             }

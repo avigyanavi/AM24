@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import DatingViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -30,6 +31,7 @@ fun PreviewUserProfileScreen(
     geoFire          : GeoFire,
     profileViewModel : ProfileViewModel   = viewModel(),
     postViewModel    : PostViewModel      = viewModel(),   // re-use for posts inside the card
+    datingViewModel  : DatingViewModel    = viewModel(),
 ) {
     var profile      by remember { mutableStateOf<Profile?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -52,12 +54,9 @@ fun PreviewUserProfileScreen(
         }
     }
 
-    // ① collect your own Profile (so we know your pic URL)
-    val yourProfile by profileViewModel.currentUserProfile.collectAsState()
-
     // ② collect the match-pop-up state
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
-    val complimentsLeft by profileViewModel.complimentsLeft.collectAsState()
+    val complimentsLeft by datingViewModel.complimentsLeft.collectAsState()
     /* ── UI ────────────────────────────────────────────────────────── */
     Box(
         Modifier
@@ -176,7 +175,7 @@ fun PreviewUserProfileScreen(
                     ComplimentDialog(
                         complimentsLeft = complimentsLeft,
                         onSend = { text, voiceUri ->
-                            profileViewModel.sendCompliment(targetUserId, text, voiceUri)
+                            datingViewModel.sendCompliment(targetUserId, text, voiceUri, profileViewModel)
                             showComplimentDlg = false
                         },
                         onDismiss = { showComplimentDlg = false }

@@ -48,7 +48,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Map, "map"),
-        BottomNavItem(stringResource(R.string.date), Icons.Default.Favorite, "dating"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
         BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
     )
@@ -63,7 +62,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
     val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
             currentRoute != "leaderboard"
-    val showTopBar    = showGlobalBars && currentRoute != "dating"
+    val showTopBar    = showGlobalBars
     val priceTier = rememberSaveable { mutableStateOf(priceAll) }
 
     val profileViewModel: ProfileViewModel = viewModel()
@@ -91,7 +90,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     profileViewModel = profileViewModel,
                     currentUserId = currentUserId,
                     postViewModel = postViewModel,
-                    datingViewModel = datingViewModel,
                     onPriceChange = { priceTier.value = it },
                     onLogout = onLogout
                 )
@@ -127,7 +125,6 @@ fun TopNavBar(
     profileViewModel: ProfileViewModel,
     currentUserId: String,
     postViewModel: PostViewModel,
-    datingViewModel: DatingViewModel,
     onLogout: () -> Unit,
     onPriceChange: (String) -> Unit = {}
 ) {
@@ -144,6 +141,7 @@ fun TopNavBar(
     val isPremium = remember { mutableStateOf(false) }
     var showLocationPrefDialog by remember { mutableStateOf(false) }
     var allowLocationForMatches by remember { mutableStateOf(false) }
+    var allowLocationPublic by remember { mutableStateOf(false) }
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val mapSelectedTab by savedStateHandle?.getStateFlow("mapSelectedTab", 0)?.collectAsState()
@@ -187,6 +185,15 @@ fun TopNavBar(
                 } else {
                     allowLocationForMatches = savedPref
                 }
+
+                // Fetch allowLocationPublic
+                val savedPublicPref = snapshot.child("allowLocationPublic").getValue(Boolean::class.java)
+                if (savedPublicPref == null) {
+                    profileRef.child("allowLocationPublic").setValue(false)
+                    allowLocationPublic = false
+                } else {
+                    allowLocationPublic = savedPublicPref
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -222,9 +229,6 @@ fun TopNavBar(
             notificationsRef.removeEventListener(listener)
         }
     }
-    var showReportDialog by remember { mutableStateOf(false) }
-    val reporteeId by datingViewModel.currentSwipeUserId.collectAsState()
-    // inside your currentRoute == "dating" block, before the IconButton:
     val context = LocalContext.current
     // anywhere before TopAppBar:
     val isOnHome = currentDestination
@@ -235,7 +239,7 @@ fun TopNavBar(
     TopAppBar(
         title = {
 //            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
-            if (currentRoute == "dating" && myProfile?.isBoosted == true) {
+            if (myProfile?.isBoosted == true) {
                 BoostedPill()
             }
         },
@@ -257,21 +261,6 @@ fun TopNavBar(
                 }
                 IconButton(onClick = { navController.navigate("feedback_list") }) {
                     Icon(Icons.Default.Feedback, contentDescription = "View Feedback")
-                }
-            }
-            // Report Button
-            if (currentRoute == "dating") {
-                TextButton(
-                    onClick = {
-                        if (reporteeId != null) showReportDialog = true
-                        else Toast.makeText(context, "No user to report!", Toast.LENGTH_SHORT).show()
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Report"
-                    )
                 }
             }
 
@@ -445,8 +434,6 @@ fun TopNavBar(
                 }
             }
 
-            val isDatingScreen = currentRoute == "dating" ||
-                    currentRoute?.startsWith("dating_screen") == true
             // User Settings Icon (Profile or Settings screen)
             if (isProfileScreen) {
                 if (myProfile?.isPlus == true || myProfile?.isPremium == true) {
@@ -459,7 +446,7 @@ fun TopNavBar(
                         )
                     }
                 }
-            } else if (isUserSettings || isDatingScreen || isOnHome || isDMScreen) {
+            } else if (isUserSettings || isOnHome || isDMScreen) {
 
                 IconButton(onClick = {
                     if (isUserSettings) {
@@ -530,59 +517,7 @@ fun TopNavBar(
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
-    if (showReportDialog) {
-        var reportReason by remember { mutableStateOf("") }
 
-        AlertDialog(
-            onDismissRequest = { showReportDialog = false },
-            title = { Text("Report User") },
-            text = {
-                Column {
-                    Text("Please provide a reason:")
-                    Spacer(Modifier.height(8.dp))
-                    TextField(
-                        value = reportReason,
-                        onValueChange = { reportReason = it },
-                        placeholder = { Text("Enter reason") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        colors = TextFieldDefaults.textFieldColors(
-                            containerColor = Color(0xFF1A1A1A),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = Color.White,
-                            focusedTextColor = Color.White
-                        )
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (reportReason.isBlank()) {
-                            Toast.makeText(context, "Reason can’t be empty", Toast.LENGTH_SHORT).show()
-                        } else if (reporteeId != null) {
-                            datingViewModel.reportUser(currentUserId, reporteeId!!, reportReason)
-                            Toast.makeText(context, "User reported and blocked", Toast.LENGTH_SHORT).show()
-                            showReportDialog = false
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                ) {
-                    Text("Submit", color = Color.White)
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = { showReportDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-                ) {
-                    Text("Cancel", color = Color.White)
-                }
-            }
-        )
-    }
     if (showLocationPrefDialog) {
         AlertDialog(
             onDismissRequest = { showLocationPrefDialog = false },
@@ -603,15 +538,28 @@ fun TopNavBar(
                             )
                         )
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.lbl_visible_to_public))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = allowLocationPublic,
+                            onCheckedChange = { allowLocationPublic = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6F00),
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color.Gray
+                            )
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(onClick = {
-                    FirebaseRefs.db.getReference("users").child(currentUserId)
-                        .child("allowLocationForMatches").setValue(allowLocationForMatches)
-                        .addOnSuccessListener {
-                            Log.d("TopNavBar", "Location preference saved: $allowLocationForMatches")
-                        }
+                    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                    userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
+                    userRef.child("allowLocationPublic").setValue(allowLocationPublic)
                         .addOnFailureListener { e ->
                             Log.e("TopNavBar", "Failed to save preference: ${e.message}")
                         }
@@ -658,7 +606,6 @@ fun BottomNavigationBar(
                 "settings" -> {
                     currentRoute == "settings" ||
                             currentRoute == "manageSubscription" ||
-                            currentRoute == "buyBoosts" ||
                             currentRoute == "buySwipes" ||
                             currentRoute == "buyCompliments" ||
                             currentRoute == "buyAiMessages" ||

@@ -107,7 +107,6 @@ fun SettingsScreen(navController: NavController) {
 
     var premiumTier by remember { mutableStateOf("Free") }           // "Free" / "Plus" / "Premium"
     var expiry by remember { mutableStateOf("N/A") }
-    var boosts by remember { mutableStateOf(0) }
     var swipes by remember { mutableStateOf(0) }
     var compliments by remember { mutableStateOf(0) }
     var aiMessages    by remember { mutableStateOf(0) }       // ★ NEW ★
@@ -116,7 +115,8 @@ fun SettingsScreen(navController: NavController) {
     var isPrivate by remember { mutableStateOf(false) }
     val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
     var preferredLang by remember { mutableStateOf(defaultLang) }
-    var allowLoc by remember { mutableStateOf(true) }
+    var allowLoc by remember { mutableStateOf(false) }
+    var allowPublic by remember { mutableStateOf(false) }
     var isMatrimony by remember { mutableStateOf(false) }
     var blocked by remember { mutableStateOf(listOf<String>()) }
     var subscriptionStatus by remember { mutableStateOf<String?>(null) }
@@ -136,13 +136,11 @@ fun SettingsScreen(navController: NavController) {
     var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
     val isIndian = remember(country) { country.equals("India", ignoreCase = true) }
     val activity = LocalContext.current as Activity
-    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
     val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
 
     DisposableEffect(Unit) {
         onDispose {
-            rewardedBoostManager.clearCallbacks()
             rewardedComplimentManager.clearCallbacks()
             rewardedSwipeManager.clearCallbacks()
         }
@@ -168,7 +166,6 @@ fun SettingsScreen(navController: NavController) {
             .getValue(String::class.java)
         subscriptionStatus = s.child("subscriptionStatus").getValue(String::class.java)
 
-        boosts      = s.child("availableBoosts").getValue(Int::class.java) ?: 0
         swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
         compliments = s.child("availableCompliments").getValue(Int::class.java) ?: 0
         aiMessages    = s.child("availableAiMessages").getValue(Int::class.java) ?: 0   // ← NEW
@@ -176,6 +173,7 @@ fun SettingsScreen(navController: NavController) {
         isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
         preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: defaultLang
         allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
+        allowPublic = s.child("allowLocationPublic").getValue(Boolean::class.java) ?: false
         isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
 
         // ── load the new fields too ──
@@ -390,18 +388,6 @@ fun SettingsScreen(navController: NavController) {
                         Divider(Modifier.padding(start = 56.dp))
                     }
 
-                    /* STATIC BOOSTS ROW  */
-                    SettingsRow(
-                        icon         = { Icon(Icons.Default.FlashOn, null) },
-                        title        = stringResource(R.string.settings_get_more_boosts),
-                        trailingText = "$boosts",
-                        onClick = {
-                            if (isIndian) navController.navigate("buyBoosts")
-                            else rewardDialogFor = PurchaseType.Boosts
-                        }
-                    )
-                    Divider(Modifier.padding(start = 56.dp))
-
                     /* STATIC SWIPES ROW  */
                     SettingsRow(
                         icon         = { Icon(Icons.Default.Swipe, null) },
@@ -464,6 +450,11 @@ fun SettingsScreen(navController: NavController) {
                     onAllowLocChange = {
                         allowLoc = it
                         scope.launch { userRef.child("allowLocationForMatches").setValue(it) }
+                    },
+                    allowPublic = allowPublic,
+                    onAllowPublicChange = {
+                        allowPublic = it
+                        scope.launch { userRef.child("allowLocationPublic").setValue(it) }
                     },
                     isMatrimony = isMatrimony,
                     onMatrimonyChange = {
@@ -561,7 +552,6 @@ fun SettingsScreen(navController: NavController) {
 
         if (!isIndian) rewardDialogFor?.let { type ->
             val msg = when (type) {
-                PurchaseType.Boosts -> stringResource(R.string.watch_ad_boost)
                 PurchaseType.Compliments -> stringResource(R.string.watch_ad_compliment)
                 PurchaseType.Swipes -> stringResource(R.string.watch_ad_swipes)
                 else -> ""
@@ -573,7 +563,6 @@ fun SettingsScreen(navController: NavController) {
                     TextButton(onClick = {
                         rewardDialogFor = null
                         val manager = when (type) {
-                            PurchaseType.Boosts -> rewardedBoostManager
                             PurchaseType.Compliments -> rewardedComplimentManager
                             PurchaseType.Swipes -> rewardedSwipeManager
                             else -> null
@@ -582,10 +571,6 @@ fun SettingsScreen(navController: NavController) {
                             userId = uid,
                             onReward = {
                             when (type) {
-                                PurchaseType.Boosts -> {
-                                    boosts += 1
-                                    scope.launch { userRef.child("availableBoosts").setValue(boosts) }
-                                }
                                 PurchaseType.Compliments -> {
                                     compliments += 1
                                     scope.launch { userRef.child("availableCompliments").setValue(compliments) }
@@ -604,7 +589,6 @@ fun SettingsScreen(navController: NavController) {
                     TextButton(onClick = {
                         rewardDialogFor?.let {
                             val route = when (it) {
-                                PurchaseType.Boosts -> "buyBoosts"
                                 PurchaseType.Compliments -> "buyCompliments"
                                 PurchaseType.Swipes -> "buySwipes"
                                 else -> null
@@ -1052,6 +1036,8 @@ private fun GlobalPrefCard(
     onPrivateChange: (Boolean) -> Unit,
     allowLoc: Boolean,
     onAllowLocChange: (Boolean) -> Unit,
+    allowPublic: Boolean,
+    onAllowPublicChange: (Boolean) -> Unit,
     isMatrimony: Boolean,
     onMatrimonyChange: (Boolean) -> Unit
 ) {
@@ -1144,6 +1130,23 @@ private fun GlobalPrefCard(
             Switch(
                 checked = allowLoc,
                 onCheckedChange = onAllowLocChange,
+                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
+            )
+        }
+        Divider(Modifier.padding(start = 56.dp))
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Public, null)
+            Spacer(Modifier.width(16.dp))
+            Text(stringResource(R.string.settings_allow_public_maps), Modifier.weight(1f))
+            Switch(
+                checked = allowPublic,
+                onCheckedChange = onAllowPublicChange,
                 colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
             )
         }

@@ -21,7 +21,8 @@
     <string name="tab_map">మ్యాప్</string>
     <string name="settings_reset_swipe_history">స్వైప్ మినహాయింపులను రీసెట్ చేయండి</string>
     <string name="confirm_reset_swipe_history">దీంతో మీ మ్యాచ్‌లు, లైక్‌లు, డిస్‌లైక్‌లు మరియు స్వైప్ లెక్కలు తుడిచివేయబడతాయి. కొనసాగించాలా?</string>
-
+    <string name="lbl_visible_to_public">ప్రజలకు కనిపిస్తుంది</string>
+    <string name="settings_allow_public_maps">మిమ్మల్ని మ్యాప్లలో చూడటానికి ప్రజలను అనుమతించండి</string>
     <string name="daily_login_title">దినసరి లాగిన్</string>
     <string name="daily_login_message">మీరు వరుసగా %1$d రోజులు లాగిన్ చేశారు</string>
     <string name="daily_login_plus_award">Plus %1$d గంటల పాటు అన్‌లాక్ అయింది</string>

@@ -31,7 +31,8 @@
     <string name="tab_map">मानचित्र</string>
     <string name="settings_reset_swipe_history">स्वाइप अपवर्जन रीसेट करें</string>
     <string name="confirm_reset_swipe_history">इससे आपके मैच, लाइक्स, डिस्लाइक्स और स्वाइप गिनतियाँ मिट जाएँगी। जारी रखें?</string>
-
+    <string name="lbl_visible_to_public">जनता के लिए दृश्यमान</string>
+    <string name="settings_allow_public_maps">जनता को आपको नक्शे में देखने की अनुमति दें</string>
     <string name="daily_login_title">दैनिक लॉगिन</string>
     <string name="daily_login_message">आपने लगातार %1$d दिन लॉगिन किया है</string>
     <string name="daily_login_plus_award">Plus %1$d घंटे के लिए अनलॉक हुआ</string>

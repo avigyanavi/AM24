@@ -1381,7 +1381,8 @@
     <string name="type_country">Escribe tu país</string>
     <string name="settings_reset_swipe_history">Restablecer exclusiones de deslizamiento</string>
     <string name="confirm_reset_swipe_history">Esto borrará tus coincidencias, me gusta, no me gusta y conteos de deslizamiento. ¿Continuar?</string>
-
+    <string name="lbl_visible_to_public">Visible para el público</string>
+    <string name="settings_allow_public_maps">Permitir que el público te vea en Mapas</string>
     <string name="performance_metrics">Métricas de rendimiento</string>
     <string name="matches">Coincidencias</string>
     <string name="rating">Calificación</string>

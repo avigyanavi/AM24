@@ -152,7 +152,6 @@ fun NotificationCard(
         "new_like"       -> Icons.Default.Favorite      to "peopleWhoLikedMe"
         "new_compliment" -> Icons.Default.EmojiEmotions to "peopleWhoLikedMe"          // or a “compliments” inbox
         "new_match"      -> Icons.Default.People        to "dms"
-        "boost_over"     -> Icons.Default.FlashOn       to "buyBoosts"                 // paywall / boost page
         else             -> Icons.Default.Notifications to null                        // fallback
     }
 

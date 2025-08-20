@@ -124,10 +124,8 @@ fun UpgradeLandingScreen(nav: NavController) {
                         "isPremium" to (tier == Tier.PREMIUM),
                         "nextRenewal" to (now + validityMs)
                     ).apply {
-                        val boosts = if (tier == Tier.PREMIUM) 5 else 3
                         val compliments = if (tier == Tier.PREMIUM) 5 else 3
                         val swipes = if (tier == Tier.PREMIUM) Int.MAX_VALUE else 50
-                        put("availableBoosts", boosts)
                         put("availableCompliments", compliments)
                         put("swipesInfo/remainingSwipes", swipes)
                         if (tier == Tier.PREMIUM) put("availableAiMessages", 2)

@@ -22,7 +22,8 @@
     <string name="settings">সেটিংস</string>
     <string name="settings_reset_swipe_history">সুইপ বর্জনসমূহ রিসেট করুন</string>
     <string name="confirm_reset_swipe_history">এটি আপনার ম্যাচ, পছন্দ, অপছন্দ এবং সুইপ গণনা মুছে দেবে। চালিয়ে যাবেন?</string>
-
+    <string name="lbl_visible_to_public">জনসাধারণের কাছে দৃশ্যমান</string>
+    <string name="settings_allow_public_maps">মানচিত্রে আপনাকে দেখার জন্য জনসাধারণকে অনুমতি দিন</string>
     <string name="daily_login_title">দৈনিক লগইন</string>
     <string name="daily_login_message">আপনি টানা %1$d দিন লগইন করেছেন</string>
     <string name="daily_login_plus_award">Plus %1$d ঘণ্টার জন্য আনলক হয়েছে</string>

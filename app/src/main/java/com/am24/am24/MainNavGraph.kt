@@ -99,7 +99,7 @@ fun MainNavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = "dating",
+        startDestination = "home",
         modifier = modifier
     ) {
         composable("dms") {
@@ -137,15 +137,6 @@ fun MainNavGraph(
                     Toast.makeText(context, "Unauthorized", Toast.LENGTH_SHORT).show()
                 }
             }
-        }
-        composable("dating_screen?initialQuery={initialQuery}") { backStackEntry ->
-            val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
-            DatingScreen(
-                navController = navController,
-                geoFire = geoFire,
-                datingViewModel = datingViewModel,
-                initialQuery = initialQuery
-            )
         }
         composable(
             route = "post/{postId}",
@@ -190,13 +181,6 @@ fun MainNavGraph(
             val allowUpgrade =
                 backStackEntry.arguments?.getBoolean("allowIfSubscribed") ?: false
             SubscriptionScreen(navController, allowUpgrade)
-        }
-        composable("dating") {
-            DatingScreen(
-                navController = navController,
-                geoFire = geoFire,
-                datingViewModel = datingViewModel // Pass the ViewModel
-            )
         }
         composable("paywall")    { SubscriptionScreen(navController) }
         composable(
@@ -352,11 +336,6 @@ fun MainNavGraph(
             navController,
             onBack = { navController.popBackStack() }
         ) }
-        composable("buyBoosts") { OneTimePurchaseScreen(
-            type = PurchaseType.Boosts,
-            navController,
-            onBack = { navController.popBackStack() }
-        ) }
         composable("saved_posts") {
             SavedPostsScreen(
                 navController = navController,
@@ -427,7 +406,8 @@ fun MainNavGraph(
                 currentUserId    = currentUid,
                 geoFire          = geoFire,          // ← add this line
                 profileViewModel = profileViewModel,
-                postViewModel    = postViewModel
+                postViewModel    = postViewModel,
+                datingViewModel  = datingViewModel
             )
         }
     }
