@@ -38,6 +38,12 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _currentUserProfile = MutableStateFlow<Profile?>(null)
     val currentUserProfile: StateFlow<Profile?> get() = _currentUserProfile
 
+    private val _complimentsLeft = MutableStateFlow(0)
+    val complimentsLeft: StateFlow<Int> get() = _complimentsLeft
+
+    private var complimentsRef: DatabaseReference? = null
+    private var complimentsListener: ValueEventListener? = null
+
     // NEW: Voice recording properties
     private var voiceRecorder: MediaRecorder? = null
     var voiceNoteUrl: String? = null
@@ -78,6 +84,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 if (profile != null) {
                     Log.d(TAG, "Fetched profile with isMatrimonyMode: ${profile.isMatrimonyMode}")
                     _currentUserProfile.value = profile
+                    _complimentsLeft.value = profile.availableCompliments
+                    startComplimentsWatcher(currentUserId)
                 } else {
                     Log.e(TAG, "Failed to fetch current user's profile: Profile is null")
                 }
@@ -126,6 +134,20 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         watchAdminFlag()    // ← start listening immediately
         watchPremiumFlag()    // NEW
         watchPlusFlag()       // NEW
+    }
+
+    private fun startComplimentsWatcher(uid: String) {
+        complimentsListener?.let { l -> complimentsRef?.removeEventListener(l) }
+        val ref = usersRef.child(uid).child("availableCompliments")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snap: DataSnapshot) {
+                _complimentsLeft.value = snap.getValue(Int::class.java) ?: 0
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        complimentsRef = ref
+        complimentsListener = listener
+        ref.addValueEventListener(listener)
     }
 
     fun fetchProfilesByCity(cityName: String, onResult: (List<Profile>) -> Unit) {
@@ -648,6 +670,46 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         ref.addValueEventListener(listener)
     }
 
+    fun sendCompliment(
+        receiverId: String,
+        textMessage: String?,
+        voiceUri: Uri?
+    ) {
+        viewModelScope.launch {
+            val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            val timestamp = System.currentTimeMillis()
+
+            val complimentRef =
+                database.getReference("compliments/$senderId/$receiverId")
+            val complimentReceivedRef =
+                database.getReference("complimentsReceived/$receiverId/$senderId")
+
+            val complimentData = hashMapOf<String, Any>(
+                "timestamp" to timestamp,
+                "text" to textMessage.orEmpty()
+            )
+
+            if (voiceUri != null) {
+                val storageRef = FirebaseStorage.getInstance()
+                    .getReference("complimentsVoices/$senderId/${UUID.randomUUID()}.aac")
+                val uploadResult = storageRef.putFile(voiceUri).await()
+                val voiceUrl = uploadResult.storage.downloadUrl.await().toString()
+                complimentData["voiceUrl"] = voiceUrl
+            }
+
+            complimentRef.setValue(complimentData)
+            complimentReceivedRef.setValue(complimentData)
+
+            sendComplimentNotification(senderId, receiverId)
+
+            val leftNow = (_complimentsLeft.value - 1).coerceAtLeast(0)
+            database.getReference("users/$senderId")
+                .child("availableCompliments")
+                .setValue(leftNow)
+            _complimentsLeft.value = leftNow
+        }
+    }
+
     /** Notify receiver that someone sent a compliment */
     fun sendComplimentNotification(
         senderId: String,
@@ -730,6 +792,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         adminFlagListener?.let { l -> adminFlagRef?.removeEventListener(l) }
         adminFlagListener = null
         adminFlagRef = null
+
+        complimentsListener?.let { l -> complimentsRef?.removeEventListener(l) }
+        complimentsListener = null
+        complimentsRef = null
 
         verificationListener?.let { l -> verificationRef?.removeEventListener(l) }
         verificationListener = null

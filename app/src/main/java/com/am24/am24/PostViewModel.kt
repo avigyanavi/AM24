@@ -435,6 +435,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 fetchBlockedUsers(_currentUserId.value!!)
             else emptyList()   // <- still proceed!
 
+            val viewerCountry = _currentUserId.value?.let { fetchUserCountry(it) } ?: ""
+
             if (_currentUserId.value == null) {
                 _isLoading.value = false
                 _postsLoaded.value = true
@@ -446,9 +448,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     for (postSnapshot in snapshot.children) {
                         try {
                             val post = postSnapshot.getValue(Post::class.java)
-                            if (post != null && !blockedUsers.contains(post.userId)) { // Filter out blocked users
-                                postsList.add(post)
-                                Log.d("PostViewModel", "Added post: $post")
+                            if (post != null && !blockedUsers.contains(post.userId)) {
+                                if (post.country.isBlank()) {
+                                    // Backfill missing country
+                                    val postId = postSnapshot.key ?: continue
+                                    viewModelScope.launch(Dispatchers.IO) {
+                                        val userCountry = fetchUserCountry(post.userId)
+                                        if (userCountry.isNotBlank()) {
+                                            postsRef.child(postId).child("country").setValue(userCountry).await()
+                                        }
+                                    }
+                                } else if (post.country == viewerCountry) {
+                                    postsList.add(post)
+                                    Log.d("PostViewModel", "Added post: $post")
+                                }
                             } else if (post == null) {
                                 Log.w("PostViewModel", "Failed to deserialize post at ${postSnapshot.key}: ${postSnapshot.value}")
                             }
@@ -517,12 +530,15 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                val country = fetchUserCountry(userId)
+
                 // ─── push post object ────────────────────────────────────────
                 val postId = postsRef.push().key ?: throw Exception("No postId")
                 val post   = mapOf(
                     "postId"       to postId,
                     "userId"       to userId,
                     "username"     to username,
+                    "country"      to country,
                     "contentText"  to caption.ifBlank { null },
                     "timestamp"    to ServerValue.TIMESTAMP,
                     "userTags"     to userTags,
@@ -795,6 +811,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Helper function to fetch a user's country by ID
+    private suspend fun fetchUserCountry(userId: String): String {
+        return try {
+            val userRef = FirebaseRefs.db.getReference("users").child(userId)
+            val snapshot = userRef.child("country").get().await()
+            snapshot.getValue(String::class.java) ?: ""
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch country: ${e.message}")
+            ""
+        }
+    }
+
     private suspend fun getRelationship(userId1: String, userId2: String): String {
         try {
             val matchSnapshot = matchesRef.child(userId1).child(userId2).get().await()
@@ -834,10 +862,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 onFailure("Unable to generate post ID."); return@launch
             }
 
+            val country = fetchUserCountry(userId)
             val post = mapOf(
                 "postId"      to postId,
                 "userId"      to userId,
                 "username"    to username,
+                "country"     to country,
                 "contentText" to contentText,
                 "timestamp"   to ServerValue.TIMESTAMP,
                 "userTags"    to userTags,
@@ -930,11 +960,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
+                val country = fetchUserCountry(userId)
                 // Create Post object
                 val post = mapOf(
                     "postId" to postId,
                     "userId" to userId,
                     "username" to username,
+                    "country" to country,
                     "contentText" to null,
                     "timestamp" to ServerValue.TIMESTAMP, // Pass the special map for server timestamp
                     "userTags" to userTags,

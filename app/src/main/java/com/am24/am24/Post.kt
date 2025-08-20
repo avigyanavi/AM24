@@ -10,6 +10,7 @@ data class Post(
     val postId: String = "",
     val userId: String = "",  // ID of the user who created the post
     val username: String = "",  // Username of the person who posted
+    val country: String = "", // Country of the user who posted
     val contentText: String? = null,  // The text content of the post
     val timestamp: Any? = null,  // Timestamp of post creation
     val profilepicUrl: String? = null,

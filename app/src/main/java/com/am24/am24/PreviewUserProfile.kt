@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LocalAirport
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +34,11 @@ fun PreviewUserProfileScreen(
     var profile      by remember { mutableStateOf<Profile?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope        = rememberCoroutineScope()
-//    var pendingLike by remember { mutableStateOf(false) }
+    var showComplimentDlg by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        profileViewModel.fetchCurrentUserProfile()
+    }
 
     /* ── one-shot fetch ────────────────────────────────────────────── */
     LaunchedEffect(targetUserId) {
@@ -49,8 +54,10 @@ fun PreviewUserProfileScreen(
 
     // ① collect your own Profile (so we know your pic URL)
     val yourProfile by profileViewModel.currentUserProfile.collectAsState()
+
     // ② collect the match-pop-up state
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
+    val complimentsLeft by profileViewModel.complimentsLeft.collectAsState()
     /* ── UI ────────────────────────────────────────────────────────── */
     Box(
         Modifier
@@ -85,7 +92,7 @@ fun PreviewUserProfileScreen(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 32.dp),
-                horizontalArrangement = Arrangement.spacedBy(64.dp)
+                horizontalArrangement = Arrangement.spacedBy(48.dp)
             ) {
                 /* ❌ PASS */
                 FloatingActionButton(
@@ -101,6 +108,21 @@ fun PreviewUserProfileScreen(
                     containerColor  = Color.DarkGray
                 ) {
                     Icon(Icons.Default.Clear, null, tint = Color.White)
+                }
+
+                /* 💌 COMPLIMENT */
+                FloatingActionButton(
+                    onClick = {
+                        if (complimentsLeft > 0) {
+                            showComplimentDlg = true
+                        } else {
+                            navController.navigate("buyCompliments")
+                        }
+                    },
+                    shape          = CircleShape,
+                    containerColor = Color(0xFF2196F3)
+                ) {
+                    Icon(Icons.Default.LocalAirport, null, tint = Color.White)
                 }
 
                 /* ✅ LIKE */
@@ -147,6 +169,17 @@ fun PreviewUserProfileScreen(
 //                            navController.popBackStack("home", false)
                             navController.popBackStack()
                         }
+                    )
+                }
+
+                if (showComplimentDlg) {
+                    ComplimentDialog(
+                        complimentsLeft = complimentsLeft,
+                        onSend = { text, voiceUri ->
+                            profileViewModel.sendCompliment(targetUserId, text, voiceUri)
+                            showComplimentDlg = false
+                        },
+                        onDismiss = { showComplimentDlg = false }
                     )
                 }
             }
