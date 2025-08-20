@@ -28,6 +28,98 @@
     <string name="sexual_orientation_label">Orientación sexual</string>
     <string name="kinks_label">Fetiches (separados por comas)</string>
 
+    <string name="sort_nearby">Cerca</string>
+    <string name="sort_last_active">Última actividad</string>
+
+    <!-- People grid -->
+    <string name="no_one_nearby_yet">Aún no hay nadie cerca</string>
+
+    <!-- Chips & filters -->
+    <string name="label_radius">Radio</string>
+    <string name="gender_women">Mujeres</string>
+    <string name="gender_men">Hombres</string>
+
+    <!-- Place popup & sending -->
+    <string name="btn_directions">Cómo llegar</string>
+    <string name="btn_send_to_match">Enviar al match</string>
+    <string name="dialog_select_match_title">Selecciona un match</string>
+    <string name="btn_send">Enviar</string>
+    <string name="loading_ellipsis">Cargando…</string>
+    <string name="unknown_place">Lugar desconocido</string>
+    <string name="match_age">Edad: %1$d</string>
+    <string name="match_from">De: %1$s</string>
+
+    <!-- Feed tabs -->
+    <string name="feed_tab_everyone">Todos</string>
+    <string name="feed_tab_matches">Coincidencias</string>
+    <string name="no_more_older_posts">No hay más publicaciones antiguas</string>
+
+    <!-- Post options / body -->
+    <string name="see_more">Ver más</string>
+
+    <!-- Share dialog -->
+    <string name="share">Compartir</string>
+    <string name="save_post">Guardar publicación</string>
+    <string name="share_with">Compartir con…</string>
+    <string name="send">Enviar</string>
+    <string name="cancel">Cancelar</string>
+
+    <!-- Comments & reporting -->
+    <string name="upvote">Voto positivo</string>
+    <string name="downvote">Voto negativo</string>
+    <string name="show_comments">Mostrar comentarios</string>
+    <string name="view_comments_count">Ver comentarios (%1$d)</string>
+    <string name="report_reason_prompt">Indica un motivo para reportar esta publicación:</string>
+    <string name="reason_required">Se requiere un motivo</string>
+
+    <!-- Empty states / recording / inputs -->
+    <string name="no_comments_yet">Aún no hay comentarios.</string>
+    <string name="recording_time_left">Grabando… Tiempo restante: %1$ds</string>
+    <string name="submit_voice_comment">Enviar comentario de voz</string>
+    <string name="record">Grabar</string>
+    <string name="add_a_comment">Añade un comentario…</string>
+    <string name="play_pause">Reproducir/Pausar</string>
+
+    <!-- Membership / subscription -->
+    <string name="plus_time_left">Plus %1$dh restantes</string>
+    <string name="no_plus">Sin Plus</string>
+    <string name="na">N/D</string>
+    <string name="expires_prefix">Expira: %1$s</string>
+    <string name="status_prefix">Estado: %1$s</string>
+
+    <!-- Feedback dialog -->
+    <string name="feedback_sent">Comentarios enviados</string>
+    <string name="error_prefix">Error: %1$s</string>
+
+    <!-- Reset / delete -->
+    <string name="swipe_exclusions_cleared">Exclusiones de swipe borradas</string>
+    <string name="reset">Restablecer</string>
+    <string name="delete_confirm_msg">¿Seguro que quieres eliminar tu cuenta? Se borrarán todos los datos.</string>
+    <string name="account_deleted">Cuenta eliminada</string>
+
+    <!-- Profile settings -->
+    <string name="username_updated">Nombre de usuario actualizado</string>
+    <string name="please_verify_email">Verifica tu correo para usar la app.</string>
+    <string name="verification_email_sent">¡Correo de verificación enviado!</string>
+    <string name="still_not_verified">Aún sin verificar: confirma el enlace primero.</string>
+    <string name="password_updated">Contraseña actualizada</string>
+
+    <!-- Global preferences -->
+    <string name="global_prefs">Preferencias globales</string>
+    <string name="private_account_hint">Sé indetectable en el stack salvo a quienes des like</string>
+
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">Lugares destacados</string>
+    <plurals name="post_count">
+        <item quantity="one">%d publicación</item>
+        <item quantity="other">%d publicaciones</item>
+    </plurals>
+    <string name="btn_close">Cerrar</string>
+    <string name="cd_go_to_feed">Ir al feed</string>
+
+    <!-- Profile popup -->
+    <string name="btn_view_full_profile">Ver perfil completo</string>
+
     <string-array name="sexual_orientation_options">
         <item>Heterosexual</item>
         <item>Gay</item>
@@ -50,7 +142,6 @@
     <string name="pay_instead">Pagar en su lugar</string>
     <string name="send_feedback">Enviar comentarios</string>
     <string name="your_feedback">Tus comentarios</string>
-    <string name="send">Enviar</string>
     <string name="confirm_delete_account">¿Estás seguro de que deseas eliminar tu cuenta? Todos los datos se borrarán.</string>
     <string name="delete">Eliminar</string>
     <string name="username_with_value">Nombre de usuario: %1$s</string>
@@ -1368,6 +1459,57 @@
     <string name="caste_vellalar">Vellalar</string>
     <string name="caste_yadav">Yadav</string>
 
+    <!-- DMScreen: states / toasts / labels -->
+    <string name="dm_failed_load_profile">Error al cargar el perfil</string>
+    <string name="dm_error_loading_profile">Error al cargar el perfil</string>
+
+    <plurals name="dm_next_available_in_days">
+        <item quantity="one">Disponible nuevamente en: %d día</item>
+        <item quantity="other">Disponible nuevamente en: %d días</item>
+    </plurals>
+
+    <string name="smart_match_title">Emparejamiento inteligente</string>
+    <string name="smart_match_select_gender">Selecciona la preferencia de género</string>
+    <string name="gender_male">Hombre</string>
+    <string name="gender_female">Mujer</string>
+    <string name="gender_both">Ambos</string>
+
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_unmatch">Deshacer match</string>
+    <string name="action_accept">Aceptar</string>
+    <string name="action_reject">Rechazar</string>
+    <string name="action_smart_match">Smart Match</string>
+
+    <string name="dm_search_matches_hint">Buscar coincidencias</string>
+    <string name="dm_upgrade_plus_see_likes">Mejora a Plus para ver a quién le gustaste.</string>
+    <string name="dm_no_matches">No se encontraron coincidencias</string>
+    <string name="dm_your_rating">Tu calificación: %1$s</string>
+    <string name="dm_unmatch_with">¿Deshacer match con %1$s?</string>
+    <string name="dm_unmatch_warning">Esto eliminará el match y borrará el historial de conversación.</string>
+
+    <string name="prompt_country">País</string>
+    <string name="prompt_city">Ciudad</string>
+    <string name="prompt_locality">Localidad</string>
+    <string name="placeholder_not_selected">Sin seleccionar</string>
+    <string name="dm_select_country_first">Selecciona al menos el país</string>
+    <string name="dm_location_updated">Ubicación actualizada</string>
+
+    <string name="dm_voice_compliment">Te envió un cumplido de voz</string>
+    <string name="dm_compliment_label">Cumplido</string>
+
+    <string name="toast_unmatched_success">Match deshecho correctamente</string>
+    <string name="toast_unmatched_failed">No se pudo deshacer el match: %1$s</string>
+    <string name="toast_error_generic">Error: %1$s</string>
+    <string name="dm_upgrade_plus_change_location">Mejora a Plus para cambiar la ubicación</string>
+
+    <string name="content_scroll_to_top">Ir arriba</string>
+
+    <string name="dm_matched_with">¡Hiciste match con %1$s!</string>
+    <string name="dm_no_match_available">No hay matches disponibles por ahora</string>
+
+    <string name="dm_change_location">Cambiar ubicación</string>
+
     <!--- Dating -->
     <string name="profile_photo">Foto de perfil</string>
     <string name="no_images">Sin imágenes</string>
@@ -1473,7 +1615,6 @@
     <string name="enter_username">Ingresa un nombre de usuario</string>
     <string name="your_email">Tu correo electrónico</string>
     <string name="submit">Enviar</string>
-    <string name="cancel">Cancelar</string>
 
     <!-- Landing Screen (added for LandingActivity) -->
     <string name="welcome_kupidx">Bienvenido a Kupidx</string>

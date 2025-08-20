@@ -9,6 +9,131 @@
         <string name="subscription_expired">காலாவதி</string>
         <string name="payment_failed">கட்டணம் தோல்வி</string>
         <!-- App Basics -->
+
+        <!-- DMScreen: states / toasts / labels -->
+        <string name="dm_failed_load_profile">சுயவிவரத்தை ஏற்ற முடியவில்லை</string>
+        <string name="dm_error_loading_profile">சுயவிவரத்தை ஏற்றும்போது பிழை</string>
+
+        <plurals name="dm_next_available_in_days">
+                <item quantity="one">அடுத்தது கிடைக்கும்: %d நாளில்</item>
+                <item quantity="other">அடுத்தது கிடைக்கும்: %d நாட்களில்</item>
+        </plurals>
+
+        <string name="smart_match_title">ஸ்மார்ட் மேட்ச்</string>
+        <string name="smart_match_select_gender">பாலின விருப்பத்தைத் தேர்ந்தெடுக்கவும்</string>
+        <string name="gender_male">ஆண்</string>
+        <string name="gender_female">பெண்</string>
+        <string name="gender_both">இரண்டும்</string>
+
+        <string name="action_cancel">ரத்து செய்</string>
+        <string name="action_save">சேமிக்கவும்</string>
+        <string name="action_unmatch">மேட்ச் நீக்கு</string>
+        <string name="action_accept">ஏற்கவும்</string>
+        <string name="action_reject">நிராகரிக்கவும்</string>
+        <string name="action_smart_match">ஸ்மார்ட் மேட்ச்</string>
+
+        <string name="dm_search_matches_hint">மேட்ச்களைத் தேடவும்</string>
+        <string name="dm_upgrade_plus_see_likes">யார் உங்களை விரும்பினார்கள் என்பதைப் பார்க்க ப்ளஸ்க்கு மேம்படுத்து.</string>
+        <string name="dm_no_matches">எந்த மேட்சும் கிடைக்கவில்லை</string>
+        <string name="dm_your_rating">உங்கள் மதிப்பீடு: %1$s</string>
+        <string name="dm_unmatch_with">%1$s உடன் உள்ள மேட்சை நீக்கவா?</string>
+        <string name="dm_unmatch_warning">இதனால் மேட்ச் நீக்கப்படும் மற்றும் உங்கள் உரையாடல் வரலாறு அழிக்கப்படும்.</string>
+
+        <string name="prompt_country">நாடு</string>
+        <string name="prompt_city">நகரம்</string>
+        <string name="prompt_locality">பகுதி</string>
+        <string name="placeholder_not_selected">தேர்ந்தெடுக்கப்படவில்லை</string>
+        <string name="dm_select_country_first">குறைந்தது நாட்டையாவது தேர்ந்தெடுக்கவும்</string>
+        <string name="dm_location_updated">இடம் புதுப்பிக்கப்பட்டது</string>
+
+        <string name="dm_voice_compliment">உங்களுக்கு ஒரு குரல் பாராட்டு அனுப்பினார்</string>
+        <string name="dm_compliment_label">பாராட்டு</string>
+
+        <!-- Sort control -->
+        <string name="sort_nearby">அருகில்</string>
+        <string name="sort_last_active">கடைசியாக செயலில்</string>
+
+        <!-- People grid -->
+        <string name="no_one_nearby_yet">அருகில் இப்போது யாரும் இல்லை</string>
+
+        <!-- Chips & filters -->
+        <string name="label_radius">அரைவு</string>
+        <string name="gender_women">பெண்கள்</string>
+        <string name="gender_men">ஆண்கள்</string>
+
+        <!-- Place popup & sending -->
+        <string name="btn_directions">வழிமுறை</string>
+        <string name="btn_send_to_match">மேட்ச்-க்கு அனுப்பு</string>
+        <string name="dialog_select_match_title">ஒரு மேட்சைத் தேர்ந்தெடுக்கவும்</string>
+        <string name="btn_send">அனுப்பு</string>
+        <string name="loading_ellipsis">ஏற்றுகிறது...</string>
+        <string name="unknown_place">அறியாத இடம்</string>
+        <string name="match_age">வயது: %1$d</string>
+        <string name="match_from">இருந்து: %1$s</string>
+        <string name="dm_change_location">இடத்தை மாற்று</string>
+
+        <!-- Feed tabs & footer -->
+        <string name="feed_tab_everyone">அனைவர்</string>
+        <string name="feed_tab_matches">மேட்ச்கள்</string>
+        <string name="no_more_older_posts">மேலும் பழைய பதிவுகள் இல்லை</string>
+
+        <!-- Post options -->
+        <string name="menu_edit_post">பதிவைத் திருத்து</string>
+        <string name="menu_delete_post">பதிவை நீக்கு</string>
+        <string name="menu_report_post">பதிவை புகார் செய்</string>
+        <string name="see_more">மேலும் காண்க</string>
+        <string name="free_tier_media_limit">இலவச அடுக்கு தினமும் 5 மீடியா காட்சிகள் மட்டுமே அனுமதிக்கிறது</string>
+
+        <!-- Share dialog & actions -->
+        <string name="share">பகிர்</string>
+        <string name="save_post">பதிவை சேமிக்கவும்</string>
+        <string name="share_with">இதனுடன் பகிர்…</string>
+
+        <!-- Comments & votes -->
+        <string name="upvote">அப்‌வோட்</string>
+        <string name="downvote">டவுன்வோட்</string>
+        <string name="show_comments">கருத்துகளை காட்டு</string>
+        <string name="view_comments_count">கருத்துகளைப் பார்க்கவும் (%1$d)</string>
+
+        <!-- Report flow -->
+        <string name="report_reason_prompt">இந்த பதிவை புகார் செய்வதற்கான காரணத்தை வழங்கவும்:</string>
+        <string name="report_reason_hint">காரணத்தை உள்ளிடவும்</string>
+        <string name="reason_required">காரணம் தேவையானது</string>
+        <string name="report_success">புகார் செய்யப்பட்டது, தடை செய்யப்பட்டது மற்றும் அன்‌மேட்ச் செய்யப்பட்டது</string>
+
+        <!-- Recording / time / input -->
+        <string name="no_comments_yet">இன்னும் கருத்துகள் இல்லை.</string>
+        <string name="recording_time_left">பதிவு செய்கிறது... மீதமுள்ள நேரம்: %1$ds</string>
+        <string name="submit_voice_comment">குரல் கருத்தை சமர்ப்பிக்கவும்</string>
+        <string name="record">பதிவு செய்</string>
+        <string name="add_a_comment">ஒரு கருத்தைச் சேர்க்கவும்…</string>
+        <string name="play_pause">பிளே/பாஸ்</string>
+
+        <!-- Tag search -->
+        <string name="search_tags">டேக்குகளைத் தேடுங்கள்</string>
+
+        <!-- Leaderboard -->
+        <string name="leaderboard_title">சிறந்த இடங்கள்</string>
+        <plurals name="post_count">
+                <item quantity="one">%d பதிவு</item>
+                <item quantity="other">%d பதிவுகள்</item>
+        </plurals>
+        <string name="btn_close">மூடு</string>
+        <string name="cd_go_to_feed">ஃபீடுக்கு செல்லவும்</string>
+
+        <!-- Profile popup -->
+        <string name="btn_view_full_profile">முழு சுயவிவரத்தைப் பார்க்கவும்</string>
+
+        <string name="toast_unmatched_success">மேட்ச் வெற்றிகரமாக நீக்கப்பட்டது</string>
+        <string name="toast_unmatched_failed">மேட்ச் நீக்க முடியவில்லை: %1$s</string>
+        <string name="toast_error_generic">பிழை: %1$s</string>
+        <string name="dm_upgrade_plus_change_location">இடத்தை மாற்ற ப்ளஸ்க்கு மேம்படுத்தவும்</string>
+
+        <string name="content_scroll_to_top">மேலே ஸ்க்ரோல் செய்யவும்</string>
+
+        <string name="dm_matched_with">%1$s உடன் மேட்ச் ஆனது!</string>
+        <string name="dm_no_match_available">தற்போது எந்த மேட்சும் இல்லை</string>
+
         <string name="app_name">குப்பிட் எக்ஸ்</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
         <string name="languages">மொழிகள்</string>

@@ -2,9 +2,6 @@
         <string name="upgrade_to_plus_to_unlock">Upgrade to Plus to unlock</string>
         <string name="upgrade_to_premium_to_unlock">Upgrade to Premium to unlock</string>
     <string name="settings_get_more_boosts">Get More Boosts</string>
-    <string name="settings_get_more_swipes">Get more Swipes</string>
-    <string name="settings_get_more_compliments">Get more Compliments</string>
-    <string name="settings_ai_messages_remaining">AI messages remaining</string>
     <string name="create_post_title">Create New Post</string>
     <string name="text_post_label">Text Post</string>
     <string name="voice_post_label">Voice Post</string>
@@ -44,18 +41,9 @@
     <string name="watch_ad_swipes">Watch ad for 5 Swipes</string>
     <string name="watch">Watch</string>
     <string name="pay_instead">Pay Instead</string>
-    <string name="send_feedback">Send Feedback</string>
-    <string name="your_feedback">Your feedback</string>
-    <string name="send">Send</string>
     <string name="confirm_delete_account">Are you sure you want to delete your account? All data will be removed.</string>
-    <string name="delete">Delete</string>
     <string name="username_with_value">Username: %1$s</string>
-    <string name="done">Done</string>
-    <string name="current_password">Current Password</string>
-    <string name="new_password">New Password</string>
-    <string name="confirm_password">Confirm Password</string>
     <string name="global_preferences">Global Preferences</string>
-    <string name="private_account">Private Account</string>
     <string name="private_account_desc">Be undiscoverable in card stack except those you swipe right on</string>
     <string name="unblock">Unblock</string>
 
@@ -288,6 +276,57 @@
     <string name="your_rating">Your Rating: %s</string>
     <string name="scroll_to_top">Scroll to Top</string>
 
+    <!-- DMScreen: states / toasts / labels -->
+    <string name="dm_failed_load_profile">Failed to load profile</string>
+    <string name="dm_error_loading_profile">Error loading profile</string>
+
+    <plurals name="dm_next_available_in_days">
+        <item quantity="one">Next available in: %d day</item>
+        <item quantity="other">Next available in: %d days</item>
+    </plurals>
+
+    <string name="smart_match_title">Smart Match</string>
+    <string name="smart_match_select_gender">Select gender preference</string>
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+    <string name="gender_both">Both</string>
+
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_unmatch">Unmatch</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_reject">Reject</string>
+    <string name="action_smart_match">Smart Match</string>
+
+    <string name="dm_search_matches_hint">Search matches</string>
+    <string name="dm_upgrade_plus_see_likes">Upgrade to Plus to see who liked you.</string>
+    <string name="dm_no_matches">No matches found</string>
+    <string name="dm_your_rating">Your Rating: %1$s</string>
+    <string name="dm_unmatch_with">Unmatch with %1$s?</string>
+    <string name="dm_unmatch_warning">This will remove the match and delete your conversation history.</string>
+
+    <string name="prompt_country">Country</string>
+    <string name="prompt_city">City</string>
+    <string name="prompt_locality">Locality</string>
+    <string name="placeholder_not_selected">Not selected</string>
+    <string name="dm_select_country_first">Please select at least Country</string>
+    <string name="dm_location_updated">Location updated</string>
+
+    <string name="dm_voice_compliment">Sent you a voice compliment</string>
+    <string name="dm_compliment_label">Compliment</string>
+
+    <string name="toast_unmatched_success">Unmatched successfully</string>
+    <string name="toast_unmatched_failed">Failed to unmatch: %1$s</string>
+    <string name="toast_error_generic">Error: %1$s</string>
+    <string name="dm_upgrade_plus_change_location">Upgrade to Plus to change location</string>
+
+    <string name="content_scroll_to_top">Scroll to Top</string>
+
+    <string name="dm_matched_with">Matched with %1$s!</string>
+    <string name="dm_no_match_available">No match currently available</string>
+
+    <string name="dm_change_location">Change Location</string>
+
     <string name="logo_kupidx_desc">KupidX Logo</string>
     <string name="date">Swipe</string>
     <string name="map">Map</string>
@@ -296,6 +335,130 @@
     <string name="profile">Profile</string>
     <string name="error_location_not_available">User location not available</string>
 
+    <!-- Membership / subscription -->
+    <string name="plus_time_left">Plus %1$dh left</string>
+    <string name="no_plus">No Plus</string>
+    <string name="na">N/A</string>
+    <string name="expires_prefix">Expires: %1$s</string>
+    <string name="status_prefix">Status: %1$s</string>
+
+    <!-- Navigation / actions -->
+    <string name="leaderboard">leaderboard</string>
+    <string name="feed">feed</string>
+    <string name="settings_get_more_swipes">Get more swipes</string>
+    <string name="settings_get_more_compliments">Get more compliments</string>
+    <string name="settings_ai_messages_remaining">AI messages</string>
+
+    <!-- Feedback dialog -->
+    <string name="send_feedback">Send Feedback</string>
+    <string name="your_feedback">Your feedback</string>
+    <string name="feedback_sent">Feedback sent</string>
+    <string name="error_prefix">Error: %1$s</string>
+    <string name="send">Send</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Reset / delete -->
+    <string name="swipe_exclusions_cleared">Swipe exclusions cleared</string>
+    <string name="reset">Reset</string>
+    <string name="delete_confirm_msg">Are you sure you want to delete your account? All data will be removed.</string>
+    <string name="account_deleted">Account deleted</string>
+    <string name="delete">Delete</string>
+
+    <!-- Profile settings -->
+    <string name="username_label">Username</string>
+    <string name="username_updated">Username updated</string>
+    <string name="please_verify_email">Please verify your email address to use the app.</string>
+    <string name="verification_email_sent">Verification email sent!</string>
+    <string name="still_not_verified">Still not verified — please confirm the link first.</string>
+    <string name="current_password">Current Password</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="password_updated">Password updated</string>
+    <string name="done">Done</string>
+
+    <!-- Global preferences -->
+    <string name="global_prefs">Global Preferences</string>
+    <string name="private_account">Private Account</string>
+    <string name="private_account_hint">Be undiscoverable in card stack except those you swipe right on</string>
+
+    <!-- Feed tabs & footer -->
+    <string name="feed_tab_everyone">Everyone</string>
+    <string name="feed_tab_matches">Matches</string>
+    <string name="no_more_older_posts">No more older posts</string>
+
+    <!-- Post options -->
+    <string name="menu_edit_post">Edit Post</string>
+    <string name="menu_delete_post">Delete Post</string>
+    <string name="menu_report_post">Report Post</string>
+    <string name="see_more">See more</string>
+    <string name="free_tier_media_limit">Free tier allows only 5 media views per day</string>
+
+    <!-- Share dialog & actions -->
+    <string name="share">Share</string>
+    <string name="save_post">Save Post</string>
+    <string name="share_with">Share with…</string>
+    <string name="send">Send</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Comments & votes -->
+    <string name="upvote">Upvote</string>
+    <string name="downvote">Downvote</string>
+    <string name="show_comments">Show Comments</string>
+    <string name="view_comments_count">View Comments (%1$d)</string>
+
+    <!-- Report flow -->
+    <string name="report_reason_prompt">Please provide a reason for reporting this post:</string>
+    <string name="report_reason_hint">Enter reason</string>
+    <string name="reason_required">Reason required</string>
+    <string name="report_success">Reported, blocked &amp; unmatched</string>
+    <string name="submit">Submit</string>
+
+    <!-- Recording / time / input -->
+    <string name="no_comments_yet">No comments yet.</string>
+    <string name="recording_time_left">Recording... Time left: %1$ds</string>
+    <string name="delete">Delete</string>
+    <string name="submit_voice_comment">Submit Voice Comment</string>
+    <string name="record">Record</string>
+    <string name="add_a_comment">Add a comment…</string>
+    <string name="play_pause">Play/Pause</string>
+
+    <!-- Tag search -->
+    <string name="search_tags">Search tags</string>
+
+    <!-- Sort control -->
+    <string name="sort_nearby">Nearby</string>
+    <string name="sort_last_active">Last active</string>
+
+    <!-- People grid -->
+    <string name="no_one_nearby_yet">No one nearby yet</string>
+
+    <!-- Chips & filters -->
+    <string name="label_radius">Radius</string>
+    <string name="gender_women">Women</string>
+    <string name="gender_men">Men</string>
+
+    <!-- Place popup & sending -->
+    <string name="btn_directions">Directions</string>
+    <string name="btn_send_to_match">Send to Match</string>
+    <string name="dialog_select_match_title">Select a Match</string>
+    <string name="btn_send">Send</string>
+    <string name="loading_ellipsis">Loading...</string>
+    <string name="unknown_place">Unknown Place</string>
+    <string name="match_age">Age: %1$d</string>
+    <string name="match_from">From: %1$s</string>
+
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">Top Places</string>
+    <plurals name="post_count">
+        <item quantity="one">%d post</item>
+        <item quantity="other">%d posts</item>
+    </plurals>
+    <string name="btn_close">Close</string>
+    <string name="cd_leaderboard">Leaderboard</string>
+    <string name="cd_go_to_feed">Go to feed</string>
+
+    <!-- Profile popup -->
+    <string name="btn_view_full_profile">View Full Profile</string>
     <!-- Bottom-navigation -->
     <string name="nav_date">Date</string>
     <string name="nav_map">Map</string>
@@ -304,7 +467,6 @@
     <string name="nav_profile">Profile</string>
 
     <!-- Top-bar / actions -->
-    <string name="cd_leaderboard">Leaderboard</string>
     <string name="cd_location_settings">Location Settings</string>
     <string name="cd_for_you">For You</string>
     <string name="cd_create_post">Create Post</string>
@@ -1477,8 +1639,6 @@
     <string name="username">Username</string>
     <string name="enter_username">Enter a username</string>
     <string name="your_email">Your e‑mail</string>
-    <string name="submit">Submit</string>
-    <string name="cancel">Cancel</string>
 
     <!-- Landing Screen (added for LandingActivity) -->
     <string name="welcome_kupidx">Welcome to Kupidx</string>
@@ -1487,7 +1647,6 @@
     <string name="continue_with_google">Google</string>
     <string name="continue_with_facebook">Facebook</string>
 
-    <string name="leaderboard">Rank</string>
     <!-- Language Selection -->
     <string name="choose_language_title">Choose Language</string>
     <string name="select_preferred_language">Select your preferred language</string>
@@ -1584,7 +1743,6 @@
     <string name="select_religion">Select Religion</string>
 
     <!-- Username -->
-    <string name="username_label">Username</string>
     <string name="username_empty_error">Username cannot be empty</string>
     <string name="finish_button">Finish</string>
     <string name="locate">Locate</string>

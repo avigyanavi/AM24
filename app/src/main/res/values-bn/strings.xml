@@ -2,7 +2,131 @@
 
         <string name="upgrade_to_plus_to_unlock">অনলক করতে প্লাসে আপগ্রেড করুন</string>
         <string name="upgrade_to_premium_to_unlock">অনলক করতে প্রিমিয়ামে আপগ্রেড করুন</string>
+    <string name="dm_failed_load_profile">প্রোফাইল লোড করতে ব্যর্থ</string>
+    <string name="dm_error_loading_profile">প্রোফাইল লোড করতে ত্রুটি</string>
 
+    <plurals name="dm_next_available_in_days">
+        <item quantity="one">পরবর্তী উপলভ্য হবে: %d দিন পরে</item>
+        <item quantity="other">পরবর্তী উপলভ্য হবে: %d দিন পরে</item>
+    </plurals>
+
+    <string name="smart_match_title">স্মার্ট ম্যাচ</string>
+    <string name="smart_match_select_gender">লিঙ্গের পছন্দ নির্বাচন করুন</string>
+    <string name="gender_male">পুরুষ</string>
+    <string name="gender_female">মহিলা</string>
+    <string name="gender_both">উভয়ই</string>
+
+    <string name="action_cancel">বাতিল</string>
+    <string name="action_save">সংরক্ষণ করুন</string>
+    <string name="action_unmatch">ম্যাচ বাতিল করুন</string>
+    <string name="action_accept">গ্রহণ করুন</string>
+    <string name="action_reject">প্রত্যাখ্যান করুন</string>
+    <string name="action_smart_match">স্মার্ট ম্যাচ</string>
+
+    <string name="dm_search_matches_hint">ম্যাচ খুঁজুন</string>
+    <string name="dm_upgrade_plus_see_likes">কে আপনাকে লাইক করেছে দেখতে প্লাস-এ আপগ্রেড করুন।</string>
+    <string name="dm_no_matches">কোনও ম্যাচ পাওয়া যায়নি</string>
+    <string name="dm_your_rating">আপনার রেটিং: %1$s</string>
+    <string name="dm_unmatch_with">%1$s-এর সাথে ম্যাচ বাতিল করবেন?</string>
+    <string name="dm_unmatch_warning">এতে ম্যাচটি সরিয়ে দেওয়া হবে এবং আপনার কথোপকথনের ইতিহাস মুছে ফেলা হবে।</string>
+
+    <!-- Sort control -->
+    <string name="sort_nearby">কাছাকাছি</string>
+    <string name="sort_last_active">সর্বশেষ সক্রিয়</string>
+
+    <!-- People grid -->
+    <string name="no_one_nearby_yet">আশেপাশে এখনও কেউ নেই</string>
+
+    <!-- Chips & filters -->
+    <string name="label_radius">ব্যাসার্ধ</string>
+    <string name="gender_women">মহিলা</string>
+    <string name="gender_men">পুরুষ</string>
+
+    <!-- Place popup & sending -->
+    <string name="btn_directions">দিকনির্দেশনা</string>
+    <string name="btn_send_to_match">ম্যাচে পাঠান</string>
+    <string name="dialog_select_match_title">একটি ম্যাচ নির্বাচন করুন</string>
+    <string name="btn_send">পাঠান</string>
+    <string name="loading_ellipsis">লোড হচ্ছে...</string>
+    <string name="unknown_place">অজানা স্থান</string>
+    <string name="match_age">বয়স: %1$d</string>
+    <string name="match_from">থেকে: %1$s</string>
+
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">শীর্ষ স্থানসমূহ</string>
+    <plurals name="post_count">
+        <item quantity="one">%d পোস্ট</item>
+        <item quantity="other">%d পোস্ট</item>
+    </plurals>
+    <string name="btn_close">বন্ধ করুন</string>
+    <string name="cd_go_to_feed">ফিডে যান</string>
+
+    <!-- Profile popup -->
+    <string name="btn_view_full_profile">সম্পূর্ণ প্রোফাইল দেখুন</string>
+    <string name="prompt_country">দেশ</string>
+    <string name="prompt_city">শহর</string>
+    <string name="prompt_locality">এলাকা</string>
+    <string name="placeholder_not_selected">নির্বাচিত নয়</string>
+    <string name="dm_select_country_first">কমপক্ষে দেশ নির্বাচন করুন</string>
+    <string name="dm_location_updated">লোকেশন আপডেট হয়েছে</string>
+
+    <string name="dm_voice_compliment">আপনাকে একটি ভয়েস কমপ্লিমেন্ট পাঠিয়েছে</string>
+    <string name="dm_compliment_label">কমপ্লিমেন্ট</string>
+
+    <string name="toast_unmatched_success">ম্যাচ সফলভাবে বাতিল হয়েছে</string>
+    <string name="toast_unmatched_failed">ম্যাচ বাতিল করতে ব্যর্থ: %1$s</string>
+    <string name="toast_error_generic">ত্রুটি: %1$s</string>
+    <string name="dm_upgrade_plus_change_location">লোকেশন পরিবর্তন করতে প্লাস-এ আপগ্রেড করুন</string>
+
+    <string name="content_scroll_to_top">উপরে স্ক্রল করুন</string>
+
+    <string name="dm_matched_with">%1$s-এর সাথে ম্যাচ হয়েছে!</string>
+    <string name="dm_no_match_available">বর্তমানে কোনো ম্যাচ নেই</string>
+
+    <!-- Feed tabs & footer -->
+    <string name="feed_tab_everyone">সবাই</string>
+    <string name="feed_tab_matches">ম্যাচসমূহ</string>
+    <string name="no_more_older_posts">আর পুরনো পোস্ট নেই</string>
+
+    <!-- Post options -->
+    <string name="menu_edit_post">পোস্ট সম্পাদনা করুন</string>
+    <string name="menu_delete_post">পোস্ট মুছুন</string>
+    <string name="menu_report_post">পোস্ট রিপোর্ট করুন</string>
+    <string name="see_more">আরও দেখুন</string>
+    <string name="free_tier_media_limit">ফ্রি টিয়ারে দিনে মাত্র 5টি মিডিয়া ভিউ অনুমোদিত</string>
+
+    <!-- Share dialog & actions -->
+    <string name="share">শেয়ার</string>
+    <string name="save_post">পোস্ট সংরক্ষণ করুন</string>
+    <string name="share_with">কার সাথে শেয়ার করবেন…</string>
+    <string name="cancel">বাতিল</string>
+
+    <!-- Comments & votes -->
+    <string name="upvote">আপভোট</string>
+    <string name="downvote">ডাউনভোট</string>
+    <string name="show_comments">মন্তব্যগুলি দেখুন</string>
+    <string name="view_comments_count">মন্তব্য দেখুন (%1$d)</string>
+
+    <!-- Report flow -->
+    <string name="report_reason_prompt">এই পোস্ট রিপোর্ট করার কারণ দিন:</string>
+    <string name="report_reason_hint">কারণ লিখুন</string>
+    <string name="reason_required">কারণ প্রয়োজন</string>
+    <string name="report_success">রিপোর্ট করা হয়েছে, ব্লক করা হয়েছে ও আনম্যাচ করা হয়েছে</string>
+    <string name="submit">জমা দিন</string>
+
+    <!-- Recording / time / input -->
+    <string name="no_comments_yet">এখনও কোনো মন্তব্য নেই।</string>
+    <string name="recording_time_left">রেকর্ডিং... বাকি সময়: %1$ds</string>
+    <string name="delete">মুছুন</string>
+    <string name="submit_voice_comment">ভয়েস মন্তব্য জমা দিন</string>
+    <string name="record">রেকর্ড করুন</string>
+    <string name="add_a_comment">একটি মন্তব্য যোগ করুন…</string>
+    <string name="play_pause">প্লে/পজ</string>
+
+    <!-- Tag search -->
+    <string name="search_tags">ট্যাগ অনুসন্ধান করুন</string>
+
+    <string name="dm_change_location">লোকেশন পরিবর্তন করুন</string>
     <string name="feature_no_ads">কোনও বিজ্ঞাপন নেই</string>
     <string name="feature_priority_profile">ডেটিং স্ট্যাকে অগ্রাধিকারপ্রাপ্ত প্রোফাইল</string>
     <string name="feature_people_liked_me">যারা আমাকে পছন্দ করেছে আনলক করুন এবং অবস্থান পরিবর্তনের বিকল্প</string>
@@ -55,7 +179,6 @@
     <string name="your_feedback">আপনার মতামত</string>
     <string name="send">পাঠান</string>
     <string name="confirm_delete_account">আপনি কি সত্যিই আপনার অ্যাকাউন্ট মুছে ফেলতে চান? সমস্ত ডেটা মুছে ফেলা হবে।</string>
-    <string name="delete">মুছে ফেলুন</string>
     <string name="username_with_value">ইউজারনেম: %1$s</string>
     <string name="done">সম্পন্ন</string>
     <string name="current_password">বর্তমান পাসওয়ার্ড</string>
@@ -1311,8 +1434,6 @@
     <string name="username">ইউজারনেম</string>
     <string name="enter_username">ইউজারনেম লিখুন</string>
     <string name="your_email">আপনার ই-মেইল</string>
-    <string name="submit">জমা দিন</string>
-    <string name="cancel">বাতিল করুন</string>
 
     <!-- Landing Screen (added for LandingActivity) -->
     <string name="welcome_kupidx">কুপিডক্স-এ আপনাকে স্বাগতম</string>

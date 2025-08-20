@@ -200,9 +200,9 @@ fun SettingsScreen(navController: NavController) {
             item {
                 val now = System.currentTimeMillis()
                 val plusText = if (loginPlusExpiry > now)
-                    "Plus ${(loginPlusExpiry - now) / 3600000}h left"
-                else
-                    "No Plus"
+                    stringResource(R.string.plus_time_left, ((loginPlusExpiry - now) / 3600000).toInt())
+                else stringResource(R.string.no_plus)
+
                 Text(
                     stringResource(R.string.settings_streak_line, loginStreak, plusText),
                     modifier = Modifier
@@ -373,19 +373,19 @@ fun SettingsScreen(navController: NavController) {
 
                     Divider(Modifier.padding(start = 56.dp))
 
-                    if (premiumTier != "Free") {
+                    if (premiumTier == "Premium") {
                         SettingsRow(
                             icon  = { Icon(Icons.Outlined.Leaderboard, null) },
                             title = stringResource(R.string.leaderboard),
                             onClick = { navController.navigate("leaderboard") }
                         )
                         Divider(Modifier.padding(start = 56.dp))
-                        SettingsRow(
-                            icon  = { Icon(Icons.Default.RssFeed, null) },
-                            title = stringResource(R.string.feed),
-                            onClick = { navController.navigate("home") }
-                        )
-                        Divider(Modifier.padding(start = 56.dp))
+//                        SettingsRow(
+//                            icon  = { Icon(Icons.Default.RssFeed, null) },
+//                            title = stringResource(R.string.feed),
+//                            onClick = { navController.navigate("home") }
+//                        )
+//                        Divider(Modifier.padding(start = 56.dp))
                     }
 
                     /* STATIC SWIPES ROW  */

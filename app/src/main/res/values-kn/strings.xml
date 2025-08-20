@@ -33,6 +33,134 @@
     <string name="settings">ಸೆಟ್ಟಿಂಗ್ಸ್</string>
     <string name="advanced_compatibility">ಮುನ್ನತ ಹೊಂದಾಣಿಕೆ</string>
 
+    <!-- DMScreen: states / toasts / labels -->
+    <string name="dm_failed_load_profile">ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ</string>
+    <string name="dm_error_loading_profile">ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಮಾಡುವಲ್ಲಿ ದೋಷ</string>
+
+    <plurals name="dm_next_available_in_days">
+        <item quantity="one">ಮುಂದಿನದು ಲಭ್ಯವಾಗುವುದು: %d ದಿನದಲ್ಲಿ</item>
+        <item quantity="other">ಮುಂದಿನದು ಲಭ್ಯವಾಗುವುದು: %d ದಿನಗಳಲ್ಲಿ</item>
+    </plurals>
+
+    <string name="smart_match_title">ಸ್ಮಾರ್ಟ್ ಮ್ಯಾಚ್</string>
+    <string name="smart_match_select_gender">ಲಿಂಗ ಆದ್ಯತೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ</string>
+    <string name="gender_male">ಪುರುಷ</string>
+    <string name="gender_female">ಸ್ತ್ರೀ</string>
+    <string name="gender_both">ಎರಡೂ</string>
+
+    <string name="action_cancel">ರದ್ದುಗೊಳಿಸಿ</string>
+    <string name="action_save">ಉಳಿಸಿ</string>
+    <string name="action_unmatch">ಮ್ಯಾಚ್ ತೆಗೆದುಹಾಕಿ</string>
+    <string name="action_accept">ಸ್ವೀಕರಿಸಿ</string>
+    <string name="action_reject">ನಿರಾಕರಿಸಿ</string>
+    <string name="action_smart_match">ಸ್ಮಾರ್ಟ್ ಮ್ಯಾಚ್</string>
+
+    <string name="dm_search_matches_hint">ಮ್ಯಾಚ್‌ಗಳನ್ನು ಹುಡುಕಿ</string>
+    <string name="dm_upgrade_plus_see_likes">ಯಾರು ನಿಮಗೆ ಲೈಕ್ ಮಾಡಿದ್ದಾರೆ ಎಂದು ನೋಡಲು ಪ್ಲಸ್‌ಗೆ ಅಪ್ಗ್ರೇಡ್ ಮಾಡಿ.</string>
+    <string name="dm_no_matches">ಯಾವುದೇ ಮ್ಯಾಚ್ ಕಂಡುಬಂದಿಲ್ಲ</string>
+    <string name="dm_your_rating">ನಿಮ್ಮ ರೇಟಿಂಗ್: %1$s</string>
+    <string name="dm_unmatch_with">%1$s ಜೊತೆಗಿನ ಮ್ಯಾಚ್ ತೆಗೆದುಹಾಕಬೇಕೇ?</string>
+    <string name="dm_unmatch_warning">ಇದರಿಂದ ಮ್ಯಾಚ್ ತೆಗೆದುಹಾಕಲಾಗುತ್ತದೆ ಮತ್ತು ನಿಮ್ಮ ಸಂಭಾಷಣೆಯ ಇತಿಹಾಸ ಅಳಿಸಲಾಗುತ್ತದೆ.</string>
+
+    <string name="prompt_country">ದೇಶ</string>
+    <string name="prompt_city">ನಗರ</string>
+    <string name="prompt_locality">ಪ್ರದೇಶ</string>
+    <string name="placeholder_not_selected">ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ</string>
+    <string name="dm_select_country_first">ಕನಿಷ್ಠ ದೇಶವನ್ನು ಆಯ್ಕೆಮಾಡಿ</string>
+    <string name="dm_location_updated">ಸ್ಥಳವನ್ನು ನವೀಕರಿಸಲಾಗಿದೆ</string>
+
+    <!-- Sort control -->
+    <string name="sort_nearby">ಹತ್ತಿರ</string>
+    <string name="sort_last_active">ಕೊನೆಯ ಬಾರಿ ಸಕ್ರಿಯ</string>
+
+    <!-- People grid -->
+    <string name="no_one_nearby_yet">ಹತ್ತಿರದಲ್ಲಿ ಇನ್ನೂ ಯಾರೂ ಇಲ್ಲ</string>
+
+    <!-- Chips & filters -->
+    <string name="label_radius">ವ್ಯಾಸಾರ್ಧ</string>
+    <string name="gender_women">ಮಹಿಳೆಯರು</string>
+    <string name="gender_men">ಪುರುಷರು</string>
+
+    <!-- Place popup & sending -->
+    <string name="btn_directions">ಮಾರ್ಗ ಸೂಚನೆ</string>
+    <string name="btn_send_to_match">ಮ್ಯಾಚ್‌ಗೆ ಕಳುಹಿಸಿ</string>
+    <string name="dialog_select_match_title">ಒಂದು ಮ್ಯಾಚ್ ಆಯ್ಕೆಮಾಡಿ</string>
+    <string name="btn_send">ಕಳುಹಿಸಿ</string>
+    <string name="loading_ellipsis">ಲೋಡ್ ಆಗುತ್ತಿದೆ...</string>
+    <string name="unknown_place">ಅಜ್ಞಾತ ಸ್ಥಳ</string>
+    <string name="match_age">ವಯಸ್ಸು: %1$d</string>
+    <string name="match_from">ಇಂದ: %1$s</string>
+
+    <!-- Feed tabs & footer -->
+    <string name="feed_tab_everyone">ಎಲ್ಲರೂ</string>
+    <string name="feed_tab_matches">ಮ್ಯಾಚ್‌ಗಳು</string>
+    <string name="no_more_older_posts">ಹಳೆಯ ಪೋಸ್ಟ್‌ಗಳು ಇನ್ನಿಲ್ಲ</string>
+
+    <!-- Post options -->
+    <string name="menu_edit_post">ಪೋಸ್ಟ್ ಸಂಪಾದಿಸಿ</string>
+    <string name="menu_delete_post">ಪೋಸ್ಟ್ ಅಳಿಸಿ</string>
+    <string name="menu_report_post">ಪೋಸ್ಟ್ ವರದಿ ಮಾಡಿ</string>
+    <string name="see_more">ಇನ್ನಷ್ಟು ನೋಡಿ</string>
+    <string name="free_tier_media_limit">ಉಚಿತ ಟಿಯರ್‌ನಲ್ಲಿ ದಿನಕ್ಕೆ ಕೇವಲ 5 ಮೀಡಿಯಾ ವೀಕ್ಷಣೆಗಳಿಗೆ ಮಾತ್ರ ಅನುಮತಿ</string>
+
+    <!-- Share dialog & actions -->
+    <string name="share">ಹಂಚಿಕೊಳ್ಳಿ</string>
+    <string name="save_post">ಪೋಸ್ಟ್ ಉಳಿಸಿ</string>
+    <string name="share_with">ಯಾರ ಜೊತೆ ಹಂಚಿಕೊಳ್ಳಲಿ…</string>
+    <string name="send">ಕಳುಹಿಸಿ</string>
+    <string name="cancel">ರದ್ದುಗೊಳಿಸಿ</string>
+
+    <!-- Comments & votes -->
+    <string name="upvote">ಅಪ್‌ವೋಟ್</string>
+    <string name="downvote">ಡೌನ್‌ವೋಟ್</string>
+    <string name="show_comments">ಕಾಮೆಂಟ್‌ಗಳನ್ನು ತೋರಿಸಿ</string>
+    <string name="view_comments_count">ಕಾಮೆಂಟ್‌ಗಳನ್ನು ನೋಡಿ (%1$d)</string>
+
+    <!-- Report flow -->
+    <string name="report_reason_prompt">ಈ ಪೋಸ್ಟ್‌ನ್ನು ವರದಿ ಮಾಡುವ ಕಾರಣವನ್ನು ನೀಡಿ:</string>
+    <string name="report_reason_hint">ಕಾರಣ ನಮೂದಿಸಿ</string>
+    <string name="reason_required">ಕಾರಣ ಅಗತ್ಯವಿದೆ</string>
+    <string name="report_success">ವರದಿ ಮಾಡಲಾಗಿದೆ, ತಡೆಗಟ್ಟಲಾಗಿದೆ ಮತ್ತು ಅನ್ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ</string>
+    <string name="submit">ಸಲ್ಲಿಸು</string>
+
+    <!-- Recording / time / input -->
+    <string name="no_comments_yet">ಇನ್ನೂ ಯಾವುದೇ ಕಾಮೆಂಟ್‌ಗಳಿಲ್ಲ.</string>
+    <string name="recording_time_left">ರೆಕಾರ್ಡಿಂಗ್... ಉಳಿದ ಸಮಯ: %1$ds</string>
+    <string name="delete">ಅಳಿಸು</string>
+    <string name="submit_voice_comment">ವಾಯ್ಸ್ ಕಾಮೆಂಟ್ ಸಲ್ಲಿಸು</string>
+    <string name="record">ರೆಕಾರ್ಡ್ ಮಾಡಿ</string>
+    <string name="add_a_comment">ಒಂದು ಕಾಮೆಂಟ್ ಸೇರಿಸಿ…</string>
+    <string name="play_pause">ಪ್ಲೇ/ಪಾಸ್</string>
+
+    <!-- Tag search -->
+    <string name="search_tags">ಟ್ಯಾಗ್‌ಗಳನ್ನು ಹುಡುಕಿ</string>
+
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">ಅತ್ಯುತ್ತಮ ಸ್ಥಳಗಳು</string>
+    <plurals name="post_count">
+        <item quantity="one">%d ಪೋಸ್ಟ್</item>
+        <item quantity="other">%d ಪೋಸ್ಟ್‌ಗಳು</item>
+    </plurals>
+    <string name="btn_close">ಮುಚ್ಚಿ</string>
+    <string name="cd_go_to_feed">ಫೀಡ್‌ಗೆ ಹೋಗಿ</string>
+
+    <!-- Profile popup -->
+    <string name="btn_view_full_profile">ಸಂಪೂರ್ಣ ಪ್ರೊಫೈಲ್ ವೀಕ್ಷಿಸಿ</string>
+
+    <string name="dm_voice_compliment">ನಿಮಗೆ ವಾಯ್ಸ್ ಪ್ರಶಂಸೆ ಕಳುಹಿಸಿದ್ದಾರೆ</string>
+    <string name="dm_compliment_label">ಪ್ರಶಂಸೆ</string>
+
+    <string name="toast_unmatched_success">ಮ್ಯಾಚ್ ಯಶಸ್ವಿಯಾಗಿ ತೆಗೆದುಹಾಕಲಾಗಿದೆ</string>
+    <string name="toast_unmatched_failed">ಮ್ಯಾಚ್ ತೆಗೆದುಹಾಕಲು ವಿಫಲ: %1$s</string>
+    <string name="toast_error_generic">ದೋಷ: %1$s</string>
+    <string name="dm_upgrade_plus_change_location">ಸ್ಥಳವನ್ನು ಬದಲಾಯಿಸಲು ಪ್ಲಸ್‌ಗೆ ಅಪ್ಗ್ರೇಡ್ ಮಾಡಿ</string>
+
+    <string name="content_scroll_to_top">ಮೇಲೆ ಸ್ಕ್ರೋಲ್ ಮಾಡಿ</string>
+
+    <string name="dm_matched_with">%1$s ಜೊತೆ ಮ್ಯಾಚ್ ಆಯಿತು!</string>
+    <string name="dm_no_match_available">ಪ್ರಸಕ್ತವಾಗಿ ಯಾವುದೇ ಮ್ಯಾಚ್ ಲಭ್ಯವಿಲ್ಲ</string>
+
+    <string name="dm_change_location">ಸ್ಥಳ ಬದಲಾಯಿಸಿ</string>
     <string-array name="sexual_orientation_options">
         <item>ವಿಷಮಲೈಂಗಿಕ</item>
         <item>ಗೇ</item>
@@ -89,9 +217,7 @@
     <string name="pay_instead">ಬೇಗನೆ ಪಾವತಿಸಿ</string>
     <string name="send_feedback">ಪ್ರತಿಕ್ರಿಯೆ ಕಳುಹಿಸಿ</string>
     <string name="your_feedback">ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ</string>
-    <string name="send">ಕಳುಹಿಸಿ</string>
     <string name="confirm_delete_account">ನೀವು ಖಚಿತವಾಗಿಯೇ ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಅಳಿಸಲು ಬಯಸುತ್ತೀರಾ? ಎಲ್ಲಾ ಡೇಟಾ ಅಳಿಸಲಾಗುವುದು.</string>
-    <string name="delete">ಅಳಿಸಿ</string>
     <string name="username_with_value">ಬಳಕೆದಾರ ಹೆಸರು: %1$s</string>
     <string name="done">ಮುಗಿದಿದೆ</string>
     <string name="current_password">ಪ್ರಸ್ತುತ密码</string>
@@ -1311,9 +1437,6 @@
     <string name="username">ಬಳಕೆದಾರಹೆಸರು</string>
     <string name="enter_username">ಬಳಕೆದಾರಹೆಸರು ನಮೂದಿಸಿ</string>
     <string name="your_email">ನಿಮ್ಮ ಇ-ಮೇಲ್</string>
-    <string name="submit">ಸಲ್ಲಿಸು</string>
-    <string name="cancel">ರದ್ದುಮಾಡಿ</string>
-
     <!-- Landing Screen (added for LandingActivity) -->
     <string name="welcome_kupidx">Kupidx ಗೆ ಸ್ವಾಗತ</string>
     <string name="register">ನೋಂದಣಿ</string>

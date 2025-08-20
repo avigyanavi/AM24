@@ -16,6 +16,134 @@
         <string name="max_social_causes_error">
         మీరు గరిష్ఠంగా %1$d సామాజిక కారణాలను మాత్రమే ఎంచుకోవచ్చు.
     </string>
+    <!-- DMScreen: states / toasts / labels -->
+    <string name="dm_failed_load_profile">ప్రొఫైల్ లోడ్ చేయడంలో విఫలమైంది</string>
+    <string name="dm_error_loading_profile">ప్రొఫైల్ లోడ్ చేస్తూ లోపం</string>
+
+    <plurals name="dm_next_available_in_days">
+        <item quantity="one">తదుపరి అందుబాటులో: %d రోజులో</item>
+        <item quantity="other">తదుపరి అందుబాటులో: %d రోజుల్లో</item>
+    </plurals>
+
+    <string name="smart_match_title">స్మార్ట్ మ్యాచ్</string>
+    <string name="smart_match_select_gender">లింగ అభిరుచిని ఎంచుకోండి</string>
+    <string name="gender_male">పురుషుడు</string>
+    <string name="gender_female">స్త్రీ</string>
+    <string name="gender_both">రెండూ</string>
+
+    <string name="action_cancel">రద్దు చేయండి</string>
+    <string name="action_save">సేవ్ చేయండి</string>
+    <string name="action_unmatch">మ్యాచ్ తొలగించండి</string>
+    <string name="action_accept">అంగీకరించండి</string>
+    <string name="action_reject">తిరస్కరించండి</string>
+    <string name="action_smart_match">స్మార్ట్ మ్యాచ్</string>
+
+    <string name="dm_search_matches_hint">మ్యాచ్‌లను శోధించండి</string>
+    <string name="dm_upgrade_plus_see_likes">ఎవరు మీను లైక్ చేశారు చూడటానికి ప్లస్‌కి అప్‌గ్రేడ్ చేయండి.</string>
+    <string name="dm_no_matches">ఏ మ్యాచ్‌లు కనపడలేదు</string>
+    <string name="dm_your_rating">మీ రేటింగ్: %1$s</string>
+    <string name="dm_unmatch_with">%1$s తో ఉన్న మ్యాచ్‌ను తొలగించాలా?</string>
+    <string name="dm_unmatch_warning">దాంతో మ్యాచ్ తొలగించబడుతుంది మరియు మీ సంభాషణ చరితం తొలగించబడుతుంది.</string>
+
+    <string name="prompt_country">దేశం</string>
+    <string name="prompt_city">నగరం</string>
+    <string name="prompt_locality">ప్రాంతం</string>
+    <string name="placeholder_not_selected">ఎంపిక చేయబడలేదు</string>
+    <string name="dm_select_country_first">కనీసం దేశాన్ని అయినా ఎంచుకోండి</string>
+    <string name="dm_location_updated">స్థానం నవీకరించబడింది</string>
+
+    <string name="dm_voice_compliment">మీకు ఒక వాయిస్ ప్రశంస పంపారు</string>
+    <string name="dm_compliment_label">ప్రశంస</string>
+
+    <string name="toast_unmatched_success">మ్యాచ్ విజయవంతంగా తొలగించబడింది</string>
+    <string name="toast_unmatched_failed">మ్యాచ్ తొలగించడం విఫలమైంది: %1$s</string>
+    <string name="toast_error_generic">లోపం: %1$s</string>
+    <string name="dm_upgrade_plus_change_location">స్థానాన్ని మార్చడానికి ప్లస్‌కి అప్‌గ్రేడ్చేయండి</string>
+
+    <!-- Sort control -->
+    <string name="sort_nearby">దగ్గరలో</string>
+    <string name="sort_last_active">చివరిసారిగా సక్రియం</string>
+
+    <!-- People grid -->
+    <string name="no_one_nearby_yet">దగ్గరలో ఇంకా ఎవరూ లేరు</string>
+
+    <!-- Chips & filters -->
+    <string name="label_radius">వ్యాసార్థం</string>
+    <string name="gender_women">మహిళలు</string>
+    <string name="gender_men">పురుషులు</string>
+
+    <!-- Place popup & sending -->
+    <string name="btn_directions">దిశానిర్దేశాలు</string>
+    <string name="btn_send_to_match">మ్యాచ్‌కు పంపండి</string>
+    <string name="dialog_select_match_title">ఒక మ్యాచ్‌ను ఎంచుకోండి</string>
+    <string name="btn_send">పంపండి</string>
+    <string name="loading_ellipsis">లోడ్ అవుతోంది...</string>
+    <string name="unknown_place">అజ్ఞాత స్థలం</string>
+    <string name="match_age">వయసం: %1$d</string>
+    <string name="match_from">నుంచి: %1$s</string>
+
+    <!-- Feed tabs & footer -->
+    <string name="feed_tab_everyone">అందరు</string>
+    <string name="feed_tab_matches">మ్యాచ్లు</string>
+    <string name="no_more_older_posts">ఇంకా పాత పోస్టులు లేవు</string>
+
+    <!-- Post options -->
+    <string name="menu_edit_post">పోస్టును సవరించండి</string>
+    <string name="menu_delete_post">పోస్టును తొలగించండి</string>
+    <string name="menu_report_post">పోస్టును నివేదించండి</string>
+    <string name="see_more">మరింత చూడండి</string>
+    <string name="free_tier_media_limit">ఫ్రీ టియర్‌లో రోజుకు 5 మీడియా వీయూస్ మాత్రమే అనుమతి</string>
+
+    <!-- Share dialog & actions -->
+    <string name="share">షేర్ చేయండి</string>
+    <string name="save_post">పోస్టును సేవ్ చేయండి</string>
+    <string name="share_with">దీనితో షేర్ చేయండి…</string>
+    <string name="send">పంపండి</string>
+    <string name="cancel">రద్దు చేయండి</string>
+
+    <!-- Comments & votes -->
+    <string name="upvote">అప్‌వోట్</string>
+    <string name="downvote">డౌన్‌వోట్</string>
+    <string name="show_comments">వ్యాఖ్యలను చూపించండి</string>
+    <string name="view_comments_count">వ్యాఖ్యలను చూడండి (%1$d)</string>
+
+    <!-- Report flow -->
+    <string name="report_reason_prompt">దయచేసి ఈ పోస్టును నివేదించడానికి కారణాన్ని అందించండి:</string>
+    <string name="report_reason_hint">కారణం నమోదు చేయండి</string>
+    <string name="reason_required">కారణం అవసరం</string>
+    <string name="report_success">నివేదించబడింది, బ్లాక్ చేయబడింది మరియు అన్మ్యాచ్ చేయబడింది</string>
+    <string name="submit">సబ్మిట్ చేయండి</string>
+
+    <!-- Recording / time / input -->
+    <string name="no_comments_yet">ఇంకా వ్యాఖ్యలు లేవు.</string>
+    <string name="recording_time_left">రికార్డింగ్... మిగిలిన సమయం: %1$ds</string>
+    <string name="delete">తొలగించండి</string>
+    <string name="submit_voice_comment">వాయిస్ వ్యాఖ్యను సమర్పించండి</string>
+    <string name="record">రికార్డ్ చేయండి</string>
+    <string name="add_a_comment">ఒక వ్యాఖ్యను చేర్చండి…</string>
+    <string name="play_pause">ప్లే/పాజ్</string>
+
+    <!-- Tag search -->
+    <string name="search_tags">ట్యాగ్‌లను శోధించండి</string>
+
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">అగ్ర ప్రదేశాలు</string>
+    <plurals name="post_count">
+        <item quantity="one">%d పోస్ట్</item>
+        <item quantity="other">%d పోస్టులు</item>
+    </plurals>
+    <string name="btn_close">మూసివేయండి</string>
+    <string name="cd_go_to_feed">ఫీడ్‌కు వెళ్లండి</string>
+
+    <!-- Profile popup -->
+    <string name="btn_view_full_profile">పూర్తి ప్రొఫైల్ చూడండి</string>
+
+    <string name="content_scroll_to_top">పైకి స్క్రోల్ చేయండి</string>
+
+    <string name="dm_matched_with">%1$s తో మ్యాచ్ అయింది!</string>
+    <string name="dm_no_match_available">ప్రస్తుతం ఏ మ్యాచ్ లేదు</string>
+
+    <string name="dm_change_location">స్థానాన్ని మార్చండి</string>
     <string name="tab_people">వ్యక్తులు</string>
     <string name="tab_nearby">దగ్గరలో</string>
     <string name="tab_map">మ్యాప్</string>
@@ -121,9 +249,7 @@
     <string name="pay_instead">పూర్తిగా చెల్లించండి</string>
     <string name="send_feedback">విందును పంపండి</string>
     <string name="your_feedback">మీ అభిప్రాయం</string>
-    <string name="send">పంపండి</string>
     <string name="confirm_delete_account">మీ ఖాతాను మాయం చేయాలనుకుంటున్నారా? మొత్తం డేటా తొలగించబడుతుంది.</string>
-    <string name="delete">తొలగించు</string>
     <string name="username_with_value">వినియోగదారిపేరు: %1$s</string>
     <string name="done">పూర్తి</string>
     <string name="current_password">ప్రస్తుత పాస్వర్డ్</string>
@@ -1336,8 +1462,6 @@
         <string name="username">వాడుకరిపేరు</string>
         <string name="enter_username">ఒక వాడుకరిపేరును నమోదు చేయండి</string>
         <string name="your_email">మీ ఇ-మెయిల్</string>
-        <string name="submit">సబ్మిట్</string>
-        <string name="cancel">రద్దు చేయండి</string>
 
         <!-- Landing Screen (added for LandingActivity) -->
         <string name="welcome_kupidx">కుపిడెక్స్‌కి స్వాగతం</string>

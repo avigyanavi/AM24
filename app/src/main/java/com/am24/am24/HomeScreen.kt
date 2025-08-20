@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -496,11 +497,7 @@ fun FeedSection(
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No more older posts",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
+                    Text(text = stringResource(R.string.no_more_older_posts), color = Color.Gray, fontSize = 12.sp)
                 }
             }
         }
@@ -733,7 +730,7 @@ fun FeedItem(
                             if (post.userId == currentUserId) {
                                 // The user's own post
                                 DropdownMenuItem(
-                                    text = { Text("Edit Post", color = Color.White) },
+                                    text = { Text(stringResource(R.string.post_edit), color = Color.White) },
                                     onClick = {
                                         moreOptionsExpanded = false
                                         // Implement edit logic or navigate to an edit screen
@@ -742,7 +739,7 @@ fun FeedItem(
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Delete Post", color = Color.White) },
+                                    text = { Text(stringResource(R.string.post_delete), color = Color.White) },
                                     onClick = {
                                         moreOptionsExpanded = false
                                         onDelete(post)
@@ -751,7 +748,7 @@ fun FeedItem(
                             } else {
                                 // ─────────── replace your old onReport call ───────────
                                 DropdownMenuItem(
-                                    text    = { Text("Report Post", color = Color.White) },
+                                    text = { Text(stringResource(R.string.post_report), color = Color.White) },
                                     onClick = {
                                         moreOptionsExpanded = false
                                         showReportDialog    = true
@@ -808,7 +805,7 @@ fun FeedItem(
                     // "See more" Text
                     if (isTextOverflowing && !isExpanded) {
                         Text(
-                            text = "See more",
+                            text = stringResource(R.string.see_more),
                             color = Color.LightGray,
                             fontSize = 10.sp,
                             modifier = Modifier
@@ -839,12 +836,11 @@ fun FeedItem(
                                                     // optional: open full-screen photo viewer here
                                                 }
                                             } else {
+                                                val ms =  stringResource(R.string.free_tier_media_limit_msg)
                                                 Modifier
                                                     .blur(16.dp)
                                                     .clickable {
-                                                        Toast
-                                                            .makeText(context, "Free tier allows only 5 media views per day", Toast.LENGTH_SHORT)
-                                                            .show()
+                                                        Toast.makeText(context, ms, Toast.LENGTH_SHORT).show()
                                                     }
                                             }
                                         )
@@ -916,11 +912,12 @@ fun FeedItem(
                                     ) {
                                         // wrap in Box so blur affects only the button
                                         Box {
+                                            val ms =  stringResource(R.string.free_tier_media_limit_msg)
                                             IconButton(
                                                 onClick = {
                                                     if (!postViewModel.canPlayMedia()) {
                                                         Toast
-                                                            .makeText(context, "Free tier allows only 5 media views per day", Toast.LENGTH_SHORT)
+                                                            .makeText(context, ms, Toast.LENGTH_SHORT)
                                                             .show()
                                                     } else {
                                                         postViewModel.recordMediaPlay()
@@ -1025,13 +1022,13 @@ fun FeedItem(
                     Row {
                         // Replace your current Share IconButton with this:
                         IconButton(onClick = { showShareDialog = true }) {
-                            Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), tint = Color.White)
                         }
                         // Add Save Icon
                         IconButton(onClick = { onSave() }) {
                             Icon(
                                 imageVector = if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                                contentDescription = "Save Post",
+                                contentDescription = stringResource(R.string.save_post),
                                 tint = Color.White
                             )
                         }
@@ -1041,7 +1038,7 @@ fun FeedItem(
                     if (showShareDialog) {
                         AlertDialog(
                             onDismissRequest = { showShareDialog = false },
-                            title = { Text("Share with…", color = Color.White) },
+                            title = { Text(stringResource(R.string.share_with), color = Color.White) },
                             text = {
                                 LazyColumn {
                                     items(matches) { matchUid ->
@@ -1079,12 +1076,12 @@ fun FeedItem(
                                     }
                                     showShareDialog = false
                                 }) {
-                                    Text("Send", color = Color(0xFFFFDB00))
+                                    Text(stringResource(R.string.send), color = Color(0xFFFFDB00))
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showShareDialog = false }) {
-                                    Text("Cancel", color = Color.Gray)
+                                    Text(stringResource(R.string.cancel), color = Color.Gray)
                                 }
                             },
                             containerColor    = Color(0xFF1A1A1A),
@@ -1142,7 +1139,7 @@ fun FeedItem(
                 if (post.comments.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "View Comments (${post.comments.size})",
+                        text = stringResource(R.string.view_comments_count, post.comments.size),
                         color = Color.White,
                         modifier = Modifier
                             .clickable {
@@ -1231,15 +1228,15 @@ fun FeedItem(
                             showReportDialog = false
                             reportReason    = ""
                         },
-                        title = { Text("Report Post") },
+                        title = { Text(stringResource(R.string.post_report)) },
                         text = {
                             Column {
-                                Text("Please provide a reason for reporting this post:")
+                                Text(stringResource(R.string.report_reason_prompt))
                                 Spacer(Modifier.height(8.dp))
                                 TextField(
                                     value = reportReason,
                                     onValueChange = { reportReason = it },
-                                    placeholder = { Text("Enter reason") },
+                                    placeholder = { Text(stringResource(R.string.report_reason_placeholder)) },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(100.dp),
@@ -1255,10 +1252,12 @@ fun FeedItem(
                             }
                         },
                         confirmButton = {
+                            val msg = stringResource(R.string.reason_required)
+                            val msg2 = stringResource(R.string.reported_blocked_unmatched)
                             Button(
                                 onClick = {
                                     if (reportReason.isBlank()) {
-                                        Toast.makeText(context, "Reason required", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
                                     scope.launch {
@@ -1269,7 +1268,7 @@ fun FeedItem(
                                                 reportedUserId = post.userId,
                                                 reason         = reportReason
                                             )
-                                            Toast.makeText(context, "Reported, blocked & unmatched", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, msg2, Toast.LENGTH_SHORT).show()
                                             showReportDialog = false
                                         } catch (e: Exception) {
                                             Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -1278,7 +1277,7 @@ fun FeedItem(
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                             ) {
-                                Text("Submit", color = Color.White)
+                                 Text(stringResource(R.string.submit), color = Color.White)
                             }
                         },
                         dismissButton = {
@@ -1289,7 +1288,7 @@ fun FeedItem(
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
                             ) {
-                                Text("Cancel", color = Color.White)
+                                Text(stringResource(R.string.cancel), color = Color.White)
                             }
                         }
                     )
@@ -1757,7 +1756,7 @@ fun CommentsDialog(
 
                 if (sortedCommentsList.isEmpty()) {
                     Text(
-                        "No comments yet.",
+                        stringResource(R.string.no_comments_yet),
                         color = Color.White,
                         modifier = Modifier.padding(16.dp)
                     )
@@ -1783,11 +1782,7 @@ fun CommentsDialog(
 
                 // If recording or recorded voice present, show that UI above input row
                 if (isRecording) {
-                    Text(
-                        text = "Recording... Time left: ${recordingTimeLeft / 1000}s",
-                        color = Color.White,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    Text(stringResource(R.string.recording_time_left, recordingTimeLeft / 1000), color = Color.White, modifier = Modifier.padding(vertical = 8.dp))
                 } else if (recordedVoiceUri != null) {
                     // Show playback controls and submit/delete for recorded voice
                     VoiceCommentPlayer(
@@ -1823,7 +1818,7 @@ fun CommentsDialog(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                         ) {
-                            Text("Delete", color = Color.White)
+                            Text(stringResource(R.string.delete), color = Color.White)
                         }
                         Button(
                             onClick = {
@@ -1833,7 +1828,7 @@ fun CommentsDialog(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDB00))
                         ) {
-                            Text("Submit Voice Comment", color = Color.White)
+                            Text(stringResource(R.string.submit_voice_comment), color = Color.White)
                         }
                     }
 
@@ -1883,7 +1878,7 @@ fun CommentsDialog(
                     OutlinedTextField(
                         value = commentText,
                         onValueChange = { commentText = it },
-                        placeholder = { Text("Add a comment...", color = Color.Gray) },
+                        placeholder = { Text(stringResource(R.string.add_a_comment), color = Color.Gray) },
                         textStyle = LocalTextStyle.current.copy(color = Color.White),
                         modifier = Modifier
                             .weight(1f)
@@ -1905,7 +1900,7 @@ fun CommentsDialog(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                     ) {
-                        Text("Submit", color = Color.White)
+                        Text(stringResource(R.string.submit), color = Color.White)
                     }
                 }
             }
@@ -2135,7 +2130,7 @@ fun CustomSearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = { onQueryChange(it) },
-        placeholder = { Text("Search tags", color = Color.Gray, fontSize = 11.sp) },
+        placeholder = { Text(stringResource(R.string.search_tags_placeholder), color = Color.Gray, fontSize = 11.sp) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 10.dp),

@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import ComplimentData
 import android.app.Activity
 import android.net.Uri
 import android.util.Log
@@ -53,9 +54,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.random.Random
+import androidx.compose.ui.res.pluralStringResource
+
 
 private fun canonicalLocationId(name: String): String =
     name.replace("\\s".toRegex(), "").lowercase()
+
+data class ComplimentWithProfile(
+    val profile: Profile,
+    val compliment: ComplimentData
+)
 
 @Composable
 fun DMScreen(navController: NavController) {
@@ -72,6 +80,7 @@ fun DMScreenContent(navController: NavController) {
     val usersRef = database.getReference("users")
     val messagesRootRef = database.getReference("messages")
     val ratingsRef = database.getReference("ratings")
+    val complimentsRef = database.getReference("complimentsReceived/$currentUserId")
 
     var showRatingOverlay by remember { mutableStateOf(false) }
     var profileToRate by remember { mutableStateOf<Profile?>(null) }
@@ -91,7 +100,7 @@ fun DMScreenContent(navController: NavController) {
             }
             .addOnFailureListener {
                 isLoadingProfile = false // Handle error appropriately
-                Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.dm_failed_load_profile), Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -112,12 +121,7 @@ fun DMScreenContent(navController: NavController) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                "Error loading profile",
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(stringResource(R.string.dm_error_loading_profile), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
         return
     }
@@ -198,9 +202,35 @@ fun DMScreenContent(navController: NavController) {
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
     val prefetchedUrls = remember { mutableStateSetOf<String>() }
+    val complimentProfiles = remember { mutableStateListOf<ComplimentWithProfile>() }
     // — new: grab your blocks
     val blockedRef = database.getReference("blocks/$currentUserId")
     val blockedIds = remember { mutableStateListOf<String>() }
+
+    DisposableEffect(currentUserId) {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                complimentProfiles.clear()
+                snapshot.children.forEach { child ->
+                    val senderId = child.key ?: return@forEach
+                    val compliment = child.getValue(ComplimentData::class.java) ?: return@forEach
+                    usersRef.child(senderId)
+                        .addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(profileSnap: DataSnapshot) {
+                                val profile = profileSnap.getValue(Profile::class.java) ?: return
+                                complimentProfiles.add(ComplimentWithProfile(profile, compliment))
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {}
+                        })
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        complimentsRef.addValueEventListener(listener)
+        onDispose { complimentsRef.removeEventListener(listener) }
+    }
 
     DisposableEffect(currentUserId) {
         val listener = object : ValueEventListener {
@@ -349,7 +379,7 @@ fun DMScreenContent(navController: NavController) {
                     onClick = { showLocationSelector = false },
                     modifier = Modifier.align(Alignment.End).padding(8.dp)
                 ) {
-                    Text("Cancel", color = Color(0xFFFF4500))
+                    Text(stringResource(R.string.cancel), color = Color(0xFFFF4500))
                 }
             }
             else {
@@ -361,17 +391,11 @@ fun DMScreenContent(navController: NavController) {
                 ) {
                     val cts = LocalContext.current
                     Log.d("DMScreen", "Change Location clicked: isPremiumUser=$isPremiumUser")
-                    GroupChatChip("Change Location") {
+                    GroupChatChip(stringResource(R.string.dm_change_location)) {
                         if (isPremiumUser) {
-                            showLocationSelector = true     // 🟢 premium users see the selector
+                            showLocationSelector = true
                         } else {
-                            Toast
-                                .makeText(
-                                    cts,
-                                    "Upgrade to Plus to change location",
-                                    Toast.LENGTH_SHORT
-                                )
-                                .show()
+                            Toast.makeText(context, context.getString(R.string.dm_upgrade_plus_change_location), Toast.LENGTH_SHORT).show()
                         }
                     }
 
@@ -395,25 +419,22 @@ fun DMScreenContent(navController: NavController) {
                             Spacer(Modifier.width(6.dp))
                         }
                         if (isPremiumUser) {
+                            val now = Calendar.getInstance()
+                            val nextReset = Calendar.getInstance().apply {
+                                firstDayOfWeek = now.firstDayOfWeek
+                                set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+                                add(Calendar.WEEK_OF_YEAR, 1)
+                            }
+                            val millisInDay = 24 * 60 * 60 * 1000L
+                            val daysLeft =
+                                ((nextReset.timeInMillis - now.timeInMillis) / millisInDay).toInt()
+                            val msg = pluralStringResource(R.plurals.dm_next_available_in_days, daysLeft, daysLeft)
                             Button(
                                 onClick = {
                                     if (smartMatchAvailable) {
                                         showSmartMatchDialog = true
                                     } else {
-                                        val now = Calendar.getInstance()
-                                        val nextReset = Calendar.getInstance().apply {
-                                            firstDayOfWeek = now.firstDayOfWeek
-                                            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-                                            add(Calendar.WEEK_OF_YEAR, 1)
-                                        }
-                                        val millisInDay = 24 * 60 * 60 * 1000L
-                                        val daysLeft =
-                                            ((nextReset.timeInMillis - now.timeInMillis) / millisInDay).toInt()
-                                        Toast.makeText(
-                                            context,
-                                            "Next available in: ${'$'}daysLeft days",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        msg
                                     }
                                 },
                                 enabled = smartMatchAvailable,
@@ -433,7 +454,7 @@ fun DMScreenContent(navController: NavController) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search matches", color = Color.Gray, fontSize = 12.sp) },
+                    placeholder = { Text(stringResource(R.string.dm_search_matches_hint), color = Color.Gray, fontSize = 12.sp) },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = Color(0xFFFF4500),
                         unfocusedBorderColor = Color.Gray,
@@ -464,13 +485,7 @@ fun DMScreenContent(navController: NavController) {
                                 if (isPremiumUser) {
                                     navController.navigate("peopleWhoLikedMe")
                                 } else {
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            "Upgrade to Plus to see who liked you.",
-                                            Toast.LENGTH_SHORT
-                                        )
-                                        .show()
+                                    Toast.makeText(context, context.getString(R.string.dm_upgrade_plus_see_likes), Toast.LENGTH_SHORT).show()
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -498,15 +513,13 @@ fun DMScreenContent(navController: NavController) {
                 }
 
                 val displayedUsers = matchedUsers
+            val complimentItems = complimentProfiles.filter { cp ->
+                !matchIds.contains(cp.profile.userId) && !blockedIds.contains(cp.profile.userId)
+            }
 
-                if (displayedUsers.isEmpty()) {
+            if (displayedUsers.isEmpty() && complimentItems.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            "No matches found",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(stringResource(R.string.dm_no_matches), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 } else {
                     LazyColumn(
@@ -517,6 +530,30 @@ fun DMScreenContent(navController: NavController) {
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        items(complimentItems) { item ->
+                            ComplimentCard(
+                                profile = item.profile,
+                                compliment = item.compliment,
+                                onAccept = {
+                                    createMatch(database, currentUserId, item.profile.userId)
+                                    val updates = mapOf(
+                                        "compliments/${item.profile.userId}/$currentUserId" to null,
+                                        "complimentsReceived/$currentUserId/${item.profile.userId}" to null
+                                    )
+                                    database.reference.updateChildren(updates)
+                                },
+                                onReject = {
+                                    val updates = mapOf(
+                                        "compliments/${item.profile.userId}/$currentUserId" to null,
+                                        "complimentsReceived/$currentUserId/${item.profile.userId}" to null
+                                    )
+                                    database.reference.updateChildren(updates)
+                                },
+                                onClick = {
+                                    navController.navigate("previewUserProfile/${item.profile.userId}")
+                                }
+                            )
+                        }
                         items(displayedUsers) { profile ->
                             val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
                             DMUserCard(
@@ -557,9 +594,11 @@ fun DMScreenContent(navController: NavController) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         RatingBar(rating = profileToRate!!.averageRating, ratingCount = profileToRate!!.numberOfRatings)
                         Text(
-                            "Your Rating: ${if (tempRating >= 0) String.format("%.1f", tempRating) else "N/A"}",
-                            color = Color.Gray,
-                            fontSize = 12.sp
+                            stringResource(
+                                R.string.dm_your_rating,
+                                if (tempRating >= 0) String.format("%.1f", tempRating) else "N/A"
+                            ),
+                            color = Color.Gray, fontSize = 12.sp
                         )
                         Slider(
                             value = if (tempRating >= 0) tempRating.toFloat() else 0f,
@@ -592,18 +631,9 @@ fun DMScreenContent(navController: NavController) {
                     border = BorderStroke(2.dp, Color(0xFFFF4500))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Unmatch with ${profileToUnmatch!!.username}?",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(stringResource(R.string.dm_unmatch_with, profileToUnmatch!!.username), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            "This will remove the match and delete your conversation history.",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
+                        Text(stringResource(R.string.dm_unmatch_warning), color = Color.Gray, fontSize = 12.sp)
                         Spacer(Modifier.height(16.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -613,7 +643,7 @@ fun DMScreenContent(navController: NavController) {
                                 showUnmatchDialog = false
                                 profileToUnmatch = null
                             }) {
-                                Text("Cancel", color = Color.White)
+                                Text(stringResource(R.string.action_cancel), color = Color.White)
                             }
                             Spacer(Modifier.width(8.dp))
                             TextButton(onClick = {
@@ -626,7 +656,7 @@ fun DMScreenContent(navController: NavController) {
                                 showUnmatchDialog = false
                                 profileToUnmatch = null
                             }) {
-                                Text("Unmatch", color = Color.Red)
+                                Text(stringResource(R.string.action_unmatch), color = Color.Red)
                             }
                         }
                     }
@@ -637,19 +667,25 @@ fun DMScreenContent(navController: NavController) {
         if (showSmartMatchDialog) {
             AlertDialog(
                 onDismissRequest = { showSmartMatchDialog = false },
-                title = { Text("Smart Match", color = Color(0xFFFF4500)) },
+                title = { Text(stringResource(R.string.smart_match_title), color = Color(0xFFFF4500)) },
                 text = {
                     Column {
-                        Text("Select gender preference", color = Color.White, fontSize = 12.sp)
+                        Text(stringResource(R.string.smart_match_select_gender), color = Color.White, fontSize = 12.sp)
+                        // keep internal keys "Male"/"Female"/"Both" for backend matching
                         val opts = listOf("Male", "Female", "Both")
-                        opts.forEach { opt ->
+                        val labels = mapOf(
+                            "Male" to stringResource(R.string.gender_male),
+                            "Female" to stringResource(R.string.gender_female),
+                            "Both" to stringResource(R.string.gender_both)
+                        )
+                        opts.forEach { key ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
-                                    selected = selectedSmartMatchGender == opt,
-                                    onClick = { selectedSmartMatchGender = opt },
+                                    selected = selectedSmartMatchGender == key,
+                                    onClick = { selectedSmartMatchGender = key },
                                     colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFF4500))
                                 )
-                                Text(opt, color = Color.White, fontSize = 12.sp)
+                                Text(labels[key]!!, color = Color.White, fontSize = 12.sp)
                             }
                         }
                     }
@@ -666,8 +702,8 @@ fun DMScreenContent(navController: NavController) {
                             blockedIds,
                             context
                         )
-                    }) { Text("Smart Match", color = Color(0xFFFF4500)) }
-                },
+                    }) {         Text(stringResource(R.string.action_smart_match), color = Color(0xFFFF4500)) }
+                    },
                 dismissButton = {
                     TextButton(onClick = { showSmartMatchDialog = false }) { Text("Cancel", color = Color.Gray) }
                 }
@@ -679,7 +715,7 @@ fun DMScreenContent(navController: NavController) {
             containerColor = Color(0xFFFF4500),
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         ) {
-            Icon(Icons.Default.KeyboardArrowUp, "Scroll to Top", tint = Color.White)
+            Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.content_scroll_to_top), tint = Color.White)
         }
     }
 }
@@ -721,7 +757,7 @@ fun LocationSelectorComposable(
 
     Column(modifier = Modifier.padding(16.dp)) {
         DropdownField(
-            label = "Country",
+            label = stringResource(R.string.prompt_country),
             options = countryOptions,
             selected = selectedCountry,
             onSelectionChange = {
@@ -737,7 +773,7 @@ fun LocationSelectorComposable(
 
         if (isIndian) {
             DropdownField(
-                label = "City",
+                label = stringResource(R.string.prompt_city),
                 options = cityOptions,
                 selected = selectedCity,
                 onSelectionChange = {
@@ -752,7 +788,7 @@ fun LocationSelectorComposable(
         Spacer(Modifier.height(8.dp))
 
             DropdownField(
-                label = "Locality",
+                label = stringResource(R.string.prompt_locality),
                 options = localityOptions,
                 selected = selectedLocality,
                 onSelectionChange = { selectedLocality = it },
@@ -764,7 +800,7 @@ fun LocationSelectorComposable(
             OutlinedTextField(
                 value = selectedCity,
                 onValueChange = { selectedCity = it },
-                label = { Text("City") },
+                label = { Text(stringResource(R.string.prompt_city)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
@@ -775,7 +811,7 @@ fun LocationSelectorComposable(
             OutlinedTextField(
                 value = selectedLocality,
                 onValueChange = { selectedLocality = it },
-                label = { Text("Locality") },
+                label = { Text(stringResource(R.string.prompt_locality)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
@@ -786,17 +822,17 @@ fun LocationSelectorComposable(
 
         Button(onClick = {
             if (selectedCountry.isBlank()) {
-                Toast.makeText(context, "Please select at least Country", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.dm_select_country_first), Toast.LENGTH_SHORT).show()
                 return@Button
             }
             userRef.child("country").setValue(selectedCountry)
             userRef.child("city").setValue(selectedCity)
             userRef.child("hometown").setValue(selectedLocality)
 
-            Toast.makeText(context, "Location updated", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.dm_location_updated), Toast.LENGTH_SHORT).show()
             onSaved()
         }) {
-            Text("Save")
+            Text(stringResource(R.string.action_save))
         }
     }
 }
@@ -812,7 +848,7 @@ fun DropdownField(
     onExpandedChange: (Boolean) -> Unit,
     enabled: Boolean = true
 ) {
-    val placeholder = "Not selected"
+    val placeholder = stringResource(R.string.placeholder_not_selected)
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -929,8 +965,69 @@ fun DMUserCard(
                     Text(stringResource(R.string.rate), color = Color(0xFFFF4500))
                 }
                 TextButton(onClick = { onUnmatchClick(profile) }) {
-                    Text("Unmatch", color = Color.Red)
+                    Text(stringResource(R.string.action_unmatch), color = Color.Red)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ComplimentCard(
+    profile: Profile,
+    compliment: ComplimentData,
+    onAccept: () -> Unit,
+    onReject: () -> Unit,
+    onClick: () -> Unit
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(DarkGrayBackground)
+            .border(
+                BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable { onClick() }
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AIOrProfileImage(
+                    profile,
+                    Modifier
+                        .size(70.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = profile.name.ifBlank { profile.username },
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    val text = when {
+                        compliment.text.isNotBlank() -> compliment.text
+                        compliment.voiceUrl != null -> stringResource(R.string.dm_voice_compliment)
+                        else -> stringResource(R.string.dm_compliment_label)
+                    }
+                    Text(
+                        text = text,
+                        fontSize = 12.sp,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onAccept) { Text(stringResource(R.string.action_accept), color = Color(0xFFFF4500)) }
+                TextButton(onClick = onReject) { Text(stringResource(R.string.action_reject), color = Color.Red) }
+
             }
         }
     }
@@ -951,10 +1048,10 @@ private fun unmatchUser(
 
     database.reference.updateChildren(updates)
         .addOnSuccessListener {
-            Toast.makeText(context, "Unmatched successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_unmatched_success), Toast.LENGTH_SHORT).show()
         }
         .addOnFailureListener { error ->
-            Toast.makeText(context, "Failed to unmatch: ${error.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_unmatched_failed, error.message ?: "" ), Toast.LENGTH_SHORT).show()
             Log.e("DMScreen", "Unmatch failed: ${error.message}")
         }
 }
@@ -1021,7 +1118,7 @@ private fun fetchUsersFromNode(
 
                         override fun onCancelled(error: DatabaseError) {
                             Log.e("DMScreen", "DBError in fetchUsersFromNode: ${error.message}")
-                            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.toast_error_generic, error.message ?: "" ), Toast.LENGTH_SHORT).show()
                             remaining--
                             if (remaining == 0) {
                                 usersList.clear()
@@ -1040,7 +1137,7 @@ private fun fetchUsersFromNode(
 
         override fun onCancelled(error: DatabaseError) {
             Log.e("DMScreen", "DatabaseError in fetchUsersFromNode: ${error.message}")
-            Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_error_generic, error.message ?: "" ), Toast.LENGTH_SHORT).show()
         }
     }
     ref.addListenerForSingleValueEvent(listener)
@@ -1102,9 +1199,9 @@ private fun handleSmartMatch(
     fetchRandomUserForLottery(usersRef, gender, excluded, currentUserId) { profile ->
         if (profile != null) {
             createMatch(database, currentUserId, profile.userId)
-            Toast.makeText(context, "Matched with ${profile.username}!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.dm_matched_with, profile.username), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "No match currently available", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.dm_no_match_available), Toast.LENGTH_SHORT).show()
         }
     }
 }

@@ -45,6 +45,130 @@
     <string name="settings">सेटिंग्स</string>
     <string name="advanced_compatibility">उन्नत अनुकूलता</string>
 
+    <!-- DMScreen: states / toasts / labels -->
+    <string name="dm_failed_load_profile">प्रोफ़ाइल लोड करने में विफल</string>
+    <string name="dm_error_loading_profile">प्रोफ़ाइल लोड करने में त्रुटि</string>
+
+    <plurals name="dm_next_available_in_days">
+        <item quantity="one">अगला उपलब्ध: %d दिन में</item>
+        <item quantity="other">अगला उपलब्ध: %d दिन में</item>
+    </plurals>
+
+    <string name="smart_match_title">स्मार्ट मैच</string>
+    <string name="smart_match_select_gender">लिंग वरीयता चुनें</string>
+    <string name="gender_male">पुरुष</string>
+    <string name="gender_female">महिला</string>
+    <string name="gender_both">दोनों</string>
+
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_save">सहेजें</string>
+    <string name="action_unmatch">मैच हटाएँ</string>
+    <string name="action_accept">स्वीकार करें</string>
+    <string name="action_reject">अस्वीकार करें</string>
+    <string name="action_smart_match">स्मार्ट मैच</string>
+
+    <string name="dm_search_matches_hint">मैच खोजें</string>
+    <string name="dm_upgrade_plus_see_likes">किसने आपको पसंद किया यह देखने के लिए प्लस में अपग्रेड करें।</string>
+    <string name="dm_no_matches">कोई मैच नहीं मिला</string>
+    <string name="dm_your_rating">आपकी रेटिंग: %1$s</string>
+    <string name="dm_unmatch_with">%1$s के साथ मैच हटाएँ?</string>
+    <string name="dm_unmatch_warning">इससे मैच हट जाएगा और आपकी बातचीत का इतिहास मिटा दिया जाएगा।</string>
+    <!-- Sort control -->
+    <string name="sort_nearby">पास में</string>
+    <string name="sort_last_active">आखिरी बार सक्रिय</string>
+
+    <!-- People grid -->
+    <string name="no_one_nearby_yet">पास में अभी कोई नहीं</string>
+
+    <!-- Chips & filters -->
+    <string name="label_radius">त्रिज्या</string>
+    <string name="gender_women">महिलाएँ</string>
+    <string name="gender_men">पुरुष</string>
+
+    <!-- Place popup & sending -->
+    <string name="btn_directions">दिशानिर्देश</string>
+    <string name="btn_send_to_match">मैच को भेजें</string>
+    <string name="dialog_select_match_title">कोई मैच चुनें</string>
+    <string name="btn_send">भेजें</string>
+    <string name="loading_ellipsis">लोड हो रहा है...</string>
+    <string name="unknown_place">अज्ञात स्थान</string>
+    <string name="match_age">उम्र: %1$d</string>
+    <string name="match_from">से: %1$s</string>
+
+    <!-- Feed tabs & footer -->
+    <string name="feed_tab_everyone">सभी</string>
+    <string name="feed_tab_matches">मैचेज़</string>
+    <string name="no_more_older_posts">और पुराने पोस्ट नहीं</string>
+
+    <!-- Post options -->
+    <string name="menu_edit_post">पोस्ट संपादित करें</string>
+    <string name="menu_delete_post">पोस्ट हटाएँ</string>
+    <string name="menu_report_post">पोस्ट रिपोर्ट करें</string>
+    <string name="see_more">और देखें</string>
+    <string name="free_tier_media_limit">फ्री टियर में प्रति दिन केवल 5 मीडिया व्यू की अनुमति है</string>
+
+    <!-- Share dialog & actions -->
+    <string name="share">शेयर</string>
+    <string name="save_post">पोस्ट सहेजें</string>
+    <string name="share_with">इसके साथ शेयर करें…</string>
+    <string name="send">भेजें</string>
+    <string name="cancel">रद्द करें</string>
+
+    <!-- Comments & votes -->
+    <string name="upvote">अपवोट</string>
+    <string name="downvote">डाउनवोट</string>
+    <string name="show_comments">टिप्पणियाँ दिखाएँ</string>
+    <string name="view_comments_count">टिप्पणियाँ देखें (%1$d)</string>
+
+    <!-- Report flow -->
+    <string name="report_reason_prompt">कृपया इस पोस्ट को रिपोर्ट करने का कारण बताएं:</string>
+    <string name="report_reason_hint">कारण दर्ज करें</string>
+    <string name="reason_required">कारण आवश्यक है</string>
+    <string name="report_success">रिपोर्ट किया, ब्लॉक किया और अनमैच किया गया</string>
+
+    <!-- Recording / time / input -->
+    <string name="no_comments_yet">अभी तक कोई टिप्पणी नहीं।</string>
+    <string name="recording_time_left">रिकॉर्डिंग... शेष समय: %1$ds</string>
+    <string name="submit_voice_comment">वॉइस टिप्पणी सबमिट करें</string>
+    <string name="record">रिकॉर्ड करें</string>
+    <string name="add_a_comment">एक टिप्पणी जोड़ें…</string>
+    <string name="play_pause">प्ले/पॉज़</string>
+
+    <!-- Tag search -->
+    <string name="search_tags">टैग खोजें</string>
+
+    <!-- Leaderboard -->
+    <string name="leaderboard_title">शीर्ष स्थान</string>
+    <plurals name="post_count">
+        <item quantity="one">%d पोस्ट</item>
+        <item quantity="other">%d पोस्टें</item>
+    </plurals>
+    <string name="btn_close">बंद करें</string>
+    <string name="cd_go_to_feed">फ़ीड पर जाएँ</string>
+
+    <!-- Profile popup -->
+    <string name="btn_view_full_profile">पूर्ण प्रोफ़ाइल देखें</string>
+    <string name="prompt_country">देश</string>
+    <string name="prompt_city">शहर</string>
+    <string name="prompt_locality">इलाका</string>
+    <string name="placeholder_not_selected">चयनित नहीं</string>
+    <string name="dm_select_country_first">कृपया कम से कम देश चुनें</string>
+    <string name="dm_location_updated">स्थान अपडेट किया गया</string>
+
+    <string name="dm_voice_compliment">आपको वॉइस कॉम्प्लिमेंट भेजा</string>
+    <string name="dm_compliment_label">कॉम्प्लिमेंट</string>
+
+    <string name="toast_unmatched_success">मैच सफलतापूर्वक हटाया गया</string>
+    <string name="toast_unmatched_failed">मैच हटाने में विफल: %1$s</string>
+    <string name="toast_error_generic">त्रुटि: %1$s</string>
+    <string name="dm_upgrade_plus_change_location">स्थान बदलने के लिए प्लस में अपग्रेड करें</string>
+
+    <string name="content_scroll_to_top">ऊपर स्क्रॉल करें</string>
+
+    <string name="dm_matched_with">%1$s से मैच हुआ!</string>
+    <string name="dm_no_match_available">फिलहाल कोई मैच उपलब्ध नहीं</string>
+
+    <string name="dm_change_location">स्थान बदलें</string>
     <string-array name="sexual_orientation_options">
         <item>विषमलैंगिक</item>
         <item>गे</item>
@@ -62,7 +186,6 @@
     <string name="pay_instead">बदले में भुगतान करें</string>
     <string name="send_feedback">प्रतिक्रिया भेजें</string>
     <string name="your_feedback">आपकी प्रतिक्रिया</string>
-    <string name="send">भेजें</string>
     <string name="confirm_delete_account">क्या आप वाकई अपना खाता हटाना चाहते हैं? सभी डेटा मिटा दिया जाएगा।</string>
     <string name="delete">हटाएं</string>
     <string name="username_with_value">उपयोगकर्ता नाम: %1$s</string>
@@ -1357,7 +1480,6 @@
     <string name="enter_username">उपयोगकर्ता नाम दर्ज करें</string>
     <string name="your_email">आपका ईमेल</string>
     <string name="submit">सबमिट करें</string>
-    <string name="cancel">रद्द करें</string>
 
     <!-- Landing Screen (added for LandingActivity) -->
     <string name="welcome_kupidx">Kupidx में आपका स्वागत है</string>

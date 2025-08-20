@@ -79,6 +79,9 @@ import com.am24.am24.PlaceResult
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.res.pluralStringResource
+
+
 
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
@@ -447,7 +450,7 @@ fun MapScreen(
                 if (!allowed) return@forEach
                 val ci      = postSnap.child("checkIn")
                 val placeId = ci.child("placeId").getValue(String::class.java) ?: return@forEach
-                val placeNm = ci.child("name").getValue(String::class.java) ?: "Unknown"
+                val placeNm = ci.child("name").getValue(String::class.java) ?: ctx.getString(R.string.unknown_place)
 
                 nameCache[placeId] = placeNm
                 grouped.getOrPut(placeId) { mutableListOf() }.add(postId)
@@ -566,7 +569,12 @@ fun MapScreen(
                             contentDescription = null
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text(if (sortMode == SortMode.NEARBY) "Nearby" else "Last active")
+                        Text(
+                            stringResource(
+                                if (sortMode == SortMode.NEARBY) R.string.sort_nearby
+                                else R.string.sort_last_active
+                            )
+                        )
                     }
                 } ,
                 windowInsets = WindowInsets(0, 0, 0, 0)
@@ -660,7 +668,7 @@ fun MapScreen(
                                 )
                             } else {
                                 LockedChip(
-                                    label = "Radius",
+                                    label = stringResource(R.string.label_radius),
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
                                         .padding(8.dp)
@@ -682,7 +690,7 @@ fun MapScreen(
                                 )
                             } else {
                                 LockedChip(
-                                    label = "Last active",
+                                    label = stringResource(R.string.sort_last_active),
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
                                         .padding(8.dp)
@@ -1284,7 +1292,7 @@ private fun PeopleGrid(
 ) {
     if (users.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No one nearby yet", color = Color.Gray)
+            Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
         }
         return
     }
@@ -1390,12 +1398,11 @@ private fun GenderFilterChip(
         ) {
             // Show only Women / Men chips
             listOf(
-                GenderFilter.WOMEN to "Women",
-                GenderFilter.MEN   to "Men"
+                GenderFilter.WOMEN to stringResource(R.string.gender_women),
+                GenderFilter.MEN   to stringResource(R.string.gender_men)
             ).forEach { (type, label) ->
                 FilterChip(
                     selected = selected == type,
-                    // tap selected chip again → clear to BOTH (i.e., show everyone)
                     onClick = { onChange(if (selected == type) GenderFilter.BOTH else type) },
                     label = { Text(label) }
                 )
@@ -1525,12 +1532,13 @@ fun PlaceDetailsPopup(
     onSendToMatch: () -> Unit
 ) {
     val ctx = LocalContext.current
-    var placeName by remember { mutableStateOf(name ?: "Loading...") }
+    var placeName by remember { mutableStateOf(name) }
 
     LaunchedEffect(placeId) {
-        if (name == null) placeName = getPlaceNameFromPlaceId(placeId, ctx) ?: "Unknown Place"
+        if (name == null) {
+            placeName = getPlaceNameFromPlaceId(placeId, ctx) ?: ctx.getString(R.string.unknown_place)
+        }
     }
-
     Column(
         Modifier
             .fillMaxWidth()
@@ -1547,7 +1555,7 @@ fun PlaceDetailsPopup(
                     .size(24.dp)
                     .clickable { onDismiss() })
         }
-        Text(placeName, color = KupidxOrange)
+        Text(placeName ?: stringResource(R.string.loading_ellipsis), color = KupidxOrange)
         Spacer(Modifier.height(8.dp))
         Row {
             Button(onClick = {
@@ -1562,9 +1570,9 @@ fun PlaceDetailsPopup(
                     // Fallback: open without forcing the Maps package
                     ctx.startActivity(Intent(Intent.ACTION_VIEW, gmm))
                 }
-            }) { Text("Directions") }
+            }) { Text(stringResource(R.string.btn_directions)) }
             Spacer(Modifier.width(8.dp))
-            Button(onClick = onSendToMatch) { Text("Send to Match") }
+            Button(onClick = onSendToMatch) { Text(stringResource(R.string.btn_send_to_match)) }
         }
     }
 }
@@ -1595,7 +1603,7 @@ fun MatchesListOverlay(
                     interactionSource = remember { MutableInteractionSource() }) { },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Select a Match", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(stringResource(R.string.dialog_select_match_title), fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Spacer(Modifier.height(12.dp))
             LazyRow {
                 items(matches) { match ->
@@ -1622,15 +1630,18 @@ fun MatchesListOverlay(
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(match.name, fontWeight = FontWeight.Bold)
-                                Text("Age: ${match.age}")
-                                Text("From: ${match.hometown}")
+                                Text(stringResource(R.string.match_age, match.age))
+                                Text(stringResource(R.string.match_from, match.hometown))
+
                             }
                         }
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
-            if (selectedMatch != null) Button(onClick = { onSend(selectedMatch!!) }) { Text("Send") }
+            if (selectedMatch != null) {
+                Button(onClick = { onSend(selectedMatch!!) }) { Text(stringResource(R.string.btn_send)) }
+            }
         }
     }
 }
@@ -1661,7 +1672,7 @@ fun LeaderboardOverlay(
                     interactionSource = remember { MutableInteractionSource() }) { },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Top Places", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+            Text(stringResource(R.string.leaderboard_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
             Divider()
             LazyColumn(modifier = Modifier
                 .fillMaxWidth()
@@ -1672,7 +1683,7 @@ fun LeaderboardOverlay(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_close)) }
         }
     }
 }
@@ -1693,7 +1704,11 @@ private fun LeaderboardRow(rank: Int, entry: LeaderboardEntry, onClick: () -> Un
             Spacer(Modifier.height(2.dp))
             Text("${entry.checkInCount} posts", fontSize = 12.sp, color = Color.Gray)
         }
-        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Go to feed", tint = Color.Gray)
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = stringResource(R.string.cd_go_to_feed),
+            tint = Color.Gray
+        )
     }
 }
 
@@ -1981,7 +1996,8 @@ fun UserProfilePopup(
         Spacer(Modifier.height(6.dp))
         RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
         Spacer(Modifier.height(16.dp))
-        Button(onClick = { onProfileClick(profile.userId) }) { Text("View Full Profile") }
+        Button(onClick = { onProfileClick(profile.userId) }) {     Text(stringResource(R.string.btn_view_full_profile))
+        }
     }
 }
 
