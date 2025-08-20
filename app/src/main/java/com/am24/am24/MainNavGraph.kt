@@ -307,7 +307,7 @@ fun MainNavGraph(
                     if (matchesSet.contains(profileId)) {
                         navController.navigate("matchedUserProfile/$profileId")
                     } else {
-                        navController.navigate("dating_screen?initialQuery=$profileId")
+                        navController.navigate("previewUserProfile/$profileId")
                     }
                 },
                 currentPrice = currentPrice,
