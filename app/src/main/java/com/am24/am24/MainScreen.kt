@@ -2,7 +2,6 @@
 
 package com.am24.am24
 
-import DatingViewModel
 import android.app.Activity
 import android.os.Build
 import androidx.annotation.RequiresApi

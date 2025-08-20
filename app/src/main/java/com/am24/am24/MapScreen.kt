@@ -199,7 +199,7 @@ fun MapScreen(
     onProfileMarkerClicked: (String) -> Unit,
     currentPrice: String,
     nearbyViewModel: NearbyViewModel,
-    radiusKmDefault: Double = 10.0
+    radiusKmDefault: Double = 50.0
 ) {
     val ctx = LocalContext.current
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -246,7 +246,7 @@ fun MapScreen(
         }
         sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
-        lastActiveHours = prefs.getFloat("map_last_active_hours", 24f).toDouble()
+        lastActiveHours = prefs.getFloat("map_last_active_hours", 168f).toDouble()
         genderFilter = prefs.getString("map_gender_filter", null)?.let { GenderFilter.valueOf(it) }
             ?: GenderFilter.BOTH
     }
@@ -426,9 +426,25 @@ fun MapScreen(
 
             val grouped = mutableMapOf<String, MutableList<String>>()   // placeId → postIds
             val nameCache = mutableMapOf<String, String>()              // placeId → placeName
+            val profileCache = mutableMapOf<String, Profile?>()
 
             snap.children.forEach { postSnap ->
-                val postId  = postSnap.key ?: return@forEach
+                val postId   = postSnap.key ?: return@forEach
+                val authorId = postSnap.child("userId").getValue(String::class.java) ?: return@forEach
+
+                // Load profile once per author to check location visibility toggles
+                var profile = profileCache[authorId]
+                if (profile == null) {
+                    profile = FirebaseRefs.db.getReference("users").child(authorId)
+                        .get().await().getValue(Profile::class.java)
+                    profileCache[authorId] = profile
+                }
+
+                val isMatch = matchUids.contains(authorId)
+                val allowed = profile?.let {
+                    (isMatch && it.allowLocationForMatches) || (!isMatch && it.allowLocationPublic)
+                } ?: false
+                if (!allowed) return@forEach
                 val ci      = postSnap.child("checkIn")
                 val placeId = ci.child("placeId").getValue(String::class.java) ?: return@forEach
                 val placeNm = ci.child("name").getValue(String::class.java) ?: "Unknown"
@@ -671,7 +687,7 @@ fun MapScreen(
                                         .align(Alignment.BottomEnd)
                                         .padding(8.dp)
                                         .scale(0.9f)
-                                ) { navController.navigate("paywall") }
+                                ) { }
                             }
                         }
                     }
@@ -1443,9 +1459,10 @@ private fun LastActiveChip(
     onChange: (Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val minHours = 1.0
-    val maxHours = 72.0
-    val label = if (hours < 24) "${hours.roundToInt()} hr" else "${(hours / 24).roundToInt()} d"
+    val minHours = 24.0
+    val maxHours = 24.0 * 30
+    val days = (hours / 24).roundToInt()
+    val label = if (days >= 30) "1 m" else "${days} d"
 
     Surface(
         modifier = modifier,

@@ -2301,7 +2301,9 @@ fun PhotoWithTwoOverlays(
         profile.lifestyle?.drinking_habit?.takeIf { it >= 0 }?.let { Triple(it, drinkingNouns, "🍷") },
         profile.lifestyle?.exercise_frequency?.takeIf { it >= 0 }?.let { Triple(it, exerciseNouns, "🏃") }
     )
-    val orientationTag = profile.sexualOrientation.takeIf { it.isNotBlank() }?.let { "🏳️‍🌈 $it" }
+    val orientationTag = profile.sexualOrientation.takeIf { it.isNotBlank() }?.let {
+        "${emojiForOrientation(it)} $it"
+    }
     val lifestyleTexts = buildList {
         orientationTag?.let { add(it) }
         addAll(
@@ -3662,4 +3664,19 @@ fun ComplimentDialog(
         backgroundColor = Color(0xFF1A1A1A),
         contentColor = Color.White
     )
+}
+
+@Composable
+private fun emojiForOrientation(orientation: String): String {
+    val options = stringArrayResource(R.array.sexual_orientation_options)
+    return when (orientation) {
+        options.getOrNull(0) -> "👫"  // Straight
+        options.getOrNull(1) -> "👬"  // Gay
+        options.getOrNull(2) -> "👭"  // Lesbian
+        options.getOrNull(3) -> "💜"  // Bisexual
+        options.getOrNull(4) -> "💖"  // Pansexual
+        options.getOrNull(5) -> "🖤"  // Asexual
+        options.getOrNull(6) -> "🌈"  // Queer
+        else -> "🏳️‍🌈"
+    }
 }

@@ -43,6 +43,12 @@ fun PreviewUserProfileScreen(
         profileViewModel.fetchCurrentUserProfile()
     }
 
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotBlank()) {
+            datingViewModel.startInventoryWatcher(currentUserId)
+        }
+    }
+
     /* ── one-shot fetch ────────────────────────────────────────────── */
     LaunchedEffect(targetUserId) {
         try {
@@ -142,35 +148,6 @@ fun PreviewUserProfileScreen(
                 ) {
                     Icon(Icons.Default.Favorite, null, tint = Color.White)
                 }
-                // ② Watch pendingLike + matchPopUpState
-//                LaunchedEffect(pendingLike, matchPopUpState) {
-//                    if (!pendingLike) return@LaunchedEffect
-//
-//                    if (matchPopUpState == null) {
-//                        // no match → dismiss immediately
-//                        navController.popBackStack("home", false)
-//                        pendingLike = false
-//                    }
-//                }
-                // ③ Render the popup when it arrives
-                matchPopUpState?.let { (you, them) ->
-                    val yourPic = profileViewModel.currentUserProfile.value?.profilepicUrl.orEmpty()
-                    MatchPopUp(
-                        currentUserProfilePic = yourPic,
-                        otherUserProfilePic   = them.profilepicUrl.orEmpty(),
-                        onChatClick = {
-                            profileViewModel.clearMatchPopUp()
-//                            pendingLike = false
-                            navController.navigate("chat/${them.userId}")
-                        },
-                        onClose = {
-                            profileViewModel.clearMatchPopUp()
-//                            pendingLike = false
-//                            navController.popBackStack("home", false)
-                            navController.popBackStack()
-                        }
-                    )
-                }
 
                 if (showComplimentDlg) {
                     ComplimentDialog(
@@ -182,6 +159,22 @@ fun PreviewUserProfileScreen(
                         onDismiss = { showComplimentDlg = false }
                     )
                 }
+            }
+            // ⬇️ Place these OUTSIDE the Row, but still inside the Box:
+            matchPopUpState?.let { (you, them) ->
+                val yourPic = profileViewModel.currentUserProfile.value?.profilepicUrl.orEmpty()
+                MatchPopUp(
+                    currentUserProfilePic = yourPic,
+                    otherUserProfilePic   = them.profilepicUrl.orEmpty(),
+                    onChatClick = {
+                        profileViewModel.clearMatchPopUp()
+                        navController.navigate("chat/${them.userId}")
+                    },
+                    onClose = {
+                        profileViewModel.clearMatchPopUp()
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }

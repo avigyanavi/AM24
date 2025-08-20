@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.Log
 import androidx.navigation.NavController
 import com.am24.am24.Post
+import com.am24.am24.ui.CompatibilityMeter
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -151,6 +152,24 @@ fun MatchedUserProfileScreen(
                             .background(Color.Black)
                     ) {
                         item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                // matches DatingScreen’s centered meter behavior
+                                Box(
+                                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CompatibilityMeter(
+                                        percent = aiMatchResult?.totalMatchPercentage?.toDouble() ?: 0.0
+                                    )
+                                }
+                            }
+                        }
+                        item {
                             PhotoWithTwoOverlays(
                                 profile = profile,
                                 isBoosted = false,
@@ -193,7 +212,7 @@ fun MatchedUserProfileScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Button(
-                                        onClick = { navController.navigate("userPosts/${'$'}{profile.userId}") },
+                                        onClick = { navController.navigate("userPosts/${profile.userId}") },
                                         colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
                                     ) {
                                         Text("View More Posts", color = Color.White)
