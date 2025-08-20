@@ -47,7 +47,7 @@ import androidx.compose.ui.res.stringResource
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
-        BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Map, "map"),
+        BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.feed), Icons.Outlined.Home, "home"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
         BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
@@ -237,9 +237,6 @@ fun TopNavBar(
     TopAppBar(
         title = {
 //            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
-            if (myProfile?.isBoosted == true) {
-                BoostedPill()
-            }
         },
         navigationIcon = {
             Box(
