@@ -3292,20 +3292,14 @@ fun calculateExhaustiveCompatibilityScore(
     fun compareStringField(a: String?, b: String?, label: String, pts: Double) {
         val aTrim = a.orEmpty().trim()
         val bTrim = b.orEmpty().trim()
-        when {
-            aTrim.isEmpty() && bTrim.isEmpty() ->
-                insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_not_set_suffix, label), false)
-            aTrim.isEmpty() || bTrim.isEmpty() ->
-                insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_one_not_set_suffix, label), false)
-            aTrim.equals(bTrim, true) -> {
-                score    += pts
-                possible += pts
-                insights += MatchInsight("✅", "$label: $aTrim", true)
-            }
-            else -> {
-                possible += pts
-                insights += MatchInsight("⚠️", "$label: \"$aTrim\" vs \"$bTrim\"", false)
-            }
+        if (aTrim.isEmpty() || bTrim.isEmpty()) return
+        if (aTrim.equals(bTrim, true)) {
+            score    += pts
+            possible += pts
+            insights += MatchInsight("✅", "$label: $aTrim", true)
+        } else {
+            possible += pts
+            insights += MatchInsight("⚠️", "$label: \"$aTrim\" vs \"$bTrim\"", false)
         }
     }
 
@@ -3325,7 +3319,7 @@ fun calculateExhaustiveCompatibilityScore(
             context.getString(R.string.age_compatibility_prefix, ageA, ageB, pct),
             positive
         )
-    } else insights += MatchInsight("ℹ️", context.getString(R.string.age_not_set), false)
+    }
 
     val kinksA = profileA.kinks.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
     val kinksB = profileB.kinks.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
@@ -3339,8 +3333,6 @@ fun calculateExhaustiveCompatibilityScore(
         } else {
             insights += MatchInsight("⚠️", context.getString(R.string.no_common_kinks), false)
         }
-    } else {
-        insights += MatchInsight("ℹ️", context.getString(R.string.kinks_not_set), false)
     }
     // ───── Lifestyle Compatibility ─────
     val (lifeScore, lifeCount, lifeCommonKeys) = lifestyleCompatibilityMetrics(profileA.lifestyle, profileB.lifestyle)
@@ -3383,17 +3375,11 @@ fun calculateExhaustiveCompatibilityScore(
             context.getString(R.string.lifestyle_similarity_format, pct, lifeCount, listStr),
             positive
         )
-    } else {
-        if (profileA.lifestyle == null && profileB.lifestyle == null) {
-            insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_not_set_in_profiles), false)
-        } else {
-            insights += MatchInsight("ℹ️", context.getString(R.string.lifestyle_no_traits_to_compare), false)
-        }
     }
 
     val collegeA = resolveField(profileA.college, profileA.customCollege)
     val collegeB = resolveField(profileB.college, profileB.customCollege)
-    if (collegeA.isNotBlank() || collegeB.isNotBlank()) {
+    if (collegeA.isNotBlank() && collegeB.isNotBlank()) {
         possible += 6.0
         if (collegeA.equals(collegeB, true)) score += 6.0
         else insights += MatchInsight("⚠️", context.getString(R.string.college_mismatch_format, collegeA, collegeB), false)
@@ -3401,7 +3387,7 @@ fun calculateExhaustiveCompatibilityScore(
 
     val pgA = resolveField(profileA.postGraduation ?: "", profileA.customPostGraduation)
     val pgB = resolveField(profileB.postGraduation ?: "", profileB.customPostGraduation)
-    if (pgA.isNotBlank() || pgB.isNotBlank()) {
+    if (pgA.isNotBlank() && pgB.isNotBlank()) {
         possible += 6.0
         if (pgA.equals(pgB, true)) score += 6.0
         else insights += MatchInsight("⚠️", context.getString(R.string.post_graduation_mismatch_format, pgA, pgB), false)
@@ -3426,7 +3412,7 @@ fun calculateExhaustiveCompatibilityScore(
             score += pts
             insights += MatchInsight("✅", context.getString(R.string.shared_interests_prefix, shared.joinToString()), true)
         } else insights += MatchInsight("⚠️", context.getString(R.string.no_common_interests), false)
-    } else insights += MatchInsight("ℹ️", context.getString(R.string.interests_not_set), false)
+    }
 
     val causesA = profileA.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     val causesB = profileB.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
@@ -3438,7 +3424,7 @@ fun calculateExhaustiveCompatibilityScore(
             score += pts
             insights += MatchInsight("✅", context.getString(R.string.shared_social_causes_prefix, shared.joinToString()), true)
         } else insights += MatchInsight("⚠️", context.getString(R.string.no_common_social_causes), false)
-    } else insights += MatchInsight("ℹ️", context.getString(R.string.social_causes_not_set), false)
+    }
 
     val zodiacA = if (!profileA.zodiac.isNullOrBlank()) profileA.zodiac!! else deriveZodiac(profileA.dob)
     val zodiacB = if (!profileB.zodiac.isNullOrBlank()) profileB.zodiac!! else deriveZodiac(profileB.dob)
@@ -3459,20 +3445,18 @@ fun calculateExhaustiveCompatibilityScore(
             ),
             positive
         )
-    } else insights += MatchInsight("ℹ️", context.getString(R.string.zodiac_not_set), false)
+    }
 
-    if (profileA.isMatrimonyMode || profileB.isMatrimonyMode) {
+    if (profileA.isMatrimonyMode && profileB.isMatrimonyMode) {
         possible += 3.0
-        if (profileA.isMatrimonyMode && profileB.isMatrimonyMode) {
-            score += 3.0
-            compareStringField(profileA.marriageTimeline, profileB.marriageTimeline,
-                context.getString(R.string.marriage_timeline_label), 3.0)
-        } else insights += MatchInsight("⚠️", context.getString(R.string.matrimony_mismatch), false)
-    } else insights += MatchInsight("ℹ️", context.getString(R.string.matrimony_not_set), false)
+        score += 3.0
+        compareStringField(profileA.marriageTimeline, profileB.marriageTimeline,
+            context.getString(R.string.marriage_timeline_label), 3.0)
+    }
 
     val relocA = profileA.relocationPreference.orEmpty().trim()
     val relocB = profileB.relocationPreference.orEmpty().trim()
-    if (relocA.isNotBlank() || relocB.isNotBlank()) {
+    if (relocA.isNotBlank() && relocB.isNotBlank()) {
         possible += 4.0
         if (relocA.equals(relocB, true)) score += 4.0
         else insights += MatchInsight("⚠️", context.getString(R.string.relocation_mismatch_format, relocA, relocB), false)
@@ -3480,7 +3464,7 @@ fun calculateExhaustiveCompatibilityScore(
 
     val careerA = profileA.postMarriageCareerPlan.orEmpty().trim()
     val careerB = profileB.postMarriageCareerPlan.orEmpty().trim()
-    if (careerA.isNotBlank() || careerB.isNotBlank()) {
+    if (careerA.isNotBlank() && careerB.isNotBlank()) {
         possible += 3.0
         if (careerA.equals(careerB, true)) score += 3.0
         else insights += MatchInsight("⚠️", context.getString(R.string.career_plan_mismatch_format, careerA, careerB), false)
@@ -3488,7 +3472,7 @@ fun calculateExhaustiveCompatibilityScore(
 
     val cultureA = profileA.traditionalVsLiberal.orEmpty().trim()
     val cultureB = profileB.traditionalVsLiberal.orEmpty().trim()
-    if (cultureA.isNotBlank() || cultureB.isNotBlank()) {
+    if (cultureA.isNotBlank() && cultureB.isNotBlank()) {
         possible += 3.0
         if (cultureA.equals(cultureB, true)) score += 3.0
         else insights += MatchInsight("⚠️", context.getString(R.string.cultural_mindset_mismatch_format, cultureA, cultureB), false)
@@ -3504,7 +3488,7 @@ fun calculateExhaustiveCompatibilityScore(
             score += pts
             insights += MatchInsight("✅", context.getString(R.string.shared_tags_prefix, shared.joinToString()), true)
         } else insights += MatchInsight("⚠️", context.getString(R.string.tags_not_set_or_no_overlap), false)
-    } else insights += MatchInsight("ℹ️", context.getString(R.string.tags_not_set_or_no_overlap), false)
+    }
 
 // The compatibility percent now blends this match calculation with the
     // target user's overall composite score for better weighting.
