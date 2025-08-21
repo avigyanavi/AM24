@@ -3,6 +3,7 @@
 package com.am24.am24
 
 import ComplimentData
+import DatingViewModel
 import android.app.Activity
 import android.net.Uri
 import android.util.Log
@@ -55,6 +56,8 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.random.Random
 import androidx.compose.ui.res.pluralStringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.tasks.await
 
 
 private fun canonicalLocationId(name: String): String =
@@ -80,7 +83,8 @@ fun DMScreenContent(navController: NavController) {
     val usersRef = database.getReference("users")
     val messagesRootRef = database.getReference("messages")
     val ratingsRef = database.getReference("ratings")
-    val complimentsRef = database.getReference("complimentsReceived/$currentUserId")
+    val datingViewModel: DatingViewModel = viewModel()
+    val compliments by datingViewModel.complimentsReceived.collectAsState()
 
     var showRatingOverlay by remember { mutableStateOf(false) }
     var profileToRate by remember { mutableStateOf<Profile?>(null) }
@@ -207,29 +211,16 @@ fun DMScreenContent(navController: NavController) {
     val blockedRef = database.getReference("blocks/$currentUserId")
     val blockedIds = remember { mutableStateListOf<String>() }
 
-    DisposableEffect(currentUserId) {
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                complimentProfiles.clear()
-                snapshot.children.forEach { child ->
-                    val senderId = child.key ?: return@forEach
-                    val compliment = child.getValue(ComplimentData::class.java) ?: return@forEach
-                    usersRef.child(senderId)
-                        .addListenerForSingleValueEvent(object : ValueEventListener {
-                            override fun onDataChange(profileSnap: DataSnapshot) {
-                                val profile = profileSnap.getValue(Profile::class.java) ?: return
-                                complimentProfiles.add(ComplimentWithProfile(profile, compliment))
-                            }
-
-                            override fun onCancelled(error: DatabaseError) {}
-                        })
-                }
+    LaunchedEffect(compliments) {
+        complimentProfiles.clear()
+        compliments.forEach { (senderId, compliment) ->
+            try {
+                val snap = usersRef.child(senderId).get().await()
+                val profile = snap.getValue(Profile::class.java) ?: return@forEach
+                complimentProfiles.add(ComplimentWithProfile(profile, compliment))
+            } catch (_: Exception) {
             }
-
-            override fun onCancelled(error: DatabaseError) {}
         }
-        complimentsRef.addValueEventListener(listener)
-        onDispose { complimentsRef.removeEventListener(listener) }
     }
 
     DisposableEffect(currentUserId) {

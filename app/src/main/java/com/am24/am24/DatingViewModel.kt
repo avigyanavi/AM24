@@ -97,6 +97,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private var complimentsListener: ValueEventListener? = null
     private var boostsRef: DatabaseReference? = null
     private var boostsListener: ValueEventListener? = null
+    private var complimentsReceivedRef: DatabaseReference? = null
+    private var complimentsReceivedListener: ValueEventListener? = null
 
     private val auth = FirebaseAuth.getInstance()
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
@@ -107,7 +109,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 _complimentsLeft.value = fetchComplimentsBalance(me)
             }
             updateBoostedUsers(me)
-            loadCompliments(me)
+            startComplimentsListener(me)
             refreshFilteredProfiles()
         }
     }
@@ -243,11 +245,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             _complimentsLeft.value = leftNow
             /* ▲▲▲ --------------------------------------------------------------------- */
 
-            // refresh the map of compliments received (optional but nice)
-            loadCompliments(senderId)
 
-// continue with your existing swipe-right logic
-            handleSwipeRight(senderId, receiverId, profileViewModel)
                 ExclusionEventBus.emit(receiverId)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send compliment: ${e.message}", e)
@@ -296,15 +294,12 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // ─── NEW: load complimentsReceived/$me into _complimentsReceived ───────────
-    private fun loadCompliments(receiverId: String) { // ← NEW
-        viewModelScope.launch {
-            try {
-                val snap = database
-                    .getReference("complimentsReceived/$receiverId")
-                    .get()
-                    .await()
-
-                val map = snap.children.associate { child ->
+    private fun startComplimentsListener(uid: String) {
+        stopComplimentsListener()
+        val ref = database.getReference("complimentsReceived/$uid")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val map = snapshot.children.associate { child ->
                     val fromId = child.key!!
                     val ts = child.child("timestamp").getValue(Long::class.java) ?: 0L
                     val text = child.child("text").getValue(String::class.java).orEmpty()
@@ -312,11 +307,23 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     fromId to ComplimentData(text = text, voiceUrl = voice, timestamp = ts)
                 }
                 _complimentsReceived.value = map
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading compliments: ${e.message}")
             }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "compliments listener cancelled: ${error.message}")
         }
     } // ← NEW
+        complimentsReceivedRef = ref
+        complimentsReceivedListener = listener
+        ref.addValueEventListener(listener)
+    }
+
+    private fun stopComplimentsListener() {
+        complimentsReceivedListener?.let { l ->
+            complimentsReceivedRef?.removeEventListener(l)
+        }
+        complimentsReceivedListener = null
+        complimentsReceivedRef = null
+    }
 
     /**
      * Update and save filters in Firebase
@@ -374,7 +381,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 updateBoostedUsers(me)
-                loadCompliments(me)
             } catch (e: Exception) {
                 Log.e(TAG, "refreshFilteredProfiles() failed: ${e.message}", e)
             } finally {
@@ -724,6 +730,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         super.onCleared()
         profilesListener?.let { usersRef.removeEventListener(it) }
         stopInventoryWatcher()
+        stopComplimentsListener()
     }
 
 
