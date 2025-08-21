@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.am24.DatingFilterSettings
+import com.am24.am24.ExclusionEventBus
 import com.am24.am24.FirebaseRefs
 import com.am24.am24.Notification
 import com.am24.am24.Profile
@@ -247,6 +248,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
 // continue with your existing swipe-right logic
             handleSwipeRight(senderId, receiverId, profileViewModel)
+                ExclusionEventBus.emit(receiverId)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send compliment: ${e.message}", e)
             }

@@ -417,6 +417,13 @@ fun MapScreen(
             }
     }
 
+    // react to global exclude events (likes/compliments/dislikes elsewhere)
+    LaunchedEffect(Unit) {
+        ExclusionEventBus.events.collect { uid ->
+            nearbyViewModel.addExcluded(uid)
+        }
+    }
+
     // heatmap data
     LaunchedEffect(userLatLng) {
         if (userLatLng == null) return@LaunchedEffect
@@ -705,7 +712,6 @@ fun MapScreen(
                                         .padding(8.dp)
                                         .scale(0.9f)
                                 ) { navController.navigate("paywall?toast=plus") }
-
                             }
                         } else {
                             if (isPlus || isPremium) {

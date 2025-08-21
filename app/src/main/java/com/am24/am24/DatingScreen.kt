@@ -3136,7 +3136,8 @@ fun handleSwipeRight(
                     }
             }
         }
-
+    // notify other screens to exclude this user
+    ExclusionEventBus.emit(otherUserId)
 }
 
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
