@@ -205,27 +205,28 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         profileViewModel: ProfileViewModel
     ) {
         viewModelScope.launch {
-            val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-            val timestamp = System.currentTimeMillis()
+            try {
+                val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                val timestamp = System.currentTimeMillis()
 
-            val complimentRef =
-                database.getReference("compliments/$senderId/$receiverId")
-            val complimentReceivedRef =
-                database.getReference("complimentsReceived/$receiverId/$senderId")
+                val complimentRef =
+                    database.getReference("compliments/$senderId/$receiverId")
+                val complimentReceivedRef =
+                    database.getReference("complimentsReceived/$receiverId/$senderId")
 
-            val complimentData = hashMapOf<String, Any>(
-                "timestamp" to timestamp,
-                "text" to textMessage.orEmpty()
-            )
+                val complimentData = hashMapOf<String, Any>(
+                    "timestamp" to timestamp,
+                    "text" to textMessage.orEmpty()
+                )
 
-            // Upload voice if present
-            if (voiceUri != null) {
-                val storageRef = FirebaseStorage.getInstance()
-                    .getReference("complimentsVoices/$senderId/${UUID.randomUUID()}.aac")
-                val uploadResult = storageRef.putFile(voiceUri).await()
-                val voiceUrl = uploadResult.storage.downloadUrl.await().toString()
-                complimentData["voiceUrl"] = voiceUrl
-            }
+                // Upload voice if present
+                if (voiceUri != null) {
+                    val storageRef = FirebaseStorage.getInstance()
+                        .getReference("complimentsVoices/$senderId/${UUID.randomUUID()}.aac")
+                    val uploadResult = storageRef.putFile(voiceUri).await()
+                    val voiceUrl = uploadResult.storage.downloadUrl.await().toString()
+                    complimentData["voiceUrl"] = voiceUrl
+                }
 
 // write both trees ----------------------------------------------------------
             complimentRef.setValue(complimentData)
@@ -246,6 +247,9 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
 // continue with your existing swipe-right logic
             handleSwipeRight(senderId, receiverId, profileViewModel)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to send compliment: ${e.message}", e)
+            }
         }
     }
 

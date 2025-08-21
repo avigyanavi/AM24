@@ -4,6 +4,7 @@ package com.am24.am24
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
 import android.widget.Toast
@@ -11,7 +12,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -44,6 +48,8 @@ fun ComplimentDialog(
     var isRecording by remember { mutableStateOf(false) }
     var audioFileUri by remember { mutableStateOf<Uri?>(null) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
+    var mediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
+    var isPlaying by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     fun startRecording() {
@@ -59,6 +65,27 @@ fun ComplimentDialog(
         audioFileUri = audioFile.toUri()
         isRecording = true
     }
+
+    fun startPlayback() {
+        audioFileUri?.let { uri ->
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(context, uri)
+                prepare()
+                start()
+                setOnCompletionListener {
+                    isPlaying = false
+                }
+            }
+            isPlaying = true
+        }
+    }
+
+    fun stopPlayback() {
+        mediaPlayer?.release()
+        mediaPlayer = null
+        isPlaying = false
+    }
+
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -77,6 +104,7 @@ fun ComplimentDialog(
                 recorder?.release()
                 isRecording = false
             }
+            stopPlayback()
             onDismiss()
         },
         title = {
@@ -136,7 +164,6 @@ fun ComplimentDialog(
                         fontSize = 11.sp
                     )
                 }
-
                 if (audioFileUri != null && !isRecording) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -146,6 +173,34 @@ fun ComplimentDialog(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            if (isPlaying) {
+                                stopPlayback()
+                            } else {
+                                startPlayback()
+                            }
+                        }) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(onClick = {
+                            stopPlayback()
+                            audioFileUri?.path?.let { path -> File(path).delete() }
+                            audioFileUri = null
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                        }
+                    }
                 }
             }
         },
@@ -161,6 +216,7 @@ fun ComplimentDialog(
                         recorder = null
                         isRecording = false
                     }
+                    stopPlayback()
                     onSend(
                         complimentText.trim().takeIf { it.isNotEmpty() },
                         audioFileUri

@@ -155,6 +155,8 @@ fun PreviewUserProfileScreen(
                         onSend = { text, voiceUri ->
                             datingViewModel.sendCompliment(targetUserId, text, voiceUri, profileViewModel)
                             showComplimentDlg = false
+                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", targetUserId)
+                            navController.popBackStack()
                         },
                         onDismiss = { showComplimentDlg = false }
                     )
