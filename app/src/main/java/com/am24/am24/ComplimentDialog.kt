@@ -1,0 +1,182 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
+package com.am24.am24
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.media.MediaRecorder
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import java.io.File
+
+@Composable
+fun ComplimentDialog(
+    complimentsLeft: Int,
+    onSend: (String?, Uri?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var complimentText by remember { mutableStateOf("") }
+    var isRecording by remember { mutableStateOf(false) }
+    var audioFileUri by remember { mutableStateOf<Uri?>(null) }
+    var recorder: MediaRecorder? by remember { mutableStateOf(null) }
+    val context = LocalContext.current
+
+    fun startRecording() {
+        val audioFile = File.createTempFile("compliment_", ".aac", context.cacheDir)
+        recorder = MediaRecorder().apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setOutputFile(audioFile.absolutePath)
+            prepare()
+            start()
+        }
+        audioFileUri = audioFile.toUri()
+        isRecording = true
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startRecording()
+        } else {
+            Toast.makeText(context, "Microphone permission is required.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = {
+            if (isRecording) {
+                recorder?.stop()
+                recorder?.release()
+                isRecording = false
+            }
+            onDismiss()
+        },
+        title = {
+            Text(text = "Send a Compliment", color = Color.White)
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = complimentText,
+                    onValueChange = { complimentText = it },
+                    label = { Text("Your message (optional)", color = Color.White.copy(alpha = 0.7f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFFFF6F00),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White,
+                        focusedTextColor = Color.White
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (isRecording) {
+                                recorder?.stop()
+                                recorder?.release()
+                                recorder = null
+                                isRecording = false
+                            } else {
+                                if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                    startRecording()
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = null,
+                            tint = if (isRecording) Color.Red else Color(0xFFFF6F00),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = if (isRecording) "Recording..." else "Tap to record",
+                        color = Color.White,
+                        fontSize = 11.sp
+                    )
+                }
+
+                if (audioFileUri != null && !isRecording) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Voice compliment ready!",
+                        color = Color.Green,
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = !isRecording &&
+                        (complimentText.isNotBlank() || audioFileUri != null) &&
+                        complimentsLeft > 0,
+                onClick = {
+                    if (isRecording) {
+                        recorder?.stop()
+                        recorder?.release()
+                        recorder = null
+                        isRecording = false
+                    }
+                    onSend(
+                        complimentText.trim().takeIf { it.isNotEmpty() },
+                        audioFileUri
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+            ) {
+                Text("Send", color = Color.White)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.Gray)
+            }
+        },
+        containerColor = Color(0xFF1A1A1A),
+        textContentColor = Color.White
+    )
+}
