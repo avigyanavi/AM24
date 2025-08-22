@@ -16,7 +16,7 @@ class InterstitialAdManager(
     private var isLoading = false
     private var lastLoadAt = 0L
     private var retryMs = 2000L
-    private val minCooldownMs = 10_000L   // 10s between load attempts (tune to 30s if needed)
+    private val minCooldownMs = 60_000L   // 60s between load attempts to avoid FAN "re-loaded too frequently"
     // ------------------------
 
     init { loadIfAllowed(reason = "init") }
@@ -27,12 +27,17 @@ class InterstitialAdManager(
     }
 
     private fun loadIfAllowed(reason: String) {
+        val now = System.currentTimeMillis()
         if (!canLoadNow()) {
-            android.util.Log.d("FAN", "Skip load ($reason): isLoading=$isLoading, sinceLast=${System.currentTimeMillis() - lastLoadAt}ms")
-            return
+            val remaining = (minCooldownMs - (now - lastLoadAt)).coerceAtLeast(0L)
+            android.util.Log.d(
+                "FAN",
+                "Skip load ($reason): isLoading=$isLoading, sinceLast=${now - lastLoadAt}ms → retry in ${remaining}ms"
+            )
+            activity.window.decorView.postDelayed({ loadIfAllowed(reason = "cooldown") }, remaining)
         }
         isLoading = true
-        lastLoadAt = System.currentTimeMillis()
+        lastLoadAt = now
 
         val ad = InterstitialAd(activity, adUnitId)
         interstitial = ad
@@ -51,10 +56,13 @@ class InterstitialAdManager(
                         android.util.Log.e("FAN", "Load error: ${error.errorMessage}")
                         isLoading = false
                         interstitial = null
+                        val now = System.currentTimeMillis()
+                        val remaining = (minCooldownMs - (now - lastLoadAt)).coerceAtLeast(0L)
+                        val delay = maxOf(retryMs, remaining)
                         // Exponential backoff + respect cooldown on next call
                         activity.window.decorView.postDelayed(
                             { loadIfAllowed(reason = "backoff") },
-                            retryMs
+                            delay
                         )
                         retryMs = (retryMs * 2).coerceAtMost(60_000L)
                     }
@@ -67,6 +75,7 @@ class InterstitialAdManager(
                         android.util.Log.d("FAN", "Dismissed → queue next load")
                         interstitial?.destroy()
                         interstitial = null
+
                         // reset cooldown timer to avoid “too frequent” right after dismiss
                         lastLoadAt = System.currentTimeMillis()
                         activity.window.decorView.postDelayed(
