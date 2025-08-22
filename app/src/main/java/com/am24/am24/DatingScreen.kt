@@ -7,8 +7,6 @@ package com.am24.am24
 import DatingViewModel
 import android.app.Activity
 import android.content.Context
-import android.media.MediaRecorder
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 /* Material 3 (add these – they won’t clash with existing M2 widgets) */
@@ -25,7 +23,6 @@ import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -85,15 +82,12 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.focus.FocusRequester
@@ -107,7 +101,6 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.net.toUri
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.am24.am24.ui.CompatibilityMeter
 import com.am24.am24.ui.theme.DarkGrayBackground
@@ -126,7 +119,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
-import java.io.File
 
 /* DatingScreen.kt  – add near the top, after imports */
 private fun Iterable<*>.dump(tag: String) =
@@ -588,34 +580,6 @@ fun DatingScreen(
                             }
                         }
                     )
-                }
-
-                /* yellow flash overlay on successful boost */
-                AnimatedVisibility(
-                    visible = showBoostFlash,
-                    enter   = fadeIn(animationSpec = tween(250)),
-                    exit    = fadeOut(animationSpec = tween(600))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .border(3.dp, Color(0xFFFF6F00), CircleShape)
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.FlashOn, null,
-                            tint = Color(0xFFFF6F00),
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
-
-                LaunchedEffect(showBoostFlash) {
-                    if (showBoostFlash) {
-                        delay(2000)
-                        showBoostFlash = false
-                    }
                 }
             }
 
