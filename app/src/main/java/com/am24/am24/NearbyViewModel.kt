@@ -89,6 +89,10 @@ class NearbyViewModel : ViewModel() {
             usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     val p = snapshot.getValue(Profile::class.java) ?: return
+                    if (p.isPrivate) {
+                        onExit(uid)
+                        return
+                    }
 
                     // No allowLocationPublic/allowLocationForMatches checks here
                     val username = (p.username ?: "").ifBlank { p.name ?: "" }

@@ -44,7 +44,7 @@
     <string name="confirm_delete_account">Are you sure you want to delete your account? All data will be removed.</string>
     <string name="username_with_value">Username: %1$s</string>
     <string name="global_preferences">Global Preferences</string>
-    <string name="private_account_desc">Be undiscoverable in card stack except those you swipe right on</string>
+    <string name="private_account_desc">Hide your profile from the People tab except for those you swipe right on</string>
     <string name="unblock">Unblock</string>
 
     <!-- Subscription feature bullet points -->

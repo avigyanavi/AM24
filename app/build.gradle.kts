@@ -14,7 +14,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 149
+        versionCode = 150
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -156,6 +156,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation("com.facebook.android:audience-network-sdk:6.20.0")
     implementation(libs.play.services.cast.tv)
     implementation(libs.firebase.auth)
     implementation(libs.mediation.test.suite)

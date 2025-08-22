@@ -1077,7 +1077,7 @@ private fun GlobalPrefCard(
             )
         }
         Text(
-            "Be undiscoverable in card stack except those you swipe right on",
+            stringResource(R.string.private_account_desc),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(start = 72.dp, bottom = 12.dp)
         )
