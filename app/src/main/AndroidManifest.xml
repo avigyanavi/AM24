@@ -54,7 +54,7 @@
 
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
-            android:value="606416195185970" />
+            android:value="788630786839024" />
 
         <meta-data
             android:name="com.facebook.sdk.ClientToken"
@@ -85,7 +85,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <!-- fb + your App ID -->
-                <data android:scheme="fb606416195185970" />
+                <data android:scheme="fb788630786839024" />
             </intent-filter>
         </activity>
 

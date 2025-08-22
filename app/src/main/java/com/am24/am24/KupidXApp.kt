@@ -47,6 +47,9 @@ class KupidXAppActivity : AppCompatActivity(),
     ExternalWalletListener,
     PaymentResultListenerHost {
 
+    // ADD THIS FIELD
+    private var interstitialManager: InterstitialAdManager? = null
+
     /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
@@ -128,6 +131,16 @@ class KupidXAppActivity : AppCompatActivity(),
                             TokenStorageManager.clearToken(this@KupidXAppActivity)
                             startActivity(Intent(this, LandingActivity::class.java))
                             finish()
+                        },
+                                // PASS MANAGER DOWN (lazy-init below)
+                                interstitialProvider = {
+                            if (interstitialManager == null) {
+                                interstitialManager = InterstitialAdManager(
+                                    activity = this@KupidXAppActivity,
+                                    adUnitId = AdUnitIds.interstitial(this@KupidXAppActivity)
+                                )
+                            }
+                            interstitialManager
                         }
                     )
                 }
@@ -237,6 +250,12 @@ class KupidXAppActivity : AppCompatActivity(),
             this               // ExternalWalletListener
         )
     }
+
+    override fun onDestroy() {
+        interstitialManager?.destroy()
+        interstitialManager = null
+        super.onDestroy()
+    }
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -249,7 +268,9 @@ fun KupidXApp(
     openUpgradeLanding: Boolean,
     onNotificationsConsumed: () -> Unit,
     onUpgradeConsumed: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    // NEW: a lambda that returns the Activity-owned manager
+    interstitialProvider: () -> InterstitialAdManager?
 ) {
     val navController = rememberNavController()
     val ctx = LocalContext.current
@@ -276,6 +297,8 @@ fun KupidXApp(
     MainScreen(
         navController = navController,
         onLogout      = onLogout,
-        postViewModel = postViewModel
+        postViewModel = postViewModel,
+        // pass the manager down
+        activityInterstitial = interstitialProvider()
     )
 }
