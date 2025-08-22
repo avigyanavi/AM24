@@ -8,18 +8,10 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.database.FirebaseDatabase
 import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.purchase.PurchaseType
-import com.facebook.ads.AudienceNetworkAds
 
 class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
-
-        AudienceNetworkAds
-            .buildInitSettings(this)
-            .withInitListener { result ->
-                android.util.Log.d("FAN", "Init: ${result.message}")
-            }
-            .initialize()
 
         val appCheck = FirebaseAppCheck.getInstance()
         appCheck.installAppCheckProviderFactory(

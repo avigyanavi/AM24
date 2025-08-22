@@ -44,7 +44,7 @@ import androidx.compose.ui.res.stringResource
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
-fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel, activityInterstitial: InterstitialAdManager?) {
+fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
@@ -70,8 +70,15 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
     // ───────────────────────────────────────────────────
 
-    val interstitial = remember(isPremium, isPlus, activityInterstitial) {
-        if (!isPremium && !isPlus) activityInterstitial else null
+    // 🔸 NEW – one manager for the whole screen
+    val context = LocalContext.current as Activity
+    val interstitial = remember(isPremium, isPlus) {
+        if (!isPremium && !isPlus) {
+            InterstitialAdManager(
+                context,
+                AdUnitIds.interstitial(context)
+            )
+        } else null
     }
 
     Scaffold(
