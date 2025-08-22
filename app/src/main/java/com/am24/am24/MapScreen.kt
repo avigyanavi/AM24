@@ -1458,8 +1458,8 @@ private fun RadiusChip(
     onChange: (Double) -> Unit,        // expects km
     modifier: Modifier = Modifier
 ) {
-    val minKm = 1.0
-    val maxKm = 5000.0
+    val minKm = 10.0
+    val maxKm = 25000.0
 
 
     // Slider displays miles when needed but converts back to km for state

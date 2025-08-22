@@ -36,7 +36,6 @@ import com.am24.am24.ui.purchase.PaymentResultListenerHost
 
 private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
-    R.string.feature_priority_profile,
     R.string.feature_people_liked_me,
     R.string.feature_picture_voice_posts,
     R.string.feature_50_swipes,
@@ -47,7 +46,6 @@ private val PREMIUM_FEATURES = listOf(
     R.string.feature_video_rank_section,
     R.string.feature_unlimited_swipes,
     R.string.feature_5_compliments,
-    R.string.feature_everything_plus
 )
 private data class UiState(
     val isProcessing: Boolean = false,
