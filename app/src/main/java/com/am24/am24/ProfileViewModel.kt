@@ -674,7 +674,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     fun sendCompliment(
         receiverId: String,
         textMessage: String?,
-        voiceUri: Uri?
     ) {
         viewModelScope.launch {
             val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
@@ -689,14 +688,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 "timestamp" to timestamp,
                 "text" to textMessage.orEmpty()
             )
-
-            if (voiceUri != null) {
-                val storageRef = FirebaseStorage.getInstance()
-                    .getReference("complimentsVoices/$senderId/${UUID.randomUUID()}.aac")
-                val uploadResult = storageRef.putFile(voiceUri).await()
-                val voiceUrl = uploadResult.storage.downloadUrl.await().toString()
-                complimentData["voiceUrl"] = voiceUrl
-            }
 
             complimentRef.setValue(complimentData)
             complimentReceivedRef.setValue(complimentData)

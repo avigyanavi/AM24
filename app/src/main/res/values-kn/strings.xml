@@ -80,6 +80,7 @@
     <string name="label_radius">ವ್ಯಾಸಾರ್ಧ</string>
     <string name="gender_women">ಮಹಿಳೆಯರು</string>
     <string name="gender_men">ಪುರುಷರು</string>
+    <string name="no_significant_rated_users_yet">ಇನ್ನೂ ಸಾಕಷ್ಟು ರೇಟಿಂಗ್ ಹೊಂದಿರುವ ಬಳಕೆದಾರರಿಲ್ಲ</string>
 
     <!-- Place popup & sending -->
     <string name="btn_directions">ಮಾರ್ಗ ಸೂಚನೆ</string>

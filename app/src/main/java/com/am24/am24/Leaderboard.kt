@@ -34,6 +34,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModelProvider
 
 
@@ -181,6 +182,20 @@ fun LeaderboardScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text("Leaderboard is a Premium feature", color = Color.White)
+                    }
+                }
+            } else if (profiles.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            stringResource(R.string.no_significant_rated_users_yet),
+                            color = Color.White
+                        )
                     }
                 }
             } else {

@@ -204,7 +204,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     fun sendCompliment(
         receiverId: String,
         textMessage: String?,
-        voiceUri: Uri?,
         profileViewModel: ProfileViewModel
     ) {
         viewModelScope.launch {
@@ -222,30 +221,22 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     "text" to textMessage.orEmpty()
                 )
 
-                // Upload voice if present
-                if (voiceUri != null) {
-                    val storageRef = FirebaseStorage.getInstance()
-                        .getReference("complimentsVoices/$senderId/${UUID.randomUUID()}.aac")
-                    val uploadResult = storageRef.putFile(voiceUri).await()
-                    val voiceUrl = uploadResult.storage.downloadUrl.await().toString()
-                    complimentData["voiceUrl"] = voiceUrl
-                }
-
 // write both trees ----------------------------------------------------------
-            complimentRef.setValue(complimentData)
-            complimentReceivedRef.setValue(complimentData)
+                complimentRef.setValue(complimentData)
+                complimentReceivedRef.setValue(complimentData)
 
-            profileViewModel.sendComplimentNotification(senderId, receiverId)
+                profileViewModel.sendComplimentNotification(senderId, receiverId)
 
-            /* ▼▼▼ 2-d: burn one compliment quota & update the StateFlow ▼▼▼ */
-            val leftNow = (_complimentsLeft.value - 1).coerceAtLeast(0)
-            database.getReference("users/$senderId")
-                .child("availableCompliments")
-                .setValue(leftNow)
-            _complimentsLeft.value = leftNow
-            /* ▲▲▲ --------------------------------------------------------------------- */
+                /* ▼▼▼ 2-d: burn one compliment quota & update the StateFlow ▼▼▼ */
+                val leftNow = (_complimentsLeft.value - 1).coerceAtLeast(0)
+                database.getReference("users/$senderId")
+                    .child("availableCompliments")
+                    .setValue(leftNow)
+                _complimentsLeft.value = leftNow
+                /* ▲▲▲ --------------------------------------------------------------------- */
 
-
+// continue with your existing swipe-right logic
+                handleSwipeRight(senderId, receiverId, profileViewModel)
                 ExclusionEventBus.emit(receiverId)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send compliment: ${e.message}", e)
@@ -303,15 +294,14 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     val fromId = child.key!!
                     val ts = child.child("timestamp").getValue(Long::class.java) ?: 0L
                     val text = child.child("text").getValue(String::class.java).orEmpty()
-                    val voice = child.child("voiceUrl").getValue(String::class.java)
-                    fromId to ComplimentData(text = text, voiceUrl = voice, timestamp = ts)
+                    fromId to ComplimentData(text = text, timestamp = ts)
                 }
                 _complimentsReceived.value = map
             }
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "compliments listener cancelled: ${error.message}")
-        }
-    } // ← NEW
+            }
+        } // ← NEW
         complimentsReceivedRef = ref
         complimentsReceivedListener = listener
         ref.addValueEventListener(listener)

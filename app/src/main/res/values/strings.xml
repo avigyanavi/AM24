@@ -247,6 +247,7 @@
 
     <string name="ba_tag_sf_museums_label">SF museums</string>
     <string name="ba_tag_sf_museums_query">museums near San Francisco (SFMOMA de Young Exploratorium)</string>
+    <string name="no_significant_rated_users_yet">No significant rated users yet</string>
 
     <string name="ba_col_date_sf_label">Date night (SF)</string>
     <string name="ba_col_date_sf_query">romantic restaurants near San Francisco</string>

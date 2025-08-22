@@ -84,6 +84,7 @@
     <string name="label_radius">त्रिज्या</string>
     <string name="gender_women">महिलाएँ</string>
     <string name="gender_men">पुरुष</string>
+    <string name="no_significant_rated_users_yet">अभी पर्याप्त रेटिंग वाले उपयोगकर्ता नहीं हैं</string>
 
     <!-- Place popup & sending -->
     <string name="btn_directions">दिशानिर्देश</string>

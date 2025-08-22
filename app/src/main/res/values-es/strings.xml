@@ -79,6 +79,7 @@
     <string name="view_comments_count">Ver comentarios (%1$d)</string>
     <string name="report_reason_prompt">Indica un motivo para reportar esta publicación:</string>
     <string name="reason_required">Se requiere un motivo</string>
+    <string name="no_significant_rated_users_yet">Todavía no hay usuarios con valoraciones suficientes</string>
 
     <!-- Empty states / recording / inputs -->
     <string name="no_comments_yet">Aún no hay comentarios.</string>

@@ -63,6 +63,7 @@
     <!-- Sort control -->
     <string name="sort_nearby">దగ్గరలో</string>
     <string name="sort_last_active">చివరిసారిగా సక్రియం</string>
+    <string name="no_significant_rated_users_yet">ఇంకా సరిపడా రేటింగ్ ఉన్న వినియోగదారులు లేరు</string>
 
     <!-- People grid -->
     <string name="no_one_nearby_yet">దగ్గరలో ఇంకా ఎవరూ లేరు</string>

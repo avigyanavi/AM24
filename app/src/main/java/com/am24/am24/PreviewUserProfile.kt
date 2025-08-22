@@ -152,8 +152,8 @@ fun PreviewUserProfileScreen(
                 if (showComplimentDlg) {
                     ComplimentDialog(
                         complimentsLeft = complimentsLeft,
-                        onSend = { text, voiceUri ->
-                            datingViewModel.sendCompliment(targetUserId, text, voiceUri, profileViewModel)
+                        onSend = { text ->
+                            datingViewModel.sendCompliment(targetUserId, text, profileViewModel)
                             showComplimentDlg = false
                             navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", targetUserId)
                             navController.popBackStack()

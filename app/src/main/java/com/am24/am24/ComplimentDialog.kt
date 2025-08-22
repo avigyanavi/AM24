@@ -41,70 +41,14 @@ import java.io.File
 @Composable
 fun ComplimentDialog(
     complimentsLeft: Int,
-    onSend: (String?, Uri?) -> Unit,
+    onSend: (String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var complimentText by remember { mutableStateOf("") }
     var isRecording by remember { mutableStateOf(false) }
-    var audioFileUri by remember { mutableStateOf<Uri?>(null) }
-    var recorder: MediaRecorder? by remember { mutableStateOf(null) }
-    var mediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
-    var isPlaying by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-
-    fun startRecording() {
-        val audioFile = File.createTempFile("compliment_", ".aac", context.cacheDir)
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setOutputFile(audioFile.absolutePath)
-            prepare()
-            start()
-        }
-        audioFileUri = audioFile.toUri()
-        isRecording = true
-    }
-
-    fun startPlayback() {
-        audioFileUri?.let { uri ->
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(context, uri)
-                prepare()
-                start()
-                setOnCompletionListener {
-                    isPlaying = false
-                }
-            }
-            isPlaying = true
-        }
-    }
-
-    fun stopPlayback() {
-        mediaPlayer?.release()
-        mediaPlayer = null
-        isPlaying = false
-    }
-
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            startRecording()
-        } else {
-            Toast.makeText(context, "Microphone permission is required.", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     AlertDialog(
         onDismissRequest = {
-            if (isRecording) {
-                recorder?.stop()
-                recorder?.release()
-                isRecording = false
-            }
-            stopPlayback()
             onDismiss()
         },
         title = {
@@ -115,7 +59,7 @@ fun ComplimentDialog(
                 OutlinedTextField(
                     value = complimentText,
                     onValueChange = { complimentText = it },
-                    label = { Text("Your message (optional)", color = Color.White.copy(alpha = 0.7f)) },
+                    label = { Text("Your message", color = Color.White.copy(alpha = 0.7f)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = Color(0xFFFF6F00),
@@ -124,103 +68,16 @@ fun ComplimentDialog(
                         focusedTextColor = Color.White
                     )
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    IconButton(
-                        onClick = {
-                            if (isRecording) {
-                                recorder?.stop()
-                                recorder?.release()
-                                recorder = null
-                                isRecording = false
-                            } else {
-                                if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                    startRecording()
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
-                            }
-                        },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                            contentDescription = null,
-                            tint = if (isRecording) Color.Red else Color(0xFFFF6F00),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = if (isRecording) "Recording..." else "Tap to record",
-                        color = Color.White,
-                        fontSize = 11.sp
-                    )
-                }
-                if (audioFileUri != null && !isRecording) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Voice compliment ready!",
-                        color = Color.Green,
-                        fontSize = 11.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {
-                            if (isPlaying) {
-                                stopPlayback()
-                            } else {
-                                startPlayback()
-                            }
-                        }) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = Color.White
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(onClick = {
-                            stopPlayback()
-                            audioFileUri?.path?.let { path -> File(path).delete() }
-                            audioFileUri = null
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
-                        }
-                    }
-                }
             }
         },
         confirmButton = {
             Button(
                 enabled = !isRecording &&
-                        (complimentText.isNotBlank() || audioFileUri != null) &&
+                        (complimentText.isNotBlank()) &&
                         complimentsLeft > 0,
                 onClick = {
-                    if (isRecording) {
-                        recorder?.stop()
-                        recorder?.release()
-                        recorder = null
-                        isRecording = false
-                    }
-                    stopPlayback()
                     onSend(
-                        complimentText.trim().takeIf { it.isNotEmpty() },
-                        audioFileUri
-                    )
+                        complimentText.trim().takeIf { it.isNotEmpty() })
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
             ) {

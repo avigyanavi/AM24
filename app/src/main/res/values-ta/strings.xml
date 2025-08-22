@@ -76,6 +76,7 @@
         <string name="feed_tab_everyone">அனைவர்</string>
         <string name="feed_tab_matches">மேட்ச்கள்</string>
         <string name="no_more_older_posts">மேலும் பழைய பதிவுகள் இல்லை</string>
+        <string name="no_significant_rated_users_yet">இன்னும் போதிய மதிப்பீடு பெற்ற பயனர்கள் இல்லை</string>
 
         <!-- Post options -->
         <string name="see_more">மேலும் காண்க</string>

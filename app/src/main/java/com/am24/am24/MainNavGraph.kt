@@ -407,7 +407,12 @@ fun MainNavGraph(
             route = "previewUserProfile/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val targetId   = backStackEntry.arguments?.getString("userId") ?: return@composable
+            val encoded = backStackEntry.arguments?.getString("userId").orEmpty()
+            val targetId = Uri.decode(encoded)
+            if (targetId.isBlank()) {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+                return@composable
+            }
             val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@composable
 
             PreviewUserProfileScreen(

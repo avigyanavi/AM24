@@ -267,9 +267,9 @@ fun DMScreenContent(navController: NavController) {
             }
             override fun onCancelled(error: DatabaseError) {}
         }
-                matchesRef.addValueEventListener(matchesListener)
-                likesRef.addValueEventListener(likesListener)
-                onDispose {
+        matchesRef.addValueEventListener(matchesListener)
+        likesRef.addValueEventListener(likesListener)
+        onDispose {
             matchesRef.removeEventListener(matchesListener)
             likesRef.removeEventListener(likesListener)
         }
@@ -442,136 +442,136 @@ fun DMScreenContent(navController: NavController) {
                 }
             }
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text(stringResource(R.string.dm_search_matches_hint), color = Color.Gray, fontSize = 12.sp) },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF4500),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color(0xFFFF4500),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.Gray
-                    ),
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text(stringResource(R.string.dm_search_matches_hint), color = Color.Gray, fontSize = 12.sp) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFFFF4500),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color(0xFFFF4500),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.Gray
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .defaultMinSize(minHeight = 56.dp),      // or just drop the size modifier
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
+            )
+
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .defaultMinSize(minHeight = 56.dp),      // or just drop the size modifier
-                    textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
-                )
-
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(Color.DarkGray)
+                        .clickable {
+                            if (isPremiumUser) {
+                                navController.navigate("peopleWhoLikedMe")
+                            } else {
+                                Toast.makeText(context, context.getString(R.string.dm_upgrade_plus_see_likes), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(Color.DarkGray)
-                            .clickable {
-                                if (isPremiumUser) {
-                                    navController.navigate("peopleWhoLikedMe")
-                                } else {
-                                    Toast.makeText(context, context.getString(R.string.dm_upgrade_plus_see_likes), Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "+$likedCount",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
-                        )
-                    }
-                    Spacer(Modifier.width(6.dp))
-                    nonInitiatedMatches
-                        .forEach { profile ->
-                            AIOrProfileImage(
-                                profile,
-                                Modifier
-                                    .size(60.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray)
-                                    .clickable { navController.navigate("chat/${profile.userId}") }
-                            )
-                            Spacer(Modifier.width(6.dp))
-                        }
+                    Text(
+                        "+$likedCount",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
                 }
+                Spacer(Modifier.width(6.dp))
+                nonInitiatedMatches
+                    .forEach { profile ->
+                        AIOrProfileImage(
+                            profile,
+                            Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(Color.Gray)
+                                .clickable { navController.navigate("chat/${profile.userId}") }
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
+            }
 
-                val displayedUsers = matchedUsers
+            val displayedUsers = matchedUsers
             val complimentItems = complimentProfiles.filter { cp ->
                 !matchIds.contains(cp.profile.userId) && !blockedIds.contains(cp.profile.userId)
             }
 
             if (displayedUsers.isEmpty() && complimentItems.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.dm_no_matches), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(stringResource(R.string.dm_no_matches), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(DarkGrayBackground)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(complimentItems) { item ->
+                        ComplimentCard(
+                            profile = item.profile,
+                            compliment = item.compliment,
+                            onAccept = {
+                                createMatch(database, currentUserId, item.profile.userId)
+                                val updates = mapOf(
+                                    "compliments/${item.profile.userId}/$currentUserId" to null,
+                                    "complimentsReceived/$currentUserId/${item.profile.userId}" to null
+                                )
+                                database.reference.updateChildren(updates)
+                            },
+                            onReject = {
+                                val updates = mapOf(
+                                    "compliments/${item.profile.userId}/$currentUserId" to null,
+                                    "complimentsReceived/$currentUserId/${item.profile.userId}" to null
+                                )
+                                database.reference.updateChildren(updates)
+                            },
+                            onClick = {
+                                navController.navigate("previewUserProfile/${item.profile.userId}")
+                            }
+                        )
                     }
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(DarkGrayBackground)
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(complimentItems) { item ->
-                            ComplimentCard(
-                                profile = item.profile,
-                                compliment = item.compliment,
-                                onAccept = {
-                                    createMatch(database, currentUserId, item.profile.userId)
-                                    val updates = mapOf(
-                                        "compliments/${item.profile.userId}/$currentUserId" to null,
-                                        "complimentsReceived/$currentUserId/${item.profile.userId}" to null
-                                    )
-                                    database.reference.updateChildren(updates)
-                                },
-                                onReject = {
-                                    val updates = mapOf(
-                                        "compliments/${item.profile.userId}/$currentUserId" to null,
-                                        "complimentsReceived/$currentUserId/${item.profile.userId}" to null
-                                    )
-                                    database.reference.updateChildren(updates)
-                                },
-                                onClick = {
-                                    navController.navigate("previewUserProfile/${item.profile.userId}")
+                    items(displayedUsers) { profile ->
+                        val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
+                        DMUserCard(
+                            profile = profile,
+                            navController = navController,
+                            lastMessage = lastMsg.first,
+                            lastMessageFromCurrentUser = lastMsg.second,
+                            lastMessageRead = lastMsg.third,
+                            onRateClick = { selectedProfile ->
+                                fetchUserRating(
+                                    ratingsRef,
+                                    selectedProfile.userId
+                                ) { fetchedRating ->
+                                    tempRating = fetchedRating
+                                    profileToRate = selectedProfile
+                                    showRatingOverlay = true
                                 }
-                            )
-                        }
-                        items(displayedUsers) { profile ->
-                            val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
-                            DMUserCard(
-                                profile = profile,
-                                navController = navController,
-                                lastMessage = lastMsg.first,
-                                lastMessageFromCurrentUser = lastMsg.second,
-                                lastMessageRead = lastMsg.third,
-                                onRateClick = { selectedProfile ->
-                                    fetchUserRating(
-                                        ratingsRef,
-                                        selectedProfile.userId
-                                    ) { fetchedRating ->
-                                        tempRating = fetchedRating
-                                        profileToRate = selectedProfile
-                                        showRatingOverlay = true
-                                    }
-                                },
-                                onUnmatchClick = { selectedProfile ->
-                                    profileToUnmatch = selectedProfile
-                                    showUnmatchDialog = true
-                                }
-                            )
-                        }
+                            },
+                            onUnmatchClick = { selectedProfile ->
+                                profileToUnmatch = selectedProfile
+                                showUnmatchDialog = true
+                            }
+                        )
                     }
                 }
             }
+        }
         if (showRatingOverlay && profileToRate != null) {
             Dialog(onDismissRequest = {
                 showRatingOverlay = false
@@ -694,7 +694,7 @@ fun DMScreenContent(navController: NavController) {
                             context
                         )
                     }) {         Text(stringResource(R.string.action_smart_match), color = Color(0xFFFF4500)) }
-                    },
+                },
                 dismissButton = {
                     TextButton(onClick = { showSmartMatchDialog = false }) { Text("Cancel", color = Color.Gray) }
                 }
@@ -776,7 +776,7 @@ fun LocationSelectorComposable(
                 enabled = citySelectable
             )
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
             DropdownField(
                 label = stringResource(R.string.prompt_locality),
@@ -998,10 +998,10 @@ fun ComplimentCard(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    val text = when {
-                        compliment.text.isNotBlank() -> compliment.text
-                        compliment.voiceUrl != null -> stringResource(R.string.dm_voice_compliment)
-                        else -> stringResource(R.string.dm_compliment_label)
+                    val text = if (compliment.text.isNotBlank()) {
+                        compliment.text
+                    } else {
+                        stringResource(R.string.dm_compliment_label)
                     }
                     Text(
                         text = text,

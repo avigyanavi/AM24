@@ -86,6 +86,7 @@
 
     <string name="dm_voice_compliment">আপনাকে একটি ভয়েস কমপ্লিমেন্ট পাঠিয়েছে</string>
     <string name="dm_compliment_label">কমপ্লিমেন্ট</string>
+    <string name="no_significant_rated_users_yet">এখনও যথেষ্ট রেটিংপ্রাপ্ত ব্যবহারকারী নেই</string>
 
     <string name="toast_unmatched_success">ম্যাচ সফলভাবে বাতিল হয়েছে</string>
     <string name="toast_unmatched_failed">ম্যাচ বাতিল করতে ব্যর্থ: %1$s</string>

@@ -760,13 +760,12 @@ fun DatingScreen(
         if (showComplimentDlg && displayedProfiles.isNotEmpty()) {
             ComplimentDialog(
                 complimentsLeft = complimentsLeft,
-                onSend = { text, voiceUri ->
+                onSend = { text ->
                     coroutineScope.launch {
                         val receiver = displayedProfiles[currentIndex]
                         datingViewModel.sendCompliment(
                             receiverId       = receiver.userId,
                             textMessage      = text,
-                            voiceUri         = voiceUri,
                             profileViewModel = profileViewModel
                         )
                         excludedUserIds += receiver.userId
