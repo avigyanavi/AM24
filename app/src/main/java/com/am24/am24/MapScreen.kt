@@ -1459,7 +1459,8 @@ private fun RadiusChip(
     modifier: Modifier = Modifier
 ) {
     val minKm = 1.0
-    val maxKm = 50.0
+    val maxKm = 5000.0
+
 
     // Slider displays miles when needed but converts back to km for state
     val sliderValue = if (useMiles) (radiusKm / KM_PER_MILE).toFloat() else radiusKm.toFloat()

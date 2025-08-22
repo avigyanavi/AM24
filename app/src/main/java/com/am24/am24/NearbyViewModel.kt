@@ -16,7 +16,8 @@ import com.google.firebase.database.*
 class NearbyViewModel : ViewModel() {
     val people = mutableStateListOf<NearbyUser>()
     var sortMode by mutableStateOf(SortMode.NEARBY)
-    var radiusKm by mutableStateOf(10.0)
+    // Default radius shown in the People tab
+    var radiusKm by mutableStateOf(50.0)
     var lastActiveHours by mutableStateOf(24.0)
     var genderFilter by mutableStateOf(GenderFilter.BOTH)
     var excludedUserIds by mutableStateOf<Set<String>>(emptySet())
