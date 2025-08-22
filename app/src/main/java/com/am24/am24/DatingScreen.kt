@@ -238,13 +238,11 @@ fun DatingScreen(
 
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
-    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
     val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
 
     DisposableEffect(Unit) {
         onDispose {
-            rewardedBoostManager.clearCallbacks()
             rewardedComplimentManager.clearCallbacks()
             rewardedSwipeManager.clearCallbacks()
         }
@@ -583,48 +581,6 @@ fun DatingScreen(
                                                     .setValue(newVal)
                                             }
                                             profileViewModel.incrementComplimentsLocal()
-                                        }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    )
-
-                    Spacer(Modifier.width(13.dp))
-
-                    /* ⚡  Boosts */
-                    WaterIconButton(
-                        quota    = myProfile!!.availableBoosts,
-                        maxQuota = 5,
-                        icon     = Icons.Default.FlashOn,
-                        tint     = if (canBoost) Color.White else Color.Gray,
-                        enabled  = canBoost,
-                        onClick  = {
-                            if (canBoost) {
-                                val myUid = FirebaseAuth.getInstance().uid ?: return@WaterIconButton
-                                datingViewModel.boostUser(myUid) {
-                                    profileViewModel.decrementBoostsLocal()
-                                    showBoostFlash = true
-                                    profileViewModel.fetchCurrentUserProfile()
-                                }
-                            } else {
-                                // no boosts → go buy more
-                                if (isIndian) {
-                                    navController.navigate("buyBoosts")
-                                } else {
-                                    rewardedBoostManager.showWithDailyLimit(
-                                        userId = FirebaseAuth.getInstance().uid ?: return@WaterIconButton,
-                                        onReward = {
-                                        profileViewModel.incrementBoostsLocal()
-                                        datingViewModel.incrementBoostsLocal()
-                                        val uid = FirebaseAuth.getInstance().uid
-                                        if (uid != null) {
-                                            val newVal = myProfile!!.availableBoosts + 1
-                                            coroutineScope.launch {
-                                                FirebaseRefs.db.getReference("users/$uid/availableBoosts")
-                                                    .setValue(newVal)
-                                            }
                                         }
                                         }
                                     )
