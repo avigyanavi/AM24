@@ -1503,6 +1503,79 @@ exports.recomputeLeaderboard = functions.pubsub
     console.log(`recomputed leaderboard with ${profiles.length} profiles`);
   });
 
+exports.listMexicanUsersByGender = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const usersRef = admin.database().ref('users');
+
+      // Handle both "Mexico" and "México" spellings
+      const [mxSnap1, mxSnap2] = await Promise.all([
+        usersRef.orderByChild('country').equalTo('Mexico').once('value'),
+        usersRef.orderByChild('country').equalTo('México').once('value'),
+      ]);
+
+      const men = [];
+      const women = [];
+      const other = [];
+      const seen = new Set();
+
+      const pushUser = (child) => {
+        const u = child.val() || {};
+        const g = (u.gender || '').toString().trim().toLowerCase();
+
+        const payload = {
+          uid: child.key,
+          username: u.username || '',
+          name: u.name || '',
+          city: u.city || '',
+          hometown: u.hometown || '',
+          dateOfJoin: u.dateOfJoin || null,
+          lastActive: u.lastActive || null,
+        };
+
+        if (g === 'male' || g === 'm') {
+          men.push(payload);
+        } else if (g === 'female' || g === 'f') {
+          women.push(payload);
+        } else {
+          other.push(payload);
+        }
+      };
+
+      [mxSnap1, mxSnap2].forEach(snap => {
+        snap.forEach(child => {
+          if (seen.has(child.key)) return;
+          seen.add(child.key);
+          pushUser(child);
+        });
+      });
+
+      // Most-recent active first
+      const byLastActiveDesc = (a, b) => (b.lastActive || 0) - (a.lastActive || 0);
+      men.sort(byLastActiveDesc);
+      women.sort(byLastActiveDesc);
+      other.sort(byLastActiveDesc);
+
+      res
+        .set('Access-Control-Allow-Origin', '*')
+        .json({
+          count: {
+            men: men.length,
+            women: women.length,
+            other: other.length,
+            total: men.length + women.length + other.length,
+          },
+          men,
+          women,
+          other,
+        });
+    } catch (err) {
+      console.error('listMexicanUsersByGender error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+
 exports.backfillEthnicityIncome = functions
       .region('asia-south1')
       .https.onRequest(async (_req, res) => {
@@ -1825,3 +1898,5 @@ exports.syncPlaySubscription = functions
       throw new functions.https.HttpsError('internal', err.message);
     }
   });
+
+

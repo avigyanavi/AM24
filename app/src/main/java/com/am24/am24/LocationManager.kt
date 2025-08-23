@@ -135,4 +135,10 @@ public class LocationManager(private val context: Context) {
             }
         }
     }
+
+
+    fun setCustomLocation(userId: String, latitude: Double, longitude: Double) {
+        updateLocationInFirebase(userId, latitude, longitude)
+        updateLocationInGeoFire(userId, latitude, longitude)
+    }
 }

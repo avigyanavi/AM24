@@ -69,12 +69,22 @@ data class ComplimentWithProfile(
 )
 
 @Composable
-fun DMScreen(navController: NavController) {
-    DMScreenContent(navController = navController)
+fun DMScreen(
+    navController: NavController,
+    locationManager: LocationManager,
+    nearbyViewModel: NearbyViewModel,
+    geoFireDatabaseRef: DatabaseReference
+) {
+    DMScreenContent(navController, locationManager, nearbyViewModel, geoFireDatabaseRef)
 }
 
 @Composable
-fun DMScreenContent(navController: NavController) {
+fun DMScreenContent(
+    navController: NavController,
+    locationManager: LocationManager,
+    nearbyViewModel: NearbyViewModel,
+    geoFireDatabaseRef: DatabaseReference
+) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
     val database = FirebaseRefs.db
@@ -363,6 +373,10 @@ fun DMScreenContent(navController: NavController) {
                 val userRef = usersRef.child(currentUserId)
                 LocationSelectorComposable(
                     userRef = userRef,
+                    locationManager = locationManager,
+                    userId = currentUserId,
+                    nearbyViewModel = nearbyViewModel,
+                    geoFireDatabaseRef = geoFireDatabaseRef,
                     onSaved = { showLocationSelector = false }
                 )
                 Spacer(Modifier.height(8.dp))
@@ -714,9 +728,14 @@ fun DMScreenContent(navController: NavController) {
 @Composable
 fun LocationSelectorComposable(
     userRef: DatabaseReference,
+    locationManager: LocationManager,
+    userId: String,
+    nearbyViewModel: NearbyViewModel,
+    geoFireDatabaseRef: DatabaseReference,
     onSaved: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val countryOptions = stringArrayResource(R.array.country_names).toList()
     val cityOptions = stringArrayResource(R.array.city_names).toList()
@@ -816,12 +835,25 @@ fun LocationSelectorComposable(
                 Toast.makeText(context, context.getString(R.string.dm_select_country_first), Toast.LENGTH_SHORT).show()
                 return@Button
             }
-            userRef.child("country").setValue(selectedCountry)
-            userRef.child("city").setValue(selectedCity)
-            userRef.child("hometown").setValue(selectedLocality)
+            scope.launch {
+                userRef.child("country").setValue(selectedCountry)
+                userRef.child("city").setValue(selectedCity)
+                userRef.child("hometown").setValue(selectedLocality)
 
-            Toast.makeText(context, context.getString(R.string.dm_location_updated), Toast.LENGTH_SHORT).show()
-            onSaved()
+                val query = listOf(selectedLocality, selectedCity, selectedCountry)
+                    .filter { it.isNotBlank() }
+                    .joinToString(", ")
+                runCatching { searchPlacesRich(query).firstOrNull() }.
+                onSuccess { place ->
+                    place?.let {
+                        locationManager.setCustomLocation(userId, it.latLng.latitude, it.latLng.longitude)
+                        nearbyViewModel.refreshNearbyUsers(userId, it.latLng, geoFireDatabaseRef)
+                    }
+                }
+
+                Toast.makeText(context, context.getString(R.string.dm_location_updated), Toast.LENGTH_SHORT).show()
+                onSaved()
+            }
         }) {
             Text(stringResource(R.string.action_save))
         }

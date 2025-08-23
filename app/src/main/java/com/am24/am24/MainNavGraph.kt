@@ -95,13 +95,20 @@ fun MainNavGraph(
     val context = LocalContext.current
     val locationManager = remember { LocationManager(context) }
 
+    val geoFireDatabaseRef = FirebaseRefs.db.getReference("geoFireLocations")
+
     NavHost(
         navController = navController,
         startDestination = "home",
         modifier = modifier
     ) {
         composable("dms") {
-            DMScreen(navController = navController)
+            DMScreen(
+                navController = navController,
+                locationManager = locationManager,
+                nearbyViewModel = nearbyViewModel,
+                geoFireDatabaseRef = geoFireDatabaseRef
+            )
         }
         composable("leaderboard") {
             LeaderboardScreen(navController)
@@ -311,8 +318,7 @@ fun MainNavGraph(
             MapScreen(
                 userId = userId,
                 locationManager = locationManager,        // Or create it via DI
-                geoFireDatabaseRef = FirebaseRefs.db
-                    .getReference("geoFireLocations"),
+                geoFireDatabaseRef = geoFireDatabaseRef,
                 navController = navController, // NEW parameter
                 onProfileMarkerClicked = { profileId ->
                     // Replace 'matchesSet' with your available list of matched user IDs.
