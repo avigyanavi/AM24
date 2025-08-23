@@ -684,7 +684,7 @@ fun BottomNavigationBar(
                     Text(
                         text = item.label,
                         color = if (selected) Color(0xFFFF6F00) else Color.White,
-                        fontSize = 11.sp
+                        fontSize = 10.sp
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
