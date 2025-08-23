@@ -594,13 +594,13 @@ fun BottomNavigationBar(
                         navController.navigate(item.route) {
                             launchSingleTop = true
                             restoreState    = true
-                            }
+                        }
                     } else {
-                    // Regular → show ad then navigate
-                    interstitial?.show {
-                        navController.navigate(item.route) {
-                            launchSingleTop = true
-                            restoreState    = true
+                        // Regular → show ad then navigate
+                        interstitial?.show {
+                            navController.navigate(item.route) {
+                                launchSingleTop = true
+                                restoreState    = true
                             }
                         }
                     }

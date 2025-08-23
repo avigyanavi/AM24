@@ -137,7 +137,7 @@
     <string name="dm_change_location">লোকেশন পরিবর্তন করুন</string>
     <string name="feature_no_ads">কোনও বিজ্ঞাপন নেই</string>
     <string name="feature_priority_profile">ডেটিং স্ট্যাকে অগ্রাধিকারপ্রাপ্ত প্রোফাইল</string>
-    <string name="feature_people_liked_me">যারা আমাকে পছন্দ করেছে আনলক করুন এবং অবস্থান পরিবর্তনের বিকল্প</string>
+    <string name="feature_people_liked_me">যারা আমাকে পছন্দ করেছে আনলক করুন</string>
     <string name="feature_picture_voice_posts">ছবি এবং ভয়েস পোস্ট আনলক করুন</string>
     <string name="feature_50_swipes">দিনে ৫০টি সোয়াইপ</string>
     <string name="feature_3_compliments">সপ্তাহে ৩টি প্রশংসা</string>

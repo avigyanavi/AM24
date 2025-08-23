@@ -122,10 +122,7 @@ fun SettingsScreen(navController: NavController) {
     var subscriptionStatus by remember { mutableStateOf<String?>(null) }
     // ── NEW STATE ──
     var country by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var locality by remember { mutableStateOf("") }
 
-    var showLocationDialog by remember { mutableStateOf(false) }
     var subscriptionId by remember { mutableStateOf<String?>(null) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var showDeleteDialog  by remember { mutableStateOf(false) }
@@ -178,8 +175,6 @@ fun SettingsScreen(navController: NavController) {
 
         // ── load the new fields too ──
         country  = s.child("country").getValue(String::class.java) ?: ""
-        city     = s.child("city").getValue(String::class.java) ?: ""
-        locality = s.child("hometown").getValue(String::class.java) ?: ""
 
         loginStreak = s.child("loginStreak").getValue(Int::class.java) ?: 0
         loginPlusExpiry = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
@@ -211,101 +206,6 @@ fun SettingsScreen(navController: NavController) {
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.SemiBold
                 )
-            }
-            item {
-                if (premiumTier != "Free") {
-                    SettingsSection {
-                        SettingsRow(
-                            icon = { Icon(Icons.Default.Public, null, tint = Color(0xFFFF6F00)) },
-                            title = stringResource(R.string.settings_change_location),
-                            trailingText = listOf(country, city, locality)
-                                .filter { it.isNotBlank() }
-                                .joinToString(", ")
-                                .ifBlank { stringResource(R.string.not_set) }
-                        ) {
-                            showLocationDialog = true
-                        }
-                        var ctx = LocalContext.current
-                        if (showLocationDialog) {
-                            // pull in your arrays; you can use stringArrayResource or any provider
-                            val countryOptions = stringArrayResource(R.array.country_names).toList()
-                            val cityOptions    = stringArrayResource(R.array.city_names).toList()
-                            val localityResId  = remember(city) {
-                                ctx.resources.getIdentifier(
-                                    "localities_${city.replace(" ", "_").lowercase()}",
-                                    "array",
-                                    ctx.packageName
-                                )
-                            }
-                            val localityOptions = if (localityResId != 0)
-                                ctx.resources.getStringArray(localityResId).toList()
-                            else emptyList()
-                            val isIndianCountry = country.equals("India", ignoreCase = true)
-
-                            AlertDialog(
-                                onDismissRequest = { showLocationDialog = false },
-                                title = { Text(stringResource(R.string.settings_select_location)) },
-                                text = {
-                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        SearchableDropdown(
-                                            label = stringResource(R.string.select_country),
-                                            options = countryOptions,
-                                            selected = country,
-                                            onSelectedChange = { country = it }
-                                        )
-                                        if (isIndianCountry) {
-                                            SearchableDropdown(
-                                                label = stringResource(R.string.city),
-                                                options = cityOptions,
-                                                selected = city,
-                                                onSelectedChange = { city = it }
-                                            )
-                                            SearchableDropdown(
-                                                label = stringResource(R.string.locality),
-                                                options = localityOptions,
-                                                selected = locality,
-                                                onSelectedChange = { locality = it }
-                                            )
-                                        } else {
-                                            OutlinedTextField(
-                                                value = city,
-                                                onValueChange = { city = it },
-                                                label = { Text(stringResource(R.string.city)) },
-                                                singleLine = true,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
-                                            )
-                                            OutlinedTextField(
-                                                value = locality,
-                                                onValueChange = { locality = it },
-                                                label = { Text(stringResource(R.string.locality)) },
-                                                singleLine = true,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
-                                            )
-                                        }
-                                    }
-                                },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        // write all three at once
-                                        scope.launch {
-                                            userRef.child("country").setValue(country)
-                                            userRef.child("city").setValue(city)
-                                            userRef.child("hometown").setValue(locality)
-                                        }
-                                        showLocationDialog = false
-                                    }) { Text(stringResource(R.string.save), color = KupidxOrange) }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { showLocationDialog = false }) {
-                                        Text(stringResource(R.string.cancel), color = KupidxOrange)
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
             }
 
             /*──────────────── Premium / Subscription card ─────────────*/
@@ -719,57 +619,6 @@ fun SettingsScreen(navController: NavController) {
                         }
                 }
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SearchableDropdown(
-    label: String,
-    options: List<String>,
-    selected: String,
-    onSelectedChange: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var query    by remember { mutableStateOf("") }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        OutlinedTextField(
-            value = if (expanded) query else selected,
-            onValueChange = { query = it },
-            readOnly = !expanded,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-                query = ""
-            }
-        ) {
-            // filter your options by query (case-insensitive)
-            options
-                .filter { it.contains(query, ignoreCase = true) }
-                .forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = {
-                            onSelectedChange(option)
-                            query = ""
-                            expanded = false
-                        }
-                    )
-                }
         }
     }
 }

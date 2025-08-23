@@ -1463,11 +1463,9 @@ private fun RadiusChip(
 
 
     // Slider displays miles when needed but converts back to km for state
-    val sliderValue = if (useMiles) (radiusKm / KM_PER_MILE).toFloat() else radiusKm.toFloat()
-    val sliderRange = if (useMiles)
-        (minKm / KM_PER_MILE).toFloat()..(maxKm / KM_PER_MILE).toFloat()
-    else
-        minKm.toFloat()..maxKm.toFloat()
+    val sliderPos = remember(radiusKm) {
+        (ln(radiusKm / minKm) / ln(maxKm / minKm)).toFloat()
+    }
 
     val label = if (useMiles) {
         val mi = (radiusKm / KM_PER_MILE)
@@ -1489,12 +1487,12 @@ private fun RadiusChip(
             Text(label)
             Spacer(Modifier.width(6.dp))
             Slider(
-                value = sliderValue,
+                value = sliderPos,
                 onValueChange = {
-                    val newKm = if (useMiles) it.toDouble() * KM_PER_MILE else it.toDouble()
+                    val newKm = minKm * (maxKm / minKm).pow(it.toDouble())
                     onChange(newKm.coerceIn(minKm, maxKm))
                 },
-                valueRange = sliderRange,
+                valueRange = 0f..1f,
                 modifier = Modifier.width(100.dp)
             )
         }

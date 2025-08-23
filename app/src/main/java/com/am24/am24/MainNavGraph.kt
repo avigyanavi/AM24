@@ -105,9 +105,7 @@ fun MainNavGraph(
         composable("dms") {
             DMScreen(
                 navController = navController,
-                locationManager = locationManager,
                 nearbyViewModel = nearbyViewModel,
-                geoFireDatabaseRef = geoFireDatabaseRef
             )
         }
         composable("leaderboard") {

@@ -4,7 +4,6 @@ package com.am24.am24
 
 import ComplimentData
 import DatingViewModel
-import android.app.Activity
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -26,14 +25,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -71,19 +67,15 @@ data class ComplimentWithProfile(
 @Composable
 fun DMScreen(
     navController: NavController,
-    locationManager: LocationManager,
     nearbyViewModel: NearbyViewModel,
-    geoFireDatabaseRef: DatabaseReference
 ) {
-    DMScreenContent(navController, locationManager, nearbyViewModel, geoFireDatabaseRef)
+    DMScreenContent(navController, nearbyViewModel)
 }
 
 @Composable
 fun DMScreenContent(
     navController: NavController,
-    locationManager: LocationManager,
     nearbyViewModel: NearbyViewModel,
-    geoFireDatabaseRef: DatabaseReference
 ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
@@ -161,40 +153,6 @@ fun DMScreenContent(
         }
     }
 
-
-    /* ──────  LOCATION-SELECTOR STATE  ────── */
-    var showLocationSelector by rememberSaveable { mutableStateOf(false) }
-
-    /* string-array resources → Lists */
-    val countryOptions = stringArrayResource(R.array.country_names).toList()
-    val cityOptions    = stringArrayResource(R.array.city_names).toList()
-
-    var selectedCountry  by rememberSaveable { mutableStateOf(countryOptions.first()) }
-    var countryExpanded  by remember { mutableStateOf(false) }
-
-    var selectedCity     by rememberSaveable { mutableStateOf(cityOptions.first()) }
-    var cityExpanded     by remember { mutableStateOf(false) }
-
-    /**  Dynamically look-up the correct `localities_<city>` array  */
-    val localityResId = remember(selectedCity) {
-        context.resources.getIdentifier(
-            "localities_" + selectedCity.replace(" ", "_").lowercase(),
-            "array",
-            context.packageName
-        )
-    }
-    val localityOptions = remember(localityResId) {
-        if (localityResId != 0)
-            context.resources.getStringArray(localityResId).toList()
-        else emptyList()
-    }
-
-    var selectedLocality by rememberSaveable { mutableStateOf("") }
-
-    LaunchedEffect(localityOptions) {
-        selectedLocality = localityOptions.firstOrNull() ?: ""
-    }
-    var localityExpanded by remember { mutableStateOf(false) }
 
 // 1️⃣  Build the chip list
     val groupChatTitles = remember(currentUserProfile) {
@@ -368,90 +326,53 @@ fun DMScreenContent(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            /* ①  COUNTRY / CITY CHIP ROW  **OR**  DROPDOWNs */
-            if (showLocationSelector) {
-                val userRef = usersRef.child(currentUserId)
-                LocationSelectorComposable(
-                    userRef = userRef,
-                    locationManager = locationManager,
-                    userId = currentUserId,
-                    nearbyViewModel = nearbyViewModel,
-                    geoFireDatabaseRef = geoFireDatabaseRef,
-                    onSaved = { showLocationSelector = false }
-                )
-                Spacer(Modifier.height(8.dp))
-                TextButton(
-                    onClick = { showLocationSelector = false },
-                    modifier = Modifier.align(Alignment.End).padding(8.dp)
-                ) {
-                    Text(stringResource(R.string.cancel), color = Color(0xFFFF4500))
-                }
-            }
-            else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val cts = LocalContext.current
-                    Log.d("DMScreen", "Change Location clicked: isPremiumUser=$isPremiumUser")
-                    GroupChatChip(stringResource(R.string.dm_change_location)) {
-                        if (isPremiumUser) {
-                            showLocationSelector = true
-                        } else {
-                            Toast.makeText(context, context.getString(R.string.dm_upgrade_plus_change_location), Toast.LENGTH_SHORT).show()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .horizontalScroll(autoScrollState),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 2️⃣  Map chip → chat-room ID
+                groupChatTitles.forEach { title ->
+                    GroupChatChip(title) {
+                        val id = when (title) {
+                            "India" -> "group_india"
+                            "United States" -> "group_usa"
+                            else -> "group_${canonicalLocationId(title)}"
                         }
+                        navController.navigate("groupChat/$id")
                     }
 
-                    Spacer(Modifier.width(12.dp))
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .horizontalScroll(autoScrollState),
-                        verticalAlignment = Alignment.CenterVertically
+                    Spacer(Modifier.width(6.dp))
+                }
+                if (isPremiumUser) {
+                    val now = Calendar.getInstance()
+                    val nextReset = Calendar.getInstance().apply {
+                        firstDayOfWeek = now.firstDayOfWeek
+                        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+                        add(Calendar.WEEK_OF_YEAR, 1)
+                    }
+                    val millisInDay = 24 * 60 * 60 * 1000L
+                    val daysLeft =
+                        ((nextReset.timeInMillis - now.timeInMillis) / millisInDay).toInt()
+                    val msg = pluralStringResource(R.plurals.dm_next_available_in_days, daysLeft, daysLeft)
+                    Button(
+                        onClick = {
+                            if (smartMatchAvailable) {
+                                showSmartMatchDialog = true
+                            } else {
+                                msg
+                            }
+                        },
+                        enabled = smartMatchAvailable,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (smartMatchAvailable) Color(
+                                0xFFFF4500,
+                            ) else Color.DarkGray,
+                        ),
                     ) {
-                        // 2️⃣  Map chip → chat-room ID
-                        groupChatTitles.forEach { title ->
-                            GroupChatChip(title) {
-                                val id = when (title) {
-                                    "India" -> "group_india"
-                                    "United States" -> "group_usa"
-                                    else -> "group_${canonicalLocationId(title)}"
-                                }
-                                navController.navigate("groupChat/$id")
-                            }
-                            Spacer(Modifier.width(6.dp))
-                        }
-                        if (isPremiumUser) {
-                            val now = Calendar.getInstance()
-                            val nextReset = Calendar.getInstance().apply {
-                                firstDayOfWeek = now.firstDayOfWeek
-                                set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-                                add(Calendar.WEEK_OF_YEAR, 1)
-                            }
-                            val millisInDay = 24 * 60 * 60 * 1000L
-                            val daysLeft =
-                                ((nextReset.timeInMillis - now.timeInMillis) / millisInDay).toInt()
-                            val msg = pluralStringResource(R.plurals.dm_next_available_in_days, daysLeft, daysLeft)
-                            Button(
-                                onClick = {
-                                    if (smartMatchAvailable) {
-                                        showSmartMatchDialog = true
-                                    } else {
-                                        msg
-                                    }
-                                },
-                                enabled = smartMatchAvailable,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (smartMatchAvailable) Color(
-                                        0xFFFF4500
-                                    ) else Color.DarkGray
-                                )
-                            ) {
-                                Text("Smart Match", color = Color.White, fontSize = 10.sp)
-                            }
-                        }
+                        Text("Smart Match", color = Color.White, fontSize = 10.sp)
                     }
                 }
             }
@@ -721,186 +642,6 @@ fun DMScreenContent(
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         ) {
             Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.content_scroll_to_top), tint = Color.White)
-        }
-    }
-}
-
-@Composable
-fun LocationSelectorComposable(
-    userRef: DatabaseReference,
-    locationManager: LocationManager,
-    userId: String,
-    nearbyViewModel: NearbyViewModel,
-    geoFireDatabaseRef: DatabaseReference,
-    onSaved: () -> Unit
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    val countryOptions = stringArrayResource(R.array.country_names).toList()
-    val cityOptions = stringArrayResource(R.array.city_names).toList()
-
-    var selectedCountry by rememberSaveable { mutableStateOf("") }
-    var selectedCity by rememberSaveable { mutableStateOf("") }
-    var selectedLocality by rememberSaveable { mutableStateOf("") }
-    val isIndian = selectedCountry.equals("India", ignoreCase = true)
-    var countryExpanded by remember { mutableStateOf(false) }
-    var cityExpanded by remember { mutableStateOf(false) }
-    var localityExpanded by remember { mutableStateOf(false) }
-
-    val citySelectable = selectedCountry.isNotBlank()
-    val localitySelectable = selectedCity.isNotBlank()
-
-    val localityResId = remember(selectedCity) {
-        context.resources.getIdentifier(
-            "localities_${selectedCity.replace(" ", "_").lowercase()}",
-            "array",
-            context.packageName
-        )
-    }
-
-    val localityOptions = remember(localityResId) {
-        if (localityResId != 0)
-            context.resources.getStringArray(localityResId).toList()
-        else emptyList()
-    }
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        DropdownField(
-            label = stringResource(R.string.prompt_country),
-            options = countryOptions,
-            selected = selectedCountry,
-            onSelectionChange = {
-                selectedCountry = it
-                selectedCity = ""
-                selectedLocality = ""
-            },
-            expanded = countryExpanded,
-            onExpandedChange = { countryExpanded = it }
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        if (isIndian) {
-            DropdownField(
-                label = stringResource(R.string.prompt_city),
-                options = cityOptions,
-                selected = selectedCity,
-                onSelectionChange = {
-                    selectedCity = it
-                    selectedLocality = ""
-                },
-                expanded = cityExpanded,
-                onExpandedChange = { cityExpanded = it },
-                enabled = citySelectable
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            DropdownField(
-                label = stringResource(R.string.prompt_locality),
-                options = localityOptions,
-                selected = selectedLocality,
-                onSelectionChange = { selectedLocality = it },
-                expanded = localityExpanded,
-                onExpandedChange = { localityExpanded = it },
-                enabled = localitySelectable && localityOptions.isNotEmpty()
-            )
-        } else {
-            OutlinedTextField(
-                value = selectedCity,
-                onValueChange = { selectedCity = it },
-                label = { Text(stringResource(R.string.prompt_city)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = selectedLocality,
-                onValueChange = { selectedLocality = it },
-                label = { Text(stringResource(R.string.prompt_locality)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Button(onClick = {
-            if (selectedCountry.isBlank()) {
-                Toast.makeText(context, context.getString(R.string.dm_select_country_first), Toast.LENGTH_SHORT).show()
-                return@Button
-            }
-            scope.launch {
-                userRef.child("country").setValue(selectedCountry)
-                userRef.child("city").setValue(selectedCity)
-                userRef.child("hometown").setValue(selectedLocality)
-
-                val query = listOf(selectedLocality, selectedCity, selectedCountry)
-                    .filter { it.isNotBlank() }
-                    .joinToString(", ")
-                runCatching { searchPlacesRich(query).firstOrNull() }.
-                onSuccess { place ->
-                    place?.let {
-                        locationManager.setCustomLocation(userId, it.latLng.latitude, it.latLng.longitude)
-                        nearbyViewModel.refreshNearbyUsers(userId, it.latLng, geoFireDatabaseRef)
-                    }
-                }
-
-                Toast.makeText(context, context.getString(R.string.dm_location_updated), Toast.LENGTH_SHORT).show()
-                onSaved()
-            }
-        }) {
-            Text(stringResource(R.string.action_save))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DropdownField(
-    label: String,
-    options: List<String>,
-    selected: String,
-    onSelectionChange: (String) -> Unit,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    enabled: Boolean = true
-) {
-    val placeholder = stringResource(R.string.placeholder_not_selected)
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { if (enabled) onExpandedChange(!expanded) }
-    ) {
-        OutlinedTextField(
-            readOnly = true,
-            value = selected.ifEmpty { placeholder },
-            onValueChange = {},
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            enabled = enabled,
-            colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) }
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onSelectionChange(option)
-                        onExpandedChange(false)
-                    }
-                )
-            }
         }
     }
 }
