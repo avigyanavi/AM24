@@ -1,6 +1,8 @@
 package com.am24.am24
 
 import android.app.Application
+import android.os.Build
+import android.util.Log
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
@@ -14,12 +16,20 @@ class MyApp : Application() {
         super.onCreate()
 
         val appCheck = FirebaseAppCheck.getInstance()
-        appCheck.installAppCheckProviderFactory(
-            if (BuildConfig.DEBUG)
+        val providerFactory =
+            if (BuildConfig.DEBUG) {
                 DebugAppCheckProviderFactory.getInstance()
+            }
             else
-                PlayIntegrityAppCheckProviderFactory.getInstance()
-        )
+            {
+                val isEmulator = Build.FINGERPRINT.contains("generic")
+                if (isEmulator) {
+                    DebugAppCheckProviderFactory.getInstance()
+                } else {
+                    PlayIntegrityAppCheckProviderFactory.getInstance()
+                }
+            }
+        appCheck.installAppCheckProviderFactory(providerFactory)
 
         try { FirebaseDatabase.getInstance().setPersistenceEnabled(true) } catch (_: Exception) {}
 
@@ -31,8 +41,20 @@ class MyApp : Application() {
         // - premium
         val subsIds = listOf("plus", "premium")
 
-        BillingManager.startConnection(this, inappIds = inappIds, subsIds = subsIds)
+        if (!BuildConfig.DEBUG && !isEmulator()) {
+            BillingManager.startConnection(this, inappIds = inappIds, subsIds = subsIds)
+        } else {
+            Log.d("MyApp", "Skipping BillingManager connection in debug/emulator mode")
+        }
 
         FirebaseStorage.getInstance("gs://am-twentyfour")
+    }
+    private fun isEmulator(): Boolean {
+        return Build.FINGERPRINT.startsWith("generic") ||
+                Build.FINGERPRINT.lowercase().contains("vbox") ||
+                Build.MODEL.contains("google_sdk") ||
+                Build.MODEL.contains("Emulator") ||
+                Build.MODEL.contains("Android SDK built for x86") ||
+                Build.MANUFACTURER.contains("Genymotion")
     }
 }
