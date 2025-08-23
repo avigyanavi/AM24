@@ -68,6 +68,7 @@
     <string name="action_reject">अस्वीकार करें</string>
     <string name="action_smart_match">स्मार्ट मैच</string>
     <string name="gender_other">अन्य</string>
+    <string name="gender_all">सभी</string>
 
     <string name="dm_search_matches_hint">मैच खोजें</string>
     <string name="dm_upgrade_plus_see_likes">किसने आपको पसंद किया यह देखने के लिए प्लस में अपग्रेड करें।</string>

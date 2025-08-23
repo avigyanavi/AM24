@@ -135,6 +135,7 @@
     <string name="clear_country_filter">দেশ ফিল্টার মুছে ফেলুন</string>
     <string name="gender_other">অন্যান্য</string>
     <!-- Tag search -->
+    <string name="gender_all">সব</string>
 
     <string name="dm_change_location">লোকেশন পরিবর্তন করুন</string>
     <string name="feature_no_ads">কোনও বিজ্ঞাপন নেই</string>

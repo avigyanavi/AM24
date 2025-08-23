@@ -584,38 +584,76 @@ fun MapScreen(
     Scaffold(
         topBar = {
             if (selectedTab == 0) {
-            TopAppBar(
-                title = { Text(stringResource(R.string.tab_nearby), fontWeight = FontWeight.SemiBold) },
-                actions = {
-                    FilledTonalButton(
-                        onClick = {
+                TopAppBar(
+                    title = {
+                        if (sortMode == SortMode.NEARBY) {
                             if (isPlus || isPremium) {
-                                sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
-                                prefs.edit().putString("map_sort_mode", sortMode.name).apply()
-                                userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
+                                RadiusChip(
+                                    radiusKm = radiusKm,
+                                    onChange = {
+                                        radiusKm = it
+                                        prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
+                                        userLatLng?.let { center ->
+                                            nearbyViewModel.refreshNearbyUsers(userId, center, geoFireDatabaseRef)
+                                        }
+                                    },
+                                    useMiles = useMiles,
+                                    modifier = Modifier.scale(0.9f)
+                                )
                             } else {
-                                navController.navigate("paywall?toast=plus")
+                                LockedChip(
+                                    label = stringResource(R.string.label_radius),
+                                    modifier = Modifier.scale(0.9f)
+                                ) { navController.navigate("paywall?toast=plus") }
                             }
-                        },
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = KupidxOrange.copy(alpha = 0.20f),
-                            contentColor = KupidxOrange
-                        ),
-                        shape = RoundedCornerShape(20.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (sortMode == SortMode.NEARBY) Icons.Default.MyLocation else Icons.Default.Schedule,
-                            contentDescription = null
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            stringResource(
-                                if (sortMode == SortMode.NEARBY) R.string.sort_nearby
-                                else R.string.sort_last_active
+                        } else {
+                            if (isPlus || isPremium) {
+                                LastActiveChip(
+                                    hours = lastActiveHours,
+                                    onChange = {
+                                        lastActiveHours = it
+                                        prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
+                                    },
+                                    modifier = Modifier.scale(0.9f)
+                                )
+                            } else {
+                                LockedChip(
+                                    label = stringResource(R.string.sort_last_active),
+                                    modifier = Modifier.scale(0.9f)
+                                ) { }
+                            }
+                        }
+                    },
+                    actions = {
+                        FilledTonalButton(
+                            onClick = {
+                                if (isPlus || isPremium) {
+                                    sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
+                                    prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                                    userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
+                                } else {
+                                    navController.navigate("paywall?toast=plus")
+                                }
+                            },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = KupidxOrange.copy(alpha = 0.20f),
+                                contentColor = KupidxOrange
+                            ),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (sortMode == SortMode.NEARBY) Icons.Default.MyLocation else Icons.Default.Schedule,
+                                contentDescription = null
                             )
-                        )
-                    }
-                } ,
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                stringResource(
+                                    if (sortMode == SortMode.NEARBY) R.string.sort_nearby
+                                    else R.string.sort_last_active
+                                )
+                            )
+                        }
+                    },
                 windowInsets = WindowInsets(0, 0, 0, 0)
             )
                 }
@@ -687,56 +725,6 @@ fun MapScreen(
                                 .padding(8.dp)
                                 .scale(0.9f)
                         )
-
-                        if (sortMode == SortMode.NEARBY) {
-                            if (isPlus || isPremium) {
-                                RadiusChip(
-                                    radiusKm = radiusKm,
-                                    onChange = {
-                                        radiusKm = it
-                                        prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
-                                        userLatLng?.let { center ->
-                                            nearbyViewModel.refreshNearbyUsers(userId, center, geoFireDatabaseRef)
-                                        }
-                                    },
-                                    useMiles = useMiles,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(8.dp)
-                                        .scale(0.9f)
-                                )
-                            } else {
-                                LockedChip(
-                                    label = stringResource(R.string.label_radius),
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(8.dp)
-                                        .scale(0.9f)
-                                ) { navController.navigate("paywall?toast=plus") }
-                            }
-                        } else {
-                            if (isPlus || isPremium) {
-                                LastActiveChip(
-                                    hours = lastActiveHours,
-                                    onChange = {
-                                        lastActiveHours = it
-                                        prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
-                                    },
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(8.dp)
-                                        .scale(0.9f)
-                                )
-                            } else {
-                                LockedChip(
-                                    label = stringResource(R.string.sort_last_active),
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(8.dp)
-                                        .scale(0.9f)
-                                ) { }
-                            }
-                        }
                     }
                 }
 
@@ -1439,13 +1427,19 @@ private fun GenderFilterChip(
         ) {
             // Show only Women / Men chips
             listOf(
+                GenderFilter.BOTH to stringResource(R.string.gender_all),
                 GenderFilter.WOMEN to stringResource(R.string.gender_women),
                 GenderFilter.MEN   to stringResource(R.string.gender_men),
                 GenderFilter.OTHER to stringResource(R.string.gender_other)
             ).forEach { (type, label) ->
                 FilterChip(
                     selected = selected == type,
-                    onClick = { onChange(if (selected == type) GenderFilter.BOTH else type) },
+                    onClick = {
+                        onChange(
+                            if (type == GenderFilter.BOTH) GenderFilter.BOTH
+                            else if (selected == type) GenderFilter.BOTH else type
+                        )
+                    },
                     label = { Text(label) }
                 )
             }

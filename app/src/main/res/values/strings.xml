@@ -302,7 +302,7 @@
     <string name="gender_male">Male</string>
     <string name="gender_female">Female</string>
     <string name="gender_both">Both</string>
-
+    <string name="gender_all">All</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
     <string name="action_unmatch">Unmatch</string>

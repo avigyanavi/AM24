@@ -266,13 +266,18 @@ fun TopNavBar(
             }
 
             if (isPlus) {
-                IconButton(onClick = { countryMenuExpanded = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Public,
-                        contentDescription = stringResource(R.string.cd_country_filter),
-                        tint = if (selectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { countryMenuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Public,
+                            contentDescription = stringResource(R.string.cd_country_filter),
+                            tint = if (selectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    if (selectedCountry.isNotBlank()) {
+                        Text(selectedCountry, color = Color(0xFFFF6F00))
+                    }
                 }
                 DropdownMenu(
                     expanded = countryMenuExpanded,

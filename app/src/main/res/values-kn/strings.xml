@@ -73,6 +73,7 @@
     <!-- Sort control -->
     <string name="sort_nearby">ಹತ್ತಿರ</string>
     <string name="sort_last_active">ಕೊನೆಯ ಬಾರಿ ಸಕ್ರಿಯ</string>
+    <string name="gender_all">ಎಲ್ಲಾ</string>
 
     <!-- People grid -->
     <string name="no_one_nearby_yet">ಹತ್ತಿರದಲ್ಲಿ ಇನ್ನೂ ಯಾರೂ ಇಲ್ಲ</string>

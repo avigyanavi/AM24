@@ -55,6 +55,7 @@
     <string name="clear_country_filter">దేశం ఫిల్టర్‌ను క్లియర్ చేయండి</string>
     <string name="dm_voice_compliment">మీకు ఒక వాయిస్ ప్రశంస పంపారు</string>
     <string name="dm_compliment_label">ప్రశంస</string>
+    <string name="gender_all">అన్నీ</string>
 
     <string name="toast_unmatched_success">మ్యాచ్ విజయవంతంగా తొలగించబడింది</string>
     <string name="toast_unmatched_failed">మ్యాచ్ తొలగించడం విఫలమైంది: %1$s</string>

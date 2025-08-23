@@ -72,6 +72,7 @@
         <string name="match_age">வயது: %1$d</string>
         <string name="match_from">இருந்து: %1$s</string>
         <string name="dm_change_location">இடத்தை மாற்று</string>
+        <string name="gender_all">அனைத்தும்</string>
 
         <!-- Feed tabs & footer -->
         <string name="feed_tab_everyone">அனைவர்</string>

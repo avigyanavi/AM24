@@ -142,6 +142,8 @@
     <string name="private_account_desc">No ser visible en la pila de tarjetas salvo si deslizas a la derecha</string>
     <string name="unblock">Desbloquear</string>
     <string name="gender_other">Otros</string>
+    <string name="gender_all">Todos</string>
+
     <!-- es -->
     <string name="cd_country_filter">Explorar por país</string>
     <string name="clear_country_filter">Borrar filtro de país</string>
