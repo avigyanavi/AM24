@@ -90,7 +90,9 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     currentUserId = currentUserId,
                     postViewModel = postViewModel,
                     onPriceChange = { priceTier.value = it },
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    isPremium = isPremium,
+                    isPlus = isPlus
                 )
             }
         },
@@ -124,7 +126,9 @@ fun TopNavBar(
     currentUserId: String,
     postViewModel: PostViewModel,
     onLogout: () -> Unit,
-    onPriceChange: (String) -> Unit = {}
+    onPriceChange: (String) -> Unit = {},
+    isPremium: Boolean,
+    isPlus: Boolean,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -136,7 +140,6 @@ fun TopNavBar(
     val isDMScreen = currentRoute == "dms"
 
     val unreadCount = remember { mutableStateOf(0) }
-    val isPremium = remember { mutableStateOf(false) }
     var showLocationPrefDialog by remember { mutableStateOf(false) }
     var allowLocationForMatches by remember { mutableStateOf(false) }
     var allowLocationPublic by remember { mutableStateOf(false) }
@@ -162,10 +165,6 @@ fun TopNavBar(
     var selectedPriceRange by rememberSaveable { mutableStateOf(priceAll) }
     var orientationMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
-    val myProfile by profileViewModel.currentUserProfile.collectAsState()
-    LaunchedEffect(Unit) { profileViewModel.fetchCurrentUserProfile() }
-
-
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
         val profileRef = FirebaseRefs.db
@@ -173,8 +172,6 @@ fun TopNavBar(
             .child(currentUserId)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val profile = snapshot.getValue(Profile::class.java)
-                isPremium.value = profile?.isPremium ?: false
                 // Fetch allowLocationForMatches
                 val savedPref = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java)
                 if (savedPref == null) {
@@ -278,7 +275,7 @@ fun TopNavBar(
                 if (mapSelectedTab == 0) {
                     val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
                     IconButton(onClick = {
-                        if (myProfile?.isPlus == true || myProfile?.isPremium == true) {
+                        if (isPlus || isPremium) {
                             orientationMenuExpanded = true
                         } else {
                             navController.navigate("subscription")
