@@ -419,6 +419,24 @@ fun MapScreen(
             }
     }
 
+    // react to country changes from TopNavBar
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntry?.savedStateHandle
+            ?.getLiveData<Boolean>("mapCountryChanged")
+            ?.asFlow()
+            ?.collect { changed ->
+                if (changed == true) {
+                    locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
+                        userLatLng = lat?.let { LatLng(it, lng ?: 0.0) }
+                        userLatLng?.let { loc ->
+                            nearbyViewModel.refreshNearbyUsers(userId, loc, geoFireDatabaseRef)
+                        }
+                    }
+                    navController.currentBackStackEntry?.savedStateHandle?.set("mapCountryChanged", false)
+                }
+            }
+    }
+
     // react to global exclude events (likes/compliments/dislikes elsewhere)
     LaunchedEffect(Unit) {
         ExclusionEventBus.events.collect { uid ->

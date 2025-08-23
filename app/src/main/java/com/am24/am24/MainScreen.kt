@@ -346,6 +346,7 @@ fun TopNavBar(
                                         )
                                     }
                                     selectedCountry = c
+                                    savedStateHandle?.set("mapCountryChanged", true)
                                 }
                             )
                         }
