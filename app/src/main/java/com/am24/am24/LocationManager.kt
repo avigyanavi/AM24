@@ -55,9 +55,20 @@ public class LocationManager(private val context: Context) {
     }
 
     private lateinit var userId: String
+    private var isPaused = false
 
     fun updateUserLocation(userId: String) {
         this.userId = userId
+        // Check if updates are paused via profile flag
+        database.child(userId).child("isLocationSpoofed").get().addOnSuccessListener { snap ->
+            isPaused = snap.getValue(Boolean::class.java) == true
+            if (!isPaused) requestLocationUpdates()
+        }.addOnFailureListener {
+            if (!isPaused) requestLocationUpdates()
+        }
+    }
+
+    private fun requestLocationUpdates() {
 
         // Check if location permissions are granted
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -72,6 +83,19 @@ public class LocationManager(private val context: Context) {
 
         // Request location updates
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+    }
+
+    fun pauseUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+        isPaused = true
+    }
+
+    fun resumeUpdates() {
+        if (!isPaused) return
+        isPaused = false
+        if (::userId.isInitialized) {
+            requestLocationUpdates()
+        }
     }
 
     // Location callback to handle updates

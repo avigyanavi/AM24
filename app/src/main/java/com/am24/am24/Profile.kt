@@ -18,6 +18,7 @@ data class Profile(
     val profilepicThumbnailUrl: String? = null,
     val sexualOrientation: String = "", // User's sexual orientation
     val kinks: List<String> = emptyList(),
+    var isLocationSpoofed: Boolean = false,
 
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),

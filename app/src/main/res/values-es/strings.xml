@@ -141,7 +141,10 @@
     <string name="private_account">Cuenta privada</string>
     <string name="private_account_desc">No ser visible en la pila de tarjetas salvo si deslizas a la derecha</string>
     <string name="unblock">Desbloquear</string>
-
+    <string name="gender_other">Otros</string>
+    <!-- es -->
+    <string name="cd_country_filter">Explorar por país</string>
+    <string name="clear_country_filter">Borrar filtro de país</string>
     <string name="feature_no_ads">Sin anuncios</string>
     <string name="feature_priority_profile">Perfil prioritario en la lista de citas</string>
     <string name="feature_people_liked_me">Desbloquear personas que me gustaron</string>

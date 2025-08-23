@@ -128,7 +128,8 @@ class KupidXAppActivity : AppCompatActivity(),
                             TokenStorageManager.clearToken(this@KupidXAppActivity)
                             startActivity(Intent(this, LandingActivity::class.java))
                             finish()
-                        }
+                        },
+                        locationManager        = locationManager
                     )
                 }
             }
@@ -249,7 +250,8 @@ fun KupidXApp(
     openUpgradeLanding: Boolean,
     onNotificationsConsumed: () -> Unit,
     onUpgradeConsumed: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    locationManager: LocationManager
 ) {
     val navController = rememberNavController()
     val ctx = LocalContext.current
@@ -276,6 +278,7 @@ fun KupidXApp(
     MainScreen(
         navController = navController,
         onLogout      = onLogout,
-        postViewModel = postViewModel
+        postViewModel = postViewModel,
+        locationManager = locationManager
     )
 }

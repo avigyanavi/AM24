@@ -284,6 +284,9 @@
     <string name="delivered_status">✔ Delivered</string>
     <string name="your_rating">Your Rating: %s</string>
     <string name="scroll_to_top">Scroll to Top</string>
+    <string name="cd_country_filter">Browse by country</string>
+    <string name="clear_country_filter">Clear country filter</string>
+    <string name="gender_other">Other</string>
 
     <!-- DMScreen: states / toasts / labels -->
     <string name="dm_failed_load_profile">Failed to load profile</string>

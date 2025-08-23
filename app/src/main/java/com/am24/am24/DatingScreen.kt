@@ -188,7 +188,6 @@ fun DatingScreen(
     LaunchedEffect(Unit) {
         profileViewModel.fetchCurrentUserProfile()
         datingViewModel.startInventoryWatcher(myUid)        // NEW  ←───────────────★
-        dailyLoginInfo = checkDailyLoginReward()
     }
 
     // ── StateFlows ────────────────────────────────────────────────────
@@ -217,6 +216,15 @@ fun DatingScreen(
     var showBoostFlash    by rememberSaveable { mutableStateOf(false) }
     val isPremium by profileViewModel.isPremium.collectAsState(false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(false)
+
+    LaunchedEffect(isPremium, isPlus, isIndian) {
+        if (!isPremium && !isPlus && !isIndian) {
+            dailyLoginInfo = checkDailyLoginReward()
+        } else {
+            dailyLoginInfo = null
+        }
+    }
+
 
     // constants
     val BOOST_DURATION = 1 * 60 * 60 * 1000L
@@ -261,7 +269,7 @@ fun DatingScreen(
         likers = snap.children.mapNotNull { it.key }.toSet()
     }
 
-    if (!isPremium && !isIndian) dailyLoginInfo?.let { info ->
+    if (!isPremium && !isPlus && !isIndian) dailyLoginInfo?.let { info ->
         val kupidxOrange = Color(0xFFFF6F00)
         AlertDialog(
             onDismissRequest = { dailyLoginInfo = null },

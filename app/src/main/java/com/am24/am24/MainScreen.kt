@@ -44,7 +44,7 @@ import androidx.compose.ui.res.stringResource
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
-fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel) {
+fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel, locationManager: LocationManager) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
@@ -92,7 +92,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     onPriceChange = { priceTier.value = it },
                     onLogout = onLogout,
                     isPremium = isPremium,
-                    isPlus = isPlus
+                    isPlus = isPlus,
+                    locationManager = locationManager
                 )
             }
         },
@@ -113,7 +114,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             navController = navController,
             modifier = Modifier.padding(paddingValues),
             postViewModel = postViewModel,
-            currentPrice = priceTier.value
+            currentPrice = priceTier.value,
+            locationManager = locationManager
         )
     }
 }
@@ -129,6 +131,7 @@ fun TopNavBar(
     onPriceChange: (String) -> Unit = {},
     isPremium: Boolean,
     isPlus: Boolean,
+    locationManager: LocationManager
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -164,6 +167,8 @@ fun TopNavBar(
     var priceMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedPriceRange by rememberSaveable { mutableStateOf(priceAll) }
     var orientationMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var countryMenuExpanded by remember { mutableStateOf(false) }
+    var selectedCountry by rememberSaveable { mutableStateOf("") }
 
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
@@ -189,6 +194,10 @@ fun TopNavBar(
                 } else {
                     allowLocationPublic = savedPublicPref
                 }
+                // Track spoofed country
+                val spoofed = snapshot.child("isLocationSpoofed").getValue(Boolean::class.java) == true
+                val country = snapshot.child("country").getValue(String::class.java) ?: ""
+                selectedCountry = if (spoofed) country else ""
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -253,6 +262,59 @@ fun TopNavBar(
                 }
                 IconButton(onClick = { navController.navigate("feedback_list") }) {
                     Icon(Icons.Default.Feedback, contentDescription = "View Feedback")
+                }
+            }
+
+            if (isPlus) {
+                IconButton(onClick = { countryMenuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = stringResource(R.string.cd_country_filter),
+                        tint = if (selectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = countryMenuExpanded,
+                    onDismissRequest = { countryMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.clear_country_filter)) },
+                        onClick = {
+                            countryMenuExpanded = false
+                            val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                            profileRef.updateChildren(
+                                mapOf(
+                                    "isLocationSpoofed" to false,
+                                    "country" to ""
+                                )
+                            )
+                            selectedCountry = ""
+                            locationManager.resumeUpdates()
+                        }
+                    )
+                    val countryOptions = stringArrayResource(R.array.country_names).toList()
+                    countryOptions.forEach { c ->
+                        DropdownMenuItem(
+                            text = { Text(c) },
+                            onClick = {
+                                countryMenuExpanded = false
+                                CountryLatLngMap.getLatLng(c)?.let { (lat, lng) ->
+                                    locationManager.pauseUpdates()
+                                    locationManager.setCustomLocation(currentUserId, lat, lng)
+                                    val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                    profileRef.updateChildren(
+                                        mapOf(
+                                            "country" to c,
+                                            "city" to "",
+                                            "isLocationSpoofed" to true
+                                        )
+                                    )
+                                    selectedCountry = c
+                                }
+                            }
+                        )
+                    }
                 }
             }
 

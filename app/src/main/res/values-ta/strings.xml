@@ -55,12 +55,13 @@
 
         <!-- People grid -->
         <string name="no_one_nearby_yet">அருகில் இப்போது யாரும் இல்லை</string>
-
+        <string name="gender_other">மற்றவை</string>
         <!-- Chips & filters -->
         <string name="label_radius">அரைவு</string>
         <string name="gender_women">பெண்கள்</string>
         <string name="gender_men">ஆண்கள்</string>
-
+        <string name="cd_country_filter">நாடு வாரியாக உலாவவும்</string>
+        <string name="clear_country_filter">நாடு வடிகட்டியை நீக்கவும்</string>
         <!-- Place popup & sending -->
         <string name="btn_directions">வழிமுறை</string>
         <string name="btn_send_to_match">மேட்ச்-க்கு அனுப்பு</string>

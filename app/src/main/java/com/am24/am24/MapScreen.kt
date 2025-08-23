@@ -107,7 +107,7 @@ enum class SortMode { NEARBY, ACTIVE }
 
 enum class Region { LA, SF_BAY, NONE }
 
-enum class GenderFilter { BOTH, WOMEN, MEN }
+enum class GenderFilter { BOTH, WOMEN, MEN, OTHER }
 
 data class NearbyUser(
     val userId: String,
@@ -202,7 +202,7 @@ fun MapScreen(
     onProfileMarkerClicked: (String) -> Unit,
     currentPrice: String,
     nearbyViewModel: NearbyViewModel,
-    radiusKmDefault: Double = 50.0
+    radiusKmDefault: Double = 1000.0
 ) {
     val ctx = LocalContext.current
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -508,6 +508,7 @@ fun MapScreen(
                 GenderFilter.BOTH -> people
                 GenderFilter.WOMEN -> people.filter { it.gender.equals("Female", true) }
                 GenderFilter.MEN   -> people.filter { it.gender.equals("Male", true) }
+                GenderFilter.OTHER -> people.filter { it.gender.equals("Other", true) }
             }
             if (orientationFilter.isNotBlank() && (isPlus || isPremium)) {
                 list = list.filter { it.sexualOrientation.equals(orientationFilter, true) }
@@ -1439,7 +1440,8 @@ private fun GenderFilterChip(
             // Show only Women / Men chips
             listOf(
                 GenderFilter.WOMEN to stringResource(R.string.gender_women),
-                GenderFilter.MEN   to stringResource(R.string.gender_men)
+                GenderFilter.MEN   to stringResource(R.string.gender_men),
+                GenderFilter.OTHER to stringResource(R.string.gender_other)
             ).forEach { (type, label) ->
                 FilterChip(
                     selected = selected == type,

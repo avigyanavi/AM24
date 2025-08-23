@@ -55,7 +55,8 @@ fun MainNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     postViewModel: PostViewModel,
-    currentPrice  : String
+    currentPrice  : String,
+    locationManager: LocationManager
 ) {
     var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
@@ -93,7 +94,7 @@ fun MainNavGraph(
 
     // Initialize LocationManager (safe inside Composable)
     val context = LocalContext.current
-    val locationManager = remember { LocationManager(context) }
+    val locationManagerRemembered = remember { locationManager }
 
     val geoFireDatabaseRef = FirebaseRefs.db.getReference("geoFireLocations")
 
@@ -315,7 +316,7 @@ fun MainNavGraph(
             // Pass references
             MapScreen(
                 userId = userId,
-                locationManager = locationManager,        // Or create it via DI
+                locationManager = locationManagerRemembered,        // Or create it via DI
                 geoFireDatabaseRef = geoFireDatabaseRef,
                 navController = navController, // NEW parameter
                 onProfileMarkerClicked = { profileId ->

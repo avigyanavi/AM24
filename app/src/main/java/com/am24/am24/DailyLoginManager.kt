@@ -19,6 +19,7 @@ suspend fun checkDailyLoginReward(): DailyLoginInfo? {
     val lastLoginDay = snap.child("lastLoginDay").getValue(Long::class.java) ?: -1L
     var streak = snap.child("loginStreak").getValue(Int::class.java) ?: 0
     val isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
+    val isPlus = snap.child("isPlus").getValue(Boolean::class.java) ?: false
     val rewardExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
     val country = snap.child("country").getValue(String::class.java)
     val isIndian = country?.equals("India", true) == true
@@ -36,8 +37,7 @@ suspend fun checkDailyLoginReward(): DailyLoginInfo? {
         return null
     }
 
-    if (isPremium) return null
-
+    if (isPlus || isPremium) return null
 
     if (lastLoginDay == today) return null
 
@@ -46,9 +46,9 @@ suspend fun checkDailyLoginReward(): DailyLoginInfo? {
     ref.child("loginStreak").setValue(streak)
 
     var rewardHours = 0
-    when (streak) {
-        3 -> rewardHours = 24
-        5 -> rewardHours = 48
+    when {
+        streak == 3 -> rewardHours = 24
+        streak >= 5 -> rewardHours = 24
     }
 
     if (rewardHours > 0) {

@@ -26,6 +26,9 @@ class NearbyViewModel : ViewModel() {
     var isRefreshing by mutableStateOf(false)
 
     private var geoQuery: GeoQuery? = null
+    private val userCache = mutableMapOf<String, NearbyUser>()
+    private val cacheTimestamps = mutableMapOf<String, Long>()
+    private val cacheTtlMs = 5 * 60 * 1000L
 
     /**
      * Refresh the People tab:
@@ -35,8 +38,10 @@ class NearbyViewModel : ViewModel() {
     fun refreshNearbyUsers(
         userId: String,
         center: LatLng,
-        geoFireDatabaseRef: DatabaseReference
+        geoFireDatabaseRef: DatabaseReference,
+        forceRefresh: Boolean = false
     ) {
+        if (forceRefresh) invalidateCache()
         // Reset
         geoQuery?.removeAllListeners()
         geoQuery = null
@@ -65,6 +70,16 @@ class NearbyViewModel : ViewModel() {
         people.removeAll { it.userId == uid }
     }
 
+    fun invalidateCache(userId: String? = null) {
+        if (userId == null) {
+            userCache.clear()
+            cacheTimestamps.clear()
+        } else {
+            userCache.remove(userId)
+            cacheTimestamps.remove(userId)
+        }
+    }
+
     /**
      * GeoFire listener that IGNORES visibility/matches and only honors radius/exclusions.
      */
@@ -85,6 +100,18 @@ class NearbyViewModel : ViewModel() {
         fun buildUser(uid: String, loc: GeoLocation?) {
             if (uid == currentUserId) return
             if (uid in excludedUserIds) return
+            val now = System.currentTimeMillis()
+            val latLng = if (loc != null) LatLng(loc.latitude, loc.longitude) else null
+            val distM = if (latLng != null) distanceMeters(center, latLng) else Double.POSITIVE_INFINITY
+
+            val cached = userCache[uid]
+            val timestamp = cacheTimestamps[uid] ?: 0L
+            if (cached != null && now - timestamp < cacheTtlMs) {
+                val updated = cached.copy(latLng = latLng, distanceMeters = distM)
+                userCache[uid] = updated
+                onEnterOrMove(updated)
+                return
+            }
 
             val usersRef = FirebaseRefs.db.getReference("users").child(uid)
             usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
@@ -99,22 +126,21 @@ class NearbyViewModel : ViewModel() {
                     val username = (p.username ?: "").ifBlank { p.name ?: "" }
                     val age = calculateAge(p.dob)
                     val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
-                    val latLng = if (loc != null) LatLng(loc.latitude, loc.longitude) else null
-                    val distM = if (latLng != null) distanceMeters(center, latLng) else Double.POSITIVE_INFINITY
 
-                    onEnterOrMove(
-                        NearbyUser(
-                            userId = uid,
-                            username = username,
-                            age = age,
-                            photoUrl = p.profilepicUrl,
-                            lastActiveAt = lastActive,
-                            latLng = latLng,
-                            distanceMeters = distM,
-                            gender = p.gender ?: "",
-                            sexualOrientation = p.sexualOrientation ?: ""
-                        )
+                    val user = NearbyUser(
+                        userId = uid,
+                        username = username,
+                        age = age,
+                        photoUrl = p.profilepicUrl,
+                        lastActiveAt = lastActive,
+                        latLng = latLng,
+                        distanceMeters = distM,
+                        gender = p.gender ?: "",
+                        sexualOrientation = p.sexualOrientation ?: ""
                     )
+                    userCache[uid] = user
+                    cacheTimestamps[uid] = now
+                    onEnterOrMove(user)
                 }
 
                 override fun onCancelled(error: DatabaseError) {

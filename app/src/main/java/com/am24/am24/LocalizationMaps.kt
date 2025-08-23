@@ -517,18 +517,19 @@ val genderNameToRes = mapOf(
     "ਔਰਤ" to R.string.female_option, // Punjabi
 
     // Other
-    "Other" to R.string.college_other, // Corrected from college_other
-    "অন্যান্য" to R.string.college_other, // Bengali
-    "अन्य" to R.string.college_other, // Hindi
-    "மற்றவை" to R.string.college_other, // Tamil
-    "ଅନ୍ୟାନ୍ୟ" to R.string.college_other, // Odia
-    "ఇతర" to R.string.college_other, // Telugu
-    "इतर" to R.string.college_other, // Marathi
-    "અન્ય" to R.string.college_other, // Gujarati
-    "ಇತರೆ" to R.string.college_other, // Kannada
-    "മറ്റുള്ളവ" to R.string.college_other, // Malayalam
-    "অন্যান্য" to R.string.college_other, // Assamese
-    "ਹੋਰ" to R.string.college_other // Punjabi
+    "Other" to R.string.gender_other,
+    "Otros" to R.string.gender_other, // Spanish
+    "অন্যান্য" to R.string.gender_other, // Bengali
+    "अन्य" to R.string.gender_other, // Hindi
+    "மற்றவை" to R.string.gender_other, // Tamil
+    "ଅନ୍ୟାନ୍ୟ" to R.string.gender_other, // Odia
+    "ఇతర" to R.string.gender_other, // Telugu
+    "इतर" to R.string.gender_other, // Marathi
+    "અન્ય" to R.string.gender_other, // Gujarati
+    "ಇತರೆ" to R.string.gender_other, // Kannada
+    "മറ്റുള്ളവ" to R.string.gender_other, // Malayalam
+    "অন্যান্য" to R.string.gender_other, // Assamese
+    "ਹੋਰ" to R.string.gender_other // Punjabi
 )
 
 val communityNameToRes = mapOf(

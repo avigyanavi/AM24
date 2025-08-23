@@ -131,7 +131,9 @@
     <string name="record">রেকর্ড করুন</string>
     <string name="add_a_comment">একটি মন্তব্য যোগ করুন…</string>
     <string name="play_pause">প্লে/পজ</string>
-
+    <string name="cd_country_filter">দেশ অনুযায়ী ব্রাউজ করুন</string>
+    <string name="clear_country_filter">দেশ ফিল্টার মুছে ফেলুন</string>
+    <string name="gender_other">অন্যান্য</string>
     <!-- Tag search -->
 
     <string name="dm_change_location">লোকেশন পরিবর্তন করুন</string>

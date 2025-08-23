@@ -192,20 +192,22 @@ fun SettingsScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                val now = System.currentTimeMillis()
-                val plusText = if (loginPlusExpiry > now)
-                    stringResource(R.string.plus_time_left, ((loginPlusExpiry - now) / 3600000).toInt())
-                else stringResource(R.string.no_plus)
+            if (premiumTier == "Free") {
+                item {
+                    val now = System.currentTimeMillis()
+                    val plusText = if (loginPlusExpiry > now)
+                        stringResource(R.string.plus_time_left, ((loginPlusExpiry - now) / 3600000).toInt())
+                    else stringResource(R.string.no_plus)
 
-                Text(
-                    stringResource(R.string.settings_streak_line, loginStreak, plusText),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.SemiBold
-                )
+                    Text(
+                        stringResource(R.string.settings_streak_line, loginStreak, plusText),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             /*──────────────── Premium / Subscription card ─────────────*/

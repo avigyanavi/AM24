@@ -44,14 +44,15 @@
     <string name="dm_your_rating">మీ రేటింగ్: %1$s</string>
     <string name="dm_unmatch_with">%1$s తో ఉన్న మ్యాచ్‌ను తొలగించాలా?</string>
     <string name="dm_unmatch_warning">దాంతో మ్యాచ్ తొలగించబడుతుంది మరియు మీ సంభాషణ చరితం తొలగించబడుతుంది.</string>
-
+    <string name="gender_other">ఇతర</string>
     <string name="prompt_country">దేశం</string>
     <string name="prompt_city">నగరం</string>
     <string name="prompt_locality">ప్రాంతం</string>
     <string name="placeholder_not_selected">ఎంపిక చేయబడలేదు</string>
     <string name="dm_select_country_first">కనీసం దేశాన్ని అయినా ఎంచుకోండి</string>
     <string name="dm_location_updated">స్థానం నవీకరించబడింది</string>
-
+    <string name="cd_country_filter">దేశం వారీగా బ్రౌజ్ చేయండి</string>
+    <string name="clear_country_filter">దేశం ఫిల్టర్‌ను క్లియర్ చేయండి</string>
     <string name="dm_voice_compliment">మీకు ఒక వాయిస్ ప్రశంస పంపారు</string>
     <string name="dm_compliment_label">ప్రశంస</string>
 
