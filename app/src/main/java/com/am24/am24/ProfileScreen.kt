@@ -1101,6 +1101,7 @@ fun BasicInfoEditSection(
     onCancel: () -> Unit
 ) {
     val notSelected = stringResource(R.string.not_selected)
+    val context = LocalContext.current
     // State for all fields
     var name by remember { mutableStateOf(tempProfile.name) }
     var city by remember { mutableStateOf(tempProfile.city) }
@@ -2501,6 +2502,7 @@ fun PerformanceMetricsSection(profile: Profile) {
 /** Preferences (View-Only) */
 @Composable
 fun PreferencesSection(profile: Profile) {
+    val ctx = LocalContext.current
     ProfileDetailRow(    stringResource(R.string.looking_for_label),
         localizedLookingFor(profile.lookingFor)
             .ifBlank { stringResource(R.string.not_specified) }, Icons.Default.Favorite)
@@ -4231,6 +4233,7 @@ fun PreferencesEditSection(
     onCancel: () -> Unit
 ) {
     val notSelected = stringResource(R.string.not_selected)
+    val context = LocalContext.current
 
     // Looking For
     val lookingForOptions = listOf(
