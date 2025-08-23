@@ -14,6 +14,8 @@ import com.am24.am24.calculateAge
 import com.am24.am24.calculateDistance
 import com.am24.am24.canonicalGenderRes
 import com.am24.am24.handleSwipeRight
+import com.am24.am24.toGenderCode
+import com.am24.am24.toOrientationCode
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -176,9 +178,15 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 /* grab profile + filters in one round-trip */
                 val userSnap  = usersRef.child(uid).get().await()
                 val profile   = userSnap.getValue(Profile::class.java)
-                val filtersDb = userSnap.child("datingFilters")
+                val rawFilters = userSnap.child("datingFilters")
                     .getValue(DatingFilterSettings::class.java)
                     ?: DatingFilterSettings().copy(distance = WORLDWIDE_DISTANCE)
+                val filtersDb = rawFilters.copy(
+                    gender = rawFilters.gender.split(",").mapNotNull { it.toGenderCode()?.name }.joinToString(","),
+                    sexualOrientation = rawFilters.sexualOrientation.toOrientationCode()?.name
+                        ?: rawFilters.sexualOrientation
+                )
+
 
                 /* ▶︎ if gender not set yet, seed it from profile.interestedIn */
                 val seededFilters = if (filtersDb.gender.isBlank()) {
@@ -617,25 +625,16 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
         // Apply gender filter
         if (filters.gender.isNotBlank()) {
-            val genderIds = filters.gender.split(",")
-                .mapNotNull { canonicalGenderRes(it) }
+            val genderCodes = filters.gender.split(",").mapNotNull { it.toGenderCode() }
             result = result.filter { profile ->
-                val gId = canonicalGenderRes(profile.gender)
-                when (gId) {
-                    null -> true
-                    R.string.male_option -> genderIds.contains(R.string.male_option)
-                    R.string.female_option -> genderIds.contains(R.string.female_option)
-                    else -> genderIds.any {
-                        it == R.string.male_option || it == R.string.female_option
-                    }
-                }
+                profile.gender.toGenderCode() in genderCodes
             }
         }
 
         // Apply sexual orientation filter
         if (filters.sexualOrientation.isNotBlank()) {
             result = result.filter { profile ->
-                profile.sexualOrientation.equals(filters.sexualOrientation, ignoreCase = true)
+                profile.sexualOrientation.toOrientationCode()?.name == filters.sexualOrientation
             }
         }
 

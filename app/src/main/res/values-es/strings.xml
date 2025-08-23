@@ -147,6 +147,7 @@
     <!-- es -->
     <string name="cd_country_filter">Explorar por país</string>
     <string name="clear_country_filter">Borrar filtro de país</string>
+    <string name="country_coords_unavailable">Coordenadas no disponibles para %1$s</string>
     <string name="feature_no_ads">Sin anuncios</string>
     <string name="feature_priority_profile">Perfil prioritario en la lista de citas</string>
     <string name="feature_people_liked_me">Desbloquear personas que me gustaron</string>
@@ -978,7 +979,7 @@
     <string name="income_level_100k_150k">$100k–$150k</string>
     <string name="income_level_over_150k">Más de $150k</string>
 
-    <string name="looking_for_long_term">A largo plazo</string>
+    <string name="looking_for_long_term">Relación a largo plazo</string>
     <string name="looking_for_short_to_long">Corto plazo: abierto a largo</string>
     <string name="looking_for_casual">Casual</string>
     <string name="looking_for_dating">Citas</string>
@@ -1651,6 +1652,15 @@
     <string name="subscription_suspended">Suspendida</string>
     <string name="subscription_expired">Vencida</string>
     <string name="payment_failed">Pago fallido</string>
+
+
+    <string name="orientation_straight">Heterosexual</string>
+    <string name="orientation_gay">Gay</string>
+    <string name="orientation_lesbian">Lesbiana</string>
+    <string name="orientation_bisexual">Bisexual</string>
+    <string name="orientation_pansexual">Pansexual</string>
+    <string name="orientation_asexual">Asexual</string>
+    <string name="orientation_queer">Queer</string>
 
     <string name="verify_email">Verificar correo</string>
     <string name="resend_link">Reenviar enlace</string>

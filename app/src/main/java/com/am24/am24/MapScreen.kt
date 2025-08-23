@@ -80,7 +80,8 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.res.pluralStringResource
-
+import java.text.Normalizer
+import java.text.Normalizer.Form.NFD
 
 
 /* ======================================================================================= */
@@ -253,7 +254,8 @@ fun MapScreen(
         sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
         lastActiveHours = prefs.getFloat("map_last_active_hours", 168f).toDouble()
-        genderFilter = prefs.getString("map_gender_filter", null)?.let { GenderFilter.valueOf(it) }
+        genderFilter = prefs.getString("map_gender_filter", null)
+            ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() }
             ?: GenderFilter.BOTH
     }
 
@@ -505,13 +507,13 @@ fun MapScreen(
     ) {
         derivedStateOf {
             var list = when (genderFilter) {
-                GenderFilter.BOTH -> people
-                GenderFilter.WOMEN -> people.filter { it.gender.equals("Female", true) }
-                GenderFilter.MEN   -> people.filter { it.gender.equals("Male", true) }
-                GenderFilter.OTHER -> people.filter { it.gender.equals("Other", true) }
+                GenderFilter.BOTH  -> people
+                GenderFilter.WOMEN -> people.filter { it.gender.toGenderCode() == Gender.FEMALE }
+                GenderFilter.MEN   -> people.filter { it.gender.toGenderCode() == Gender.MALE }
+                GenderFilter.OTHER -> people.filter { it.gender.toGenderCode() == Gender.OTHER }
             }
             if (orientationFilter.isNotBlank() && (isPlus || isPremium)) {
-                list = list.filter { it.sexualOrientation.equals(orientationFilter, true) }
+                list = list.filter { it.sexualOrientation.toOrientationCode()?.name == orientationFilter }
             }
 
             // PREMIUM GATE: only filter by last-active if user has Plus/Premium
@@ -529,6 +531,22 @@ fun MapScreen(
             when (sortMode) {
                 SortMode.NEARBY -> filteredPeople.sortedBy { it.distanceMeters }
                 SortMode.ACTIVE -> filteredPeople.sortedByDescending { it.lastActiveAt }
+            }
+        }
+    }
+
+    /* 👇 Add this debug effect right here */
+    LaunchedEffect(people, genderFilter) {
+        if (genderFilter != GenderFilter.BOTH) {
+            val misses = people.filter {
+                val c = canonicalGender(it.gender)
+                (genderFilter == GenderFilter.WOMEN && c != "female") ||
+                        (genderFilter == GenderFilter.MEN   && c != "male") ||
+                        (genderFilter == GenderFilter.OTHER && c != "other")
+            }.take(20)
+            if (misses.isNotEmpty()) {
+                Log.d("GenderDebug", "Unmatched (${misses.size}): " +
+                        misses.joinToString { "${it.userId}:${it.gender}" })
             }
         }
     }
@@ -1444,6 +1462,37 @@ private fun GenderFilterChip(
                 )
             }
         }
+    }
+}
+private fun deaccent(s: String): String {
+    // NFD = split accents into separate code points, then strip marks (\p{Mn})
+    val nfd = Normalizer.normalize(s, Normalizer.Form.NFD)
+    return nfd.replace(Regex("\\p{Mn}+"), "")
+}
+
+
+private fun canonicalGender(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    val t = deaccent(raw).trim().lowercase(Locale.ROOT)
+
+    return when (t) {
+        // English
+        "male", "m", "man" -> "male"
+        "female", "f", "woman" -> "female"
+        "other", "others", "non-binary", "nonbinary", "nb" -> "other"
+
+        // Spanish (lowercase; include common forms)
+        "hombre", "hombres", "masculino" -> "male"
+        "mujer", "mujeres", "femenino" -> "female"
+        "otro", "otra", "otros", "otras",
+        "no binario", "no-binario", "no_binario", "nobinario" -> "other"
+
+        // Stored resource keys
+        "male_option" -> "male"
+        "female_option" -> "female"
+        "gender_other" -> "other"
+
+        else -> t
     }
 }
 

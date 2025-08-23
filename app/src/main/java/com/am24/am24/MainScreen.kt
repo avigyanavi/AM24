@@ -304,10 +304,11 @@ fun TopNavBar(
                             text = { Text(c) },
                             onClick = {
                                 countryMenuExpanded = false
-                                CountryLatLngMap.getLatLng(c)?.let { (lat, lng) ->
+                                val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                val latLng = CountryLatLngMap.getLatLng(c)
+                                if (latLng != null) {
                                     locationManager.pauseUpdates()
-                                    locationManager.setCustomLocation(currentUserId, lat, lng)
-                                    val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                    locationManager.setCustomLocation(currentUserId, latLng.first, latLng.second)
                                     profileRef.updateChildren(
                                         mapOf(
                                             "country" to c,
@@ -315,8 +316,17 @@ fun TopNavBar(
                                             "isLocationSpoofed" to true
                                         )
                                     )
-                                    selectedCountry = c
+                                } else {
+                                    Toast.makeText(context, context.getString(R.string.country_coords_unavailable, c), Toast.LENGTH_SHORT).show()
+                                    profileRef.updateChildren(
+                                        mapOf(
+                                            "country" to c,
+                                            "city" to "",
+                                            "isLocationSpoofed" to false
+                                        )
+                                    )
                                 }
+                                selectedCountry = c
                             }
                         )
                     }
@@ -372,16 +382,17 @@ fun TopNavBar(
                             }
                         )
                         orientationOptions.forEach { opt ->
+                            val code = opt.toOrientationCode()?.name
                             DropdownMenuItem(
                                 text = {
                                     Text(
                                         opt,
-                                        color = if (opt == orientationFilter) Color(0xFFFF6F00) else Color.White
+                                        color = if (code == orientationFilter) Color(0xFFFF6F00) else Color.White
                                     )
                                 },
                                 onClick = {
                                     orientationMenuExpanded = false
-                                    savedStateHandle?.set("mapOrientationFilter", opt)
+                                    savedStateHandle?.set("mapOrientationFilter", code ?: "")
                                 }
                             )
                         }

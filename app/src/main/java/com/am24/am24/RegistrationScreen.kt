@@ -2840,7 +2840,8 @@ suspend fun saveProfileToFirebase(
             dob = registrationViewModel.dob,
             email = registrationViewModel.email,
             bio = registrationViewModel.bio,
-            gender = registrationViewModel.gender,
+            gender = registrationViewModel.gender.toGenderCode()?.name
+                ?: registrationViewModel.gender,
             interests = registrationViewModel.interests.toList(),
             // Save the city using customCity if "Other" is selected
             city = if (registrationViewModel.city == other) registrationViewModel.customCity.trim() else registrationViewModel.city.trim(),
@@ -2861,7 +2862,8 @@ suspend fun saveProfileToFirebase(
             educationLevel = registrationViewModel.educationLevel,
             lifestyle = registrationViewModel.lifestyle,
             lookingFor = registrationViewModel.lookingFor,
-            sexualOrientation = registrationViewModel.sexualOrientation,
+            sexualOrientation = registrationViewModel.sexualOrientation.toOrientationCode()?.name
+                ?: registrationViewModel.sexualOrientation,
             kinks = registrationViewModel.kinks.toList(),
             politics = registrationViewModel.politics,
             socialCauses = registrationViewModel.socialCauses.toList(),
@@ -4244,11 +4246,12 @@ fun EnterOrientationScreen(
 }
 
 fun inferInterestedIn(gender: String, orientation: String): List<String> {
-    return when (orientation.lowercase()) {
-        "straight" -> if (gender.equals("male", true)) listOf("Women") else listOf("Men")
-        "gay" -> listOf("Men")
-        "lesbian" -> listOf("Women")
-        "bisexual", "pansexual", "queer" -> listOf("Men", "Women")
+    val g = gender.toGenderCode()
+    return when (orientation.toOrientationCode()) {
+        SexualOrientation.STRAIGHT -> if (g == Gender.MALE) listOf("Women") else listOf("Men")
+        SexualOrientation.GAY -> listOf("Men")
+        SexualOrientation.LESBIAN -> listOf("Women")
+        SexualOrientation.BISEXUAL, SexualOrientation.PANSEXUAL, SexualOrientation.QUEER -> listOf("Men", "Women")
         else -> emptyList()
     }
 }

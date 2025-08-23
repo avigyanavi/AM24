@@ -929,7 +929,9 @@ private fun fetchRandomUserForLottery(
     usersRef.get().addOnSuccessListener { snap ->
         val list = snap.children.mapNotNull { it.getValue(Profile::class.java) }
             .filter { it.userId != currentUserId && !excludedIds.contains(it.userId) }
-            .filter { gender == "Both" || it.gender.equals(gender, true) }
+            .filter {
+                gender == "Both" || it.gender.toGenderCode() == gender.toGenderCode()
+            }
         onResult(list.randomOrNull())
     }.addOnFailureListener { onResult(null) }
 }

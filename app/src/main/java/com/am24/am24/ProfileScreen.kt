@@ -8,7 +8,6 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -22,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.AlertDialog
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
@@ -37,7 +35,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -54,26 +51,20 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
-import java.text.ParseException
-import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 import coil.request.ImageRequest
 import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
 import com.am24.am24.util.CachedFullscreenVideoPlayer
-import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.tasks.await
 
 @Composable
@@ -88,10 +79,7 @@ fun ProfileScreen(
 
 // ── 1) replace the existing `needsVerification` val with a mutable state ─────────
     val user                 = FirebaseAuth.getInstance().currentUser
-    val isPwdUser            = user?.providerData?.any { it.providerId == "password" } == true
-//    var needsVerification by remember {         // ← make it mutable
-//        mutableStateOf(isPwdUser && user?.isEmailVerified == false)
-//    }
+
     var needsVerification = false
 
 // ── 2) keep the rest of your state ----------------------------------------------
@@ -563,7 +551,7 @@ private fun localizedCaste(raw: String): String =
 
 @Composable
 private fun localizedGender(raw: String): String =
-    genderNameToRes[raw]?.let { stringResource(it) } ?: raw
+    raw.toGenderCode()?.localized(LocalContext.current) ?: raw
 
 @Composable
 private fun localizedCommunity(raw: String): String =
@@ -963,10 +951,10 @@ fun MatrimonyToggleRow(
 
 @Composable
 fun BasicInfoSection(profile: Profile) {
-    val genderIcon = when (profile.gender.lowercase()) {
-        "male"   -> Icons.Default.Male
-        "female" -> Icons.Default.Female
-        else     -> Icons.Default.Transgender
+    val genderIcon = when (profile.gender.toGenderCode()) {
+        Gender.MALE   -> Icons.Default.Male
+        Gender.FEMALE -> Icons.Default.Female
+        else          -> Icons.Default.Transgender
     }
     val ctx = LocalContext.current
     val heightString = if (profile.height2.size == 2)
@@ -1138,7 +1126,10 @@ fun BasicInfoEditSection(
         stringResource(R.string.gender_either)
     )
     var selectedGender by remember {
-        mutableStateOf(tempProfile.gender.ifBlank { notSelected })
+        mutableStateOf(
+            tempProfile.gender.toGenderCode()?.localized(context)
+                ?: tempProfile.gender.ifBlank { notSelected }
+        )
     }
 
     // Job Role
@@ -2431,7 +2422,7 @@ fun BasicInfoEditSection(
                         caste = caste.takeIf { it != notSelected } ?: "",
                         height = heightCm,
                         height2 = if (isFeet) listOf(feet, inches) else emptyList(),
-                        gender = selectedGender.takeIf { it != notSelected } ?: "",
+                        gender = selectedGender.takeIf { it != notSelected }?.toGenderCode()?.name ?: "",
                         jobRole = selectedJobRole.takeIf { it != notSelected } ?: "",
                         customJobRole = selectedJobRole.takeIf { it == jobRoleOptions.last() }
                             ?.let { customJobRole },
@@ -2531,7 +2522,8 @@ fun PreferencesSection(profile: Profile) {
     )
     ProfileDetailRow(
         stringResource(R.string.sexual_orientation_label),
-        profile.sexualOrientation.ifBlank { stringResource(R.string.not_specified) },
+        profile.sexualOrientation.toOrientationCode()?.localized(ctx)
+            ?: if (profile.sexualOrientation.isBlank()) stringResource(R.string.not_specified) else profile.sexualOrientation,
         Icons.Default.Favorite
     )
     ProfileDetailRow(
@@ -4296,7 +4288,12 @@ fun PreferencesEditSection(
     }
 
     val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
-    var selectedOrientation by remember { mutableStateOf(tempProfile.sexualOrientation.ifBlank { notSelected }) }
+    var selectedOrientation by remember {
+        mutableStateOf(
+            tempProfile.sexualOrientation.toOrientationCode()?.localized(context)
+                ?: tempProfile.sexualOrientation.ifBlank { notSelected }
+        )
+    }
     var kinksText by remember { mutableStateOf(tempProfile.kinks.joinToString(", ")) }
 
     Column(
@@ -4444,7 +4441,7 @@ fun PreferencesEditSection(
 
         ButtonRow(
             onSave = {
-                val orientationFinal = selectedOrientation.takeIf { it != notSelected } ?: ""
+                val orientationFinal = selectedOrientation.takeIf { it != notSelected }?.toOrientationCode()?.name ?: ""
                 val kinksList = kinksText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                 val orientGenders = inferInterestedIn(tempProfile.gender, orientationFinal)
                 val updated = tempProfile.copy(

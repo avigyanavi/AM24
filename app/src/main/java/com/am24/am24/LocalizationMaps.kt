@@ -488,6 +488,13 @@ val casteNameToRes = mapOf(
 )
 
 val genderNameToRes = mapOf(
+
+    "Hombre" to R.string.male_option,
+    "Mujer" to R.string.female_option,
+    "Otro" to R.string.gender_other,
+    "Otra" to R.string.gender_other,
+    // (You already have "Otros" → keeping it is fine as a variant)
+    "No binario" to R.string.gender_other,
     // Male
     "Male" to R.string.male_option,
     "পুরুষ" to R.string.male_option, // Bengali
@@ -1067,6 +1074,18 @@ val communityNameToRes = mapOf(
 )
 
 val religionNameToRes = mapOf(
+    "Hindú" to R.string.religion_hindu,
+    "Musulmán" to R.string.religion_muslim,
+    "Cristiano" to R.string.religion_christian,
+    "Budista" to R.string.religion_buddhist,
+    "Jainista" to R.string.religion_jain,
+    "Sij" to R.string.religion_sikh,          // también se usa “Sikh”
+    "Judío" to R.string.religion_jewish,
+    "Indígena/Tribal" to R.string.religion_indigenous_tribal,
+    "Sin religión" to R.string.religion_no_religion,
+    "Zoroastriano" to R.string.religion_parsi,
+    "Parsi" to R.string.religion_parsi,       // alias común
+    "Otro" to R.string.religion_other,
     // Hindu
     "Hindu" to R.string.religion_hindu,
     "হিন্দু" to R.string.religion_hindu, // Bengali
@@ -2503,6 +2522,7 @@ val lookingForNameToRes = mapOf(
 
     // Connection
     "Connection" to R.string.looking_for_connection,
+    "Conexión" to R.string.looking_for_connection,
     "সংযোগ" to R.string.looking_for_connection, // Bengali
     "कनेक्शन" to R.string.looking_for_connection, // Hindi
     "இணைப்பு" to R.string.looking_for_connection, // Tamil
@@ -2517,6 +2537,7 @@ val lookingForNameToRes = mapOf(
 
     // Partner
     "Partner" to R.string.looking_for_partner,
+    "Pareja" to R.string.looking_for_partner,
     "সঙ্গী" to R.string.looking_for_partner, // Bengali
     "साथी" to R.string.looking_for_partner, // Hindi
     "துணை" to R.string.looking_for_partner, // Tamil
@@ -2528,9 +2549,12 @@ val lookingForNameToRes = mapOf(
     "പങ്കാളി" to R.string.looking_for_partner, // Malayalam
     "সঙ্গী" to R.string.looking_for_partner, // Assamese
     "ਸਾਥੀ" to R.string.looking_for_partner, // Punjabi
-
+    "Casual" to R.string.looking_for_casual,
+    "Citas" to R.string.looking_for_dating,
+    "Relación exclusiva" to R.string.looking_for_exclusive,
     // Marriage
     "Marriage" to R.string.looking_for_marriage,
+    "Matrimonio" to R.string.looking_for_marriage,
     "বিবাহ" to R.string.looking_for_marriage, // Bengali
     "विवाह" to R.string.looking_for_marriage, // Hindi
     "திருமணம்" to R.string.looking_for_marriage, // Tamil
@@ -2543,13 +2567,20 @@ val lookingForNameToRes = mapOf(
     "বিবাহ" to R.string.looking_for_marriage, // Assamese
     "ਵਿਆਹ" to R.string.looking_for_marriage, // Punjabi
     "Long term" to R.string.looking_for_long_term,
-    "Short term - open to Long" to R.string.looking_for_short_to_long,
+    "Relación a largo plazo" to R.string.looking_for_long_term,
+    "Corto plazo: abierto a largo" to R.string.looking_for_short_to_long,
     "Casual" to R.string.looking_for_casual,
     "Dating" to R.string.looking_for_dating,
     "Exclusive" to R.string.looking_for_exclusive
 )
 
 val loveLanguageNameToRes = mapOf(
+
+    "Palabras de afirmación" to R.string.love_language_option_words_of_affirmation,
+    "Actos de servicio" to R.string.love_language_option_acts_of_service,
+    "Recibir regalos" to R.string.love_language_option_receiving_gifts,
+    "Tiempo de calidad" to R.string.love_language_option_quality_time,
+    "Contacto físico" to R.string.love_language_option_physical_touch,
     // Words of Affirmation
     "Words of Affirmation" to R.string.love_language_option_words_of_affirmation,
     "প্রশংসার শব্দ" to R.string.love_language_option_words_of_affirmation, // Bengali
@@ -2622,6 +2653,19 @@ val loveLanguageNameToRes = mapOf(
 )
 
 val politicsNameToRes = mapOf(
+    "Extrema izquierda" to R.string.politics_option_far_left,
+    "Izquierda" to R.string.politics_option_left,
+    "Centro-izquierda" to R.string.politics_option_centre_left,
+    "Centro" to R.string.politics_option_centre,
+    "Centro-derecha" to R.string.politics_option_centre_right,
+    "Derecha" to R.string.politics_option_right,
+    "Extrema derecha" to R.string.politics_option_far_right,
+    "Liberal" to R.string.politics_option_liberal,
+    "Conservador" to R.string.politics_option_conservative,
+    "Moderado" to R.string.politics_option_moderate,
+    "Socialista" to R.string.politics_option_socialist,
+    "Comunista" to R.string.politics_option_communist,
+    "Otro" to R.string.politics_option_other,
     // Far Left
     "Far left" to R.string.politics_option_far_left,
     "চরম বাম" to R.string.politics_option_far_left, // Bengali

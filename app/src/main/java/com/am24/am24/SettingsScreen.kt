@@ -896,11 +896,6 @@ private fun GlobalPrefCard(
     val langs = listOf(
         "English" to "en",
         "Español" to "es",
-        "हिन्दी" to "hi",
-        "বাংলা" to "bn",
-        "தமிழ்" to "ta",
-        "తెలుగు" to "te",
-        "ಕನ್ನಡ" to "kn"
     )
     var exp by remember { mutableStateOf(false) }
 
