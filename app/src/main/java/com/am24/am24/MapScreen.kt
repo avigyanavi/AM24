@@ -1063,7 +1063,11 @@ fun MapScreen(
                                         val ll = u.latLng!!
                                         Marker(
                                             state = MarkerState(ll),
-                                            title = u.username
+                                            title = u.username,
+                                            onClick = {
+                                                onProfileMarkerClicked(u.userId)
+                                                true
+                                            }
                                         )
                                     }
 
