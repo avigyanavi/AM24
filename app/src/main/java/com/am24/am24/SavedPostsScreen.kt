@@ -125,6 +125,7 @@ fun SavedPostsScreen(
                     val isSaved = savedIds.contains(post.postId)
                     FeedItem(
                         post = post,
+                        navController = navController,
                         postViewModel = postViewModel,
                         userProfile = profile,
                         matches       = myMatches,                 // ← here

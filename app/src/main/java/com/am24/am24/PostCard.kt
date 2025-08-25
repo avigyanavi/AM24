@@ -9,12 +9,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.google.firebase.database.ServerValue
 import java.util.UUID
 
 @Composable
 fun PostCard(
     post: Post,
+    navController: NavController,
     onUserClick: () -> Unit,
     postViewModel: PostViewModel = viewModel()
 ) {
@@ -69,6 +71,7 @@ fun PostCard(
 
     FeedItem(
         post = post,
+        navController = navController,
         isSaved = isSaved,
         currentUserId = currentUserId,
         currentUserProfile = myProfile,

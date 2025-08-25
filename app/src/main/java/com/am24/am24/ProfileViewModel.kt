@@ -151,42 +151,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         ref.addValueEventListener(listener)
     }
 
-    fun fetchProfilesByCity(cityName: String, onResult: (List<Profile>) -> Unit) {
-        val dbRef = FirebaseRefs.db.getReference("profiles")
-        dbRef.orderByChild("city").equalTo(cityName)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(dataSnapshot: DataSnapshot) {
-                    val profiles = mutableListOf<Profile>()
-                    for (child in dataSnapshot.children) {
-                        val profile = child.getValue(Profile::class.java)
-                        if (profile != null) {
-                            profiles.add(profile)
-                        }
-                    }
-                    onResult(profiles)
-                }
-                override fun onCancelled(error: DatabaseError) { /* handle error */ }
-            })
-    }
-
-    fun fetchProfilesByHometown(hometown: String, onResult: (List<Profile>) -> Unit) {
-        val dbRef = FirebaseRefs.db.getReference("profiles")
-        dbRef.orderByChild("hometown").equalTo(hometown)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val results = mutableListOf<Profile>()
-                    for (child in snapshot.children) {
-                        val prof = child.getValue(Profile::class.java)
-                        prof?.let { results.add(it) }
-                    }
-                    onResult(results)
-                }
-                override fun onCancelled(error: DatabaseError) {
-                    onResult(emptyList())
-                }
-            })
-    }
-
     fun fetchUsernameById(userId: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         val userRef = FirebaseRefs.db.getReference("users").child(userId)
         userRef.child("username").get().addOnSuccessListener { snapshot ->
@@ -347,15 +311,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             voiceNoteFilePath = filePath
         } catch (e: Exception) {
             Log.e(TAG, "Error starting voice recording: ${e.message}")
-        }
-    }
-
-    /** Call this right after you know a boost has succeeded. */
-    fun decrementBoostsLocal() {
-        _currentUserProfile.update { prof ->
-            prof?.copy(
-                availableBoosts = (prof.availableBoosts - 1).coerceAtLeast(0)
-            )
         }
     }
 
@@ -532,21 +487,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // Count unread notifications for a user
-    fun countUnreadNotifications(userId: String, onCountRetrieved: (Int) -> Unit) {
-        val userNotificationsRef = notificationsRef.child(userId)
-        userNotificationsRef.orderByChild("isRead").equalTo(false)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    onCountRetrieved(snapshot.childrenCount.toInt())
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Failed to count unread notifications: ${error.message}")
-                }
-            })
-    }
-
     // Send a like notification
     fun sendLikeNotification(
         senderId: String,
@@ -650,57 +590,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
     }
 
-    fun observeVerificationStatus(uid: String) {
-        val ref = FirebaseRefs.db
-            .getReference("verifications")
-            .child(uid)
-            .child("status")
-
-        // detach any previous listener if you like…
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                _verificationStatus.value = snap.getValue(String::class.java)
-            }
-            override fun onCancelled(err: DatabaseError) {
-                Log.e(TAG, "Verification listener failed: ${err.message}")
-            }
-        }
-
-        verificationRef = ref
-        verificationListener = listener
-        ref.addValueEventListener(listener)
-    }
-
-    fun sendCompliment(
-        receiverId: String,
-        textMessage: String?,
-    ) {
-        viewModelScope.launch {
-            val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-            val timestamp = System.currentTimeMillis()
-
-            val complimentRef =
-                database.getReference("compliments/$senderId/$receiverId")
-            val complimentReceivedRef =
-                database.getReference("complimentsReceived/$receiverId/$senderId")
-
-            val complimentData = hashMapOf<String, Any>(
-                "timestamp" to timestamp,
-                "text" to textMessage.orEmpty()
-            )
-
-            complimentRef.setValue(complimentData)
-            complimentReceivedRef.setValue(complimentData)
-
-            sendComplimentNotification(senderId, receiverId)
-
-            val leftNow = (_complimentsLeft.value - 1).coerceAtLeast(0)
-            database.getReference("users/$senderId")
-                .child("availableCompliments")
-                .setValue(leftNow)
-            _complimentsLeft.value = leftNow
-        }
-    }
 
     /** Notify receiver that someone sent a compliment */
     fun sendComplimentNotification(

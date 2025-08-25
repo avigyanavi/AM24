@@ -80,6 +80,7 @@ fun CheckInFeedScreen(
                             Log.d("CheckInFeedScreen", "📝 showing post=${post.postId} (checkIn.placeId=${post.checkIn?.placeId})")
                             PostCard(
                                 post = post,
+                                navController = navController,
                                 onUserClick = {
                                     navController.navigate("previewUserProfile/${post.userId}")
                                 }

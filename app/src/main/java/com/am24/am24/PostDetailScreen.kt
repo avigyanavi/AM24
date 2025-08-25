@@ -98,6 +98,7 @@ fun PostDetailScreen(
             item {
                 FeedItem(
                     post          = p,
+                    navController = navController,
                     isSaved       = isSaved,
                     postViewModel = postViewModel,
                     userProfile   = profile,
@@ -141,7 +142,10 @@ fun PostDetailScreen(
                         currentUserId?.let { uid ->
                             postViewModel.downvoteComment(p.postId, cid, uid, {}, {})
                         }
-                    }
+                    },
+                     onCommentClick = {
+                         navController.navigate("previewUserProfile/${comment.userId}")
+                     }
                 )
             }
 

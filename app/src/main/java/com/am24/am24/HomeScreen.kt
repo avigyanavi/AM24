@@ -85,6 +85,7 @@ fun HomeScreen(
 ) {
     // Get the current user ID from FirebaseAuth.
     val userId = FirebaseAuth.getInstance().currentUser?.uid
+    var dailyLoginInfo by remember { mutableStateOf<DailyLoginInfo?>(null) }
 
     // Immediately update the PostViewModel with the current user ID.
     LaunchedEffect(userId) {
@@ -153,6 +154,56 @@ fun HomeScreen(
                         }
                         override fun onCancelled(error: DatabaseError) { /* handle error */ }
                     })
+            }
+        }
+
+        val isPremium = userProfile?.isPremium == true
+        val isPlus = userProfile?.isPlus == true
+        val isIndian = userProfile?.country?.equals("India", true) == true
+
+        LaunchedEffect(isPremium, isPlus, isIndian) {
+            if (!isPremium && !isPlus && !isIndian) {
+                dailyLoginInfo = checkDailyLoginReward()
+            } else {
+                dailyLoginInfo = null
+            }
+        }
+
+        if (!isPremium && !isPlus && !isIndian) {
+            dailyLoginInfo?.let { info ->
+                val kupidxOrange = Color(0xFFFF6F00)
+                AlertDialog(
+                    onDismissRequest = { dailyLoginInfo = null },
+                    confirmButton = {
+                        TextButton(onClick = { dailyLoginInfo = null }) {
+                            Text("OK", color = kupidxOrange)
+                        }
+                    },
+                    title = { Text(stringResource(R.string.daily_login_title)) },
+                    text = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                for (i in 1..5) {
+                                    val checked = i <= info.streak
+                                    Icon(
+                                        imageVector = if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                        contentDescription = null,
+                                        tint = if (checked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Text(stringResource(R.string.daily_login_message, info.streak))
+                            if (info.rewardHours > 0) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(stringResource(R.string.daily_login_plus_award, info.rewardHours))
+                            }
+                        }
+                    }
+                )
             }
         }
 
@@ -362,6 +413,7 @@ fun FeedSection(
                 val isSaved = savedPostIds.contains(post.postId)
                 FeedItem(
                     post = post,
+                    navController = navController,
                     userProfile = profile,
                     isSaved = isSaved,               // ← NEW
                     matches = matches,
@@ -508,6 +560,7 @@ fun FeedSection(
 @Composable
 fun FeedItem(
     post: Post,
+    navController: NavController,
     isSaved: Boolean,                // ← NEW
     postViewModel: PostViewModel,
     userProfile: Profile?,
@@ -1157,6 +1210,7 @@ fun FeedItem(
                 if (showCommentsDialog) {
                     CommentsDialog(
                         post = post,
+                        navController = navController,
                         onDismiss = { showCommentsDialog = false },
                         onUpvoteComment = { commentId ->
                             postViewModel.upvoteComment(
@@ -1380,14 +1434,16 @@ fun formatDuration(durationMs: Long): String {
 fun CommentCard(
     comment: Comment,
     onUpvoteComment: (String) -> Unit,
-    onDownvoteComment: (String) -> Unit
+    onDownvoteComment: (String) -> Unit,
+    onCommentClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .clickable { onCommentClick() },
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Black)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF424242))
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             Row(
@@ -1490,6 +1546,7 @@ fun playLocalVoice(context: Context, voiceUri: Uri, onPlay: (MediaPlayer) -> Uni
 @Composable
 fun CommentsDialog(
     post: Post,
+    navController: NavController,
     onDismiss: () -> Unit,
     onUpvoteComment: (String) -> Unit,
     onDownvoteComment: (String) -> Unit,
@@ -1772,7 +1829,10 @@ fun CommentsDialog(
                             CommentCard(
                                 comment = comment,
                                 onUpvoteComment = onUpvoteComment,
-                                onDownvoteComment = onDownvoteComment
+                                onDownvoteComment = onDownvoteComment,
+                                onCommentClick = {
+                                    navController.navigate("previewUserProfile/${comment.userId}")
+                                }
                             )
                         }
                     }
@@ -1907,9 +1967,6 @@ fun CommentsDialog(
         }
     }
 }
-
-
-
 
 
 @Composable

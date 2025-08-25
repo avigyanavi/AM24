@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -164,7 +165,6 @@ class LandingActivity : ComponentActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         /* Facebook */
-        FacebookSdk.sdkInitialize(applicationContext)
         callbackManager = CallbackManager.Factory.create()
 
         /* UI */
@@ -535,7 +535,11 @@ fun SocialSignInButton(
 ) {
     Button(
         onClick,
-        modifier = modifier.height(50.dp),
+        modifier = modifier
+            .defaultMinSize(
+                minWidth = dimensionResource(id = R.dimen.btn_width),
+                minHeight = dimensionResource(id = R.dimen.btn_height)
+            ),
         shape = RoundedCornerShape(25.dp),
         border = BorderStroke(1.dp, KupidxOrange),
         colors = ButtonDefaults.buttonColors(

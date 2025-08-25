@@ -10,10 +10,16 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.database.FirebaseDatabase
 import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.purchase.PurchaseType
+import com.facebook.FacebookSdk
+import com.facebook.appevents.AppEventsLogger
 
 class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        FacebookSdk.sdkInitialize(applicationContext)
+        FacebookSdk.setAutoInitEnabled(true)
+        AppEventsLogger.activateApp(this)
 
         val appCheck = FirebaseAppCheck.getInstance()
         val providerFactory =
