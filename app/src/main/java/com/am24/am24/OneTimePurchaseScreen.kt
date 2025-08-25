@@ -65,7 +65,6 @@ fun OneTimePurchaseScreen(
         userCountry = userRoot.child("country").get().await().getValue(String::class.java)
     }
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
-
     var ui by remember { mutableStateOf(UiState()) }
 
     val billingViewModel: BillingViewModel = viewModel()
@@ -154,13 +153,13 @@ fun OneTimePurchaseScreen(
             }
 
             Spacer(Modifier.height(12.dp))
-            Text(
-                if (isIndia) "₹%.2f".format(totalInrPaise / 100.0)
-                else "$%.2f".format(totalUsd),
-                color = Color.White,
-                fontSize = 16.sp
-            )
-            Spacer(Modifier.height(40.dp))
+//            Text(
+//                if (isIndia) "₹%.2f".format(totalInrPaise / 100.0)
+//                else "$%.2f".format(totalUsd),
+//                color = Color.White,
+//                fontSize = 16.sp
+//            )
+//            Spacer(Modifier.height(40.dp))
 
             Button(
                 onClick = {

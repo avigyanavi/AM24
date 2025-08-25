@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
+import com.am24.am24.CountryUtil.isMexico
 import com.am24.am24.billing.BillingManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -90,10 +91,17 @@ private fun planToSlug(plan: Plan): String = when {
 }
 
 private fun usdPrice(plan: Plan): Double = when {
-    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> 1.99
-    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> 4.99
-    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> 19.99
-    else                                                       -> 49.99     // premium-annual
+    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> 0.99
+    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> 1.99
+    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> 9.99
+    else                                                       -> 19.99     // premium-annual
+}
+
+private fun mxnPrice(plan: Plan): Double = when {
+    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> 4.99
+    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> 29.00
+    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> 49.00
+    else                                                       -> 199.00
 }
 
 
@@ -127,6 +135,7 @@ fun SubscriptionScreen(
         userCountry = userRoot.child("country").get().await().getValue(String::class.java)
     }
     val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
+    val isMexico = CountryUtil.isMexico(ctx, userCountry)
 
     /* -------------------------------------------------- */
     val db     = FirebaseDatabase.getInstance().reference
@@ -348,11 +357,11 @@ fun SubscriptionScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White
                             )
-                            val priceLabel = if (isIndia)
-                                "₹${plan.price} / ${plan.period.label.lowercase()}"
-                            else
-                                "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
-
+                            val priceLabel = when {
+                                isIndia -> "₹${plan.price} / ${plan.period.label.lowercase()}"
+                                isMexico -> "MX$${mxnPrice(plan)} / ${plan.period.label.lowercase()}"
+                                else -> "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
+                            }
                             Text(priceLabel, color = Color.LightGray, fontSize = 14.sp)
                             Spacer(Modifier.height(8.dp))
                             val features =

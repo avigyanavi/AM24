@@ -238,13 +238,16 @@ fun MapScreen(
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
     val orientationFilter by navController.currentBackStackEntry?.savedStateHandle
-        ?.getStateFlow("mapOrientationFilter", "")?.collectAsState()
+        ?.getStateFlow("mapOrientationFilter", prefs.getString("map_orientation_filter", "") ?: "")?.collectAsState()
         ?: remember { mutableStateOf("") }
+
+    LaunchedEffect(orientationFilter) {
+        prefs.edit().putString("map_orientation_filter", orientationFilter).apply()
+    }
 
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
     }
-
 
     LaunchedEffect(Unit) {
         if (!hasShownLocationDialogThisSession) {
@@ -530,13 +533,11 @@ fun MapScreen(
                 GenderFilter.MEN   -> people.filter { it.gender.toGenderCode() == Gender.MALE }
                 GenderFilter.OTHER -> people.filter { it.gender.toGenderCode() == Gender.OTHER }
             }
-            if (orientationFilter.isNotBlank() && (isPlus || isPremium)) {
+            if (orientationFilter.isNotBlank()) {
                 list = list.filter { it.sexualOrientation.toOrientationCode()?.name == orientationFilter }
             }
 
-            // PREMIUM GATE: only filter by last-active if user has Plus/Premium
-            val effectiveSort = if (isPlus || isPremium) sortMode else SortMode.NEARBY
-            if (effectiveSort == SortMode.ACTIVE) {
+            if (sortMode == SortMode.ACTIVE) {
                 val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
                 list = list.filter { it.lastActiveAt >= cutoff }
             }
@@ -636,33 +637,22 @@ fun MapScreen(
                                     modifier = Modifier.scale(0.9f)
                                 )
                         } else {
-                            if (isPlus || isPremium) {
-                                LastActiveChip(
-                                    hours = lastActiveHours,
-                                    onChange = {
-                                        lastActiveHours = it
-                                        prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
-                                    },
-                                    modifier = Modifier.scale(0.9f)
-                                )
-                            } else {
-                                LockedChip(
-                                    label = stringResource(R.string.sort_last_active),
-                                    modifier = Modifier.scale(0.9f)
-                                ) { }
-                            }
+                            LastActiveChip(
+                                hours = lastActiveHours,
+                                onChange = {
+                                    lastActiveHours = it
+                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
+                                },
+                                modifier = Modifier.scale(0.9f)
+                            )
                         }
                     },
                     actions = {
                         FilledTonalButton(
                             onClick = {
-                                if (isPlus || isPremium) {
-                                    sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
-                                    prefs.edit().putString("map_sort_mode", sortMode.name).apply()
-                                    userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
-                                } else {
-                                    navController.navigate("paywall?toast=plus")
-                                }
+                                sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
+                                prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                                userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
                             },
                             colors = ButtonDefaults.filledTonalButtonColors(
                                 containerColor = KupidxOrange.copy(alpha = 0.20f),

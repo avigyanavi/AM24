@@ -41,7 +41,9 @@ class MyApp : Application() {
 
         // ---- Play Billing: INAPP packs + SUBS ----
         val packQuantities = listOf(5, 10, 20)
-        val inappIds = PurchaseType.values().flatMap { t -> packQuantities.map { q -> t.skuFor(q) } }
+        val inappIds = PurchaseType.values()
+            .flatMap { t -> packQuantities.map { q -> t.skuFor(q) } }
+            .plus("entry_fee")
         // Create these 2 subscription product IDs in Play Console (each with base plans):
         // - plus
         // - premium

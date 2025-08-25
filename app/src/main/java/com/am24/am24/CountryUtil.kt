@@ -40,6 +40,16 @@ object CountryUtil {
         return listOf(isoBySim, isoByNet, isoByLocale).any { it in KM_COUNTRIES }
     }
 
+    fun isMexico(ctx: Context, selectedCountry: String?): Boolean {
+        if (selectedCountry?.equals("Mexico", ignoreCase = true) == true) return true
+        val isoBySim = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
+                as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
+                as? TelephonyManager)?.networkCountryIso?.uppercase(Locale.US)
+        val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
+        return listOf(isoBySim, isoByNet, isoByLocale).any { it == "MX" }
+    }
+
     /**
      * Decide whether Razorpay should be used for payments.
      * If the device locale suggests India but the user has selected a

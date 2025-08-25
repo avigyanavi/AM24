@@ -40,7 +40,6 @@ import java.util.Date
 
 private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
-    R.string.feature_priority_profile,
     R.string.feature_people_liked_me,
     R.string.feature_picture_voice_posts,
     R.string.feature_50_swipes,
@@ -53,53 +52,53 @@ private val PREMIUM_FEATURES = listOf(
     R.string.feature_5_compliments,
     R.string.feature_everything_plus
 )
-/* deep link each major UPI app to its AutoPay list */
-private const val GPAY_UPI_AUTOPAY   = "https://gpay.app.goo.gl/autopay"          // opens Google Pay → Autopay tab
-private const val PHONEPE_AUTOPAY    = "phonepe://upi/manageMandate"              // opens PhonePe mandates list
-private const val PAYTM_AUTOPAY      = "paytmmp://upi/mandate?screen=manage"      // opens Paytm → AutoPay
-private val UPI_DEEP_LINKS           = arrayOf(GPAY_UPI_AUTOPAY,
-    PHONEPE_AUTOPAY,
-    PAYTM_AUTOPAY)
-
-private const val CANCEL_URL =
-    "https://dashboard.razorpay.com/app/subscriptions"   // ← change if you have a bespoke deeplink
-// … PLUS_FEATURES & PREMIUM_FEATURES remain unchanged …
-
-private fun cancelKupidxPlusSub(
-    fx: FirebaseFunctions,
-    scope: CoroutineScope,
-    ctx: Context,
-    nav: NavController
-) {
-    scope.launch {
-        try {
-            fx.getHttpsCallable("cancelKupidxPlusSub").call().await()
-            Toast.makeText(ctx, "Subscription cancelled", Toast.LENGTH_LONG).show()
-            nav.popBackStack()
-        } catch (e: Exception) {
-            /* ► Razorpay could not cancel –  show reason & open UPI AutoPay */
-            val msg = (e as? FirebaseFunctionsException)?.message
-                ?: e.localizedMessage ?: "Unable to cancel via server"
-            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
-
-            /* attempt to open the first UPI app that’s installed */
-            val found = UPI_DEEP_LINKS.firstOrNull { link ->
-                ctx.packageManager.resolveActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(link)), 0
-                ) != null
-            }
-            if (found != null) {
-                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(found)))
-            } else {
-                /* fallback to plain dashboard */
-                ctx.startActivity(
-                    Intent(Intent.ACTION_VIEW,
-                        Uri.parse("https://dashboard.razorpay.com/app/subscriptions"))
-                )
-            }
-        }
-    }
-}
+///* deep link each major UPI app to its AutoPay list */
+//private const val GPAY_UPI_AUTOPAY   = "https://gpay.app.goo.gl/autopay"          // opens Google Pay → Autopay tab
+//private const val PHONEPE_AUTOPAY    = "phonepe://upi/manageMandate"              // opens PhonePe mandates list
+//private const val PAYTM_AUTOPAY      = "paytmmp://upi/mandate?screen=manage"      // opens Paytm → AutoPay
+//private val UPI_DEEP_LINKS           = arrayOf(GPAY_UPI_AUTOPAY,
+//    PHONEPE_AUTOPAY,
+//    PAYTM_AUTOPAY)
+//
+//private const val CANCEL_URL =
+//    "https://dashboard.razorpay.com/app/subscriptions"   // ← change if you have a bespoke deeplink
+//// … PLUS_FEATURES & PREMIUM_FEATURES remain unchanged …
+//
+//private fun cancelKupidxPlusSub(
+//    fx: FirebaseFunctions,
+//    scope: CoroutineScope,
+//    ctx: Context,
+//    nav: NavController
+//) {
+//    scope.launch {
+//        try {
+//            fx.getHttpsCallable("cancelKupidxPlusSub").call().await()
+//            Toast.makeText(ctx, "Subscription cancelled", Toast.LENGTH_LONG).show()
+//            nav.popBackStack()
+//        } catch (e: Exception) {
+//            /* ► Razorpay could not cancel –  show reason & open UPI AutoPay */
+//            val msg = (e as? FirebaseFunctionsException)?.message
+//                ?: e.localizedMessage ?: "Unable to cancel via server"
+//            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+//
+//            /* attempt to open the first UPI app that’s installed */
+//            val found = UPI_DEEP_LINKS.firstOrNull { link ->
+//                ctx.packageManager.resolveActivity(
+//                    Intent(Intent.ACTION_VIEW, Uri.parse(link)), 0
+//                ) != null
+//            }
+//            if (found != null) {
+//                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(found)))
+//            } else {
+//                /* fallback to plain dashboard */
+//                ctx.startActivity(
+//                    Intent(Intent.ACTION_VIEW,
+//                        Uri.parse("https://dashboard.razorpay.com/app/subscriptions"))
+//                )
+//            }
+//        }
+//    }
+//}
 
 /* ───── unified click handler (updated) ───── */
 private fun handleCancelClick(
@@ -109,10 +108,6 @@ private fun handleCancelClick(
     ctx: Context,
     nav: NavController
 ) {
-    if (isIndia) {
-        // Razorpay path (unchanged)
-        cancelKupidxPlusSub(fx, scope, ctx, nav)
-    } else {
         // Try to find a subscription SKU; fall back to the list page
         val subProductId = BillingManager.purchases.value
             .flatMap { it.products }
@@ -121,7 +116,6 @@ private fun handleCancelClick(
         // Uses the new helper you added earlier
         BillingManager.openPlaySubscriptionManagement(ctx, subProductId)
         Toast.makeText(ctx, "Opening Play subscription settings…", Toast.LENGTH_SHORT).show()
-    }
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

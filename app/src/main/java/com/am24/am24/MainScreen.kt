@@ -44,6 +44,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import android.content.Context
+
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
@@ -155,8 +157,11 @@ fun TopNavBar(
         ?: remember { mutableStateOf(0) }
     val triggerLocationDialog by savedStateHandle?.getStateFlow("showLocationPrefDialog", false)
         ?.collectAsState() ?: remember { mutableStateOf(false) }
-    val orientationFilter by savedStateHandle?.getStateFlow("mapOrientationFilter", "")?.collectAsState()
-        ?: remember { mutableStateOf("") }
+    val orientationFilter by savedStateHandle?.getStateFlow(
+        "mapOrientationFilter",
+        LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getString("map_orientation_filter", "") ?: ""
+    )?.collectAsState() ?: remember { mutableStateOf("") }
 
     LaunchedEffect(triggerLocationDialog) {
         if (triggerLocationDialog) {
@@ -240,6 +245,24 @@ fun TopNavBar(
         }
     }
     val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    LaunchedEffect(Unit) {
+        val savedHomeCountry = prefs.getString("home_country_filter", "") ?: ""
+        if (savedHomeCountry.isNotBlank()) {
+            postViewModel.setCountryFilter(savedHomeCountry)
+        }
+        val savedOrientation = prefs.getString("map_orientation_filter", "") ?: ""
+        savedStateHandle?.set("mapOrientationFilter", savedOrientation)
+    }
+
+    LaunchedEffect(homeSelectedCountry) {
+        prefs.edit().putString("home_country_filter", homeSelectedCountry).apply()
+    }
+
+    LaunchedEffect(orientationFilter) {
+        prefs.edit().putString("map_orientation_filter", orientationFilter).apply()
+    }
     // anywhere before TopAppBar:
     val isOnHome = currentDestination
         ?.hierarchy
