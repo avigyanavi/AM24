@@ -271,91 +271,91 @@ fun TopNavBar(
                 }
             }
 
-            if (isPlus && currentRoute == "map" && mapSelectedTab == 0) {
-                Box {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = { countryMenuExpanded = !countryMenuExpanded },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Public,
-                                contentDescription = stringResource(R.string.cd_country_filter),
-                                tint = if (selectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        if (selectedCountry.isNotBlank()) {
-                            Text(selectedCountry, color = Color(0xFFFF6F00))
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = countryMenuExpanded,
-                        onDismissRequest = { countryMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.clear_country_filter)) },
-                            onClick = {
-                                countryMenuExpanded = false
-                                val profileRef =
-                                    FirebaseRefs.db.getReference("users").child(currentUserId)
-                                profileRef.updateChildren(
-                                    mapOf(
-                                        "isLocationSpoofed" to false,
-                                        "country" to ""
-                                    )
-                                )
-                                selectedCountry = ""
-                                locationManager.resumeUpdates()
-                            }
-                        )
-                        val countryOptions = stringArrayResource(R.array.country_names).toList()
-                        countryOptions.forEach { c ->
-                            DropdownMenuItem(
-                                text = { Text(c) },
-                                onClick = {
-                                    countryMenuExpanded = false
-                                    val profileRef =
-                                        FirebaseRefs.db.getReference("users").child(currentUserId)
-                                    val latLng = CountryLatLngMap.getLatLng(c)
-                                    if (latLng != null) {
-                                        locationManager.pauseUpdates()
-                                        locationManager.setCustomLocation(
-                                            currentUserId,
-                                            latLng.first,
-                                            latLng.second
-                                        )
-                                        profileRef.updateChildren(
-                                            mapOf(
-                                                "country" to c,
-                                                "city" to "",
-                                                "isLocationSpoofed" to true
-                                            )
-                                        )
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(
-                                                R.string.country_coords_unavailable,
-                                                c
-                                            ),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        profileRef.updateChildren(
-                                            mapOf(
-                                                "country" to c,
-                                                "city" to "",
-                                                "isLocationSpoofed" to false
-                                            )
-                                        )
-                                    }
-                                    selectedCountry = c
-                                    savedStateHandle?.set("mapCountryChanged", true)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+//            if (isPlus && currentRoute == "map" && mapSelectedTab == 0) {
+//                Box {
+//                    Row(verticalAlignment = Alignment.CenterVertically) {
+//                        IconButton(
+//                            onClick = { countryMenuExpanded = !countryMenuExpanded },
+//                        ) {
+//                            Icon(
+//                                imageVector = Icons.Default.Public,
+//                                contentDescription = stringResource(R.string.cd_country_filter),
+//                                tint = if (selectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
+//                                modifier = Modifier.size(24.dp)
+//                            )
+//                        }
+//                        if (selectedCountry.isNotBlank()) {
+//                            Text(selectedCountry, color = Color(0xFFFF6F00))
+//                        }
+//                    }
+//                    DropdownMenu(
+//                        expanded = countryMenuExpanded,
+//                        onDismissRequest = { countryMenuExpanded = false }
+//                    ) {
+//                        DropdownMenuItem(
+//                            text = { Text(stringResource(R.string.clear_country_filter)) },
+//                            onClick = {
+//                                countryMenuExpanded = false
+//                                val profileRef =
+//                                    FirebaseRefs.db.getReference("users").child(currentUserId)
+//                                profileRef.updateChildren(
+//                                    mapOf(
+//                                        "isLocationSpoofed" to false,
+//                                        "country" to ""
+//                                    )
+//                                )
+//                                selectedCountry = ""
+//                                locationManager.resumeUpdates()
+//                            }
+//                        )
+//                        val countryOptions = stringArrayResource(R.array.country_names).toList()
+//                        countryOptions.forEach { c ->
+//                            DropdownMenuItem(
+//                                text = { Text(c) },
+//                                onClick = {
+//                                    countryMenuExpanded = false
+//                                    val profileRef =
+//                                        FirebaseRefs.db.getReference("users").child(currentUserId)
+//                                    val latLng = CountryLatLngMap.getLatLng(c)
+//                                    if (latLng != null) {
+//                                        locationManager.pauseUpdates()
+//                                        locationManager.setCustomLocation(
+//                                            currentUserId,
+//                                            latLng.first,
+//                                            latLng.second
+//                                        )
+//                                        profileRef.updateChildren(
+//                                            mapOf(
+//                                                "country" to c,
+//                                                "city" to "",
+//                                                "isLocationSpoofed" to true
+//                                            )
+//                                        )
+//                                    } else {
+//                                        Toast.makeText(
+//                                            context,
+//                                            context.getString(
+//                                                R.string.country_coords_unavailable,
+//                                                c
+//                                            ),
+//                                            Toast.LENGTH_SHORT
+//                                        ).show()
+//                                        profileRef.updateChildren(
+//                                            mapOf(
+//                                                "country" to c,
+//                                                "city" to "",
+//                                                "isLocationSpoofed" to false
+//                                            )
+//                                        )
+//                                    }
+//                                    selectedCountry = c
+//                                    savedStateHandle?.set("mapCountryChanged", true)
+//                                }
+//                            )
+//                        }
+//                    }
+//                }
+//            }
 
 //            // ← Leaderboard button in place of the old Map button
 //            if (currentRoute != "map" || currentRoute != "home" || currentRoute != "dms") {
@@ -376,16 +376,9 @@ fun TopNavBar(
                 if (mapSelectedTab == 0) {
                     val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
                     IconButton(onClick = {
-                        if (isPlus || isPremium) {
-                            orientationMenuExpanded = true
-                        } else {
-                            navController.navigate("subscription")
-                            Toast.makeText(
-                                context,
-                                "Upgrade to Plus to use the orientation filter",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+//                        if (isPlus || isPremium) {
+                        orientationMenuExpanded = true
+//                    }
                     }) {
                         Icon(
                             imageVector = Icons.Default.Wc,
@@ -467,13 +460,79 @@ fun TopNavBar(
                     }
                 }
 
-                IconButton(onClick = { navController.navigate("home") }) {
-                    Icon(
-                        imageVector = Icons.Default.RssFeed,
-                        contentDescription = stringResource(R.string.feed),
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                if (mapSelectedTab == 0) {
+                    Box {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { countryMenuExpanded = !countryMenuExpanded }) {
+                                Icon(
+                                    imageVector = Icons.Default.Public,
+                                    contentDescription = stringResource(R.string.cd_country_filter),
+                                    tint = if (selectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            if (selectedCountry.isNotBlank()) {
+                                Text(selectedCountry, color = Color(0xFFFF6F00))
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = countryMenuExpanded,
+                            onDismissRequest = { countryMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.clear_country_filter)) },
+                                onClick = {
+                                    countryMenuExpanded = false
+                                    val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                    profileRef.updateChildren(
+                                        mapOf(
+                                            "isLocationSpoofed" to false,
+                                            "country" to "",
+                                        )
+                                    )
+                                    selectedCountry = ""
+                                    locationManager.resumeUpdates()
+                                }
+                            )
+                            val countryOptions = stringArrayResource(R.array.country_names).toList()
+                            countryOptions.forEach { c ->
+                                DropdownMenuItem(
+                                    text = { Text(c) },
+                                    onClick = {
+                                        countryMenuExpanded = false
+                                        val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                        val latLng = CountryLatLngMap.getLatLng(c)
+                                        if (latLng != null) {
+                                            locationManager.pauseUpdates()
+                                            locationManager.setCustomLocation(currentUserId, latLng.first, latLng.second)
+                                            profileRef.updateChildren(
+                                                mapOf(
+                                                    "country" to c,
+                                                    "city" to "",
+                                                    "isLocationSpoofed" to true
+                                                )
+                                            )
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.country_coords_unavailable, c),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            profileRef.updateChildren(
+                                                mapOf(
+                                                    "country" to c,
+                                                    "city" to "",
+                                                    "isLocationSpoofed" to false
+                                                )
+                                            )
+                                        }
+                                        selectedCountry = c
+                                        savedStateHandle?.set("mapCountryChanged", true)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
 
 
