@@ -172,6 +172,9 @@ fun TopNavBar(
     var orientationMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var countryMenuExpanded by remember { mutableStateOf(false) }
     var selectedCountry by rememberSaveable { mutableStateOf("") }
+    var homeCountryMenuExpanded by remember { mutableStateOf(false) }
+    val feedFilterState by postViewModel.feedFilters.collectAsState()
+    val homeSelectedCountry = feedFilterState.feedFilters.country
 
     // Fetch premium status from Firebase
     DisposableEffect(currentUserId) {
@@ -485,6 +488,38 @@ fun TopNavBar(
                 }
             }
             if (isOnHome) {
+                IconButton(onClick = {
+                        homeCountryMenuExpanded = true
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = stringResource(R.string.cd_country_filter),
+                        tint = if (homeSelectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = homeCountryMenuExpanded,
+                    onDismissRequest = { homeCountryMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.clear_country_filter)) },
+                        onClick = {
+                            postViewModel.setCountryFilter("")
+                            homeCountryMenuExpanded = false
+                        }
+                    )
+                    val countryOptions = stringArrayResource(R.array.country_names).toList()
+                    countryOptions.forEach { c ->
+                        DropdownMenuItem(
+                            text = { Text(c) },
+                            onClick = {
+                                postViewModel.setCountryFilter(c)
+                                homeCountryMenuExpanded = false
+                            }
+                        )
+                    }
+                }
                 // Create Post with a subtle pulsing animation
                 val infiniteTransition = rememberInfiniteTransition()
                 val scale by infiniteTransition.animateFloat(

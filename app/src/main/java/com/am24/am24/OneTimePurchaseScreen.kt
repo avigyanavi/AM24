@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -27,6 +28,7 @@ import androidx.fragment.app.FragmentActivity
 import com.am24.am24.CountryUtil
 import com.am24.am24.billing.BillingViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.am24.am24.R
 
 enum class PurchaseType(
     val apiType: String,
@@ -189,7 +191,7 @@ fun OneTimePurchaseScreen(
                     }
                 },
                 enabled = !ui.isProcessing,
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+                modifier = Modifier.fillMaxWidth().height(dimensionResource(id = R.dimen.btn_height))
             ) {
                 if (ui.isProcessing) {
                     CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))

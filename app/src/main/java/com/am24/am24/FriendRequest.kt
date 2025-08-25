@@ -65,7 +65,8 @@ data class FeedFilterSettings(
     val ageStart: Int = 18,
     val ageEnd: Int = 100,
     val gender: String = "",
-    val rating: String = ""
+    val rating: String = "",
+    val country: String = ""
 )
 
 

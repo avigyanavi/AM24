@@ -161,6 +161,16 @@ fun HomeScreen(
         val isPlus = userProfile?.isPlus == true
         val isIndian = userProfile?.country?.equals("India", true) == true
 
+        LaunchedEffect(userProfile) {
+            userProfile?.let { profile ->
+                if (profile.isPremium) {
+                    postViewModel.setCountryFilter("")
+                } else {
+                    postViewModel.setCountryFilter(profile.country)
+                }
+            }
+        }
+
         LaunchedEffect(isPremium, isPlus, isIndian) {
             if (!isPremium && !isPlus && !isIndian) {
                 dailyLoginInfo = checkDailyLoginReward()

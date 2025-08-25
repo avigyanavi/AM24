@@ -94,6 +94,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -974,7 +975,7 @@ fun FiltersOverlay(
                 },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
                 shape = RoundedCornerShape(50),
-                modifier = Modifier.height(48.dp)
+                modifier = Modifier.height(dimensionResource(id = R.dimen.btn_height))
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -1032,7 +1033,7 @@ fun FiltersOverlay(
                             shape = RoundedCornerShape(50),
                             modifier = Modifier
                                 .padding(vertical = 4.dp)
-                                .height(48.dp)
+                                .height(dimensionResource(id = R.dimen.btn_height))
                         ) {
                             Text(gender, color = Color.White)
                         }
@@ -1159,7 +1160,7 @@ fun FiltersOverlay(
                     shape = RoundedCornerShape(50),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(dimensionResource(id = R.dimen.btn_height))
                 ) {
                     Text(stringResource(R.string.save), color = Color.White)
                 }
@@ -1698,7 +1699,7 @@ fun DropdownFilter(
                 shape = RoundedCornerShape(50), // Rounded button
                 modifier = Modifier
                     .padding(vertical = 4.dp)
-                    .height(48.dp)
+                    .height(dimensionResource(id = R.dimen.btn_height))
             ) {
                 Text(
                     text = selectedOption.ifBlank { stringResource(R.string.select_label, label) },

@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -391,7 +392,7 @@ fun DMScreenContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp, vertical = 6.dp)
-                    .defaultMinSize(minHeight = 56.dp),      // or just drop the size modifier
+                    .defaultMinSize(minHeight = dimensionResource(id = R.dimen.btn_height)),      // or just drop the size modifier
                 textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
             )
 

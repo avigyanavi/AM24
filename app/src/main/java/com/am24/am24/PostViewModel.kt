@@ -1660,6 +1660,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
+            // Country filter
+            if (filters.country.isNotBlank()) {
+                filteredList = filteredList.filter { post ->
+                    val profileCountry = profiles[post.userId]?.country
+                    profileCountry.equals(filters.country, ignoreCase = true)
+                }
+            }
 
             // Localities filter
             if (filters.localities.isNotEmpty()) {
@@ -1776,6 +1783,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _filterSettings.value = _filterSettings.value.copy(sortOption = newSortOption)
     }
 
+    fun setCountryFilter(country: String) {
+        val current = _feedFilters.value
+        setFeedFilters(current.copy(feedFilters = current.feedFilters.copy(country = country)))
+    }
 
     private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
         val currentUserId = currentUserIdFlow.value ?: ""
