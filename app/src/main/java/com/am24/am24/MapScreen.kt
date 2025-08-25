@@ -203,7 +203,7 @@ fun MapScreen(
     onProfileMarkerClicked: (String) -> Unit,
     currentPrice: String,
     nearbyViewModel: NearbyViewModel,
-    radiusKmDefault: Double = 1000.0
+    radiusKmDefault: Double = 100.0
 ) {
     val ctx = LocalContext.current
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -623,7 +623,6 @@ fun MapScreen(
                 TopAppBar(
                     title = {
                         if (sortMode == SortMode.NEARBY) {
-                            if (isPlus || isPremium) {
                                 RadiusChip(
                                     radiusKm = radiusKm,
                                     onChange = {
@@ -636,12 +635,6 @@ fun MapScreen(
                                     useMiles = useMiles,
                                     modifier = Modifier.scale(0.9f)
                                 )
-                            } else {
-                                LockedChip(
-                                    label = stringResource(R.string.label_radius),
-                                    modifier = Modifier.scale(0.9f)
-                                ) { navController.navigate("paywall?toast=plus") }
-                            }
                         } else {
                             if (isPlus || isPremium) {
                                 LastActiveChip(

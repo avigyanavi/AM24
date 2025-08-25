@@ -488,6 +488,33 @@ fun TopNavBar(
                 }
             }
             if (isOnHome) {
+                // Create Post with a subtle pulsing animation
+                val infiniteTransition = rememberInfiniteTransition()
+                val scale by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.2f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 600, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    )
+                )
+
+                IconButton(
+                    onClick = { navController.navigate("create_post") },
+                    modifier = Modifier
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            transformOrigin = TransformOrigin.Center
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.cd_create_post),
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
                 IconButton(onClick = {
                         homeCountryMenuExpanded = true
                 }) {
@@ -520,36 +547,9 @@ fun TopNavBar(
                         )
                     }
                 }
-                // Create Post with a subtle pulsing animation
-                val infiniteTransition = rememberInfiniteTransition()
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 1.2f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 600, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    )
-                )
-
-                IconButton(
-                    onClick = { navController.navigate("create_post") },
-                    modifier = Modifier
-                        .graphicsLayer(
-                            scaleX = scale,
-                            scaleY = scale,
-                            transformOrigin = TransformOrigin.Center
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.cd_create_post),
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
             }
 
-            if (isUserSettings || isOnHome || isProfileScreen || isDMScreen) {
+            if (isUserSettings || isProfileScreen || isDMScreen) {
                 IconButton(onClick = {
                     if (isUserSettings) {
                         navController.popBackStack()
