@@ -40,6 +40,168 @@ const razorpay = new Razorpay({
   key_secret: RZP_KEY_SECRET,
 });
 
+exports.deleteUsersWithoutUsername = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 540, memory: "1GB" })
+  .https.onRequest(async (req, res) => {
+    const db = admin.database();
+    const auth = admin.auth();
+
+    const dryRun = (req.query.dryRun ?? "true") !== "false";          // default: true
+    const BATCH_SIZE = Math.max(50, Math.min(2000, parseInt(req.query.batchSize || "500", 10)));
+    let lastKey = typeof req.query.startKey === "string" ? req.query.startKey : null;
+
+    const summary = {
+      dryRun,
+      scanned: 0,
+      flaggedCount: 0,
+      deletedAuth: 0,
+      deletedDbUsers: 0,
+      deletedDbUsernames: 0,
+      reasons: {
+        missing_or_empty_username: 0,
+        username_not_in_global_map: 0,
+        username_mapped_to_different_uid: 0,
+      },
+      batches: 0,
+      lastKeyProcessed: null,
+    };
+
+    try {
+      // Load the global /usernames map once (key: username -> value: uid)
+      const usernamesSnap = await db.ref("usernames").once("value");
+      const usernamesMap = usernamesSnap.exists() ? usernamesSnap.val() : {};
+
+      // Build a reverse index: uid -> [usernameKeys...]
+      const usernameKeysByUid = {};
+      for (const [uname, mappedUid] of Object.entries(usernamesMap)) {
+        if (!usernameKeysByUid[mappedUid]) usernameKeysByUid[mappedUid] = [];
+        usernameKeysByUid[mappedUid].push(uname);
+      }
+
+      // Helpers
+      const findMappingFor = (username) => {
+        if (!username) return null;
+        // Try exact, then lowercase (cover common storage patterns)
+        if (Object.prototype.hasOwnProperty.call(usernamesMap, username)) return { key: username, uid: usernamesMap[username] };
+        const lc = username.toLowerCase();
+        if (Object.prototype.hasOwnProperty.call(usernamesMap, lc)) return { key: lc, uid: usernamesMap[lc] };
+        return null;
+      };
+
+      const uidsToDeleteAuth = [];
+      const dbUpdates = {}; // single multi-path update per batch
+      const usernameKeysToDelete = [];
+
+      // Batch scan /users by key
+      // We’ll loop until we run out of children in the current page
+      while (true) {
+        summary.batches += 1;
+        let q = db.ref("users").orderByKey();
+        if (lastKey) q = q.startAfter(lastKey);
+        const snap = await q.limitToFirst(BATCH_SIZE).once("value");
+
+        if (!snap.exists()) break;
+
+        const children = [];
+        snap.forEach((child) => children.push(child));
+        if (children.length === 0) break;
+
+        for (const child of children) {
+          const uid = child.key;
+          const data = child.val() || {};
+          summary.scanned += 1;
+
+          const username = (data.username ?? "").toString().trim();
+          let shouldDelete = false;
+          const reasons = [];
+
+          if (!username) {
+            shouldDelete = true;
+            summary.reasons.missing_or_empty_username += 1;
+            reasons.push("missing/empty username");
+          } else {
+            const mapping = findMappingFor(username);
+            if (!mapping) {
+              shouldDelete = true;
+              summary.reasons.username_not_in_global_map += 1;
+              reasons.push("username not found in /usernames");
+            } else if (mapping.uid !== uid) {
+              shouldDelete = true;
+              summary.reasons.username_mapped_to_different_uid += 1;
+              reasons.push(`username mapped to different uid (${mapping.uid})`);
+            }
+          }
+
+          if (shouldDelete) {
+            summary.flaggedCount += 1;
+            functions.logger.warn(`Flagged for deletion: uid=${uid} username="${username}" reasons=${reasons.join(", ")}`);
+
+            // Queue DB deletions
+            dbUpdates[`/users/${uid}`] = null;
+
+            // Remove all username keys that map to this uid (defensive cleanup)
+            const keysForUid = usernameKeysByUid[uid] || [];
+            for (const k of keysForUid) {
+              usernameKeysToDelete.push(k);
+              dbUpdates[`/usernames/${k}`] = null;
+            }
+
+            // Also remove the profile's username key specifically if it exists & maps here
+            if (username) {
+              const mm = findMappingFor(username);
+              if (mm && mm.uid === uid) {
+                usernameKeysToDelete.push(mm.key);
+                dbUpdates[`/usernames/${mm.key}`] = null;
+              }
+            }
+
+            // Queue Auth deletion
+            uidsToDeleteAuth.push(uid);
+          }
+
+          lastKey = uid; // advance scanning cursor
+        }
+
+        // Commit this batch (DB first, then Auth) unless dry run
+        if (!dryRun) {
+          if (Object.keys(dbUpdates).length > 0) {
+            await db.ref().update(dbUpdates);
+            summary.deletedDbUsers += Object.keys(dbUpdates).filter((p) => p.startsWith("/users/")).length;
+            summary.deletedDbUsernames += Object.keys(dbUpdates).filter((p) => p.startsWith("/usernames/")).length;
+          }
+
+          // Delete auth users in chunks of 1000
+          const chunkSize = 1000;
+          for (let i = 0; i < uidsToDeleteAuth.length; i += chunkSize) {
+            const chunk = uidsToDeleteAuth.slice(i, i + chunkSize);
+            const result = await auth.deleteUsers(chunk);
+            summary.deletedAuth += result.successCount;
+            if (result.failureCount > 0) {
+              result.errors.forEach((e) => {
+                functions.logger.error(`Auth delete failed for uid=${e.index < chunk.length ? chunk[e.index] : "unknown"}:`, e.error);
+              });
+            }
+          }
+        }
+
+        // Reset per-batch accumulators
+        uidsToDeleteAuth.length = 0;
+        usernameKeysToDelete.length = 0;
+        for (const k of Object.keys(dbUpdates)) delete dbUpdates[k];
+
+        // If fewer than batch size, we reached the end
+        if (children.length < BATCH_SIZE) break;
+      }
+
+      summary.lastKeyProcessed = lastKey;
+      return res.status(200).json(summary);
+    } catch (err) {
+      functions.logger.error("deleteUsersWithoutUsername failed:", err);
+      return res.status(500).json({ error: err?.message || String(err) });
+    }
+  });
+
 exports.verifyPayment = functions
 .region("asia-south1")
 .https.onCall(async (data, context) => {

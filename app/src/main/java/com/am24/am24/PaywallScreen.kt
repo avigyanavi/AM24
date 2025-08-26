@@ -67,10 +67,10 @@ fun PaywallScreen(onPaid: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Pay to continue", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Confirma que no eres un bot y obtén un mes de KupidxPlus: mira a quién le gustas y más.", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
         Text(
-            text = if (isMexico) "MX$4.99 entry fee" else "$0.50 entry fee",
+            text = if (isMexico) "Entrada: MXN$4.99 para mantener alejados a los robots." else "$0.50 entry fee - to keep the bots away",
             color = Color.White
         )
         Spacer(Modifier.height(24.dp))
@@ -83,7 +83,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
             },
             enabled = entryProduct != null && !isProcessing
         ) {
-            Text(if (isProcessing) "Processing..." else "Pay & Continue")
+            Text(if (isProcessing) "Processing..." else { if (isMexico) "Pagar y continuar\n" else "Pay and Continue"})
         }
     }
 }
