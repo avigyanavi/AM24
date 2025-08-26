@@ -4501,6 +4501,9 @@ fun UploadMediaComposable(
                                                         0
                                                     )
                                                 registrationViewModel.profilePictureUri = newProfile
+                                                if (registrationViewModel.optionalPhotoUrls.isNotEmpty()) {
+                                                    registrationViewModel.optionalPhotoUrls.removeAt(0)
+                                                }
                                                 uploadProfilePicToFirebase(
                                                     context,
                                                     storageRef,
@@ -4510,9 +4513,11 @@ fun UploadMediaComposable(
                                             }
                                         } else {
                                             val optIndex = index - 1
-                                            registrationViewModel.optionalPhotoUris.removeAt(
-                                                optIndex
-                                            )
+                                            if (optIndex < registrationViewModel.optionalPhotoUrls.size) {
+                                                registrationViewModel.optionalPhotoUrls.removeAt(
+                                                    optIndex
+                                                )
+                                            }
                                             registrationViewModel.optionalPhotoUrls.removeAt(
                                                 optIndex
                                             )
