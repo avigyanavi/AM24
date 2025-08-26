@@ -64,6 +64,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -145,6 +146,19 @@ class RegistrationActivity : ComponentActivity() {
                     onRegistrationComplete = {
                         // ① first save the whole profile under /users/{uid}
                         lifecycleScope.launch {
+                            val user = FirebaseAuth.getInstance().currentUser
+                            user?.reload()?.await()
+                            if (user?.isEmailVerified != true) {
+                                user?.sendEmailVerification()
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(
+                                        this@RegistrationActivity,
+                                        "Please verify your email before creating your profile",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                return@launch
+                            }
                             saveProfileToFirebase(
                                 this@RegistrationActivity,
                                 registrationViewModel,
@@ -172,7 +186,6 @@ class RegistrationActivity : ComponentActivity() {
                                                 .setValue(true)
                                             FirebaseRefs.db.reference.child("users/$uid/registrationStep").removeValue()
                                                 .addOnSuccessListener {
-                                                    auth.currentUser?.sendEmailVerification()
                                                     startActivity(Intent(this@RegistrationActivity, MainActivity::class.java))
                                                     finish()
                                                 }
@@ -253,6 +266,7 @@ class RegistrationViewModel : ViewModel() {
     // Profile and Photos
     var email by mutableStateOf("")
     var password by mutableStateOf("")
+    var honeypot by mutableStateOf("")
     var name by mutableStateOf("")
     var username by mutableStateOf("")
     var dob by mutableStateOf("")
@@ -480,11 +494,7 @@ fun RegistrationScreen(
                     5 -> EnterInterestsScreen(registrationViewModel, onNext)
                     6 -> EnterOrientationScreen(registrationViewModel, onNext)
                     7 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    8 -> PaywallScreen {
-                    currentStep = 9
-                    saveStep(currentStep)
-                    }
-                    9 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }
@@ -2012,6 +2022,7 @@ fun EnterEmailAndPasswordScreen(
     var password        by remember { mutableStateOf(TextFieldValue(registrationViewModel.password)) }
     var confirmPassword by remember { mutableStateOf(TextFieldValue("")) }
     var passwordError   by remember { mutableStateOf(false) }
+    var botField        by remember { mutableStateOf(TextFieldValue(registrationViewModel.honeypot)) }
     /* ───── visibility toggles ───── */
     var pwdVisible        by remember { mutableStateOf(false) }
     var confirmPwdVisible by remember { mutableStateOf(false) }
@@ -2271,6 +2282,18 @@ fun EnterEmailAndPasswordScreen(
                     if (passwordError) {
                         Text("Passwords don’t match", color = Color.Red)
                     }
+                    OutlinedTextField(
+                        value = botField,
+                        onValueChange = {
+                            botField = it
+                            registrationViewModel.honeypot = it.text
+                        },
+                        modifier = Modifier
+                            .size(1.dp)
+                            .alpha(0f),
+                        singleLine = true,
+                        colors = fieldColors()
+                    )
                     Spacer(Modifier.height(24.dp))
                     Button(
                         enabled = !isSubmitting,
@@ -2282,6 +2305,10 @@ fun EnterEmailAndPasswordScreen(
                             if (mail.isEmpty() || pwd.isEmpty()) return@Button
                             if (pwd != pwd2) { passwordError = true; return@Button }
                             passwordError = false
+                            if (botField.text.isNotBlank()) {
+                                Toast.makeText(ctx, "Invalid form", Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
                             isSubmitting  = true
 
                             tryRegister(
