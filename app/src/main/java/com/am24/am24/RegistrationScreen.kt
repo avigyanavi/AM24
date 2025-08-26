@@ -146,19 +146,6 @@ class RegistrationActivity : ComponentActivity() {
                     onRegistrationComplete = {
                         // ① first save the whole profile under /users/{uid}
                         lifecycleScope.launch {
-                            val user = FirebaseAuth.getInstance().currentUser
-                            user?.reload()?.await()
-                            if (user?.isEmailVerified != true) {
-                                user?.sendEmailVerification()
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(
-                                        this@RegistrationActivity,
-                                        "Please verify your email before creating your profile",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                                return@launch
-                            }
                             saveProfileToFirebase(
                                 this@RegistrationActivity,
                                 registrationViewModel,
@@ -186,6 +173,7 @@ class RegistrationActivity : ComponentActivity() {
                                                 .setValue(true)
                                             FirebaseRefs.db.reference.child("users/$uid/registrationStep").removeValue()
                                                 .addOnSuccessListener {
+                                                    auth.currentUser?.sendEmailVerification()
                                                     startActivity(Intent(this@RegistrationActivity, MainActivity::class.java))
                                                     finish()
                                                 }
@@ -636,7 +624,6 @@ private fun createFreshAccount(
     FirebaseAuth.getInstance()
         .createUserWithEmailAndPassword(email, password)
         .addOnSuccessListener {
-            it.user?.sendEmailVerification()
             onSuccess()
         }
         .addOnFailureListener { e ->
