@@ -87,9 +87,12 @@ import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -121,6 +124,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import java.util.concurrent.TimeUnit
 
 /* DatingScreen.kt  – add near the top, after imports */
 private fun Iterable<*>.dump(tag: String) =
@@ -129,6 +133,134 @@ private fun Iterable<*>.dump(tag: String) =
 /* Prints a plain Set<String> nicely */
 private fun Set<*>.dump(tag: String) =
     Log.d("DS-FLOW", "$tag  size=${size}  →  ${joinToString()}")
+
+private fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val results = FloatArray(1)
+    android.location.Location.distanceBetween(lat1, lon1, lat2, lon2, results)
+    return results[0] / 1000.0
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DatingFiltersSheet(
+    sortMode: SortMode,
+    onSortModeChange: (SortMode) -> Unit,
+    radiusKm: Double,
+    onRadiusChange: (Double) -> Unit,
+    lastActiveHours: Double,
+    onLastActiveChange: (Double) -> Unit,
+    orientation: String,
+    onOrientationChange: (String) -> Unit,
+    onApply: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val context = LocalContext.current
+    var orientationExpanded by remember { mutableStateOf(false) }
+    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1A1A1A))
+            .padding(16.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(stringResource(R.string.filters), color = Color.White, fontSize = 20.sp)
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        ExposedDropdownMenuBox(
+            expanded = orientationExpanded,
+            onExpandedChange = { orientationExpanded = !orientationExpanded }
+        ) {
+            OutlinedTextField(
+                value = orientation.toOrientationCode()?.localized(context) ?: "",
+                onValueChange = {}, // readOnly field
+                readOnly = true,
+                label = { Text(stringResource(R.string.sexual_orientation_label), color = KupidxOrange) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = orientationExpanded) },
+                modifier = Modifier
+                    .menuAnchor() // <-- anchors the dropdown
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = orientationExpanded,
+                onDismissRequest = { orientationExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("All") },
+                    onClick = {
+                        onOrientationChange("")
+                        orientationExpanded = false
+                    }
+                )
+                orientationOptions.forEach { opt ->
+                    DropdownMenuItem(
+                        text = { Text(opt) },
+                        onClick = {
+                            onOrientationChange(opt.toOrientationCode()?.name ?: "")
+                            orientationExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // If you don’t want a tonal button (compat), just use Button + buttonColors
+        Button(
+            onClick = { onSortModeChange(if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY) },
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = Color(0xFFFF6F00).copy(alpha = 0.20f),
+                contentColor = Color(0xFFFF6F00)
+            )
+        ) {
+            Icon(
+                imageVector = if (sortMode == SortMode.NEARBY) Icons.Default.MyLocation else Icons.Default.Schedule,
+                contentDescription = null
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(stringResource(if (sortMode == SortMode.NEARBY) R.string.sort_nearby else R.string.sort_last_active))
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        if (sortMode == SortMode.NEARBY) {
+            Text("Radius: ${radiusKm.roundToInt()} km", color = Color.White)
+            Slider(
+                value = radiusKm.toFloat(),
+                onValueChange = { onRadiusChange(it.toDouble()) },
+                valueRange = 1f..250f
+            )
+        } else {
+            val days = (lastActiveHours / 24).roundToInt()
+            Text(
+                text = "Last active: ${if (days >= 30) "1 m" else "$days d"}", // <-- fixed interpolation
+                color = Color.White
+            )
+            Slider(
+                value = lastActiveHours.toFloat(),
+                onValueChange = { onLastActiveChange(it.toDouble()) },
+                valueRange = 24f..(24f * 30)
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = onApply, modifier = Modifier.align(Alignment.End), colors = ButtonDefaults.buttonColors(
+            backgroundColor = Color(0xFFFF6F00).copy(alpha = 0.20f),
+            contentColor = Color(0xFFFF6F00)
+        )) {
+            Text(stringResource(R.string.save))
+
+        }
+    }
+}
+
 
 data class SwipeData(
     val liked: Boolean = false,
@@ -199,9 +331,7 @@ fun DatingScreen(
         }
         return
     }
-    val filters           by datingViewModel.datingFilters.collectAsState()
-    var localDistance by remember(filters.distance) { mutableStateOf(filters.distance) }
-    val filteredProfiles  by datingViewModel.displayingProfiles.collectAsState()
+    val baseProfiles      by datingViewModel.displayingProfiles.collectAsState()
     val allProfiles       by datingViewModel.allProfiles.collectAsState()
     val isLoading         by datingViewModel.isLoading.collectAsState()
     val loadingProgress   by datingViewModel.loadingProgress.collectAsState()
@@ -210,6 +340,39 @@ fun DatingScreen(
     val complimentsLeft   by datingViewModel.complimentsLeft.collectAsState()
     val complimentsRecv   by datingViewModel.complimentsReceived.collectAsState()
     val isIndian = myProfile?.country.equals("India", true)
+
+    var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
+    var radiusKm by remember { mutableStateOf(50.0) }
+    var lastActiveHours by remember { mutableStateOf(24.0) }
+    var orientationFilter by remember { mutableStateOf("") }
+
+    val filteredProfiles by remember(baseProfiles, orientationFilter, sortMode, radiusKm, lastActiveHours, myProfile) {
+        derivedStateOf {
+            var list = baseProfiles
+            if (orientationFilter.isNotBlank()) {
+                list = list.filter { it.sexualOrientation.toOrientationCode()?.name == orientationFilter }
+            }
+            if (sortMode == SortMode.NEARBY) {
+                if (myProfile != null) {
+                    val me = myProfile
+                    var meLon = 0.0
+                    var meLat = 0.0
+                    if (me != null) {
+                         meLat = me.latitude
+                         meLon = me.longitude
+                        // use meLat / meLon safely
+                    }
+                    list = list.filter {
+                        distanceKm(meLat, meLon, it.latitude, it.longitude) <= radiusKm
+                    }.sortedBy { distanceKm(meLat, meLon, it.latitude, it.longitude) }
+                }
+            } else {
+                val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
+                list = list.filter { it.lastActive >= cutoff }.sortedByDescending { it.lastActive }
+            }
+            list
+        }
+    }
     // ── Misc local state ─────────────────────────────────────────────
     var excludedUserIds   by remember { mutableStateOf(emptySet<String>()) }
     var remainingSwipes   by remember { mutableStateOf(0) }
@@ -238,7 +401,7 @@ fun DatingScreen(
 
     fun safeRefresh() {
         try {
-            datingViewModel.refreshFilteredProfiles()
+            datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
         } catch (e: Exception) {
             Log.e("DatingScreen", "Failed to refresh profiles: ${e.message}", e)
             coroutineScope.launch {
@@ -428,62 +591,20 @@ fun DatingScreen(
     ModalBottomSheetLayout(
         sheetState   = sheetState,
         sheetContent = {
-            FiltersOverlay(
-                ageRange           = filters.ageStart..filters.ageEnd,
-                onAgeRangeChange   = { datingViewModel.updateDatingFilters(filters.copy(ageStart = it.start, ageEnd = it.endInclusive)) },
-                maxDistance        = localDistance
-                    .coerceAtMost(
-                        if (isIndian && !(myProfile!!.isPlus || myProfile!!.isPremium))
-                            DatingViewModel.INDIA_MAX_DISTANCE
-                        else
-                            DatingViewModel.WORLDWIDE_DISTANCE
-                    ),
-                onDistanceChange   = {
-                    val limit = if (isIndian && !(myProfile!!.isPlus || myProfile!!.isPremium))
-                        DatingViewModel.INDIA_MAX_DISTANCE
-                    else
-                        DatingViewModel.WORLDWIDE_DISTANCE
-                    localDistance = it.coerceAtMost(limit)
+            DatingFiltersSheet(
+                sortMode = sortMode,
+                onSortModeChange = { sortMode = it },
+                radiusKm = radiusKm,
+                onRadiusChange = { radiusKm = it },
+                lastActiveHours = lastActiveHours,
+                onLastActiveChange = { lastActiveHours = it },
+                orientation = orientationFilter,
+                onOrientationChange = { orientationFilter = it },
+                onApply = {
+                    datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
+                    coroutineScope.launch { sheetState.hide() }
                 },
-                selectedGenders    = filters.gender.split(",").toSet(),
-                onGenderChange     = { datingViewModel.updateDatingFilters(filters.copy(gender = it.joinToString(","))) },
-                selectedOrientation = filters.sexualOrientation,
-                onOrientationChange = { datingViewModel.updateDatingFilters(filters.copy(sexualOrientation = it)) },
-                selectedCommunity  = filters.community,
-                onCommunityChange  = { datingViewModel.updateDatingFilters(filters.copy(community = it)) },
-                selectedReligion   = filters.religion,
-                onReligionChange   = { datingViewModel.updateDatingFilters(filters.copy(religion = it)) },
-                selectedCaste      = filters.caste,
-                onCasteChange      = { datingViewModel.updateDatingFilters(filters.copy(caste = it)) },
-                selectedHighSchool = filters.highSchool,
-                onHighSchoolChange = { datingViewModel.updateDatingFilters(filters.copy(highSchool = it)) },
-                selectedCollege    = filters.college,
-                onCollegeChange    = { datingViewModel.updateDatingFilters(filters.copy(college = it)) },
-                selectedPostGrad   = filters.postGrad,
-                onPostGradChange   = { datingViewModel.updateDatingFilters(filters.copy(postGrad = it)) },
-                selectedEthnicity  = filters.ethnicity,
-                onEthnicityChange  = { datingViewModel.updateDatingFilters(filters.copy(ethnicity = it)) },
-                selectedIncomeLevel = filters.incomeLevel,
-                onIncomeLevelChange = { datingViewModel.updateDatingFilters(filters.copy(incomeLevel = it)) },
-                selectedCity       = filters.city,
-                onCityChange       = { datingViewModel.updateDatingFilters(filters.copy(city = it)) },
-                selectedLocalities = filters.localities,
-                onLocalitiesChange = { datingViewModel.updateDatingFilters(filters.copy(localities = it)) },
-                onSaveFilters = {
-                    coroutineScope.launch {
-                        datingViewModel.updateDatingFilters(filters.copy(distance = localDistance))
-                        sheetState.hide()
-                        datingViewModel.refreshFilteredProfiles()
-                    }
-                },
-                onCancel = { coroutineScope.launch { sheetState.hide() } },
-                isIndian = isIndian,
-                isPlus = myProfile!!.isPlus,
-                isPremium = myProfile!!.isPremium,
-                minRating = filters.minRating,
-                onMinRatingChange = { datingViewModel.updateDatingFilters(filters.copy(minRating = it)) },
-                maxRanking = filters.maxRanking,
-                onMaxRankingChange = { datingViewModel.updateDatingFilters(filters.copy(maxRanking = it)) }
+                onCancel = { coroutineScope.launch { sheetState.hide() } }
             )
         }
     ) {
@@ -654,7 +775,7 @@ fun DatingScreen(
                         autoTapCount = autoTapCount,
                         maxAutoTaps = maxAutoTaps,
                         onRefresh = {
-                            datingViewModel.refreshFilteredProfiles()
+                            datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
                         }
                     )
 
@@ -679,7 +800,7 @@ fun DatingScreen(
                         excludedUserIds = excludedUserIds,
                         onExcludeUser = { excludedUserIds = excludedUserIds + it },
                         onRefreshProfiles = {
-                            datingViewModel.refreshFilteredProfiles()
+                            datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
                         }
                     )
                 }
@@ -929,691 +1050,6 @@ fun SwipeLimitOverlay(
             fontSize = 13.sp,
             textAlign = TextAlign.Center
         )
-    }
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun FiltersOverlay(
-    ageRange: IntRange,
-    onAgeRangeChange: (IntRange) -> Unit,
-    maxDistance: Int,
-    onDistanceChange: (Int) -> Unit,
-    selectedGenders: Set<String>,
-    onGenderChange: (Set<String>) -> Unit,
-    selectedOrientation: String,
-    onOrientationChange: (String) -> Unit,
-    selectedCommunity: String,
-    onCommunityChange: (String) -> Unit,
-    selectedReligion: String,
-    onReligionChange: (String) -> Unit,
-    selectedCaste: String,
-    onCasteChange: (String) -> Unit,
-    selectedHighSchool: String,
-    onHighSchoolChange: (String) -> Unit,
-    selectedCollege: String,
-    onCollegeChange: (String) -> Unit,
-    selectedPostGrad: String,
-    onPostGradChange: (String) -> Unit,
-    selectedCity: String,
-    onCityChange: (String) -> Unit,
-    selectedEthnicity: String,
-    onEthnicityChange: (String) -> Unit,
-    selectedIncomeLevel: String,
-    onIncomeLevelChange: (String) -> Unit,
-    selectedLocalities: List<String>,
-    onLocalitiesChange: (List<String>) -> Unit,
-    onSaveFilters: () -> Unit,
-    onCancel: () -> Unit,
-    isIndian: Boolean,
-
-    // ← no change here: these two flags come from DatingScreen’s myProfile!!.isPlus / isPremium
-    isPlus: Boolean,
-    isPremium: Boolean,
-
-    // the current values of each “power” filter (even if locked)
-    minRating: Float,
-    onMinRatingChange: (Float) -> Unit,
-    maxRanking: Int,
-    onMaxRankingChange: (Int) -> Unit
-) {
-    val context = LocalContext.current
-
-    val limit = if (isIndian && !(isPlus || isPremium))
-        DatingViewModel.INDIA_MAX_DISTANCE
-    else
-        DatingViewModel.WORLDWIDE_DISTANCE
-
-    var pendingDistance by remember { mutableStateOf(maxDistance.coerceAtMost(limit)) }
-
-    LaunchedEffect(maxDistance, limit) {
-        pendingDistance = maxDistance.coerceAtMost(limit)
-    }
-    // Local state for place search
-    var highSchoolQuery by remember { mutableStateOf(selectedHighSchool) }
-    var collegeQuery by remember { mutableStateOf(selectedCollege) }
-    var postGradQuery by remember { mutableStateOf(selectedPostGrad) }
-
-    var highSchoolResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-    var collegeResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-    var postGradResults by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
-
-    var highSchoolSearching by remember { mutableStateOf(false) }
-    var collegeSearching by remember { mutableStateOf(false) }
-    var postGradSearching by remember { mutableStateOf(false) }
-
-    var isHighSchoolFieldFocused by remember { mutableStateOf(false) }
-    var isCollegeFieldFocused by remember { mutableStateOf(false) }
-    var isPostGradFieldFocused by remember { mutableStateOf(false) }
-
-
-    var cityInput      by remember { mutableStateOf(selectedCity) }
-    var localitiesInput by remember { mutableStateOf(selectedLocalities.joinToString(", ")) }
-
-
-    LaunchedEffect(highSchoolQuery) {
-        if (highSchoolQuery.length < 3) {
-            highSchoolResults = emptyList()
-        } else {
-            delay(400)
-            highSchoolSearching = true
-            highSchoolResults = searchPlacesRich(highSchoolQuery)
-            highSchoolSearching = false
-        }
-    }
-
-    LaunchedEffect(collegeQuery) {
-        if (collegeQuery.length < 3) {
-            collegeResults = emptyList()
-        } else {
-            delay(400)
-            collegeSearching = true
-            collegeResults = searchPlacesRich(collegeQuery)
-            collegeSearching = false
-        }
-    }
-
-    LaunchedEffect(postGradQuery) {
-        if (postGradQuery.length < 3) {
-            postGradResults = emptyList()
-        } else {
-            delay(400)
-            postGradSearching = true
-            postGradResults = searchPlacesRich(postGradQuery)
-            postGradSearching = false
-        }
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF1A1A1A))
-            .padding(16.dp)
-    ) {
-        // ─── “Filters” title + Save button ───────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Button(
-                onClick = {
-                    onDistanceChange(pendingDistance)
-                    onSaveFilters()
-                },
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                shape = RoundedCornerShape(50),
-                modifier = Modifier.height(dimensionResource(id = R.dimen.btn_height))
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.FilterAltOff,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.save), color = Color.White)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn {
-            // ─── BASIC Filters ─────────────────────────────────────────────
-            item {
-                FilterSectionTitle(title = stringResource(R.string.basic_filters))
-                Spacer(modifier = Modifier.height(8.dp))
-
-
-                Spacer(Modifier.height(24.dp))
-
-                // Gender pills (pre‐populated via selectedGenders)
-                Text(stringResource(R.string.gender_preference), color = Color.White)
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    listOf(
-                        stringResource(R.string.male_option),
-                        stringResource(R.string.female_option)
-                    ).forEach { gender ->
-                        Button(
-                            onClick = {
-                                val updated = if (selectedGenders.contains(gender)) {
-                                    selectedGenders - gender
-                                } else {
-                                    selectedGenders + gender
-                                }
-                                onGenderChange(updated)
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = if (selectedGenders.contains(gender))
-                                    Color(0xFFFF6000)
-                                else
-                                    Color(0xFF1A1A1A)
-                            ),
-                            border = BorderStroke(
-                                2.dp,
-                                if (selectedGenders.contains(gender)) Color(0xFFFF6000) else Color.Gray
-                            ),
-                            shape = RoundedCornerShape(50),
-                            modifier = Modifier
-                                .padding(vertical = 4.dp)
-                                .height(dimensionResource(id = R.dimen.btn_height))
-                        ) {
-                            Text(gender, color = Color.White)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Age Range Slider (unchanged)
-                Text(
-                    text = stringResource(
-                        R.string.age_range,
-                        ageRange.start,
-                        ageRange.endInclusive
-                    ),
-                    color = Color.White
-                )
-                RangeSlider(
-                    value = ageRange.start.toFloat()..ageRange.endInclusive.toFloat(),
-                    onValueChange = { range ->
-                        onAgeRangeChange(
-                            range.start.roundToInt()..
-                                    range.endInclusive.roundToInt()
-                        )
-                    },
-                    valueRange = 18f..100f,
-                    steps = 20,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFFF6000),
-                        activeTrackColor = Color.White,
-                        inactiveTrackColor = Color.Gray
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = if (pendingDistance == DatingViewModel.WORLDWIDE_DISTANCE)
-                        stringResource(R.string.worldwide)
-                    else
-                        DistanceUtil.formatDistance(context, pendingDistance.toFloat()),
-                    color = Color.White
-                )
-                Slider(
-                    value = pendingDistance.toFloat(),
-                    onValueChange = {
-                        var newDistance = it.roundToInt().coerceAtMost(limit)
-                        if (newDistance != DatingViewModel.WORLDWIDE_DISTANCE) {
-                            newDistance = (newDistance / 5) * 5
-                        }
-                        pendingDistance = newDistance
-                    },
-                    valueRange = 0f..limit.toFloat(),
-                    steps = ((limit / 5) - 1).coerceAtLeast(0),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFFF6000),
-                        activeTrackColor = Color.White,
-                        inactiveTrackColor = Color.Gray
-                    )
-                )
-            }
-
-            // ── City & Locality (Premium) ─────────────────────────
-            item {
-                OutlinedTextField(
-                    value = cityInput,
-                    onValueChange = {
-                        cityInput = it
-                        onCityChange(it)
-                    },
-                    label = { Text(stringResource(R.string.city_label), color = Color.White) },
-                    enabled = true,
-                    singleLine = true,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF6F00),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color.White,
-                        focusedLabelColor = Color.White,
-                        unfocusedLabelColor = Color.White,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        disabledTextColor = Color.Gray,
-                        disabledBorderColor = Color.DarkGray,
-                        disabledLabelColor = Color.Gray
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = localitiesInput,
-                    onValueChange = {
-                        localitiesInput = it
-                        val list = it.split(',').map { it.trim() }.filter { it.isNotBlank() }
-                        onLocalitiesChange(list)
-                    },
-                    label = { Text(stringResource(R.string.locality_label), color = Color.White) },
-                    enabled = true,
-                    singleLine = true,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF6F00),
-                        unfocusedBorderColor = Color.Gray,
-                        cursorColor = Color.White,
-                        focusedLabelColor = Color.White,
-                        unfocusedLabelColor = Color.White,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        disabledTextColor = Color.Gray,
-                        disabledBorderColor = Color.DarkGray,
-                        disabledLabelColor  = Color.Gray
-                    )
-                )
-            }
-
-            // bottom save button visible to everyone, before premium gate
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = {
-                        onDistanceChange(pendingDistance)
-                        onSaveFilters()
-                    },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-                    shape = RoundedCornerShape(50),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(dimensionResource(id = R.dimen.btn_height))
-                ) {
-                    Text(stringResource(R.string.save), color = Color.White)
-                }
-            }
-
-            /* ───── POWER FILTERS ──────────────────────────────────────── */
-
-            /* 2) Top‐N Ranking (1..100) – visible to everyone, but locked for non‐Premium users */
-
-            /* Show locked overlay for non‑Premium users once */
-            if (!isPremium) {
-                // show the lock message only
-                item {
-                    Locked("advanced")
-                }
-            } else {
-
-                /* ─── EDUCATION Filters ──────────────────────────────────── */
-                item {
-                    Spacer(Modifier.height(24.dp))
-//                FilterSectionTitle(title = stringResource(R.string.education))
-
-                    Spacer(Modifier.height(8.dp))
-                    // ─ High School ─
-                    PlaceSearchDropdown(
-                        label = stringResource(R.string.high_school),
-                        query = highSchoolQuery,
-                        onQueryChange = {
-                            highSchoolQuery = it
-                            onHighSchoolChange(it)
-                        },
-                        results = highSchoolResults,
-                        searching = highSchoolSearching,
-                        onResultSelect = {
-                            highSchoolQuery = it
-                            onHighSchoolChange(it)
-                            highSchoolResults = emptyList()
-                        },
-                        isFieldFocused = isHighSchoolFieldFocused,
-                        onFieldFocusChange = { isHighSchoolFieldFocused = it }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // ─ College ─
-                    PlaceSearchDropdown(
-                        label = stringResource(R.string.college),
-                        query = collegeQuery,
-                        onQueryChange = {
-                            collegeQuery = it
-                            onCollegeChange(it)
-                        },
-                        results = collegeResults,
-                        searching = collegeSearching,
-                        onResultSelect = {
-                            collegeQuery = it
-                            onCollegeChange(it)
-                            collegeResults = emptyList()
-                        },
-                        isFieldFocused = isCollegeFieldFocused,
-                        onFieldFocusChange = { isCollegeFieldFocused = it }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // ─ Post‐Grad ─
-                    PlaceSearchDropdown(
-                        label = stringResource(R.string.post_grad),
-                        query = postGradQuery,
-                        onQueryChange = {
-                            postGradQuery = it
-                            onPostGradChange(it)
-                        },
-                        results = postGradResults,
-                        searching = postGradSearching,
-                        onResultSelect = {
-                            postGradQuery = it
-                            onPostGradChange(it)
-                            postGradResults = emptyList()
-                        },
-                        isFieldFocused = isPostGradFieldFocused,
-                        onFieldFocusChange = { isPostGradFieldFocused = it },
-                    )
-                }
-
-                /* ─── PREFERENCES Filters ───────────────────────────────── */
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Sexual orientation filter
-                    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
-                    DropdownFilter(
-                        label = stringResource(R.string.sexual_orientation_label),
-                        options = orientationOptions,
-                        selectedOption = selectedOrientation,
-                        onOptionChange = onOrientationChange
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (isIndian) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            DropdownFilter(
-                                label = stringResource(R.string.community),
-                                options = listOf(
-                                    stringResource(R.string.community_other),
-                                    stringResource(R.string.community_adi),
-                                    stringResource(R.string.community_andamanese),
-                                    stringResource(R.string.community_anglo_indian),
-                                    stringResource(R.string.community_assamese),
-                                    stringResource(R.string.community_awadhi),
-                                    stringResource(R.string.community_banjara),
-                                    stringResource(R.string.community_bengali),
-                                    stringResource(R.string.community_bhil),
-                                    stringResource(R.string.community_bihari),
-                                    stringResource(R.string.community_bodo),
-                                    stringResource(R.string.community_bhojpuri),
-                                    stringResource(R.string.community_chhattisgarhi),
-                                    stringResource(R.string.community_coorgi),
-                                    stringResource(R.string.community_dogra),
-                                    stringResource(R.string.community_garhwali),
-                                    stringResource(R.string.community_goan),
-                                    stringResource(R.string.community_gond),
-                                    stringResource(R.string.community_gujarati),
-                                    stringResource(R.string.community_haryanvi),
-                                    stringResource(R.string.community_himachali),
-                                    stringResource(R.string.community_kannadiga),
-                                    stringResource(R.string.community_kashmiri),
-                                    stringResource(R.string.community_khasi),
-                                    stringResource(R.string.community_konkani),
-                                    stringResource(R.string.community_kumaoni),
-                                    stringResource(R.string.community_ladakhi),
-                                    stringResource(R.string.community_lakhadweepi),
-                                    stringResource(R.string.community_lepcha),
-                                    stringResource(R.string.community_madhya_pradeshi),
-                                    stringResource(R.string.community_malayali),
-                                    stringResource(R.string.community_malayali_mappila),
-                                    stringResource(R.string.community_manipuri),
-                                    stringResource(R.string.community_marathi),
-                                    stringResource(R.string.community_marwari),
-                                    stringResource(R.string.community_mizo),
-                                    stringResource(R.string.community_munda),
-                                    stringResource(R.string.community_naga),
-                                    stringResource(R.string.community_nepali),
-                                    stringResource(R.string.community_nyishi),
-                                    stringResource(R.string.community_odia),
-                                    stringResource(R.string.community_oraon),
-                                    stringResource(R.string.community_parsi),
-                                    stringResource(R.string.community_punjabi),
-                                    stringResource(R.string.community_rajasthani),
-                                    stringResource(R.string.community_santhal),
-                                    stringResource(R.string.community_sikkimese),
-                                    stringResource(R.string.community_sindhi),
-                                    stringResource(R.string.community_tamil),
-                                    stringResource(R.string.community_telugu),
-                                    stringResource(R.string.community_tibetan),
-                                    stringResource(R.string.community_tripuri),
-                                    stringResource(R.string.community_urdu_speaker)
-                                ),
-                                selectedOption = selectedCommunity,
-                                onOptionChange = onCommunityChange
-                            )
-                        }
-                    }
-                    // Religion options
-                    val nonIndianReligions = listOf(
-                        stringResource(R.string.religion_other),
-                        stringResource(R.string.religion_buddhist),
-                        stringResource(R.string.religion_christian),
-                        stringResource(R.string.religion_christian_catholic),
-                        stringResource(R.string.religion_christian_protestant_mainline),
-                        stringResource(R.string.religion_christian_evangelical),
-                        stringResource(R.string.religion_christian_orthodox),
-                        stringResource(R.string.religion_christian_latter_day_saint),
-                        stringResource(R.string.religion_christian_jehovahs_witness),
-                        stringResource(R.string.religion_christian_other),
-                        stringResource(R.string.religion_hindu),
-                        stringResource(R.string.religion_jain),
-                        stringResource(R.string.religion_jewish),
-                        stringResource(R.string.religion_muslim),
-                        stringResource(R.string.religion_muslim_sunni),
-                        stringResource(R.string.religion_muslim_shia),
-                        stringResource(R.string.religion_muslim_ahmadiyya),
-                        stringResource(R.string.religion_muslim_sufi),
-                        stringResource(R.string.religion_muslim_other),
-                        stringResource(R.string.religion_no_religion),
-                        stringResource(R.string.religion_parsi),
-                        stringResource(R.string.religion_sikh),
-                        stringResource(R.string.religion_indigenous_tribal),
-                        stringResource(R.string.religion_santeria),
-                        stringResource(R.string.religion_voodou),
-                        stringResource(R.string.religion_candomble),
-                        stringResource(R.string.religion_umbanda),
-                        stringResource(R.string.religion_palo_mayombe),
-                        stringResource(R.string.religion_native_traditional),
-                        stringResource(R.string.religion_native_church),
-                        stringResource(R.string.religion_vision_quest),
-                        stringResource(R.string.religion_african_traditional),
-                        stringResource(R.string.religion_obeah),
-                        stringResource(R.string.religion_hoodoo),
-                        stringResource(R.string.religion_rastafari),
-                        stringResource(R.string.religion_black_protestant),
-                    )
-
-                    DropdownFilter(
-                        label = stringResource(R.string.religion_label),
-                        options = nonIndianReligions,
-                        selectedOption = selectedReligion,
-                        onOptionChange = onReligionChange
-                    )
-
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    DropdownFilter(
-                        label = stringResource(R.string.ethnicity_label),
-                        options = listOf(
-                            stringResource(R.string.ethnicity_option_white),
-                            stringResource(R.string.ethnicity_option_black),
-                            stringResource(R.string.ethnicity_option_hispanic),
-                            stringResource(R.string.ethnicity_option_asian),
-                            stringResource(R.string.ethnicity_option_native_american),
-                            stringResource(R.string.ethnicity_option_middle_eastern),
-                            stringResource(R.string.ethnicity_option_pacific_islander),
-                            stringResource(R.string.ethnicity_option_mixed_other)
-                        ),
-                        selectedOption = selectedEthnicity,
-                        onOptionChange = onEthnicityChange
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    DropdownFilter(
-                        label = stringResource(R.string.income_level_label),
-                        options = listOf(
-                            stringResource(R.string.income_level_under_25k),
-                            stringResource(R.string.income_level_25k_50k),
-                            stringResource(R.string.income_level_50k_75k),
-                            stringResource(R.string.income_level_75k_100k),
-                            stringResource(R.string.income_level_100k_150k),
-                            stringResource(R.string.income_level_over_150k)
-                        ),
-                        selectedOption = selectedIncomeLevel,
-                        onOptionChange = onIncomeLevelChange
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (isIndian) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            DropdownFilter(
-                                label = stringResource(R.string.caste),
-                                options = listOf(
-                                    stringResource(R.string.caste_other),
-                                    stringResource(R.string.caste_baidya),
-                                    stringResource(R.string.caste_bhumihar),
-                                    stringResource(R.string.caste_bhil),
-                                    stringResource(R.string.caste_brahmin),
-                                    stringResource(R.string.caste_ezhava),
-                                    stringResource(R.string.caste_general),
-                                    stringResource(R.string.caste_gowda),
-                                    stringResource(R.string.caste_gurjar),
-                                    stringResource(R.string.caste_jat),
-                                    stringResource(R.string.caste_kayastha),
-                                    stringResource(R.string.caste_kshatriya),
-                                    stringResource(R.string.caste_kurmi),
-                                    stringResource(R.string.caste_lingayat),
-                                    stringResource(R.string.caste_mahishya),
-                                    stringResource(R.string.caste_maratha),
-                                    stringResource(R.string.caste_naidu),
-                                    stringResource(R.string.caste_nair),
-                                    stringResource(R.string.caste_obc),
-                                    stringResource(R.string.caste_patel),
-                                    stringResource(R.string.caste_rajput),
-                                    stringResource(R.string.caste_rajvanshi),
-                                    stringResource(R.string.caste_reddy),
-                                    stringResource(R.string.caste_sadgop),
-                                    stringResource(R.string.caste_scheduled_caste),
-                                    stringResource(R.string.caste_scheduled_tribe),
-                                    stringResource(R.string.caste_vaishya),
-                                    stringResource(R.string.caste_vellalar),
-                                    stringResource(R.string.caste_yadav),
-                                ),
-                                selectedOption = selectedCaste,
-                                onOptionChange = onCasteChange
-                            )
-                        }
-                    }
-                }
-                /* 1) Minimum Rating (0..5 stars) – visible to everyone, but locked for non‐Plus users */
-                item {
-                    Spacer(Modifier.height(24.dp))
-                    FilterSectionTitle(stringResource(R.string.rating_label))
-
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(R.string.min_rating, minRating),
-                        color = if (isPremium) Color.White else Color.Gray
-                    )
-                    Slider(
-                        value = minRating,
-                        onValueChange = {
-                            if (isPlus || isPremium) {
-                                onMinRatingChange(it)
-                            }
-                        },
-                        valueRange = 0f..5f,
-                        steps = 4,
-                        enabled = (isPremium),
-                        colors = SliderDefaults.colors(
-                            thumbColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
-                            activeTrackColor = if (isPlus || isPremium) Color(0xFFFF6000) else Color.Gray,
-                            inactiveTrackColor = Color.DarkGray
-                        )
-                    )
-                    if (!(isPremium)) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.upgrade_to_premium_to_unlock),
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
-                        Spacer(Modifier.height(8.dp))
-                    }
-                }
-
-                item {
-                    Spacer(Modifier.height(24.dp))
-                    FilterSectionTitle(stringResource(R.string.ranking_label))
-
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(
-                            R.string.top_n_ranking,
-                            if (maxRanking == 0) "∞" else maxRanking
-                        ),
-                        color = if (isPremium) Color.White else Color.Gray
-                    )
-                    Slider(
-                        value = (if (maxRanking == 0) 100f else maxRanking.toFloat()),
-                        onValueChange = {
-                            if (isPremium) {
-                                onMaxRankingChange(it.roundToInt())
-                            }
-                        },
-                        valueRange = 1f..100f,
-                        steps = 30,
-                        enabled = isPremium,
-                        colors = SliderDefaults.colors(
-                            thumbColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
-                            activeTrackColor = if (isPremium) Color(0xFFFF6000) else Color.Gray,
-                            inactiveTrackColor = Color.DarkGray
-                        )
-                    )
-                    if (!isPremium) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.upgrade_to_premium_to_unlock),
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 

@@ -82,9 +82,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     val complimentsLeft: StateFlow<Int> = _complimentsLeft.asStateFlow()
     val boostsLeft     : StateFlow<Int> = _boostsLeft     .asStateFlow()
 
-    private val _datingFilters = MutableStateFlow(DatingFilterSettings().copy(distance = WORLDWIDE_DISTANCE))
-    val datingFilters: StateFlow<DatingFilterSettings> get() = _datingFilters
-
     private val _blockedUsers = MutableStateFlow<List<String>>(emptyList())
 
     private val _isLoading = MutableStateFlow(true)
@@ -105,7 +102,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val auth = FirebaseAuth.getInstance()
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         firebaseAuth.currentUser?.uid?.let { me ->
-            loadFilters()
             viewModelScope.launch {
                 _blockedUsers.value = fetchBlockedUsers(me)
                 _complimentsLeft.value = fetchComplimentsBalance(me)
@@ -135,16 +131,12 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private val _boostedUsers      = MutableStateFlow<List<Profile>>(emptyList())
     val boostedUsers: StateFlow<List<Profile>>      get() = _boostedUsers
 
-    private val _userDistanceMap   = MutableStateFlow<Map<String, Float>>(emptyMap())
-    val userDistanceMap: StateFlow<Map<String, Float>> get() = _userDistanceMap
 
-    // 1) the un-wrapped filter logic exactly as before
     private val baseFiltered = combine(
         _allProfiles,
-        _datingFilters,
         _blockedUsers
-    ) { profiles, filters, blocked ->
-        applyDatingFilters(profiles, filters, blocked)
+    ) { profiles, blocked ->
+        profiles.filterNot { it.userId in blocked }
     }
 
     // 2) the “freeze while loading” wrapper
@@ -171,46 +163,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         auth.addAuthStateListener(authListener)
     }
 
-    private fun loadFilters() {
-        viewModelScope.launch {
-            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-            try {
-                /* grab profile + filters in one round-trip */
-                val userSnap  = usersRef.child(uid).get().await()
-                val profile   = userSnap.getValue(Profile::class.java)
-                val rawFilters = userSnap.child("datingFilters")
-                    .getValue(DatingFilterSettings::class.java)
-                    ?: DatingFilterSettings().copy(distance = WORLDWIDE_DISTANCE)
-                val filtersDb = rawFilters.copy(
-                    gender = rawFilters.gender.split(",").mapNotNull { it.toGenderCode()?.name }.joinToString(","),
-                    sexualOrientation = rawFilters.sexualOrientation.toOrientationCode()?.name
-                        ?: rawFilters.sexualOrientation
-                )
-
-                val safeFilters = sanitizeFilters(filtersDb)
-                _datingFilters.value = safeFilters
-
-                /* ▶︎ if gender not set yet, seed it from profile.interestedIn */
-                val seededFilters = if (filtersDb.gender.isBlank()) {
-                    val list = profile?.interestedIn.orEmpty()
-                        .filter { it.isNotBlank() }
-
-                    if (list.isNotEmpty()) {
-                        filtersDb.copy(gender = list.joinToString(",")).also { updated ->
-                            // persist the new default so we don’t do this again
-                            usersRef.child(uid)
-                                .child("datingFilters")
-                                .setValue(updated)
-                        }
-                    } else filtersDb
-                } else filtersDb
-
-                _datingFilters.value = seededFilters          // flow update
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading filters: ${e.message}", e)
-            }
-        }
-    }
     fun sendCompliment(
         receiverId: String,
         textMessage: String?,
@@ -325,28 +277,14 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         complimentsReceivedRef = null
     }
 
-    /**
-     * Update and save filters in Firebase
-     */
-    fun updateDatingFilters(updatedFilters: DatingFilterSettings) {
-        viewModelScope.launch {
-            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-            val previous = _datingFilters.value
-            try {
-                usersRef.child(userId).child("datingFilters").setValue(updatedFilters).await()
-                _datingFilters.value = updatedFilters
-                refreshFilteredProfiles()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error updating filters: ${e.message}", e)
-                _datingFilters.value = previous
-            }
-        }
-    }
+
+    private val refreshMutex = kotlinx.coroutines.sync.Mutex()
     /**
      * Refresh profiles manually
      */
-    fun refreshFilteredProfiles() {
+    fun refreshFilteredProfiles(maxDistanceKm: Int = WORLDWIDE_DISTANCE) {
         viewModelScope.launch {
+            if (!refreshMutex.tryLock()) return@launch // skip if already running
             _isLoading.value = true
             _loadingProgress.value = 0
             val me = FirebaseAuth.getInstance().currentUser?.uid
@@ -357,7 +295,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
 
-                val maxDist = _datingFilters.value.distance
+                val maxDist = maxDistanceKm
                 coroutineScope {
                     val blockedDeferred = async { fetchBlockedUsers(me) }
                     val complimentsDeferred = async { fetchGlobalComplimenters(me) }
@@ -533,163 +471,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         return cleaned.take(max)
     }
 
-    private fun sanitizeFilters(raw: DatingFilterSettings): DatingFilterSettings {
-        return raw.copy(
-            city = sanitizeText(raw.city),
-            highSchool = sanitizeText(raw.highSchool),
-            college = sanitizeText(raw.college),
-            postGrad = sanitizeText(raw.postGrad),
-            work = sanitizeText(raw.work),
-            community = sanitizeText(raw.community),
-            religion = sanitizeText(raw.religion),
-            caste = sanitizeText(raw.caste),
-            ethnicity = sanitizeText(raw.ethnicity),
-            incomeLevel = sanitizeText(raw.incomeLevel)
-        )
-    }
-    private suspend fun applyDatingFilters(profiles: List<Profile>, filters: DatingFilterSettings, blocked:  List<String> // ← NEW
-    ): List<Profile> = coroutineScope {
-
-        // Fetch blocked users
-        var result = profiles.filterNot { blocked.contains(it.userId) }
-
-        // Apply localities filter
-        if (filters.localities.isNotEmpty()) {
-            val normalizedLocs = filters.localities.map { it.replace("\\s".toRegex(), "").lowercase() }
-            result = result.filter { p ->
-                val raw = p.hometown.ifBlank { p.customHometown.orEmpty() }
-                val profLoc = raw.replace("\\s".toRegex(), "").lowercase()
-                normalizedLocs.contains(profLoc)
-            }
-        }
-
-
-        if (filters.city.isNotBlank() && filters.city != "All") {
-            val target = filters.city.replace("\\s".toRegex(), "").lowercase()
-            result = result.filter {
-                it.city.replace("\\s".toRegex(), "").lowercase() == target
-            }
-        }
-
-        // Apply high school filter
-        if (filters.highSchool.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.highSchool?.equals(filters.highSchool, ignoreCase = true) == true
-            }
-        }
-
-        // Apply college filter
-        if (filters.college.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.college?.equals(filters.college, ignoreCase = true) == true
-            }
-        }
-
-        // Apply post-grad filter
-        if (filters.postGrad.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.postGraduation?.equals(filters.postGrad, ignoreCase = true) == true
-            }
-        }
-
-        // Apply community filter
-        if (filters.community.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.community.equals(filters.community, ignoreCase = true)
-            }
-        }
-
-        // Apply religion filter
-        if (filters.religion.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.religion.equals(filters.religion, ignoreCase = true)
-            }
-        }
-
-        // Apply caste filter
-        if (filters.caste.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.caste.equals(filters.caste, ignoreCase = true)
-            }
-        }
-
-        // Apply work filter
-        if (filters.work.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.work?.equals(filters.work, ignoreCase = true) == true
-            }
-        }
-
-        // Apply ethnicity filter
-        if (filters.ethnicity.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.ethnicity.equals(filters.ethnicity, ignoreCase = true)
-            }
-        }
-
-        // Apply income level filter
-        if (filters.incomeLevel.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.incomeLevel.equals(filters.incomeLevel, ignoreCase = true)
-            }
-        }
-
-        // Apply age range filter
-        result = result.filter { profile ->
-// keep if age unknown  OR  within range
-            val age = profile.dob.takeIf { it.isNotBlank() }?.let { calculateAge(it) }
-            if (age == null || age in filters.ageStart..filters.ageEnd)
-                true  else false
-        }
-
-        // ── NEW: Minimum ⭐ Rating  (Plus & Premium)
-        if (filters.minRating > 0f) {
-            result = result.filter { it.averageRating >= filters.minRating }
-        }
-
-        // ── NEW: Top-N 🏆 Ranking  (Premium only)
-        if (filters.maxRanking > 0) {
-            result = result.filter { it.am24Ranking == 0 || it.am24Ranking <= filters.maxRanking }
-        }
-        // Apply gender filter
-        if (filters.gender.isNotBlank()) {
-            val genderCodes = filters.gender.split(",").mapNotNull { it.toGenderCode() }
-            result = result.filter { profile ->
-                profile.gender.toGenderCode() in genderCodes
-            }
-        }
-
-        // Apply sexual orientation filter
-        if (filters.sexualOrientation.isNotBlank()) {
-            result = result.filter { profile ->
-                profile.sexualOrientation.toOrientationCode()?.name == filters.sexualOrientation
-            }
-        }
-
-        // Apply distance filter and populate distance map
-        val currentUserId = auth.currentUser?.uid
-        if (currentUserId != null) {
-            val distanceMap = mutableMapOf<String, Float>()
-            val filteredByDistance = mutableListOf<Profile>()
-
-            for (profile in result) {
-                val dist = distanceBetween(currentUserId, profile.userId, geoFire)
-                if (dist != null) {
-                    distanceMap[profile.userId] = dist
-                }
-                val withinRange = filters.distance == WORLDWIDE_DISTANCE ||
-                        dist == null || dist <= filters.distance.toFloat()
-                if (withinRange) {
-                    filteredByDistance.add(profile)
-                }
-            }
-
-            _userDistanceMap.value = distanceMap
-            result = filteredByDistance
-        }
-
-        return@coroutineScope result
-    }
 
     /** in‑process LRU for distance look‑ups (key is the *sorted* pair) */
     private val distanceCache = object : LinkedHashMap<Pair<String,String>, Float>(150, 0.75f, true) {
