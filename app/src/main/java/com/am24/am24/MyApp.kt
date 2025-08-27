@@ -17,9 +17,10 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        FacebookSdk.sdkInitialize(applicationContext)
-        FacebookSdk.setAutoInitEnabled(true)
-        AppEventsLogger.activateApp(this)
+        // Facebook App Events initialization (modern path)
+                FacebookSdk.setAutoInitEnabled(true)
+                FacebookSdk.fullyInitialize()
+                AppEventsLogger.activateApp(this)
 
         val appCheck = FirebaseAppCheck.getInstance()
         val providerFactory =

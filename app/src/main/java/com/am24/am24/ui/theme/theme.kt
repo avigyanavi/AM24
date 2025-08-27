@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
 val Black = Color(0xFF000000)
 val White = Color(0xFFFFFFFF)
 val AccentGreen = Color(0xFF00bf63)
-val DarkGrayBackground = Color(0xFF1A1A1A)
+val DarkGrayBackground = Color(0xFF1C1C1C)
 
 
 // App theme composable for the rest of the app

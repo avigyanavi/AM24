@@ -159,17 +159,16 @@ fun HomeScreen(
 
         val isPremium = userProfile?.isPremium == true
         val isPlus = userProfile?.isPlus == true
-        val isIndian = userProfile?.country?.equals("India", true) == true
 
-        LaunchedEffect(isPremium, isPlus, isIndian) {
-            if (!isPremium && !isPlus && !isIndian) {
+        LaunchedEffect(isPremium, isPlus) {
+            if (!isPremium && !isPlus) {
                 dailyLoginInfo = checkDailyLoginReward()
             } else {
                 dailyLoginInfo = null
             }
         }
 
-        if (!isPremium && !isPlus && !isIndian) {
+        if (!isPremium && !isPlus) {
             dailyLoginInfo?.let { info ->
                 val kupidxOrange = Color(0xFFFF6F00)
                 AlertDialog(

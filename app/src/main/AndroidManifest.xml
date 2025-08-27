@@ -60,6 +60,16 @@
             android:name="com.facebook.sdk.ClientToken"
             android:value="c2deeaa408a6cc080a2f914008805bcd" />
 
+        <meta-data
+                    android:name="com.facebook.sdk.AutoInitEnabled"
+                    android:value="true" />
+                <meta-data
+                    android:name="com.facebook.sdk.AutoLogAppEventsEnabled"
+                    android:value="true" />
+                <meta-data
+                    android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
+                    android:value="true" />
+
         <!-- 🔸 MUST be here, not inside an <activity> -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

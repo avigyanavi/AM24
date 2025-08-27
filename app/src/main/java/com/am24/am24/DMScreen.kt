@@ -373,7 +373,11 @@ fun DMScreenContent(
                             ) else Color.DarkGray,
                         ),
                     ) {
-                        Text("Smart Match", color = Color.White, fontSize = 10.sp)
+                        Text(
+                            stringResource(R.string.action_smart_match),
+                            color = Color.White,
+                            fontSize = 10.sp
+                        )
                     }
                 }
             }
@@ -383,7 +387,7 @@ fun DMScreenContent(
                 onValueChange = { searchQuery = it },
                 placeholder = { Text(stringResource(R.string.dm_search_matches_hint), color = Color.Gray, fontSize = 12.sp) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFFFF4500),
+                    focusedBorderColor = KupidxOrange,
                     unfocusedBorderColor = Color.Gray,
                     cursorColor = Color(0xFFFF4500),
                     focusedTextColor = Color.White,

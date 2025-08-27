@@ -14,7 +14,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 165
+        versionCode = 168
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -135,6 +135,7 @@ dependencies {
     implementation("com.razorpay:checkout:1.6.41")
     implementation("androidx.webkit:webkit:1.10.0")    // optional helper for modern WebView
     implementation("com.facebook.android:facebook-login:18.0.3")
+    implementation("com.facebook.android:facebook-android-sdk:18.1.3")
     implementation("com.github.yalantis:ucrop:2.2.9-native")
 
 //    implementation(libs.core) // ARCore
