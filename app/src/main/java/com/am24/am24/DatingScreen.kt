@@ -134,30 +134,14 @@ private fun Iterable<*>.dump(tag: String) =
 private fun Set<*>.dump(tag: String) =
     Log.d("DS-FLOW", "$tag  size=${size}  →  ${joinToString()}")
 
-private fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-    val results = FloatArray(1)
-    android.location.Location.distanceBetween(lat1, lon1, lat2, lon2, results)
-    return results[0] / 1000.0
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatingFiltersSheet(
-    sortMode: SortMode,
-    onSortModeChange: (SortMode) -> Unit,
-    radiusKm: Double,
-    onRadiusChange: (Double) -> Unit,
     lastActiveHours: Double,
     onLastActiveChange: (Double) -> Unit,
-    orientation: String,
-    onOrientationChange: (String) -> Unit,
     onApply: () -> Unit,
     onCancel: () -> Unit
 ) {
-    val context = LocalContext.current
-    var orientationExpanded by remember { mutableStateOf(false) }
-    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -173,90 +157,34 @@ fun DatingFiltersSheet(
 
         Spacer(Modifier.height(16.dp))
 
-        ExposedDropdownMenuBox(
-            expanded = orientationExpanded,
-            onExpandedChange = { orientationExpanded = !orientationExpanded }
-        ) {
-            OutlinedTextField(
-                value = orientation.toOrientationCode()?.localized(context) ?: "",
-                onValueChange = {}, // readOnly field
-                readOnly = true,
-                label = { Text(stringResource(R.string.sexual_orientation_label), color = KupidxOrange) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = orientationExpanded) },
-                modifier = Modifier
-                    .menuAnchor() // <-- anchors the dropdown
-                    .fillMaxWidth()
-            )
-            ExposedDropdownMenu(
-                expanded = orientationExpanded,
-                onDismissRequest = { orientationExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("All", color = KupidxOrange) },
-                    onClick = {
-                        onOrientationChange("")
-                        orientationExpanded = false
-                    }
+        val days = (lastActiveHours / 24).roundToInt()
+        Text(
+            text = "Last active: ${if (days >= 30) "1 m" else "$days d"}",
+                color = Color.White
                 )
-                orientationOptions.forEach { opt ->
-                    DropdownMenuItem(
-                        text = { Text(opt, color = KupidxOrange) },
-                        onClick = {
-                            onOrientationChange(opt.toOrientationCode()?.name ?: "")
-                            orientationExpanded = false
-                        }
-                    )
-                }
-            }
-        }
+                Slider(
+                    value = lastActiveHours.toFloat(),
+                    onValueChange = { onLastActiveChange(it.toDouble()) },
+                    valueRange = 24f..(24f * 30),
+                    colors = SliderDefaults.colors(
+                        thumbColor = KupidxOrange,
+                        activeTrackColor = KupidxOrange,
+                        inactiveTrackColor = KupidxOrange.copy(alpha = 0.24f)
+            )
+                )
 
         Spacer(Modifier.height(16.dp))
 
         // If you don’t want a tonal button (compat), just use Button + buttonColors
         Button(
-            onClick = { onSortModeChange(if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY) },
+            onClick = onApply,
+            modifier = Modifier.align(Alignment.End),
             colors = ButtonDefaults.buttonColors(
                 backgroundColor = Color(0xFFFF6F00).copy(alpha = 0.20f),
                 contentColor = Color(0xFFFF6F00)
             )
         ) {
-            Icon(
-                imageVector = if (sortMode == SortMode.NEARBY) Icons.Default.MyLocation else Icons.Default.Schedule,
-                contentDescription = null
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(stringResource(if (sortMode == SortMode.NEARBY) R.string.sort_nearby else R.string.sort_last_active))
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        if (sortMode == SortMode.NEARBY) {
-            Text("Radius: ${radiusKm.roundToInt()} km", color = Color.White)
-            Slider(
-                value = radiusKm.toFloat(),
-                onValueChange = { onRadiusChange(it.toDouble()) },
-                valueRange = 1f..250f
-            )
-        } else {
-            val days = (lastActiveHours / 24).roundToInt()
-            Text(
-                text = "Last active: ${if (days >= 30) "1 m" else "$days d"}", // <-- fixed interpolation
-                color = Color.White
-            )
-            Slider(
-                value = lastActiveHours.toFloat(),
-                onValueChange = { onLastActiveChange(it.toDouble()) },
-                valueRange = 24f..(24f * 30)
-            )
-        }
-
-        Spacer(Modifier.height(24.dp))
-        Button(onClick = onApply, modifier = Modifier.align(Alignment.End), colors = ButtonDefaults.buttonColors(
-            backgroundColor = Color(0xFFFF6F00).copy(alpha = 0.20f),
-            contentColor = Color(0xFFFF6F00)
-        )) {
             Text(stringResource(R.string.save))
-
         }
     }
 }
@@ -341,44 +269,34 @@ fun DatingScreen(
     val complimentsRecv   by datingViewModel.complimentsReceived.collectAsState()
     val isIndian = myProfile?.country.equals("India", true)
 
-    var sortMode by remember { mutableStateOf(SortMode.NEARBY) }
-    var radiusKm by remember { mutableStateOf(50.0) }
+    val isPremium by profileViewModel.isPremium.collectAsState(false)
+    val isPlus    by profileViewModel.isPlus   .collectAsState(false)
     var lastActiveHours by remember { mutableStateOf(24.0) }
-    var orientationFilter by remember { mutableStateOf("") }
-
-    val filteredProfiles by remember(baseProfiles, orientationFilter, sortMode, radiusKm, lastActiveHours, myProfile) {
+    val filteredProfiles by remember(baseProfiles, lastActiveHours, isPremium, isPlus) {
         derivedStateOf {
-            var list = baseProfiles
-            if (orientationFilter.isNotBlank()) {
-                list = list.filter { it.sexualOrientation.toOrientationCode()?.name == orientationFilter }
+            val cutoff = System.currentTimeMillis() -
+                    TimeUnit.MINUTES.toMillis((lastActiveHours * 60).toLong()) // keeps 0.5h etc.
+
+            val sorted = baseProfiles
+                .asSequence()
+                .filter { it.lastActive >= cutoff }
+                .sortedByDescending { it.lastActive }
+                .toList()
+
+            val limit = when {
+                isPremium -> 150
+                isPlus -> 50
+                else -> 20
             }
-            if (sortMode == SortMode.NEARBY) {
-                if (myProfile != null) {
-                    val me = myProfile
-                    var meLon = 0.0
-                    var meLat = 0.0
-                    if (me != null) {
-                         meLat = me.latitude
-                         meLon = me.longitude
-                        // use meLat / meLon safely
-                    }
-                    list = list.filter {
-                        distanceKm(meLat, meLon, it.latitude, it.longitude) <= radiusKm
-                    }.sortedBy { distanceKm(meLat, meLon, it.latitude, it.longitude) }
-                }
-            } else {
-                val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
-                list = list.filter { it.lastActive >= cutoff }.sortedByDescending { it.lastActive }
-            }
-            list
+
+            sorted.take(limit) // return value of derivedStateOf
         }
     }
+
     // ── Misc local state ─────────────────────────────────────────────
     var excludedUserIds   by remember { mutableStateOf(emptySet<String>()) }
     var remainingSwipes   by remember { mutableStateOf(0) }
     var swipesLoaded      by remember { mutableStateOf(false) }
-    val isPremium by profileViewModel.isPremium.collectAsState(false)
-    val isPlus    by profileViewModel.isPlus   .collectAsState(false)
 
     // constants
     val BOOST_DURATION = 1 * 60 * 60 * 1000L
@@ -401,7 +319,7 @@ fun DatingScreen(
 
     fun safeRefresh() {
         try {
-            datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
+            datingViewModel.refreshFilteredProfiles()
         } catch (e: Exception) {
             Log.e("DatingScreen", "Failed to refresh profiles: ${e.message}", e)
             coroutineScope.launch {
@@ -592,16 +510,10 @@ fun DatingScreen(
         sheetState   = sheetState,
         sheetContent = {
             DatingFiltersSheet(
-                sortMode = sortMode,
-                onSortModeChange = { sortMode = it },
-                radiusKm = radiusKm,
-                onRadiusChange = { radiusKm = it },
                 lastActiveHours = lastActiveHours,
                 onLastActiveChange = { lastActiveHours = it },
-                orientation = orientationFilter,
-                onOrientationChange = { orientationFilter = it },
                 onApply = {
-                    datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
+                    datingViewModel.refreshFilteredProfiles()
                     coroutineScope.launch { sheetState.hide() }
                 },
                 onCancel = { coroutineScope.launch { sheetState.hide() } }
@@ -775,7 +687,7 @@ fun DatingScreen(
                         autoTapCount = autoTapCount,
                         maxAutoTaps = maxAutoTaps,
                         onRefresh = {
-                            datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
+                            datingViewModel.refreshFilteredProfiles()
                         }
                     )
 
@@ -800,7 +712,7 @@ fun DatingScreen(
                         excludedUserIds = excludedUserIds,
                         onExcludeUser = { excludedUserIds = excludedUserIds + it },
                         onRefreshProfiles = {
-                            datingViewModel.refreshFilteredProfiles(radiusKm.toInt())
+                            datingViewModel.refreshFilteredProfiles()
                         }
                     )
                 }
