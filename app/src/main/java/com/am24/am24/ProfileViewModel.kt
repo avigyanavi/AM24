@@ -131,6 +131,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         ref.addValueEventListener(listener)
     }
 
+
     init {
         watchAdminFlag()    // ← start listening immediately
         watchPremiumFlag()    // NEW
@@ -649,6 +650,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             )
         }
     }
+    /** Deduct one boost locally after using a boost. */
+    fun decrementBoostsLocal() {
+        _currentUserProfile.update { prof ->
+            prof?.copy(
+                availableBoosts = (prof.availableBoosts - 1).coerceAtLeast(0)
+            )
+        }
+    }
+
 
     /** Increment compliments balance locally after a rewarded ad. */
     fun incrementComplimentsLocal() {

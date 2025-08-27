@@ -37,6 +37,7 @@ enum class PurchaseType(
     val unitPriceUsd: Double
 ) {
     Swipes      ("swipes",      "Swipes",       100, 0.29),
+    Boosts      ("boosts",      "Boosts",       200, 1.99),
     Compliments ("compliments", "Compliments",  150, 0.29),
     AiMessages  ("aiMessages",  "AI messages",  200, 1.99);
 
@@ -218,6 +219,7 @@ fun OneTimePurchaseScreen(
 
 private fun qtyField(t: PurchaseType) = when (t) {
     PurchaseType.Swipes      -> "swipesInfo/remainingSwipes"
+    PurchaseType.Boosts      -> "availableBoosts"
     PurchaseType.Compliments -> "availableCompliments"
     PurchaseType.AiMessages  -> "availableAiMessages"
 }

@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import android.content.Context
+import androidx.compose.material.icons.outlined.DynamicFeed
 
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -52,8 +53,8 @@ import android.content.Context
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel, locationManager: LocationManager) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
-        BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
-        BottomNavItem(stringResource(R.string.feed), Icons.Outlined.Home, "home"),
+        BottomNavItem(stringResource(R.string.nav_date), Icons.Default.Favorite, "dating"),
+        BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Place, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
         BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
     )
@@ -151,6 +152,7 @@ fun TopNavBar(
     var showLocationPrefDialog by remember { mutableStateOf(false) }
     var allowLocationForMatches by remember { mutableStateOf(false) }
     var allowLocationPublic by remember { mutableStateOf(false) }
+    var isPrivate by remember { mutableStateOf(false) }
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val mapSelectedTab by savedStateHandle?.getStateFlow("mapSelectedTab", 0)?.collectAsState()
@@ -205,6 +207,16 @@ fun TopNavBar(
                 } else {
                     allowLocationPublic = savedPublicPref
                 }
+
+                // Fetch isPrivate
+                val savedPrivatePref = snapshot.child("isPrivate").getValue(Boolean::class.java)
+                if (savedPrivatePref == null) {
+                    profileRef.child("isPrivate").setValue(false)
+                    isPrivate = false
+                } else {
+                    isPrivate = savedPrivatePref
+                }
+
                 // Track spoofed country
                 val spoofed = snapshot.child("isLocationSpoofed").getValue(Boolean::class.java) == true
                 val country = snapshot.child("country").getValue(String::class.java) ?: ""
@@ -737,6 +749,29 @@ fun TopNavBar(
                             )
                         )
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.settings_private_account),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = isPrivate,
+                            onCheckedChange = { isPrivate = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6F00),
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color.Gray
+                            )
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.private_account_desc),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             },
             confirmButton = {
@@ -787,12 +822,17 @@ fun BottomNavigationBar(
                             (currentRoute?.startsWith("previewUserProfile/") == true &&
                                     navController.previousBackStackEntry?.destination?.route == "profile")
                 }
+                "dating" -> {
+                    currentRoute == "dating" ||
+                            currentRoute?.startsWith("dating_screen") == true
+                }
                 "settings" -> {
                     currentRoute == "settings" ||
                             currentRoute == "manageSubscription" ||
                             currentRoute == "buySwipes" ||
                             currentRoute == "buyCompliments" ||
                             currentRoute == "buyAiMessages" ||
+                            currentRoute == "buyBoosts" ||
                             currentRoute == "subscription" ||
                             currentRoute == "upgradeLanding" ||
                             currentRoute == "policies"

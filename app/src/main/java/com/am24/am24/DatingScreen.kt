@@ -9,6 +9,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 /* Material 3 (add these – they won’t clash with existing M2 widgets) */
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.DropdownMenuItem
@@ -80,6 +81,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
@@ -223,16 +226,19 @@ fun DatingScreen(
     val canBoost = availableBoosts > 0 && !inCooldown
 
     var showComplimentDlg by remember { mutableStateOf(false) }
+    var showBoostFlash by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
     val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
+    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
 
     DisposableEffect(Unit) {
         onDispose {
             rewardedComplimentManager.clearCallbacks()
             rewardedSwipeManager.clearCallbacks()
+            rewardedBoostManager.clearCallbacks()
         }
     }
 
@@ -541,6 +547,75 @@ fun DatingScreen(
                             }
                         }
                     )
+                    Spacer(Modifier.width(13.dp))
+
+                    /* ⚡  Boosts */
+                    WaterIconButton(
+                        quota    = myProfile!!.availableBoosts,
+                        maxQuota = 5,
+                        icon     = Icons.Default.FlashOn,
+                        tint     = if (canBoost) Color.White else Color.Gray,
+                        enabled  = canBoost,
+                        onClick  = {
+                            if (canBoost) {
+                                val myUid = FirebaseAuth.getInstance().uid ?: return@WaterIconButton
+                                datingViewModel.boostUser(myUid) {
+                                    profileViewModel.decrementBoostsLocal()
+                                    showBoostFlash = true
+                                    profileViewModel.fetchCurrentUserProfile()
+                                }
+                            } else {
+                                // no boosts → go buy more
+                                if (isIndian) {
+                                    navController.navigate("buyBoosts")
+                                } else {
+                                    rewardedBoostManager.showWithDailyLimit(
+                                        userId = FirebaseAuth.getInstance().uid ?: return@WaterIconButton,
+                                        onReward = {
+                                            profileViewModel.incrementBoostsLocal()
+                                            datingViewModel.incrementBoostsLocal()
+                                            val uid = FirebaseAuth.getInstance().uid
+                                            if (uid != null) {
+                                                val newVal = myProfile!!.availableBoosts + 1
+                                                coroutineScope.launch {
+                                                    FirebaseRefs.db.getReference("users/$uid/availableBoosts")
+                                                        .setValue(newVal)
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+
+            /* yellow flash overlay on successful boost */
+            AnimatedVisibility(
+                visible = showBoostFlash,
+                enter   = fadeIn(animationSpec = tween(250)),
+                exit    = fadeOut(animationSpec = tween(600))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .border(3.dp, Color(0xFFFF6F00), CircleShape)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.FlashOn, null,
+                        tint = Color(0xFFFF6F00),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            LaunchedEffect(showBoostFlash) {
+                if (showBoostFlash) {
+                    delay(2000)
+                    showBoostFlash = false
                 }
             }
 

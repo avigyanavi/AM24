@@ -4,6 +4,7 @@
 package com.am24.am24
 
 import EditPicAndVoiceBioScreen
+import DatingViewModel
 import android.app.Application
 import android.net.Uri
 import android.os.Build
@@ -91,6 +92,11 @@ fun MainNavGraph(
         )
     )
     val nearbyViewModel: NearbyViewModel = viewModel()
+    val datingViewModel: DatingViewModel = viewModel(
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+            LocalContext.current.applicationContext as Application
+        )
+    )
 
     // Initialize LocationManager (safe inside Composable)
     val context = LocalContext.current
@@ -100,9 +106,33 @@ fun MainNavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = "home",
+        startDestination = "map",
         modifier = modifier
     ) {
+        composable("dating") {
+            DatingScreen(
+                navController = navController,
+                geoFire = geoFire,
+                datingViewModel = datingViewModel
+            )
+        }
+        composable(
+            route = "dating_screen?initialQuery={initialQuery}",
+            arguments = listOf(
+                navArgument("initialQuery") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
+            DatingScreen(
+                navController = navController,
+                geoFire = geoFire,
+                datingViewModel = datingViewModel,
+                initialQuery = initialQuery
+            )
+        }
         composable("dms") {
             DMScreen(
                 navController = navController,
@@ -346,8 +376,18 @@ fun MainNavGraph(
             navController,
             onBack = { navController.popBackStack() }
         ) }
+        composable("buyBoosts") { OneTimePurchaseScreen(
+            type = PurchaseType.Boosts,
+            navController,
+            onBack = { navController.popBackStack() }
+        ) }
         composable("buyCompliments") { OneTimePurchaseScreen(
             type = PurchaseType.Compliments,
+            navController,
+            onBack = { navController.popBackStack() }
+        ) }
+        composable("buyBoosts") { OneTimePurchaseScreen(
+            type = PurchaseType.Boosts,
             navController,
             onBack = { navController.popBackStack() }
         ) }
