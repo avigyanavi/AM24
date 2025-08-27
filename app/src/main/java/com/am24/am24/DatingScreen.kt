@@ -192,7 +192,7 @@ fun DatingFiltersSheet(
                 onDismissRequest = { orientationExpanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("All") },
+                    text = { Text("All", color = KupidxOrange) },
                     onClick = {
                         onOrientationChange("")
                         orientationExpanded = false
@@ -200,7 +200,7 @@ fun DatingFiltersSheet(
                 )
                 orientationOptions.forEach { opt ->
                     DropdownMenuItem(
-                        text = { Text(opt) },
+                        text = { Text(opt, color = KupidxOrange) },
                         onClick = {
                             onOrientationChange(opt.toOrientationCode()?.name ?: "")
                             orientationExpanded = false
