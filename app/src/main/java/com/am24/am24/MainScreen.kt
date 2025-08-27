@@ -306,6 +306,25 @@ fun TopNavBar(
                 }
             }
 
+            val showHomeButton = currentRoute in listOf("dating", "map", "dms", "home")
+            if (showHomeButton) {
+                IconButton(onClick = {
+                    if (isOnHome) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate("home") {
+                            launchSingleTop = true
+                        }
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.RssFeed,
+                        contentDescription = stringResource(R.string.cd_go_to_feed),
+                        tint = if (isOnHome) Color(0xFFFF6F00) else Color.White
+                    )
+                }
+            }
+
 //            if (isPlus && currentRoute == "map" && mapSelectedTab == 0) {
 //                Box {
 //                    Row(verticalAlignment = Alignment.CenterVertically) {

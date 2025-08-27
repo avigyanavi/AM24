@@ -234,6 +234,19 @@ fun DatingScreen(
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
     val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    fun safeRefresh() {
+        try {
+            datingViewModel.refreshFilteredProfiles()
+        } catch (e: Exception) {
+            Log.e("DatingScreen", "Failed to refresh profiles: ${e.message}", e)
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Failed to refresh profiles")
+            }
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             rewardedComplimentManager.clearCallbacks()
@@ -249,7 +262,7 @@ fun DatingScreen(
             profileViewModel.fetchCurrentUserProfile()
             remainingSwipes = loadAndResetSwipesDaily(uid)
             swipesLoaded    = true
-            datingViewModel.refreshFilteredProfiles()
+            safeRefresh()
         }
     }
 
@@ -2645,6 +2658,8 @@ fun ProfileCollapsibleSectionsAll(
     val context = LocalContext.current // ✅ declare at the top of the Composable
     val activity = LocalContext.current as Activity
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
+    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
+
 
     DisposableEffect(Unit) {
         onDispose { rewardedSwipeManager.clearCallbacks() }

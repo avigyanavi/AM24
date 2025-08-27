@@ -187,6 +187,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                         ?: rawFilters.sexualOrientation
                 )
 
+                val safeFilters = sanitizeFilters(filtersDb)
+                _datingFilters.value = safeFilters
 
                 /* ▶︎ if gender not set yet, seed it from profile.interestedIn */
                 val seededFilters = if (filtersDb.gender.isBlank()) {
@@ -415,6 +417,14 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
         val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
 
+        Log.d(TAG, "⬅️ getNearbyProfiles returned ${list.size} profiles")
+        if (list.size == 1) {
+            Log.w(TAG, "Only one profile returned from getNearbyProfiles")
+        }
+        if (list.size == 0) {
+            Log.w(TAG, "O profile returned from getNearbyProfiles")
+        }
+
         list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
     }
 
@@ -517,10 +527,28 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         notifRef.child(receiverId).child(id).setValue(payload).await()
     }
 
+    private fun sanitizeText(input: String?, max: Int = 64): String {
+        if (input == null) return ""
+        val cleaned = input.replace(Regex("[\\r\\n\\t]"), " ").trim()
+        return cleaned.take(max)
+    }
 
+    private fun sanitizeFilters(raw: DatingFilterSettings): DatingFilterSettings {
+        return raw.copy(
+            city = sanitizeText(raw.city),
+            highSchool = sanitizeText(raw.highSchool),
+            college = sanitizeText(raw.college),
+            postGrad = sanitizeText(raw.postGrad),
+            work = sanitizeText(raw.work),
+            community = sanitizeText(raw.community),
+            religion = sanitizeText(raw.religion),
+            caste = sanitizeText(raw.caste),
+            ethnicity = sanitizeText(raw.ethnicity),
+            incomeLevel = sanitizeText(raw.incomeLevel)
+        )
+    }
     private suspend fun applyDatingFilters(profiles: List<Profile>, filters: DatingFilterSettings, blocked:  List<String> // ← NEW
     ): List<Profile> = coroutineScope {
-        Log.d(TAG, "⚙️ FILTER DUMP  ->  $filters")   // ← add
 
         // Fetch blocked users
         var result = profiles.filterNot { blocked.contains(it.userId) }

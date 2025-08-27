@@ -338,10 +338,12 @@ exports.chatSuggestions = functions
         lang            // 🆕 preferred
       } = req.body || {};
 
-    console.log("[chatSuggestions] got lang:", lang);
-
-      const code     = (lang).toLowerCase().slice(0, 2);
+      const code = String(body.lang ?? "en").trim().slice(0, 2).toLowerCase();
       const language = LANG[code] || "English";
+
+            // Optional: basic payload guardrails so you don’t blow tokens
+            const trimmed = messages.slice(-10);
+            const images = trimmed.filter((m) => m && m.imageUrl).slice(-3);
 
       /* ─── build GPT messages ─── */
       const gptMsgs = [
@@ -386,7 +388,6 @@ exports.chatSuggestions = functions
 
       return res.set("Access-Control-Allow-Origin", "*").send(json);
     } catch (err) {
-      console.error("chatSuggestions error:", err);
       return res.status(500).send(err.message || "internal error");
     }
   });

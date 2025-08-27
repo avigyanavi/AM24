@@ -19,6 +19,7 @@ object AdUnitIds {
 
     fun native(ctx: Context) = if (isIndia(ctx)) NATIVE_IN else NATIVE_GLOBAL
     fun interstitial(ctx: Context) = if (isIndia(ctx)) INTERSTITIAL_IN else INTERSTITIAL_GLOBAL
+    fun rewardedBoost(ctx: Context) = if (isIndia(ctx)) REWARDED_BOOST_IN else REWARDED_BOOST_GLOBAL
     fun rewardedCompliment(ctx: Context) = if (isIndia(ctx)) REWARDED_COMPLIMENT_IN else REWARDED_COMPLIMENT_GLOBAL
     fun rewardedSwipe(ctx: Context) = if (isIndia(ctx)) REWARDED_SWIPE_IN else REWARDED_SWIPE_GLOBAL
 }
