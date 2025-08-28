@@ -151,6 +151,7 @@ fun NotificationCard(
         "chat_message" -> Icons.Default.ChatBubbleOutline to "chat/${notification.senderId}"
         "new_like"       -> Icons.Default.Favorite      to "peopleWhoLikedMe"
         "new_compliment" -> Icons.Default.EmojiEmotions to "peopleWhoLikedMe"          // or a “compliments” inbox
+        "streak_plus"    -> Icons.Default.Favorite      to "peopleWhoLikedMe"
         "new_match"      -> Icons.Default.People        to "dms"
         else             -> Icons.Default.Notifications to null                        // fallback
     }

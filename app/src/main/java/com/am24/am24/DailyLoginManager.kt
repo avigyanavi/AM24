@@ -1,6 +1,7 @@
 package com.am24.am24
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 
@@ -45,6 +46,23 @@ suspend fun checkDailyLoginReward(): DailyLoginInfo? {
         val expiry = now + rewardHours * 60 * 60 * 1000
         ref.child("loginPlusExpiry").setValue(expiry)
         ref.child("isPlus").setValue(true)
+
+
+        val notificationsRef: DatabaseReference = FirebaseRefs.db.getReference("notifications")
+        val notificationId = notificationsRef.child(uid).push().key
+        notificationId?.let { id ->
+            val message = MyApp.instance.getString(R.string.notification_streak_plus_message)
+            val notification = Notification(
+                id = id,
+                type = "streak_plus",
+                senderId = "Kupidx",
+                senderUsername = "Kupidx",
+                message = message,
+                timestamp = now,
+                isRead = "false"
+            )
+            notificationsRef.child(uid).child(id).setValue(notification).await()
+        }
     }
 
     return DailyLoginInfo(streak, rewardHours)

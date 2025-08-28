@@ -53,8 +53,8 @@ import androidx.compose.material.icons.outlined.DynamicFeed
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel, locationManager: LocationManager) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
-        BottomNavItem(stringResource(R.string.nav_date), Icons.Default.Favorite, "dating"),
-        BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Place, "map"),
+        BottomNavItem(stringResource(R.string.feed), Icons.Outlined.DynamicFeed, "home"),
+        BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
         BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
     )
@@ -216,7 +216,6 @@ fun TopNavBar(
                 } else {
                     isPrivate = savedPrivatePref
                 }
-
                 // Track spoofed country
                 val spoofed = snapshot.child("isLocationSpoofed").getValue(Boolean::class.java) == true
                 val country = snapshot.child("country").getValue(String::class.java) ?: ""
@@ -303,25 +302,6 @@ fun TopNavBar(
                 }
                 IconButton(onClick = { navController.navigate("feedback_list") }) {
                     Icon(Icons.Default.Feedback, contentDescription = "View Feedback")
-                }
-            }
-
-            val showHomeButton = currentRoute in listOf("dating", "map", "dms", "home")
-            if (showHomeButton) {
-                IconButton(onClick = {
-                    if (isOnHome) {
-                        navController.popBackStack()
-                    } else {
-                        navController.navigate("home") {
-                            launchSingleTop = true
-                        }
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.RssFeed,
-                        contentDescription = stringResource(R.string.cd_go_to_feed),
-                        tint = if (isOnHome) Color(0xFFFF6F00) else Color.White
-                    )
                 }
             }
 
@@ -798,6 +778,7 @@ fun TopNavBar(
                     val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
                     userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
                     userRef.child("allowLocationPublic").setValue(allowLocationPublic)
+                    userRef.child("isPrivate").setValue(isPrivate)
                         .addOnFailureListener { e ->
                             Log.e("TopNavBar", "Failed to save preference: ${e.message}")
                         }
@@ -841,17 +822,12 @@ fun BottomNavigationBar(
                             (currentRoute?.startsWith("previewUserProfile/") == true &&
                                     navController.previousBackStackEntry?.destination?.route == "profile")
                 }
-                "dating" -> {
-                    currentRoute == "dating" ||
-                            currentRoute?.startsWith("dating_screen") == true
-                }
                 "settings" -> {
                     currentRoute == "settings" ||
                             currentRoute == "manageSubscription" ||
                             currentRoute == "buySwipes" ||
                             currentRoute == "buyCompliments" ||
                             currentRoute == "buyAiMessages" ||
-                            currentRoute == "buyBoosts" ||
                             currentRoute == "subscription" ||
                             currentRoute == "upgradeLanding" ||
                             currentRoute == "policies"

@@ -66,4 +66,9 @@ class MyApp : Application() {
                 Build.MODEL.contains("Android SDK built for x86") ||
                 Build.MANUFACTURER.contains("Genymotion")
     }
+
+    companion object {
+        lateinit var instance: MyApp
+            private set
+    }
 }

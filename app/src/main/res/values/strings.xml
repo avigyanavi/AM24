@@ -33,9 +33,7 @@
         <item>Asexual</item>
         <item>Queer</item>
     </string-array>
-
-
-
+    <string name="notification_streak_plus_message">Your streak unlocked Plus—see who liked you!</string>
     <string name="watch_ad_boost">Watch ad for 1 Boost</string>
     <string name="watch_ad_compliment">Watch ad for 1 Compliment</string>
     <string name="watch_ad_swipes">Watch ad for 5 Swipes</string>
