@@ -259,10 +259,6 @@ fun TopNavBar(
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     LaunchedEffect(Unit) {
-        val savedHomeCountry = prefs.getString("home_country_filter", "") ?: ""
-        if (savedHomeCountry.isNotBlank()) {
-            postViewModel.setCountryFilter(savedHomeCountry)
-        }
         val savedOrientation = prefs.getString("map_orientation_filter", "") ?: ""
         savedStateHandle?.set("mapOrientationFilter", savedOrientation)
     }
@@ -607,38 +603,6 @@ fun TopNavBar(
                         tint = Color.White,
                         modifier = Modifier.size(28.dp)
                     )
-                }
-                IconButton(onClick = {
-                        homeCountryMenuExpanded = true
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Public,
-                        contentDescription = stringResource(R.string.cd_country_filter),
-                        tint = if (homeSelectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = homeCountryMenuExpanded,
-                    onDismissRequest = { homeCountryMenuExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.clear_country_filter)) },
-                        onClick = {
-                            postViewModel.setCountryFilter("")
-                            homeCountryMenuExpanded = false
-                        }
-                    )
-                    val countryOptions = stringArrayResource(R.array.country_names).toList()
-                    countryOptions.forEach { c ->
-                        DropdownMenuItem(
-                            text = { Text(c) },
-                            onClick = {
-                                postViewModel.setCountryFilter(c)
-                                homeCountryMenuExpanded = false
-                            }
-                        )
-                    }
                 }
             }
 

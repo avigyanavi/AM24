@@ -435,8 +435,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 fetchBlockedUsers(_currentUserId.value!!)
             else emptyList()   // <- still proceed!
 
-            val viewerCountry = _currentUserId.value?.let { fetchUserCountry(it) } ?: ""
-
             if (_currentUserId.value == null) {
                 _isLoading.value = false
                 _postsLoaded.value = true
@@ -449,19 +447,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         try {
                             val post = postSnapshot.getValue(Post::class.java)
                             if (post != null && !blockedUsers.contains(post.userId)) {
-                                if (post.country.isBlank()) {
-                                    // Backfill missing country
-                                    val postId = postSnapshot.key ?: continue
-                                    viewModelScope.launch(Dispatchers.IO) {
-                                        val userCountry = fetchUserCountry(post.userId)
-                                        if (userCountry.isNotBlank()) {
-                                            postsRef.child(postId).child("country").setValue(userCountry).await()
-                                        }
-                                    }
-                                } else if (post.country == viewerCountry) {
                                     postsList.add(post)
                                     Log.d("PostViewModel", "Added post: $post")
-                                }
                             } else if (post == null) {
                                 Log.w("PostViewModel", "Failed to deserialize post at ${postSnapshot.key}: ${postSnapshot.value}")
                             }
@@ -1660,13 +1647,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            // Country filter
-            if (filters.country.isNotBlank()) {
-                filteredList = filteredList.filter { post ->
-                    val profileCountry = profiles[post.userId]?.country
-                    profileCountry.equals(filters.country, ignoreCase = true)
-                }
-            }
 
             // Localities filter
             if (filters.localities.isNotEmpty()) {
@@ -1783,10 +1763,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _filterSettings.value = _filterSettings.value.copy(sortOption = newSortOption)
     }
 
-    fun setCountryFilter(country: String) {
-        val current = _feedFilters.value
-        setFeedFilters(current.copy(feedFilters = current.feedFilters.copy(country = country)))
-    }
 
     private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
         val currentUserId = currentUserIdFlow.value ?: ""

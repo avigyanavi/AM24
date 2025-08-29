@@ -587,6 +587,12 @@ fun FeedItem(
     var showDownvoteAnimation by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
 
+    // Fallbacks when the author's profile hasn't been loaded yet
+    val authorName = userProfile?.username ?: post.username
+    val authorPicUrl = userProfile?.profilepicThumbnailUrl
+        ?: userProfile?.profilepicUrl
+        ?: post.profilepicUrl
+
     // Local vote state
     var localUpvotes by remember(post.postId) { mutableStateOf(post.upvotes) }
     var localDownvotes by remember(post.postId) { mutableStateOf(post.downvotes) }
@@ -715,16 +721,13 @@ fun FeedItem(
                     // User profile picture
                     val placeholder = painterResource(R.drawable.local_placeholder)
                     val context = LocalContext.current
-                    val model = userProfile?.let { profile ->
-                        val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
-                        url?.let {
-                            val pathKey = Uri.parse(it).path
-                            ImageRequest.Builder(context)
-                                .data(it)
-                                .diskCacheKey(pathKey)
-                                .memoryCacheKey(pathKey)
-                                .build()
-                        }
+                    val model = authorPicUrl?.let { url ->
+                        val pathKey = Uri.parse(url).path
+                        ImageRequest.Builder(context)
+                            .data(url)
+                            .diskCacheKey(pathKey)
+                            .memoryCacheKey(pathKey)
+                            .build()
                     }
                     AsyncImage(
                         model = model,
@@ -740,7 +743,7 @@ fun FeedItem(
                     Column {
                         Row {
                             Text(
-                                text = userProfile?.username.toString(),
+                                text = authorName,
                                 color = Color.White,
                                 fontWeight = FontWeight.Light,
                                 fontSize = dynamicFontSize
