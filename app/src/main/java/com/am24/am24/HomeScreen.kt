@@ -535,6 +535,7 @@ fun FeedSection(
                         adUnitId  = AdUnitIds.native(context),
                         modifier  = Modifier
                             .fillMaxWidth()
+                            .wrapContentHeight()
                             .padding(vertical = 8.dp)
                     )
                 }

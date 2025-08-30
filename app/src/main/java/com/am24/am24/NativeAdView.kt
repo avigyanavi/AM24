@@ -102,10 +102,16 @@ fun NativeAdCard(
 
             // 2) Asset views
             val headlineView = TextView(ctx).apply {
-                setTextColor(AndroidColor.WHITE); textSize = 4f
+                setTextColor(AndroidColor.WHITE)
+                textSize = 16f
             }
-            val bodyView     = TextView(ctx).apply {
-                setTextColor(AndroidColor.LTGRAY); textSize = 14f
+            val bodyView = if (ad.body != null) {
+                TextView(ctx).apply {
+                    setTextColor(AndroidColor.LTGRAY)
+                    textSize = 14f
+                }
+            } else {
+                null
             }
             val iconView     = ImageView(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -128,7 +134,7 @@ fun NativeAdCard(
 
             // 3) Wire up the asset views
             adView.headlineView     = headlineView
-            adView.bodyView         = bodyView
+            bodyView?.let { adView.bodyView = it }
             adView.iconView         = iconView
             adView.mediaView        = mediaView
             adView.callToActionView = ctaView
@@ -137,6 +143,7 @@ fun NativeAdCard(
             val container = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 addView(headlineView)
+                bodyView?.let { addView(it) }
                 addView(iconView)
                 addView(mediaView)
                 addView(ctaView)
