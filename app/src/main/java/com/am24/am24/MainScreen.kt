@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.material.icons.outlined.DynamicFeed
+import androidx.compose.material.icons.outlined.RssFeed
 import kotlinx.coroutines.launch
 
 
@@ -53,7 +54,7 @@ import kotlinx.coroutines.launch
 fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewModel: PostViewModel, locationManager: LocationManager) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
-        BottomNavItem(stringResource(R.string.feed), Icons.Outlined.DynamicFeed, "home"),
+        BottomNavItem(stringResource(R.string.feed), Icons.Outlined.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
         BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
@@ -297,10 +298,13 @@ fun TopNavBar(
             }
         },
         actions = {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
             if (isAdmin) {
                 IconButton(onClick = { navController.navigate("verifications_review") }) {
                     Icon(Icons.Default.VerifiedUser, contentDescription = "Review IDs")
@@ -310,7 +314,13 @@ fun TopNavBar(
                 }
             }
 
-                IconButton(onClick = { navController.navigate("dating") }) {
+                    IconButton(onClick = {
+                        if (currentRoute == "dating") {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate("dating")
+                        }
+                    }) {
                     Icon(
                         imageVector = Icons.Default.Swipe,
                         contentDescription = stringResource(R.string.cd_dating_shortcut),
@@ -770,39 +780,40 @@ fun TopNavBar(
                 }
             }
 
-            // Notifications Icon
-            IconButton(onClick = {
-                if (isNotificationsSelected) {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("notifications")
                 }
-            }) {
-                BadgedBox(
-                    badge = {
-                        if (unreadCount.value > 0) {
-                            Badge(
-                                containerColor = Color.Red,
-                                modifier = Modifier.size(15.dp)
-                            ) {
-                                Text(
-                                    text = unreadCount.value.toString(),
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
+                // Notifications Icon
+                IconButton(onClick = {
+                    if (isNotificationsSelected) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate("notifications")
+                    }
+                }) {
+                    BadgedBox(
+                        badge = {
+                            if (unreadCount.value > 0) {
+                                Badge(
+                                    containerColor = Color.Red,
+                                    modifier = Modifier.size(15.dp)
+                                ) {
+                                    Text(
+                                        text = unreadCount.value.toString(),
+                                        color = Color.White,
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
-                        }
-                    },
-                    modifier = Modifier.size(20.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                        },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
-            }
             }
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
